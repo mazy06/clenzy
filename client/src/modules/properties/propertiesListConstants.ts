@@ -35,27 +35,23 @@ const PROPERTY_STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
   ARCHIVED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
 };
 
-/** Sx d'un chip de statut propriété (géométrie pilule héritée du thème global MuiChip). */
-export function propertyStatusChipSx(status: string) {
+/** Tokens de statut d'un logement, pour la primitive StatusChip. */
+export function propertyStatusTokens(status: string) {
   const tk = PROPERTY_STATUS_TOKEN[status?.toUpperCase()] ?? { fg: 'var(--muted)', bg: 'var(--hover)' };
-  return { color: tk.fg, bgcolor: tk.bg, border: 'none', '& .MuiChip-icon': { color: tk.fg } } as const;
+  return { color: tk.fg, bg: tk.bg };
 }
 
 /**
- * Sx d'un chip « -soft » dérivé d'une couleur de donnée (type, équipement, fréquence…) —
- * texte couleur + fond translucide, géométrie pilule du thème global.
+ * Puce « champ » (.fr-chip) — equipements, services : encre de corps sur fond
+ * de champ, cernee d'une hairline. Ce n'est pas un statut : la bordure vient
+ * donc d'une classe, pas de la recette `-soft` de la primitive.
  */
-export function softDataChipSx(hex: string) {
-  return { color: hex, bgcolor: `${hex}1F`, border: 'none', '& .MuiChip-icon': { color: hex } } as const;
-}
-
-/** Chip neutre « champ » (.fr-chip) pour équipements / services. */
-export const FIELD_CHIP_SX = {
-  color: 'var(--body)',
-  bgcolor: 'var(--field)',
-  border: '1px solid var(--field-line)',
-  '& .MuiChip-icon': { color: 'var(--accent)' },
-} as const;
+export const FIELD_TOKENS = { color: 'var(--body)', bg: 'var(--field)' } as const;
+// `border-solid` est indispensable : le gabarit de la primitive pose
+// `border-none` (border-style), que tailwind-merge ne considere pas en
+// conflit avec `border` (border-width). Sans lui, la largeur est bien
+// appliquee mais le style reste `none` — bordure invisible.
+export const FIELD_CHIP_CLASS = 'border border-solid border-[var(--field-line)] [&>svg]:text-[var(--accent)]';
 
 // ─── Vignette « Signature » : dégradé déterministe par logement ──────────────
 // La maquette propriétés (.pr-img / .pr-lthumb) utilise un dégradé 135° propre

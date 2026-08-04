@@ -69,7 +69,7 @@ export type {
 export { applyStreamEvent } from './core/applyStreamEvent';
 export { useCountdown } from './core/useCountdown';
 export type { Countdown } from './core/useCountdown';
-export { SupervisionPanel } from './components/SupervisionPanel';
+export { SupervisionPanel, SUPERVISION_ASK_EVENT } from './components/SupervisionPanel';
 export type { SupervisionPanelProps } from './components/SupervisionPanel';
 export { ConstellationSkeleton } from './components/ConstellationSkeleton';
 export { SupervisionChatBar } from './components/SupervisionChatBar';

@@ -1,35 +1,40 @@
 import React, { useMemo, useState } from 'react';
+import { cn } from '../../utils/cn';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
-  Box,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Button,
-  Typography,
-  CircularProgress,
-  TextField,
-  MenuItem,
-  Chip,
-  Switch,
-  Alert,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Snackbar,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Skeleton,
-  ToggleButtonGroup,
-  ToggleButton,
-  InputAdornment,
+  Switch,
+  ToggleGroup,
+  ToggleGroupItem,
   Tooltip,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+  NativeSelect,
+  Textarea,
+} from '../../components/ui';
+import StatusChip from '../../components/StatusChip';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Add, Percent, LocalOffer, Refresh, CheckCircle, TrendingUp } from '../../icons';
 import PageHeader from '../../components/PageHeader';
+import { useNotification } from '../../hooks/useNotification';
 import StatTile from '../../components/StatTile';
 import EmptyState from '../../components/EmptyState';
 import {
@@ -144,121 +149,135 @@ function CreateCodeDialog({ open, onClose, onCreated }: CreateDialogProps) {
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Add size={20} strokeWidth={1.75} />
-        Nouveau code promo
-      </DialogTitle>
-      <DialogContent>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      {/* `aria-describedby={undefined}` : la modale n'a pas de texte descriptif. */}
+      <DialogContent aria-describedby={undefined} className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle className="flex flex-row items-center gap-1.5 pe-8">
+            <Add size={20} strokeWidth={1.75} />
+            Nouveau code promo
+          </DialogTitle>
+        </DialogHeader>
+        {/* Le contenu de la modale du kit ne defile pas de lui-meme : ce
+            formulaire est long, on lui donne sa propre zone de defilement. */}
+        <div className="flex flex-col gap-3 max-h-[65vh] overflow-y-auto -mx-0.5 px-0.5">
           {error && (
-            <Alert severity="error" onClose={() => setError(null)}>
-              {error}
-            </Alert>
+            <BuiAlert variant="destructive">
+              <TriangleAlert />
+              <AlertDescription>{error}</AlertDescription>
+              <AlertAction>
+                <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+                  <X />
+                </BuiButton>
+              </AlertAction>
+            </BuiAlert>
           )}
 
-          <TextField
-            label="Code *"
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="WELCOME2026"
-            inputProps={{ style: { textTransform: 'uppercase' }, maxLength: 50 }}
-            helperText="Sera normalisé en majuscules"
-            autoFocus
-            fullWidth
-            size="small"
-          />
-
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-            <TextField
-              select
-              label="Type de réduction *"
-              value={discountType}
-              onChange={(e) => setDiscountType(e.target.value as 'PERCENTAGE' | 'FIXED')}
-              size="small"
-            >
-              <MenuItem value="PERCENTAGE">Pourcentage (%)</MenuItem>
-              <MenuItem value="FIXED">Montant fixe (€)</MenuItem>
-            </TextField>
-
-            <TextField
-              label={discountType === 'PERCENTAGE' ? 'Pourcentage *' : 'Montant en centimes *'}
-              value={discountValue}
-              onChange={(e) => setDiscountValue(e.target.value.replace(/[^0-9]/g, ''))}
-              placeholder={discountType === 'PERCENTAGE' ? '30' : '500'}
-              helperText={
-                discountType === 'PERCENTAGE'
-                  ? 'Entre 1 et 100'
-                  : "Centimes (500 = 5,00€)"
-              }
-              size="small"
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    {discountType === 'PERCENTAGE' ? '%' : 'centimes'}
-                  </InputAdornment>
-                ),
-              }}
+          <Field>
+            <FieldLabel htmlFor="promo-code">Code *</FieldLabel>
+            <Input
+              id="promo-code"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="WELCOME2026"
+              maxLength={50}
+              className="uppercase"
+              autoFocus
             />
-          </Box>
+            <FieldDescription>Sera normalisé en majuscules</FieldDescription>
+          </Field>
 
-          <TextField
-            label="Nombre maximum d'utilisations"
-            value={maxUses}
-            onChange={(e) => setMaxUses(e.target.value.replace(/[^0-9]/g, ''))}
-            placeholder="Laisser vide pour illimité"
-            helperText="Vide = utilisations illimitées"
-            size="small"
-            fullWidth
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <Field>
+              <FieldLabel htmlFor="promo-discount-type">Type de réduction *</FieldLabel>
+              <NativeSelect
+                id="promo-discount-type"
+                className="w-full"
+                value={discountType}
+                onChange={(e) => setDiscountType(e.target.value as 'PERCENTAGE' | 'FIXED')}
+              >
+                <option value="PERCENTAGE">Pourcentage (%)</option>
+                <option value="FIXED">Montant fixe (€)</option>
+              </NativeSelect>
+            </Field>
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-            <TextField
-              label="Valide à partir du"
-              type="date"
-              value={validFrom}
-              onChange={(e) => setValidFrom(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              size="small"
-              helperText="Optionnel"
+            <Field>
+              <FieldLabel htmlFor="promo-discount-value">
+                {discountType === 'PERCENTAGE' ? 'Pourcentage *' : 'Montant en centimes *'}
+              </FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="promo-discount-value"
+                  value={discountValue}
+                  onChange={(e) => setDiscountValue(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder={discountType === 'PERCENTAGE' ? '30' : '500'}
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupText>{discountType === 'PERCENTAGE' ? '%' : 'centimes'}</InputGroupText>
+                </InputGroupAddon>
+              </InputGroup>
+              <FieldDescription>
+                {discountType === 'PERCENTAGE' ? 'Entre 1 et 100' : 'Centimes (500 = 5,00€)'}
+              </FieldDescription>
+            </Field>
+          </div>
+
+          <Field>
+            <FieldLabel htmlFor="promo-max-uses">Nombre maximum d'utilisations</FieldLabel>
+            <Input
+              id="promo-max-uses"
+              value={maxUses}
+              onChange={(e) => setMaxUses(e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="Laisser vide pour illimité"
             />
-            <TextField
-              label="Valide jusqu'au"
-              type="date"
-              value={validUntil}
-              onChange={(e) => setValidUntil(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              size="small"
-              helperText="Optionnel"
-            />
-          </Box>
+            <FieldDescription>Vide = utilisations illimitées</FieldDescription>
+          </Field>
 
-          <TextField
-            label="Description (interne)"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Ex : campagne lancement Q3 2026"
-            multiline
-            rows={2}
-            inputProps={{ maxLength: 255 }}
-            size="small"
-            fullWidth
-          />
-        </Box>
+          <div className="grid grid-cols-2 gap-3">
+            <Field>
+              <FieldLabel htmlFor="promo-valid-from">Valide à partir du</FieldLabel>
+              <Input
+                id="promo-valid-from"
+                type="date"
+                value={validFrom}
+                onChange={(e) => setValidFrom(e.target.value)}
+              />
+              <FieldDescription>Optionnel</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="promo-valid-until">Valide jusqu'au</FieldLabel>
+              <Input
+                id="promo-valid-until"
+                type="date"
+                value={validUntil}
+                onChange={(e) => setValidUntil(e.target.value)}
+              />
+              <FieldDescription>Optionnel</FieldDescription>
+            </Field>
+          </div>
+
+          <Field>
+            <FieldLabel htmlFor="promo-description">Description (interne)</FieldLabel>
+            <Textarea
+              id="promo-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Ex : campagne lancement Q3 2026"
+              rows={2}
+              maxLength={255}
+            />
+          </Field>
+        </div>
+        <DialogFooter>
+          <BuiButton variant="ghost" onClick={handleClose} disabled={createMutation.isPending}>
+            Annuler
+          </BuiButton>
+          <BuiButton onClick={handleSubmit} disabled={createMutation.isPending}>
+            {createMutation.isPending ? <Spinner className="size-4" /> : <Add />}
+            Créer
+          </BuiButton>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} disabled={createMutation.isPending}>
-          Annuler
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleSubmit}
-          disabled={createMutation.isPending}
-          startIcon={createMutation.isPending ? <CircularProgress size={16} /> : <Add size={16} />}
-        >
-          Créer
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }
@@ -269,11 +288,7 @@ export default function PromoCodesPage() {
   const queryClient = useQueryClient();
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [createOpen, setCreateOpen] = useState(false);
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error';
-  }>({ open: false, message: '', severity: 'success' });
+  const { notify } = useNotification();
 
   const {
     data: promoCodes,
@@ -289,18 +304,10 @@ export default function PromoCodesPage() {
       activate ? promoCodesApi.activate(id) : promoCodesApi.deactivate(id),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['promoCodes', 'list'] });
-      setSnackbar({
-        open: true,
-        message: variables.activate ? 'Code activé.' : 'Code désactivé.',
-        severity: 'success',
-      });
+      notify.success(variables.activate ? 'Code activé.' : 'Code désactivé.');
     },
     onError: () => {
-      setSnackbar({
-        open: true,
-        message: 'Erreur lors de la modification du code.',
-        severity: 'error',
-      });
+      notify.error('Erreur lors de la modification du code.');
     },
   });
 
@@ -333,43 +340,33 @@ export default function PromoCodesPage() {
   }, [promoCodes]);
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title="Codes promo"
         subtitle="Gestion centralisée des codes promo / cooptation utilisés à l'inscription"
         iconBadge={<LocalOffer />}
         showBackButton={false}
         actions={
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="outlined"
-              startIcon={<Refresh size={16} />}
+          <div className="flex gap-1.5">
+            <BuiButton
+              variant="outline"
               onClick={() => queryClient.invalidateQueries({ queryKey: ['promoCodes', 'list'] })}
               disabled={isLoading}
             >
+              <Refresh />
               Rafraîchir
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<Add size={16} />}
-              onClick={() => setCreateOpen(true)}
-            >
+            </BuiButton>
+            <BuiButton onClick={() => setCreateOpen(true)}>
+              <Add />
               Créer un code
-            </Button>
-          </Box>
+            </BuiButton>
+          </div>
         }
       />
 
       {/* KPIs */}
       {stats && (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
-            gap: 2,
-            mb: 3,
-          }}
-        >
+        <div className="grid grid-cols-[1fr_1fr] min-[900px]:grid-cols-[repeat(4,_1fr)] gap-3 mb-[18px]">
           <StatTile icon={<LocalOffer />} label="Total" value={stats.total} color="#6B8A9A" />
           <StatTile icon={<CheckCircle />} label="Actifs" value={stats.active} color="#4A9B8E" />
           <StatTile icon={<Percent />} label="Utilisations totales" value={stats.totalUses} color="#7BA3C2" />
@@ -380,47 +377,42 @@ export default function PromoCodesPage() {
             color="#D4A574"
             hint={stats.topUsed ? `${stats.topUsed.usedCount} usages` : undefined}
           />
-        </Box>
+        </div>
       )}
 
-      {/* Filtre — segmented stylé par le thème global MuiToggleButtonGroup */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Typography
-          sx={{
-            fontSize: '10.5px',
-            fontWeight: 700,
-            letterSpacing: '.05em',
-            textTransform: 'uppercase',
-            color: 'var(--faint)',
-          }}
-        >
+      {/* Filtre — segmented du kit (ToggleGroup jointif, variante contour) */}
+      <div className="flex items-center gap-1.5 mb-3">
+        <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)]">
           Filtre
-        </Typography>
-        <ToggleButtonGroup
+        </p>
+        <ToggleGroup
+          type="single"
+          variant="outline"
+          size="sm"
+          spacing={0}
           value={filterMode}
-          exclusive
-          onChange={(_, v) => v && setFilterMode(v)}
-          size="small"
+          onValueChange={(v) => v && setFilterMode(v as FilterMode)}
         >
-          <ToggleButton value="all">Tous ({promoCodes?.length ?? 0})</ToggleButton>
-          <ToggleButton value="active">Actifs ({stats?.active ?? 0})</ToggleButton>
-          <ToggleButton value="inactive">Inactifs</ToggleButton>
-          <ToggleButton value="expired">Expirés</ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
+          <ToggleGroupItem value="all">Tous ({promoCodes?.length ?? 0})</ToggleGroupItem>
+          <ToggleGroupItem value="active">Actifs ({stats?.active ?? 0})</ToggleGroupItem>
+          <ToggleGroupItem value="inactive">Inactifs</ToggleGroupItem>
+          <ToggleGroupItem value="expired">Expirés</ToggleGroupItem>
+        </ToggleGroup>
+      </div>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          Impossible de charger les codes promo : {(error as Error).message}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>Impossible de charger les codes promo : {(error as Error).message}</AlertDescription>
+        </BuiAlert>
       )}
 
       {isLoading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} variant="rounded" height={44} sx={{ borderRadius: '9px' }} />
+            <Skeleton key={i} className="h-[44px] rounded-[9px]" />
           ))}
-        </Box>
+        </div>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<LocalOffer />}
@@ -432,121 +424,91 @@ export default function PromoCodesPage() {
           }
         />
       ) : (
-        <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}>
-          <Table size="small">
-            {/* Entêtes overline via le thème global MuiTableCell */}
-            <TableHead>
+        <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>Code</TableCell>
-                <TableCell>Réduction</TableCell>
-                <TableCell>Utilisations</TableCell>
-                <TableCell>Validité</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Créé le</TableCell>
-                <TableCell align="center">Actif</TableCell>
+                <TableHead>Code</TableHead>
+                <TableHead>Réduction</TableHead>
+                <TableHead>Utilisations</TableHead>
+                <TableHead>Validité</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Créé le</TableHead>
+                <TableHead className="text-center">Actif</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {filtered.map((promo) => {
                 const expired = isExpired(promo);
                 return (
-                  <TableRow key={promo.id} hover>
+                  <TableRow key={promo.id}>
                     <TableCell>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontFamily: 'monospace', fontWeight: 600 }}
-                      >
+                      <p className="cn-text-body2 font-mono font-semibold">
                         {promo.code}
-                      </Typography>
+                      </p>
                     </TableCell>
                     <TableCell>
-                      {/* Chip -soft : actif = accent, sinon neutre muted */}
-                      <Chip
-                        size="small"
+                      {/* Un code expire se lit comme un code eteint : meme ton neutre qu'un code desactive. */}
+                      <StatusChip
+                        tone={promo.active && !expired ? 'accent' : 'neutral'}
                         label={discountLabel(promo)}
                         icon={
                           promo.discountType === 'PERCENTAGE' ? (
                             <Percent size={12} strokeWidth={2} />
                           ) : undefined
                         }
-                        sx={
-                          promo.active && !expired
-                            ? {
-                                color: 'var(--accent)',
-                                backgroundColor: 'var(--accent-soft)',
-                                '& .MuiChip-icon': { color: 'var(--accent)' },
-                              }
-                            : {
-                                color: 'var(--muted)',
-                                backgroundColor: 'var(--hover)',
-                                '& .MuiChip-icon': { color: 'var(--muted)' },
-                              }
-                        }
                       />
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                      <p className="cn-text-body2 tabular-nums">
                         {usageLabel(promo)}
-                      </Typography>
+                      </p>
                     </TableCell>
                     <TableCell>
-                      <Typography
-                        variant="caption"
-                        sx={{ display: 'block', color: 'text.secondary' }}
-                      >
+                      <span className="cn-text-caption block text-muted-foreground">
                         Du {formatDate(promo.validFrom)}
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          display: 'block',
-                          color: expired ? 'var(--err)' : 'text.secondary',
-                          fontWeight: expired ? 600 : 400,
-                        }}
-                      >
+                      </span>
+                      <span className={cn('cn-text-caption block', expired ? 'text-[var(--err)]' : 'text-[var(--muted)]', expired ? 'font-semibold' : 'font-normal')}>
                         Au {formatDate(promo.validUntil)}
                         {expired && ' (expiré)'}
-                      </Typography>
+                      </span>
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 200 }}>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: 'text.secondary',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        }}
-                      >
+                    <TableCell className="max-w-[200px]">
+                      {/* line-clamp-2 pose display/-webkit-box-orient/overflow d'un bloc */}
+                      <span className="cn-text-caption text-[var(--muted)] line-clamp-2">
                         {promo.description || '—'}
-                      </Typography>
+                      </span>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      <span className="cn-text-caption text-muted-foreground">
                         {formatDate(promo.createdAt)}
-                      </Typography>
+                      </span>
                     </TableCell>
-                    <TableCell align="center">
-                      <Tooltip
-                        title={
-                          expired
+                    <TableCell className="text-center">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* Enveloppe : un interrupteur desactive n'emet plus
+                              d'evenement de survol, l'infobulle a besoin d'une
+                              cible qui en emette. */}
+                          <span className="inline-flex">
+                            <Switch
+                              size="sm"
+                              aria-label={promo.active ? 'Désactiver' : 'Activer'}
+                              checked={promo.active}
+                              disabled={toggleMutation.isPending}
+                              onCheckedChange={(checked) =>
+                                toggleMutation.mutate({ id: promo.id, activate: checked })
+                              }
+                            />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {expired
                             ? "Code expiré — le toggle n'a pas d'effet"
                             : promo.active
                               ? 'Désactiver'
-                              : 'Activer'
-                        }
-                      >
-                        <span>
-                          <Switch
-                            size="small"
-                            checked={promo.active}
-                            disabled={toggleMutation.isPending}
-                            onChange={(e) =>
-                              toggleMutation.mutate({ id: promo.id, activate: e.target.checked })
-                            }
-                          />
-                        </span>
+                              : 'Activer'}
+                        </TooltipContent>
                       </Tooltip>
                     </TableCell>
                   </TableRow>
@@ -554,7 +516,7 @@ export default function PromoCodesPage() {
               })}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       <CreateCodeDialog
@@ -562,23 +524,9 @@ export default function PromoCodesPage() {
         onClose={() => setCreateOpen(false)}
         onCreated={() => {
           queryClient.invalidateQueries({ queryKey: ['promoCodes', 'list'] });
-          setSnackbar({ open: true, message: 'Code promo créé.', severity: 'success' });
+          notify.success('Code promo créé.');
         }}
       />
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3500}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-      >
-        <Alert
-          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+    </div>
   );
 }

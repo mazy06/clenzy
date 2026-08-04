@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { Box, Tooltip, Typography, ClickAwayListener } from '@mui/material';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { Lock as LockIcon } from '../../icons';
 
 interface PlanningBlockedBandProps {
@@ -23,6 +23,7 @@ interface PlanningBlockedBandProps {
  */
 const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({ left, width, height, notes, source }) => {
   const [open, setOpen] = useState(false);
+  const bandRef = useRef<HTMLDivElement>(null);
 
   const close = useCallback(() => setOpen(false), []);
   const toggle = useCallback((e: React.SyntheticEvent) => {
@@ -30,43 +31,33 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({ left, width, 
     setOpen((o) => !o);
   }, []);
 
+  // Remplacement du ClickAwayListener MUI. On ne passe pas par
+  // `onPointerDownOutside` du contenu Radix : la bande elle-meme est « outside »
+  // du panneau, un clic dessus fermerait puis rouvrirait aussitot — le toggle
+  // ne refermerait donc jamais.
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!bandRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open]);
+
   const isExternal = !!source && source.toUpperCase().startsWith('ICAL');
-  const tooltip = (
-    <Box sx={{ py: 0.25 }}>
-      <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, mb: 0.25 }}>
-        Période bloquée
-      </Typography>
-      <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.35 }}>
-        Ces dates sont indisponibles à la réservation.
-        {isExternal && ' Synchronisée depuis un calendrier externe (OTA).'}
-      </Typography>
-      {notes && (
-        <Typography sx={{ fontSize: '0.6875rem', mt: 0.5, opacity: 0.85, fontStyle: 'italic' }}>
-          {notes}
-        </Typography>
-      )}
-    </Box>
-  );
 
   // Largeur minimale pour afficher l'icône / le label sans tronquer.
   const showIcon = width >= 22;
   const showLabel = width >= 68;
 
   return (
-    <ClickAwayListener onClickAway={close}>
-      <Tooltip
-        open={open}
-        onClose={close}
-        title={tooltip}
-        arrow
-        placement="top"
-        // Déclenchement au clic uniquement (pas au survol) — cf. demande produit.
-        disableHoverListener
-        disableFocusListener
-        disableTouchListener
-        slotProps={{ tooltip: { sx: { maxWidth: 240 } } }}
-      >
-        <Box
+    // `open` est pilote par le clic seul : `onOpenChange` n'est pas branche, donc
+    // le survol et le focus de Radix ne peuvent pas ouvrir l'infobulle — c'est
+    // ce que faisaient les `disableHoverListener` / `disableFocusListener` MUI.
+    <Tooltip open={open}>
+      <TooltipTrigger asChild>
+        <div
+          ref={bandRef}
           data-blocked-range
           role="button"
           tabIndex={0}
@@ -78,48 +69,49 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({ left, width, 
               toggle(e);
             }
           }}
-          sx={{
-            position: 'absolute',
+          className={
+            'absolute top-0 z-[2] cursor-pointer flex items-center justify-center gap-[3px] text-[var(--muted)] ' +
+            // Cellules grisées + hachures diagonales = convention « indisponible ».
+            'bg-[color-mix(in_srgb,var(--muted)_8%,var(--card))] ' +
+            'hover:bg-[color-mix(in_srgb,var(--muted)_14%,var(--card))] ' +
+            'shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--muted)_14%,transparent)] ' +
+            'transition-[background-color] duration-150 ease-out'
+          }
+          style={{
             left,
-            top: 0,
             width,
             height,
-            zIndex: 2,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 0.5,
-            color: 'var(--muted)',
-            // Cellules grisées + hachures diagonales = convention « indisponible ».
-            backgroundColor: 'color-mix(in srgb, var(--muted) 8%, var(--card))',
+            // Gradient statique laisse en style inline (les dimensions y passent
+            // deja) : plus lisible qu'une classe arbitraire de 100 caracteres.
             backgroundImage:
               'repeating-linear-gradient(45deg, color-mix(in srgb, var(--muted) 16%, transparent) 0 1px, transparent 1px 7px)',
-            boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--muted) 14%, transparent)',
-            transition: 'background-color 150ms ease-out',
-            '&:hover': {
-              backgroundColor: 'color-mix(in srgb, var(--muted) 14%, var(--card))',
-            },
           }}
         >
           {showIcon && <LockIcon size={12} strokeWidth={1.75} />}
           {showLabel && (
-            <Typography
-              sx={{
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                color: 'var(--muted)',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
+            <p className="cn-text-body1 text-[0.6875rem] font-semibold text-[var(--muted)] whitespace-nowrap overflow-hidden text-ellipsis">
               Bloqué
-            </Typography>
+            </p>
           )}
-        </Box>
-      </Tooltip>
-    </ClickAwayListener>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[240px]" onEscapeKeyDown={close}>
+        <div className="py-0.5">
+          <p className="cn-text-body1 text-[0.75rem] font-bold mb-0.5">
+            Période bloquée
+          </p>
+          <p className="cn-text-body1 text-[0.6875rem] leading-[1.35]">
+            Ces dates sont indisponibles à la réservation.
+            {isExternal && ' Synchronisée depuis un calendrier externe (OTA).'}
+          </p>
+          {notes && (
+            <p className="cn-text-body1 text-[0.6875rem] mt-0.5 opacity-85 italic">
+              {notes}
+            </p>
+          )}
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 };
 

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Alert, Box } from '@mui/material';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import {
   complianceConnectionApi,
   COMPLIANCE_PROVIDER_META,
@@ -26,40 +27,23 @@ const ComplianceProviderCard: React.FC<Props> = ({ provider, onStatusChange }) =
     meta.countryCode === 'FR' ? '🇫🇷' : meta.countryCode === 'MA' ? '🇲🇦' : '🇸🇦';
 
   const headerChip = (
-    <Box
-      component="span"
-      sx={{
-        fontSize: '0.6rem',
-        fontWeight: 700,
-        letterSpacing: '0.02em',
-        color: NEUTRAL,
-        backgroundColor: `color-mix(in srgb, ${NEUTRAL} 8%, transparent)`,
-        border: `1px solid color-mix(in srgb, ${NEUTRAL} 20%, transparent)`,
-        borderRadius: '4px',
-        px: 0.5,
-        py: 0.125,
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '3px',
-      }}
-    >
+    <span className="text-[0.6rem] font-bold tracking-[0.02em] rounded-[4px] px-[3px] py-[0.75px] inline-flex items-center gap-[3px]" style={{ color: NEUTRAL, backgroundColor: `color-mix(in srgb, ${NEUTRAL} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${NEUTRAL} 20%, transparent)` }}>
       {meta.countryCode}
       <span aria-hidden="true" style={{ fontSize: '0.85em' }}>{countryFlag}</span>
-    </Box>
+    </span>
   );
 
+  // Le ton `warning` du kit est plein ; l'ancienne alerte etait « outlined » :
+  // fond transparent + liseré teinte, restitue ici en classes.
   const bodyAlert = (
     <Alert
-      severity="warning"
-      variant="outlined"
-      sx={{
-        borderRadius: '8px',
-        fontSize: '0.74rem',
-        py: 0.5,
-        '& .MuiAlert-message': { padding: '4px 0' },
-      }}
+      variant="warning"
+      className="rounded-[8px] py-[3px] bg-transparent border border-solid border-[color-mix(in_srgb,var(--bui-warning)_50%,transparent)]"
     >
-      <strong>Obligation légale :</strong> {meta.legalNote}
+      <TriangleAlert />
+      <AlertDescription className="text-[0.74rem]">
+        <strong>Obligation légale :</strong> {meta.legalNote}
+      </AlertDescription>
     </Alert>
   );
 

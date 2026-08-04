@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, screen } from '@testing-library/react';
-import { ThemeProvider, createTheme } from '@mui/material';
 
 // ─── Mock @dnd-kit ──────────────────────────────────────────────────────────
 
@@ -45,7 +44,6 @@ import type { PlanningServiceRequest } from '../../../services/api/serviceReques
 
 // ─── Test fixtures ──────────────────────────────────────────────────────────
 
-const theme = createTheme();
 
 const testDays = Array.from({ length: 7 }, (_, i) => {
   const d = new Date(2026, 2, 1 + i); // March 1-7, 2026
@@ -91,7 +89,6 @@ let mockOnEventClick: ReturnType<typeof vi.fn>;
 
 function renderRow(overrides?: Partial<React.ComponentProps<typeof PlanningRow>>) {
   return render(
-    <ThemeProvider theme={theme}>
       <PlanningRow
         property={testProperty}
         barLayouts={[barLayout]}
@@ -116,7 +113,6 @@ function renderRow(overrides?: Partial<React.ComponentProps<typeof PlanningRow>>
         loadedReservations={[]}
         {...overrides}
       />
-    </ThemeProvider>,
   );
 }
 
@@ -196,7 +192,9 @@ describe('PlanningRow', () => {
     it('renders bars inside the row with absolute positioning', () => {
       const { container } = renderRow();
       const bar = container.querySelector('[data-planning-bar]') as HTMLElement;
-      expect(window.getComputedStyle(bar).position).toBe('absolute');
+      // Classe Tailwind depuis la migration : jsdom n'ayant pas de CSS,
+    // getComputedStyle ne verrait rien. (Rendu reel controle au navigateur.)
+    expect(bar.className).toContain('absolute');
     });
   });
 

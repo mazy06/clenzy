@@ -1,20 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { cn } from '../../utils/cn';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import {
-  Box,
-  Paper,
-  Typography,
-  CircularProgress,
-  Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Rating,
-  TextField,
+  Spinner,
   Button,
-  Chip,
-  Collapse,
-} from '@mui/material';
+  Textarea,
+  Collapsible,
+  CollapsibleContent,
+  Field,
+  FieldLabel,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
+import StatusChip from '../../components/StatusChip';
 import {
   Star as StarIcon,
   Reply as ReplyIcon,
@@ -23,7 +22,6 @@ import {
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
-import { SPACING } from '../../theme/spacing';
 import { airbnbApi } from '../../services/api/airbnbApi';
 import type { AirbnbReview } from '../../services/api/airbnbApi';
 import { propertiesApi } from '../../services/api/propertiesApi';
@@ -31,14 +29,10 @@ import type { Property } from '../../services/api/propertiesApi';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
-const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: 2,
-} as const;
+// `border-solid` est obligatoire : sans preflight Tailwind, `border` seul donne une
+// largeur mais un style `none` — bordure invisible.
+const CARD_CLASS =
+  'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] p-3';
 
 const RATING_COLORS: Record<string, string> = {
   excellent: 'var(--ok)',
@@ -52,6 +46,38 @@ function getRatingCategory(rating: number): string {
   if (rating >= 3.5) return 'good';
   if (rating >= 2.5) return 'average';
   return 'poor';
+}
+
+const RATING_STARS = [0, 1, 2, 3, 4];
+
+/**
+ * Notation en LECTURE SEULE, 5 etoiles au pas de 0,5 (le `precision={0.5}`
+ * d'origine arrondissait pareil). Deux calques superposes : le calque plein est
+ * rogne a la largeur correspondant a la note — seule facon d'obtenir une demi
+ * etoile sans disposer d'un glyphe « demi-etoile » dedie.
+ */
+function ReadOnlyRating({ value, size = 14 }: { value: number; size?: number }) {
+  const rounded = Math.round(value * 2) / 2;
+  return (
+    <span role="img" aria-label={`${rounded}/5`} className="relative inline-flex leading-none">
+      <span aria-hidden className="inline-flex text-[var(--line-2)]">
+        {RATING_STARS.map((i) => (
+          <StarIcon key={i} size={size} strokeWidth={1.5} className="shrink-0" />
+        ))}
+      </span>
+      <span
+        aria-hidden
+        className="absolute inset-y-0 start-0 inline-flex overflow-hidden text-[var(--warn)]"
+        // Largeur calculee a l'execution : une classe Tailwind ne peut pas
+        // naitre d'une variable, d'ou le style inline.
+        style={{ width: `${(rounded / 5) * 100}%` }}
+      >
+        {RATING_STARS.map((i) => (
+          <StarIcon key={i} size={size} strokeWidth={1.5} fill="currentColor" className="shrink-0" />
+        ))}
+      </span>
+    </span>
+  );
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -118,7 +144,8 @@ const ReviewsPage: React.FC = () => {
   }, {} as Record<string, number>);
 
   return (
-    <Box sx={{ p: SPACING.PAGE_PADDING }}>
+    // SPACING.PAGE_PADDING = 2 pas de theme, et theme.spacing vaut 6 → 12 px.
+    <div className="p-3">
       <PageHeader
         title={t('channels.reviews.title')}
         subtitle={t('channels.reviews.subtitle')}
@@ -127,67 +154,72 @@ const ReviewsPage: React.FC = () => {
         showBackButton
       />
 
-      {error && <Alert severity="error" sx={{ mb: 1.5, fontSize: '0.8125rem' }}>{error}</Alert>}
+      {error && <Alert variant="destructive" className="mb-2 text-[0.8125rem]">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       {/* Stats bar */}
-      <Box sx={{ display: 'flex', gap: 1.5, mb: 1.5, flexWrap: 'wrap' }}>
-        <Paper sx={{ ...CARD_SX, flex: 1, minWidth: 120, textAlign: 'center', p: 1.5 }}>
-          <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.06em' }}>
+      <div className="flex gap-2 mb-2 flex-wrap">
+        <div className={cn(CARD_CLASS, 'flex-1 min-w-[120px] text-center p-[9px]')}>
+          <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] uppercase font-bold tracking-[0.06em]">
             {t('channels.reviews.avgRating')}
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mt: 0.5 }}>
+          </p>
+          <div className="flex items-center justify-center gap-0.5 mt-0.5">
             <StarIcon size={'1.25rem'} strokeWidth={1.75} color='var(--warn)' />
-            <Typography sx={{ fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', fontSize: '1.375rem', fontWeight: 600, color: 'var(--ink)' }}>
+            <p className="cn-text-body1 font-[family-name:var(--font-display)] tabular-nums text-[1.375rem] font-semibold text-[var(--ink)]">
               {avgRating > 0 ? avgRating.toFixed(1) : '—'}
-            </Typography>
-          </Box>
-        </Paper>
-        <Paper sx={{ ...CARD_SX, flex: 1, minWidth: 120, textAlign: 'center', p: 1.5 }}>
-          <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.06em' }}>
+            </p>
+          </div>
+        </div>
+        <div className={cn(CARD_CLASS, 'flex-1 min-w-[120px] text-center p-[9px]')}>
+          <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] uppercase font-bold tracking-[0.06em]">
             {t('channels.reviews.totalReviews')}
-          </Typography>
-          <Typography sx={{ fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', fontSize: '1.375rem', fontWeight: 600, mt: 0.5, color: 'var(--ink)' }}>{reviews.length}</Typography>
-        </Paper>
+          </p>
+          <p className="cn-text-body1 font-[family-name:var(--font-display)] tabular-nums text-[1.375rem] font-semibold mt-0.5 text-[var(--ink)]">{reviews.length}</p>
+        </div>
         {Object.entries(reviewsByRating).map(([cat, count]) => (
-          <Paper key={cat} sx={{ ...CARD_SX, flex: 1, minWidth: 100, textAlign: 'center', p: 1.5 }}>
-            <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.06em' }}>
+          <div key={cat} className={cn(CARD_CLASS, 'flex-1 min-w-[100px] text-center p-[9px]')}>
+            <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] uppercase font-bold tracking-[0.06em]">
               {t(`channels.reviews.${cat}`)}
-            </Typography>
-            <Typography sx={{ fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', fontSize: '1.25rem', fontWeight: 600, mt: 0.5, color: RATING_COLORS[cat] }}>{count}</Typography>
-          </Paper>
+            </p>
+            <p className="cn-text-body1 tabular-nums text-[1.25rem] font-semibold mt-[3px]" style={{ fontFamily: 'var(--font-display)', color: RATING_COLORS[cat] }}>{count}</p>
+          </div>
         ))}
-      </Box>
+      </div>
 
       {/* Filter */}
-      <Box sx={{ mb: 1.5 }}>
-        <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('channels.reviews.filterByProperty')}</InputLabel>
-          <Select
+      <div className="mb-2">
+        {/* Largeur figee : le `w-full` du kit etirerait le champ sur toute la page. */}
+        <Field className="w-[200px]">
+          <FieldLabel htmlFor="reviews-property-filter">{t('channels.reviews.filterByProperty')}</FieldLabel>
+          <NativeSelect
+            id="reviews-property-filter"
+            size="sm"
+            className="w-full"
             value={selectedPropertyId}
-            label={t('channels.reviews.filterByProperty')}
-            onChange={(e) => setSelectedPropertyId(e.target.value as number | '')}
-            sx={{ fontSize: '0.8125rem' }}
+            onChange={(e) => setSelectedPropertyId(e.target.value === '' ? '' : Number(e.target.value))}
           >
-            <MenuItem value="">{t('common.all')}</MenuItem>
+            <NativeSelectOption value="">{t('common.all')}</NativeSelectOption>
             {properties.map((p) => (
-              <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
+              <NativeSelectOption key={p.id} value={p.id}>{p.name}</NativeSelectOption>
             ))}
-          </Select>
-        </FormControl>
-      </Box>
+          </NativeSelect>
+        </Field>
+      </div>
 
       {/* Reviews list */}
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={28} />
-        </Box>
+        <div className="flex justify-center py-6">
+          <Spinner className="size-7" />
+        </div>
       ) : reviews.length === 0 ? (
         <EmptyState
           icon={<StarIcon />}
           title={t('channels.reviews.noReviews')}
         />
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {reviews.map((review) => (
             <ReviewCard
               key={review.id}
@@ -202,9 +234,9 @@ const ReviewsPage: React.FC = () => {
               t={t}
             />
           ))}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 
@@ -235,84 +267,86 @@ function ReviewCard({
   const color = RATING_COLORS[category];
 
   return (
-    <Paper sx={{ ...CARD_SX, p: 1.5 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.75 }}>
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
-            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700 }}>{review.guestName}</Typography>
-            <Rating value={review.rating} readOnly size="small" precision={0.5} sx={{ fontSize: '0.875rem' }} />
-            <Chip
+    <div className={cn(CARD_CLASS, 'p-[9px]')}>
+      <div className="flex justify-between items-start mb-1">
+        <div>
+          <div className="flex items-center gap-1 mb-0.5">
+            <p className="cn-text-body1 text-[0.8125rem] font-bold">{review.guestName}</p>
+            <ReadOnlyRating value={review.rating} />
+            <StatusChip
               label={review.source}
-              size="small"
-              sx={{ fontSize: '0.5625rem', height: 18 }}
-              color={review.source === 'airbnb' ? 'error' : 'default'}
-              variant="outlined"
+              size="sm"
+              tone={review.source === 'airbnb' ? 'err' : 'neutral'}
+              className="text-[0.5625rem]"
             />
-          </Box>
-          <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+          </div>
+          <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
             {review.propertyName} · {new Date(review.createdAt).toLocaleDateString('fr-FR')}
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
 
-      <Typography sx={{ fontSize: '0.8125rem', mb: 0.75, lineHeight: 1.5 }}>
+      <p className="cn-text-body1 text-[0.8125rem] mb-1 leading-[1.5]">
         {review.comment}
-      </Typography>
+      </p>
 
       {/* Host reply */}
       {review.hostReply && (
-        <Box sx={{ bgcolor: 'var(--field)', borderRadius: '8px', p: 1, mb: 0.75 }}>
-          <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', fontWeight: 700, mb: 0.25, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <div className="bg-[var(--field)] rounded-[8px] p-1.5 mb-1">
+          <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] font-bold mb-0.5 uppercase tracking-[0.06em]">
             {t('channels.reviews.yourReply')}
-          </Typography>
-          <Typography sx={{ fontSize: '0.75rem' }}>{review.hostReply}</Typography>
-        </Box>
+          </p>
+          <p className="cn-text-body1 text-[0.75rem]">{review.hostReply}</p>
+        </div>
       )}
 
       {/* Reply form */}
       {!review.hostReply && (
         <>
-          <Collapse in={isReplying}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 0.5 }}>
-              <TextField
-                multiline
-                rows={2}
-                value={replyText}
-                onChange={(e) => onChangeReply(e.target.value)}
-                placeholder={t('channels.reviews.replyPlaceholder')}
-                fullWidth
-                size="small"
-                sx={{ '& .MuiInputBase-input': { fontSize: '0.8125rem' } }}
-              />
-              <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
-                <Button size="small" variant="outlined" onClick={onCancelReply} sx={{ fontSize: '0.6875rem' }}>
-                  {t('common.cancel')}
-                </Button>
-                <Button
-                  size="small"
-                  variant="contained"
-                  onClick={onSubmitReply}
-                  disabled={replyLoading || !replyText.trim()}
-                  sx={{ fontSize: '0.6875rem' }}
-                >
-                  {replyLoading ? <CircularProgress size={12} /> : t('channels.reviews.sendReply')}
-                </Button>
-              </Box>
-            </Box>
-          </Collapse>
+          <Collapsible open={isReplying}>
+            <CollapsibleContent>
+              <div className="flex flex-col gap-1 mt-0.5">
+                {/* Le champ n'a jamais porte de libelle visible : on lui donne un
+                    nom accessible, sinon il ne s'annonce plus du tout. */}
+                <Textarea
+                  rows={2}
+                  value={replyText}
+                  onChange={(e) => onChangeReply(e.target.value)}
+                  placeholder={t('channels.reviews.replyPlaceholder')}
+                  aria-label={t('channels.reviews.reply')}
+                  className="w-full text-[0.8125rem] min-h-[2lh]"
+                />
+                <div className="flex gap-0.5 justify-end">
+                  {/* Barre d'action de carte, tres dense : taille xs du kit plutot
+                      que sm — le sx d'origine rapetissait deja la typo. */}
+                  <Button size="xs" variant="outline" onClick={onCancelReply}>
+                    {t('common.cancel')}
+                  </Button>
+                  <Button
+                    size="xs"
+                    onClick={onSubmitReply}
+                    disabled={replyLoading || !replyText.trim()}
+                  >
+                    {replyLoading ? <Spinner className="size-3" /> : t('channels.reviews.sendReply')}
+                  </Button>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
           {!isReplying && (
             <Button
-              size="small"
-              startIcon={<ReplyIcon size={'0.75rem'} strokeWidth={1.75} />}
+              size="xs"
+              variant="ghost"
               onClick={onStartReply}
-              sx={{ fontSize: '0.6875rem', mt: 0.25 }}
+              className="mt-0.5"
             >
+              <ReplyIcon size={'0.75rem'} strokeWidth={1.75} />
               {t('channels.reviews.reply')}
             </Button>
           )}
         </>
       )}
-    </Paper>
+    </div>
   );
 }
 

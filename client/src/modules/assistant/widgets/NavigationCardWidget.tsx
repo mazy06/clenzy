@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Button } from '@mui/material';
+import { Button } from '../../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowForward as ArrowRightIcon,
@@ -47,25 +47,9 @@ export const NavigationCardWidget: React.FC<NavigationCardWidgetProps> = ({ data
   const Icon = pickIcon(data.icon, data.path);
 
   return (
-    <Box
-      sx={{
-        mt: 1, mb: 1.5,
-        p: 1.5,
-        borderRadius: '12px',
-        bgcolor: 'var(--accent-soft)',
-        cursor: 'pointer',
-        transition: 'background-color .15s',
-        '&:hover': {
-          bgcolor: 'color-mix(in srgb, var(--accent-soft) 80%, var(--accent) 14%)',
-        },
-        '&:focus-visible': {
-          outline: '2px solid var(--accent)',
-          outlineOffset: 2,
-        },
-        '@media (prefers-reduced-motion: reduce)': {
-          transition: 'none',
-        },
-      }}
+    <div
+      className="mt-1.5 mb-[9px] p-[9px] rounded-[12px] bg-[var(--accent-soft)] cursor-pointer transition-[background-color] duration-150 motion-reduce:transition-none hover:bg-[var(--nav-card-hover)] focus-visible:[outline:2px_solid_var(--accent)] focus-visible:outline-offset-2"
+      style={{ '--nav-card-hover': 'color-mix(in srgb, var(--accent-soft) 80%, var(--accent) 14%)' } as React.CSSProperties}
       onClick={handleClick}
       role="button"
       tabIndex={0}
@@ -77,64 +61,39 @@ export const NavigationCardWidget: React.FC<NavigationCardWidgetProps> = ({ data
       }}
       aria-label={`Aller vers ${data.label}`}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      <div className="flex items-center gap-2">
         {/* Icone semantique */}
-        <Box
-          sx={{
-            width: 36,
-            height: 36,
-            borderRadius: '9px',
-            bgcolor: 'var(--card)',
-            color: 'var(--accent)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
+        <div className="w-[36px] h-[36px] rounded-[9px] bg-[var(--card)] text-[var(--accent)] flex items-center justify-center shrink-0">
           <Icon size={18} strokeWidth={1.75} />
-        </Box>
+        </div>
 
         {/* Contenu */}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{
-            fontSize: '13.5px',
-            fontWeight: 600,
-            color: 'var(--ink)',
-            lineHeight: 1.3,
-          }}>
+        <div className="flex-1 min-w-0">
+          <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)] leading-[1.3]">
             {data.label}
-          </Typography>
+          </p>
           {data.reason && (
-            <Typography sx={{
-              display: 'block',
-              fontSize: '11.5px',
-              color: 'var(--muted)',
-              lineHeight: 1.4,
-              mt: 0.125,
-            }}>
+            <p className="cn-text-body1 block text-[11.5px] text-[var(--muted)] leading-[1.4] mt-0">
               {data.reason}
-            </Typography>
+            </p>
           )}
-        </Box>
+        </div>
 
-        {/* Bouton fleche (cosmetic — toute la carte est cliquable) */}
+        {/* Bouton fleche (cosmetic — toute la carte est cliquable).
+            Icone seule -> taille icon-sm. Pas d'aria-label : le bouton reste
+            aria-hidden, c'est la carte qui porte le libelle accessible.
+            Hover neutralise : c'est la carte entiere qui reagit au survol. */}
         <Button
-          variant="text"
-          size="small"
+          variant="ghost"
+          size="icon-sm"
           onClick={(e) => { e.stopPropagation(); handleClick(); }}
-          sx={{
-            minWidth: 'auto',
-            color: 'var(--accent)',
-            cursor: 'pointer',
-            '&:hover': { bgcolor: 'transparent' },
-          }}
+          className="text-[var(--accent)] hover:bg-transparent hover:text-[var(--accent)]"
           aria-hidden="true"
         >
           <ArrowRightIcon size={18} strokeWidth={2} />
         </Button>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

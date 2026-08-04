@@ -72,7 +72,7 @@ export function CollapsibleFileTree() {
             <Button
               variant="ghost"
               size="sm"
-              className="group w-full justify-start transition-none hover:bg-accent hover:text-accent-foreground"
+              className="group w-full justify-start transition-none hover:bg-accent hover:text-accent-foreground shrink"
             >
               <ChevronRightIcon className="transition-transform group-data-[state=open]:rotate-90" />
               <FolderIcon />
@@ -92,7 +92,7 @@ export function CollapsibleFileTree() {
         key={fileItem.name}
         variant="link"
         size="sm"
-        className="w-full justify-start gap-2 text-foreground"
+        className="w-full justify-start gap-2 text-foreground shrink"
       >
         <FileIcon />
         <span>{fileItem.name}</span>

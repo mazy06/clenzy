@@ -1,20 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  MenuItem,
-  Chip,
-  Skeleton,
-  Alert,
-} from '@mui/material';
+import StatusChip from '../../components/StatusChip';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Skeleton } from '../../components/ui';
+import { cn } from '../../utils/cn';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Button } from '../../components/ui';
+import FilterChipRow from '../../components/baitly/FilterChipRow';
+import GuestAvatar from '../../components/baitly/GuestAvatar';
+import ShowcaseEmpty from '../../components/baitly/ShowcaseEmpty';
+import { useScreenSearch } from '../../components/ScreenChrome';
+import { useNavigate } from 'react-router-dom';
 import {
   People as PeopleIcon,
 } from '../../icons';
@@ -24,32 +20,13 @@ import type { GuestListDto } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
-import { SPACING } from '../../theme/spacing';
 import { Money } from '../../components/Money';
 import PagePagination from '../../components/PagePagination';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 // Carte hairline plate (pattern .pd-card — tokens, r14, aucune ombre au repos).
-const CARD_SX = {
-  border: '1px solid var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-} as const;
-
-// Entêtes de table : overline 10.5 --faint uppercase (pattern baseline tableaux).
-const TABLE_HEAD_SX = {
-  '& th': {
-    fontWeight: 700,
-    fontSize: '10.5px',
-    letterSpacing: '.05em',
-    textTransform: 'uppercase',
-    color: 'var(--faint)',
-    borderBottom: '1px solid var(--line)',
-    whiteSpace: 'nowrap',
-  },
-} as const;
+const CARD_CLS = 'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px]';
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
 
@@ -74,9 +51,6 @@ const CHANNEL_TOKEN: Record<string, { fg: string; bg: string }> = {
   OTHER: { fg: 'var(--muted)', bg: 'var(--hover)' },
 };
 
-// Palette avatar déterministe (pattern validé messagerie — copie locale du pattern).
-const AVATAR_COLORS = ['#5F7E8C', '#C28A52', '#7BA3C2', '#4A9B8E', '#9A7FA3', '#4A6B9A'];
-
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function formatDate(dateStr?: string): string {
@@ -85,15 +59,18 @@ function formatDate(dateStr?: string): string {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function avatarColor(seed: string): string {
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
-  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
-}
-
-function initialsOf(name: string): string {
-  const parts = name.split(/\s+/).filter(Boolean);
-  return (parts.map((w) => w[0]).slice(0, 2).join('') || '?').toUpperCase();
+/**
+ * Etiquette de segment derivee de la ligne — presentation seule, aux criteres
+ * objectifs : « Fidèle » a partir du deuxieme sejour, « Récent » si la fiche a
+ * moins de trente jours. Pas de « VIP » : aucun seuil defendable dans les
+ * donnees de la liste.
+ */
+function segmentOf(guest: GuestListDto): { tone: 'ok' | 'info'; label: string } | null {
+  if ((guest.totalStays ?? 0) >= 2) return { tone: 'ok', label: 'Fidèle' };
+  if (guest.createdAt && Date.now() - new Date(guest.createdAt).getTime() < 30 * 86_400_000) {
+    return { tone: 'info', label: 'Récent' };
+  }
+  return null;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -105,6 +82,7 @@ interface GuestsListPageProps {
 
 const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const isSuperAdmin = user?.platformRole === 'SUPER_ADMIN' || user?.platformRole === 'SUPER_MANAGER';
 
   // ── Filters ─────────────────────────────────────────────────────────
@@ -155,9 +133,14 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
     setPage(0);
   };
 
+  // La recherche vit dans le champ UNIQUE du header (useScreenSearch), comme
+  // la projection le dessine — l'ecran ne dessine plus la sienne.
+  useScreenSearch(searchQuery, handleSearchChange, 'Nom, email…');
+
   // ── Render ──────────────────────────────────────────────────────────
+  // Padding de page : SPACING.PAGE_PADDING (2) = 12px avec theme.spacing = 6.
   return (
-    <Box sx={{ p: embedded ? 0 : SPACING.PAGE_PADDING }}>
+    <div className={embedded ? 'p-0' : 'p-3'}>
       {!embedded && (
         <PageHeader
           title="Voyageurs"
@@ -168,186 +151,153 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
         />
       )}
 
-      {/* Filters */}
-      <Paper sx={{ ...CARD_SX, p: 2, mb: 2 }}>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <TextField
-            label="Rechercher"
-            placeholder="Nom, email..."
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            size="small"
-            InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 260, flex: 1 }}
-          />
-          <TextField
-            select
-            label="Canal"
-            value={channelFilter}
-            onChange={(e) => handleChannelChange(e.target.value)}
-            size="small"
-            InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 150 }}
-          >
-            <MenuItem value="">Tous les canaux</MenuItem>
-            {CHANNEL_OPTIONS.filter(Boolean).map((ch) => (
-              <MenuItem key={ch} value={ch}>
-                {CHANNEL_LABELS[ch] || ch}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Box>
-      </Paper>
+      {/* ─── Chips de canal (rangee de la projection) — filtre SERVEUR.
+          Pas de comptes : la pagination est serveur et l'API ne renvoie pas
+          d'agregat par canal ; un compte de la page courante mentirait. */}
+      <FilterChipRow
+        className="mb-3"
+        allLabel="Tous les canaux"
+        value={channelFilter}
+        onChange={handleChannelChange}
+        options={CHANNEL_OPTIONS.filter(Boolean).map((ch) => ({
+          value: ch,
+          label: CHANNEL_LABELS[ch] || ch,
+          color: CHANNEL_TOKEN[ch]?.fg ?? 'var(--muted)',
+        }))}
+      />
 
       {/* Loading skeletons */}
       {isLoading && (
-        <Paper sx={{ ...CARD_SX, p: 2 }}>
+        <div className={cn(CARD_CLS, 'p-3')}>
           {[...Array(6)].map((_, i) => (
-            <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}>
-              <Skeleton variant="rounded" width={34} height={34} sx={{ borderRadius: '13px' }} />
-              <Box sx={{ flex: 1 }}>
-                <Skeleton variant="text" width="32%" height={18} />
-                <Skeleton variant="text" width="48%" height={14} />
-              </Box>
-              <Skeleton variant="rounded" width={64} height={22} sx={{ borderRadius: 999 }} />
-            </Box>
+            <div className="flex items-center gap-2 py-1.5" key={i}>
+              <Skeleton className="w-[34px] h-[34px] rounded-[13px] shrink-0" />
+              <div className="flex-1">
+                <Skeleton className="w-[32%] h-[18px]" />
+                <Skeleton className="w-[48%] h-[14px] mt-1" />
+              </div>
+              <Skeleton className="w-16 h-[22px] rounded-full shrink-0" />
+            </div>
           ))}
-        </Paper>
+        </div>
       )}
 
       {isError && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error instanceof Error ? error.message : 'Erreur lors du chargement des voyageurs'}
+        <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{error instanceof Error ? error.message : 'Erreur lors du chargement des voyageurs'}</AlertDescription>
         </Alert>
       )}
 
       {/* Empty state */}
       {!isLoading && !isError && guests.length === 0 && (
-        <EmptyState
-          icon={<PeopleIcon />}
-          title={searchQuery || channelFilter ? 'Aucun voyageur ne correspond aux filtres' : 'Aucun voyageur enregistre'}
-          description={searchQuery || channelFilter
-            ? 'Essayez d\'élargir la recherche ou de retirer le filtre canal.'
-            : 'Les voyageurs apparaissent ici dès leur première réservation.'}
-        />
+        searchQuery || channelFilter ? (
+          <EmptyState
+            icon={<PeopleIcon />}
+            title="Aucun voyageur ne correspond aux filtres"
+            description={'Essayez d\'élargir la recherche ou de retirer le filtre canal.'}
+          />
+        ) : (
+          // Compte sans aucun voyageur : l'etat vide riche de la galerie —
+          // les fiches naissent des reservations, on y oriente.
+          <ShowcaseEmpty
+            eyebrow={{ icon: <PeopleIcon size={14} strokeWidth={1.75} />, label: 'Voyageurs' }}
+            title="Chaque voyageur, son historique et ses préférences au même endroit"
+            description="Les fiches se créent toutes seules à partir des réservations, quel que soit le canal d’origine."
+            action={
+              <Button onClick={() => navigate('/reservations')}>
+                Importer mes réservations
+              </Button>
+            }
+          />
+        )
       )}
 
       {/* Table */}
       {!isLoading && !isError && guests.length > 0 && (
-        <Paper sx={CARD_SX}>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={TABLE_HEAD_SX}>
-                  <TableCell>Nom</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Telephone</TableCell>
-                  <TableCell>Canal</TableCell>
-                  <TableCell align="center">Sejours</TableCell>
-                  <TableCell align="right">Depense</TableCell>
-                  <TableCell>Cree le</TableCell>
+        <div className={CARD_CLS}>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Guest</TableHead>
+                  <TableHead>Telephone</TableHead>
+                  <TableHead>Canal</TableHead>
+                  <TableHead className="text-end">Sejours</TableHead>
+                  <TableHead className="text-end">Valeur vie</TableHead>
+                  <TableHead>Cree le</TableHead>
                   {isSuperAdmin && (
-                    <TableCell>Organisation</TableCell>
+                    <TableHead>Organisation</TableHead>
                   )}
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {guests.map((guest) => (
-                  <TableRow
-                    key={guest.id}
-                    hover
-                    sx={{ '&:last-child td': { borderBottom: 0 } }}
-                  >
+                  <TableRow key={guest.id}>
                     <TableCell>
-                      {/* Avatar initiales display r13 (densité table → 34) + nom */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                        <Box
-                          sx={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: '13px',
-                            flexShrink: 0,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontFamily: 'var(--font-display)',
-                            fontWeight: 600,
-                            fontSize: 12.5,
-                            color: '#fff',
-                            bgcolor: avatarColor(guest.fullName || '?'),
-                          }}
-                        >
-                          {initialsOf(guest.fullName || '?')}
-                        </Box>
-                        <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
-                          {guest.fullName}
-                        </Typography>
-                      </Box>
+                      {/* Cellule Guest de la projection : avatar, nom + segment,
+                          email en dessous — la colonne Email disparait, la
+                          donnee reste. */}
+                      <span className="flex items-center gap-2.5">
+                        <GuestAvatar name={guest.fullName || '?'} size={28} />
+                        <span className="min-w-0">
+                          <span className="flex items-center gap-1.5">
+                            <span className="truncate text-[13px] font-medium text-foreground">{guest.fullName}</span>
+                            {(() => {
+                              const seg = segmentOf(guest);
+                              return seg ? <StatusChip tone={seg.tone} label={seg.label} size="sm" /> : null;
+                            })()}
+                          </span>
+                          <span className="block truncate text-xs text-muted-foreground">{guest.email || '-'}</span>
+                        </span>
+                      </span>
                     </TableCell>
                     <TableCell>
-                      <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
-                        {guest.email || '-'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                      <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] tabular-nums">
                         {guest.phone || '-'}
-                      </Typography>
+                      </p>
                     </TableCell>
                     <TableCell>
                       {guest.channel ? (
                         (() => {
                           const tk = CHANNEL_TOKEN[guest.channel] ?? CHANNEL_TOKEN.OTHER;
+                          // Chip a point de la projection : la couleur de
+                          // marque teinte point et pastel.
                           return (
-                            <Chip
-                              label={CHANNEL_LABELS[guest.channel] || guest.channel}
-                              size="small"
-                              sx={{ color: tk.fg, bgcolor: tk.bg, border: 'none' }}
-                            />
+                            <StatusChip color={tk.fg} label={CHANNEL_LABELS[guest.channel] || guest.channel} dot size="sm" />
                           );
                         })()
                       ) : (
-                        <Typography sx={{ fontSize: '12.5px', color: 'var(--faint)' }}>
+                        <p className="cn-text-body1 text-[12.5px] text-[var(--faint)]">
                           -
-                        </Typography>
+                        </p>
                       )}
                     </TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        label={guest.totalStays ?? 0}
-                        size="small"
-                        sx={{
-                          minWidth: 28,
-                          color: 'var(--accent)',
-                          bgcolor: 'var(--accent-soft)',
-                          border: 'none',
-                          fontFamily: 'var(--font-display)',
-                          fontVariantNumeric: 'tabular-nums',
-                        }}
-                      />
+                    <TableCell className="text-end tabular-nums">
+                      {guest.totalStays ?? 0}
                     </TableCell>
-                    <TableCell align="right">
-                      <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
+                    <TableCell className="text-end">
+                      <p className="cn-text-body1 text-[12.5px] font-medium text-[var(--ink)] tabular-nums">
                         {guest.totalSpent ? <Money value={guest.totalSpent} from="EUR" /> : '-'}
-                      </Typography>
+                      </p>
                     </TableCell>
                     <TableCell>
-                      <Typography sx={{ fontSize: '12px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                      <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
                         {formatDate(guest.createdAt)}
-                      </Typography>
+                      </p>
                     </TableCell>
                     {isSuperAdmin && (
                       <TableCell>
-                        <Typography sx={{ fontSize: '12px', color: 'var(--muted)' }}>
+                        <p className="cn-text-body1 text-[12px] text-[var(--muted)]">
                           {guest.organizationName || '-'}
-                        </Typography>
+                        </p>
                       </TableCell>
                     )}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
           <PagePagination
             count={totalElements}
             page={page}
@@ -359,9 +309,9 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
               setPage(0);
             }}
           />
-        </Paper>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

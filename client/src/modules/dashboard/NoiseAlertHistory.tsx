@@ -1,30 +1,23 @@
 import React, { useState, useCallback } from 'react';
+import { cn } from '../../utils/cn';
+import { Badge as BuiBadge } from '../../components/ui';
+import { Button, Spinner, Field, FieldLabel, Textarea } from '../../components/ui';
 import {
-  Box,
   Card,
   CardContent,
-  Typography,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  TableContainer,
-  Chip,
-  IconButton,
-  Tooltip,
-  FormControl,
-  Select,
-  MenuItem,
-  Badge,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  CircularProgress,
-} from '@mui/material';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  NativeSelect,
+  NativeSelectOption,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import StatusChip from '../../components/StatusChip';
 import {
   History,
   CheckCircle,
@@ -50,13 +43,10 @@ function formatDate(iso: string): string {
 function SeverityChip({ severity }: { severity: string }) {
   const isWarning = severity === 'WARNING';
   return (
-    <Chip
+    <StatusChip
       icon={isWarning ? <Warning size={12} strokeWidth={1.75} /> : <ErrorIcon size={12} strokeWidth={1.75} />}
       label={isWarning ? 'Avertissement' : 'Critique'}
-      size="small"
-      color={isWarning ? 'warning' : 'error'}
-      variant="outlined"
-      sx={{ height: 22, fontSize: '0.6875rem', '& .MuiChip-icon': { fontSize: 12 }, '& .MuiChip-label': { px: 0.5 } }}
+      tone={isWarning ? 'warn' : 'err'}
     />
   );
 }
@@ -64,12 +54,7 @@ function SeverityChip({ severity }: { severity: string }) {
 function SourceChip({ source }: { source: string }) {
   const label = source === 'WEBHOOK' ? 'Temps reel' : source === 'SCHEDULER' ? 'Poll' : source;
   return (
-    <Chip
-      label={label}
-      size="small"
-      variant="outlined"
-      sx={{ height: 20, fontSize: '0.625rem', '& .MuiChip-label': { px: 0.5 } }}
-    />
+    <BuiBadge variant="outline" className="h-[20px] text-[0.625rem] px-0.5">{label}</BuiBadge>
   );
 }
 
@@ -120,84 +105,107 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
 
   return (
     <Card>
-      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+      <CardContent className="p-3">
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Badge badgeContent={unacknowledgedCount} color="error" max={99}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><History size={18} strokeWidth={1.75} /></Box>
-            </Badge>
-            <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '0.875rem' }}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5">
+            {/* Pastille de compteur posee a la main : le kit n'a pas d'equivalent
+                au Badge « overlay » de MUI (badgeContent sur un enfant). */}
+            <span className="relative inline-flex text-primary">
+              <History size={18} strokeWidth={1.75} />
+              {unacknowledgedCount > 0 && (
+                <BuiBadge
+                  variant="destructive"
+                  className="absolute -top-1.5 -end-2 h-[16px] min-w-[16px] px-1 text-[0.625rem] tabular-nums"
+                >
+                  {unacknowledgedCount > 99 ? '99+' : unacknowledgedCount}
+                </BuiBadge>
+              )}
+            </span>
+            <h6 className="cn-text-subtitle1 font-bold text-[0.875rem]">
               Historique des alertes
-            </Typography>
-          </Box>
+            </h6>
+          </div>
 
-          <FormControl size="small" sx={{ minWidth: 140 }}>
-            <Select
-              value={severityFilter}
-              onChange={(e) => { setSeverityFilter(e.target.value); setPage(0); }}
-              displayEmpty
-              sx={{ fontSize: '0.75rem', height: 28 }}
-            >
-              <MenuItem value="" sx={{ fontSize: '0.75rem' }}>Toutes severites</MenuItem>
-              <MenuItem value="WARNING" sx={{ fontSize: '0.75rem' }}>Avertissement</MenuItem>
-              <MenuItem value="CRITICAL" sx={{ fontSize: '0.75rem' }}>Critique</MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
+          <NativeSelect
+            size="sm"
+            aria-label="Filtrer par severite"
+            className="min-w-[140px] [&>select]:text-[0.75rem]"
+            value={severityFilter}
+            onChange={(e) => { setSeverityFilter(e.target.value); setPage(0); }}
+          >
+            <NativeSelectOption value="">Toutes severites</NativeSelectOption>
+            <NativeSelectOption value="WARNING">Avertissement</NativeSelectOption>
+            <NativeSelectOption value="CRITICAL">Critique</NativeSelectOption>
+          </NativeSelect>
+        </div>
 
         {alertsQuery.isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-            <CircularProgress size={24} />
-          </Box>
+          <div className="flex justify-center py-4">
+            <Spinner className="size-6" />
+          </div>
         ) : alerts.length === 0 ? (
-          <Typography sx={{ py: 3, textAlign: 'center', color: 'text.secondary', fontSize: '0.8125rem' }}>
+          <p className="cn-text-body1 py-4 text-center text-muted-foreground text-[0.8125rem]">
             Aucune alerte enregistree
-          </Typography>
+          </p>
         ) : (
           <>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell sx={headerCellSx}>Date</TableCell>
-                    <TableCell sx={headerCellSx}>Propriete</TableCell>
-                    <TableCell sx={headerCellSx}>Severite</TableCell>
-                    <TableCell sx={headerCellSx} align="right">Mesure</TableCell>
-                    <TableCell sx={headerCellSx} align="right">Seuil</TableCell>
-                    <TableCell sx={headerCellSx}>Creneau</TableCell>
-                    <TableCell sx={headerCellSx}>Source</TableCell>
-                    <TableCell sx={headerCellSx} align="center">Statut</TableCell>
+                    <TableHead className={HEADER_CELL_CLASS}>Date</TableHead>
+                    <TableHead className={HEADER_CELL_CLASS}>Propriete</TableHead>
+                    <TableHead className={HEADER_CELL_CLASS}>Severite</TableHead>
+                    <TableHead className={`${HEADER_CELL_CLASS} text-end`}>Mesure</TableHead>
+                    <TableHead className={`${HEADER_CELL_CLASS} text-end`}>Seuil</TableHead>
+                    <TableHead className={HEADER_CELL_CLASS}>Creneau</TableHead>
+                    <TableHead className={HEADER_CELL_CLASS}>Source</TableHead>
+                    <TableHead className={`${HEADER_CELL_CLASS} text-center`}>Statut</TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {alerts.map((alert: NoiseAlertDto) => (
-                    <TableRow key={alert.id} hover sx={{ '&:last-child td': { borderBottom: 0 } }}>
-                      <TableCell sx={cellSx}>{formatDate(alert.createdAt)}</TableCell>
-                      <TableCell sx={cellSx}>{alert.propertyName || `#${alert.propertyId}`}</TableCell>
-                      <TableCell sx={cellSx}><SeverityChip severity={alert.severity} /></TableCell>
-                      <TableCell sx={cellSx} align="right">
-                        <Typography sx={{ fontWeight: 600, fontSize: '0.75rem', color: alert.severity === 'CRITICAL' ? 'error.main' : 'warning.main' }}>
+                    <TableRow key={alert.id}>
+                      <TableCell className={CELL_CLASS}>{formatDate(alert.createdAt)}</TableCell>
+                      <TableCell className={CELL_CLASS}>{alert.propertyName || `#${alert.propertyId}`}</TableCell>
+                      <TableCell className={CELL_CLASS}><SeverityChip severity={alert.severity} /></TableCell>
+                      <TableCell className={`${CELL_CLASS} text-end`}>
+                        <p className={cn('cn-text-body1 font-semibold text-[0.75rem]', alert.severity === 'CRITICAL' ? 'text-[var(--err)]' : 'text-[var(--warn)]')}>
                           {alert.measuredDb.toFixed(0)} dB
-                        </Typography>
+                        </p>
                       </TableCell>
-                      <TableCell sx={cellSx} align="right">{alert.thresholdDb} dB</TableCell>
-                      <TableCell sx={cellSx}>{alert.timeWindowLabel || '—'}</TableCell>
-                      <TableCell sx={cellSx}><SourceChip source={alert.source} /></TableCell>
-                      <TableCell sx={cellSx} align="center">
+                      <TableCell className={`${CELL_CLASS} text-end`}>{alert.thresholdDb} dB</TableCell>
+                      <TableCell className={CELL_CLASS}>{alert.timeWindowLabel || '—'}</TableCell>
+                      <TableCell className={CELL_CLASS}><SourceChip source={alert.source} /></TableCell>
+                      <TableCell className={`${CELL_CLASS} text-center`}>
                         {alert.acknowledged ? (
-                          <Tooltip title={`Acquittee par ${alert.acknowledgedBy || '?'}${alert.notes ? ` — ${alert.notes}` : ''}`}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircle size={16} strokeWidth={1.75} /></span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {`Acquittee par ${alert.acknowledgedBy || '?'}${alert.notes ? ` — ${alert.notes}` : ''}`}
+                            </TooltipContent>
                           </Tooltip>
                         ) : (
-                          <Tooltip title="Acquitter">
-                            <IconButton
-                              size="small"
-                              onClick={() => setAckDialog({ open: true, alertId: alert.id })}
-                              sx={{ color: 'warning.main' }}
-                            >
-                              <CheckCircle size={16} strokeWidth={1.75} />
-                            </IconButton>
+                          // Le Button du kit est une fonction : il ne transmet pas de ref
+                          // (React 18). Le span porte l'ancrage de l'infobulle.
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Acquitter"
+                                  className="text-[var(--warn)]"
+                                  onClick={() => setAckDialog({ open: true, alertId: alert.id })}
+                                >
+                                  <CheckCircle size={16} strokeWidth={1.75} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Acquitter</TooltipContent>
                           </Tooltip>
                         )}
                       </TableCell>
@@ -205,7 +213,7 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
                   ))}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </div>
 
             <PagePagination
               count={totalElements}
@@ -219,37 +227,41 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
         )}
 
         {/* Acknowledge Dialog */}
-        <Dialog open={ackDialog.open} onClose={() => setAckDialog({ open: false, alertId: null })} maxWidth="xs" fullWidth>
-          <DialogTitle sx={{ fontSize: '0.95rem' }}>Acquitter l'alerte</DialogTitle>
-          <DialogContent>
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              label="Notes (optionnel)"
-              value={ackNotes}
-              onChange={(e) => setAckNotes(e.target.value)}
-              sx={{ mt: 1, '& textarea': { fontSize: '0.8125rem' } }}
-            />
+        <Dialog
+          open={ackDialog.open}
+          onOpenChange={(next) => { if (!next) setAckDialog({ open: false, alertId: null }); }}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="pe-8 text-[0.95rem]">Acquitter l'alerte</DialogTitle>
+            </DialogHeader>
+            <Field>
+              <FieldLabel htmlFor="noise-alert-ack-notes">Notes (optionnel)</FieldLabel>
+              {/* min-h en `lh` : le primitif pose field-sizing:content, qui neutralise `rows`. */}
+              <Textarea
+                id="noise-alert-ack-notes"
+                className="w-full text-[0.8125rem] min-h-[3lh]"
+                value={ackNotes}
+                onChange={(e) => setAckNotes(e.target.value)}
+              />
+            </Field>
+            <DialogFooter>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setAckDialog({ open: false, alertId: null })}
+              >
+                Annuler
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleAcknowledge}
+                disabled={ackMutation.isPending}
+              >
+                {ackMutation.isPending ? 'Acquittement...' : 'Acquitter'}
+              </Button>
+            </DialogFooter>
           </DialogContent>
-          <DialogActions>
-            <Button
-              size="small"
-              onClick={() => setAckDialog({ open: false, alertId: null })}
-              sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
-            >
-              Annuler
-            </Button>
-            <Button
-              size="small"
-              variant="contained"
-              onClick={handleAcknowledge}
-              disabled={ackMutation.isPending}
-              sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
-            >
-              {ackMutation.isPending ? 'Acquittement...' : 'Acquitter'}
-            </Button>
-          </DialogActions>
         </Dialog>
       </CardContent>
     </Card>
@@ -258,18 +270,10 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
 
 // ─── Style helpers ───────────────────────────────────────────────────────────
 
-const headerCellSx = {
-  fontSize: '0.6875rem',
-  fontWeight: 700,
-  color: 'text.secondary',
-  textTransform: 'uppercase' as const,
-  py: 0.75,
-  letterSpacing: '0.04em',
-};
+// Ecarts assumes vs le gabarit du kit (qui porte deja 700 / majuscules / filet) :
+// cette table est plus dense et son en-tete un cran plus lisible que le defaut.
+const HEADER_CELL_CLASS = 'py-[4.5px] text-[0.6875rem] tracking-[0.04em] text-[var(--muted)]';
 
-const cellSx = {
-  fontSize: '0.75rem',
-  py: 0.5,
-};
+const CELL_CLASS = 'py-[3px] text-[0.75rem]';
 
 export default NoiseAlertHistory;

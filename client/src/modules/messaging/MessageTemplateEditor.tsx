@@ -1,20 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Card } from '../../components/ui';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  MenuItem,
-  Grid,
-  Box,
-  Typography,
-  Paper,
-  CircularProgress,
-  Alert,
-  Divider,
-} from '@mui/material';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Input,
+  Textarea,
+  NativeSelect,
+  NativeSelectOption,
+  Separator,
+} from '../../components/ui';
 import { Save } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -158,156 +161,173 @@ export default function MessageTemplateEditor({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="lg"
-      fullWidth
-      PaperProps={{ sx: { minHeight: '70vh' } }}
-    >
-      <DialogTitle>
-        {isEditing
-          ? t('messaging.templates.editor.editTitle')
-          : t('messaging.templates.editor.createTitle')}
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[1200px] min-h-[70vh] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {isEditing
+              ? t('messaging.templates.editor.editTitle')
+              : t('messaging.templates.editor.createTitle')}
+          </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent dividers>
+        {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+        <div className="border-y border-solid border-[var(--line)] py-3">
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-            {error}
-          </Alert>
+          <BuiAlert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+            <AlertAction>
+              <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+                <X />
+              </BuiButton>
+            </AlertAction>
+          </BuiAlert>
         )}
 
-        <Grid container spacing={3}>
+        <div className="grid grid-cols-12 gap-[18px]">
           {/* Formulaire */}
-          <Grid item xs={12} md={7}>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('messaging.templates.editor.name')}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  size="small"
-                  required
-                />
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <TextField
-                  fullWidth
-                  select
-                  label={t('messaging.templates.editor.type')}
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                  size="small"
-                >
-                  {TEMPLATE_TYPES.map((t) => (
-                    <MenuItem key={t.value} value={t.value}>
-                      {t.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <TextField
-                  fullWidth
-                  select
-                  label={t('messaging.templates.editor.language')}
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  size="small"
-                >
-                  {LANGUAGES.map((l) => (
-                    <MenuItem key={l.value} value={l.value}>
-                      {l.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label={t('messaging.templates.editor.subject')}
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  onFocus={() => { activeFieldRef.current = 'subject'; }}
-                  inputRef={subjectRef}
-                  size="small"
-                  required
-                  helperText={t('messaging.templates.editor.subjectHelper')}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label={t('messaging.templates.editor.body')}
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  onFocus={() => { activeFieldRef.current = 'body'; }}
-                  inputRef={bodyRef}
-                  multiline
-                  rows={12}
-                  required
-                  helperText={t('messaging.templates.editor.bodyHelper')}
-                />
-              </Grid>
-            </Grid>
+          <div className="col-span-12 min-[900px]:col-span-7">
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-12 min-[600px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="template-name">{t('messaging.templates.editor.name')}</FieldLabel>
+                  <Input
+                    id="template-name"
+                    className="w-full"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </Field>
+              </div>
+              <div className="col-span-6 min-[600px]:col-span-3">
+                <Field>
+                  <FieldLabel htmlFor="template-type">{t('messaging.templates.editor.type')}</FieldLabel>
+                  <NativeSelect
+                    id="template-type"
+                    className="w-full"
+                    value={type}
+                    onChange={(e) => setType(e.target.value)}
+                  >
+                    {TEMPLATE_TYPES.map((templateType) => (
+                      <NativeSelectOption key={templateType.value} value={templateType.value}>
+                        {templateType.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
+              </div>
+              <div className="col-span-6 min-[600px]:col-span-3">
+                <Field>
+                  <FieldLabel htmlFor="template-language">{t('messaging.templates.editor.language')}</FieldLabel>
+                  <NativeSelect
+                    id="template-language"
+                    className="w-full"
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                  >
+                    {LANGUAGES.map((l) => (
+                      <NativeSelectOption key={l.value} value={l.value}>
+                        {l.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
+              </div>
+              {/* Les refs visent l'element de saisie lui-meme : l'insertion de
+                  variable se fait A LA POSITION DU CURSEUR, pas en fin de champ. */}
+              <div className="col-span-12">
+                <Field>
+                  <FieldLabel htmlFor="tpl-subject">
+                    {t('messaging.templates.editor.subject')}
+                  </FieldLabel>
+                  <Input
+                    id="tpl-subject"
+                    ref={subjectRef}
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    onFocus={() => { activeFieldRef.current = 'subject'; }}
+                    required
+                  />
+                  <FieldDescription>{t('messaging.templates.editor.subjectHelper')}</FieldDescription>
+                </Field>
+              </div>
+              <div className="col-span-12">
+                <Field>
+                  <FieldLabel htmlFor="tpl-body">
+                    {t('messaging.templates.editor.body')}
+                  </FieldLabel>
+                  <Textarea
+                    id="tpl-body"
+                    ref={bodyRef}
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    onFocus={() => { activeFieldRef.current = 'body'; }}
+                    required
+                    // `field-sizing: content` du kit neutralise `rows`.
+                    className="min-h-[12lh]"
+                  />
+                  <FieldDescription>{t('messaging.templates.editor.bodyHelper')}</FieldDescription>
+                </Field>
+              </div>
+            </div>
 
             {/* Preview */}
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+            <div className="mt-4">
+              <h6 className="cn-text-subtitle2 text-muted-foreground mb-[0.35em]">
                 {t('messaging.templates.editor.preview')}
-              </Typography>
-              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'action.hover' }}>
-                <Typography variant="subtitle2" gutterBottom>
+              </h6>
+              <Card className="gap-0 py-0 p-3 bg-[var(--hover)]">
+                <h6 className="cn-text-subtitle2 mb-[0.35em]">
                   {t('messaging.templates.editor.previewSubject')}: {getPreviewText(subject) || '—'}
-                </Typography>
-                <Divider sx={{ my: 1 }} />
+                </h6>
+                <Separator className="my-1.5" />
                 {body ? (
-                  <Typography variant="body2" component="div" sx={{ fontFamily: 'inherit' }}>
+                  <div className="cn-text-body2 font-[inherit]">
                     {/* Rendu identique à l'email envoyé (gras, puces, paragraphes) */}
                     <EmailMarkdownPreview text={getPreviewText(body)} />
-                  </Typography>
+                  </div>
                 ) : (
-                  <Typography variant="body2">—</Typography>
+                  <p className="cn-text-body2">—</p>
                 )}
-              </Paper>
-            </Box>
-          </Grid>
+              </Card>
+            </div>
+          </div>
 
           {/* Variables sidebar — refactor sur VariablePicker (chips colorees
               par categorie, palette Baitly). Composant partage avec
               SystemTemplateEditDialog pour coherence visuelle. */}
-          <Grid item xs={12} md={5}>
-            <Paper variant="outlined" sx={{ p: 2, position: 'sticky', top: 16 }}>
-              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+          <div className="col-span-12 min-[900px]:col-span-5">
+            <div className="sticky top-4 p-3 rounded-xl border border-solid border-[var(--line)] bg-[var(--card)]">
+              <h6 className="cn-text-subtitle2 font-semibold mb-[0.35em]">
                 {t('messaging.templates.editor.variables')}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+              </h6>
+              <span className="cn-text-caption text-muted-foreground block mb-2">
                 {t('messaging.templates.editor.variablesDesc')}
-              </Typography>
+              </span>
               <VariablePicker
                 variables={variables}
                 usedKeys={usedVariables}
                 onInsert={handleInsertVariable}
                 showDetails
               />
-            </Paper>
-          </Grid>
-        </Grid>
-      </DialogContent>
+            </div>
+          </div>
+        </div>
+        </div>
 
-      <DialogActions sx={{ px: 3, py: 1.5 }}>
-        <Button onClick={onClose}>{t('common.cancel')}</Button>
-        <Button
-          variant="contained"
-          startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <Save />}
-          onClick={handleSave}
-          disabled={saving || !name.trim() || !subject.trim() || !body.trim()}
-        >
-          {saving ? t('common.processing') : t('common.save')}
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <BuiButton variant="ghost" onClick={onClose}>{t('common.cancel')}</BuiButton>
+          <BuiButton
+            onClick={handleSave}
+            disabled={saving || !name.trim() || !subject.trim() || !body.trim()}
+          >
+            {saving ? <Spinner className="size-4" /> : <Save />}
+            {saving ? t('common.processing') : t('common.save')}
+          </BuiButton>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

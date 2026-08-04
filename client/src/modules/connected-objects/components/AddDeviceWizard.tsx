@@ -1,9 +1,23 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, type CSSProperties } from 'react';
+import { cn } from '../../../utils/cn';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { Info, TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../../components/ui';
+import { Button } from '../../../components/ui';
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, MenuItem,
-  Box, Typography, Paper, Alert, CircularProgress, alpha,
-} from '@mui/material';
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../../components/ui';
+import { useQuery } from '@tanstack/react-query';
 import { ChevronRight } from '../../../icons';
 import { propertiesApi, type Property } from '../../../services/api/propertiesApi';
 import { smartLockApi, type SmartLockBrand, type SmartLockAccessCodeMode } from '../../../services/api/smartLockApi';
@@ -120,81 +134,135 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Ajouter un objet connecté</DialogTitle>
-      <DialogContent>
+    // maxWidth="sm" + fullWidth MUI = pleine largeur plafonnee a 600 px.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent className="w-full sm:max-w-[600px] max-h-[85vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
+        <DialogHeader>
+          <DialogTitle>Ajouter un objet connecté</DialogTitle>
+        </DialogHeader>
+        <div className="min-h-0 overflow-y-auto">
         {/* Étape 1 — Type */}
         {step === 0 && (
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 1, mt: 1 }}>
+          <div className="grid grid-cols-[repeat(auto-fit,_minmax(140px,_1fr))] gap-1.5 mt-1.5">
             {ADDABLE.map((k) => {
               const meta = DEVICE_KINDS[k];
               const selected = kind === k;
               return (
-                <Paper
+                // `meta.color` est une valeur runtime : elle passe par la variable
+                // CSS `--kind-color` pour rester utilisable dans une classe (bordure
+                // au survol, fond teinte) — une classe Tailwind ne peut pas naitre
+                // d'une variable.
+                <button
                   key={k}
-                  variant="outlined"
+                  type="button"
+                  aria-pressed={selected}
                   onClick={() => { setKind(k); setProvider(''); }}
-                  sx={{
-                    p: 1.5, borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'center',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.75,
-                    borderColor: selected ? meta.color : 'divider',
-                    bgcolor: selected ? alpha(meta.color, 0.08) : 'transparent',
-                    transition: 'border-color 150ms, background-color 150ms',
-                    '&:hover': { borderColor: meta.color },
-                  }}
+                  style={{ '--kind-color': meta.color } as CSSProperties}
+                  className={cn(
+                    'p-[9px] rounded-[var(--radius-md)] cursor-pointer text-center',
+                    'flex flex-col items-center gap-[4.5px] border border-solid',
+                    'transition-[border-color,background-color] duration-150 hover:border-[var(--kind-color)]',
+                    selected
+                      ? 'border-[var(--kind-color)] bg-[color-mix(in_srgb,var(--kind-color)_8%,transparent)]'
+                      : 'border-[var(--line)] bg-transparent',
+                  )}
                 >
-                  <Box sx={{ color: meta.color, display: 'inline-flex' }}>{meta.icon(22)}</Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{meta.label}</Typography>
-                </Paper>
+                  <span className="inline-flex text-[var(--kind-color)]">{meta.icon(22)}</span>
+                  <span className="cn-text-body2 font-semibold">{meta.label}</span>
+                </button>
               );
             })}
-          </Box>
+          </div>
         )}
 
         {/* Étape 2 — Service / marque */}
         {step === 1 && kind && (
-          <Box sx={{ mt: 1.5 }}>
-            <TextField
-              select fullWidth size="small" label="Service / marque" value={provider}
-              onChange={(e) => setProvider(e.target.value)}
-            >
-              {PROVIDERS[kind].map((p) => (
-                <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>
-              ))}
-            </TextField>
-            <Alert severity="info" sx={{ mt: 1.5 }}>
-              Le service doit être relié dans <strong>Réglages → Services connectés</strong> pour piloter l'objet à distance.
+          <div className="mt-2">
+            <Field>
+              <FieldLabel htmlFor="wizard-provider">Service / marque</FieldLabel>
+              <NativeSelect
+                className="w-full"
+                id="wizard-provider"
+                value={provider}
+                onChange={(e) => setProvider(e.target.value)}
+              >
+                {/* Option vide explicite : un select natif afficherait sinon le
+                    premier service alors qu'aucun n'est encore choisi. */}
+                <NativeSelectOption value="">—</NativeSelectOption>
+                {PROVIDERS[kind].map((p) => (
+                  <NativeSelectOption key={p.value} value={p.value}>{p.label}</NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
+            <Alert variant="info" className="mt-2">
+              <Info />
+              <AlertDescription>Le service doit être relié dans <strong>Réglages → Services connectés</strong>pour piloter l'objet à distance.</AlertDescription>
             </Alert>
-          </Box>
+          </div>
         )}
 
         {/* Étape 3 — Affectation */}
         {step === 2 && kind && (
-          <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            <TextField
-              select fullWidth size="small" label="Logement" value={propertyId}
-              onChange={(e) => setPropertyId(Number(e.target.value))}
-            >
-              {properties.map((p) => (
-                <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
-              ))}
-            </TextField>
-            <TextField fullWidth size="small" label={kind === 'keybox' ? 'Nom du point' : "Nom de l'objet"} value={name} onChange={(e) => setName(e.target.value)} />
+          <div className="mt-2 flex flex-col gap-2">
+            <Field>
+              <FieldLabel htmlFor="wizard-property">Logement</FieldLabel>
+              <NativeSelect
+                className="w-full"
+                id="wizard-property"
+                value={propertyId}
+                onChange={(e) => setPropertyId(e.target.value === '' ? '' : Number(e.target.value))}
+              >
+                {/* Option vide explicite : un select natif afficherait sinon le
+                    premier logement alors qu'aucun n'est encore affecte. */}
+                <NativeSelectOption value="">—</NativeSelectOption>
+                {properties.map((p) => (
+                  <NativeSelectOption key={p.id} value={p.id}>{p.name}</NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="wizard-name">
+                {kind === 'keybox' ? 'Nom du point' : "Nom de l'objet"}
+              </FieldLabel>
+              <Input
+                id="wizard-name"
+                className="w-full"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </Field>
             {kind !== 'keybox' && (
-              <TextField fullWidth size="small" label="Pièce (optionnel)" value={roomName} onChange={(e) => setRoomName(e.target.value)} />
+              <Field>
+                <FieldLabel htmlFor="wizard-room">Pièce (optionnel)</FieldLabel>
+                <Input
+                  id="wizard-room"
+                  className="w-full"
+                  value={roomName}
+                  onChange={(e) => setRoomName(e.target.value)}
+                />
+              </Field>
             )}
             {kind === 'camera' && provider !== 'TUYA' && (
-              <TextField
-                fullWidth size="small" required label="URL du flux (RTSP recommandé)"
-                placeholder="rtsp://user:pass@192.168.1.50:554/stream"
-                helperText="RTSP recommandé : lecture directe et fluide. Une URL HTTP/HLS est transcodée (CPU, qualité réduite — pour test). Chiffré côté serveur."
-                value={rtspUrl} onChange={(e) => setRtspUrl(e.target.value)}
-              />
+              <Field>
+                <FieldLabel htmlFor="wizard-rtsp-url">URL du flux (RTSP recommandé)</FieldLabel>
+                <Input
+                  id="wizard-rtsp-url"
+                  className="w-full"
+                  required
+                  placeholder="rtsp://user:pass@192.168.1.50:554/stream"
+                  value={rtspUrl}
+                  onChange={(e) => setRtspUrl(e.target.value)}
+                />
+                <FieldDescription>
+                  RTSP recommandé : lecture directe et fluide. Une URL HTTP/HLS est transcodée (CPU, qualité réduite — pour test). Chiffré côté serveur.
+                </FieldDescription>
+              </Field>
             )}
             {kind === 'camera' && /^https?:\/\//i.test(rtspUrl.trim()) && (
-              <Alert severity="warning" sx={{ py: 0.25 }}>
-                URL HTTP/HLS : <strong>transcodée</strong> côté serveur (CPU, qualité réduite, latence) — à réserver au test.
-                Préférez une URL <strong>RTSP</strong> pour une lecture directe et fluide.
+              <Alert variant="warning" className="py-0.5">
+                <TriangleAlert />
+                <AlertDescription>URL HTTP/HLS : <strong>transcodée</strong>côté serveur (CPU, qualité réduite, latence) — à réserver au test.
+                Préférez une URL <strong>RTSP</strong>pour une lecture directe et fluide.</AlertDescription>
               </Alert>
             )}
             {kind === 'camera' && provider === 'TUYA' && (
@@ -204,17 +272,25 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
               <TuyaDevicePicker category={kind === 'thermostat' ? 'wk' : undefined} selectedId={externalDeviceId} onSelect={setExternalDeviceId} />
             )}
             {kind === 'lock' && (
-              <TextField
-                select fullWidth size="small" label={t('connectedObjects.codeMode.label', "Origine du code d'accès")}
-                value={accessCodeMode}
-                onChange={(e) => setAccessCodeMode(e.target.value as SmartLockAccessCodeMode)}
-                helperText={accessCodeMode === 'PMS_GENERATED'
-                  ? t('connectedObjects.codeMode.helperPms', 'Le code configuré dans le PMS est poussé à la serrure.')
-                  : t('connectedObjects.codeMode.helperLock', 'La serrure génère son propre code ; le PMS le récupère.')}
-              >
-                <MenuItem value="PMS_GENERATED">{t('connectedObjects.codeMode.pms', 'Le PMS génère et pousse le code')}</MenuItem>
-                <MenuItem value="LOCK_GENERATED">{t('connectedObjects.codeMode.lock', 'La serrure génère le code')}</MenuItem>
-              </TextField>
+              <Field>
+                <FieldLabel htmlFor="wizard-access-code-mode">
+                  {t('connectedObjects.codeMode.label', "Origine du code d'accès")}
+                </FieldLabel>
+                <NativeSelect
+                  className="w-full"
+                  id="wizard-access-code-mode"
+                  value={accessCodeMode}
+                  onChange={(e) => setAccessCodeMode(e.target.value as SmartLockAccessCodeMode)}
+                >
+                  <NativeSelectOption value="PMS_GENERATED">{t('connectedObjects.codeMode.pms', 'Le PMS génère et pousse le code')}</NativeSelectOption>
+                  <NativeSelectOption value="LOCK_GENERATED">{t('connectedObjects.codeMode.lock', 'La serrure génère le code')}</NativeSelectOption>
+                </NativeSelect>
+                <FieldDescription>
+                  {accessCodeMode === 'PMS_GENERATED'
+                    ? t('connectedObjects.codeMode.helperPms', 'Le code configuré dans le PMS est poussé à la serrure.')
+                    : t('connectedObjects.codeMode.helperLock', 'La serrure génère son propre code ; le PMS le récupère.')}
+                </FieldDescription>
+              </Field>
             )}
             {kind === 'climate' && provider === 'NETATMO' && (
               <NetatmoDevicePicker source="weather" selectedId={externalDeviceId} onSelect={setExternalDeviceId} />
@@ -226,29 +302,45 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
               <NetatmoDevicePicker source="thermostat" selectedId={externalDeviceId} onSelect={setExternalDeviceId} />
             )}
             {(kind === 'lock' || kind === 'noise' || kind === 'thermostat') && provider !== 'TUYA' && (
-              <TextField
-                fullWidth size="small" label="Identifiant externe (optionnel)"
-                helperText={kind === 'thermostat' ? 'ID du device Tuya' : 'ID du device chez le fournisseur'}
-                value={externalDeviceId} onChange={(e) => setExternalDeviceId(e.target.value)}
-              />
+              <Field>
+                <FieldLabel htmlFor="wizard-external-device-id">Identifiant externe (optionnel)</FieldLabel>
+                <Input
+                  id="wizard-external-device-id"
+                  className="w-full"
+                  value={externalDeviceId}
+                  onChange={(e) => setExternalDeviceId(e.target.value)}
+                />
+                <FieldDescription>
+                  {kind === 'thermostat' ? 'ID du device Tuya' : 'ID du device chez le fournisseur'}
+                </FieldDescription>
+              </Field>
             )}
-            {error && <Alert severity="error">{error}</Alert>}
-          </Box>
+            {error && <Alert variant="destructive">
+              <TriangleAlert />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>}
+          </div>
         )}
+        </div>
+        {/* Trois niveaux dans la meme zone : « Annuler » abandonne (ghost),
+            « Retour » navigue dans l'assistant et merite un cadre (outline),
+            l'action de progression reste la seule encre pleine. */}
+        <DialogFooter>
+          <Button variant="ghost" onClick={handleClose}>Annuler</Button>
+          {step > 0 && <Button variant="outline" onClick={() => setStep((s) => s - 1)} disabled={submitting}>Retour</Button>}
+          {step < 2 ? (
+            <Button variant="default" disabled={!canNext} onClick={() => setStep((s) => s + 1)}>
+              Continuer
+              <ChevronRight size={16} strokeWidth={2} />
+            </Button>
+          ) : (
+            <Button variant="default" disabled={!canNext || submitting} onClick={submit}>
+              {submitting ? <Spinner className="size-3.5" /> : null}
+              Ajouter
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} color="inherit">Annuler</Button>
-        {step > 0 && <Button onClick={() => setStep((s) => s - 1)} disabled={submitting}>Retour</Button>}
-        {step < 2 ? (
-          <Button variant="contained" disabled={!canNext} endIcon={<ChevronRight size={16} strokeWidth={2} />} onClick={() => setStep((s) => s + 1)}>
-            Continuer
-          </Button>
-        ) : (
-          <Button variant="contained" disabled={!canNext || submitting} startIcon={submitting ? <CircularProgress size={14} /> : undefined} onClick={submit}>
-            Ajouter
-          </Button>
-        )}
-      </DialogActions>
     </Dialog>
   );
 }

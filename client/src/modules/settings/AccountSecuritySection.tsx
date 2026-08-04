@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
+import { Alert, AlertDescription, Button, Spinner } from '../../components/ui';
+import { CircleCheck, TriangleAlert } from 'lucide-react';
 import { Security } from '../../icons';
 import apiClient from '../../services/apiClient';
 import SettingsSection from './components/SettingsSection';
@@ -41,28 +42,31 @@ export default function AccountSecuritySection() {
       accent="info"
       description="Mot de passe et protection du compte"
     >
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', mb: 0.125 }}>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="min-w-0 flex-1">
+          <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground mb-0">
             Mot de passe
-          </Typography>
-          <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>
+          </p>
+          <p className="cn-text-body1 text-[0.72rem] text-muted-foreground">
             Recevez par email un lien sécurisé pour définir un nouveau mot de passe.
-          </Typography>
-        </Box>
+          </p>
+        </div>
         <Button
-          variant="outlined"
-          size="small"
+          variant="outline"
+          size="sm"
+          className="shrink-0"
           onClick={handleSendResetEmail}
           disabled={loading}
-          sx={{ textTransform: 'none', fontWeight: 600, flexShrink: 0 }}
         >
-          {loading ? <CircularProgress size={18} color="inherit" /> : 'Changer mon mot de passe'}
+          {loading ? <Spinner className="size-[18px]" /> : 'Changer mon mot de passe'}
         </Button>
-      </Box>
+      </div>
       {feedback && (
-        <Alert severity={feedback.severity} sx={{ mt: 1.5, borderRadius: 1.5 }}>
-          <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{feedback.message}</Typography>
+        <Alert variant={feedback.severity === 'success' ? 'success' : 'destructive'} className="mt-[9px]">
+          {feedback.severity === 'success' ? <CircleCheck /> : <TriangleAlert />}
+          <AlertDescription>
+            <p className="cn-text-body2 text-[0.8125rem]">{feedback.message}</p>
+          </AlertDescription>
         </Alert>
       )}
     </SettingsSection>

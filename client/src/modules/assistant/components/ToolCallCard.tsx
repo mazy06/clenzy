@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { cn } from '../../../utils/cn';
+
 import { CheckCircle as CheckCircleIcon, ErrorOutline as AlertCircleIcon } from '../../../icons';
 import type { ToolCallExecuted } from '../../../hooks/useAgent';
 
@@ -18,51 +19,20 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({ call }) => {
   const isError = Boolean(call.toolError);
 
   return (
-    <Box
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 0.75,
-        height: 22,
-        px: '10px',
-        mr: 0.75,
-        mb: 0.5,
-        borderRadius: 999,
-        bgcolor: isError ? 'var(--err-soft)' : 'var(--ok-soft)',
-        color: isError ? 'var(--err)' : 'var(--ok)',
-      }}
-    >
+    <div className={cn('inline-flex items-center gap-[4.5px] h-[22px] px-2.5 me-[4.5px] mb-[3px] rounded-[7992px]', isError ? 'bg-[var(--err-soft)]' : 'bg-[var(--ok-soft)]', isError ? 'text-[var(--err)]' : 'text-[var(--ok)]')}>
       {isError ? (
         <AlertCircleIcon size={12} strokeWidth={1.75} />
       ) : (
         <CheckCircleIcon size={12} strokeWidth={1.75} />
       )}
-      <Typography
-        component="span"
-        sx={{
-          fontFamily: 'monospace',
-          fontSize: '10.5px',
-          fontWeight: 700,
-          letterSpacing: '.02em',
-          color: 'inherit',
-        }}
-      >
+      <span className="font-mono text-[10.5px] font-bold tracking-[.02em] text-inherit">
         {call.toolName}
-      </Typography>
+      </span>
       {isError && (
-        <Typography
-          component="span"
-          sx={{
-            fontSize: '10.5px',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '.05em',
-            color: 'var(--err)',
-          }}
-        >
+        <span className="text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--err)]">
           erreur
-        </Typography>
+        </span>
       )}
-    </Box>
+    </div>
   );
 };

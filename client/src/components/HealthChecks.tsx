@@ -1,25 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import StatusChip from './StatusChip';
 import {
-  Box,
+  Alert,
+  AlertAction,
+  AlertDescription,
+  Button,
   Card,
   CardContent,
-  Typography,
-  Grid,
-  Chip,
-  CircularProgress,
-  Alert,
-  Button,
-  IconButton,
+  Collapsible,
+  CollapsibleContent,
+  Progress,
+  Separator,
+  Spinner,
   Tooltip,
-  LinearProgress,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Collapse,
-  Divider,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from './ui';
+import { useQuery } from '@tanstack/react-query';
 import {
   CheckCircle,
   Error as ErrorIcon,
@@ -41,11 +38,6 @@ import StatTile from './StatTile';
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 
 /** Chip -soft : texte couleur + fond -soft (pilule/typo via theme global MuiChip) */
-const chipSx = (fg: string, bg: string) => ({
-  color: fg,
-  backgroundColor: bg,
-  '& .MuiChip-icon': { color: fg },
-});
 
 const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
 
@@ -70,13 +62,13 @@ const statusHex = (status: string) => STATUS_HEX[status] ?? '#7BA3C2';
 const getStatusIcon = (status: string) => {
   switch (status) {
     case 'UP':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--ok)]"><CheckCircle size={20} strokeWidth={1.75} /></span>;
     case 'DOWN':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><ErrorIcon size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--err)]"><ErrorIcon size={20} strokeWidth={1.75} /></span>;
     case 'DEGRADED':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Warning size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--warn)]"><Warning size={20} strokeWidth={1.75} /></span>;
     default:
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><Info size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--info)]"><Info size={20} strokeWidth={1.75} /></span>;
   }
 };
 
@@ -152,14 +144,26 @@ const HealthChecks: React.FC = () => {
   // Register page-header actions + last-update timestamp.
   useEffect(() => {
     setHeaderActions(
-      <Box display="flex" alignItems="center" gap={1}>
-        {loading && <CircularProgress size={16} />}
-        <Tooltip title="Actualiser les vérifications">
-          <IconButton onClick={handleRefresh} size="small">
-            <Refresh size={20} strokeWidth={1.75} />
-          </IconButton>
+      <div className="flex items-center gap-1.5">
+        {loading && <Spinner className="size-4" />}
+        <Tooltip>
+          {/* Le declencheur Radix pose une ref : les primitives du kit sont des
+              fonctions et n'en transmettent pas — d'ou le span intermediaire. */}
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Actualiser les vérifications"
+                onClick={handleRefresh}
+              >
+                <Refresh size={20} strokeWidth={1.75} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Actualiser les vérifications</TooltipContent>
         </Tooltip>
-      </Box>,
+      </div>,
     );
     return () => setHeaderActions(null);
   }, [setHeaderActions, loading]);
@@ -189,29 +193,33 @@ const HealthChecks: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center min-h-[200px]">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
   if (error && healthChecks.length === 0) {
     return (
-      <Alert severity="error" action={
-        <Button color="inherit" size="small" onClick={handleRefresh}>
-          Réessayer
-        </Button>
-      }>
-        {error}
+      <Alert variant="destructive">
+        <ErrorIcon />
+        <AlertDescription>{error}</AlertDescription>
+        <AlertAction>
+          {/* Action d'appoint dans un bandeau : ghost. `text-current` reprend
+              l'encre du bandeau d'erreur. */}
+          <Button variant="ghost" size="sm" className="text-current" onClick={handleRefresh}>
+            Réessayer
+          </Button>
+        </AlertAction>
       </Alert>
     );
   }
 
   return (
-    <Box>
+    <div>
       {/* Vue d'ensemble — StatTile (carte plate hairline, valeur display) */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6}>
+      <div className="grid grid-cols-12 gap-3 mb-[18px]">
+        <div className="col-span-12 min-[600px]:col-span-6">
           <StatTile
             icon={<HealthAndSafety />}
             label="Statut Global"
@@ -219,8 +227,8 @@ const HealthChecks: React.FC = () => {
             color={statusHex(overallStatus)}
             hint={`${healthChecks.filter(check => check.status === 'UP').length} sur ${healthChecks.length} services opérationnels`}
           />
-        </Grid>
-        <Grid item xs={12} sm={6}>
+        </div>
+        <div className="col-span-12 min-[600px]:col-span-6">
           <StatTile
             icon={<Security />}
             label="Services Critiques"
@@ -228,17 +236,17 @@ const HealthChecks: React.FC = () => {
             color={statusHex(criticalStatus)}
             hint={`${criticalChecks.filter(check => check.status === 'UP').length} sur ${criticalChecks.length} services critiques opérationnels`}
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
       {/* Métriques système — valeurs display tabular-nums + barres tokens */}
       {systemMetrics && (
-        <Card variant="outlined" sx={{ mb: 3 }}>
+        <Card className="mb-[18px]">
           <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ color: 'var(--ink)' }}>
+            <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
               Métriques Système
-            </Typography>
-            <Grid container spacing={3}>
+            </h6>
+            <div className="grid grid-cols-12 gap-[18px]">
               {([
                 { label: 'CPU', value: systemMetrics.cpuUsage, suffix: '%' },
                 { label: `Mémoire (${systemMetrics.heapUsedMb}/${systemMetrics.heapMaxMb} MB)`, value: systemMetrics.memoryUsage, suffix: '%' },
@@ -246,133 +254,115 @@ const HealthChecks: React.FC = () => {
               ] as const).map((metric) => {
                 const barColor = metric.value > 80 ? 'var(--err)' : metric.value > 60 ? 'var(--warn)' : 'var(--accent)';
                 return (
-                  <Grid item xs={12} sm={6} md={2} key={metric.label}>
-                    <Box textAlign="center">
-                      <Typography
-                        variant="h6"
-                        sx={{ fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', color: 'var(--ink)' }}
-                      >
+                  <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-2" key={metric.label}>
+                    <div className="text-center">
+                      <h6 className="cn-text-h6 font-[family-name:var(--font-display)] tabular-nums text-[var(--ink)]">
                         {metric.value}{metric.suffix}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'var(--muted)' }}>
+                      </h6>
+                      <p className="cn-text-body2 text-[var(--muted)]">
                         {metric.label}
-                      </Typography>
-                      <LinearProgress
-                        variant="determinate"
+                      </p>
+                      {/* La teinte de la barre vient d'un seuil calcule a
+                          l'execution : elle transite par une variable CSS, une
+                          classe Tailwind ne pouvant pas naitre d'une valeur. */}
+                      <Progress
                         value={Math.min(metric.value, 100)}
-                        sx={{
-                          mt: 1,
-                          height: 4,
-                          borderRadius: 2,
-                          bgcolor: 'var(--hover)',
-                          '& .MuiLinearProgress-bar': { bgcolor: barColor, borderRadius: 2 },
-                        }}
+                        className="mt-1.5 [&>[data-slot=progress-indicator]]:bg-(--bar)"
+                        style={{ '--bar': barColor } as React.CSSProperties}
                       />
-                    </Box>
-                  </Grid>
+                    </div>
+                  </div>
                 );
               })}
-              <Grid item xs={12} sm={6} md={3}>
-                <Box textAlign="center">
-                  <Typography
-                    variant="h6"
-                    sx={{ fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', color: 'var(--ok)' }}
-                  >
+              <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+                <div className="text-center">
+                  <h6 className="cn-text-h6 font-[family-name:var(--font-display)] tabular-nums text-[var(--ok)]">
                     {formatUptime(systemMetrics.uptimeSeconds)}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'var(--muted)' }}>
+                  </h6>
+                  <p className="cn-text-body2 text-[var(--muted)]">
                     Uptime JVM
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
+                  </p>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
 
       {/* Vérifications détaillées */}
-      <Card variant="outlined">
+      <Card>
         <CardContent>
-          <Typography variant="h6" gutterBottom sx={{ color: 'var(--ink)' }}>
+          <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
             Vérifications Détaillées ({healthChecks.length} services)
-          </Typography>
+          </h6>
 
-          <List>
-            {healthChecks.map((check, index) => (
-              <React.Fragment key={check.name}>
-                <ListItem>
-                  <ListItemIcon>
-                    {getStatusIcon(check.status)}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-                        <Typography variant="subtitle1" component="span">
+          <div>
+            {healthChecks.map((check, index) => {
+              const expanded = expandedChecks.has(check.name);
+              return (
+                <React.Fragment key={check.name}>
+                  <div className="flex items-start gap-3 py-2">
+                    <span className="inline-flex shrink-0 pt-0.5">
+                      {getStatusIcon(check.status)}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="cn-text-subtitle1">
                           {check.name}
-                        </Typography>
-                        <Chip
-                          label={check.status}
-                          size="small"
-                          sx={chipSx(statusToken(check.status).fg, statusToken(check.status).bg)}
-                        />
-                        <Chip
-                          label={check.category}
-                          size="small"
-                          icon={getCategoryIcon(check.category)}
-                          sx={chipSx(NEUTRAL_TOKEN.fg, NEUTRAL_TOKEN.bg)}
-                        />
+                        </span>
+                        <StatusChip tokens={{ color: statusToken(check.status).fg, bg: statusToken(check.status).bg }} label={check.status} />
+                        <StatusChip tokens={{ color: NEUTRAL_TOKEN.fg, bg: NEUTRAL_TOKEN.bg }} label={check.category} icon={getCategoryIcon(check.category)} />
                         {check.critical && (
-                          <Chip
-                            label="CRITIQUE"
-                            size="small"
-                            sx={chipSx('var(--err)', 'var(--err-soft)')}
-                          />
+                          <StatusChip tokens={{ color: 'var(--err)', bg: 'var(--err-soft)' }} label="CRITIQUE" />
                         )}
-                      </Box>
-                    }
-                    secondary={
-                      <Box mt={1}>
-                        <Box display="flex" alignItems="center" gap={2} flexWrap="wrap" mb={1}>
-                          <Typography variant="body2" color="text.secondary">
+                      </div>
+                      <div className="mt-1.5">
+                        <div className="flex items-center gap-3 flex-wrap mb-1.5">
+                          <p className="cn-text-body2 text-muted-foreground">
                             <strong>Temps de réponse:</strong>
-                            <Chip
-                              label={`${check.responseTimeMs}ms`}
-                              size="small"
-                              sx={{ ...chipSx(responseTimeToken(check.responseTimeMs).fg, responseTimeToken(check.responseTimeMs).bg), ml: 1, fontVariantNumeric: 'tabular-nums' }}
-                            />
-                          </Typography>
+                            <StatusChip tokens={{ color: responseTimeToken(check.responseTimeMs).fg, bg: responseTimeToken(check.responseTimeMs).bg }} label={`${check.responseTimeMs}ms`} className="ms-1.5 tabular-nums" />
+                          </p>
                           {check.lastCheck && (
-                            <Typography variant="body2" color="text.secondary">
+                            <p className="cn-text-body2 text-muted-foreground">
                               <strong>Dernière vérification:</strong> {new Date(check.lastCheck).toLocaleTimeString()}
-                            </Typography>
+                            </p>
                           )}
-                        </Box>
+                        </div>
 
-                        <Collapse in={expandedChecks.has(check.name)}>
-                          {/* Détails techniques : mono compact sur fond --field */}
-                          <Box mt={1} px={1.5} py={1} sx={{ bgcolor: 'var(--field)', border: '1px solid var(--field-line)', borderRadius: '8px' }}>
-                            <Typography sx={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--body)', wordBreak: 'break-word' }}>
-                              {check.details}
-                            </Typography>
-                          </Box>
-                        </Collapse>
-                      </Box>
-                    }
-                  />
-                  <IconButton
-                    onClick={() => toggleExpanded(check.name)}
-                    size="small"
-                  >
-                    {expandedChecks.has(check.name) ? <ExpandLess size={20} strokeWidth={1.75} /> : <ExpandMore size={20} strokeWidth={1.75} />}
-                  </IconButton>
-                </ListItem>
-                {index < healthChecks.length - 1 && <Divider />}
-              </React.Fragment>
-            ))}
-          </List>
+                        {/* Collapsible pilote de l'exterieur : l'etat ouvert vit
+                            dans `expandedChecks`, le bouton de bascule est un
+                            frere et non un CollapsibleTrigger. */}
+                        <Collapsible open={expanded}>
+                          <CollapsibleContent>
+                            {/* Détails techniques : mono compact sur fond --field */}
+                            <div className="mt-1.5 px-[9px] py-1.5 bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[8px]">
+                              <p className="cn-text-body1 font-mono text-[12px] text-[var(--body)] break-words">
+                                {check.details}
+                              </p>
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="shrink-0"
+                      aria-label={expanded ? `Masquer les détails de ${check.name}` : `Afficher les détails de ${check.name}`}
+                      aria-expanded={expanded}
+                      onClick={() => toggleExpanded(check.name)}
+                    >
+                      {expanded ? <ExpandLess size={20} strokeWidth={1.75} /> : <ExpandMore size={20} strokeWidth={1.75} />}
+                    </Button>
+                  </div>
+                  {index < healthChecks.length - 1 && <Separator />}
+                </React.Fragment>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

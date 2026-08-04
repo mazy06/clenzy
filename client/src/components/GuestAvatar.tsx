@@ -1,5 +1,4 @@
-import { Box } from '@mui/material';
-import type { SxProps, Theme } from '@mui/material';
+import type { CSSProperties } from 'react';
 
 /** Initiales d'un voyageur (max 2 lettres) pour le repli de l'avatar. */
 export function getGuestInitials(name: string): string {
@@ -19,8 +18,10 @@ interface GuestAvatarProps {
   photoUrl?: string | null;
   /** Diamètre du cercle en px. */
   size?: number;
-  /** Style du cercle : fond, bordure, couleur/typo des initiales. */
-  sx?: SxProps<Theme>;
+  /** Style du cercle : fond, bordure, couleur/typo des initiales. Le nom `sx` est
+   *  conserve car des appelants hors migration le passent encore ; la valeur est
+   *  desormais un style CSS applique tel quel, plus un objet MUI. */
+  sx?: CSSProperties;
 }
 
 /**
@@ -31,41 +32,16 @@ interface GuestAvatarProps {
  */
 export default function GuestAvatar({ name, photoUrl, size = 26, sx }: GuestAvatarProps) {
   return (
-    <Box
-      sx={{
-        position: 'relative',
-        overflow: 'hidden',
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        flexShrink: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontWeight: 700,
-        ...sx,
-      }}
+    <div
+      className="relative overflow-hidden rounded-full shrink-0 flex items-center justify-center font-bold"
+      style={{ width: size, height: size, ...sx }}
     >
       {getGuestInitials(name)}
       {photoUrl && (
-        <Box
-          component="img"
-          src={photoUrl}
-          alt=""
-          loading="lazy"
-          onError={(e) => {
+        <img className="absolute inset-[0px] w-full h-full object-cover rounded-[50%]" src={photoUrl} alt="" loading="lazy" onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = 'none';
-          }}
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            borderRadius: '50%',
-          }}
-        />
+          }} />
       )}
-    </Box>
+    </div>
   );
 }

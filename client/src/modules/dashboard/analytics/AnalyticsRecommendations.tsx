@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography, Card, CardContent, Chip, Grid } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+import { Card, CardContent } from '../../../components/ui';
 import {
   PriceChange, CalendarMonth, Savings, Warning,
 } from '../../../icons';
@@ -30,11 +31,9 @@ const TYPE_COLORS: Record<RecommendationType, string> = {
   risk: '#C97A7A',
 };
 
-const CARD_SX = {
-  width: '100%',
-  transition: 'border-color 0.15s ease',
-  '&:hover': { borderColor: 'text.secondary' },
-} as const;
+// La carte du kit se cerne d'un `ring`, pas d'un `border` : le survol teinte
+// donc l'anneau, sans quoi la reaction au survol serait invisible.
+const CARD_CLASS = 'w-full transition-[box-shadow] duration-150 hover:ring-[var(--muted)]';
 
 interface Props {
   data: Recommendation[] | null;
@@ -52,126 +51,71 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
       subtitle={t('dashboard.analytics.recommendationsDesc')}
       badge={recs.length}
     >
-      <Grid container spacing={1.5}>
+      <div className="grid grid-cols-12 gap-[9px]">
         {loading ? (
           // Skeleton placeholders
           Array.from({ length: 3 }).map((_, i) => (
-            <Grid item xs={12} key={i}>
-              <Card sx={{ ...CARD_SX, opacity: 0.5 }}>
-                <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
-                  <Box sx={{ height: 80 }} />
+            <div className="col-span-12" key={i}>
+              <Card className={`${CARD_CLASS} [--card-spacing:7.5px] opacity-50`}>
+                <CardContent>
+                  <div className="h-[80px]" />
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
           ))
         ) : recs.length === 0 ? (
-          <Grid item xs={12}>
-            <Card sx={CARD_SX}>
-              <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
-                <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', textAlign: 'center', py: 2 }}>
+          <div className="col-span-12">
+            <Card className={`${CARD_CLASS} [--card-spacing:7.5px]`}>
+              <CardContent>
+                <p className="cn-text-body1 text-[0.75rem] text-muted-foreground text-center py-3">
                   {t('dashboard.analytics.noRecommendations')}
-                </Typography>
+                </p>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
         ) : (
           recs.map((rec) => (
-            <Grid item xs={12} key={rec.id}>
-              <Card sx={CARD_SX}>
-                <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
+            <div className="col-span-12" key={rec.id}>
+              <Card className={`${CARD_CLASS} [--card-spacing:7.5px]`}>
+                <CardContent>
                   {/* Header: icon + title */}
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, mb: 0.5 }}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minWidth: 28,
-                        height: 28,
-                        borderRadius: 0.75,
-                        bgcolor: `${TYPE_COLORS[rec.type]}15`,
-                        color: TYPE_COLORS[rec.type],
-                        '& .MuiSvgIcon-root': { fontSize: 16 },
-                      }}
+                  <div className="flex items-start gap-1 mb-0.5">
+                    {/* bg et couleur derivent du type a l'execution : style inline obligatoire */}
+                    <div
+                      className="flex items-center justify-center min-w-[28px] h-[28px] rounded-[6px] [&_.MuiSvgIcon-root]:text-[16px]"
+                      style={{ backgroundColor: `${TYPE_COLORS[rec.type]}15`, color: TYPE_COLORS[rec.type] }}
                     >
                       {TYPE_ICONS[rec.type]}
-                    </Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography
-                        sx={{
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          color: 'text.primary',
-                          lineHeight: 1.3,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                        }}
-                      >
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {/* line-clamp-N porte deja overflow/display/-webkit-box-orient */}
+                      <p className="cn-text-body1 text-[0.75rem] font-bold text-[var(--ink)] leading-[1.3] text-ellipsis line-clamp-2">
                         {rec.title}
-                      </Typography>
-                    </Box>
-                  </Box>
+                      </p>
+                    </div>
+                  </div>
 
                   {/* Description */}
-                  <Typography
-                    sx={{
-                      fontSize: '0.625rem',
-                      color: 'text.secondary',
-                      lineHeight: 1.4,
-                      mb: 0.75,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: 'vertical',
-                    }}
-                  >
+                  {/* mb: 0.75 avec theme.spacing = 6 -> 4.5px, hors echelle Tailwind */}
+                  <p className="cn-text-body1 text-[0.625rem] text-[var(--muted)] leading-[1.4] mb-[4.5px] text-ellipsis line-clamp-3">
                     {rec.description}
-                  </Typography>
+                  </p>
 
                   {/* Bottom row: impact + confidence + priority */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                    <Typography
-                      sx={{
-                        fontSize: '0.6875rem',
-                        fontWeight: 700,
-                        color: 'success.main',
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
+                  <div className="flex items-center gap-0.5 flex-wrap">
+                    <p className="cn-text-body1 text-[0.6875rem] font-bold text-[var(--bui-success-ink)] tabular-nums">
                       +<Money value={rec.estimatedImpact} from="EUR" decimals={0} />
-                    </Typography>
-                    <Chip
-                      label={`${rec.confidence}%`}
-                      size="small"
-                      sx={{
-                        height: 18,
-                        fontSize: '0.5625rem',
-                        fontWeight: 600,
-                        bgcolor: 'rgba(107, 138, 154, 0.08)',
-                        color: 'text.secondary',
-                      }}
-                    />
-                    <Box
-                      sx={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        bgcolor: PRIORITY_COLORS[rec.priority],
-                        ml: 'auto',
-                      }}
-                      title={rec.priority}
-                    />
-                  </Box>
+                    </p>
+                    {/* `text.secondary` etait un jeton de theme MUI passe en couleur CSS : invalide, donc ignore. */}
+                    <StatusChip size="sm" tokens={{ color: 'var(--muted)', bg: 'rgba(107, 138, 154, 0.08)' }} label={`${rec.confidence}%`} className="text-[0.5625rem]" />
+                    <div className="w-[6px] h-[6px] rounded-[50%] ms-auto" style={{ backgroundColor: PRIORITY_COLORS[rec.priority] }} title={rec.priority} />
+                  </div>
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
           ))
         )}
-      </Grid>
+      </div>
     </GridSection>
   );
 });

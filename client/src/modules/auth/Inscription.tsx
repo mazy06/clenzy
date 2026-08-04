@@ -1,36 +1,39 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { Badge } from '../../components/ui';
+import { Spinner } from '../../components/ui';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
-  Box,
-  TextField,
-  Button,
-  Typography,
-  Stack,
   Alert,
-  CircularProgress,
-  Stepper,
-  Step,
-  StepLabel,
-  StepIconProps,
-  Chip,
-  Divider,
-  ToggleButtonGroup,
-  ToggleButton,
+  AlertDescription,
+  Button,
   Card,
   CardContent,
   Checkbox,
-  FormControlLabel,
-  Link as MuiLink,
-  MenuItem,
-} from '@mui/material';
+  Separator,
+  Step,
+  StepLabel,
+  Stepper,
+  ToggleGroup,
+  ToggleGroupItem,
+} from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import {
   ShoppingCart as CartIcon,
   CreditCard as CreditCardIcon,
   CheckCircle as CheckCircleIcon,
-  PersonOutline as PersonIcon,
-  Payment as PaymentIcon,
 } from '../../icons';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
@@ -206,36 +209,9 @@ const getReferralSourceLabel = (t: TFunction, key: ReferralSource): string => {
   return t(`auth.inscription.referralSources.${key}`, fallbacks[key]);
 };
 
-const STEP_ICONS: Record<number, React.ReactElement> = {
-  1: <PersonIcon />,
-  2: <PaymentIcon />,
-};
-
-function CustomStepIcon(props: StepIconProps) {
-  const { active, completed, icon } = props;
-  return (
-    <Box
-      sx={{
-        width: 36,
-        height: 36,
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        bgcolor: completed
-          ? 'primary.main'
-          : active
-            ? 'primary.dark'
-            : 'grey.300',
-        color: '#fff',
-        transition: 'all 0.3s ease',
-        '& .MuiSvgIcon-root': { fontSize: 18 },
-      }}
-    >
-      {completed ? <CheckCircleIcon size={20} strokeWidth={1.75} /> : STEP_ICONS[icon as number]}
-    </Box>
-  );
-}
+// La pastille d'etape n'est plus dessinee ici : le Stepper du kit rend son
+// propre numero, remplace par une coche a l'etape franchie. `StepIconComponent`
+// n'existe pas cote kit — c'etait la seule raison de `CustomStepIcon`.
 
 interface InscriptionResponse {
   clientSecret: string;
@@ -448,123 +424,98 @@ export default function Inscription() {
     <AuthLayout maxFormWidth={activeStep === 1 ? 880 : 560}>
       {/* Badge forfait selectionne */}
         {prefill.forfait && (
-          <Box sx={{ textAlign: 'center', mb: 2 }}>
-            <Chip
-              label={getForfaitLabel(t, prefill.forfait)}
-              sx={{
-                backgroundColor: FORFAIT_COLORS[prefill.forfait] || '#6B8A9A',
-                color: '#fff',
-                fontWeight: 600,
-                fontSize: '0.8rem',
-                px: 1,
-              }}
-            />
-            <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
+          <div className="text-center mb-3">
+            <StatusChip tokens={{ color: '#fff', bg: FORFAIT_COLORS[prefill.forfait] || '#6B8A9A' }} label={getForfaitLabel(t, prefill.forfait)} className="text-[0.8rem] px-1.5" />
+            <span className="cn-text-caption block text-muted-foreground mt-0.5">
               {getInterventionPriceLabel(t, prefill.forfait, prefill.interventionPrice)} | {isSyncMode
                 ? t('auth.inscription.platformWithSync', 'Plateforme + Synchro')
                 : t('auth.inscription.platform', 'Plateforme')} : {getPmsDisplayPrice(t, billingPeriod, pmsBaseCents)}
-            </Typography>
-          </Box>
+            </span>
+          </div>
         )}
 
-        {/* Stepper */}
-        <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 3 }}>
-          {steps.map((label, index) => (
-            <Step
-              key={label}
-              completed={activeStep > index}
-              sx={{
-                cursor: activeStep > index && activeStep !== 1 ? 'pointer' : 'default',
-                '&:hover .MuiStepLabel-label': activeStep > index && activeStep !== 1
-                  ? { color: 'primary.dark' }
-                  : {},
-              }}
-              onClick={() => {
-                // Permettre de revenir aux etapes precedentes (sauf depuis le paiement Stripe)
-                if (index < activeStep && activeStep !== 1) {
-                  setError(null);
-                  setActiveStep(index);
-                }
-              }}
-            >
-              <StepLabel
-                StepIconComponent={CustomStepIcon}
-                sx={{
-                  '& .MuiStepLabel-label': {
-                    fontSize: '0.78rem',
-                    fontWeight: activeStep === index ? 600 : 400,
-                    transition: 'all 0.2s ease',
-                  },
+        {/* Stepper — mb: 3 = 18 px (spacing MUI du projet = 6 px) */}
+        <Stepper activeStep={activeStep} className="mb-[18px]">
+          {steps.map((label, index) => {
+            const retourPossible = index < activeStep && activeStep !== 1;
+            return (
+              <Step
+                key={label}
+                className={retourPossible ? 'cursor-pointer' : 'cursor-default'}
+                onClick={() => {
+                  // Permettre de revenir aux etapes precedentes (sauf depuis le paiement Stripe)
+                  if (retourPossible) {
+                    setError(null);
+                    setActiveStep(index);
+                  }
                 }}
               >
-                {label}
-              </StepLabel>
-            </Step>
-          ))}
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            );
+          })}
         </Stepper>
 
         {/* Erreur */}
         {error && (
-          <Alert severity={paymentCancelled && !loading ? 'warning' : 'error'} sx={{ mb: 2 }}>
-            <Typography variant="body2">{error}</Typography>
+          <Alert variant={paymentCancelled && !loading ? 'warning' : 'destructive'} className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
         {/* Etape 1 : Informations */}
         {activeStep === 0 && (
-          <Stack spacing={2}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-              <TextField
-                fullWidth
-                size="small"
-                label={t('auth.inscription.fields.fullNameLabel', 'Nom complet *')}
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder={t('auth.inscription.fields.fullNamePlaceholder', 'Jean Dupont')}
-                helperText={t('auth.inscription.fields.fullNameHelper', 'Prenom et nom de famille')}
-              />
-              <TextField
-                fullWidth
-                size="small"
-                label={t('auth.inscription.fields.emailLabel', 'Email *')}
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={t('auth.inscription.fields.emailPlaceholder', 'jean@exemple.fr')}
-              />
-              <TextField
-                fullWidth
-                size="small"
-                label={t('auth.inscription.fields.phoneLabel', 'Telephone')}
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder={t('auth.inscription.fields.phonePlaceholder', '07 66 72 91 09')}
-                helperText={t('auth.inscription.fields.phoneHelper', 'Optionnel')}
-              />
-            </Box>
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-3">
+              <Field>
+                <FieldLabel htmlFor="inscription-full-name">
+                  {t('auth.inscription.fields.fullNameLabel', 'Nom complet *')}
+                </FieldLabel>
+                <Input
+                  id="inscription-full-name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder={t('auth.inscription.fields.fullNamePlaceholder', 'Jean Dupont')}
+                />
+                <FieldDescription>
+                  {t('auth.inscription.fields.fullNameHelper', 'Prenom et nom de famille')}
+                </FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="inscription-email">
+                  {t('auth.inscription.fields.emailLabel', 'Email *')}
+                </FieldLabel>
+                <Input
+                  id="inscription-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t('auth.inscription.fields.emailPlaceholder', 'jean@exemple.fr')}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="inscription-phone">
+                  {t('auth.inscription.fields.phoneLabel', 'Telephone')}
+                </FieldLabel>
+                <Input
+                  id="inscription-phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder={t('auth.inscription.fields.phonePlaceholder', '07 66 72 91 09')}
+                />
+                <FieldDescription>
+                  {t('auth.inscription.fields.phoneHelper', 'Optionnel')}
+                </FieldDescription>
+              </Field>
+            </div>
 
             {/* Selection du type d'organisation */}
-            <Box>
-              <Typography
-                variant="overline"
-                sx={{
-                  fontWeight: 700,
-                  color: 'text.secondary',
-                  letterSpacing: 0.6,
-                  fontSize: '0.7rem',
-                  display: 'block',
-                  mb: 1,
-                }}
-              >
+            <div>
+              <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem] block mb-1.5">
                 {t('auth.inscription.you', 'Vous êtes')}
-              </Typography>
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
-                  gap: 1.5,
-                }}
-              >
+              </span>
+              <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(3,_1fr)] gap-[9px]">
                 {(['INDIVIDUAL', 'CONCIERGE', 'CLEANING_COMPANY'] as const).map((type) => (
                   <OptionCard
                     key={type}
@@ -577,46 +528,41 @@ export default function Inscription() {
                     description={getOrgTypeDescription(t, type)}
                   />
                 ))}
-              </Box>
-            </Box>
+              </div>
+            </div>
 
             {/* Nom de la societe (conditionnel, requis pour type pro) */}
             {isProType && (
-              <TextField
-                fullWidth
-                size="small"
-                label={t('auth.inscription.fields.companyLabel', 'Nom de la societe *')}
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                placeholder={t('auth.inscription.fields.companyPlaceholder', 'Ma Societe SARL')}
-                error={isProType && companyName.trim() === ''}
-                helperText={t('auth.inscription.fields.companyHelper', 'Requis pour les conciergeries et societes de menage')}
-              />
+              <Field>
+                <FieldLabel htmlFor="inscription-company">
+                  {t('auth.inscription.fields.companyLabel', 'Nom de la societe *')}
+                </FieldLabel>
+                <Input
+                  id="inscription-company"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder={t('auth.inscription.fields.companyPlaceholder', 'Ma Societe SARL')}
+                  aria-invalid={companyName.trim() === ''}
+                />
+                {companyName.trim() === '' ? (
+                  <FieldError>
+                    {t('auth.inscription.fields.companyHelper', 'Requis pour les conciergeries et societes de menage')}
+                  </FieldError>
+                ) : (
+                  <FieldDescription>
+                    {t('auth.inscription.fields.companyHelper', 'Requis pour les conciergeries et societes de menage')}
+                  </FieldDescription>
+                )}
+              </Field>
             )}
 
             {/* Selection du forfait si non pre-rempli */}
             {!prefill.forfait && (
-              <Box>
-                <Typography
-                  variant="overline"
-                  sx={{
-                    fontWeight: 700,
-                    color: 'text.secondary',
-                    letterSpacing: 0.6,
-                    fontSize: '0.7rem',
-                    display: 'block',
-                    mb: 1,
-                  }}
-                >
+              <div>
+                <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem] block mb-1.5">
                   {t('auth.inscription.choosePlan', 'Choisissez votre forfait *')}
-                </Typography>
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
-                    gap: 1.5,
-                  }}
-                >
+                </span>
+                <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(3,_1fr)] gap-[9px]">
                   {(['essentiel', 'confort', 'premium'] as const).map((f) => (
                     <OptionCard
                       key={f}
@@ -625,340 +571,277 @@ export default function Inscription() {
                       label={getForfaitShortLabel(t, f)}
                       description={getForfaitTagline(t, f)}
                       hint={
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontWeight: 600,
-                            color: 'inherit',
-                            fontSize: '0.75rem',
-                            opacity: 0.95,
-                          }}
-                        >
+                        <span className="cn-text-caption font-semibold text-inherit text-[0.75rem] opacity-95">
                           {t('auth.inscription.forfaitHint', `dès ${FORFAIT_BASE_PRICES[f]}€/intervention`, { price: FORFAIT_BASE_PRICES[f] })}
-                        </Typography>
+                        </span>
                       }
                     />
                   ))}
-                </Box>
-              </Box>
+                </div>
+              </div>
             )}
 
             {/* Selection de la periode de facturation */}
-            <Divider sx={{ my: 1 }} />
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+            <Separator className="my-1.5" />
+            <span className="cn-text-caption text-muted-foreground font-semibold">
               {t('auth.inscription.billingPeriodLabel', 'Periode de facturation')}
-            </Typography>
-            <ToggleButtonGroup
+            </span>
+            {/* ToggleGroup rend une valeur vide quand on re-clique l'item actif :
+                on ignore ce cas, la periode doit toujours etre definie. */}
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              size="sm"
+              spacing={0}
               value={billingPeriod}
-              exclusive
-              onChange={(_, val) => val && setBillingPeriod(val as BillingPeriod)}
-              size="small"
-              fullWidth
-              sx={{ mb: 0.5 }}
+              onValueChange={(val) => val && setBillingPeriod(val as BillingPeriod)}
+              className="mb-[3px] w-full [&>*]:flex-1"
             >
-              <ToggleButton value="MONTHLY" sx={{ textTransform: 'none', fontSize: '0.78rem', fontWeight: 600 }}>
+              <ToggleGroupItem value="MONTHLY" className="text-[0.78rem] font-semibold">
                 {getBillingPeriodLabel(t, 'MONTHLY')}
-              </ToggleButton>
-              <ToggleButton value="ANNUAL" sx={{ textTransform: 'none', fontSize: '0.78rem', fontWeight: 600 }}>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="ANNUAL" className="text-[0.78rem] font-semibold">
                 {getBillingPeriodLabel(t, 'ANNUAL')}
-                <Chip label="-20%" size="small" color="success" sx={{ ml: 0.5, height: 18, fontSize: '0.65rem', fontWeight: 700 }} />
-              </ToggleButton>
-              <ToggleButton value="BIENNIAL" sx={{ textTransform: 'none', fontSize: '0.78rem', fontWeight: 600 }}>
+                <Badge variant="success" className="ms-0.5 h-[18px] text-[0.65rem] font-bold">-20%</Badge>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="BIENNIAL" className="text-[0.78rem] font-semibold">
                 {getBillingPeriodLabel(t, 'BIENNIAL')}
-                <Chip label="-35%" size="small" color="success" sx={{ ml: 0.5, height: 18, fontSize: '0.65rem', fontWeight: 700 }} />
-              </ToggleButton>
-            </ToggleButtonGroup>
-            <Typography variant="caption" color="text.secondary">
+                <Badge variant="success" className="ms-0.5 h-[18px] text-[0.65rem] font-bold">-35%</Badge>
+              </ToggleGroupItem>
+            </ToggleGroup>
+            <span className="cn-text-caption text-muted-foreground">
               {t('auth.inscription.platform', 'Plateforme')} : {getPmsDisplayPrice(t, billingPeriod, pmsBaseCents)}
               {billingPeriod !== 'MONTHLY' && pmsBaseCents !== null && (
-                <Typography component="span" variant="caption" sx={{ ml: 0.5, textDecoration: 'line-through', color: 'text.disabled' }}>
+                <span className="cn-text-caption ms-0.5 line-through text-muted-foreground opacity-60">
                   {formatCents(pmsBaseCents)}{t('auth.inscription.perMonth', '/mois')}
-                </Typography>
+                </span>
               )}
               {billingPeriod !== 'MONTHLY' && (
-                <Typography component="span" variant="caption" sx={{ ml: 0.5, color: 'success.main', fontWeight: 600 }}>
+                <span className="cn-text-caption ms-0.5 text-[var(--bui-success-ink)] font-semibold">
                   {' '}{t('auth.inscription.invoiced', `Facture ${getPmsFirstPayment(t, billingPeriod, pmsBaseCents)}`, { amount: getPmsFirstPayment(t, billingPeriod, pmsBaseCents) })}
-                </Typography>
+                </span>
               )}
-            </Typography>
+            </span>
 
             {/* Resume des donnees de la landing page */}
             {hasLandingData && (
               <>
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                <Separator className="my-1.5" />
+                <span className="cn-text-caption text-muted-foreground font-semibold">
                   {t('auth.inscription.requestInfo', 'Informations de votre demande')}
-                </Typography>
-                <Box sx={{
-                  display: 'flex', flexWrap: 'wrap', gap: 0.75,
-                }}>
+                </span>
+                <div className="flex flex-wrap gap-1">
                   {prefill.propertyType && (
-                    <Chip size="small" variant="outlined" label={getPropertyTypeLabel(t, prefill.propertyType)} />
+                    <Badge variant="outline">{getPropertyTypeLabel(t, prefill.propertyType)}</Badge>
                   )}
                   {prefill.surface && (
-                    <Chip size="small" variant="outlined" label={t('auth.inscription.surfaceChip', `${prefill.surface} m²`, { value: prefill.surface })} />
+                    <Badge variant="outline">{t('auth.inscription.surfaceChip', `${prefill.surface} m²`, { value: prefill.surface })}</Badge>
                   )}
                   {prefill.guestCapacity && (
-                    <Chip size="small" variant="outlined" label={t('auth.inscription.guestCapacityChip', `${prefill.guestCapacity} voyageurs`, { value: prefill.guestCapacity })} />
+                    <Badge variant="outline">{t('auth.inscription.guestCapacityChip', `${prefill.guestCapacity} voyageurs`, { value: prefill.guestCapacity })}</Badge>
                   )}
                   {prefill.propertyCount && (
-                    <Chip size="small" variant="outlined" label={t('auth.inscription.propertyCountChip', `${prefill.propertyCount} logement(s)`, { value: prefill.propertyCount })} />
+                    <Badge variant="outline">{t('auth.inscription.propertyCountChip', `${prefill.propertyCount} logement(s)`, { value: prefill.propertyCount })}</Badge>
                   )}
                   {prefill.city && (
-                    <Chip
-                      size="small"
-                      variant="outlined"
-                      label={
-                        prefill.postalCode
+                    <Badge variant="outline">{prefill.postalCode
                           ? t('auth.inscription.cityPostalChip', `${prefill.city} (${prefill.postalCode})`, { city: prefill.city, postalCode: prefill.postalCode })
-                          : t('auth.inscription.cityChip', `${prefill.city}`, { city: prefill.city })
-                      }
-                    />
+                          : t('auth.inscription.cityChip', `${prefill.city}`, { city: prefill.city })}</Badge>
                   )}
-                </Box>
+                </div>
               </>
             )}
 
             {/* Code promo + source d'acquisition (optionnels, collapsibles visuellement) */}
-            <Divider sx={{ my: 1 }} />
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                gap: 2,
-              }}
-            >
-              <TextField
-                fullWidth
-                size="small"
-                label={t('auth.inscription.promoLabel', 'Code promo / parrainage')}
-                value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                placeholder={t('auth.inscription.promoPlaceholder', 'Optionnel')}
-                inputProps={{ maxLength: 50, style: { textTransform: 'uppercase' } }}
-                helperText={t('auth.inscription.promoHelper', 'Si vous en avez un')}
-              />
-              <TextField
-                select
-                fullWidth
-                size="small"
-                label={t('auth.inscription.referralLabel', 'Comment nous avez-vous connu ?')}
-                value={referralSource}
-                onChange={(e) => setReferralSource(e.target.value as ReferralSource)}
-                helperText={t('auth.inscription.referralHelper', 'Optionnel — nous aide à mieux vous servir')}
-                SelectProps={{ displayEmpty: true }}
-                // displayEmpty affiche le placeholder « Sélectionner… » dans le
-                // champ ; sans shrink, le label flottant ne remonte pas et
-                // CHEVAUCHE le placeholder. On force le label remonté (notch).
-                InputLabelProps={{ shrink: true }}
-              >
-                <MenuItem value="">
-                  <Typography component="span" variant="body2" sx={{ color: 'text.disabled' }}>
+            <Separator className="my-1.5" />
+            <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-3">
+              <Field>
+                <FieldLabel htmlFor="inscription-promo-code">
+                  {t('auth.inscription.promoLabel', 'Code promo / parrainage')}
+                </FieldLabel>
+                <Input
+                  id="inscription-promo-code"
+                  className="uppercase"
+                  maxLength={50}
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                  placeholder={t('auth.inscription.promoPlaceholder', 'Optionnel')}
+                />
+                <FieldDescription>
+                  {t('auth.inscription.promoHelper', 'Si vous en avez un')}
+                </FieldDescription>
+              </Field>
+              {/* Le libelle est desormais statique au-dessus du champ : plus de
+                  chevauchement possible entre lui et l'option vide, donc plus
+                  besoin des reglages displayEmpty / shrink de MUI. */}
+              <Field>
+                <FieldLabel htmlFor="inscription-referral-source">
+                  {t('auth.inscription.referralLabel', 'Comment nous avez-vous connu ?')}
+                </FieldLabel>
+                <NativeSelect
+                  id="inscription-referral-source"
+                  className="w-full"
+                  value={referralSource}
+                  onChange={(e) => setReferralSource(e.target.value as ReferralSource)}
+                >
+                  <NativeSelectOption value="">
                     {t('auth.inscription.referralPlaceholder', 'Sélectionner…')}
-                  </Typography>
-                </MenuItem>
-                {REFERRAL_SOURCE_VALUES.map((value) => (
-                  <MenuItem key={value} value={value}>
-                    {getReferralSourceLabel(t, value)}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Box>
+                  </NativeSelectOption>
+                  {REFERRAL_SOURCE_VALUES.map((value) => (
+                    <NativeSelectOption key={value} value={value}>
+                      {getReferralSourceLabel(t, value)}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+                <FieldDescription>
+                  {t('auth.inscription.referralHelper', 'Optionnel — nous aide à mieux vous servir')}
+                </FieldDescription>
+              </Field>
+            </div>
 
             {/* Consentements RGPD (CGU obligatoire + newsletter optionnel) */}
-            <Divider sx={{ my: 1 }} />
-            <Box>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={acceptedTerms}
-                    onChange={(e) => setAcceptedTerms(e.target.checked)}
-                    size="small"
-                    sx={{
-                      color: 'divider',
-                      '&.Mui-checked': { color: 'primary.main' },
-                    }}
-                  />
-                }
-                label={
-                  <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.4 }}>
+            <Separator className="my-1.5" />
+            <div className="flex flex-col gap-[3px]">
+              <Field orientation="horizontal" className="items-start">
+                <Checkbox
+                  id="inscription-accept-terms"
+                  className="mt-[3px]"
+                  checked={acceptedTerms}
+                  onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                />
+                <FieldLabel htmlFor="inscription-accept-terms" className="cn-text-body2 text-[0.8125rem] leading-[1.4] font-normal">
+                  <span>
                     {t('auth.inscription.cguPrefix', "J'accepte les")}{' '}
-                    <MuiLink
+                    <a
                       href="/cgu"
                       target="_blank"
                       rel="noopener noreferrer"
-                      sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'underline' }}
+                      className="text-[var(--mui-primary)] font-semibold underline"
                     >
                       {t('auth.inscription.cguLinkText', "conditions générales d'utilisation")}
-                    </MuiLink>{' '}
+                    </a>{' '}
                     {t('auth.inscription.cguMiddle', 'et la')}{' '}
-                    <MuiLink
+                    <a
                       href="/confidentialite"
                       target="_blank"
                       rel="noopener noreferrer"
-                      sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'underline' }}
+                      className="text-[var(--mui-primary)] font-semibold underline"
                     >
                       {t('auth.inscription.privacyLinkText', 'politique de confidentialité')}
-                    </MuiLink>
+                    </a>
                     {' '}
-                    <Typography component="span" variant="caption" sx={{ color: 'error.main', fontWeight: 600 }}>
+                    <span className="cn-text-caption text-destructive font-semibold">
                       *
-                    </Typography>
-                  </Typography>
-                }
-                sx={{ alignItems: 'flex-start', mr: 0, '& .MuiFormControlLabel-label': { mt: 0.4 } }}
-              />
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={newsletterOptIn}
-                    onChange={(e) => setNewsletterOptIn(e.target.checked)}
-                    size="small"
-                    sx={{
-                      color: 'divider',
-                      '&.Mui-checked': { color: 'primary.main' },
-                    }}
-                  />
-                }
-                label={
-                  <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.4 }}>
-                    {t('auth.inscription.newsletterOptIn', 'Je souhaite recevoir la newsletter Baitly (nouveautés produit, conseils gestion locative).')}
-                  </Typography>
-                }
-                sx={{ alignItems: 'flex-start', mr: 0, mt: 0.5, '& .MuiFormControlLabel-label': { mt: 0.4 } }}
-              />
-            </Box>
-          </Stack>
+                    </span>
+                  </span>
+                </FieldLabel>
+              </Field>
+              <Field orientation="horizontal" className="items-start">
+                <Checkbox
+                  id="inscription-newsletter"
+                  className="mt-[3px]"
+                  checked={newsletterOptIn}
+                  onCheckedChange={(checked) => setNewsletterOptIn(checked === true)}
+                />
+                <FieldLabel htmlFor="inscription-newsletter" className="cn-text-body2 text-[0.8125rem] leading-[1.4] font-normal">
+                  {t('auth.inscription.newsletterOptIn', 'Je souhaite recevoir la newsletter Baitly (nouveautés produit, conseils gestion locative).')}
+                </FieldLabel>
+              </Field>
+            </div>
+          </div>
         )}
 
         {/* Etape 2 : Paiement Stripe Embedded Checkout */}
         {activeStep === 1 && clientSecret && (
-          <Box sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            gap: 3,
-          }}>
+          <div className="flex flex-col min-[900px]:flex-row gap-[18px]">
             {/* Colonne gauche : Recapitulatif de la commande */}
-            <Box sx={{ flex: '0 0 320px', minWidth: 0 }}>
-              <Card sx={{
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 2,
-                boxShadow: 'none',
-              }}>
-                <CardContent sx={{ p: 2.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <Box sx={{
-                      width: 36, height: 36, borderRadius: '50%',
-                      bgcolor: 'rgba(166,192,206,0.15)',
-                      color: 'primary.main',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
+            <div className="flex-[0_0_320px] min-w-0">
+              <Card className="border-solid border-[var(--line)] rounded-[12px] shadow-none">
+                <CardContent className="p-[15px]">
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <div className="w-[36px] h-[36px] rounded-[50%] bg-[rgba(166,192,206,0.15)] text-primary flex items-center justify-center">
                       <CartIcon size={18} strokeWidth={1.75} color='currentColor' />
-                    </Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                    </div>
+                    <h6 className="cn-text-subtitle2 font-semibold text-foreground">
                       {t('auth.inscription.summary', 'Recapitulatif')}
-                    </Typography>
-                  </Box>
+                    </h6>
+                  </div>
 
-                  <Stack spacing={1.5}>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  <div className="flex flex-col gap-[9px]">
+                    <div>
+                      <span className="cn-text-caption text-muted-foreground font-semibold">
                         {t('auth.inscription.summaryAccount', 'Compte')}
-                      </Typography>
-                      <Typography variant="body2">{fullName}</Typography>
-                      <Typography variant="body2" color="text.secondary">{email}</Typography>
-                    </Box>
+                      </span>
+                      <p className="cn-text-body2">{fullName}</p>
+                      <p className="cn-text-body2 text-muted-foreground">{email}</p>
+                    </div>
 
-                    <Divider />
+                    <Separator />
 
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    <div>
+                      <span className="cn-text-caption text-muted-foreground font-semibold">
                         {t('auth.inscription.summaryPlan', 'Forfait')}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                        <Chip
-                          label={getForfaitLabel(t, forfait)}
-                          size="small"
-                          sx={{
-                            backgroundColor: FORFAIT_COLORS[forfait] || '#6B8A9A',
-                            color: '#fff',
-                            fontWeight: 600,
-                            fontSize: '0.75rem',
-                          }}
-                        />
-                      </Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                      </span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <StatusChip tokens={{ color: '#fff', bg: FORFAIT_COLORS[forfait] || '#6B8A9A' }} label={getForfaitLabel(t, forfait)} className="text-[0.75rem]" />
+                      </div>
+                      <span className="cn-text-caption text-muted-foreground mt-0.5 block">
                         {getInterventionPriceLabel(t, forfait, prefill.interventionPrice)}
-                      </Typography>
-                    </Box>
+                      </span>
+                    </div>
 
-                    <Divider />
+                    <Separator />
 
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    <div>
+                      <span className="cn-text-caption text-muted-foreground font-semibold">
                         {isSyncMode
                           ? t('auth.inscription.summarySubscriptionWithSync', 'Abonnement plateforme + Synchro auto')
                           : t('auth.inscription.summarySubscription', 'Abonnement plateforme')}
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                      </span>
+                      <p className="cn-text-body2 font-semibold text-primary">
                         {getPmsDisplayPrice(t, billingPeriod, confirmedPmsBaseCents ?? pmsBaseCents)}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      </p>
+                      <span className="cn-text-caption text-muted-foreground">
                         {t('auth.inscription.summaryPeriod', 'Periode :')} {getBillingPeriodLabel(t, billingPeriod)}
-                      </Typography>
-                    </Box>
+                      </span>
+                    </div>
 
-                    <Divider />
+                    <Separator />
 
-                    <Box sx={{
-                      p: 1.5, borderRadius: 1.5,
-                      bgcolor: 'rgba(166,192,206,0.08)',
-                      border: '1px solid rgba(166,192,206,0.2)',
-                    }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    <div className="p-2 rounded-[12px] bg-[rgba(166,192,206,0.08)] border border-solid border-[rgba(166,192,206,0.2)]">
+                      <div className="flex justify-between items-center">
+                        <p className="cn-text-body2 font-semibold">
                           {t('auth.inscription.summaryTotal', 'Total a payer')}
-                        </Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 700, color: 'primary.dark' }}>
+                        </p>
+                        <p className="cn-text-body1 font-bold text-[var(--mui-primary-d)]">
                           {getPmsFirstPayment(t, billingPeriod, confirmedPmsBaseCents ?? pmsBaseCents)}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Stack>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-                  <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircleIcon size={14} strokeWidth={1.75} /></Box>
-                    <Typography variant="caption" color="text.secondary">
+                  <div className="mt-3 flex items-center gap-0.5">
+                    <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircleIcon size={14} strokeWidth={1.75} /></span>
+                    <span className="cn-text-caption text-muted-foreground">
                       {t('auth.inscription.securedPayment', 'Paiement securise via Stripe')}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 </CardContent>
               </Card>
-            </Box>
+            </div>
 
             {/* Colonne droite : Stripe Embedded Checkout */}
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Card sx={{
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 2,
-                boxShadow: 'none',
-                overflow: 'hidden',
-              }}>
-                <CardContent sx={{ p: 2.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <Box sx={{
-                      width: 36, height: 36, borderRadius: '50%',
-                      bgcolor: 'rgba(107,138,154,0.12)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
+            <div className="flex-1 min-w-0">
+              <Card className="border-solid border-[var(--line)] rounded-[12px] shadow-none overflow-hidden">
+                <CardContent className="p-[15px]">
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <div className="w-[36px] h-[36px] rounded-[50%] bg-[rgba(107,138,154,0.12)] flex items-center justify-center">
                       <CreditCardIcon size={18} strokeWidth={1.75} color='currentColor' />
-                    </Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                    </div>
+                    <h6 className="cn-text-subtitle2 font-semibold text-foreground">
                       {t('auth.inscription.paymentTitle', 'Paiement')}
-                    </Typography>
-                  </Box>
+                    </h6>
+                  </div>
                   <EmbeddedCheckoutProvider
                     stripe={stripePromise}
                     options={{ clientSecret }}
@@ -967,50 +850,39 @@ export default function Inscription() {
                   </EmbeddedCheckoutProvider>
                 </CardContent>
               </Card>
-            </Box>
-          </Box>
+            </div>
+          </div>
         )}
 
         {/* Bouton de navigation (cache a l'etape Paiement) */}
         {activeStep === 0 && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          <div className="flex justify-center mt-4">
             <Button
-              variant="contained"
               onClick={handleNext}
               disabled={loading || !isStep1Valid()}
-              sx={{
-                px: 4,
-                fontWeight: 600,
-                backgroundColor: 'secondary.main',
-                '&:hover': { backgroundColor: 'secondary.dark' },
-                borderRadius: 1.5,
-              }}
+              // `secondary.main` a son jeton (--mui-secondary) ; `secondary.dark`
+              // n'en a pas. MUI derive `dark` en assombrissant `main` de 20 %,
+              // ce que color-mix avec du noir reproduit a l'identique — et qui
+              // reste sensible au mode, contrairement a un hex fige. L'encre est
+              // forcee en sombre : --mui-secondary reste un bleu-gris clair dans
+              // les deux modes, var(--ink) y virerait au blanc en dark.
+              className="px-6 bg-[var(--mui-secondary)] text-[#15242D] hover:bg-[color-mix(in_srgb,var(--mui-secondary)_85%,#000)]"
             >
-              {loading ? <CircularProgress size={20} color="inherit" /> : t('auth.inscription.submit', 'Continuer vers le paiement')}
+              {loading ? <Spinner className="size-5" /> : t('auth.inscription.submit', 'Continuer vers le paiement')}
             </Button>
-          </Box>
+          </div>
         )}
 
         {/* Lien vers login (cache a l'etape Paiement) */}
         {activeStep === 0 && (
-          <Box sx={{ mt: 2, textAlign: 'center' }}>
-            <Typography variant="caption" color="text.secondary">
+          <div className="mt-3 text-center">
+            <span className="cn-text-caption text-muted-foreground">
               {t('auth.inscription.alreadyAccount', 'Deja un compte ?')}{' '}
-              <Typography
-                component="span"
-                variant="caption"
-                sx={{
-                  color: 'secondary.main',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  '&:hover': { textDecoration: 'underline' },
-                }}
-                onClick={() => navigate('/login')}
-              >
+              <span className="cn-text-caption text-[var(--mui-secondary)] font-semibold cursor-pointer hover:decoration-[underline]" onClick={() => navigate('/login')}>
                 {t('auth.inscription.loginLink', 'Se connecter')}
-              </Typography>
-            </Typography>
-          </Box>
+              </span>
+            </span>
+          </div>
         )}
     </AuthLayout>
   );

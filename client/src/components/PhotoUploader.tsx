@@ -1,17 +1,12 @@
 import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  IconButton,
-  ImageList,
-  ImageListItem,
-  ImageListItemBar,
-  Alert,
-} from '@mui/material';
+import { Alert, AlertDescription } from './ui';
+import { TriangleAlert } from 'lucide-react';
+import { Button } from './ui';
 import {
   CloudUpload as CloudUploadIcon,
   Close as CloseIcon,
 } from '../icons';
+import { cn } from '../utils/cn';
 
 // ============================================================
 // PhotoUploader — Composant réutilisable d'upload de photos
@@ -201,60 +196,40 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   const acceptAttribute = acceptedFormats.join(',');
 
   return (
-    <Box>
+    <div>
       {/* Label */}
       {label && (
-        <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+        <h6 className="cn-text-subtitle2 font-semibold mb-1.5">
           {label}
-        </Typography>
+        </h6>
       )}
 
       {/* Zone de dépôt (drag-and-drop) */}
-      <Box
+      <div
         onClick={handleDropzoneClick}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
-        sx={{
-          border: '2px dashed',
-          borderColor: error
-            ? 'error.main'
-            : isDragOver
-            ? 'primary.main'
-            : 'divider',
-          borderRadius: 2,
-          p: 3,
-          textAlign: 'center',
-          cursor: disabled ? 'default' : 'pointer',
-          bgcolor: isDragOver ? 'action.hover' : 'background.paper',
-          transition: 'all 0.2s ease',
-          opacity: disabled ? 0.5 : 1,
-          '&:hover': disabled
-            ? {}
-            : {
-                borderColor: 'primary.main',
-                bgcolor: 'action.hover',
-              },
-        }}
+        className={cn(
+          'border-2 border-dashed rounded-[16px] p-[18px] text-center transition-all duration-200 ease-[ease]',
+          error ? 'border-[#C97A7A]' : isDragOver ? 'border-[var(--mui-primary)]' : 'border-[var(--line)]',
+          isDragOver ? 'bg-[var(--hover)]' : 'bg-[var(--card)]',
+          disabled
+            ? 'cursor-default opacity-50'
+            : 'cursor-pointer opacity-100 hover:border-[var(--mui-primary)] hover:bg-[var(--hover)]',
+        )}
       >
-        <Box
-          component="span"
-          sx={{
-            display: 'inline-flex',
-            color: isDragOver ? 'primary.main' : 'text.secondary',
-            mb: 1,
-          }}
-        >
+        <span className={cn('inline-flex mb-1.5', isDragOver ? 'text-[var(--mui-primary)]' : 'text-[var(--muted)]')}>
           <CloudUploadIcon size={40} strokeWidth={1.5} />
-        </Box>
-        <Typography variant="body2" color="text.secondary">
+        </span>
+        <p className="cn-text-body2 text-muted-foreground">
           Glissez-déposez vos photos ici
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
+        </p>
+        <span className="cn-text-caption text-muted-foreground">
           ou cliquez pour parcourir
-        </Typography>
-      </Box>
+        </span>
+      </div>
 
       {/* Input fichier caché */}
       <input
@@ -269,109 +244,93 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
       {/* Texte d'aide */}
       {helperText && (
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+        <span className="cn-text-caption text-muted-foreground mt-0.5 block">
           {helperText}
-        </Typography>
+        </span>
       )}
 
-      {/* Compteur */}
-      <Typography
-        variant="caption"
-        color={totalCount >= maxFiles ? 'error.main' : 'text.secondary'}
-        sx={{ mt: 0.5, display: 'block' }}
+      {/* Compteur — `mt: 0.5` avec theme.spacing = 6 vaut 3 px. */}
+      <span
+        className={cn(
+          'cn-text-caption mt-[3px] block',
+          totalCount >= maxFiles ? 'text-[var(--err)]' : 'text-[var(--muted)]',
+        )}
       >
         {totalCount}/{maxFiles} photos
-      </Typography>
+      </span>
 
       {/* Erreur de validation */}
       {(validationError || error) && (
-        <Alert severity="error" sx={{ mt: 1, py: 0.5 }}>
-          <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
+        <Alert variant="destructive" className="mt-1.5 py-0.5">
+          <TriangleAlert />
+          <AlertDescription><span className="cn-text-caption text-[0.75rem]">
             {error || validationError}
-          </Typography>
+          </span></AlertDescription>
         </Alert>
       )}
 
       {/* Prévisualisation des photos existantes (URLs) */}
       {existingPhotos.length > 0 && (
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+        <div className="mt-3">
+          <span className="cn-text-caption text-muted-foreground mb-1.5 block">
             Photos existantes
-          </Typography>
-          <ImageList cols={columns} gap={8}>
+          </span>
+          {/* Le nombre de colonnes vient des props : valeur d'execution, donc un
+              style inline — Tailwind n'emet ses classes qu'a la compilation. */}
+          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
             {existingPhotos.map((url, index) => (
-              <ImageListItem key={url}>
+              <div key={url} className="relative">
                 <img
                   src={url}
                   alt={`Apercu existant ${index + 1}`}
                   loading="lazy"
-                  style={{
-                    width: '100%',
-                    height: 120,
-                    objectFit: 'cover',
-                    borderRadius: 4,
-                  }}
+                  className="h-[120px] w-full rounded-[4px] object-cover"
                 />
                 {onExistingPhotoRemove && (
-                  <ImageListItemBar
-                    sx={{
-                      background:
-                        'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)',
-                    }}
-                    position="top"
-                    actionPosition="right"
-                    actionIcon={
-                      <IconButton
-                        size="small"
-                        sx={{ color: 'white' }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onExistingPhotoRemove(url);
-                        }}
-                        disabled={disabled}
-                      >
-                        <CloseIcon size={16} strokeWidth={1.75} />
-                      </IconButton>
-                    }
-                  />
+                  <div className="absolute inset-x-0 top-0 flex justify-end rounded-t-[4px] p-1 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.7)_0%,rgba(0,0,0,0)_100%)]">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Retirer la photo existante ${index + 1}`}
+                      className="text-[#FFFFFF] hover:bg-[rgba(255,255,255,0.15)]"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onExistingPhotoRemove(url);
+                      }}
+                      disabled={disabled}
+                    >
+                      <CloseIcon size={16} strokeWidth={1.75} />
+                    </Button>
+                  </div>
                 )}
-              </ImageListItem>
+              </div>
             ))}
-          </ImageList>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* Prévisualisation des nouveaux fichiers */}
       {photos.length > 0 && (
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+        <div className="mt-3">
+          <span className="cn-text-caption text-muted-foreground mb-1.5 block">
             Nouvelles photos
-          </Typography>
-          <ImageList cols={columns} gap={8}>
+          </span>
+          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
             {photos.map((file, index) => (
-              <ImageListItem key={`new-${index}`}>
-                <img
-                  src={previewUrls[index] || ''}
-                  alt={`Apercu ${index + 1}`}
-                  loading="lazy"
-                  style={{
-                    width: '100%',
-                    height: 120,
-                    objectFit: 'cover',
-                    borderRadius: 4,
-                  }}
-                />
-                <ImageListItemBar
-                  sx={{
-                    background:
-                      'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)',
-                  }}
-                  position="top"
-                  actionPosition="right"
-                  actionIcon={
-                    <IconButton
-                      size="small"
-                      sx={{ color: 'white' }}
+              <div key={`new-${index}`}>
+                <div className="relative">
+                  <img
+                    src={previewUrls[index] || ''}
+                    alt={`Apercu ${index + 1}`}
+                    loading="lazy"
+                    className="h-[120px] w-full rounded-[4px] object-cover"
+                  />
+                  <div className="absolute inset-x-0 top-0 flex justify-end rounded-t-[4px] p-1 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.7)_0%,rgba(0,0,0,0)_100%)]">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Retirer ${file.name}`}
+                      className="text-[#FFFFFF] hover:bg-[rgba(255,255,255,0.15)]"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleRemoveFile(index);
@@ -379,28 +338,21 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                       disabled={disabled}
                     >
                       <CloseIcon size={16} strokeWidth={1.75} />
-                    </IconButton>
-                  }
-                />
-                <ImageListItemBar
-                  position="below"
-                  title={
-                    <Typography variant="caption" noWrap sx={{ fontSize: '0.7rem' }}>
-                      {file.name}
-                    </Typography>
-                  }
-                  subtitle={
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                      {formatFileSize(file.size)}
-                    </Typography>
-                  }
-                />
-              </ImageListItem>
+                    </Button>
+                  </div>
+                </div>
+                <span className="cn-text-caption mt-1 block truncate text-[0.7rem]">
+                  {file.name}
+                </span>
+                <span className="cn-text-caption block text-muted-foreground text-[0.65rem]">
+                  {formatFileSize(file.size)}
+                </span>
+              </div>
             ))}
-          </ImageList>
-        </Box>
+          </div>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

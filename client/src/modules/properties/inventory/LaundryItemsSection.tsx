@@ -1,9 +1,22 @@
 import React, { useState, useMemo } from 'react';
+import { Card } from '../../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
+import { Button } from '../../../components/ui';
 import {
-  Box, Typography, Button, IconButton, TextField, Select, MenuItem,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, Chip,
-} from '@mui/material';
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import { Add, DeleteOutline, LocalLaundryService, Save, Close } from '../../../icons';
 import type { PropertyLaundryItem, BlanchisserieCatalogItem } from '../../../services/api/propertyInventoryApi';
 
@@ -60,91 +73,110 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
   }, 0);
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><LocalLaundryService size={22} strokeWidth={1.75} /></Box>
-          <Box>
-            <Typography variant="subtitle1" fontWeight={600}>Linge de maison</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex text-[var(--mui-info)]"><LocalLaundryService size={22} strokeWidth={1.75} /></span>
+          <div>
+            <h6 className="cn-text-subtitle1 font-semibold">Linge de maison</h6>
+            <p className="cn-text-body2 text-muted-foreground text-[0.8rem]">
               Articles de linge a preparer apres chaque sejour
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
         {canEdit && (
           <Button
-            size="small"
-            startIcon={<Add size={18} strokeWidth={1.75} />}
+            size="sm"
+            variant="outline"
             onClick={openAdd}
-            variant="outlined"
             disabled={availableCatalog.length === 0}
           >
+            <Add size={18} strokeWidth={1.75} />
             Ajouter
           </Button>
         )}
-      </Box>
+      </div>
 
       {items.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><LocalLaundryService size={40} strokeWidth={1.5} /></Box>
-          <Typography color="text.secondary">Aucun article de linge configure</Typography>
+        <Card className="gap-0 py-0 p-6 text-center">
+          <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><LocalLaundryService size={40} strokeWidth={1.5} /></span>
+          <p className="cn-text-body1 text-muted-foreground">Aucun article de linge configure</p>
           {catalog.length === 0 && (
-            <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
+            <p className="cn-text-body2 text-muted-foreground opacity-60 mt-0.5">
               Configurez d'abord le catalogue blanchisserie dans Configuration tarifaire
-            </Typography>
+            </p>
           )}
           {canEdit && catalog.length > 0 && (
-            <Button size="small" startIcon={<Add size={18} strokeWidth={1.75} />} onClick={openAdd} sx={{ mt: 1 }}>
+            <Button size="sm" variant="ghost" onClick={openAdd} className="mt-1.5">
+              <Add size={18} strokeWidth={1.75} />
               Ajouter un article
             </Button>
           )}
-        </Paper>
+        </Card>
       ) : (
         <>
-          <TableContainer component={Paper} variant="outlined">
-            <Table size="small">
-              <TableHead>
+          <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>Article</TableCell>
-                  <TableCell align="center">Qte / sejour</TableCell>
-                  <TableCell align="right">Prix unitaire</TableCell>
-                  <TableCell align="right">Sous-total</TableCell>
-                  {canEdit && <TableCell align="right" sx={{ width: 50 }} />}
+                  <TableHead>Article</TableHead>
+                  <TableHead className="text-center">Qte / sejour</TableHead>
+                  <TableHead className="text-end">Prix unitaire</TableHead>
+                  <TableHead className="text-end">Sous-total</TableHead>
+                  {canEdit && <TableHead className="text-end w-[50px]" />}
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {items.map((item) => {
                   const unitPrice = priceByKey[item.itemKey] ?? 0;
                   const subtotal = unitPrice * item.quantityPerStay;
                   return (
-                    <TableRow key={item.id} hover>
+                    <TableRow key={item.id}>
                       <TableCell>{item.label}</TableCell>
-                      <TableCell align="center">
+                      <TableCell className="text-center">
                         {canEdit ? (
-                          <TextField
+                          // Pas de Field ici : le champ n'a jamais eu de libelle visible,
+                          // l'en-tete de colonne le porte. aria-label nomme la ligne.
+                          <Input
+                            id={`laundry-qty-${item.id}`}
+                            aria-label={`Qte par sejour — ${item.label}`}
+                            className="w-[70px] text-center"
                             type="number"
+                            min={1}
                             value={item.quantityPerStay}
                             onChange={(e) => handleQuantityChange(item, parseInt(e.target.value) || 1)}
-                            size="small"
-                            sx={{ width: 70 }}
-                            inputProps={{ min: 1, style: { textAlign: 'center' } }}
                           />
                         ) : (
                           item.quantityPerStay
                         )}
                       </TableCell>
-                      <TableCell align="right">
+                      <TableCell className="text-end">
                         {unitPrice > 0 ? `${unitPrice.toFixed(2)} \u20AC` : '—'}
                       </TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 500 }}>
+                      <TableCell className="text-end font-medium">
                         {subtotal > 0 ? `${subtotal.toFixed(2)} \u20AC` : '—'}
                       </TableCell>
                       {canEdit && (
-                        <TableCell align="right">
-                          <Tooltip title="Supprimer">
-                            <IconButton size="small" color="error" onClick={() => onDelete(item.id)}>
-                              <DeleteOutline size={16} strokeWidth={1.75} />
-                            </IconButton>
+                        <TableCell className="text-end">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {/* Le span porte la ref que Radix pose sur son
+                                  enfant : Button est une fonction, il n'en
+                                  transmet pas. */}
+                              <span className="inline-flex">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => onDelete(item.id)}
+                                  aria-label={`Supprimer ${item.label}`}
+                                  className="text-[var(--err)] hover:bg-[var(--err-soft)]"
+                                >
+                                  <DeleteOutline size={16} strokeWidth={1.75} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Supprimer</TooltipContent>
                           </Tooltip>
                         </TableCell>
                       )}
@@ -153,55 +185,65 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
                 })}
                 {/* Total row */}
                 <TableRow>
-                  <TableCell colSpan={3} align="right" sx={{ fontWeight: 700 }}>
+                  <TableCell colSpan={3} className="text-end font-bold">
                     Total par sejour
                   </TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>
+                  <TableCell className="text-end font-bold text-[0.95rem]">
                     {totalPerStay.toFixed(2)} {'\u20AC'}
                   </TableCell>
                   {canEdit && <TableCell />}
                 </TableRow>
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
         </>
       )}
 
       {/* Dialog Add */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Ajouter un article de linge</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-          <Select
+      <Dialog open={dialogOpen} onOpenChange={(next) => { if (!next) setDialogOpen(false); }}>
+        <DialogContent className="max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Ajouter un article de linge</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+          {/* Aucun libelle visible a l'origine : l'aria-label porte le sens. */}
+          <NativeSelect
+            className="w-full"
+            aria-label="Article de linge"
             value={selectedKey}
             onChange={(e) => setSelectedKey(e.target.value)}
-            displayEmpty
-            size="small"
-            fullWidth
           >
-            <MenuItem value="" disabled>— Choisir un article —</MenuItem>
+            <NativeSelectOption value="" disabled>— Choisir un article —</NativeSelectOption>
             {availableCatalog.map((c) => (
-              <MenuItem key={c.key} value={c.key}>
+              <NativeSelectOption key={c.key} value={c.key}>
                 {c.label} ({c.price.toFixed(2)} {'\u20AC'})
-              </MenuItem>
+              </NativeSelectOption>
             ))}
-          </Select>
-          <TextField
-            label="Quantite par sejour"
-            type="number"
-            value={quantity}
-            onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-            size="small"
-            sx={{ width: 160 }}
-            inputProps={{ min: 1 }}
-          />
+          </NativeSelect>
+          <Field className="w-[160px]">
+            <FieldLabel htmlFor="laundry-add-quantity">Quantite par sejour</FieldLabel>
+            <Input
+              id="laundry-add-quantity"
+              className="w-full"
+              type="number"
+              min={1}
+              value={quantity}
+              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+            />
+          </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              <Close size={18} strokeWidth={1.75} />
+              Annuler
+            </Button>
+            <Button onClick={handleAdd} disabled={!selectedKey}>
+              <Save size={18} strokeWidth={1.75} />
+              Ajouter
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} startIcon={<Close size={18} strokeWidth={1.75} />}>Annuler</Button>
-          <Button onClick={handleAdd} variant="contained" startIcon={<Save size={18} strokeWidth={1.75} />} disabled={!selectedKey}>
-            Ajouter
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 }

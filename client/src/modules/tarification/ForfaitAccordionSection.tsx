@@ -1,24 +1,25 @@
 import React, { useCallback, useState } from 'react';
+import StatusChip from '../../components/StatusChip';
+import { cn } from '../../utils/cn';
+import { Badge, Button } from '../../components/ui';
 import {
-  Box,
-  Typography,
-  TextField,
-  Grid,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  InputAdornment,
-  IconButton,
-  Button,
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from '../../components/ui';
+import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-} from '@mui/material';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   AutoAwesome,
   Group,
@@ -44,17 +45,6 @@ const ALL_CLEANING_SERVICE_TYPE_KEYS = [
   'BATHROOM_CLEANING',
 ] as const;
 
-// ─── Shared SX ────────────────────────────────────────────────────────────────
-
-const CHIP_SX = {
-  height: 30,
-  fontSize: '0.75rem',
-  fontWeight: 500,
-  borderWidth: 1.5,
-  '& .MuiChip-label': { px: 0.75 },
-  transition: 'all 0.15s ease',
-} as const;
-
 const SECTION_TITLE_SX = {
   fontSize: '0.625rem',
   fontWeight: 600,
@@ -63,6 +53,9 @@ const SECTION_TITLE_SX = {
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
 } as const;
+
+/** Report en classes de `SECTION_TITLE_SX`. */
+const SECTION_TITLE_CLASS = 'text-[0.625rem] font-semibold text-[var(--muted)] mb-[4.5px] uppercase tracking-[0.05em]';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -84,6 +77,9 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
   ({ forfait, teams, canEdit, onChange, availablePrestations, availableSurcharges, onAddPrestation, onAddSurcharge, currencySymbol }) => {
     const { t } = useTranslation();
     const { currency } = useCurrency();
+    // Un accordeon par forfait peut etre monte plusieurs fois dans la page :
+    // les id des champs doivent donc etre derives d un prefixe unique.
+    const uid = React.useId();
 
     // ─── Add prestation dialog ─────────────────────────────────────────
     const [addPrestationOpen, setAddPrestationOpen] = useState(false);
@@ -198,363 +194,364 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
     const eligibleTeamIdSet = new Set(forfait.eligibleTeamIds || []);
 
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+      <div className="flex flex-col gap-3.5">
         {/* ─── Coefficients ─────────────────────────────────────────────── */}
-        <Box>
-          <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.priceCoefficients')}</Typography>
-          <Grid container spacing={1.5}>
-            <Grid item xs={6}>
-              <TextField
-                label={t('tarification.forfaitSection.coeffMin')}
-                type="number"
-                size="small"
-                fullWidth
-                value={forfait.coeffMin}
-                onChange={(e) => updateCoeff('coeffMin', e.target.value)}
-                disabled={!canEdit}
-                inputProps={{ step: 0.05, min: 0.1, max: 5.0 }}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                label={t('tarification.forfaitSection.coeffMax')}
-                type="number"
-                size="small"
-                fullWidth
-                value={forfait.coeffMax}
-                onChange={(e) => updateCoeff('coeffMax', e.target.value)}
-                disabled={!canEdit}
-                inputProps={{ step: 0.05, min: 0.1, max: 5.0 }}
-              />
-            </Grid>
-          </Grid>
-        </Box>
+        <div>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.priceCoefficients')}</p>
+          <div className="grid grid-cols-12 gap-[9px]">
+            <div className="col-span-6">
+              <Field>
+                <FieldLabel htmlFor={`${uid}-coeff-min`}>{t('tarification.forfaitSection.coeffMin')}</FieldLabel>
+                <Input
+                  id={`${uid}-coeff-min`}
+                  type="number"
+                  className="w-full"
+                  value={forfait.coeffMin}
+                  onChange={(e) => updateCoeff('coeffMin', e.target.value)}
+                  disabled={!canEdit}
+                  step={0.05}
+                  min={0.1}
+                  max={5.0}
+                />
+              </Field>
+            </div>
+            <div className="col-span-6">
+              <Field>
+                <FieldLabel htmlFor={`${uid}-coeff-max`}>{t('tarification.forfaitSection.coeffMax')}</FieldLabel>
+                <Input
+                  id={`${uid}-coeff-max`}
+                  type="number"
+                  className="w-full"
+                  value={forfait.coeffMax}
+                  onChange={(e) => updateCoeff('coeffMax', e.target.value)}
+                  disabled={!canEdit}
+                  step={0.05}
+                  min={0.1}
+                  max={5.0}
+                />
+              </Field>
+            </div>
+          </div>
+        </div>
 
         {/* ─── Types de service associés ────────────────────────────────── */}
-        <Box>
-          <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.serviceTypes')}</Typography>
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+        <div>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.serviceTypes')}</p>
+          <div className="flex gap-1 flex-wrap">
             {ALL_CLEANING_SERVICE_TYPE_KEYS.map((stKey) => {
               const isSelected = (forfait.serviceTypes || []).includes(stKey);
               return (
-                <Chip
+                <StatusChip
                   key={stKey}
+                  outlined
+                  selected={isSelected}
+                  pressed={isSelected}
+                  tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
                   icon={<AutoAwesome size={14} strokeWidth={1.75} />}
                   label={t(`tarification.forfaitSection.cleaningTypes.${stKey}`)}
                   onClick={canEdit ? () => toggleServiceType(stKey) : undefined}
-                  variant={isSelected ? 'filled' : 'outlined'}
-                  size="small"
-                  sx={{
-                    ...CHIP_SX,
-                    borderColor: isSelected ? 'var(--accent)' : 'var(--line-2)',
-                    bgcolor: isSelected ? 'var(--accent-soft)' : 'transparent',
-                    color: isSelected ? 'var(--accent)' : 'text.secondary',
-                    '& .MuiChip-icon': {
-                      fontSize: 14,
-                      ml: 0.5,
-                      color: isSelected ? 'var(--accent)' : 'primary.main',
-                    },
-                    '&:hover': canEdit ? {
-                      bgcolor: 'var(--hover)',
-                      borderColor: 'var(--accent)',
-                    } : {},
-                    cursor: canEdit ? 'pointer' : 'default',
-                    opacity: canEdit ? 1 : 0.6,
-                  }}
+                  className={cn('h-[30px] text-[0.75rem]', !canEdit && 'opacity-60')}
                 />
               );
             })}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* ─── Prestations incluses / en supplément ─────────────────────── */}
-        <Box>
-          <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.prestations')}</Typography>
-          <Box sx={{ display: 'flex', gap: 3 }}>
+        <div>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.prestations')}</p>
+          <div className="flex gap-4">
             {/* Incluses */}
-            <Box sx={{ flex: 1 }}>
-              <Typography sx={{ fontSize: '0.5625rem', fontWeight: 600, color: 'success.main', mb: 0.5 }}>
+            <div className="flex-1">
+              <p className="cn-text-body1 text-[0.5625rem] font-semibold text-[var(--bui-success-ink)] mb-0.5">
                 {t('tarification.forfaitSection.includedInPrice')}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+              </p>
+              <div className="flex gap-0.5 flex-wrap">
                 {availablePrestations.map((p) => {
                   const isIncluded = includedPrestationSet.has(p.key);
                   return (
-                    <Chip
+                    <StatusChip
                       key={p.key}
+                      outlined
+                      selected={isIncluded}
+                      pressed={isIncluded}
+                      tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }}
                       label={t(`tarification.forfaitSection.prestationTypes.${p.key}`, p.label)}
                       onClick={canEdit ? () => togglePrestation(p.key, 'included') : undefined}
-                      variant={isIncluded ? 'filled' : 'outlined'}
-                      size="small"
-                      sx={{
-                        ...CHIP_SX,
-                        borderColor: isIncluded ? 'var(--ok)' : 'var(--line-2)',
-                        bgcolor: isIncluded ? 'var(--ok-soft)' : 'transparent',
-                        color: isIncluded ? 'var(--ok)' : 'text.disabled',
-                        cursor: canEdit ? 'pointer' : 'default',
-                        opacity: canEdit ? 1 : 0.6,
-                      }}
+                      className={cn('h-[30px] text-[0.75rem]', !canEdit && 'opacity-60')}
                     />
                   );
                 })}
-              </Box>
-            </Box>
+              </div>
+            </div>
             {/* En supplément */}
-            <Box sx={{ flex: 1 }}>
-              <Typography sx={{ fontSize: '0.5625rem', fontWeight: 600, color: 'warning.main', mb: 0.5 }}>
+            <div className="flex-1">
+              <p className="cn-text-body1 text-[0.5625rem] font-semibold text-[var(--bui-warning-ink)] mb-0.5">
                 {t('tarification.forfaitSection.extraCharge')}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+              </p>
+              <div className="flex gap-0.5 flex-wrap">
                 {availablePrestations.map((p) => {
                   const isExtra = extraPrestationSet.has(p.key);
                   return (
-                    <Chip
+                    <StatusChip
                       key={p.key}
+                      outlined
+                      selected={isExtra}
+                      pressed={isExtra}
+                      tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }}
                       label={t(`tarification.forfaitSection.prestationTypes.${p.key}`, p.label)}
                       onClick={canEdit ? () => togglePrestation(p.key, 'extra') : undefined}
-                      variant={isExtra ? 'filled' : 'outlined'}
-                      size="small"
-                      sx={{
-                        ...CHIP_SX,
-                        borderColor: isExtra ? 'var(--warn)' : 'var(--line-2)',
-                        bgcolor: isExtra ? 'var(--warn-soft)' : 'transparent',
-                        color: isExtra ? 'var(--warn)' : 'text.disabled',
-                        cursor: canEdit ? 'pointer' : 'default',
-                        opacity: canEdit ? 1 : 0.6,
-                      }}
+                      className={cn('h-[30px] text-[0.75rem]', !canEdit && 'opacity-60')}
                     />
                   );
                 })}
-              </Box>
-            </Box>
-          </Box>
+              </div>
+            </div>
+          </div>
           {/* Add prestation button */}
           {canEdit && (
-            <Box sx={{ mt: 1 }}>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<Add />}
-                onClick={() => setAddPrestationOpen(true)}
-                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-              >
+            <div className="mt-1.5">
+              <Button variant="outline" size="sm" onClick={() => setAddPrestationOpen(true)}>
+                <Add />
                 {t('tarification.addPrestation')}
               </Button>
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
 
         {/* ─── Équipes éligibles ────────────────────────────────────────── */}
-        <Box>
-          <Typography sx={SECTION_TITLE_SX}>
+        <div>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
             {t('tarification.forfaitSection.eligibleTeams')}
-            <Typography component="span" sx={{ fontSize: '0.5625rem', fontWeight: 400, color: 'text.disabled', ml: 1 }}>
+            <span className="text-[0.5625rem] font-normal text-muted-foreground opacity-60 ms-1.5">
               {t('tarification.forfaitSection.eligibleTeamsHint')}
-            </Typography>
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+            </span>
+          </p>
+          <div className="flex gap-1 flex-wrap">
             {teams.length === 0 ? (
-              <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled', fontStyle: 'italic' }}>
+              <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60 italic">
                 {t('tarification.forfaitSection.noTeamsAvailable')}
-              </Typography>
+              </p>
             ) : (
               teams.map((team) => {
                 const isSelected = eligibleTeamIdSet.has(team.id);
                 return (
-                  <Chip
+                  <StatusChip
                     key={team.id}
+                    outlined
+                    selected={isSelected}
+                    pressed={isSelected}
+                    tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
                     icon={<Group size={14} strokeWidth={1.75} />}
                     label={`${team.name} (${team.memberCount})`}
                     onClick={canEdit ? () => toggleTeam(team.id) : undefined}
-                    variant={isSelected ? 'filled' : 'outlined'}
-                    size="small"
-                    sx={{
-                      ...CHIP_SX,
-                      borderColor: isSelected ? 'var(--accent)' : 'var(--line-2)',
-                      bgcolor: isSelected ? 'var(--accent-soft)' : 'transparent',
-                      color: isSelected ? 'var(--accent)' : 'text.secondary',
-                      '& .MuiChip-icon': {
-                        fontSize: 14,
-                        ml: 0.5,
-                        color: isSelected ? 'var(--accent)' : 'primary.main',
-                      },
-                      '&:hover': canEdit ? {
-                        bgcolor: 'var(--hover)',
-                        borderColor: 'var(--accent)',
-                      } : {},
-                      cursor: canEdit ? 'pointer' : 'default',
-                      opacity: canEdit ? 1 : 0.6,
-                    }}
+                    className={cn('h-[30px] text-[0.75rem]', !canEdit && 'opacity-60')}
                   />
                 );
               })
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* ─── Tarification par surface ─────────────────────────────────── */}
-        <Box>
-          <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.surfacePricing')}</Typography>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
+        <div>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.surfacePricing')}</p>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell sx={{ fontSize: '0.6875rem' }}>{t('tarification.forfaitSection.maxThreshold')}</TableCell>
-                  <TableCell align="right" sx={{ fontSize: '0.6875rem' }}>{t('tarification.forfaitSection.basePrice')}</TableCell>
-                  {canEdit && <TableCell align="center" sx={{ width: 48 }} />}
+                  <TableHead className="text-[0.6875rem]">{t('tarification.forfaitSection.maxThreshold')}</TableHead>
+                  <TableHead className="text-end text-[0.6875rem]">{t('tarification.forfaitSection.basePrice')}</TableHead>
+                  {canEdit && <TableHead className="w-[48px] text-center" />}
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {(forfait.surfaceBasePrices || []).map((tier, index) => (
                   <TableRow key={index}>
                     <TableCell>
                       {tier.maxSurface !== null ? (
-                        <TextField
-                          type="number"
-                          size="small"
-                          value={tier.maxSurface}
-                          onChange={(e) => updateSurfaceBasePrice(index, 'maxSurface', e.target.value)}
-                          disabled={!canEdit}
-                          inputProps={{ min: 1, style: { textAlign: 'right' } }}
-                          sx={{ width: 100 }}
-                          InputProps={{ endAdornment: <InputAdornment position="end">m²</InputAdornment> }}
-                        />
+                        // Pas de FieldLabel : l en-tete de colonne porte deja le libelle,
+                        // l aria-label rend le champ nommable pour un lecteur d ecran.
+                        <InputGroup className="w-[100px]">
+                          <InputGroupInput
+                            type="number"
+                            aria-label={t('tarification.forfaitSection.maxThreshold')}
+                            className="text-end tabular-nums"
+                            value={tier.maxSurface}
+                            onChange={(e) => updateSurfaceBasePrice(index, 'maxSurface', e.target.value)}
+                            disabled={!canEdit}
+                            min={1}
+                          />
+                          <InputGroupAddon align="inline-end">
+                            <InputGroupText>m²</InputGroupText>
+                          </InputGroupAddon>
+                        </InputGroup>
                       ) : (
-                        <Chip label={t('tarification.forfaitSection.unlimited')} size="small" variant="outlined" color="default" sx={{ height: 24 }} />
+                        <Badge variant="secondary" className="h-[24px]">{t('tarification.forfaitSection.unlimited')}</Badge>
                       )}
                     </TableCell>
-                    <TableCell align="right">
-                      <TextField
-                        type="number"
-                        size="small"
-                        value={tier.base}
-                        onChange={(e) => updateSurfaceBasePrice(index, 'base', e.target.value)}
-                        disabled={!canEdit}
-                        inputProps={{ min: 0, style: { textAlign: 'right' } }}
-                        sx={{ width: 100 }}
-                        InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-                      />
+                    <TableCell className="text-end">
+                      <InputGroup className="w-[100px]">
+                        <InputGroupInput
+                          type="number"
+                          aria-label={t('tarification.forfaitSection.basePrice')}
+                          className="text-end tabular-nums"
+                          value={tier.base}
+                          onChange={(e) => updateSurfaceBasePrice(index, 'base', e.target.value)}
+                          disabled={!canEdit}
+                          min={0}
+                        />
+                        <InputGroupAddon align="inline-end">
+                          <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                        </InputGroupAddon>
+                      </InputGroup>
                     </TableCell>
                     {canEdit && (
-                      <TableCell align="center">
-                        <IconButton size="small" onClick={() => removeSurfaceTier(index)} color="error">
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={t('common.delete', 'Supprimer')}
+                          onClick={() => removeSurfaceTier(index)}
+                          className="text-[var(--err)]"
+                        >
                           <Delete size={16} strokeWidth={1.75} />
-                        </IconButton>
+                        </Button>
                       </TableCell>
                     )}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
           {canEdit && (
-            <Box sx={{ mt: 0.5 }}>
-              <Chip
+            <div className="mt-0.5">
+              <StatusChip
+                outlined
+                tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
                 icon={<Add size={14} strokeWidth={1.75} />}
                 label={t('tarification.forfaitSection.addTier')}
                 onClick={addSurfaceTier}
-                variant="outlined"
-                size="small"
-                sx={{ ...CHIP_SX, cursor: 'pointer', borderStyle: 'dashed' }}
+                className="h-[30px] border-dashed text-[0.75rem]"
               />
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
 
         {/* ─── Surcharges ───────────────────────────────────────────────── */}
-        <Box>
-          <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.surcharges')}</Typography>
-          <Grid container spacing={1}>
+        <div>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.surcharges')}</p>
+          <div className="grid grid-cols-12 gap-1.5">
             {availableSurcharges.map((s) => (
-              <Grid item xs={6} sm={4} key={s.key}>
-                <TextField
-                  label={t(`tarification.forfaitSection.surcharge_${s.key}`, s.label)}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={(forfait.surcharges || {})[s.key] ?? 0}
-                  onChange={(e) => updateSurcharge(s.key, e.target.value)}
-                  disabled={!canEdit}
-                  inputProps={{ step: 1, min: 0 }}
-                  InputProps={{ endAdornment: <InputAdornment position="end">{s.unit}</InputAdornment> }}
-                />
-              </Grid>
+              <div className="col-span-6 min-[600px]:col-span-4" key={s.key}>
+                <Field>
+                  <FieldLabel htmlFor={`${uid}-surcharge-${s.key}`}>
+                    {t(`tarification.forfaitSection.surcharge_${s.key}`, s.label)}
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id={`${uid}-surcharge-${s.key}`}
+                      type="number"
+                      className="tabular-nums"
+                      value={(forfait.surcharges || {})[s.key] ?? 0}
+                      onChange={(e) => updateSurcharge(s.key, e.target.value)}
+                      disabled={!canEdit}
+                      step={1}
+                      min={0}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText>{s.unit}</InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                </Field>
+              </div>
             ))}
-          </Grid>
+          </div>
           {/* Add surcharge button */}
           {canEdit && (
-            <Box sx={{ mt: 1 }}>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<Add />}
-                onClick={() => setAddSurchargeOpen(true)}
-                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-              >
+            <div className="mt-1.5">
+              <Button variant="outline" size="sm" onClick={() => setAddSurchargeOpen(true)}>
+                <Add />
                 {t('tarification.addSurcharge')}
               </Button>
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
 
         {/* ─── Add prestation dialog ───────────────────────────────────── */}
-        <Dialog open={addPrestationOpen} onClose={() => setAddPrestationOpen(false)} maxWidth="xs" fullWidth>
-          <DialogTitle>{t('tarification.addPrestation')}</DialogTitle>
-          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-            <TextField
-              label={t('tarification.newItem.key')}
-              value={newPrestationKey}
-              onChange={(e) => setNewPrestationKey(e.target.value)}
-              size="small"
-              fullWidth
-              autoFocus
-              helperText={t('tarification.newItem.keyHelp')}
-            />
-            <TextField
-              label={t('tarification.newItem.label')}
-              value={newPrestationLabel}
-              onChange={(e) => setNewPrestationLabel(e.target.value)}
-              size="small"
-              fullWidth
-            />
+        <Dialog open={addPrestationOpen} onOpenChange={(next) => { if (!next) setAddPrestationOpen(false); }}>
+          <DialogContent className="max-w-[444px]">
+            <DialogHeader>
+              <DialogTitle>{t('tarification.addPrestation')}</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-3">
+            <Field>
+              <FieldLabel htmlFor={`${uid}-new-prestation-key`}>{t('tarification.newItem.key')}</FieldLabel>
+              <Input
+                id={`${uid}-new-prestation-key`}
+                className="w-full"
+                value={newPrestationKey}
+                onChange={(e) => setNewPrestationKey(e.target.value)}
+                autoFocus
+              />
+              <FieldDescription>{t('tarification.newItem.keyHelp')}</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor={`${uid}-new-prestation-label`}>{t('tarification.newItem.label')}</FieldLabel>
+              <Input
+                id={`${uid}-new-prestation-label`}
+                className="w-full"
+                value={newPrestationLabel}
+                onChange={(e) => setNewPrestationLabel(e.target.value)}
+              />
+            </Field>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setAddPrestationOpen(false)}>{t('tarification.cancel')}</Button>
+              <Button onClick={handleAddPrestation} disabled={!newPrestationKey.trim() || !newPrestationLabel.trim()}>
+                {t('tarification.add')}
+              </Button>
+            </DialogFooter>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setAddPrestationOpen(false)}>{t('tarification.cancel')}</Button>
-            <Button onClick={handleAddPrestation} variant="contained" disabled={!newPrestationKey.trim() || !newPrestationLabel.trim()}>
-              {t('tarification.add')}
-            </Button>
-          </DialogActions>
         </Dialog>
 
         {/* ─── Add surcharge dialog ────────────────────────────────────── */}
-        <Dialog open={addSurchargeOpen} onClose={() => setAddSurchargeOpen(false)} maxWidth="xs" fullWidth>
-          <DialogTitle>{t('tarification.addSurcharge')}</DialogTitle>
-          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-            <TextField
-              label={t('tarification.newItem.key')}
-              value={newSurchargeKey}
-              onChange={(e) => setNewSurchargeKey(e.target.value)}
-              size="small"
-              fullWidth
-              autoFocus
-              helperText={t('tarification.newItem.keyHelp')}
-            />
-            <TextField
-              label={t('tarification.newItem.label')}
-              value={newSurchargeLabel}
-              onChange={(e) => setNewSurchargeLabel(e.target.value)}
-              size="small"
-              fullWidth
-            />
+        <Dialog open={addSurchargeOpen} onOpenChange={(next) => { if (!next) setAddSurchargeOpen(false); }}>
+          <DialogContent className="max-w-[444px]">
+            <DialogHeader>
+              <DialogTitle>{t('tarification.addSurcharge')}</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-3">
+            <Field>
+              <FieldLabel htmlFor={`${uid}-new-surcharge-key`}>{t('tarification.newItem.key')}</FieldLabel>
+              <Input
+                id={`${uid}-new-surcharge-key`}
+                className="w-full"
+                value={newSurchargeKey}
+                onChange={(e) => setNewSurchargeKey(e.target.value)}
+                autoFocus
+              />
+              <FieldDescription>{t('tarification.newItem.keyHelp')}</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor={`${uid}-new-surcharge-label`}>{t('tarification.newItem.label')}</FieldLabel>
+              <Input
+                id={`${uid}-new-surcharge-label`}
+                className="w-full"
+                value={newSurchargeLabel}
+                onChange={(e) => setNewSurchargeLabel(e.target.value)}
+              />
+            </Field>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setAddSurchargeOpen(false)}>{t('tarification.cancel')}</Button>
+              <Button onClick={handleAddSurcharge} disabled={!newSurchargeKey.trim() || !newSurchargeLabel.trim()}>
+                {t('tarification.add')}
+              </Button>
+            </DialogFooter>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setAddSurchargeOpen(false)}>{t('tarification.cancel')}</Button>
-            <Button onClick={handleAddSurcharge} variant="contained" disabled={!newSurchargeKey.trim() || !newSurchargeLabel.trim()}>
-              {t('tarification.add')}
-            </Button>
-          </DialogActions>
         </Dialog>
-      </Box>
+      </div>
     );
   }
 );

@@ -1,12 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Grid,
-  Button,
-  Alert,
-  CircularProgress
-} from '@mui/material';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner, Button } from '../../components/ui';
+
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -317,7 +313,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
       }
     },
     onError: () => {
-      setError(isEditMode ? (t('interventions.errors.updateError') || 'Erreur lors de la mise a jour') : t('interventions.errors.createError'));
+      setError(isEditMode ? (t('interventions.errors.updateError', 'Erreur lors de la mise a jour')) : t('interventions.errors.createError'));
     },
   });
 
@@ -326,16 +322,16 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   if (!hasPermission) {
     if (isEditMode) {
       return (
-        <Box sx={{ p: 3 }}>
-          <Alert severity="error">
-            <Typography variant="h6" gutterBottom>
-              {t('common.accessDenied') || 'Acces non autorise'}
-            </Typography>
-            <Typography variant="body1">
-              {t('interventions.errors.noEditPermission') || 'Vous n\'avez pas les permissions necessaires pour modifier des interventions.'}
-            </Typography>
+        <div className="p-4">
+          <Alert variant="destructive">
+            <TriangleAlert />
+            <AlertDescription><h6 className="cn-text-h6 mb-[0.35em]">
+              {t('common.accessDenied', 'Acces non autorise')}
+            </h6><p className="cn-text-body1">
+              {t('interventions.errors.noEditPermission', 'Vous n\'avez pas les permissions necessaires pour modifier des interventions.')}
+            </p></AlertDescription>
           </Alert>
-        </Box>
+        </div>
       );
     }
     return null;
@@ -361,14 +357,14 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   // Verifier les droits d'acces
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress size={32} />
-      </Box>
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Spinner className="size-8" />
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       {/* Header standalone (page /interventions/new). En mode edit, le
           PageHeader est fourni par le parent InterventionEdit. */}
       {!isEditMode && (
@@ -380,13 +376,14 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
       )}
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
-          {error}
+        <Alert variant="destructive" className="mb-3 py-1.5">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       <form onSubmit={rhfHandleSubmit(onSubmit)} id="intervention-form">
-        <Grid container spacing={2}>
+        <div className="grid grid-cols-12 gap-3">
           {/* Informations principales */}
           <InterventionFormMainInfo
             control={control}
@@ -400,7 +397,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
           />
 
           {/* Informations secondaires */}
-          <Grid item xs={12} md={4}>
+          <div className="col-span-12 min-[900px]:col-span-4">
             {/* Propriete et demandeur */}
             <InterventionFormPropertyRequestor
               control={control}
@@ -427,19 +424,19 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
               errors={errors}
               isHost={isHost}
             />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
 
         {/* Bouton de soumission cache pour le PageHeader */}
         <Button
           type="submit"
-          sx={{ display: 'none' }}
+          className="hidden"
           data-submit-intervention
         >
           {t('common.submit')}
         </Button>
       </form>
-    </Box>
+    </div>
   );
 };
 

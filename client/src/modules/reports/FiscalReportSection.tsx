@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Box, Paper, Typography, MenuItem, TextField, Skeleton, Alert,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-} from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Skeleton, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Field, FieldLabel, NativeSelect, NativeSelectOption } from '../../components/ui';
 import {
   AccountBalance,
   Gavel as StepTvaIcon,
@@ -23,17 +24,12 @@ import type { VatSummary } from '../../services/api/fiscalReportingApi';
 
 type PeriodMode = 'monthly' | 'quarterly' | 'annual';
 
-// Tableaux : entêtes overline / valeurs 12.5px via le thème global Signature.
-const CELL_SX = { fontSize: '12.5px', py: 1.25, fontVariantNumeric: 'tabular-nums' } as const;
-const HEAD_CELL_SX = { py: 1 } as const;
+// Tableaux : entetes overline / valeurs 12.5px portes par le primitif du kit.
+// Seul l'ecart au gabarit reste ici : padding vertical 7.5px et tabular-nums.
+const CELL_CLASS = 'py-[7.5px] tabular-nums';
 
 // Carte/panneau : hairline --line, r14 (baseline §2 Cartes), aucune ombre.
-const PANEL_SX = {
-  border: '1px solid var(--line)',
-  boxShadow: 'none',
-  borderRadius: 'var(--radius-lg)',
-  bgcolor: 'var(--card)',
-} as const;
+const PANEL_CLASS = 'border border-solid border-[var(--line)] shadow-none rounded-[var(--radius-lg)] bg-[var(--card)]';
 
 const PERIOD_MODE_OPTIONS: { value: PeriodMode; label: string }[] = [
   { value: 'monthly', label: 'Mensuel' },
@@ -94,12 +90,12 @@ const FiscalReportSection: React.FC = () => {
   );
 
   return (
-    <Box>
+    <div>
       {helpAction}
 
       {/* Period selector */}
-      <Paper sx={{ ...PANEL_SX, p: 2, mb: 2 }}>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className={cn(PANEL_CLASS, 'p-3 mb-3')}>
+        <div className="flex gap-3 flex-wrap items-center">
           <PeriodSegmented<PeriodMode>
             value={mode}
             onChange={setMode}
@@ -107,61 +103,67 @@ const FiscalReportSection: React.FC = () => {
             ariaLabel="Granularité de la période"
           />
 
-          <TextField
-            select
-            label="Annee"
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            size="small"
-            sx={{ minWidth: 100 }}
-          >
-            {yearOptions.map(y => (
-              <MenuItem key={y} value={y}>{y}</MenuItem>
-            ))}
-          </TextField>
+          {/* Largeur bornee : le Field du kit est w-full, il occuperait toute la
+              rangee au lieu de se ranger a cote du segmente de periode. */}
+          <Field className="w-[110px]">
+            <FieldLabel htmlFor="fiscal-report-year">Annee</FieldLabel>
+            <NativeSelect
+              id="fiscal-report-year"
+              className="w-full"
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+            >
+              {yearOptions.map(y => (
+                <NativeSelectOption key={y} value={y}>{y}</NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
 
           {mode === 'monthly' && (
-            <TextField
-              select
-              label="Mois"
-              value={month}
-              onChange={(e) => setMonth(Number(e.target.value))}
-              size="small"
-              sx={{ minWidth: 140 }}
-            >
-              {MONTHS.map((m, i) => (
-                <MenuItem key={m} value={i + 1}>{m}</MenuItem>
-              ))}
-            </TextField>
+            <Field className="w-[150px]">
+              <FieldLabel htmlFor="fiscal-report-month">Mois</FieldLabel>
+              <NativeSelect
+                id="fiscal-report-month"
+                className="w-full"
+                value={month}
+                onChange={(e) => setMonth(Number(e.target.value))}
+              >
+                {MONTHS.map((m, i) => (
+                  <NativeSelectOption key={m} value={i + 1}>{m}</NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
           )}
 
           {mode === 'quarterly' && (
-            <TextField
-              select
-              label="Trimestre"
-              value={quarter}
-              onChange={(e) => setQuarter(Number(e.target.value))}
-              size="small"
-              sx={{ minWidth: 120 }}
-            >
-              <MenuItem value={1}>T1 (Jan-Mar)</MenuItem>
-              <MenuItem value={2}>T2 (Avr-Jun)</MenuItem>
-              <MenuItem value={3}>T3 (Jul-Sep)</MenuItem>
-              <MenuItem value={4}>T4 (Oct-Dec)</MenuItem>
-            </TextField>
+            <Field className="w-[140px]">
+              <FieldLabel htmlFor="fiscal-report-quarter">Trimestre</FieldLabel>
+              <NativeSelect
+                id="fiscal-report-quarter"
+                className="w-full"
+                value={quarter}
+                onChange={(e) => setQuarter(Number(e.target.value))}
+              >
+                <NativeSelectOption value={1}>T1 (Jan-Mar)</NativeSelectOption>
+                <NativeSelectOption value={2}>T2 (Avr-Jun)</NativeSelectOption>
+                <NativeSelectOption value={3}>T3 (Jul-Sep)</NativeSelectOption>
+                <NativeSelectOption value={4}>T4 (Oct-Dec)</NativeSelectOption>
+              </NativeSelect>
+            </Field>
           )}
-        </Box>
-      </Paper>
+        </div>
+      </div>
 
       {/* Loading / Error */}
       {activeQuery.isLoading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          <Skeleton variant="rounded" height={76} sx={{ borderRadius: 'var(--radius-lg)' }} />
-          <Skeleton variant="rounded" height={200} sx={{ borderRadius: 'var(--radius-lg)' }} />
-        </Box>
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-[76px] w-full rounded-[var(--radius-lg)]" />
+          <Skeleton className="h-[200px] w-full rounded-[var(--radius-lg)]" />
+        </div>
       ) : activeQuery.error ? (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          Erreur lors du chargement du rapport fiscal
+        <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>Erreur lors du chargement du rapport fiscal</AlertDescription>
         </Alert>
       ) : !summary ? (
         <EmptyState
@@ -173,7 +175,7 @@ const FiscalReportSection: React.FC = () => {
       ) : (
         <>
           {/* Summary cards */}
-          <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+          <div className="flex gap-3 mb-3 flex-wrap">
             {[
               { label: 'Periode', value: summary.period, isText: true },
               { label: 'Factures', value: String(summary.invoiceCount), isText: true },
@@ -181,69 +183,57 @@ const FiscalReportSection: React.FC = () => {
               { label: 'Total TVA', value: <Money value={summary.totalTax} from={summary.currency} /> },
               { label: 'Total TTC', value: <Money value={summary.totalTtc} from={summary.currency} />, primary: true },
             ].map(card => (
-              <Paper
+              <div
                 key={card.label}
-                sx={{
-                  ...PANEL_SX,
-                  p: 1.5, flex: 1, minWidth: 130,
+                className={cn(
+                  PANEL_CLASS,
+                  'p-[9px] flex-1 min-w-[130px]',
                   // KPI accentué (Total TTC) : fond accent-soft + hairline accent 30 %
-                  ...(card.primary && {
-                    bgcolor: 'var(--accent-soft)',
-                    borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)',
-                  }),
-                }}
+                  card.primary && 'bg-[var(--accent-soft)] border-[color-mix(in_srgb,var(--accent)_30%,transparent)]',
+                )}
               >
-                <Typography sx={{ display: 'block', fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--faint)', mb: 0.25 }}>
+                <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-0.5">
                   {card.label}
-                </Typography>
-                <Typography
-                  sx={{
-                    fontFamily: 'var(--font-display)',
-                    fontWeight: 600,
-                    letterSpacing: '-0.025em',
-                    fontVariantNumeric: 'tabular-nums',
-                    fontSize: card.isText ? '0.9rem' : '1.1rem',
-                    color: card.primary ? 'var(--accent)' : 'var(--ink)',
-                  }}
-                >
+                </p>
+                <p className={cn('cn-text-body1 font-semibold tracking-[-0.025em] tabular-nums', card.isText ? 'text-[0.9rem]' : 'text-[1.1rem]', card.primary ? 'text-[var(--accent)]' : 'text-[var(--ink)]')} style={{ fontFamily: 'var(--font-display)' }}>
                   {card.value}
-                </Typography>
-              </Paper>
+                </p>
+              </div>
             ))}
-          </Box>
+          </div>
 
           {/* Breakdown table */}
           {summary.breakdown?.length > 0 && (
-            <TableContainer component={Paper} sx={PANEL_SX}>
-              <Table size="small">
-                <TableHead>
+            <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell sx={HEAD_CELL_SX}>Categorie</TableCell>
-                    <TableCell sx={HEAD_CELL_SX}>Taxe</TableCell>
-                    <TableCell sx={HEAD_CELL_SX} align="right">Taux</TableCell>
-                    <TableCell sx={HEAD_CELL_SX} align="right">Base HT</TableCell>
-                    <TableCell sx={HEAD_CELL_SX} align="right">Montant TVA</TableCell>
-                    <TableCell sx={HEAD_CELL_SX} align="right">Lignes</TableCell>
+                    <TableHead>Categorie</TableHead>
+                    <TableHead>Taxe</TableHead>
+                    <TableHead className="text-end">Taux</TableHead>
+                    <TableHead className="text-end">Base HT</TableHead>
+                    <TableHead className="text-end">Montant TVA</TableHead>
+                    <TableHead className="text-end">Lignes</TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {summary.breakdown.map((row) => (
-                    <TableRow key={`${row.taxCategory}-${row.taxName}-${row.taxRate}`} hover>
-                      <TableCell sx={CELL_SX}>{row.taxCategory}</TableCell>
-                      <TableCell sx={CELL_SX}>{row.taxName}</TableCell>
-                      <TableCell sx={CELL_SX} align="right">{formatTaxRate(row.taxRate)}</TableCell>
-                      <TableCell sx={CELL_SX} align="right"><Money value={row.baseAmount} from={summary.currency} /></TableCell>
-                      <TableCell sx={{ ...CELL_SX, fontWeight: 600 }} align="right"><Money value={row.taxAmount} from={summary.currency} /></TableCell>
-                      <TableCell sx={CELL_SX} align="right">{row.lineCount}</TableCell>
+                    <TableRow key={`${row.taxCategory}-${row.taxName}-${row.taxRate}`}>
+                      <TableCell className={CELL_CLASS}>{row.taxCategory}</TableCell>
+                      <TableCell className={CELL_CLASS}>{row.taxName}</TableCell>
+                      <TableCell className={cn(CELL_CLASS, 'text-end')}>{formatTaxRate(row.taxRate)}</TableCell>
+                      <TableCell className={cn(CELL_CLASS, 'text-end')}><Money value={row.baseAmount} from={summary.currency} /></TableCell>
+                      <TableCell className={cn(CELL_CLASS, 'text-end font-semibold')}><Money value={row.taxAmount} from={summary.currency} /></TableCell>
+                      <TableCell className={cn(CELL_CLASS, 'text-end')}>{row.lineCount}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </div>
           )}
         </>
       )}
-    </Box>
+    </div>
   );
 };
 

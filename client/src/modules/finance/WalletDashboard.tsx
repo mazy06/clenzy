@@ -1,19 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  Grid,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  alpha,
-} from '@mui/material';
+import StatusChip from '../../components/StatusChip';
+import { Card, Skeleton } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import {
   AccountBalanceWallet,
   TrendingUp,
@@ -55,10 +44,7 @@ const softChipSx = (c: string) => ({
 });
 
 /** Montants : display tabular-nums (jamais proportional) */
-const moneySx = {
-  fontFamily: 'var(--font-display)',
-  fontVariantNumeric: 'tabular-nums',
-};
+const MONEY_CLASS = 'font-[family-name:var(--font-display)] tabular-nums';
 
 const ENTRY_TYPE_TOKENS: Record<string, string> = {
   CREDIT: 'var(--ok)',
@@ -130,180 +116,133 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
   if (loading) {
     // Skeletons : 4 tuiles + panneau historique (cartes hairline plates)
     return (
-      <Box>
-        <Grid container spacing={2} sx={{ mt: 1 }}>
+      <div>
+        <div className="grid grid-cols-12 gap-3 mt-1.5">
           {[1, 2, 3, 4].map((i) => (
-            <Grid item xs={12} sm={6} md={3} key={i}>
-              <Paper
-                variant="outlined"
-                sx={{ p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <Skeleton variant="rounded" width={26} height={26} />
-                  <Skeleton variant="text" width="50%" height={16} />
-                </Box>
-                <Skeleton variant="text" width="60%" height={28} />
-                <Skeleton variant="text" width="30%" height={14} />
-              </Paper>
-            </Grid>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3" key={i}>
+              <Card className="gap-0 py-0 p-3 border-[var(--line)]">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Skeleton className="size-[26px] rounded-lg" />
+                  <Skeleton className="h-4 w-1/2 rounded" />
+                </div>
+                <Skeleton className="h-7 w-3/5 rounded" />
+                <Skeleton className="h-3.5 w-[30%] rounded" />
+              </Card>
+            </div>
           ))}
-        </Grid>
-        <Paper
-          variant="outlined"
-          sx={{ mt: 3, p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}
-        >
-          <Skeleton variant="text" width="25%" height={20} sx={{ mb: 1.5 }} />
+        </div>
+        <Card className="gap-0 py-0 mt-4 p-3 border-[var(--line)]">
+          <Skeleton className="h-5 w-1/4 rounded mb-2.5" />
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} variant="rectangular" height={36} sx={{ borderRadius: 1, mb: 1 }} />
+            <Skeleton key={i} className="h-9 rounded-lg mb-1.5" />
           ))}
-        </Paper>
-      </Box>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       {!embedded && (
         <PageHeader title="Portefeuilles" subtitle="Vue d'ensemble des portefeuilles et transactions" iconBadge={<AccountBalanceWallet />} backPath="/dashboard" />
       )}
 
       {wallets.length === 0 ? (
-        <Box sx={{ mt: 2 }}>
+        <div className="mt-3">
           <EmptyState
             icon={<AccountBalanceWallet />}
             title="Aucun portefeuille trouvé"
             description="Les portefeuilles seront créés automatiquement lors du premier paiement."
           />
-        </Box>
+        </div>
       ) : (
         <>
           {/* Wallet summary cards */}
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+          <div className="grid grid-cols-12 gap-3 mt-1.5">
             {wallets.map((wallet) => {
               const typeInfo = WALLET_TYPE_LABELS[wallet.walletType] || WALLET_TYPE_LABELS.PLATFORM;
               const isSelected = selectedWallet?.id === wallet.id;
 
               return (
-                <Grid item xs={12} sm={6} md={3} key={wallet.id}>
+                <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3" key={wallet.id}>
                   {/* Tuile sélectionnable : carte hairline plate, sélection = bordure accent + ring accent-soft */}
-                  <Paper
-                    variant="outlined"
+                  <div
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') { setSelectedWallet(wallet); setPage(0); }
                     }}
-                    sx={{
-                      p: 2,
-                      cursor: 'pointer',
-                      borderRadius: 'var(--radius-lg)',
-                      bgcolor: 'var(--card)',
-                      boxShadow: isSelected ? '0 0 0 3px var(--accent-soft)' : 'none',
-                      borderColor: isSelected ? 'var(--accent)' : 'var(--line)',
-                      transition: 'border-color .14s, box-shadow .14s',
-                      '&:hover': { borderColor: isSelected ? 'var(--accent)' : 'var(--line-2)' },
-                      '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                    }}
+                    className={cn(
+                      'p-3 cursor-pointer rounded-[var(--radius-lg)] bg-[var(--card)] border border-solid',
+                      'transition-[border-color,box-shadow] duration-150 motion-reduce:transition-none',
+                      'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]',
+                      isSelected
+                        ? 'border-[var(--accent)] shadow-[0_0_0_3px_var(--accent-soft)]'
+                        : 'border-[var(--line)] shadow-none hover:border-[var(--line-2)]',
+                    )}
                     onClick={() => { setSelectedWallet(wallet); setPage(0); }}
                   >
-                    <Box display="flex" alignItems="center" gap={1} mb={1}>
-                      <Box
-                        sx={{
-                          width: 26, height: 26, borderRadius: 1,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: typeInfo.color,
-                          bgcolor: alpha(typeInfo.color, 0.12),
-                          flexShrink: 0,
-                        }}
-                      >
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <div className="w-[26px] h-[26px] rounded-[8px] flex items-center justify-center shrink-0" style={{ color: typeInfo.color, backgroundColor: `color-mix(in srgb, ${typeInfo.color} 12%, transparent)` }}>
                         {typeInfo.icon}
-                      </Box>
-                      <Typography
-                        sx={{
-                          fontSize: '10.5px',
-                          fontWeight: 700,
-                          color: 'var(--faint)',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                        }}
-                      >
+                      </div>
+                      <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em]">
                         {typeInfo.label}
-                      </Typography>
-                    </Box>
-                    <Typography
-                      sx={{
-                        ...moneySx,
-                        fontSize: '1.1875rem',
-                        fontWeight: 600,
-                        letterSpacing: '-0.025em',
-                        color: 'var(--ink)',
-                        lineHeight: 1.1,
-                      }}
-                    >
+                      </p>
+                    </div>
+                    <p className={cn(MONEY_CLASS, 'cn-text-body1 text-[1.1875rem] font-semibold tracking-[-0.025em] text-[var(--ink)] leading-[1.1]')}>
                       <Money value={wallet.balance} from={wallet.currency} />
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+                    </p>
+                    <span className="cn-text-caption text-[var(--muted)]">
                       {wallet.currency}
-                    </Typography>
-                  </Paper>
-                </Grid>
+                    </span>
+                  </div>
+                </div>
               );
             })}
-          </Grid>
+          </div>
 
           {/* Ledger entries table */}
           {selectedWallet && (
-            <Paper
-              variant="outlined"
-              sx={{ mt: 3, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none', overflow: 'hidden' }}
-            >
-              <Box p={2} display="flex" justifyContent="space-between" alignItems="center">
-                <Typography
-                  sx={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: 16,
-                    fontWeight: 600,
-                    letterSpacing: '-0.01em',
-                    color: 'var(--ink)',
-                  }}
-                >
+            <Card className="gap-0 py-0 mt-4 border-[var(--line)] overflow-hidden">
+              <div className="p-3 flex justify-between items-center">
+                <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[16px] font-semibold tracking-[-0.01em] text-[var(--ink)]">
                   Historique — {WALLET_TYPE_LABELS[selectedWallet.walletType]?.label}
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
               {entriesLoading ? (
-                <Box sx={{ px: 2, pb: 2 }}>
+                <div className="px-3 pb-3">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <Skeleton key={i} variant="rectangular" height={32} sx={{ borderRadius: 1, mb: 1 }} />
+                    <Skeleton key={i} className="h-8 rounded-lg mb-1.5" />
                   ))}
-                </Box>
+                </div>
               ) : entries.length === 0 ? (
-                <Box sx={{ px: 2, pb: 2 }}>
+                <div className="px-3 pb-3">
                   <EmptyState
                     icon={<AccountBalanceWallet />}
                     title="Aucune transaction"
                     variant="transparent"
                   />
-                </Box>
+                </div>
               ) : (
                 <>
-                  <TableContainer>
-                    <Table size="small">
-                      <TableHead>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell>Date</TableCell>
-                          <TableCell>Description</TableCell>
-                          <TableCell>Type</TableCell>
-                          <TableCell>Référence</TableCell>
-                          <TableCell align="right">Montant</TableCell>
-                          <TableCell align="right">Solde</TableCell>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Référence</TableHead>
+                          <TableHead className="text-end">Montant</TableHead>
+                          <TableHead className="text-end">Solde</TableHead>
                         </TableRow>
-                      </TableHead>
+                      </TableHeader>
                       <TableBody>
                         {entries.map((entry) => (
                           <TableRow key={entry.id}>
-                            <TableCell sx={{ color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                            <TableCell className="text-[var(--muted)] tabular-nums">
                               {new Date(entry.createdAt).toLocaleDateString('fr-FR', {
                                 day: '2-digit', month: '2-digit', year: 'numeric',
                                 hour: '2-digit', minute: '2-digit',
@@ -311,41 +250,33 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                             </TableCell>
                             <TableCell>{entry.description}</TableCell>
                             <TableCell>
-                              <Chip
-                                label={entry.entryType}
-                                size="small"
-                                sx={softChipSx(ENTRY_TYPE_TOKENS[entry.entryType] ?? 'var(--muted)')}
-                              />
+                              <StatusChip color={ENTRY_TYPE_TOKENS[entry.entryType] ?? 'var(--muted)'} label={entry.entryType} />
                             </TableCell>
                             <TableCell>
-                              <Chip
-                                label={REF_TYPE_LABELS[entry.referenceType]?.label ?? entry.referenceType}
-                                size="small"
-                                sx={softChipSx(REF_TYPE_LABELS[entry.referenceType]?.color ?? 'var(--muted)')}
-                              />
+                              <StatusChip color={REF_TYPE_LABELS[entry.referenceType]?.color ?? 'var(--muted)'} label={REF_TYPE_LABELS[entry.referenceType]?.label ?? entry.referenceType} />
                             </TableCell>
-                            <TableCell align="right">
+                            <TableCell className="text-end">
                               {/* Montant signé : display tabular-nums, ok/err */}
-                              <Typography
-                                sx={{
-                                  ...moneySx,
-                                  fontWeight: 600,
-                                  fontSize: '12.5px',
-                                  color: entry.entryType === 'CREDIT' ? 'var(--ok)' : 'var(--err)',
-                                }}
+                              <p
+                                className={cn(
+                                  MONEY_CLASS,
+                                  'cn-text-body1 font-semibold text-[12.5px]',
+                                  entry.entryType === 'CREDIT' ? 'text-[var(--ok)]' : 'text-[var(--err)]',
+                                )}
                               >
                                 {entry.entryType === 'CREDIT' ? '+' : '-'}
                                 <Money value={entry.amount} from={entry.currency} />
-                              </Typography>
+                              </p>
                             </TableCell>
-                            <TableCell align="right" sx={{ ...moneySx, color: 'var(--ink)' }}>
+                            {/* chaine litterale : tailwind-merge rangerait font-[…] et font-semibold dans le meme groupe */}
+                            <TableCell className="font-[family-name:var(--font-display)] tabular-nums text-end text-[var(--ink)]">
                               <Money value={entry.balanceAfter} from={entry.currency} />
                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
-                  </TableContainer>
+                  </div>
                   <PagePagination
                     count={totalEntries}
                     page={page}
@@ -354,10 +285,10 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                   />
                 </>
               )}
-            </Paper>
+            </Card>
           )}
         </>
       )}
-    </Box>
+    </div>
   );
 }

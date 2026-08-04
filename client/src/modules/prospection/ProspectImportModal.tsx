@@ -1,22 +1,19 @@
 import React, { useState, useCallback } from 'react';
+import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  Box,
-  IconButton,
-  Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  LinearProgress,
-} from '@mui/material';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
+import { cn } from '../../utils/cn';
 import {
-  Close as CloseIcon,
   CloudUpload,
   InsertDriveFile,
   CheckCircle,
@@ -92,89 +89,69 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
   const canImport = selectedFile && category && !importMutation.isPending;
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: { borderRadius: 2, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' },
-      }}
-    >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          pb: 1,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Box display="flex" alignItems="center" gap={1}>
-          <CloudUpload color="primary" />
-          <Typography variant="h6" component="div">
+    <Dialog open={open} onOpenChange={(next) => !next && handleClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader className="flex-row items-center gap-1.5 border-b pb-2">
+          <CloudUpload className="text-[var(--mui-primary)]" />
+          <DialogTitle className="cn-text-h6">
             Importer des prospects
-          </Typography>
-        </Box>
-        <IconButton onClick={handleClose} size="small" sx={{ color: 'text.secondary' }}>
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+          </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 3, pb: 2 }}>
         {/* Success message */}
         {successCount !== null && (
-          <Alert severity="success" icon={<CheckCircle />} sx={{ mb: 2 }}>
-            <Typography variant="body1">
+          <UiAlert variant="success" className="mb-3">
+            <CheckCircle />
+            <AlertDescription>
               <strong>{successCount}</strong> prospects importes avec succes !
-            </Typography>
-          </Alert>
+            </AlertDescription>
+          </UiAlert>
         )}
 
         {/* Error message */}
         {importMutation.isError && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            Erreur lors de l&apos;import. Verifiez le format du fichier CSV.
-          </Alert>
+          <UiAlert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>Erreur lors de l&apos;import. Verifiez le format du fichier CSV.</AlertDescription>
+          </UiAlert>
         )}
 
         {/* Category selector */}
-        <FormControl fullWidth sx={{ mb: 3 }}>
-          <InputLabel>Categorie</InputLabel>
-          <Select
+        <Field className="mb-[18px]">
+          <FieldLabel htmlFor="prospect-import-category">Categorie</FieldLabel>
+          <NativeSelect
+            id="prospect-import-category"
+            className="w-full"
             value={category}
-            label="Categorie"
             onChange={(e) => setCategory(e.target.value)}
             disabled={importMutation.isPending}
           >
+            {/* Option vide : le select natif afficherait sinon la 1re categorie
+                sans que l'etat ait change (le bouton Importer resterait bloque). */}
+            <NativeSelectOption value="">—</NativeSelectOption>
             {CATEGORY_OPTIONS.map((opt) => (
-              <MenuItem key={opt.value} value={opt.value}>
+              <NativeSelectOption key={opt.value} value={opt.value}>
                 {opt.label}
-              </MenuItem>
+              </NativeSelectOption>
             ))}
-          </Select>
-        </FormControl>
+          </NativeSelect>
+        </Field>
 
         {/* File drop zone */}
-        <Box
+        <div
           onDrop={handleDrop}
           onDragOver={(e) => {
             e.preventDefault();
             setDragOver(true);
           }}
           onDragLeave={() => setDragOver(false)}
-          sx={{
-            border: '1px dashed',
-            borderColor: dragOver ? 'var(--accent)' : 'var(--line-2)',
-            borderRadius: '12px',
-            p: 4,
-            textAlign: 'center',
-            bgcolor: dragOver ? 'var(--accent-soft)' : 'var(--field)',
-            transition: 'border-color 0.2s, background-color 0.2s',
-            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            cursor: 'pointer',
-          }}
+          className={cn(
+            'border border-dashed rounded-[12px] p-6 text-center cursor-pointer',
+            'transition-[border-color,background-color] duration-200 motion-reduce:transition-none',
+            dragOver
+              ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+              : 'border-[var(--line-2)] bg-[var(--field)]',
+          )}
           onClick={() => document.getElementById('csv-file-input')?.click()}
         >
           <input
@@ -185,47 +162,53 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
             style={{ display: 'none' }}
           />
           {selectedFile ? (
-            <Box display="flex" alignItems="center" justifyContent="center" gap={1}>
-              <InsertDriveFile color="primary" />
-              <Typography variant="body1" color="text.primary">
+            <div className="flex items-center justify-center gap-1.5">
+              <InsertDriveFile className="text-[var(--mui-primary)]" />
+              <p className="cn-text-body1 text-foreground">
                 {selectedFile.name}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+              </p>
+              <p className="cn-text-body2 text-muted-foreground">
                 ({(selectedFile.size / 1024).toFixed(1)} Ko)
-              </Typography>
-            </Box>
+              </p>
+            </div>
           ) : (
             <>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><CloudUpload size={48} strokeWidth={1.75} /></Box>
-              <Typography variant="body1" color="text.secondary">
+              <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><CloudUpload size={48} strokeWidth={1.75} /></span>
+              <p className="cn-text-body1 text-muted-foreground">
                 Deposez votre fichier CSV ici
-              </Typography>
-              <Typography variant="body2" color="text.disabled">
+              </p>
+              <p className="cn-text-body2 text-muted-foreground opacity-60">
                 ou cliquez pour parcourir
-              </Typography>
+              </p>
             </>
           )}
-        </Box>
+        </div>
 
-        {/* Progress */}
-        {importMutation.isPending && <LinearProgress sx={{ mt: 2 }} />}
-      </DialogContent>
-
-      <DialogActions sx={{ px: 3, pb: 3, gap: 1, justifyContent: 'flex-end' }}>
-        <Button onClick={handleClose} variant="outlined" disabled={importMutation.isPending}>
-          {successCount !== null ? 'Fermer' : 'Annuler'}
-        </Button>
-        {successCount === null && (
-          <Button
-            onClick={handleImport}
-            variant="contained"
-            disabled={!canImport}
-            startIcon={<CloudUpload />}
+        {/* Progress. Le primitif Progress traduit un POURCENTAGE et l'import n'en
+            expose aucun : une barre pulsee dit « en cours » sans mentir sur une
+            avancee, la ou un Progress serait fige a 0 %. */}
+        {importMutation.isPending && (
+          <div
+            role="progressbar"
+            aria-label="Import en cours"
+            className="mt-3 h-1 w-full overflow-hidden rounded-full bg-[var(--line)]"
           >
-            {importMutation.isPending ? 'Import en cours...' : 'Importer'}
-          </Button>
+            <div className="h-full w-full bg-[var(--accent)] animate-pulse motion-reduce:animate-none" />
+          </div>
         )}
-      </DialogActions>
+
+        <DialogFooter className="gap-2">
+          <Button onClick={handleClose} variant="outline" disabled={importMutation.isPending}>
+            {successCount !== null ? 'Fermer' : 'Annuler'}
+          </Button>
+          {successCount === null && (
+            <Button onClick={handleImport} disabled={!canImport}>
+              <CloudUpload />
+              {importMutation.isPending ? 'Import en cours...' : 'Importer'}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

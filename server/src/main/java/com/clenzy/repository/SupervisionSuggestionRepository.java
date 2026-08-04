@@ -16,6 +16,21 @@ public interface SupervisionSuggestionRepository extends JpaRepository<Supervisi
     List<SupervisionSuggestion> findByOrganizationIdAndPropertyIdAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
             Long organizationId, Long propertyId, String status, Instant now);
 
+    /**
+     * Vue d'un logement : ses cartes ET celles qui n'appartiennent à aucun
+     * logement ({@code org_level}) — litige, RGPD, site, taxe. Sans cette
+     * seconde branche, ces cartes n'étaient visibles que dans l'accordéon du
+     * logement d'ancrage (MIN(property.id)) et invisibles partout ailleurs.
+     */
+    @Query("SELECT s FROM SupervisionSuggestion s WHERE s.organizationId = :orgId "
+            + "AND (s.propertyId = :propertyId OR s.orgLevel = true) "
+            + "AND s.status = :status AND s.expiresAt > :now "
+            + "ORDER BY s.createdAt DESC")
+    List<SupervisionSuggestion> findVisibleForProperty(@Param("orgId") Long organizationId,
+                                                       @Param("propertyId") Long propertyId,
+                                                       @Param("status") String status,
+                                                       @Param("now") Instant now);
+
     /** Suggestions en attente non expirées de TOUTE l'organisation (vue portefeuille). */
     List<SupervisionSuggestion> findByOrganizationIdAndStatusAndExpiresAtAfterOrderByCreatedAtDesc(
             Long organizationId, String status, Instant now);
@@ -46,6 +61,21 @@ public interface SupervisionSuggestionRepository extends JpaRepository<Supervisi
     /** Déduplication : une même proposition en attente existe-t-elle déjà ? */
     boolean existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
             Long organizationId, Long propertyId, String moduleKey, String title, String status);
+
+    /**
+     * Déduplication CONSCIENTE de l'expiration : seule une carte encore VISIBLE
+     * bloque la recréation d'un même intitulé.
+     *
+     * <p>La variante sans expiration au-dessus laissait un trou : passé le TTL,
+     * la carte disparaissait de la lecture ({@code expires_at > now}) mais
+     * gardait le statut PENDING, donc continuait d'interdire la recréation. Une
+     * situation qui persistait — licence qui expire, stock sous le seuil — était
+     * signalée une fois puis plus jamais. Une carte périmée libère désormais la
+     * place : le scan suivant la recrée si le problème est toujours là.</p>
+     */
+    boolean existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+            Long organizationId, Long propertyId, String moduleKey, String title, String status,
+            Instant now);
 
     /**
      * Cooldown anti-re-suggestion : une carte identique a-t-elle été rejetée récemment ?

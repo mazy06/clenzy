@@ -1,10 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import {
-  Box,
-  Button,
-  Alert,
-  Snackbar,
-} from '@mui/material';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
+import { useNotification } from '../../hooks/useNotification';
 import {
   Link as LinkIcon,
   Refresh as RefreshIcon,
@@ -39,6 +36,7 @@ import AirbnbConnectionDetails from './AirbnbConnectionDetails';
 import AirbnbListingsSection from './AirbnbListingsSection';
 import AirbnbSyncStatusSection from './AirbnbSyncStatusSection';
 import ChannelDisconnectDialog from './ChannelDisconnectDialog';
+import ChannelManagerHealthBanner from './ChannelManagerHealthBanner';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -77,7 +75,7 @@ const ChannelsPage: React.FC = () => {
   const [connectDialogChannel, setConnectDialogChannel] = useState<OtaChannel | null>(null);
   const [disconnectConfirmChannel, setDisconnectConfirmChannel] = useState<OtaChannel | null>(null);
   const [disconnectingChannelId, setDisconnectingChannelId] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const { notify } = useNotification();
   const { isConnected: isOtaConnected, getStatus: getOtaStatus, isLoading: otaConnectionsLoading } = useChannelConnections();
   const disconnectChannelMutation = useDisconnectChannel();
 
@@ -177,20 +175,20 @@ const ChannelsPage: React.FC = () => {
     if (channelId in CHANNEL_BACKEND_MAP) {
       setDisconnectingChannelId(channelId);
       disconnectChannelMutation.mutate(channelId as ChannelId, {
-        onSuccess: () => setSuccessMessage(t('channels.connect.successDisconnected', { channel: channelName })),
+        onSuccess: () => notify.success(t('channels.connect.successDisconnected', { channel: channelName })),
         onError: () => setConnectionError(t('channels.connect.errorDisconnecting', { channel: channelName })),
         onSettled: () => setDisconnectingChannelId(null),
       });
     }
     setDisconnectConfirmChannel(null);
-  }, [disconnectConfirmChannel, disconnectChannelMutation, t]);
+  }, [disconnectConfirmChannel, disconnectChannelMutation, notify, t]);
 
   const handleOtaConnected = useCallback(() => {
     if (connectDialogChannel) {
-      setSuccessMessage(t('channels.connect.successConnected', { channel: connectDialogChannel.name }));
+      notify.success(t('channels.connect.successConnected', { channel: connectDialogChannel.name }));
     }
     setConnectDialogChannel(null);
-  }, [connectDialogChannel, t]);
+  }, [connectDialogChannel, notify, t]);
 
   // ── Derived ──
   const isConnected = connectionStatus?.connected === true;
@@ -221,7 +219,7 @@ const ChannelsPage: React.FC = () => {
   );
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={t('channels.title')}
         subtitle={t('channels.subtitle')}
@@ -230,31 +228,33 @@ const ChannelsPage: React.FC = () => {
         showBackButton={false}
         filters={filterBar}
         actions={
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<StarIcon size={16} strokeWidth={1.75} />}
-              onClick={() => navigate('/channels/reviews')}
-            >
+          <div className="flex gap-1.5 items-center">
+            <BuiButton variant="outline" size="sm" onClick={() => navigate('/channels/reviews')}>
+              <StarIcon size={16} strokeWidth={1.75} />
               {t('channels.reviews.title')}
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={() => { refetchStatus(); refetchListings(); }}
-            >
+            </BuiButton>
+            <BuiButton variant="outline" size="sm" onClick={() => { refetchStatus(); refetchListings(); }}>
+              <RefreshIcon />
               {t('common.refresh')}
-            </Button>
-          </Box>
+            </BuiButton>
+          </div>
         }
       />
 
+      {/* Bandeau de sante du channel manager (projection) — silencieux sans
+          mapping Channex ou sans le droit de lecture. */}
+      <ChannelManagerHealthBanner />
+
       {(connectionError || connectionQueryError) && (
-        <Alert severity="error" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => setConnectionError(null)}>
-          {connectionError || t('channels.airbnb.errorFetchingStatus')}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-2 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{connectionError || t('channels.airbnb.errorFetchingStatus')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setConnectionError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
@@ -379,25 +379,6 @@ const ChannelsPage: React.FC = () => {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          Success Snackbar
-          ═══════════════════════════════════════════════════════════════════════ */}
-      <Snackbar
-        open={!!successMessage}
-        autoHideDuration={4000}
-        onClose={() => setSuccessMessage(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setSuccessMessage(null)}
-          severity="success"
-          variant="filled"
-          sx={{ width: '100%', fontSize: '0.8125rem' }}
-        >
-          {successMessage}
-        </Alert>
-      </Snackbar>
-
-      {/* ═══════════════════════════════════════════════════════════════════════
           Disconnect Confirmation Dialog
           ═══════════════════════════════════════════════════════════════════════ */}
       <ChannelDisconnectDialog
@@ -406,7 +387,7 @@ const ChannelsPage: React.FC = () => {
         onConfirm={handleOtaDisconnectConfirm}
         t={t}
       />
-    </Box>
+    </div>
   );
 };
 

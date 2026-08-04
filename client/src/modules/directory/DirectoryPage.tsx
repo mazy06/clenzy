@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { Box } from '@mui/material';
 import {
   People,
   Business,
@@ -76,6 +75,10 @@ const DirectoryPage: React.FC = () => {
 
   // Portal container
   const [actionsContainer, setActionsContainer] = useState<HTMLDivElement | null>(null);
+  // Sans ce conteneur, les onglets montes en `embedded` n'avaient nulle part
+  // ou porter leur barre de filtres — et ne la rendaient donc pas du tout :
+  // Utilisateurs et Organisations s'affichaient sans recherche ni filtres.
+  const [filtersContainer, setFiltersContainer] = useState<HTMLDivElement | null>(null);
 
   // Slot DOM pour que chaque tab puisse portaler ses actions dans le PageHeader.
   // /!\ DOIT etre declare AVANT tout early return pour respecter Rules of Hooks.
@@ -129,7 +132,7 @@ const DirectoryPage: React.FC = () => {
 
   return (
     <PageHeaderActionsProvider slot={headerActionsSlot}>
-      <Box>
+      <div>
         <PageHeader
           title={title}
           subtitle={subtitle}
@@ -137,11 +140,12 @@ const DirectoryPage: React.FC = () => {
           backPath="/dashboard"
           showBackButton={false}
           actions={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <div className="flex items-center gap-1.5">
               {headerActionsPortal}
               <div ref={setActionsContainer} style={PORTAL_STYLE} />
-            </Box>
+            </div>
           }
+          filters={<div ref={setFiltersContainer} style={PORTAL_STYLE} />}
         />
         <PageTabs
           options={visibleTabs.map((tab) => ({
@@ -163,15 +167,15 @@ const DirectoryPage: React.FC = () => {
           <GuestsListPage embedded actionsContainer={actionsContainer} />
         )}
         {activeTabDef?.key === 'users' && (
-          <UsersList embedded actionsContainer={actionsContainer} />
+          <UsersList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
         )}
         {activeTabDef?.key === 'organizations' && (
-          <OrganizationsList embedded actionsContainer={actionsContainer} />
+          <OrganizationsList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
         )}
         {activeTabDef?.key === 'prospection' && (
           <ProspectionPage embedded actionsContainer={actionsContainer} />
         )}
-      </Box>
+      </div>
     </PageHeaderActionsProvider>
   );
 };

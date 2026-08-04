@@ -1,18 +1,10 @@
 import React from 'react';
-import {
-  Alert,
-  Box,
-  CircularProgress,
-  Grid,
-  Paper,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-} from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Card } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useVoucherAnalytics } from '../../hooks/useBookingVouchers';
 import type { VoucherStats } from '../../services/api/bookingVouchersApi';
@@ -57,16 +49,17 @@ export default function VoucherAnalyticsPanel() {
   // un compteur d'actifs (utile meme sans historique).
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-        <CircularProgress size={24} />
-      </Box>
+      <div className="flex justify-center py-3">
+        <Spinner className="size-6" />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Alert severity="warning" sx={{ mb: 2 }}>
-        {t('vouchers.analytics.loadError')}
+      <Alert variant="warning" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{t('vouchers.analytics.loadError')}</AlertDescription>
       </Alert>
     );
   }
@@ -76,11 +69,11 @@ export default function VoucherAnalyticsPanel() {
   // Si pas d'usages historiques, on simplifie : juste le compteur d'actifs.
   if (data.totalUsages === 0) {
     return (
-      <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: '14px', borderColor: 'var(--line)', bgcolor: 'var(--card)' }}>
-        <Typography variant="body2" color="text.secondary">
+      <Card className="gap-0 py-0 p-3 mb-4 border-[var(--line)] bg-[var(--card)]">
+        <p className="cn-text-body2 text-muted-foreground">
           {t('vouchers.analytics.noUsageYet', { active: data.activeVouchersCount })}
-        </Typography>
-      </Paper>
+        </p>
+      </Card>
     );
   }
 
@@ -89,18 +82,19 @@ export default function VoucherAnalyticsPanel() {
   const periodLabel = formatPeriod(data.from, data.to, currentLanguage);
 
   return (
-    <Box sx={{ mb: 3 }}>
-      <Stack direction="row" alignItems="baseline" justifyContent="space-between" sx={{ mb: 1 }}>
-        <Typography variant="overline" sx={{ letterSpacing: '0.06em', fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)' }}>
+    <div className="mb-4">
+      {/* mb: 1 = 6 px (theme.spacing vaut 6). */}
+      <div className="flex flex-row items-baseline justify-between mb-[6px]">
+        <span className="cn-text-overline tracking-[0.06em] text-[10.5px] font-bold text-[var(--faint)]">
           {t('vouchers.analytics.title')}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
+        </span>
+        <span className="cn-text-caption text-muted-foreground">
           {periodLabel}
-        </Typography>
-      </Stack>
+        </span>
+      </div>
 
       {/* KPI cards */}
-      <Grid container spacing={1.5} sx={{ mb: 2 }}>
+      <div className="grid grid-cols-12 gap-[9px] mb-3">
         <KpiCard
           label={t('vouchers.analytics.totalUsages')}
           value={data.totalUsages.toString()}
@@ -122,72 +116,69 @@ export default function VoucherAnalyticsPanel() {
           color={TOKEN_OK}
           emphasis
         />
-      </Grid>
+      </div>
 
       {/* Top vouchers */}
       {data.topVouchers.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 1.5, borderRadius: '14px', borderColor: 'var(--line)', bgcolor: 'var(--card)' }}>
-          <Typography variant="overline" sx={{ fontSize: '10.5px', letterSpacing: '0.06em', fontWeight: 700, color: 'var(--faint)' }}>
+        <Card className="gap-0 py-0 p-2 border-[var(--line)] bg-[var(--card)]">
+          <span className="cn-text-overline text-[10.5px] tracking-[0.06em] font-bold text-[var(--faint)]">
             {t('vouchers.analytics.topVouchersTitle')}
-          </Typography>
-          <Table size="small" sx={{ mt: 0.5 }}>
-            <TableHead>
+          </span>
+          <Table className="mt-[3px]">
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('vouchers.analytics.colName')}</TableCell>
-                <TableCell>{t('vouchers.analytics.colCode')}</TableCell>
-                <TableCell align="right">{t('vouchers.analytics.colUsages')}</TableCell>
-                <TableCell align="right">{t('vouchers.analytics.colGross')}</TableCell>
-                <TableCell align="right">{t('vouchers.analytics.colDiscount')}</TableCell>
-                <TableCell align="right">{t('vouchers.analytics.colNet')}</TableCell>
-                <TableCell align="right">{t('vouchers.analytics.colAvgPct')}</TableCell>
+                <TableHead>{t('vouchers.analytics.colName')}</TableHead>
+                <TableHead>{t('vouchers.analytics.colCode')}</TableHead>
+                <TableHead className="text-end">{t('vouchers.analytics.colUsages')}</TableHead>
+                <TableHead className="text-end">{t('vouchers.analytics.colGross')}</TableHead>
+                <TableHead className="text-end">{t('vouchers.analytics.colDiscount')}</TableHead>
+                <TableHead className="text-end">{t('vouchers.analytics.colNet')}</TableHead>
+                <TableHead className="text-end">{t('vouchers.analytics.colAvgPct')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {data.topVouchers.map((v: VoucherStats) => (
-                <TableRow key={v.voucherId} hover>
+                <TableRow key={v.voucherId}>
                   <TableCell>
-                    <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8125rem' }}>
+                    <p className="cn-text-body2 font-semibold text-[0.8125rem]">
                       {v.voucherName}
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell>
                     {v.voucherCode ? (
-                      <Typography variant="body2" component="span" sx={{
-                        display: 'inline-block', fontFamily: 'var(--font-display)', fontSize: '11.5px',
-                        letterSpacing: '0.04em', fontVariantNumeric: 'tabular-nums', color: 'var(--body)',
-                        bgcolor: 'var(--field)', border: '1px solid var(--field-line)', borderRadius: '6px',
-                        px: '8px', py: '3px',
-                      }}>
+                      <span className="cn-text-body2 inline-block text-[11.5px] tracking-[0.04em] tabular-nums text-[var(--body)] bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[6px] px-2 py-[3px]" style={{ fontFamily: 'var(--font-display)' }}>
                         {v.voucherCode}
-                      </Typography>
+                      </span>
                     ) : (
-                      <Typography variant="caption" color="text.secondary">
+                      <span className="cn-text-caption text-muted-foreground">
                         {t('vouchers.autoCampaign')}
-                      </Typography>
+                      </span>
                     )}
                   </TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                  <TableCell className="text-end tabular-nums">
                     {v.usageCount}
                   </TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                  <TableCell className="text-end tabular-nums">
                     {fmt(v.totalGross)}
                   </TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums', color: TOKEN_WARN }}>
+                  {/* Couleur portee par une constante : une classe Tailwind ne peut
+                      pas naitre d'une variable, elle passe donc par style. */}
+                  <TableCell className="text-end tabular-nums" style={{ color: TOKEN_WARN }}>
                     −{fmt(v.totalDiscount)}
                   </TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>
+                  <TableCell className="text-end tabular-nums font-medium">
                     {fmt(v.totalNet)}
                   </TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums', color: TOKEN_MUTED }}>
+                  <TableCell className="text-end tabular-nums" style={{ color: TOKEN_MUTED }}>
                     {v.avgDiscountPct}%
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </Paper>
+        </Card>
       )}
-    </Box>
+    </div>
   );
 }
 
@@ -199,46 +190,16 @@ interface KpiCardProps {
 }
 
 const KpiCard: React.FC<KpiCardProps> = ({ label, value, color, emphasis }) => (
-  <Grid item xs={6} md={3}>
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 1.5,
-        borderRadius: '14px',
-        borderColor: 'var(--line)',
-        bgcolor: 'var(--card)',
-        boxShadow: 'none',
-        transition: 'border-color 0.18s cubic-bezier(.16,1,.3,1)',
-        '&:hover': { borderColor: 'var(--line-2)' },
-      }}
-    >
-      <Typography
-        sx={{
-          fontSize: '10.5px',
-          fontWeight: 700,
-          color: 'var(--faint)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          lineHeight: 1.2,
-          display: 'block',
-        }}
-      >
+  <div className="col-span-6 min-[900px]:col-span-3">
+    <Card className="gap-0 py-0 p-2 border-[var(--line)] bg-[var(--card)] transition-colors duration-200 hover:border-[var(--line-2)]">
+      <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em] leading-[1.2] block">
         {label}
-      </Typography>
-      <Typography
-        variant="h6"
-        sx={{
-          fontFamily: 'var(--font-display)',
-          fontVariantNumeric: 'tabular-nums',
-          fontWeight: 600,
-          color: emphasis ? color : 'var(--ink)',
-          mt: 0.5,
-        }}
-      >
+      </p>
+      <h6 className="cn-text-h6 tabular-nums font-semibold mt-[3px]" style={{ fontFamily: 'var(--font-display)', color: emphasis ? color : 'var(--ink)' }}>
         {value}
-      </Typography>
-    </Paper>
-  </Grid>
+      </h6>
+    </Card>
+  </div>
 );
 
 function formatPeriod(from: string, to: string, locale: string): string {

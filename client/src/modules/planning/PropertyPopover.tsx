@@ -1,5 +1,7 @@
 import React from 'react';
-import { Box, Button, Chip, LinearProgress, Popover, Typography, useMediaQuery } from '@mui/material';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { Button, Popover, PopoverAnchor, PopoverContent, Progress } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import {
   Business,
@@ -50,7 +52,12 @@ interface PropertyPopoverProps {
 const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, performance: perf, onClose }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+
+  // L'ancre est un noeud DOM imperatif fourni par le parent. Radix couvre
+  // exactement ce cas avec `virtualRef` : un objet qui expose l'element a
+  // mesurer, sans exiger que l'ancre soit rendue ici. Le contrat du composant
+  // (prop `anchorEl`) reste donc inchange pour l'appelant.
+  const anchorRef = React.useMemo(() => ({ current: anchorEl }), [anchorEl]);
 
   const address = [property.address, property.city].filter(Boolean).join(', ');
   const currency = property.currency || 'EUR';
@@ -67,112 +74,66 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
   const hasTimes = Boolean(property.defaultCheckInTime || property.defaultCheckOutTime);
 
   return (
-    <Popover
-      open
-      anchorEl={anchorEl}
-      onClose={onClose}
-      anchorOrigin={{ vertical: 'center', horizontal: 'right' }}
-      transformOrigin={{ vertical: 'center', horizontal: 'left' }}
-      transitionDuration={reduceMotion ? 0 : undefined}
-      slotProps={{
-        paper: {
-          sx: {
-            width: 270,
-            borderRadius: '14px',
-            border: '1px solid var(--line)',
-            boxShadow: 'var(--shadow-pop)',
-            backgroundColor: 'var(--card)',
-            backgroundImage: 'none',
-            overflow: 'hidden',
-            ml: 1,
-          },
-        },
-      }}
-    >
-      {/* Héro : fond accent-soft, icône bâtiment, nom en overlay */}
-      <Box
-        sx={{
-          position: 'relative',
-          m: '10px',
-          height: 72,
-          borderRadius: '10px',
-          backgroundColor: 'var(--accent-soft)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-        }}
+    <Popover open onOpenChange={(next) => { if (!next) onClose(); }}>
+      <PopoverAnchor virtualRef={anchorRef} />
+      {/* `ml: 1` de la maquette MUI devient le decalage d'ancrage (8 px).
+          `motion-reduce:animate-none` remplace le transitionDuration 0 que le
+          composant calculait via useMediaQuery. */}
+      <PopoverContent
+        side="right"
+        align="center"
+        sideOffset={8}
+        className="w-[270px] p-0 gap-0 rounded-[14px] ring-0 border border-solid border-[var(--line)] bg-[var(--card)] shadow-[var(--shadow-pop)] overflow-hidden motion-reduce:animate-none"
       >
-        <Box sx={{ display: 'inline-flex', color: 'var(--accent)', opacity: 0.55, mb: '14px' }}>
+      {/* Héro : fond accent-soft, icône bâtiment, nom en overlay */}
+      <div className="relative m-2.5 h-[72px] rounded-[10px] bg-[var(--accent-soft)] flex items-center justify-center overflow-hidden">
+        <div className="inline-flex text-[var(--accent)] opacity-55 mb-3.5">
           <Business size={26} strokeWidth={1.5} />
-        </Box>
-        <Box
-          component="span"
-          sx={{
-            position: 'absolute',
-            left: 10,
-            right: 10,
-            bottom: 7,
-            fontSize: '0.8125rem',
-            fontWeight: 700,
-            color: 'var(--ink)',
-            lineHeight: 1.25,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        </div>
+        <span className="absolute start-[10px] end-[10px] bottom-[7px] text-[0.8125rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
           {property.name}
-        </Box>
-      </Box>
+        </span>
+      </div>
 
       {/* Type + adresse + propriétaire */}
       {(property.type || address || property.ownerName) && (
-        <Box sx={{ px: '14px', py: '8px', borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div className="px-3.5 py-2 flex flex-col gap-1.5" style={{ borderTop: '1px solid var(--line)' }}>
           {property.type && (
-            <Chip
+            <StatusChip
+              tone="accent"
+              size="sm"
               label={property.type}
-              size="small"
-              sx={{
-                alignSelf: 'flex-start',
-                height: 18,
-                fontSize: LABEL_FS,
-                fontWeight: 600,
-                bgcolor: 'var(--accent-soft)',
-                color: 'var(--accent)',
-                textTransform: 'capitalize',
-                '& .MuiChip-label': { px: 0.625 },
-              }}
+              className="self-start text-[0.5625rem] capitalize"
             />
           )}
           {address && (
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75 }}>
-              <Box sx={{ display: 'inline-flex', color: 'var(--muted)', flexShrink: 0, mt: '1px' }}>
+            <div className="flex items-start gap-1">
+              <div className="inline-flex text-[var(--muted)] shrink-0 mt-px">
                 <LocationOn size={STAT_ICON_SIZE} strokeWidth={1.75} />
-              </Box>
-              <Box component="span" sx={{ fontSize: BODY_FS, color: 'var(--muted)', lineHeight: 1.4 }}>
+              </div>
+              <span className="text-[var(--muted)] leading-[1.4]" style={{ fontSize: BODY_FS }}>
                 {address}
-              </Box>
-            </Box>
+              </span>
+            </div>
           )}
           {property.ownerName && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-              <Box sx={{ display: 'inline-flex', color: 'var(--muted)', flexShrink: 0 }}>
+            <div className="flex items-center gap-1">
+              <div className="inline-flex text-[var(--muted)] shrink-0">
                 <Person size={STAT_ICON_SIZE} strokeWidth={1.75} />
-              </Box>
-              <Box component="span" sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
+              </div>
+              <span className="text-[var(--muted)]" style={{ fontSize: BODY_FS }}>
                 {property.ownerName}
-              </Box>
-            </Box>
+              </span>
+            </div>
           )}
-        </Box>
+        </div>
       )}
 
       {/* Stats + heures + fréquence ménage */}
       {(hasStats || hasTimes || property.cleaningFrequency) && (
-        <Box sx={{ px: '14px', py: '10px', borderTop: '1px solid var(--line)' }}>
+        <div className="px-3.5 py-2.5" style={{ borderTop: '1px solid var(--line)' }}>
           {hasStats && (
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+            <div className="grid grid-cols-2 gap-1.5">
               {property.maxGuests != null && (
                 <StatPill
                   icon={<People size={STAT_ICON_SIZE} strokeWidth={1.75} />}
@@ -202,81 +163,77 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
                   value={fmt.format(property.cleaningBasePrice)}
                 />
               )}
-            </Box>
+            </div>
           )}
 
           {hasTimes && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mt: hasStats ? 1 : 0, flexWrap: 'wrap' }}>
+            <div className={cn('flex items-center gap-[7.5px] flex-wrap', hasStats ? 'mt-1.5' : 'mt-0')}>
               {property.defaultCheckInTime && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}>
+                <div className="flex items-center gap-1">
+                  <span className="inline-flex text-[var(--ok)]">
                     <AccessTime size={STAT_ICON_SIZE} strokeWidth={1.75} />
-                  </Box>
-                  <Box component="span" sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
-                    Check-in <Box component="strong" sx={{ color: 'var(--ink)' }}>{property.defaultCheckInTime.slice(0, 5)}</Box>
-                  </Box>
-                </Box>
+                  </span>
+                  <span className="text-[var(--muted)]" style={{ fontSize: BODY_FS }}>
+                    Check-in <strong className="text-[var(--ink)]">{property.defaultCheckInTime.slice(0, 5)}</strong>
+                  </span>
+                </div>
               )}
               {property.defaultCheckOutTime && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}>
+                <div className="flex items-center gap-1">
+                  <span className="inline-flex text-[var(--warn)]">
                     <AccessTime size={STAT_ICON_SIZE} strokeWidth={1.75} />
-                  </Box>
-                  <Box component="span" sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
-                    Check-out <Box component="strong" sx={{ color: 'var(--ink)' }}>{property.defaultCheckOutTime.slice(0, 5)}</Box>
-                  </Box>
-                </Box>
+                  </span>
+                  <span className="text-[var(--muted)]" style={{ fontSize: BODY_FS }}>
+                    Check-out <strong className="text-[var(--ink)]">{property.defaultCheckOutTime.slice(0, 5)}</strong>
+                  </span>
+                </div>
               )}
-            </Box>
+            </div>
           )}
 
           {property.cleaningFrequency && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mt: (hasStats || hasTimes) ? 0.75 : 0 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}>
+            <div className={cn('flex items-center gap-[3.75px]', (hasStats || hasTimes) ? 'mt-[4.5px]' : 'mt-0')}>
+              <span className="inline-flex text-[var(--muted)]">
                 <CalendarMonth size={STAT_ICON_SIZE} strokeWidth={1.75} />
-              </Box>
-              <Box component="span" sx={{ fontSize: BODY_FS, color: 'var(--muted)' }}>
-                Fréquence ménage : <Box component="strong" sx={{ color: 'var(--ink)' }}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Box>
-              </Box>
-            </Box>
+              </span>
+              <span className="text-[var(--muted)]" style={{ fontSize: BODY_FS }}>
+                Fréquence ménage : <strong className="text-[var(--ink)]">{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</strong>
+              </span>
+            </div>
           )}
-        </Box>
+        </div>
       )}
 
       {/* Performance sur fenêtre glissante — même représentation que la carte
           « Performance par logement » (score /100 + barre + lignes label/valeur). */}
       {perf && (
-        <Box sx={{ px: '14px', py: '10px', borderTop: '1px solid var(--line)' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: '8px' }}>
-            <Box sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
+        <div className="px-3.5 py-2.5" style={{ borderTop: '1px solid var(--line)' }}>
+          <div className="flex items-center gap-[4.5px] mb-2">
+            <div className="inline-flex text-[var(--accent)]">
               <Speed size={STAT_ICON_SIZE} strokeWidth={1.75} />
-            </Box>
-            <Box component="span" sx={{ fontSize: LABEL_FS, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3, color: 'var(--muted)' }}>
+            </div>
+            <span className="font-bold uppercase tracking-[0.3px] text-[var(--muted)]" style={{ fontSize: LABEL_FS }}>
               Performance · {perf.windowDays} j
-            </Box>
-          </Box>
+            </span>
+          </div>
 
           {/* Score + barre de progression */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
-            <Box component="span" sx={{ fontSize: LABEL_FS, color: 'var(--muted)' }}>Score</Box>
-            <Box component="span" sx={{ fontSize: BODY_FS, fontWeight: 700, color: scoreColor(perf.score), fontVariantNumeric: 'tabular-nums' }}>
+          <div className="flex justify-between mb-0.5">
+            <span className="text-[var(--muted)]" style={{ fontSize: LABEL_FS }}>Score</span>
+            <span className="font-bold tabular-nums" style={{ fontSize: BODY_FS, color: scoreColor(perf.score) }}>
               {perf.score}/100
-            </Box>
-          </Box>
-          <LinearProgress
-            variant="determinate"
+            </span>
+          </div>
+          {/* La teinte du score est calculee : elle passe par une custom property,
+              une classe Tailwind ne pouvant pas naitre d'une valeur d'execution. */}
+          <Progress
             value={Math.max(0, Math.min(100, perf.score))}
-            sx={{
-              height: 4,
-              borderRadius: 2,
-              mb: '10px',
-              bgcolor: 'var(--line)',
-              '& .MuiLinearProgress-bar': { bgcolor: scoreColor(perf.score), borderRadius: 2, transition: reduceMotion ? 'none' : undefined },
-            }}
+            style={{ '--score-tint': scoreColor(perf.score) } as React.CSSProperties}
+            className="h-1 rounded-[2px] mb-[10px] bg-[var(--line)] [&>[data-slot=progress-indicator]]:rounded-[2px] [&>[data-slot=progress-indicator]]:bg-[var(--score-tint)] [&>[data-slot=progress-indicator]]:motion-reduce:transition-none"
           />
 
           {/* Lignes label / valeur */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <div className="flex flex-col gap-0.5">
             <PerfRow label="RevPAN" value={<Money value={perf.revPan} from="EUR" decimals={2} />} />
             <PerfRow label="Taux d'occupation" value={`${Math.round(perf.occupancyRate)} %`} />
             <PerfRow label="Revenu total" value={<Money value={perf.revenue} from="EUR" decimals={0} />} />
@@ -285,52 +242,33 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
               value={`${Math.round(perf.netMargin)} %`}
               valueColor={perf.netMargin >= 60 ? '#4A9B8E' : perf.netMargin >= 40 ? '#D4A574' : '#C97A7A'}
             />
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
-      {/* Pied : Fermer (outlined neutre) + Voir la fiche (outlined accent) */}
-      <Box sx={{ display: 'flex', gap: 1, p: '10px 14px', borderTop: '1px solid var(--line)' }}>
-        <Button
-          size="small"
-          variant="outlined"
-          fullWidth
-          startIcon={<Close size={ICON_SIZE} strokeWidth={1.75} />}
-          onClick={onClose}
-          sx={{
-            textTransform: 'none',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            borderRadius: '9px',
-            color: 'var(--ink)',
-            borderColor: 'var(--line-2)',
-            '&:hover': { borderColor: 'var(--ink)', backgroundColor: 'var(--hover)' },
-          }}
-        >
+      {/* Pied : « Voir la fiche » est ce que le popover invite a faire, donc l'action
+          principale (default) ; « Fermer » redescend en secondaire (outline). Les deux
+          etaient outlined en MUI, ce qui mettait la sortie au meme poids que l'entree. */}
+      {/* `flex-1` sur deux boutons freres : le Button du kit porte shrink-0, on
+          remet `shrink` pour qu'ils se partagent la largeur au lieu de deborder. */}
+      <div className="flex gap-1.5 px-3.5 py-2.5" style={{ borderTop: '1px solid var(--line)' }}>
+        <Button size="sm" variant="outline" className="flex-1 shrink" onClick={onClose}>
+          <Close size={ICON_SIZE} strokeWidth={1.75} />
           Fermer
         </Button>
         <Button
-          size="small"
-          variant="outlined"
-          fullWidth
-          startIcon={<Visibility size={ICON_SIZE} strokeWidth={1.75} />}
+          size="sm"
+          className="flex-1 shrink"
           onClick={() => {
             onClose();
             navigate(`/properties/${property.id}`);
           }}
-          sx={{
-            textTransform: 'none',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            borderRadius: '9px',
-            color: 'var(--accent)',
-            borderColor: 'var(--accent)',
-            '&:hover': { borderColor: 'var(--accent-deep)', backgroundColor: 'var(--accent-soft)' },
-          }}
         >
+          <Visibility size={ICON_SIZE} strokeWidth={1.75} />
           Voir la fiche
         </Button>
-      </Box>
+      </div>
+      </PopoverContent>
     </Popover>
   );
 };
@@ -348,12 +286,12 @@ function scoreColor(score: number): string {
 // rendu de la carte « Performance par logement ».
 function PerfRow({ label, value, valueColor }: { label: string; value: React.ReactNode; valueColor?: string }) {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-      <Box component="span" sx={{ fontSize: LABEL_FS, color: 'var(--muted)' }}>{label}</Box>
-      <Box component="span" sx={{ fontSize: BODY_FS, fontWeight: 700, color: valueColor ?? 'var(--ink)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>
+    <div className="flex justify-between items-baseline">
+      <span className="text-[var(--muted)]" style={{ fontSize: LABEL_FS }}>{label}</span>
+      <span className="font-bold tabular-nums text-end" style={{ fontSize: BODY_FS, color: valueColor ?? 'var(--ink)' }}>
         {value}
-      </Box>
-    </Box>
+      </span>
+    </div>
   );
 }
 
@@ -369,26 +307,17 @@ function StatPill({
   highlight?: boolean;
 }) {
   return (
-    <Box
-      sx={{
-        p: 0.875,
-        borderRadius: 1,
-        bgcolor: highlight ? 'var(--ok-soft)' : 'color-mix(in srgb, var(--ink) 2.5%, transparent)',
-        border: '1px solid',
-        borderColor: highlight ? 'var(--ok)' : 'var(--line)',
-        minWidth: 0,
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, color: highlight ? 'var(--ok)' : 'var(--muted)', mb: 0.375 }}>
+    <div className={cn('p-[5.25px] rounded-[8px] border border-solid min-w-0', highlight ? 'bg-[var(--ok-soft)]' : 'bg-[color-mix(in_srgb,_var(--ink)_2.5%,_transparent)]', highlight ? 'border-[var(--ok)]' : 'border-[var(--line)]')}>
+      <div className={cn('flex items-center gap-[3.75px] mb-[2.25px]', highlight ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}>
         {icon}
-        <Box component="span" sx={{ fontSize: LABEL_FS, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3, color: 'inherit', lineHeight: 1 }}>
+        <span className="font-bold uppercase tracking-[0.3px] text-[inherit] leading-[1]" style={{ fontSize: LABEL_FS }}>
           {label}
-        </Box>
-      </Box>
-      <Typography sx={{ fontSize: '11.5px', fontWeight: 600, color: highlight ? 'var(--ok)' : 'var(--ink)', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
+        </span>
+      </div>
+      <p className={cn('cn-text-body1 text-[11.5px] font-semibold leading-[1.2] tabular-nums', highlight ? 'text-[var(--ok)]' : 'text-[var(--ink)]')}>
         {value}
-      </Typography>
-    </Box>
+      </p>
+    </div>
   );
 }
 

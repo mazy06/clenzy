@@ -1,23 +1,20 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from '../../components/ui';
 import {
-  Box,
-  Typography,
-  TextField,
-  InputAdornment,
-  Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Button,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-} from '@mui/material';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+  Switch,
+} from '../../components/ui';
 import { Build, Add, Delete } from '../../icons';
 import type { ServicePriceConfig, CommissionConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -93,27 +90,27 @@ export default function TabTravaux({ items, canEdit, onItemsChange, currencySymb
   }, [newItemName, newItemPrice, newItemDomain, items, onItemsChange]);
 
   return (
-    <Box sx={{ pt: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Build size={20} strokeWidth={1.75} /></Box>
-        <Typography variant="subtitle1" fontWeight={600}>
+    <div className="pt-3">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="inline-flex text-[var(--bui-warning-ink)]"><Build size={20} strokeWidth={1.75} /></span>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {title ?? t('tarification.travaux.title')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {subtitle ?? t('tarification.travaux.subtitle')}
-      </Typography>
+      </p>
 
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell>{t('tarification.travaux.prestation')}</TableCell>
-              <TableCell align="center">{t('tarification.travaux.enabled')}</TableCell>
-              <TableCell align="right">{t('tarification.travaux.basePrice')}</TableCell>
-              {canEdit && <TableCell align="center" sx={{ width: 48 }} />}
+              <TableHead>{t('tarification.travaux.prestation')}</TableHead>
+              <TableHead className="text-center">{t('tarification.travaux.enabled')}</TableHead>
+              <TableHead className="text-end">{t('tarification.travaux.basePrice')}</TableHead>
+              {canEdit && <TableHead className="text-center w-12" />}
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {grouped.map(([domain, entries]) => (
               <React.Fragment key={domain}>
@@ -121,44 +118,62 @@ export default function TabTravaux({ items, canEdit, onItemsChange, currencySymb
                 <TableRow>
                   <TableCell
                     colSpan={canEdit ? 4 : 3}
-                    sx={{ py: 0.75, borderBottom: '1px solid var(--line)', bgcolor: 'var(--field)' }}
+                    className="py-[4.5px] bg-[var(--field)]"
                   >
-                    <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)' }}>
+                    <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
                       {domain}
-                    </Typography>
+                    </p>
                   </TableCell>
                 </TableRow>
                 {entries.map(({ item, index }) => (
                   <TableRow key={item.interventionType}>
                     <TableCell>{labelOf(item)}</TableCell>
-                    <TableCell align="center">
+                    <TableCell className="text-center">
+                      {/* Pas de libelle visible : l'en-tete de colonne le porte,
+                          l'interrupteur reprend le nom de la ligne en aria-label. */}
                       <Switch
+                        aria-label={labelOf(item)}
                         checked={item.enabled}
-                        onChange={(e) => updateItem(index, { enabled: e.target.checked })}
+                        onCheckedChange={(checked) => updateItem(index, { enabled: checked })}
                         disabled={!canEdit}
-                        size="small"
+                        size="sm"
                       />
                     </TableCell>
-                    <TableCell align="right" sx={{ width: 140 }}>
-                      <TextField
-                        type="number"
-                        size="small"
-                        value={item.basePrice}
-                        onChange={(e) => {
-                          const num = parseFloat(e.target.value);
-                          if (!isNaN(num)) updateItem(index, { basePrice: num });
-                        }}
-                        disabled={!canEdit || !item.enabled}
-                        inputProps={{ step: 1, min: 0, style: { textAlign: 'right' } }}
-                        InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-                        sx={{ width: 120 }}
-                      />
+                    <TableCell className="text-end w-[140px]">
+                      {/* Pas de libelle visible dans la cellule : l'en-tete de
+                          colonne le porte, le champ reprend le nom de la ligne
+                          en aria-label. */}
+                      <InputGroup className="w-[120px]">
+                        <InputGroupInput
+                          id={`travaux-price-${item.interventionType}`}
+                          aria-label={labelOf(item)}
+                          type="number"
+                          step={1}
+                          min={0}
+                          className="text-end tabular-nums"
+                          value={item.basePrice}
+                          onChange={(e) => {
+                            const num = parseFloat(e.target.value);
+                            if (!isNaN(num)) updateItem(index, { basePrice: num });
+                          }}
+                          disabled={!canEdit || !item.enabled}
+                        />
+                        <InputGroupAddon align="inline-end">
+                          <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                        </InputGroupAddon>
+                      </InputGroup>
                     </TableCell>
                     {canEdit && (
-                      <TableCell align="center">
-                        <IconButton size="small" onClick={() => removeItem(index)} color="error">
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={t('tarification.travaux.remove', 'Supprimer') + ' — ' + labelOf(item)}
+                          onClick={() => removeItem(index)}
+                          className="text-[var(--err)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+                        >
                           <Delete size={16} strokeWidth={1.75} />
-                        </IconButton>
+                        </Button>
                       </TableCell>
                     )}
                   </TableRow>
@@ -167,59 +182,68 @@ export default function TabTravaux({ items, canEdit, onItemsChange, currencySymb
             ))}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
 
       {/* ─── Add button ────────────────────────────────────────────────── */}
       {canEdit && (
-        <Box sx={{ mt: 1.5 }}>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<Add />}
-            onClick={() => setAddDialogOpen(true)}
-            sx={{ textTransform: 'none' }}
-          >
+        <div className="mt-2">
+          <Button variant="outline" size="sm" onClick={() => setAddDialogOpen(true)}>
+            <Add />
             {t('tarification.addPrestation')}
           </Button>
-        </Box>
+        </div>
       )}
 
       {/* ─── Add dialog ──────────────────────────────────────────────── */}
-      <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>{t('tarification.addPrestation')}</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-          <TextField
-            label={t('tarification.newItem.name')}
-            value={newItemName}
-            onChange={(e) => setNewItemName(e.target.value)}
-            size="small"
-            fullWidth
-            autoFocus
-          />
-          <TextField
-            label={t('tarification.newItem.domain', 'Domaine')}
-            value={newItemDomain}
-            onChange={(e) => setNewItemDomain(e.target.value)}
-            size="small"
-            fullWidth
-            placeholder={t('tarification.travaux.otherDomain', 'Autre')}
-          />
-          <TextField
-            label={t('tarification.newItem.price')}
-            type="number"
-            value={newItemPrice}
-            onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
-            size="small"
-            fullWidth
-            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-          />
+      <Dialog open={addDialogOpen} onOpenChange={(next) => { if (!next) setAddDialogOpen(false); }}>
+        <DialogContent aria-describedby={undefined} className="max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>{t('tarification.addPrestation')}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 pt-1">
+            <Field>
+              <FieldLabel htmlFor="travaux-new-name">{t('tarification.newItem.name')}</FieldLabel>
+              <Input
+                id="travaux-new-name"
+                autoFocus
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="travaux-new-domain">
+                {t('tarification.newItem.domain', 'Domaine')}
+              </FieldLabel>
+              <Input
+                id="travaux-new-domain"
+                placeholder={t('tarification.travaux.otherDomain', 'Autre')}
+                value={newItemDomain}
+                onChange={(e) => setNewItemDomain(e.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="travaux-new-price">{t('tarification.newItem.price')}</FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="travaux-new-price"
+                  type="number"
+                  className="tabular-nums"
+                  value={newItemPrice}
+                  onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                </InputGroupAddon>
+              </InputGroup>
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddDialogOpen(false)}>{t('tarification.cancel')}</Button>
+            <Button onClick={handleAdd} disabled={!newItemName.trim()}>
+              {t('tarification.add')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddDialogOpen(false)}>{t('tarification.cancel')}</Button>
-          <Button onClick={handleAdd} variant="contained" disabled={!newItemName.trim()}>
-            {t('tarification.add')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* ─── Commission (admin uniquement) ───────────────────────────── */}
@@ -230,6 +254,6 @@ export default function TabTravaux({ items, canEdit, onItemsChange, currencySymb
           onChange={onCommissionChange}
         />
       )}
-    </Box>
+    </div>
   );
 }

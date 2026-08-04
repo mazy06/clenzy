@@ -1,6 +1,7 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { Box, IconButton, Paper, Grow, ClickAwayListener, Typography, useTheme, alpha, Tooltip } from '@mui/material';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from './ui';
+import { cn } from '../utils/cn';
 import { Close as CloseIcon, Fullscreen as FullscreenIcon, ChevronUp } from '../icons';
 import BaitlyMarkLogo from './BaitlyMarkLogo';
 import { useAgent } from '../hooks/useAgent';
@@ -9,8 +10,6 @@ import { ChatInput } from '../modules/assistant/components/ChatInput';
 import { ToolConfirmationDialog } from '../modules/assistant/components/ToolConfirmationDialog';
 import AssistantExpandedDialog from '../modules/assistant/components/AssistantExpandedDialog';
 
-const PANEL_WIDTH = 400;
-const TAB_WIDTH = 248;
 const PHRASE_INTERVAL_MS = 4200;
 
 /**
@@ -50,9 +49,10 @@ const DOCK_PHRASES = [
  * </ul>
  */
 const AssistantDockTab: React.FC = () => {
-  const theme = useTheme();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  // Ancre du « clic exterieur » : remplace le ClickAwayListener de MUI.
+  const dockRef = useRef<HTMLDivElement>(null);
   // bulle compacte au-dessus de l'encoche, ou plein ecran (Dialog + historique)
   const [view, setView] = useState<'panel' | 'expanded'>('panel');
 
@@ -81,6 +81,20 @@ const AssistantDockTab: React.FC = () => {
 
   const isWorking = status === 'sending' || status === 'streaming';
 
+  // ─── Fermeture au clic exterieur ────────────────────────────────────────
+  // `pointerdown` plutot que `click` : le panneau contient des elements qui se
+  // demontent au clic, et `contains()` serait alors deja faux au moment ou le
+  // `click` remonte.
+  useEffect(() => {
+    if (!open) return undefined;
+    const handlePointerDown = (event: PointerEvent) => {
+      const node = dockRef.current;
+      if (node && !node.contains(event.target as Node)) handleClose();
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [open, handleClose]);
+
   // ─── Rotation des phrases de l'encoche ──────────────────────────────────
   const [phraseIndex, setPhraseIndex] = useState(0);
   useEffect(() => {
@@ -95,159 +109,131 @@ const AssistantDockTab: React.FC = () => {
     return () => window.clearInterval(id);
   }, [open]);
 
-  const tabBorder = alpha(theme.palette.text.primary, 0.08);
-
   return (
     <>
-      <ClickAwayListener
-        onClickAway={() => {
-          if (open) handleClose();
-        }}
+      {/* Conteneur fixe bas-droite : panneau (deploye) au-dessus, encoche
+          en dessous, tous deux alignes sur le meme bord DROIT de l'ecran
+          (l'encoche est un onglet qui depasse du bord, pas un flottant).
+          `pointer-events-none` : le conteneur ne doit pas bloquer les clics a
+          cote du panneau ; ses enfants les reprennent.
+          Les deux z-index sont les valeurs du theme MUI par defaut, que ce
+          projet ne surcharge pas : modal = 1300, drawer + 1 = 1201. Ecrits en
+          litteraux car une classe Tailwind ne peut pas naitre d'une variable. */}
+      <div
+        ref={dockRef}
+        className={cn(
+          'fixed bottom-0 right-0 flex flex-col items-end pointer-events-none [&>*]:pointer-events-auto',
+          open ? 'z-[1300]' : 'z-[1201]',
+        )}
       >
-        {/* Conteneur fixe bas-droite : panneau (deploye) au-dessus, encoche
-            en dessous, tous deux alignes sur le meme bord droit. */}
-        <Box
-          sx={{
-            position: 'fixed',
-            bottom: 0,
-            // Collee au bord DROIT de l'ecran : l'encoche est un onglet qui
-            // depasse du bord, pas un element flottant.
-            right: 0,
-            zIndex: open ? theme.zIndex.modal : theme.zIndex.drawer + 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end',
-            // Le conteneur ne doit pas bloquer les clics a cote du panneau
-            pointerEvents: 'none',
-            '& > *': { pointerEvents: 'auto' },
-          }}
-        >
           {/* ── Panneau de discussion (deploye au-dessus de l'encoche) ────
               Colle DIRECTEMENT sur l'encoche (pas d'espace, pas de radius bas,
               pas de bordure basse) : panneau + encoche forment une seule carte
               continue docquee au bord de l'ecran. L'encoche s'elargit a la
-              largeur du panneau a l'ouverture (transition width ci-dessous). */}
-          <Grow
-            in={open && view === 'panel'}
-            mountOnEnter
-            unmountOnExit
-            timeout={220}
-            style={{ transformOrigin: 'bottom center' }}
-          >
-            <Paper
-              elevation={0}
-              sx={{
-                // Mobile : plein ecran (l'encoche est masquee, la fermeture se
-                // fait via le bouton X du header). Desktop : panneau docke au
-                // bord droit — seul le coin haut-GAUCHE est arrondi.
-                width: { xs: '100vw', sm: PANEL_WIDTH },
-                maxWidth: '100vw',
-                height: { xs: '100dvh', sm: 'min(70vh, 600px)' },
-                maxHeight: '100dvh',
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                borderRadius: { xs: 0, sm: '22px 0 0 0' },
-                border: { xs: 'none', sm: `0.5px solid ${tabBorder}` },
-                borderRight: 'none',
-                borderBottom: 'none',
-                bgcolor: theme.palette.background.default,
-                boxShadow: `0 20px 50px -12px ${alpha(theme.palette.primary.main, 0.42)}, 0 6px 16px -6px ${alpha(theme.palette.primary.main, 0.22)}`,
-              }}
+              largeur du panneau a l'ouverture (transition width ci-dessous).
+
+              Le panneau : mobile plein ecran (l'encoche est masquee, la fermeture
+              se fait via le bouton X du header) ; desktop docke au bord droit, ou
+              seul le coin haut-GAUCHE est arrondi. Ruptures ecrites en pixels :
+              le `sm` MUI vaut 600px, pas les 640px de Tailwind.
+              Largeur du panneau ecrite en dur (400px) : une classe Tailwind ne
+              peut pas naitre d'une constante JS.
+              Le Grow de MUI (mountOnEnter/unmountOnExit) devient un montage
+              conditionnel + l'animation d'entree de tw-animate-css : meme fondu,
+              meme mise a l'echelle depuis le bas, meme duree. Seule la
+              transition de SORTIE disparait, le panneau se demontant aussitot. */}
+          {open && view === 'panel' && (
+            <div
+              className={cn(
+                'w-screen max-w-[100vw] h-[100dvh] max-h-[100dvh] flex flex-col overflow-hidden bg-[var(--bg)]',
+                'shadow-[0_20px_50px_-12px_color-mix(in_srgb,var(--mui-primary)_42%,transparent),0_6px_16px_-6px_color-mix(in_srgb,var(--mui-primary)_22%,transparent)]',
+                'min-[600px]:w-[400px] min-[600px]:h-[min(70vh,600px)] min-[600px]:rounded-tl-[22px]',
+                'min-[600px]:border-[0.5px] min-[600px]:border-solid min-[600px]:border-r-0 min-[600px]:border-b-0',
+                'min-[600px]:border-[color-mix(in_srgb,var(--ink)_8%,transparent)]',
+                'origin-bottom animate-in fade-in-0 zoom-in-75 duration-[220ms] motion-reduce:animate-none',
+              )}
             >
               {/* Header — L2 panel teinte, meme grammaire que la bulle du FAB */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  px: 2,
-                  py: 1.25,
-                  bgcolor: alpha(theme.palette.text.primary, 0.025),
-                  flexShrink: 0,
-                }}
-              >
-                <Box sx={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="flex items-center gap-1.5 px-3 py-[7.5px] shrink-0 bg-[color-mix(in_srgb,var(--ink)_2.5%,transparent)]">
+                <div className="w-[28px] h-[28px] flex items-center justify-center">
                   <BaitlyMarkLogo variant="mark" size={18} idleAnimation={false} active={isWorking} />
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="subtitle2" sx={{ lineHeight: 1.2, fontWeight: 600 }}>
+                </div>
+                <div className="flex-1">
+                  <h6 className="cn-text-subtitle2 leading-[1.2] font-semibold">
                     Assistant
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
+                  </h6>
+                  <span className="cn-text-caption text-muted-foreground leading-[1]">
                     {messages.length === 0 ? 'Que veux-tu savoir ?' : `${messages.length} message${messages.length > 1 ? 's' : ''}`}
-                  </Typography>
-                </Box>
-                <Tooltip title="Agrandir">
-                  <IconButton size="small" onClick={handleExpand} aria-label="Agrandir en plein ecran" sx={{ cursor: 'pointer' }}>
-                    <FullscreenIcon size={16} />
-                  </IconButton>
+                  </span>
+                </div>
+                <Tooltip>
+                  {/* Le trigger enveloppe un <span> (element hote) : Radix y pose
+                      sa ref d'ancrage, ce qu'un composant fonction React 18 ne
+                      peut pas recevoir. */}
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <Button variant="ghost" size="icon-sm" onClick={handleExpand} aria-label="Agrandir en plein ecran">
+                        <FullscreenIcon size={16} />
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>Agrandir</TooltipContent>
                 </Tooltip>
-                <Tooltip title="Fermer">
-                  <IconButton size="small" onClick={handleClose} aria-label="Fermer" sx={{ cursor: 'pointer' }}>
-                    <CloseIcon size={16} />
-                  </IconButton>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <Button variant="ghost" size="icon-sm" onClick={handleClose} aria-label="Fermer">
+                        <CloseIcon size={16} />
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>Fermer</TooltipContent>
                 </Tooltip>
-              </Box>
+              </div>
 
               {/* Messages */}
               <MessageList
                 messages={messages}
                 emptyState={
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 1.5,
-                      py: 4,
-                      px: 3,
-                      height: '100%',
-                      textAlign: 'center',
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: '50%',
-                        bgcolor: alpha(theme.palette.primary.main, 0.1),
-                        color: theme.palette.primary.main,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
+                  <div className="flex flex-col items-center justify-center gap-2 py-6 px-4 h-full text-center">
+                    <div className="w-[48px] h-[48px] rounded-[50%] flex items-center justify-center bg-[color-mix(in_srgb,var(--mui-primary)_10%,transparent)] text-[var(--mui-primary)]">
                       <BaitlyMarkLogo variant="mark" size={26} />
-                    </Box>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    </div>
+                    <p className="cn-text-body2 font-semibold">
                       Pose ta question
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 280 }}>
+                    </p>
+                    <span className="cn-text-caption text-muted-foreground max-w-[280px]">
                       J&apos;utilise tes donnees Baitly en temps reel.
-                    </Typography>
-                  </Box>
+                    </span>
+                    {/* Les puces de la projection : les phrases que le bandeau
+                        fait defiler deviennent cliquables et lancent la
+                        conversation d'un geste. La premiere est l'invite du
+                        bandeau, pas une question — on l'ecarte. */}
+                    <div className="mt-1 flex flex-wrap justify-center gap-1.5">
+                      {DOCK_PHRASES.slice(1).map((phrase) => (
+                        <Button
+                          key={phrase}
+                          size="xs"
+                          variant="outline"
+                          className="rounded-full"
+                          onClick={() => sendMessage(phrase)}
+                        >
+                          {phrase}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
                 }
               />
 
-              {/* Error banner */}
+              {/* Error banner — `error.dark` n'a pas de jeton dans la table de
+                  correspondance, mais c'est exactement le role de
+                  --bui-destructive-ink : la variante ASSOMBRIE de --err reservee
+                  au texte, deja utilisee ainsi ailleurs (--bui-warning-ink). */}
               {error && (
-                <Box
-                  sx={{
-                    mx: 1.5,
-                    mb: 1,
-                    px: 1.5,
-                    py: 1,
-                    bgcolor: alpha(theme.palette.error.main, 0.10),
-                    color: theme.palette.error.dark,
-                    fontSize: '0.8125rem',
-                    fontWeight: 500,
-                    borderRadius: 2,
-                  }}
-                >
+                <div className="mx-[9px] mb-1.5 px-[9px] py-1.5 text-[0.8125rem] font-medium rounded-[16px] bg-[color-mix(in_srgb,var(--err)_10%,transparent)] text-[var(--bui-destructive-ink)]">
                   {error}
-                </Box>
+                </div>
               )}
 
               {/* Input */}
@@ -259,147 +245,93 @@ const AssistantDockTab: React.FC = () => {
               />
 
               {messages.length > 0 && (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    py: 0.5,
-                    bgcolor: alpha(theme.palette.text.primary, 0.025),
-                    flexShrink: 0,
-                  }}
-                >
-                  <Typography
-                    component="button"
-                    variant="caption"
+                <div className="flex justify-center py-[3px] shrink-0 bg-[color-mix(in_srgb,var(--ink)_2.5%,transparent)]">
+                  {/* color-mix(... 6%, transparent) est l'exact equivalent CSS de
+                      alpha(primary.main, 0.06) : un survol ne peut pas vivre en
+                      style inline. */}
+                  <button
                     onClick={reset}
-                    sx={{
-                      background: 'none',
-                      border: 'none',
-                      color: theme.palette.text.secondary,
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      fontSize: '0.75rem',
-                      py: 0.5,
-                      px: 1.5,
-                      borderRadius: 1,
-                      '&:hover': {
-                        color: theme.palette.primary.main,
-                        bgcolor: alpha(theme.palette.primary.main, 0.06),
-                      },
-                    }}
+                    className="cn-text-caption bg-transparent border-none [font-family:inherit] text-[0.75rem] text-[var(--muted)] cursor-pointer py-[3px] px-[9px] rounded-[8px] hover:text-[var(--mui-primary)] hover:bg-[color-mix(in_srgb,var(--mui-primary)_6%,transparent)]"
                   >
                     Nouvelle conversation
-                  </Typography>
-                </Box>
+                  </button>
+                </div>
               )}
-            </Paper>
-          </Grow>
+            </div>
+          )}
 
           {/* ── Encoche « classeur » collee au bord bas ───────────────────
-              Fermee : onglet compact aux coins hauts arrondis. Ouverte : elle
-              s'elargit a la largeur du panneau, perd son arrondi et son ombre
-              propre, et devient la barre de base du panneau (une seule carte). */}
-          <Box
-            component="button"
+              Fermee : onglet compact docke au bord droit, seul le coin haut-
+              GAUCHE arrondi, la base et le flanc droit se fondant dans les bords
+              de l'ecran. Ouverte : elle s'elargit a la largeur du panneau, perd
+              son arrondi et son ombre propre, et devient la barre de base du
+              panneau (une seule carte, fond aligne sur le sien, bordure haute
+              faisant hairline). Mobile ouvert : l'encoche disparait, le panneau
+              plein ecran a son propre bouton Fermer ; mobile ferme : logo seul.
+              Au survol, fermee seulement : leger soulevement en `transform`
+              (aucun layout shift). Largeurs en dur — 400px = largeur du panneau,
+              248px = largeur de l'onglet : une classe Tailwind ne peut pas naitre
+              d'une constante JS. Ruptures a 600px = le `sm` de MUI. Marges et
+              arrondis restent PHYSIQUES, comme l'ancrage `right-0` du conteneur :
+              l'encoche est un bord d'ecran, pas un flux de lecture. */}
+          <button
             type="button"
             onClick={handleToggle}
             aria-expanded={open}
             aria-label={open ? 'Replier l’assistant' : 'Déplier l’assistant'}
-            sx={{
-              // Mobile ouvert : l'encoche disparait, le panneau plein ecran a
-              // son propre bouton Fermer. Mobile ferme : logo seul, compact.
-              display: { xs: open ? 'none' : 'flex', sm: 'flex' },
-              alignItems: 'center',
-              justifyContent: { xs: 'center', sm: 'flex-start' },
-              gap: 1,
-              height: 44,
-              width: open ? PANEL_WIDTH : { xs: 52, sm: TAB_WIDTH },
-              maxWidth: '100vw',
-              pl: { xs: 0, sm: 1.5 },
-              pr: { xs: 0, sm: 1.25 },
-              // Onglet de classeur docke au bord droit : seul le coin haut-
-              // GAUCHE est arrondi, la base et le flanc droit se fondent dans
-              // les bords de l'ecran. Ouvert : plus d'arrondi du tout,
-              // l'encoche se fond dans le panneau.
-              borderRadius: open ? 0 : '14px 0 0 0',
-              border: `0.5px solid ${tabBorder}`,
-              borderRight: 'none',
-              borderBottom: 'none',
-              // Ouvert : la bordure haute devient le hairline qui separe le
-              // panneau de sa base ; le fond s'aligne sur celui du panneau.
-              bgcolor: open ? theme.palette.background.default : theme.palette.background.paper,
-              boxShadow: open
-                ? `0 20px 50px -12px ${alpha(theme.palette.primary.main, 0.42)}`
-                : `0 -6px 18px -8px ${alpha(theme.palette.primary.main, 0.35)}`,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              // Leger soulevement au survol (transform, pas de layout shift) —
-              // uniquement fermee : ouverte, l'encoche fait corps avec le panneau.
-              transform: 'translateY(0)',
-              transition: 'width 220ms cubic-bezier(0.22, 1, 0.36, 1), border-radius 220ms ease-out, background-color 220ms ease-out, transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms ease-out',
-              '&:hover': open
-                ? { bgcolor: alpha(theme.palette.text.primary, 0.025) }
-                : {
-                    transform: 'translateY(-3px)',
-                    boxShadow: `0 -10px 24px -8px ${alpha(theme.palette.primary.main, 0.45)}`,
-                  },
-              '&:focus-visible': {
-                outline: `2px solid ${theme.palette.primary.main}`,
-                outlineOffset: -2,
-              },
-              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            }}
+            className={cn(
+              'items-center justify-center min-[600px]:justify-start gap-1.5 h-[44px] max-w-[100vw]',
+              'pl-0 pr-0 min-[600px]:pl-[9px] min-[600px]:pr-[7.5px]',
+              'border-[0.5px] border-solid border-[color-mix(in_srgb,var(--ink)_8%,transparent)] border-r-0 border-b-0',
+              'cursor-pointer [font-family:inherit] translate-y-0',
+              '[transition:width_220ms_cubic-bezier(0.22,1,0.36,1),border-radius_220ms_ease-out,background-color_220ms_ease-out,transform_200ms_cubic-bezier(0.22,1,0.36,1),box-shadow_200ms_ease-out]',
+              'motion-reduce:[transition:none]',
+              'focus-visible:[outline:2px_solid_var(--mui-primary)] focus-visible:[outline-offset:-2px]',
+              open
+                ? cn(
+                    'hidden min-[600px]:flex w-[400px] rounded-none bg-[var(--bg)]',
+                    'shadow-[0_20px_50px_-12px_color-mix(in_srgb,var(--mui-primary)_42%,transparent)]',
+                    'hover:bg-[color-mix(in_srgb,var(--ink)_2.5%,transparent)]',
+                  )
+                : cn(
+                    'flex w-[52px] min-[600px]:w-[248px] rounded-tl-[14px] bg-[var(--card)]',
+                    'shadow-[0_-6px_18px_-8px_color-mix(in_srgb,var(--mui-primary)_35%,transparent)]',
+                    'hover:-translate-y-[3px] hover:shadow-[0_-10px_24px_-8px_color-mix(in_srgb,var(--mui-primary)_45%,transparent)]',
+                  ),
+            )}
           >
             <BaitlyMarkLogo variant="mark" size={18} idleAnimation={!open} active={isWorking} />
 
             {/* Phrase animee — flex:1 pour occuper la largeur disponible (fermee
                 comme ouverte). key force le remontage → l'animation d'entree
-                rejoue a chaque phrase. */}
-            <Box
-              sx={{
-                // Mobile : logo seul, pas de phrase
-                display: { xs: 'none', sm: 'block' },
-                flex: 1,
-                minWidth: 0,
-                overflow: 'hidden',
-                textAlign: 'left',
-                '@keyframes dockPhraseIn': {
-                  from: { opacity: 0, transform: 'translateY(6px)' },
-                  to: { opacity: 1, transform: 'translateY(0)' },
-                },
-              }}
-            >
-              <Typography
+                rejoue a chaque phrase. Mobile : logo seul, pas de phrase — le
+                `sm` MUI vaut 600px. */}
+            <div className="hidden min-[600px]:block flex-1 min-w-0 overflow-hidden text-left">
+              {/* Les keyframes maison dockPhraseIn etaient declarees par le `sx`
+                  du Box supprime : tw-animate-css rend exactement le meme
+                  mouvement (fondu + montee de 6px sur 420 ms). */}
+              <p
                 key={open ? 'open' : phraseIndex}
-                noWrap
-                sx={{
-                  fontSize: '0.8125rem',
-                  fontWeight: 500,
-                  color: theme.palette.text.secondary,
-                  animation: 'dockPhraseIn 420ms cubic-bezier(0.22, 1, 0.36, 1)',
-                  '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-                }}
+                className="cn-text-body1 truncate text-[0.8125rem] font-medium text-[var(--muted)] animate-in fade-in-0 slide-in-from-bottom-[6px] duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:animate-none"
               >
                 {open ? 'Assistant Baitly' : DOCK_PHRASES[phraseIndex]}
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
             {/* Chevron : pointe vers le haut (deplier), pivote a l'ouverture.
                 Mobile : logo seul, pas de chevron. */}
-            <Box
-              sx={{
-                display: { xs: 'none', sm: 'flex' },
-                color: theme.palette.text.secondary,
-                transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 220ms cubic-bezier(0.22, 1, 0.36, 1)',
-                '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-              }}
+            {/* Rupture ecrite en pixels : le `sm` MUI vaut 600px, pas les 640px de Tailwind. */}
+            <div
+              className={cn(
+                'hidden text-[var(--muted)] transition-transform duration-[220ms]',
+                'ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none min-[600px]:flex',
+                open ? 'rotate-180' : 'rotate-0',
+              )}
             >
               <ChevronUp size={16} />
-            </Box>
-          </Box>
-        </Box>
-      </ClickAwayListener>
+            </div>
+          </button>
+      </div>
 
       {/* ── Vue agrandie : plein ecran + historique des conversations ────── */}
       {open && view === 'expanded' && (

@@ -1,23 +1,8 @@
 import React, { useMemo } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Skeleton,
-  Alert,
-  Box,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-} from '@mui/material';
-import { Close as CloseIcon } from '../../icons';
+import { Alert, AlertDescription, Button } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Skeleton } from '../../components/ui';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui';
 import { useTranslation } from 'react-i18next';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -72,30 +57,13 @@ function parseCsv(content: string, separator: string): { headers: string[]; rows
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
 // Entêtes overline / lignes hairline — pattern Tableaux (baseline §2).
-const HEADER_CELL_SX = {
-  fontSize: '10.5px',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.05em',
-  color: 'var(--faint)',
-  whiteSpace: 'nowrap' as const,
-  py: 0.75,
-  px: 1,
-  borderBottom: '1px solid',
-  borderColor: 'var(--line)',
-  bgcolor: 'var(--card)',
-} as const;
+// `sticky top-0` + fond OPAQUE : sans le fond, les lignes defileraient par
+// transparence sous l'entete fige.
+const HEADER_CELL_CLASS =
+  'sticky top-0 z-10 bg-[var(--card)] px-2 py-[6px] text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] whitespace-nowrap border-b border-solid border-[var(--line)]';
 
-const BODY_CELL_SX = {
-  fontSize: '12px',
-  fontVariantNumeric: 'tabular-nums',
-  py: 0.5,
-  px: 1,
-  whiteSpace: 'nowrap' as const,
-  maxWidth: 300,
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-} as const;
+const BODY_CELL_CLASS =
+  'px-2 py-[4px] text-[12px] tabular-nums whitespace-nowrap max-w-[300px] overflow-hidden text-ellipsis';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -124,87 +92,90 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
   }, [content, format]);
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xl"
-      fullWidth
-      PaperProps={{ sx: { height: '85vh', display: 'flex', flexDirection: 'column' } }}
-    >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</Box>
-        <IconButton size="small" onClick={onClose} sx={{ ml: 1 }}>
-          <CloseIcon size={18} strokeWidth={1.75} />
-        </IconButton>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="max-w-[1536px] h-[85vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
+        <DialogHeader>
+          <DialogTitle className="min-w-0 truncate pe-8">{title}</DialogTitle>
+        </DialogHeader>
 
-      <DialogContent sx={{ p: 0, flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {/* `-mx-4` remet le corps a fleur de la modale : l'ancien DialogContent
+            MUI etait en `p: 0`, les blocs internes portant leur propre marge. */}
+        <div className="-mx-4 flex min-h-0 flex-col overflow-hidden">
         {loading && (
-          <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <div className="p-3 flex flex-col gap-1.5">
             {[0, 1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} variant="rounded" height={28} sx={{ borderRadius: 'var(--radius-sm)' }} />
+              <Skeleton key={i} className="h-[28px] w-full rounded-[var(--radius-sm)]" />
             ))}
-          </Box>
+          </div>
         )}
 
         {error && (
-          <Box sx={{ p: 2 }}>
-            <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>{error}</Alert>
-          </Box>
+          <div className="p-3">
+            <Alert variant="destructive" className="text-[0.8125rem]">
+              <TriangleAlert />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          </div>
         )}
 
         {!loading && !error && parsed?.type === 'table' && (
           <>
-            <Box sx={{ px: 2, py: 0.75, borderBottom: '1px solid', borderColor: 'var(--line)', bgcolor: 'var(--surface-2)' }}>
-              <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+            <div className="px-3 py-1 border-b border-[var(--line)] bg-[var(--surface-2)]">
+              <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums">
                 {parsed.rows.length} {t('common.lines')} · {parsed.headers.length} {t('common.columns')}
-              </Typography>
-            </Box>
-            <TableContainer sx={{ flex: 1, overflow: 'auto' }}>
-              <Table size="small" stickyHeader>
-                <TableHead>
+              </p>
+            </div>
+            {/* stickyHeader : c'est le conteneur INTERNE du primitif Table qui est
+                le bloc de defilement (il porte deja overflow-x). La hauteur et le
+                defilement vertical doivent donc lui etre poses, sinon les en-tetes
+                `sticky` n'ont aucun ancetre scrollable et ne se figent jamais. */}
+            <div className="flex-1 min-h-0 [&_[data-slot=table-container]]:h-full [&_[data-slot=table-container]]:overflow-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
                     {parsed.headers.map((h, i) => (
-                      <TableCell key={i} sx={HEADER_CELL_SX}>{h}</TableCell>
+                      <TableHead key={i} className={HEADER_CELL_CLASS}>{h}</TableHead>
                     ))}
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {parsed.rows.map((row, ri) => (
-                    <TableRow key={ri} hover sx={{ '&:nth-of-type(even)': { bgcolor: 'var(--hover)' } }}>
+                    <TableRow key={ri} className="even:bg-[var(--hover)]">
                       {row.map((cell, ci) => (
-                        <TableCell key={ci} sx={BODY_CELL_SX} title={cell}>{cell}</TableCell>
+                        <TableCell key={ci} className={BODY_CELL_CLASS} title={cell}>{cell}</TableCell>
                       ))}
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </div>
           </>
         )}
 
         {!loading && !error && parsed?.type === 'xml' && (
-          <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+          <div className="flex-1 overflow-auto p-3">
             <pre style={{ margin: 0, fontSize: '12px', fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: 'var(--body)' }}>
               {parsed.text}
             </pre>
-          </Box>
+          </div>
         )}
 
         {!loading && !error && !parsed && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
-            <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
+          <div className="flex justify-center items-center flex-1">
+            <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
               {t('common.noData')}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
-      </DialogContent>
+        </div>
 
-      <DialogActions>
-        <Button onClick={onClose} size="small">
-          {t('common.close')}
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          {/* Apercu en lecture seule : la fermeture reste une action tertiaire. */}
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            {t('common.close')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

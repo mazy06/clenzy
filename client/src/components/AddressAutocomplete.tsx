@@ -1,5 +1,18 @@
-import React from 'react';
-import { Autocomplete, TextField, CircularProgress, Typography, Box } from '@mui/material';
+import React, { useId } from 'react';
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  InputGroupAddon,
+  Spinner,
+} from './ui';
 import { LocationOn as LocationOnIcon } from '../icons';
 import { useAddressAutocomplete } from '../hooks/useAddressAutocomplete';
 import type { GeocodedAddress } from '../services/geocoderApi';
@@ -15,7 +28,9 @@ interface AddressAutocompleteProps {
   error?: boolean;
   helperText?: string;
   required?: boolean;
+  /** Conserve pour les appelants : le champ du kit n'a qu'un seul gabarit. */
   size?: 'small' | 'medium';
+  /** Conserve pour les appelants : le champ du kit occupe deja toute la largeur. */
   fullWidth?: boolean;
 }
 
@@ -33,9 +48,8 @@ export function AddressAutocomplete({
   error,
   helperText,
   required,
-  size = 'small',
-  fullWidth = true,
 }: AddressAutocompleteProps) {
+  const inputId = useId();
   const {
     options,
     isLoading,
@@ -44,75 +58,74 @@ export function AddressAutocomplete({
   } = useAddressAutocomplete({ countryCode, minLength: 3 });
 
   return (
-    <Autocomplete<GeocodedAddress, false, false, true>
-      freeSolo
-      options={options}
-      loading={isLoading}
-      inputValue={inputValue || value || ''}
-      onInputChange={(_event, newInputValue, reason) => {
-        setInputValue(newInputValue);
-        if (reason === 'input' && onChange) {
-          onChange(newInputValue);
-        }
-      }}
-      onChange={(_event, newValue) => {
-        if (newValue && typeof newValue !== 'string') {
-          onSelect(newValue);
-          setInputValue(newValue.label);
-        }
-      }}
-      getOptionLabel={(option) => {
-        if (typeof option === 'string') return option;
-        return option.label;
-      }}
-      isOptionEqualToValue={(option, val) => option.label === val.label}
-      filterOptions={(x) => x}
-      renderOption={(props, option) => {
-        const { key, ...optionProps } = props;
-        return (
-          <li key={key} {...optionProps}>
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mt: 0.3 }}><LocationOnIcon size={18} strokeWidth={1.75} /></Box>
-              <Box>
-                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                  {option.housenumber ? `${option.housenumber} ` : ''}
-                  {option.street || option.label}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
-                  {option.postcode} {option.city}
-                  {option.department ? ` (${option.department})` : ''}
-                  {option.countryCode && option.countryCode !== 'FR' ? ` · ${option.countryCode}` : ''}
-                </Typography>
-              </Box>
-            </Box>
-          </li>
-        );
-      }}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          label={label}
+    <Field>
+      <FieldLabel htmlFor={inputId}>{required ? `${label} *` : label}</FieldLabel>
+      {/* `filter={null}` : la liste est deja filtree par le geocodeur cote
+          serveur — c'est l'equivalent du `filterOptions={(x) => x}` de MUI.
+          `value` reste NON controle : seule la saisie l'est, la selection est
+          consommee dans onValueChange. */}
+      <Combobox<GeocodedAddress>
+        items={options}
+        filter={null}
+        itemToStringLabel={(option) => option.label}
+        isItemEqualToValue={(option, other) => option.label === other.label}
+        inputValue={inputValue || value || ''}
+        onInputValueChange={(next, details) => {
+          setInputValue(next);
+          // `input-change` est le pendant du reason 'input' de MUI : on ne
+          // remonte que la frappe utilisateur, pas les recalages internes.
+          if (details.reason === 'input-change' && onChange) {
+            onChange(next);
+          }
+        }}
+        onValueChange={(next) => {
+          if (next) {
+            onSelect(next);
+            setInputValue(next.label);
+          }
+        }}
+      >
+        <ComboboxInput
+          id={inputId}
           placeholder={placeholder}
-          error={error}
-          helperText={helperText}
           required={required}
-          size={size}
-          fullWidth={fullWidth}
-          InputProps={{
-            ...params.InputProps,
-            endAdornment: (
-              <>
-                {isLoading ? <CircularProgress color="inherit" size={18} /> : null}
-                {params.InputProps.endAdornment}
-              </>
-            ),
-          }}
-        />
+          aria-invalid={error || undefined}
+        >
+          {isLoading && (
+            <InputGroupAddon align="inline-end">
+              <Spinner className="size-[18px]" />
+            </InputGroupAddon>
+          )}
+        </ComboboxInput>
+        <ComboboxContent>
+          <ComboboxEmpty>{isLoading ? 'Recherche...' : 'Aucune adresse trouvee'}</ComboboxEmpty>
+          <ComboboxList>
+            {(option: GeocodedAddress) => (
+              <ComboboxItem key={option.label} value={option}>
+                <div className="flex items-start gap-1.5">
+                  <span className="inline-flex text-muted-foreground mt-0.5"><LocationOnIcon size={18} strokeWidth={1.75} /></span>
+                  <div>
+                    <p className="cn-text-body2 text-[0.85rem]">
+                      {option.housenumber ? `${option.housenumber} ` : ''}
+                      {option.street || option.label}
+                    </p>
+                    <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
+                      {option.postcode} {option.city}
+                      {option.department ? ` (${option.department})` : ''}
+                      {option.countryCode && option.countryCode !== 'FR' ? ` · ${option.countryCode}` : ''}
+                    </span>
+                  </div>
+                </div>
+              </ComboboxItem>
+            )}
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
+      {helperText && (
+        error
+          ? <FieldError>{helperText}</FieldError>
+          : <FieldDescription>{helperText}</FieldDescription>
       )}
-      noOptionsText="Aucune adresse trouvee"
-      loadingText="Recherche..."
-      size={size}
-      fullWidth={fullWidth}
-    />
+    </Field>
   );
 }

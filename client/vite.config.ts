@@ -147,8 +147,12 @@ export default defineConfig({
         // (utile pour le PWA workbox cache et le TTI initial)
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-mui': [
-            '@mui/material',
+          // MUI est sorti des dépendances avec la migration vers le kit Baitly ;
+          // le déclarer ici faisait échouer le build de production
+          // (« Could not resolve entry module »), sans que le typage ni les
+          // tests ne le voient — seul `vite build` résout ces entrées.
+          // Emotion reste : le cache RTL de main.tsx et FramerConstellation.
+          'vendor-emotion': [
             '@emotion/react',
             '@emotion/styled',
             '@emotion/cache',

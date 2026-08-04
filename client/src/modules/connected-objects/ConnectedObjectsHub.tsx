@@ -1,10 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { Badge } from '../../components/ui';
+import { Button as BuiButton } from '../../components/ui';
+import { Card, Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Button, Skeleton, Paper, Chip, Tooltip, alpha, Snackbar, Alert } from '@mui/material';
+import { useNotification } from '../../hooks/useNotification';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, Warning, Home, ChevronRight } from '../../icons';
 import PageHeader from '../../components/PageHeader';
-import StatTile from '../../components/StatTile';
+import StatTile from '../../components/baitly/StatTile';
 import EmptyState from '../../components/EmptyState';
 import FilterChipRow from '../../components/FilterChipRow';
 import { useConnectedObjects } from './useConnectedObjects';
@@ -14,7 +19,7 @@ import AddDeviceWizard from './components/AddDeviceWizard';
 import { netatmoApi } from '../../services/api/netatmoApi';
 import type { DeviceAction, DeviceKind } from './types';
 
-const GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(248px, 1fr))', gap: 1 } as const;
+const GRID = 'grid grid-cols-[repeat(auto-fill,_minmax(248px,_1fr))] gap-1.5';
 
 const PROVIDER_LABELS: Record<string, string> = {
   MINUT: 'Minut', TUYA: 'Tuya', NUKI: 'Nuki', KEYNEST: 'KeyNest', CLENZY_KEYVAULT: 'KeyVault',
@@ -55,14 +60,14 @@ export default function ConnectedObjectsHub({
   // Netatmo = modèle par-hôte : chaque hôte connecte SON compte depuis le hub (l'onglet
   // Intégrations est réservé aux SUPER_ADMIN/MANAGER). La config de l'app reste admin.
   const netatmoConnected = providers.some((p) => p.provider === 'NETATMO' && p.connected);
-  const [connectMsg, setConnectMsg] = useState<string | null>(null);
+  const { notify } = useNotification();
   const connectNetatmo = async () => {
     try {
       const res = await netatmoApi.connect();
       if (res.authorization_url) { window.location.href = res.authorization_url; return; }
       if (res.status === 'already_connected') { void refetch(); }
     } catch {
-      setConnectMsg("Netatmo n'est pas encore activé par l'administrateur (clé API à configurer dans les Intégrations).");
+      notify.info("Netatmo n'est pas encore activé par l'administrateur (clé API à configurer dans les Intégrations).", 6000);
     }
   };
 
@@ -95,13 +100,14 @@ export default function ConnectedObjectsHub({
   // Action « Ajouter un objet » : rendue dans le PageHeader propre (standalone)
   // ou portee dans le slot actions du parent (embedded, cf. PropertiesPage).
   const headerAction = (
-    <Button variant="contained" size="small" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>
+    <BuiButton size="sm" onClick={() => setWizardOpen(true)}>
+      <Add size={16} strokeWidth={2} />
       Ajouter un objet
-    </Button>
+    </BuiButton>
   );
 
   return (
-    <Box>
+    <div>
       {!embedded && (
         <PageHeader
           title="Objets connectés"
@@ -115,12 +121,12 @@ export default function ConnectedObjectsHub({
       {embedded && actionsContainer ? createPortal(headerAction, actionsContainer) : null}
 
       {/* Bandeau de connexion — pont vers les Settings */}
-      <Paper variant="outlined" sx={{ p: 1, mb: 1.5, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-        <Typography variant="caption" sx={{ color: 'var(--faint)', fontWeight: 700, fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.06em', mr: 0.5 }}>
+      <Card className="gap-0 py-0 p-1.5 mb-2 border-[var(--line)] flex items-center gap-1.5 flex-wrap">
+        <span className="cn-text-caption text-[var(--faint)] font-bold text-[10.5px] uppercase tracking-[0.06em] me-0.5">
           Services reliés
-        </Typography>
+        </span>
         {visibleProviders.length === 0 && !loading ? (
-          <Typography variant="caption" sx={{ color: 'text.disabled' }}>Aucun service relié pour l'instant.</Typography>
+          <span className="cn-text-caption text-muted-foreground opacity-60">Aucun service relié pour l'instant.</span>
         ) : (
           visibleProviders.map((p) => {
             // Statut -soft : connecté = --ok, à reconnecter = --warn (tokens thémables)
@@ -128,38 +134,58 @@ export default function ConnectedObjectsHub({
               ? { color: 'var(--ok)', soft: 'var(--ok-soft)' }
               : { color: 'var(--warn)', soft: 'var(--warn-soft)' };
             return (
-              <Tooltip key={p.provider} title={p.connected ? 'Connecté' : 'Déconnecté — à reconnecter dans les intégrations'} arrow>
-                <Chip
-                  size="small"
-                  label={`${PROVIDER_LABELS[p.provider] ?? p.provider} · ${p.deviceCount}`}
-                  sx={{ height: 24, bgcolor: tokens.soft, color: tokens.color, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}
-                />
+              <Tooltip key={p.provider}>
+                {/* Le declencheur pose une ref sur son enfant, que StatusChip ne transmet
+                    pas (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <StatusChip tokens={{ color: tokens.color, bg: tokens.soft }} label={`${PROVIDER_LABELS[p.provider] ?? p.provider} · ${p.deviceCount}`} className="h-[24px] tabular-nums" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{p.connected ? 'Connecté' : 'Déconnecté — à reconnecter dans les intégrations'}</TooltipContent>
               </Tooltip>
             );
           })
         )}
+        {/* Action du bandeau, pas de l'ecran : `outline` pour ne pas concurrencer
+            « Ajouter un objet » qui reste l'action principale de la page. */}
         {!netatmoConnected && (
-          <Button variant="contained" size="small" onClick={() => { void connectNetatmo(); }} sx={{ ml: 'auto' }}>
+          <BuiButton variant="outline" size="sm" onClick={() => { void connectNetatmo(); }} className="ms-auto">
             Connecter Netatmo
-          </Button>
+          </BuiButton>
         )}
-        <Button variant="text" size="small" endIcon={<ChevronRight size={14} strokeWidth={1.75} />} onClick={() => navigate('/settings?tab=integrations')} sx={{ ml: netatmoConnected ? 'auto' : 1, color: 'text.secondary' }}>
+        <BuiButton
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/settings?tab=integrations')}
+          className={cn('text-[var(--muted)]', netatmoConnected ? 'ms-auto' : 'ms-1.5')}
+        >
           Gérer les intégrations
-        </Button>
-      </Paper>
+          <ChevronRight size={14} strokeWidth={1.75} />
+        </BuiButton>
+      </Card>
 
-      {/* KPIs */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 1, mb: 1.5 }}>
-        <StatTile icon={<Inventory2 />} label="Objets" value={kpis.total} color="#6B8A9A" loading={loading} />
-        <StatTile icon={<MonitorHeart />} label="En ligne" value={kpis.online} color="#4A9B8E" loading={loading} hint={kpis.total ? `${Math.round((kpis.online / kpis.total) * 100)}%` : undefined} />
-        <StatTile icon={<WifiOff />} label="Hors ligne" value={kpis.offline} color="#9CA3AF" loading={loading} />
-        <StatTile icon={<Warning />} label="Alertes" value={kpis.alerts} color="#C97A7A" loading={loading} />
-        <StatTile icon={<BatteryAlert />} label="Batterie faible" value={kpis.lowBattery} color="#D4A574" loading={loading} />
-      </Box>
+      {/* KPIs — les tuiles de la projection : la teinte ne porte que sur
+          l'icone, et seulement la ou elle dit quelque chose. */}
+      <div className="grid grid-cols-2 gap-3 mb-[9px] lg:grid-cols-5">
+        <StatTile icon={<Inventory2 />} label="Objets" value={String(kpis.total)} loading={loading} />
+        <StatTile
+          icon={<MonitorHeart />}
+          label="En ligne"
+          value={String(kpis.online)}
+          unit={`/ ${kpis.total}`}
+          iconClassName="text-success"
+          hint={kpis.total ? `${Math.round((kpis.online / kpis.total) * 100)} % du parc` : undefined}
+          loading={loading}
+        />
+        <StatTile icon={<WifiOff />} label="Hors ligne" value={String(kpis.offline)} iconClassName={kpis.offline > 0 ? 'text-destructive' : undefined} loading={loading} />
+        <StatTile icon={<Warning />} label="Alertes" value={String(kpis.alerts)} iconClassName={kpis.alerts > 0 ? 'text-warning' : undefined} loading={loading} />
+        <StatTile icon={<BatteryAlert />} label="Batterie faible" value={String(kpis.lowBattery)} iconClassName={kpis.lowBattery > 0 ? 'text-warning' : undefined} loading={loading} />
+      </div>
 
       {/* Filtre par type */}
       {kindsPresent.length > 1 && (
-        <Box sx={{ mb: 1.5 }}>
+        <div className="mb-2">
           <FilterChipRow<DeviceKind>
             value={kindFilter}
             onChange={setKindFilter}
@@ -173,16 +199,16 @@ export default function ConnectedObjectsHub({
               count: devices.filter((d) => d.kind === k).length,
             }))}
           />
-        </Box>
+        </div>
       )}
 
       {/* Contenu : grille groupée par logement */}
       {loading ? (
-        <Box sx={GRID}>
+        <div className={GRID}>
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} variant="rounded" height={132} sx={{ borderRadius: 'var(--radius-lg)' }} />
+            <Skeleton key={i} className="h-[132px] rounded-[var(--radius-lg)]" />
           ))}
-        </Box>
+        </div>
       ) : filteredGroups.length === 0 ? (
         <EmptyState
           icon={<Inventory2 />}
@@ -191,89 +217,97 @@ export default function ConnectedObjectsHub({
             ? "Vos services sont reliés — ajoutez vos serrures, caméras, capteurs et points de remise : ils apparaîtront ici, regroupés par logement."
             : "Reliez un service (Nuki, Minut, Tuya, KeyNest…) puis ajoutez vos serrures, capteurs et points de remise — ils apparaîtront ici, regroupés par logement."}
           action={hasConnectedService
-            ? <Button variant="contained" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>Ajouter un objet</Button>
-            : <Button variant="outlined" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => navigate('/settings?tab=integrations')}>Connecter un service</Button>}
+            ? <BuiButton onClick={() => setWizardOpen(true)}><Add size={16} strokeWidth={2} />Ajouter un objet</BuiButton>
+            : <BuiButton variant="outline" onClick={() => navigate('/settings?tab=integrations')}><Add size={16} strokeWidth={2} />Connecter un service</BuiButton>}
           tip="Un seul écran pour tout superviser : verrouillage à distance, niveau sonore, batteries et codes de clés."
         />
       ) : (
         filteredGroups.map((group) => (
-          <Box key={group.propertyId ?? 'none'} sx={{ mb: 2 }}>
-            <Box
+          <div className="mb-3" key={group.propertyId ?? 'none'}>
+            <div
               onClick={group.propertyId != null ? () => navigate(`/connected-objects/property/${group.propertyId}`) : undefined}
-              sx={{
-                display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.875,
-                cursor: group.propertyId != null ? 'pointer' : 'default',
-                width: 'fit-content',
-                '&:hover .co-prop-name': { color: group.propertyId != null ? 'var(--accent)' : 'text.primary' },
-              }}
-            >
-              <Box component="span" sx={{ color: 'text.secondary', display: 'inline-flex' }}>
-                <Home size={15} strokeWidth={1.75} />
-              </Box>
-              <Typography className="co-prop-name" sx={{ fontWeight: 600, fontSize: '0.9375rem', color: 'text.primary', transition: 'color 150ms' }}>{group.propertyName}</Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>· {group.devices.length} objet{group.devices.length > 1 ? 's' : ''}</Typography>
-              {group.propertyId != null && (
-                <Box component="span" sx={{ color: 'text.disabled', display: 'inline-flex', ml: 0.25 }}>
-                  <ChevronRight size={15} strokeWidth={1.75} />
-                </Box>
+              className={cn(
+                'group flex items-center gap-[4.5px] mb-[5.25px] w-fit',
+                group.propertyId != null ? 'cursor-pointer' : 'cursor-default',
               )}
-            </Box>
-            <Box sx={GRID}>
+            >
+              <span className="text-muted-foreground inline-flex">
+                <Home size={15} strokeWidth={1.75} />
+              </span>
+              <p
+                className={cn(
+                  'cn-text-body1 font-semibold text-[0.9375rem] text-[var(--ink)]',
+                  group.propertyId != null && 'group-hover:text-[var(--accent)]',
+                )}
+                style={{ transition: 'color 150ms' }}
+              >{group.propertyName}</p>
+              <span className="cn-text-caption text-muted-foreground opacity-60">· {group.devices.length} objet{group.devices.length > 1 ? 's' : ''}</span>
+              {group.propertyId != null && (
+                <span className="text-muted-foreground opacity-60 inline-flex ms-0.5">
+                  <ChevronRight size={15} strokeWidth={1.75} />
+                </span>
+              )}
+            </div>
+            <div className={GRID}>
               {group.devices.map((d) => (
                 <DeviceCard key={d.uid} device={d} onAction={handleAction} acting={actingUid === d.uid} />
               ))}
-            </Box>
-          </Box>
+            </div>
+          </div>
         ))
       )}
 
       {/* Types à venir (caméras, thermostats) — place réservée */}
       {comingSoon.length > 0 && (
-        <Box sx={{ mt: 1 }}>
-          <Typography variant="caption" sx={{ color: 'var(--faint)', fontWeight: 700, fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 0.75 }}>
+        <div className="mt-1.5">
+          <span className="cn-text-caption text-[var(--faint)] font-bold text-[10.5px] uppercase tracking-[0.06em] block mb-1">
             Bientôt disponible
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          </span>
+          <div className="flex gap-1.5 flex-wrap">
             {comingSoon.map((k) => {
               const meta = DEVICE_KINDS[k];
               const previewRoute = PREVIEW_ROUTES[k];
               return (
-                <Tooltip key={k} title={previewRoute ? `Aperçu — ${meta.label} (Phase 2)` : 'À venir'} arrow>
-                  <Paper
-                    variant="outlined"
-                    onClick={previewRoute ? () => navigate(previewRoute) : undefined}
-                    sx={{
-                      px: 1.25, py: 0.875, borderRadius: 'var(--radius-md)', borderStyle: 'dashed',
-                      display: 'inline-flex', alignItems: 'center', gap: 0.875,
-                      opacity: previewRoute ? 1 : 0.7,
-                      cursor: previewRoute ? 'pointer' : 'default',
-                      transition: 'border-color 200ms, background-color 200ms',
-                      ...(previewRoute && { '&:hover': { borderColor: meta.color, bgcolor: alpha(meta.color, 0.05) } }),
-                    }}
-                  >
-                    <Box component="span" sx={{ color: meta.color, display: 'inline-flex' }}>{meta.icon(16)}</Box>
-                    <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>{meta.label}</Typography>
-                    {previewRoute ? (
-                      <>
-                        <Chip size="small" label="Aperçu" sx={{ height: 18, fontSize: '0.65rem', bgcolor: alpha(meta.color, 0.15), color: meta.color, fontWeight: 700 }} />
-                        <Box component="span" sx={{ color: 'text.disabled', display: 'inline-flex' }}><ChevronRight size={14} strokeWidth={1.75} /></Box>
-                      </>
-                    ) : (
-                      <Chip size="small" label="Bientôt" sx={{ height: 18, fontSize: '0.65rem' }} />
-                    )}
-                  </Paper>
+                <Tooltip key={k}>
+                  <TooltipTrigger asChild>
+                    <div
+                      onClick={previewRoute ? () => navigate(previewRoute) : undefined}
+                      className={cn(
+                        'inline-flex items-center gap-[5.25px] px-[7.5px] py-[5.25px]',
+                        'rounded-[var(--radius-md)] border border-dashed border-[var(--line)] bg-[var(--card)]',
+                        'transition-[border-color,background-color] duration-200',
+                        previewRoute
+                          ? 'opacity-100 cursor-pointer hover:border-[var(--co-preview)] hover:bg-[var(--co-preview-soft)]'
+                          : 'opacity-70 cursor-default',
+                      )}
+                      // Teintes derivees de la couleur du type d'objet, connue a
+                      // l'execution : variables CSS plutot que classes.
+                      style={{
+                        '--co-preview': meta.color,
+                        '--co-preview-soft': `color-mix(in srgb, ${meta.color} 5%, transparent)`,
+                      } as CSSProperties}
+                    >
+                      <span className="inline-flex" style={{ color: meta.color }}>{meta.icon(16)}</span>
+                      <p className="cn-text-body2 text-muted-foreground font-medium">{meta.label}</p>
+                      {previewRoute ? (
+                        <>
+                          <StatusChip size="sm" tokens={{ color: meta.color, bg: `color-mix(in srgb, ${meta.color} 15%, transparent)` }} label="Aperçu" className="text-[0.65rem]" />
+                          <span className="text-muted-foreground opacity-60 inline-flex"><ChevronRight size={14} strokeWidth={1.75} /></span>
+                        </>
+                      ) : (
+                        <Badge variant="secondary" className="h-[18px] text-[0.65rem]">Bientôt</Badge>
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>{previewRoute ? `Aperçu — ${meta.label} (Phase 2)` : 'À venir'}</TooltipContent>
                 </Tooltip>
               );
             })}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       <AddDeviceWizard open={wizardOpen} onClose={() => setWizardOpen(false)} onAdded={() => { void refetch(); }} />
-
-      <Snackbar open={!!connectMsg} autoHideDuration={6000} onClose={() => setConnectMsg(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        {connectMsg ? <Alert severity="info" variant="filled" onClose={() => setConnectMsg(null)} sx={{ width: '100%' }}>{connectMsg}</Alert> : undefined}
-      </Snackbar>
-    </Box>
+    </div>
   );
 }

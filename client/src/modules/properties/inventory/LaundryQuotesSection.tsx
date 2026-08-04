@@ -1,19 +1,31 @@
 import React, { useState } from 'react';
 import {
-  Box, Typography, Button, IconButton, Chip,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, Collapse, Tooltip,
-} from '@mui/material';
+  Button,
+  Card,
+  Collapsible,
+  CollapsibleContent,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+import { cn } from '../../../utils/cn';
 import {
   Receipt, Add, CheckCircle, ExpandMore, ExpandLess,
 } from '../../../icons';
 import type { LaundryQuote, GenerateLaundryQuoteRequest } from '../../../services/api/propertyInventoryApi';
 import { Money } from '../../../components/Money';
+import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 
-const STATUS_CONFIG: Record<string, { label: string; color: 'default' | 'warning' | 'success' | 'info' }> = {
-  DRAFT: { label: 'Brouillon', color: 'warning' },
-  CONFIRMED: { label: 'Confirme', color: 'success' },
-  INVOICED: { label: 'Facture', color: 'info' },
+const STATUS_CONFIG: Record<string, { label: string; tone: StatusTone }> = {
+  DRAFT: { label: 'Brouillon', tone: 'warn' },
+  CONFIRMED: { label: 'Confirme', tone: 'ok' },
+  INVOICED: { label: 'Facture', tone: 'info' },
 };
 
 const formatDate = (dateStr: string | null) => {
@@ -49,56 +61,51 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
   };
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Receipt size={22} strokeWidth={1.75} /></Box>
-          <Box>
-            <Typography variant="subtitle1" fontWeight={600}>Devis / Factures blanchisserie</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex text-[var(--bui-warning-ink)]"><Receipt size={22} strokeWidth={1.75} /></span>
+          <div>
+            <h6 className="cn-text-subtitle1 font-semibold">Devis / Factures blanchisserie</h6>
+            <p className="cn-text-body2 text-muted-foreground text-[0.8rem]">
               Historique des devis generes pour cette propriete
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
         {canEdit && (
-          <Button
-            size="small"
-            startIcon={<Add size={18} strokeWidth={1.75} />}
-            onClick={handleGenerate}
-            variant="contained"
-            disabled={!hasLaundryItems || generating}
-          >
+          <Button size="sm" onClick={handleGenerate} disabled={!hasLaundryItems || generating}>
+            <Add size={18} strokeWidth={1.75} />
             {generating ? 'Generation...' : 'Generer un devis'}
           </Button>
         )}
-      </Box>
+      </div>
 
       {!hasLaundryItems && (
-        <Paper sx={{ p: 3, textAlign: 'center', mb: 2, bgcolor: 'action.hover' }}>
-          <Typography variant="body2" color="text.secondary">
+        <Card className="gap-0 py-0 p-4 text-center mb-3 bg-[var(--hover)]">
+          <p className="cn-text-body2 text-muted-foreground">
             Configurez d'abord les articles de linge avant de generer un devis
-          </Typography>
-        </Paper>
+          </p>
+        </Card>
       )}
 
       {quotes.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><Receipt size={40} strokeWidth={1.5} /></Box>
-          <Typography color="text.secondary">Aucun devis genere pour cette propriete</Typography>
-        </Paper>
+        <Card className="gap-0 py-0 p-6 text-center">
+          <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><Receipt size={40} strokeWidth={1.5} /></span>
+          <p className="cn-text-body1 text-muted-foreground">Aucun devis genere pour cette propriete</p>
+        </Card>
       ) : (
-        <TableContainer component={Paper} variant="outlined">
-          <Table size="small">
-            <TableHead>
+        <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell sx={{ width: 40 }} />
-                <TableCell>N°</TableCell>
-                <TableCell>Date</TableCell>
-                <TableCell>Statut</TableCell>
-                <TableCell align="right">Total HT</TableCell>
-                {canEdit && <TableCell align="right" sx={{ width: 80 }} />}
+                <TableHead className="w-10" />
+                <TableHead>N°</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead className="text-end">Total HT</TableHead>
+                {canEdit && <TableHead className="text-end w-20" />}
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {quotes.map((quote) => {
                 const statusConf = STATUS_CONFIG[quote.status] ?? STATUS_CONFIG.DRAFT;
@@ -106,34 +113,43 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
 
                 return (
                   <React.Fragment key={quote.id}>
-                    <TableRow hover sx={{ cursor: 'pointer' }} onClick={() => toggleExpand(quote.id)}>
+                    <TableRow className="cursor-pointer" onClick={() => toggleExpand(quote.id)}>
                       <TableCell>
-                        <IconButton size="small">
+                        {/* La ligne entiere porte deja le toggle : ce bouton est
+                            l'affordance visuelle, d'ou tabIndex -1 et aria-hidden. */}
+                        <Button variant="ghost" size="icon-sm" tabIndex={-1} aria-hidden>
                           {isExpanded ? <ExpandLess size={16} strokeWidth={1.75} /> : <ExpandMore size={16} strokeWidth={1.75} />}
-                        </IconButton>
+                        </Button>
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 500 }}>#{quote.id}</TableCell>
+                      <TableCell className="font-medium">#{quote.id}</TableCell>
                       <TableCell>{formatDate(quote.generatedAt)}</TableCell>
                       <TableCell>
-                        <Chip label={statusConf.label} color={statusConf.color} size="small" variant="outlined" />
+                        <StatusChip tone={statusConf.tone} label={statusConf.label} />
                       </TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600 }}>
+                      <TableCell className="text-end font-semibold">
                         <Money value={Number(quote.totalHt)} from={quote.currency ?? 'EUR'} />
                       </TableCell>
                       {canEdit && (
-                        <TableCell align="right" onClick={(e) => e.stopPropagation()}>
+                        <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
+                          {/* Le Button du kit ne transmet pas de ref : span d'ancrage.
+                              Action de ligne repetee -> taille xs, teinte --ok (pas de variante
+                              « success » dans le kit). */}
                           {quote.status === 'DRAFT' && (
-                            <Tooltip title="Confirmer le devis">
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                color="success"
-                                startIcon={<CheckCircle size={14} strokeWidth={1.75} />}
-                                onClick={() => onConfirm(quote.id)}
-                                sx={{ fontSize: '0.75rem', py: 0.25 }}
-                              >
-                                Confirmer
-                              </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                  <Button
+                                    variant="outline"
+                                    size="xs"
+                                    className="text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]"
+                                    onClick={() => onConfirm(quote.id)}
+                                  >
+                                    <CheckCircle size={14} strokeWidth={1.75} />
+                                    Confirmer
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>Confirmer le devis</TooltipContent>
                             </Tooltip>
                           )}
                         </TableCell>
@@ -142,25 +158,28 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
 
                     {/* Expanded detail */}
                     <TableRow>
-                      <TableCell colSpan={canEdit ? 6 : 5} sx={{ p: 0, border: isExpanded ? undefined : 'none' }}>
-                        <Collapse in={isExpanded}>
-                          <Box sx={{ p: 2, bgcolor: 'action.hover' }}>
-                            <Table size="small">
-                              <TableHead>
+                      <TableCell colSpan={canEdit ? 6 : 5} className={cn('p-0', !isExpanded && 'border-b-0')}>
+                        {/* Collapsible pilote en lecture seule : le declencheur est
+                            la ligne du tableau, pas un CollapsibleTrigger. */}
+                        <Collapsible open={isExpanded}>
+                          <CollapsibleContent>
+                          <div className="p-3 bg-[var(--hover)]">
+                            <Table>
+                              <TableHeader>
                                 <TableRow>
-                                  <TableCell>Article</TableCell>
-                                  <TableCell align="center">Qte</TableCell>
-                                  <TableCell align="right">Prix unitaire</TableCell>
-                                  <TableCell align="right">Sous-total</TableCell>
+                                  <TableHead>Article</TableHead>
+                                  <TableHead className="text-center">Qte</TableHead>
+                                  <TableHead className="text-end">Prix unitaire</TableHead>
+                                  <TableHead className="text-end">Sous-total</TableHead>
                                 </TableRow>
-                              </TableHead>
+                              </TableHeader>
                               <TableBody>
                                 {quote.lines.map((line) => (
                                   <TableRow key={line.key}>
                                     <TableCell>{line.label}</TableCell>
-                                    <TableCell align="center">{line.quantity}</TableCell>
-                                    <TableCell align="right"><Money value={Number(line.unitPrice)} from="EUR" /></TableCell>
-                                    <TableCell align="right" sx={{ fontWeight: 500 }}>
+                                    <TableCell className="text-center">{line.quantity}</TableCell>
+                                    <TableCell className="text-end"><Money value={Number(line.unitPrice)} from="EUR" /></TableCell>
+                                    <TableCell className="text-end font-medium">
                                       <Money value={Number(line.lineTotal)} from="EUR" />
                                     </TableCell>
                                   </TableRow>
@@ -168,17 +187,18 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                               </TableBody>
                             </Table>
                             {quote.notes && (
-                              <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontStyle: 'italic' }}>
+                              <p className="cn-text-body2 text-muted-foreground mt-1.5 italic">
                                 {quote.notes}
-                              </Typography>
+                              </p>
                             )}
                             {quote.confirmedAt && (
-                              <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
+                              <span className="cn-text-caption text-muted-foreground opacity-60 mt-0.5 block">
                                 Confirme le {formatDate(quote.confirmedAt)}
-                              </Typography>
+                              </span>
                             )}
-                          </Box>
-                        </Collapse>
+                          </div>
+                          </CollapsibleContent>
+                        </Collapsible>
                       </TableCell>
                     </TableRow>
                   </React.Fragment>
@@ -186,8 +206,8 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
               })}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }

@@ -1,29 +1,28 @@
 import React, { useState, useEffect } from 'react';
+import { Badge } from '../../components/ui';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X, CircleCheck } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Field, FieldLabel, Input, Textarea } from '../../components/ui';
 import {
-  Box,
-  Typography,
+  Avatar,
+  AvatarFallback,
   Card,
   CardContent,
-  Grid,
-  TextField,
-  Button,
-  FormControl,
-  InputLabel,
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  NativeSelect,
+  NativeSelectOption,
   Select,
-  MenuItem,
-  Alert,
-  CircularProgress,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Avatar,
-} from '@mui/material';
-import {
-  Autocomplete,
-  IconButton,
-  Chip,
-} from '@mui/material';
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui';
 import {
   Save,
   Cancel,
@@ -49,7 +48,9 @@ import {
   hasArrondissements,
   getArrondissementsForDepartment,
 } from '../../data/frenchDepartments';
+import type { Arrondissement, Department } from '../../data/frenchDepartments';
 import { COVERAGE_COUNTRIES, getCitiesForCountry } from '../../data/coverageCountries';
+import type { CoverageCountry } from '../../data/coverageCountries';
 
 interface TeamMember {
   userId: number;
@@ -160,6 +161,10 @@ const TeamEdit: React.FC = () => {
   }, [teamQuery.data]);
 
   const availableUsers = usersQuery.data ?? [];
+  // Utilisateurs proposables = ceux qui ne sont pas deja membres de l'equipe.
+  const assignableUsers = availableUsers.filter(
+    (user) => !(formData.members || []).some((m) => m.userId === user.id),
+  );
   const loading = teamQuery.isLoading || usersQuery.isLoading;
 
   // ─── Update mutation ──────────────────────────────────────────────────
@@ -255,25 +260,25 @@ const TeamEdit: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center h-[50vh]">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
   if (!canEdit) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">
-          <Typography variant="h6" gutterBottom>Accès non autorisé</Typography>
-          <Typography variant="body1">Vous n'avez pas les permissions nécessaires pour modifier des équipes.</Typography>
-        </Alert>
-      </Box>
+      <div className="p-4">
+        <BuiAlert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription><h6 className="cn-text-h6 mb-[0.35em]">Accès non autorisé</h6><p className="cn-text-body1">Vous n'avez pas les permissions nécessaires pour modifier des équipes.</p></AlertDescription>
+        </BuiAlert>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <div className="p-4">
       <PageHeader
         title="Modifier l'équipe"
         subtitle="Modifiez les détails de l'équipe"
@@ -281,124 +286,141 @@ const TeamEdit: React.FC = () => {
         backLabel="Retour aux détails"
         showBackButton={true}
         actions={
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="outlined"
-              size="small"
+          <div className="flex gap-1.5">
+            <BuiButton
+              variant="outline"
+              size="sm"
               onClick={() => navigate(`/teams/${id}`)}
-              startIcon={<Cancel />}
               disabled={updateMutation.isPending}
               title="Annuler"
             >
+              <Cancel />
               Annuler
-            </Button>
-            <Button
+            </BuiButton>
+            <BuiButton
               type="submit"
-              variant="contained"
-              size="small"
-              startIcon={<Save />}
+              size="sm"
               disabled={updateMutation.isPending}
               onClick={handleSubmit}
               title="Mettre à jour"
             >
+              <Save />
               {updateMutation.isPending ? 'Mise à jour...' : 'Mettre à jour'}
-            </Button>
-          </Box>
+            </BuiButton>
+          </div>
         }
       />
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-4">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 3 }}>
-          Équipe mise à jour avec succès ! Redirection en cours...
-        </Alert>
+        <BuiAlert variant="success" className="mb-4">
+          <CircleCheck />
+          <AlertDescription>Équipe mise à jour avec succès ! Redirection en cours...</AlertDescription>
+        </BuiAlert>
       )}
 
       <Card>
-        <CardContent sx={{ p: 4 }}>
+        <CardContent>
           <form onSubmit={handleSubmit}>
-            <Typography variant="h6" sx={{ mb: 3, color: 'var(--ink)' }}>
+            <h6 className="cn-text-h6 mb-4 text-[var(--ink)]">
               Informations de base
-            </Typography>
+            </h6>
 
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-              <Grid item xs={12} md={8}>
-                <TextField
-                  fullWidth
-                  label="Nom de l'équipe *"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  required
-                  placeholder="Ex: Équipe Nettoyage Premium"
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth required>
-                  <InputLabel>Type de service *</InputLabel>
+            <div className="grid grid-cols-1 min-[900px]:grid-cols-3 gap-[18px] mb-6">
+              <div className="min-[900px]:col-span-2">
+                <Field>
+                  <FieldLabel htmlFor="team-name">Nom de l'équipe *</FieldLabel>
+                  <Input
+                    id="team-name"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    required
+                    placeholder="Ex: Équipe Nettoyage Premium"
+                  />
+                </Field>
+              </div>
+              <div>
+                {/* Liste riche (une icone par categorie) : le Select du kit, pas
+                    le select natif qui ne sait rendre que du texte. */}
+                <Field>
+                  <FieldLabel htmlFor="team-intervention-type">Type de service *</FieldLabel>
                   <Select
                     value={formData.interventionType}
-                    onChange={(e) => handleInputChange('interventionType', e.target.value)}
-                    label="Type de service *"
+                    onValueChange={(value) => handleInputChange('interventionType', value)}
                   >
-                    {teamServiceCategories.map((cat) => (
-                      <MenuItem key={cat.value} value={cat.value}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          {cat.icon}
-                          <Typography variant="body2">{cat.label}</Typography>
-                        </Box>
-                      </MenuItem>
-                    ))}
+                    <SelectTrigger id="team-intervention-type" className="w-full">
+                      <SelectValue placeholder="Choisir un type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teamServiceCategories.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          <span className="flex items-center gap-1">
+                            {cat.icon}
+                            {cat.label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
+                </Field>
+              </div>
+            </div>
 
-            <Typography variant="h6" sx={{ mb: 2, color: 'var(--ink)' }}>Description</Typography>
+            <h6 className="cn-text-h6 mb-3 text-[var(--ink)]">Description</h6>
 
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={4}
-                  label="Description de l'équipe"
+            <div className="mb-6">
+              <Field>
+                <FieldLabel htmlFor="team-description">Description de l'équipe</FieldLabel>
+                {/* min-h en `lh` : le primitif pose field-sizing:content, qui neutralise `rows`. */}
+                <Textarea
+                  id="team-description"
+                  className="min-h-[4lh]"
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   placeholder="Décrivez votre équipe..."
                 />
-              </Grid>
-            </Grid>
+              </Field>
+            </div>
 
             {/* ─── Coverage Zones ─────────────────────────────────────── */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-              <Typography variant="h6" sx={{ color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <div className="flex items-center justify-between mb-3">
+              <h6 className="cn-text-h6 text-[var(--ink)] flex items-center gap-0.5">
                 <MapIcon size={20} strokeWidth={1.75} />
                 Zones de couverture
-              </Typography>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<Add />}
+              </h6>
+              {/* type="button" explicite : le Button du kit est un <button> natif, qui
+                  soumettrait le <form> parent au clic (MUI posait type="button" seul). */}
+              <BuiButton
+                type="button"
+                size="sm"
+                variant="outline"
                 onClick={addCoverageZone}
               >
+                <Add />
                 Ajouter une zone
-              </Button>
-            </Box>
+              </BuiButton>
+            </div>
 
             {formData.coverageZones.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 3, mb: 4, border: '1px dashed', borderColor: 'divider', borderRadius: 2 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><MapIcon size={32} strokeWidth={1.75} /></Box>
-                <Typography variant="body2" color="text.secondary">
+              <div className="text-center py-[18px] mb-6 border border-dashed border-[var(--line)] rounded-[16px]">
+                <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><MapIcon size={32} strokeWidth={1.75} /></span>
+                <p className="cn-text-body2 text-muted-foreground">
                   Aucune zone de couverture definie
-                </Typography>
-              </Box>
+                </p>
+              </div>
             ) : (
-              <Box sx={{ mb: 4 }}>
+              <div className="mb-6">
                 {formData.coverageZones.map((zone, index) => {
                   const countryDef = COVERAGE_COUNTRIES.find(c => c.code === (zone.country || 'FR')) ?? COVERAGE_COUNTRIES[0];
                   const isFr = countryDef.matchMode === 'department';
@@ -408,204 +430,255 @@ const TeamEdit: React.FC = () => {
                   const cityOptions = !isFr ? getCitiesForCountry(countryDef.code) : [];
 
                   return (
-                    <Grid container spacing={2} key={index} sx={{ mb: 1.5, alignItems: 'center' }}>
-                      <Grid item xs={12} md={3}>
-                        <Autocomplete
-                          size="small"
-                          options={COVERAGE_COUNTRIES}
-                          getOptionLabel={(opt) => opt.name}
-                          value={countryDef}
-                          disableClearable
-                          onChange={(_e, val) => {
-                            updateCoverageZone(index, 'country', val?.code || 'FR');
-                            updateCoverageZone(index, 'department', undefined);
-                            updateCoverageZone(index, 'arrondissement', undefined);
-                            updateCoverageZone(index, 'city', undefined);
-                          }}
-                          renderInput={(params) => (
-                            <TextField {...params} label="Pays" />
-                          )}
-                        />
-                      </Grid>
+                    // `items-end` et non `items-center` : chaque champ porte desormais
+                    // son libelle au-dessus, la corbeille s'aligne donc sur le bas.
+                    <div key={index} className="grid grid-cols-1 min-[900px]:grid-cols-12 gap-3 mb-[9px] items-end">
+                      <div className="min-[900px]:col-span-3">
+                        <Field>
+                          <FieldLabel htmlFor={`zone-country-${index}`}>Pays</FieldLabel>
+                          <Combobox
+                            items={COVERAGE_COUNTRIES}
+                            itemToStringLabel={(opt: CoverageCountry) => opt.name}
+                            itemToStringValue={(opt: CoverageCountry) => opt.name}
+                            isItemEqualToValue={(a: CoverageCountry, b: CoverageCountry) => a.code === b.code}
+                            value={countryDef}
+                            onValueChange={(val: CoverageCountry | null) => {
+                              updateCoverageZone(index, 'country', val?.code || 'FR');
+                              updateCoverageZone(index, 'department', undefined);
+                              updateCoverageZone(index, 'arrondissement', undefined);
+                              updateCoverageZone(index, 'city', undefined);
+                            }}
+                          >
+                            <ComboboxInput id={`zone-country-${index}`} placeholder="Selectionner un pays" />
+                            <ComboboxContent>
+                              <ComboboxEmpty>Aucun pays</ComboboxEmpty>
+                              <ComboboxList>
+                                {(option: CoverageCountry) => (
+                                  <ComboboxItem key={option.code} value={option}>
+                                    {option.name}
+                                  </ComboboxItem>
+                                )}
+                              </ComboboxList>
+                            </ComboboxContent>
+                          </Combobox>
+                        </Field>
+                      </div>
                       {isFr ? (
                         <>
-                          <Grid item xs={12} md={showArr ? 4 : 7}>
-                            <Autocomplete
-                              size="small"
-                              options={FRENCH_DEPARTMENTS}
-                              getOptionLabel={(opt) => `${opt.code} - ${opt.name}`}
-                              value={deptObj || null}
-                              onChange={(_e, val) => {
-                                updateCoverageZone(index, 'department', val?.code || '');
-                                if (!val || !hasArrondissements(val.code)) {
-                                  updateCoverageZone(index, 'arrondissement', undefined);
-                                }
-                              }}
-                              renderInput={(params) => (
-                                <TextField {...params} label="Departement" placeholder="Selectionner un departement" />
-                              )}
-                            />
-                          </Grid>
-                          {showArr && (
-                            <Grid item xs={12} md={4}>
-                              <Autocomplete
-                                size="small"
-                                options={arrOptions}
-                                getOptionLabel={(opt) => opt.name}
-                                value={arrOptions.find(a => a.code === zone.arrondissement) || null}
-                                onChange={(_e, val) => {
-                                  updateCoverageZone(index, 'arrondissement', val?.code || undefined);
+                          <div className={showArr ? 'min-[900px]:col-span-4' : 'min-[900px]:col-span-7'}>
+                            <Field>
+                              <FieldLabel htmlFor={`zone-department-${index}`}>Departement</FieldLabel>
+                              <Combobox
+                                items={FRENCH_DEPARTMENTS}
+                                itemToStringLabel={(opt: Department) => `${opt.code} - ${opt.name}`}
+                                itemToStringValue={(opt: Department) => `${opt.code} - ${opt.name}`}
+                                isItemEqualToValue={(a: Department, b: Department) => a.code === b.code}
+                                value={deptObj || null}
+                                onValueChange={(val: Department | null) => {
+                                  updateCoverageZone(index, 'department', val?.code || '');
+                                  if (!val || !hasArrondissements(val.code)) {
+                                    updateCoverageZone(index, 'arrondissement', undefined);
+                                  }
                                 }}
-                                renderInput={(params) => (
-                                  <TextField {...params} label="Arrondissement" placeholder="Tous les arrondissements" />
-                                )}
-                              />
-                            </Grid>
+                              >
+                                <ComboboxInput id={`zone-department-${index}`} placeholder="Selectionner un departement" />
+                                <ComboboxContent>
+                                  <ComboboxEmpty>Aucun departement</ComboboxEmpty>
+                                  <ComboboxList>
+                                    {(option: Department) => (
+                                      <ComboboxItem key={option.code} value={option}>
+                                        {option.code} - {option.name}
+                                      </ComboboxItem>
+                                    )}
+                                  </ComboboxList>
+                                </ComboboxContent>
+                              </Combobox>
+                            </Field>
+                          </div>
+                          {showArr && (
+                            <div className="min-[900px]:col-span-4">
+                              <Field>
+                                <FieldLabel htmlFor={`zone-arrondissement-${index}`}>Arrondissement</FieldLabel>
+                                <Combobox
+                                  items={arrOptions}
+                                  itemToStringLabel={(opt: Arrondissement) => opt.name}
+                                  itemToStringValue={(opt: Arrondissement) => opt.name}
+                                  isItemEqualToValue={(a: Arrondissement, b: Arrondissement) => a.code === b.code}
+                                  value={arrOptions.find(a => a.code === zone.arrondissement) || null}
+                                  onValueChange={(val: Arrondissement | null) => {
+                                    updateCoverageZone(index, 'arrondissement', val?.code || undefined);
+                                  }}
+                                >
+                                  <ComboboxInput id={`zone-arrondissement-${index}`} placeholder="Tous les arrondissements" />
+                                  <ComboboxContent>
+                                    <ComboboxEmpty>Aucun arrondissement</ComboboxEmpty>
+                                    <ComboboxList>
+                                      {(option: Arrondissement) => (
+                                        <ComboboxItem key={option.code} value={option}>
+                                          {option.name}
+                                        </ComboboxItem>
+                                      )}
+                                    </ComboboxList>
+                                  </ComboboxContent>
+                                </Combobox>
+                              </Field>
+                            </div>
                           )}
                         </>
                       ) : (
-                        <Grid item xs={12} md={7}>
-                          <Autocomplete
-                            size="small"
-                            options={cityOptions}
-                            freeSolo
-                            value={zone.city || ''}
-                            onChange={(_e, val) => {
-                              updateCoverageZone(index, 'city', typeof val === 'string' ? val : (val ?? undefined));
-                            }}
-                            onInputChange={(_e, val) => {
-                              updateCoverageZone(index, 'city', val || undefined);
-                            }}
-                            renderInput={(params) => (
-                              <TextField {...params} label="Ville" placeholder="Saisir ou selectionner une ville" />
-                            )}
-                          />
-                        </Grid>
+                        <div className="min-[900px]:col-span-7">
+                          <Field>
+                            <FieldLabel htmlFor={`zone-city-${index}`}>Ville</FieldLabel>
+                            {/* Report du `freeSolo` : seule la SAISIE est controlee, il n'y a
+                                pas de `value` d'item — une ville hors liste reste donc valide. */}
+                            <Combobox
+                              items={cityOptions}
+                              inputValue={zone.city ?? ''}
+                              onInputValueChange={(next: string) => {
+                                updateCoverageZone(index, 'city', next || undefined);
+                              }}
+                              onValueChange={(val: string | null) => {
+                                updateCoverageZone(index, 'city', val || undefined);
+                              }}
+                            >
+                              <ComboboxInput id={`zone-city-${index}`} placeholder="Saisir ou selectionner une ville" />
+                              <ComboboxContent>
+                                <ComboboxEmpty>Aucune ville proposee</ComboboxEmpty>
+                                <ComboboxList>
+                                  {(option: string) => (
+                                    <ComboboxItem key={option} value={option}>
+                                      {option}
+                                    </ComboboxItem>
+                                  )}
+                                </ComboboxList>
+                              </ComboboxContent>
+                            </Combobox>
+                          </Field>
+                        </div>
                       )}
-                      <Grid item xs={12} md={2} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <div className="min-[900px]:col-span-2 flex items-center gap-1.5">
                         {isFr && deptObj && (
-                          <Chip
-                            size="small"
-                            label={deptObj.code}
-                            sx={{ fontSize: '0.72rem' }}
-                          />
+                          <Badge variant="secondary" className="text-[0.72rem]">{deptObj.code}</Badge>
                         )}
-                        <IconButton
-                          size="small"
-                          color="error"
+                        <BuiButton
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="Supprimer cette zone de couverture"
+                          className="text-[var(--err)]"
                           onClick={() => removeCoverageZone(index)}
                         >
                           <DeleteOutlined size={18} strokeWidth={1.75} />
-                        </IconButton>
-                      </Grid>
-                    </Grid>
+                        </BuiButton>
+                      </div>
+                    </div>
                   );
                 })}
-              </Box>
+              </div>
             )}
 
-            <Typography variant="h6" sx={{ mb: 2, color: 'var(--ink)' }}>Membres de l'équipe</Typography>
+            <h6 className="cn-text-h6 mb-3 text-[var(--ink)]">Membres de l'équipe</h6>
 
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth>
-                  <InputLabel>Utilisateur</InputLabel>
-                  <Select
+            <div className="grid grid-cols-1 min-[900px]:grid-cols-3 gap-3 mb-[18px] items-end">
+              <div>
+                <Field>
+                  <FieldLabel htmlFor="team-add-user">Utilisateur</FieldLabel>
+                  {/* Option vide desactivee : sans elle le select natif afficherait
+                      le premier utilisateur alors que l'etat vaut encore ''. */}
+                  <NativeSelect
+                    id="team-add-user"
+                    className="w-full"
                     value={selectedUser}
                     onChange={(e) => setSelectedUser(e.target.value)}
-                    label="Utilisateur"
                   >
-                    {availableUsers && availableUsers.length > 0 ? (
-                      availableUsers
-                        .flatMap((user) =>
-                          (formData.members || []).some(m => m.userId === user.id)
-                            ? []
-                            : [
-                                <MenuItem key={user.id} value={user.id.toString()}>
-                                  {user.firstName} {user.lastName} ({user.email})
-                                </MenuItem>,
-                              ],
-                        )
-                    ) : (
-                      <MenuItem disabled>Aucun utilisateur disponible</MenuItem>
-                    )}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth>
-                  <InputLabel>Rôle</InputLabel>
-                  <Select
+                    <NativeSelectOption value="" disabled>
+                      {assignableUsers.length > 0 ? 'Choisir un utilisateur' : 'Aucun utilisateur disponible'}
+                    </NativeSelectOption>
+                    {assignableUsers.map((user) => (
+                      <NativeSelectOption key={user.id} value={user.id.toString()}>
+                        {`${user.firstName} ${user.lastName} (${user.email})`}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
+              </div>
+              <div>
+                <Field>
+                  <FieldLabel htmlFor="team-add-role">Rôle</FieldLabel>
+                  <NativeSelect
+                    id="team-add-role"
+                    className="w-full"
                     value={selectedRole}
                     onChange={(e) => setSelectedRole(e.target.value)}
-                    label="Rôle"
                   >
                     {roleOptions.map((role) => (
-                      <MenuItem key={role.value} value={role.value}>{role.label}</MenuItem>
+                      <NativeSelectOption key={role.value} value={role.value}>{role.label}</NativeSelectOption>
                     ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <Button
-                  variant="outlined"
+                  </NativeSelect>
+                </Field>
+              </div>
+              <div>
+                <BuiButton
+                  type="button"
+                  variant="outline"
                   onClick={addMember}
                   disabled={!selectedUser || !selectedRole}
-                  sx={{ height: '56px' }}
                 >
                   Ajouter
-                </Button>
-              </Grid>
-            </Grid>
+                </BuiButton>
+              </div>
+            </div>
 
             {(formData.members || []).length > 0 && (
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="subtitle1" sx={{ mb: 2 }}>
+              <div className="mb-6">
+                <h6 className="cn-text-subtitle1 mb-3">
                   Membres actuels ({(formData.members || []).length})
-                </Typography>
-                <List>
+                </h6>
+                <div className="flex flex-col gap-1.5">
                   {(formData.members || []).map((member) => (
-                    <React.Fragment key={member.userId}>
-                      <ListItem sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 1 }}>
-                        <ListItemAvatar>
-                          <Avatar sx={{ bgcolor: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-display)', fontWeight: 600, borderRadius: '10px' }}>
-                            {member.firstName.charAt(0)}{member.lastName.charAt(0)}
-                          </Avatar>
-                        </ListItemAvatar>
-                        <ListItemText
-                          primary={`${member.firstName} ${member.lastName}`}
-                          secondary={member.email}
-                        />
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <FormControl size="small" sx={{ minWidth: 120 }}>
-                            <Select
-                              value={member.role}
-                              onChange={(e) => updateMemberRole(member.userId, e.target.value)}
-                            >
-                              {roleOptions.map((role) => (
-                                <MenuItem key={role.value} value={role.value}>{role.label}</MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
-                          <Button
-                            size="small"
-                            color="error"
-                            variant="outlined"
-                            onClick={() => removeMember(member.userId)}
-                          >
-                            Retirer
-                          </Button>
-                        </Box>
-                      </ListItem>
-                    </React.Fragment>
+                    <div
+                      key={member.userId}
+                      className="flex items-center gap-2 border border-solid border-[var(--line)] rounded-[8px] px-2 py-1.5"
+                    >
+                      <Avatar className="rounded-[10px]">
+                        <AvatarFallback className="rounded-[10px] bg-[var(--accent)] text-[var(--on-accent)] font-[family-name:var(--font-display)] font-semibold">
+                          {member.firstName.charAt(0)}{member.lastName.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <p className="cn-text-body1 truncate">{member.firstName} {member.lastName}</p>
+                        <p className="cn-text-body2 text-muted-foreground truncate">{member.email}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <NativeSelect
+                          size="sm"
+                          aria-label={`Rôle de ${member.firstName} ${member.lastName}`}
+                          className="min-w-[120px]"
+                          value={member.role}
+                          onChange={(e) => updateMemberRole(member.userId, e.target.value)}
+                        >
+                          {roleOptions.map((role) => (
+                            <NativeSelectOption key={role.value} value={role.value}>{role.label}</NativeSelectOption>
+                          ))}
+                        </NativeSelect>
+                        <BuiButton
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => removeMember(member.userId)}
+                        >
+                          Retirer
+                        </BuiButton>
+                      </div>
+                    </div>
                   ))}
-                </List>
-              </Box>
+                </div>
+              </div>
             )}
           </form>
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

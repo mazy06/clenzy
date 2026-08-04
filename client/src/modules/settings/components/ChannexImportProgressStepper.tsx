@@ -21,7 +21,7 @@
  * dans le dialog. Le stepper sert juste de boussole.</p>
  */
 import React from 'react';
-import { Box, Typography, Stack } from '@mui/material';
+import { cn } from '../../../utils/cn';
 import { Cable, Search, Check, ArrowRight } from 'lucide-react';
 
 interface ChannexImportProgressStepperProps {
@@ -94,25 +94,19 @@ function StepBubble({ step }: { step: Step }) {
   const color = STATUS_COLOR[step.status];
   const Icon = step.status === 'COMPLETE' ? Check : step.Icon;
   return (
-    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minWidth: 0, flex: 1 }}>
-      <Box
-        sx={{
-          width: 32,
-          height: 32,
-          borderRadius: '50%',
-          bgcolor: step.status === 'UPCOMING' ? 'transparent' : `color-mix(in srgb, ${color} 10%, transparent)`,
+    <div className="flex items-start gap-1.5 min-w-0 flex-1">
+      {/* Teintes derivees du statut a l'execution : elles restent dans style. */}
+      <div
+        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-[0.6px] font-bold text-[0.75rem]"
+        style={{
+          backgroundColor: step.status === 'UPCOMING'
+            ? 'transparent'
+            : `color-mix(in srgb, ${color} 10%, transparent)`,
           border: `2px solid ${color}`,
-          color: color,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          mt: 0.1,
-          fontWeight: 700,
-          fontSize: '0.75rem',
-          ...(step.status === 'ACTIVE' && {
-            boxShadow: `0 0 0 4px color-mix(in srgb, ${color} 10%, transparent)`,
-          }),
+          color,
+          boxShadow: step.status === 'ACTIVE'
+            ? `0 0 0 4px color-mix(in srgb, ${color} 10%, transparent)`
+            : undefined,
         }}
       >
         {step.status === 'COMPLETE' ? (
@@ -120,68 +114,40 @@ function StepBubble({ step }: { step: Step }) {
         ) : (
           step.num
         )}
-      </Box>
-      <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Typography
-          variant="caption"
-          sx={{
-            display: 'block',
-            fontWeight: 700,
-            fontSize: '0.78rem',
-            color: step.status === 'UPCOMING' ? 'text.disabled' : 'text.primary',
-            lineHeight: 1.3,
-          }}
-        >
+      </div>
+      <div className="min-w-0 flex-1">
+        <span className={cn('cn-text-caption block font-bold text-[0.78rem] leading-[1.3]', step.status === 'UPCOMING' ? 'text-[var(--faint)]' : 'text-[var(--ink)]')}>
           {step.title}
-        </Typography>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{
-            display: 'block',
-            fontSize: '0.68rem',
-            lineHeight: 1.4,
-            opacity: step.status === 'UPCOMING' ? 0.6 : 1,
-          }}
-        >
+        </span>
+        <span className={cn('cn-text-caption text-[var(--muted)] block text-[0.68rem] leading-[1.4]', step.status === 'UPCOMING' ? 'opacity-60' : 'opacity-100')}>
           {step.hint}
-        </Typography>
-      </Box>
-    </Box>
+        </span>
+      </div>
+    </div>
   );
 }
 
 function Connector({ next }: { next: StepStatus }) {
   const color = next === 'UPCOMING' ? 'var(--line)' : STATUS_COLOR[next];
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', color, flexShrink: 0, mt: 1 }}>
+    <div className="flex items-center shrink-0 mt-1.5" style={{ color }}>
       <ArrowRight size={14} strokeWidth={2.2} />
-    </Box>
+    </div>
   );
 }
 
 export default function ChannexImportProgressStepper(props: ChannexImportProgressStepperProps) {
   const steps = computeSteps(props);
   return (
-    <Box
-      sx={{
-        border: `1px solid ${ACCENT}22`,
-        bgcolor: `${ACCENT}06`,
-        borderRadius: 1,
-        p: 1.25,
-      }}
-    >
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={{ xs: 1, sm: 1.25 }}
-        alignItems={{ xs: 'flex-start', sm: 'center' }}
-      >
+    <div className="rounded-[8px] p-[7.5px]" style={{ border: `1px solid ${ACCENT}22`, backgroundColor: `${ACCENT}06` }}>
+      {/* `sm` MUI = 600 px, pas le 640 de Tailwind. spacing 1/1.25 = 6 px/7,5 px. */}
+      <div className="flex flex-col gap-1.5 items-start min-[600px]:flex-row min-[600px]:gap-[7.5px] min-[600px]:items-center">
         <StepBubble step={steps[0]} />
         <Connector next={steps[1].status} />
         <StepBubble step={steps[1]} />
         <Connector next={steps[2].status} />
         <StepBubble step={steps[2]} />
-      </Stack>
-    </Box>
+      </div>
+    </div>
   );
 }

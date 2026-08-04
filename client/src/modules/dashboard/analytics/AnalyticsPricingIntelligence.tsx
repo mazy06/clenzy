@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
+import { Card, CardContent } from '../../../components/ui';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar,
@@ -16,28 +16,14 @@ const AXIS_TICK = { fontSize: 10, fill: '#94A3B8' } as const;
 const TOOLTIP_STYLE = { fontSize: 11, borderRadius: 6, border: '1px solid #E2E8F0', boxShadow: 'none' } as const;
 const GRID_STROKE = '#F1F5F9';
 
-const CHART_CARD_SX = {
-  width: '100%',
-  height: 220,
-} as const;
+const CHART_CARD_CLASS = 'w-full h-[220px]';
 
-const CHART_CONTENT_SX = {
-  p: 1.25,
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  '&:last-child': { pb: 1.25 },
-} as const;
+/** p: 1.25 = 7,5 px (theme.spacing vaut 6). */
+const CHART_CONTENT_CLASS = 'p-[7.5px] h-full flex flex-col';
 
-const SECTION_LABEL_SX = {
-  fontSize: '0.6875rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.04em',
-  color: 'text.secondary',
-  mb: 0.5,
-  flexShrink: 0,
-} as const;
+/** Report en classes de l'ancien `SECTION_LABEL_SX` (variante body1 par defaut). */
+const SECTION_LABEL_CLASS =
+  'cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.04em] text-[var(--muted)] mb-[3px] shrink-0';
 
 interface Props {
   data: PricingMetrics | null;
@@ -53,20 +39,20 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
       title={t('dashboard.analytics.pricingIntelligence')}
       subtitle={t('dashboard.analytics.pricingDesc')}
     >
-      <Grid container spacing={1.5}>
+      <div className="grid grid-cols-12 gap-[9px]">
         {/* Avg Price vs RevPAN dual-axis line chart */}
-        <Grid item xs={12} sm={6}>
-          <Card sx={CHART_CARD_SX}>
-            <CardContent sx={CHART_CONTENT_SX}>
-              <Typography sx={SECTION_LABEL_SX}>
+        <div className="col-span-12 min-[600px]:col-span-6">
+          <Card className={CHART_CARD_CLASS}>
+            <CardContent className={CHART_CONTENT_CLASS}>
+              <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.priceVsRevPAN')}
-              </Typography>
+              </p>
               {loading || !data ? (
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.disabled">...</Typography>
-                </Box>
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                </div>
               ) : (
-                <Box sx={{ flex: 1, minHeight: 0 }}>
+                <div className="flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={data.avgPriceVsRevPAN} margin={{ top: 4, right: 6, left: -18, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
@@ -77,25 +63,25 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
                       <Line type="monotone" dataKey="revPAN" name="RevPAN" stroke="#4A9B8E" strokeWidth={1.5} dot={{ r: 2 }} strokeDasharray="5 3" />
                     </LineChart>
                   </ResponsiveContainer>
-                </Box>
+                </div>
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Price by property type */}
-        <Grid item xs={12} sm={6}>
-          <Card sx={CHART_CARD_SX}>
-            <CardContent sx={CHART_CONTENT_SX}>
-              <Typography sx={SECTION_LABEL_SX}>
+        <div className="col-span-12 min-[600px]:col-span-6">
+          <Card className={CHART_CARD_CLASS}>
+            <CardContent className={CHART_CONTENT_CLASS}>
+              <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.priceByType')}
-              </Typography>
+              </p>
               {loading || !data ? (
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.disabled">...</Typography>
-                </Box>
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                </div>
               ) : (
-                <Box sx={{ flex: 1, minHeight: 0 }}>
+                <div className="flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.byPropertyType} margin={{ top: 4, right: 6, left: -18, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
@@ -105,14 +91,14 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
                       <Bar dataKey="avgPrice" name={t('dashboard.analytics.avgPrice')} fill="#D4A574" radius={[3, 3, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
-                </Box>
+                </div>
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Optimal price card */}
-        <Grid item xs={6} sm={4} md={3}>
+        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-3">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.optimalPrice')}
             value={data ? <Money value={data.optimalPrice} from="EUR" decimals={0} /> : '-'}
@@ -122,10 +108,10 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
             tooltip={t('dashboard.analytics.optimalPriceTooltip')}
             loading={loading}
           />
-        </Grid>
+        </div>
 
         {/* Elasticity card */}
-        <Grid item xs={6} sm={4} md={3}>
+        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-3">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.elasticity')}
             value={data ? `${data.elasticity.toFixed(2)}` : '-'}
@@ -134,8 +120,8 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
             tooltip={t('dashboard.analytics.elasticityTooltip')}
             loading={loading}
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </GridSection>
   );
 });

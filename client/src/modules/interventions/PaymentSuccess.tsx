@@ -1,15 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { Alert, AlertDescription, Button, Card, CardContent, Progress } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Typography,
-  Button,
-  Card,
-  CardContent,
-  CircularProgress,
-  Alert,
-  LinearProgress,
-} from '@mui/material';
 import { CheckCircle, ArrowBack, HourglassTop, ErrorOutline } from "../../icons";
 import { paymentsApi } from '../../services/api/paymentsApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -82,86 +74,79 @@ const PaymentSuccess: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ maxWidth: 500, mx: 'auto', mt: 6 }}>
-        <Card>
-          <CardContent sx={{ textAlign: 'center', p: 4 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mb: 2, animation: 'spin 2s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } }, '@media (prefers-reduced-motion: reduce)': { animation: 'none' } }}>
+      <div className="max-w-[500px] mx-auto mt-9">
+        <Card className="[--card-spacing:24px]">
+          <CardContent className="text-center">
+            {/* `motion-safe:` porte l'animation entiere plutot que `motion-reduce:animate-none` :
+                pas de course d'ordre entre l'utilitaire et la surcharge de duree. */}
+            <span className="inline-flex text-[var(--accent)] mb-3 motion-safe:animate-spin motion-safe:[animation-duration:2s]">
               <HourglassTop size={56} strokeWidth={1.75} />
-            </Box>
-            <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
+            </span>
+            <h5 className="cn-text-h5 font-semibold mb-1.5">
               Verification du paiement...
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            </h5>
+            <p className="cn-text-body2 text-muted-foreground mb-4">
               Confirmation en cours aupres de Stripe ({attempt}/{MAX_ATTEMPTS})
-            </Typography>
-            <LinearProgress
-              variant="determinate"
+            </p>
+            <Progress
               value={(attempt / MAX_ATTEMPTS) * 100}
-              sx={{ borderRadius: 1, height: 6 }}
+              className="h-[6px] rounded-[8px]"
             />
           </CardContent>
         </Card>
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ maxWidth: 500, mx: 'auto', mt: 6 }}>
-      <Card>
-        <CardContent sx={{ textAlign: 'center', p: 4 }}>
+    <div className="max-w-[500px] mx-auto mt-9">
+      <Card className="[--card-spacing:24px]">
+        <CardContent className="text-center">
           {error ? (
             <>
-              <Box component="span" sx={{ display: "inline-flex", color: "var(--err)", mb: 2 }}><ErrorOutline size={64} strokeWidth={1.5} /></Box>
-              <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>
-              <Button
-                variant="contained"
-                startIcon={<ArrowBack size={18} strokeWidth={1.75} />}
-                onClick={() => navigate('/billing')}
-              >
+              <span className="inline-flex text-[var(--err)] mb-3"><ErrorOutline size={64} strokeWidth={1.5} /></span>
+              <Alert variant="destructive" className="mb-4">
+                <TriangleAlert />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+              <Button onClick={() => navigate('/billing')}>
+                <ArrowBack size={18} strokeWidth={1.75} />
                 Retour a la facturation
               </Button>
             </>
           ) : paymentConfirmed ? (
             <>
-              <Box component="span" sx={{ display: "inline-flex", color: "var(--ok)", mb: 2 }}><CheckCircle size={80} strokeWidth={1.5} /></Box>
-              <Typography variant="h4" gutterBottom sx={{ fontWeight: 700 }}>
+              <span className="inline-flex text-[var(--ok)] mb-3"><CheckCircle size={80} strokeWidth={1.5} /></span>
+              <h4 className="cn-text-h4 mb-[0.35em] font-bold">
                 Paiement reussi !
-              </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              </h4>
+              <p className="cn-text-body1 text-muted-foreground mb-4">
                 Votre paiement a ete traite avec succes. Le statut sera mis a jour automatiquement.
-              </Typography>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => navigate('/billing')}
-              >
+              </p>
+              <Button onClick={() => navigate('/billing')}>
                 Voir la facturation
               </Button>
             </>
           ) : (
             <>
-              <Box component="span" sx={{ display: "inline-flex", color: "var(--warn)", mb: 2 }}><CheckCircle size={80} strokeWidth={1.5} /></Box>
-              <Typography variant="h5" gutterBottom sx={{ fontWeight: 700 }}>
+              <span className="inline-flex text-[var(--warn)] mb-3"><CheckCircle size={80} strokeWidth={1.5} /></span>
+              <h5 className="cn-text-h5 mb-[0.35em] font-bold">
                 Paiement en cours de traitement
-              </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
+              </h5>
+              <p className="cn-text-body1 text-muted-foreground mb-1.5">
                 Votre paiement a bien ete envoye a Stripe. La confirmation peut prendre quelques instants.
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              </p>
+              <p className="cn-text-body2 text-muted-foreground mb-4">
                 Le statut sera mis a jour automatiquement.
-              </Typography>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => navigate('/billing')}
-              >
+              </p>
+              <Button onClick={() => navigate('/billing')}>
                 Voir la facturation
               </Button>
             </>
           )}
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

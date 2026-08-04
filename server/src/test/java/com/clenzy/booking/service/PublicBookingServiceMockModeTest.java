@@ -90,6 +90,7 @@ class PublicBookingServiceMockModeTest {
                 org.mockito.Mockito.mock(com.clenzy.booking.service.BookingDisplayCurrencyService.class),
                 org.mockito.Mockito.mock(com.clenzy.service.UpsellService.class),
                 fraudScoringService,
+                org.mockito.Mockito.mock(com.clenzy.service.agent.supervision.SupervisionSuggestionService.class),
                 new BookingMockDataProvider(),
                 org.mockito.Mockito.mock(com.clenzy.service.PaymentOrchestrationService.class),
                 org.mockito.Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class));

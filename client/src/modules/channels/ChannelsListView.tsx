@@ -1,12 +1,8 @@
 import React from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Chip,
-  CircularProgress,
-} from '@mui/material';
+import { cn } from '../../utils/cn';
+import StatusChip, { STATUS_TONES } from '../../components/StatusChip';
+import { Spinner } from '../../components/ui';
+import { Button } from '../../components/ui';
 import {
   LinkOff as LinkOffIcon,
   Link as LinkIcon,
@@ -18,7 +14,10 @@ import type { AirbnbConnectionStatus } from '../../services/api/airbnbApi';
 import { CHANNEL_BACKEND_MAP } from '../../services/api/channelConnectionApi';
 import type { ChannelId, ChannelConnectionStatus } from '../../services/api/channelConnectionApi';
 import { type OtaChannel } from '../../services/channels/otaChannels';
-import { CARD_SX, STATUS_CHIP_SX, OVERLINE_SX, channelSoftBg } from './channelsPageConstants';
+import { STATUS_CHIP_TOKENS, STATUS_CHIP_CLASS, channelSoftBg } from './channelsPageConstants';
+
+/** Report en classes de `OVERLINE_SX` (la constante vit dans un .ts partage). */
+const OVERLINE_CLASS = 'text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em]';
 
 interface ChannelsListViewProps {
   isConnected: boolean;
@@ -56,34 +55,27 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
   onOtaDisconnectRequest,
   t,
 }) => (
-  <Paper sx={{ ...CARD_SX, mb: 1.5, p: 0, overflow: 'hidden' }}>
+  // Report de `CARD_SX` sans son `p: 2` (surcharge `p: 0` a l'appel) : hairline
+  // --line, surface --card, r14, aucune ombre.
+  <div className="mb-[9px] overflow-hidden rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
     {/* Table header */}
-    <Box sx={{
-      display: 'grid',
-      gridTemplateColumns: '110px 1.6fr 0.8fr 1fr 1.4fr',
-      gap: 2,
-      px: 2,
-      py: 1.25,
-      borderBottom: '1px solid',
-      borderColor: 'var(--line)',
-      bgcolor: 'var(--surface-2)',
-    }}>
-      <Typography sx={OVERLINE_SX}>
+    <div className="grid grid-cols-[110px_1.6fr_0.8fr_1fr_1.4fr] gap-3 px-3 py-[7.5px] border-[var(--line)] bg-[var(--surface-2)]" style={{ borderBottom: '1px solid' }}>
+      <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>
         Logo
-      </Typography>
-      <Typography sx={OVERLINE_SX}>
+      </p>
+      <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>
         Nom
-      </Typography>
-      <Typography sx={OVERLINE_SX}>
+      </p>
+      <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>
         Segment
-      </Typography>
-      <Typography sx={OVERLINE_SX}>
+      </p>
+      <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>
         Statut
-      </Typography>
-      <Typography sx={{ ...OVERLINE_SX, textAlign: 'right' }}>
+      </p>
+      <p className={cn(OVERLINE_CLASS, 'cn-text-body1 text-right')}>
         Action
-      </Typography>
-    </Box>
+      </p>
+    </div>
 
     {/* Rows */}
     {channels.map((ota, idx) => {
@@ -94,146 +86,111 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
       const loading = isAirbnb ? connectionLoading : isOtaChannel ? otaConnectionsLoading : false;
 
       return (
-        <Box
-          key={ota.id}
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: '110px 1.6fr 0.8fr 1fr 1.4fr',
-            gap: 2,
-            px: 2,
-            py: 1.5,
-            alignItems: 'center',
-            borderBottom: idx < channels.length - 1 ? '1px solid' : 'none',
-            borderColor: 'var(--line)',
-            opacity: ota.available ? 1 : 0.6,
-            transition: 'background 0.15s',
-            '&:hover': { bgcolor: 'var(--hover)' },
-          }}
-        >
+        <div className={cn('grid grid-cols-[110px_1.6fr_0.8fr_1fr_1.4fr] gap-3 px-3 py-[9px] items-center border-[var(--line)] hover:bg-[var(--hover)]', ota.available ? 'opacity-100' : 'opacity-60')} style={{ borderBottom: idx < channels.length - 1 ? '1px solid' : 'none', transition: 'background 0.15s' }} key={ota.id}>
           {/* Pastille logo — surface douce tokenisée, marque conservée sur le logo */}
-          <Box
-            sx={{
-              height: 40,
-              width: 96,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '10px',
-              bgcolor: channelSoftBg(ota.id),
-            }}
-          >
+          <div className="h-[40px] w-[96px] flex items-center justify-center rounded-[10px]" style={{ backgroundColor: channelSoftBg(ota.id) }}>
             {ota.logo ? (
-              <Box
-                component="img"
-                src={ota.logo}
-                alt={ota.name}
-                sx={{ height: 22, maxWidth: 76, objectFit: 'contain' }}
-              />
+              <img className="h-[22px] max-w-[76px] object-contain" src={ota.logo} alt={ota.name} />
             ) : (
-              <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.75rem', fontWeight: 700, color: ota.brandColor, letterSpacing: '-0.02em' }}>
+              <p className="cn-text-body1 text-[0.75rem] font-bold tracking-[-0.02em]" style={{ fontFamily: 'var(--font-display)', color: ota.brandColor }}>
                 {ota.name}
-              </Typography>
+              </p>
             )}
-          </Box>
+          </div>
 
           {/* Channel name */}
-          <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.875rem', fontWeight: 600, color: 'var(--ink)' }}>
+          <div className="min-w-0">
+            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.875rem] font-semibold text-[var(--ink)]">
               {ota.name}
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
           {/* Segment B2B / B2C — chips -soft tokenisés */}
-          <Box>
-            <Chip
+          <div>
+            <StatusChip
               icon={ota.segment === 'B2C'
                 ? <PeopleIcon size={14} strokeWidth={1.75} />
                 : <BusinessIcon size={14} strokeWidth={1.75} />
               }
               label={ota.segment}
-              size="small"
-              sx={ota.segment === 'B2C'
-                ? { ...STATUS_CHIP_SX.muted, backgroundColor: 'var(--info-soft)', color: 'var(--info)', '& .MuiChip-icon': { color: 'var(--info)' } }
-                : STATUS_CHIP_SX.muted}
+              tokens={ota.segment === 'B2C' ? STATUS_TONES.info : STATUS_CHIP_TOKENS.muted}
+              className={STATUS_CHIP_CLASS}
             />
-          </Box>
+          </div>
 
           {/* Status — connecté --ok / à configurer --warn / bientôt muted */}
-          <Box>
+          <div>
             {(() => {
-              if (loading) return <CircularProgress size={14} />;
+              if (loading) return <Spinner className="size-3.5" />;
               if (connected) {
                 const statusLabel = otaStatus?.status ?? (isAirbnb ? connectionStatus?.status ?? 'ACTIVE' : 'ACTIVE');
                 const isError = String(statusLabel).toUpperCase() === 'ERROR';
                 return (
-                  <Chip
+                  <StatusChip
                     icon={<CheckCircleIcon size={14} strokeWidth={1.75} />}
                     label={statusLabel}
-                    size="small"
-                    sx={isError ? STATUS_CHIP_SX.err : STATUS_CHIP_SX.ok}
+                    tokens={isError ? STATUS_CHIP_TOKENS.err : STATUS_CHIP_TOKENS.ok} className={STATUS_CHIP_CLASS}
                   />
                 );
               }
               if (ota.available) {
                 return (
-                  <Chip
+                  <StatusChip
                     label={t('channels.ota.disconnected')}
-                    size="small"
-                    sx={STATUS_CHIP_SX.warn}
+                    tokens={STATUS_CHIP_TOKENS.warn} className={STATUS_CHIP_CLASS}
                   />
                 );
               }
               return (
-                <Chip
+                <StatusChip
                   label={t('channels.ota.comingSoon')}
-                  size="small"
-                  sx={STATUS_CHIP_SX.muted}
+                  tokens={STATUS_CHIP_TOKENS.muted} className={STATUS_CHIP_CLASS}
                 />
               );
             })()}
-          </Box>
+          </div>
 
           {/* Action */}
-          <Box sx={{ textAlign: 'right' }}>
+          <div className="text-end">
             {ota.available && !connected && (
               <Button
-                size="small"
-                variant="contained"
-                startIcon={<LinkIcon size={'0.75rem'} strokeWidth={1.75} />}
+                size="sm"
                 onClick={isAirbnb ? onAirbnbConnect : isOtaChannel ? () => onOtaConnect(ota) : undefined}
                 disabled={(isAirbnb && connectPending) || loading}
               >
+                <LinkIcon size={'0.75rem'} strokeWidth={1.75} />
                 {(isAirbnb && connectPending)
-                  ? <CircularProgress size={12} color="inherit" />
+                  ? <Spinner className="size-3" />
                   : `Connecter ${ota.name}`
                 }
               </Button>
             )}
             {ota.available && connected && (
+              // `destructive` et non `outline` : deconnecter un canal coupe la
+              // synchronisation — l'encre --err du kit porte cet avertissement.
               <Button
-                size="small"
-                variant="outlined"
-                color="error"
-                startIcon={<LinkOffIcon size={'0.75rem'} strokeWidth={1.75} />}
+                size="sm"
+                variant="destructive"
                 onClick={isAirbnb ? onAirbnbDisconnect : isOtaChannel ? () => onOtaDisconnectRequest(ota) : undefined}
                 disabled={(isAirbnb && disconnectPending) || disconnectingChannelId === ota.id}
               >
+                <LinkOffIcon size={'0.75rem'} strokeWidth={1.75} />
                 {((isAirbnb && disconnectPending) || disconnectingChannelId === ota.id)
-                  ? <CircularProgress size={12} />
+                  ? <Spinner className="size-3" />
                   : `Déconnecter ${ota.name}`
                 }
               </Button>
             )}
             {!ota.available && (
-              <Typography sx={{ fontSize: '0.71875rem', color: 'var(--faint)' }}>
+              <p className="cn-text-body1 text-[0.71875rem] text-[var(--faint)]">
                 {t('channels.ota.comingSoon')}
-              </Typography>
+              </p>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
       );
     })}
-  </Paper>
+  </div>
 );
 
 export default ChannelsListView;

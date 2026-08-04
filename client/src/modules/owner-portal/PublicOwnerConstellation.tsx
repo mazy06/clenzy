@@ -1,14 +1,8 @@
 import React, { useMemo } from 'react';
+import { Spinner } from '../../components/ui';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Box,
-  CircularProgress,
-  Container,
-  Divider,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Separator } from '../../components/ui';
 import { useTranslation } from 'react-i18next';
 import { API_CONFIG } from '../../config/api';
 
@@ -64,14 +58,14 @@ async function fetchView(token: string): Promise<OwnerConstellationView | null> 
 
 function KpiValue({ label, value }: { label: string; value: string }) {
   return (
-    <Box sx={{ minWidth: 140 }}>
-      <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+    <div className="min-w-[140px]">
+      <span className="cn-text-overline text-muted-foreground leading-[1.4]">
         {label}
-      </Typography>
-      <Typography variant="h6" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+      </span>
+      <h6 className="cn-text-h6 tabular-nums">
         {value}
-      </Typography>
-    </Box>
+      </h6>
+    </div>
   );
 }
 
@@ -112,25 +106,27 @@ export default function PublicOwnerConstellation() {
 
   if (state === 'loading') {
     return (
-      <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <CircularProgress />
-      </Box>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
   if (state === 'notfound' || state === 'error' || !view) {
     return (
-      <Container maxWidth="sm" sx={{ py: 10, textAlign: 'center' }}>
-        <Typography variant="h6" gutterBottom>
+      // Report du Container MUI maxWidth="sm" : largeur bornee 600px, centree,
+      // gouttiere 16px puis 24px au-dela de 600px (breakpoints MUI).
+      <div className="mx-auto w-full max-w-[600px] px-4 min-[600px]:px-6 py-[60px] text-center">
+        <h6 className="cn-text-h6 mb-[0.35em]">
           {t('ownerConstellation.invalidTitle', 'Lien invalide ou expiré')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
+        </h6>
+        <p className="cn-text-body2 text-muted-foreground">
           {t(
             'ownerConstellation.invalidBody',
             'Ce lien de suivi n’est plus actif. Contactez votre conciergerie pour en obtenir un nouveau.'
           )}
-        </Typography>
-      </Container>
+        </p>
+      </div>
     );
   }
 
@@ -139,35 +135,31 @@ export default function PublicOwnerConstellation() {
   const accent = brandingPrimaryColor || '#6B8A9A';
 
   return (
-    <Container maxWidth="md" sx={{ py: { xs: 3, md: 6 } }}>
+    // Report du Container MUI maxWidth="md" (900px) — mêmes gouttières.
+    <div className="mx-auto w-full max-w-[900px] px-4 min-[600px]:px-6 py-[18px] min-[900px]:py-9">
       {/* En-tête white-label : uniquement la conciergerie */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'baseline' }} spacing={1}>
-        <Box>
+      <div className="flex flex-col min-[600px]:flex-row justify-between min-[600px]:items-baseline gap-1.5">
+        <div>
           {brandingLogoUrl && (
-            <Box
-              component="img"
-              src={brandingLogoUrl}
-              alt={conciergerieName}
-              sx={{ maxHeight: 44, maxWidth: 220, display: 'block', mb: 1 }}
-            />
+            <img className="max-h-[44px] max-w-[220px] block mb-1.5" src={brandingLogoUrl} alt={conciergerieName} />
           )}
-          <Typography variant="h5" sx={{ textWrap: 'balance' }}>
+          <h5 className="cn-text-h5 text-balance">
             {conciergerieName}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
+          </h5>
+          <p className="cn-text-body2 text-muted-foreground">
             {t('ownerConstellation.subtitle', 'Espace propriétaire')}
             {ownerDisplayName ? ` — ${ownerDisplayName}` : ''}
-          </Typography>
-        </Box>
-        <Typography variant="caption" color="text.secondary">
+          </p>
+        </div>
+        <span className="cn-text-caption text-muted-foreground">
           {t('ownerConstellation.readOnly', 'Consultation seule')}
-        </Typography>
-      </Stack>
+        </span>
+      </div>
 
-      <Divider sx={{ my: 3 }} />
+      <Separator className="my-[18px]" />
 
       {/* KPIs de l'année (tableau de bord propriétaire) */}
-      <Stack direction="row" spacing={4} useFlexGap flexWrap="wrap">
+      <div className="flex flex-row flex-wrap gap-6">
         <KpiValue label={t('ownerConstellation.grossRevenue', 'Revenus bruts')} value={euros(dashboard.totalRevenue)} />
         <KpiValue label={t('ownerConstellation.commissions', 'Commissions')} value={euros(dashboard.totalCommissions)} />
         <KpiValue label={t('ownerConstellation.netRevenue', 'Net propriétaire')} value={euros(dashboard.netRevenue)} />
@@ -175,57 +167,62 @@ export default function PublicOwnerConstellation() {
           label={t('ownerConstellation.occupancy', 'Occupation')}
           value={`${Math.round((dashboard.averageOccupancy ?? 0) * 100) / 100} %`}
         />
-      </Stack>
+      </div>
 
-      <Divider sx={{ my: 3 }} />
+      <Separator className="my-[18px]" />
 
       {/* Activité des agents, par bien */}
-      <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+      <h6 className="cn-text-subtitle1 font-semibold mb-[0.35em]">
         {t('ownerConstellation.agentActivityTitle', 'Ce que nos agents ont fait pour vos biens (30 derniers jours)')}
-      </Typography>
+      </h6>
 
       {agentActivity.length === 0 && (
-        <Typography variant="body2" color="text.secondary">
+        <p className="cn-text-body2 text-muted-foreground">
           {t('ownerConstellation.noActivity', 'Aucune activité récente à afficher.')}
-        </Typography>
+        </p>
       )}
 
-      <Stack spacing={3} sx={{ mt: 1 }}>
+      <div className="flex flex-col gap-[18px] mt-1.5">
         {agentActivity.map((property) => (
-          <Box key={property.propertyId}>
-            <Stack direction="row" justifyContent="space-between" alignItems="baseline">
-              <Typography variant="subtitle2">{property.propertyName}</Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+          <div key={property.propertyId}>
+            <div className="flex flex-row justify-between items-baseline">
+              <h6 className="cn-text-subtitle2">{property.propertyName}</h6>
+              <span className="cn-text-caption text-muted-foreground tabular-nums">
                 {t('ownerConstellation.counters', '{{actions}} actions · {{suggestions}} suggestions', {
                   actions: property.actionsLast30Days,
                   suggestions: property.suggestionsLast30Days,
                 })}
-              </Typography>
-            </Stack>
-            <Stack spacing={0.75} sx={{ mt: 1, pl: 1.5, borderLeft: '1px solid', borderColor: accent }}>
+              </span>
+            </div>
+            {/* La teinte du filet vient du branding white-label (valeur runtime) :
+                style inline, une classe Tailwind ne peut pas en naitre. */}
+            <div
+              className="flex flex-col gap-[4.5px] mt-1.5 pl-[9px] border-l border-solid"
+              style={{ borderLeftColor: accent }}
+            >
               {property.recent.length === 0 && (
-                <Typography variant="body2" color="text.secondary">
+                <p className="cn-text-body2 text-muted-foreground">
                   {t('ownerConstellation.noPropertyActivity', 'Rien à signaler sur ce bien.')}
-                </Typography>
+                </p>
               )}
               {property.recent.map((line, index) => (
-                <Stack key={index} direction="row" spacing={1.5} alignItems="baseline">
-                  <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                <div key={index} className="flex flex-row gap-[9px] items-baseline">
+                  <span className="cn-text-caption text-muted-foreground whitespace-nowrap tabular-nums">
                     {dateLabel(line.createdAt)}
-                  </Typography>
-                  <Typography variant="body2">{line.summary || line.moduleKey}</Typography>
-                </Stack>
+                  </span>
+                  <p className="cn-text-body2">{line.summary || line.moduleKey}</p>
+                </div>
               ))}
-            </Stack>
-          </Box>
+            </div>
+          </div>
         ))}
-      </Stack>
+      </div>
 
-      <Divider sx={{ my: 4 }} />
+      <Separator className="my-6" />
 
-      <Typography variant="caption" color="text.secondary">
+      <span className="cn-text-caption text-muted-foreground">
         {t('ownerConstellation.footer', 'Rapport préparé par {{name}}.', { name: conciergerieName })}
-      </Typography>
-    </Container>
+      </span>
+    </div>
   );
 }

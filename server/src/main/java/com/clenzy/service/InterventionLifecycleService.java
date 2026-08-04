@@ -38,6 +38,7 @@ public class InterventionLifecycleService {
     private final ObjectMapper objectMapper;
     private final TenantContext tenantContext;
     private final com.clenzy.service.payout.HousekeeperPayoutService housekeeperPayoutService;
+    private final PropertyStockService propertyStockService;
 
     public InterventionLifecycleService(InterventionRepository interventionRepository,
                                         InterventionMapper interventionMapper,
@@ -46,7 +47,8 @@ public class InterventionLifecycleService {
                                         OutboxPublisher outboxPublisher,
                                         ObjectMapper objectMapper,
                                         TenantContext tenantContext,
-                                        com.clenzy.service.payout.HousekeeperPayoutService housekeeperPayoutService) {
+                                        com.clenzy.service.payout.HousekeeperPayoutService housekeeperPayoutService,
+                                        PropertyStockService propertyStockService) {
         this.interventionRepository = interventionRepository;
         this.interventionMapper = interventionMapper;
         this.accessPolicy = accessPolicy;
@@ -55,6 +57,7 @@ public class InterventionLifecycleService {
         this.objectMapper = objectMapper;
         this.tenantContext = tenantContext;
         this.housekeeperPayoutService = housekeeperPayoutService;
+        this.propertyStockService = propertyStockService;
     }
 
     /**
@@ -186,6 +189,14 @@ public class InterventionLifecycleService {
         // preuve photo. Le service gère ses propres transactions + transfert post-commit ;
         // il ne bloque JAMAIS la complétion (gate KO → record BLOCKED motivé).
         housekeeperPayoutService.processPayoutForIntervention(intervention);
+
+        // Stock consommable (M5) : un ménage terminé consomme le linge/produits
+        // configurés. Best-effort en transaction indépendante — ne bloque jamais.
+        if (intervention.getType() != null && intervention.getType().contains("CLEANING")
+                && intervention.getProperty() != null) {
+            propertyStockService.consumeForStay(
+                    intervention.getProperty().getId(), intervention.getOrganizationId());
+        }
 
         return interventionMapper.convertToResponse(intervention);
     }

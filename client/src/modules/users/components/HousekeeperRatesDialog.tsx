@@ -1,17 +1,22 @@
 import React, { useEffect, useState } from 'react';
+import { Alert, AlertDescription, Button } from '../../../components/ui';
+import { TriangleAlert, CircleCheck } from 'lucide-react';
+import { Spinner } from '../../../components/ui';
 import {
-  Box,
-  Button,
-  CircularProgress,
+  Field,
+  FieldLabel,
+  InputGroup,
+  InputGroupInput,
+  InputGroupAddon,
+  InputGroupText,
+} from '../../../components/ui';
+import {
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  InputAdornment,
-  TextField,
-  Typography,
-  Alert,
-} from '@mui/material';
+} from '../../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
@@ -24,10 +29,6 @@ import {
 // Consomme GET/PUT /housekeeper-rates/user/{userId} (gardes backend :
 // SUPER_ADMIN / SUPER_MANAGER). Score qualité 30 j + taux horaire + forfaits
 // par logement avec le nudge fourchette conseil (jamais bloquant).
-
-const NUM_SX = {
-  '& .MuiOutlinedInput-input': { fontVariantNumeric: 'tabular-nums' },
-} as const;
 
 interface HousekeeperRatesDialogProps {
   userId: number | null;
@@ -44,14 +45,9 @@ function RateNudge({ amount, rate }: { amount: number | null; rate: HousekeeperP
     ? Math.round(((amount - rate.advisoryRecommended) / rate.advisoryRecommended) * 100)
     : 0;
   return (
-    <Box
-      component="span"
-      sx={{
-        fontSize: '10.5px',
-        fontWeight: 700,
-        borderRadius: '7px',
-        padding: '2px 7px',
-        whiteSpace: 'nowrap',
+    <span
+      className="text-[10.5px] font-bold rounded-[7px] px-[7px] py-[2px] whitespace-nowrap"
+      style={{
         color: inMarket ? 'var(--ok)' : 'var(--muted)',
         backgroundColor: inMarket
           ? 'color-mix(in srgb, var(--ok) 12%, transparent)'
@@ -61,7 +57,7 @@ function RateNudge({ amount, rate }: { amount: number | null; rate: HousekeeperP
       {inMarket
         ? t('users.ratesDialog.inMarket', 'Dans le marché')
         : `${deltaPct > 0 ? '+' : ''}${deltaPct} %`}
-    </Box>
+    </span>
   );
 }
 
@@ -114,125 +110,154 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
   const score = data?.score;
 
   return (
-    <Dialog open={userId != null} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ pb: 1 }}>
-        {t('users.ratesDialog.title', 'Tarifs & score')}
-        {userName ? ` — ${userName}` : ''}
-      </DialogTitle>
-      <DialogContent dividers>
+    <Dialog open={userId != null} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {t('users.ratesDialog.title', 'Tarifs & score')}
+            {userName ? ` — ${userName}` : ''}
+          </DialogTitle>
+        </DialogHeader>
+        {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+        <div className="border-y border-solid border-[var(--line)] py-3">
         {ratesQuery.isPending && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress size={26} />
-          </Box>
+          <div className="flex justify-center py-6">
+            <Spinner className="size-[26px]" />
+          </div>
         )}
         {ratesQuery.isError && (
-          <Alert severity="error">{t('users.ratesDialog.loadError', 'Impossible de charger les tarifs de ce prestataire.')}</Alert>
+          <Alert variant="destructive">
+            <TriangleAlert />
+            <AlertDescription>{t('users.ratesDialog.loadError', 'Impossible de charger les tarifs de ce prestataire.')}</AlertDescription>
+          </Alert>
         )}
         {data && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <div className="flex flex-col gap-3.5">
             {/* ── Score qualité 30 j ── */}
             {score != null && (
-              <Box>
-                <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)', mb: 0.75 }}>
+              <div>
+                <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-1">
                   {t('settings.myRates.scoreSection', 'Score qualité (30 jours)')}
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, flexWrap: 'wrap' }}>
-                  <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: 600, color: 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>
+                </p>
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[24px] font-semibold text-[var(--accent)] tabular-nums">
                     {score.score}
-                    <Box component="span" sx={{ fontSize: '13px', color: 'var(--muted)', fontWeight: 500 }}>/100</Box>
-                  </Typography>
-                  <Typography sx={{ fontSize: '12px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                    <span className="text-[13px] text-[var(--muted)] font-medium">/100</span>
+                  </p>
+                  <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
                     {t('settings.myRates.scoreDetail', {
                       count: score.completedCount,
                       proof: Math.round(score.proofRate * 100),
                     })}
-                  </Typography>
-                </Box>
-              </Box>
+                  </p>
+                </div>
+              </div>
             )}
 
             {/* ── Taux horaire ── */}
-            <Box>
-              <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)', mb: 0.75 }}>
+            <div>
+              <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-1">
                 {t('settings.myRates.hourlySection', 'Taux horaire')}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                <TextField
-                  label={t('settings.myRates.hourlyRate', 'Taux horaire')}
-                  type="number"
-                  size="small"
-                  value={hourly}
-                  onChange={(e) => setHourly(e.target.value)}
-                  inputProps={{ min: 0, step: 0.5 }}
-                  InputProps={{ endAdornment: <InputAdornment position="end">€/h</InputAdornment> }}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ ...NUM_SX, width: 200 }}
-                />
-                <Typography sx={{ fontSize: '12px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+              </p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <Field className="w-[200px]">
+                  <FieldLabel htmlFor="housekeeper-rates-hourly">
+                    {t('settings.myRates.hourlyRate', 'Taux horaire')}
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id="housekeeper-rates-hourly"
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      className="tabular-nums"
+                      value={hourly}
+                      onChange={(e) => setHourly(e.target.value)}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText>€/h</InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                </Field>
+                <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
                   {t('settings.myRates.referenceRate', 'Taux de référence plateforme')} : {data.referenceHourlyRate} €/h
-                </Typography>
-              </Box>
-            </Box>
+                </p>
+              </div>
+            </div>
 
             {/* ── Forfaits par logement + nudge ── */}
-            <Box>
-              <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)', mb: 0.75 }}>
+            <div>
+              <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-1">
                 {t('settings.myRates.flatSection', 'Forfaits par logement')}
-              </Typography>
+              </p>
               {data.properties.length === 0 ? (
-                <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', fontStyle: 'italic' }}>
+                <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] italic">
                   {t('settings.myRates.noProperties', 'Aucun logement accessible.')}
-                </Typography>
+                </p>
               ) : (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <div className="flex flex-col gap-1.5">
                   {data.properties.map((property) => {
                     const raw = flats[property.propertyId] ?? '';
                     const amount = raw.trim() !== '' && !isNaN(parseFloat(raw)) ? parseFloat(raw) : null;
                     return (
-                      <Box key={property.propertyId} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                        <Typography sx={{ flex: 1, minWidth: 140, fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+                      <div className="flex items-center gap-2 flex-wrap" key={property.propertyId}>
+                        <p className="cn-text-body1 flex-1 min-w-[140px] text-[13px] font-semibold text-[var(--ink)]">
                           {property.propertyName}
-                        </Typography>
-                        <TextField
-                          type="number"
-                          size="small"
-                          value={raw}
-                          placeholder={String(property.advisoryRecommended)}
-                          onChange={(e) => setFlats((prev) => ({ ...prev, [property.propertyId]: e.target.value }))}
-                          inputProps={{ min: 0, step: 1 }}
-                          InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
-                          sx={{ ...NUM_SX, width: 130 }}
-                        />
-                        <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                        </p>
+                        {/* Champ sans libelle visible (le nom du logement est a
+                            gauche) : l'aria-label reste la seule etiquette. */}
+                        <InputGroup className="w-[130px]">
+                          <InputGroupInput
+                            id={`housekeeper-rates-flat-${property.propertyId}`}
+                            type="number"
+                            min={0}
+                            step={1}
+                            className="tabular-nums"
+                            aria-label={t('settings.myRates.flatFieldAria', { name: property.propertyName })}
+                            value={raw}
+                            placeholder={String(property.advisoryRecommended)}
+                            onChange={(e) => setFlats((prev) => ({ ...prev, [property.propertyId]: e.target.value }))}
+                          />
+                          <InputGroupAddon align="inline-end">
+                            <InputGroupText>€</InputGroupText>
+                          </InputGroupAddon>
+                        </InputGroup>
+                        <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums whitespace-nowrap">
                           {property.advisoryMin}–{property.advisoryMax} €
-                        </Typography>
+                        </p>
                         <RateNudge amount={amount} rate={property} />
-                      </Box>
+                      </div>
                     );
                   })}
-                </Box>
+                </div>
               )}
-            </Box>
+            </div>
 
             {saveMutation.isError && (
-              <Alert severity="error">{t('users.ratesDialog.saveError', 'Enregistrement impossible.')}</Alert>
+              <Alert variant="destructive">
+                <TriangleAlert />
+                <AlertDescription>{t('users.ratesDialog.saveError', 'Enregistrement impossible.')}</AlertDescription>
+              </Alert>
             )}
             {saved && !saveMutation.isPending && (
-              <Alert severity="success">{t('users.ratesDialog.saved', 'Tarifs enregistrés.')}</Alert>
+              <Alert variant="success">
+                <CircleCheck />
+                <AlertDescription>{t('users.ratesDialog.saved', 'Tarifs enregistrés.')}</AlertDescription>
+              </Alert>
             )}
-          </Box>
+          </div>
         )}
+        </div>
+        <DialogFooter>
+          <Button onClick={onClose} variant="ghost">{t('common.close', 'Fermer')}</Button>
+          <Button
+            onClick={() => saveMutation.mutate()}
+            disabled={ratesQuery.isPending || saveMutation.isPending || data == null}
+          >
+            {t('common.save', 'Enregistrer')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose}>{t('common.close', 'Fermer')}</Button>
-        <Button
-          variant="contained"
-          onClick={() => saveMutation.mutate()}
-          disabled={ratesQuery.isPending || saveMutation.isPending || data == null}
-        >
-          {t('common.save', 'Enregistrer')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Box,
   Button,
-  IconButton,
   Tooltip,
-  Typography,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+import { cn } from '../../../utils/cn';
 import { Add, Delete, Message as MessageIcon } from '../../../icons';
 import type { ConversationSummary } from '../../../services/api/assistantApi';
 
@@ -43,68 +43,28 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   const grouped = useMemo(() => groupByPeriod(conversations), [conversations]);
 
   return (
-    <Box
-      sx={{
-        width: { xs: '100%', md: 280 },
-        flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        py: 1.5,
-      }}
-    >
-      <Box sx={{ px: 1.5, pb: 1 }}>
-        {/* Soft accent (réf .s-btn--soft) : fond accent-soft + texte accent */}
+    <div className="w-full min-[900px]:w-[280px] shrink-0 flex flex-col py-[9px]">
+      <div className="px-2 pb-1.5">
+        {/* Soft accent (réf .s-btn--soft) : fond accent-soft + texte accent.
+            Le kit n'a pas de variante accent-soft : ghost + les memes jetons
+            que l'ancien sx, l'alignement a gauche reste un choix de sidebar. */}
         <Button
-          fullWidth
+          variant="ghost"
+          size="sm"
           onClick={onNew}
-          startIcon={<Add size={15} strokeWidth={2} />}
-          sx={{
-            justifyContent: 'flex-start',
-            color: 'var(--accent)',
-            fontSize: '12.5px',
-            fontWeight: 600,
-            textTransform: 'none',
-            py: 0.875,
-            px: 1.25,
-            borderRadius: '11px',
-            border: 'none',
-            bgcolor: 'var(--accent-soft)',
-            '&:hover': {
-              bgcolor: 'color-mix(in srgb, var(--accent-soft) 80%, var(--accent) 14%)',
-              border: 'none',
-            },
-          }}
+          className="w-full justify-start bg-[var(--accent-soft)] text-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent-soft)_80%,var(--accent)_14%)] hover:text-[var(--accent)] shrink"
         >
+          <Add size={15} strokeWidth={2} />
           Nouvelle conversation
         </Button>
-      </Box>
+      </div>
 
-      <Box
-        sx={{
-          flex: 1,
-          overflowY: 'auto',
-          px: 0.75,
-          // Scrollbar discrete
-          '&::-webkit-scrollbar': { width: 6 },
-          '&::-webkit-scrollbar-thumb': {
-            bgcolor: 'var(--line-2)',
-            borderRadius: 3,
-          },
-        }}
-      >
+      {/* Scrollbar discrete : borderRadius 3 = 3 x shape.borderRadius (8px) = 24px */}
+      <div className="flex-1 overflow-y-auto px-[4.5px] [&::-webkit-scrollbar]:w-[6px] [&::-webkit-scrollbar-thumb]:bg-[var(--line-2)] [&::-webkit-scrollbar-thumb]:rounded-[24px]">
         {loading && conversations.length === 0 && <SkeletonList />}
 
         {!loading && conversations.length === 0 && (
-          <Box
-            sx={{
-              px: 1.5,
-              py: 3,
-              textAlign: 'center',
-              color: 'var(--muted)',
-              fontSize: '12.5px',
-              lineHeight: 1.5,
-            }}
-          >
+          <div className="px-2 py-4 text-center text-[var(--muted)] text-[12.5px] leading-[1.5]">
             <MessageIcon
               size={20}
               strokeWidth={1.5}
@@ -114,26 +74,14 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
             <div style={{ color: 'var(--faint)', marginTop: 2 }}>
               Lance ta premiere question.
             </div>
-          </Box>
+          </div>
         )}
 
         {grouped.map((group) => (
-          <Box key={group.label} sx={{ mb: 1.5 }}>
-            <Typography
-              sx={{
-                display: 'block',
-                px: 1.5,
-                pt: 1,
-                pb: 0.5,
-                fontSize: '10.5px',
-                letterSpacing: '.06em',
-                textTransform: 'uppercase',
-                fontWeight: 700,
-                color: 'var(--faint)',
-              }}
-            >
+          <div className="mb-2" key={group.label}>
+            <p className="cn-text-body1 block px-2 pt-1.5 pb-0.5 text-[10.5px] tracking-[.06em] uppercase font-bold text-[var(--faint)]">
               {group.label}
-            </Typography>
+            </p>
             {group.items.map((conv) => (
               <ConversationItem
                 key={conv.id}
@@ -143,10 +91,10 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                 onArchive={onArchive}
               />
             ))}
-          </Box>
+          </div>
         ))}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 
@@ -186,65 +134,52 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
   };
 
   return (
-    <Box
+    <div
       onClick={() => onSelect(conversation.id)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 0.5,
-        px: 1.25,
-        py: 0.75,
-        mx: 0.5,
-        borderRadius: '9px',
-        cursor: 'pointer',
-        bgcolor: active ? 'var(--accent-soft)' : 'transparent',
-        transition: 'background .12s',
-        '&:hover': {
-          bgcolor: active ? 'var(--accent-soft)' : 'var(--hover)',
-        },
-        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-      }}
+      className={cn(
+        'flex items-center gap-[3px] px-[7.5px] py-[4.5px] mx-[3px] rounded-[9px] cursor-pointer',
+        'transition-colors duration-[120ms] motion-reduce:transition-none',
+        active ? 'bg-[var(--accent-soft)]' : 'bg-transparent hover:bg-[var(--hover)]',
+      )}
     >
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography
-          sx={{
-            fontSize: '12.5px',
-            fontWeight: active ? 600 : 500,
-            color: active ? 'var(--accent)' : 'var(--body)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            lineHeight: 1.35,
-          }}
+      <div className="flex-1 min-w-0">
+        <p
+          className={cn(
+            'cn-text-body1 text-[12.5px] truncate leading-[1.35]',
+            active ? 'font-semibold text-[var(--accent)]' : 'font-medium text-[var(--body)]',
+          )}
         >
           {title}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
-      <Tooltip title="Archiver" placement="right" enterDelay={400}>
-        <IconButton
-          size="small"
-          onClick={handleArchive}
-          disabled={archiving}
-          sx={{
-            opacity: hovered ? 1 : 0,
-            transition: 'opacity .12s',
-            color: 'var(--muted)',
-            p: 0.25,
-            '&:hover': {
-              bgcolor: 'var(--err-soft)',
-              color: 'var(--err)',
-            },
-            '&:focus-visible': { opacity: 1 },
-          }}
-          aria-label={`Archiver la conversation ${title}`}
-        >
-          <Delete size={13} strokeWidth={1.75} />
-        </IconButton>
+      <Tooltip delayDuration={400}>
+        <TooltipTrigger asChild>
+          {/* Le span porte la ref que Radix pose sur son enfant : Button est une
+              fonction, il n'en transmet pas. */}
+          <span className="inline-flex">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={handleArchive}
+              disabled={archiving}
+              className={cn(
+                'text-[var(--muted)] transition-opacity duration-[120ms] motion-reduce:transition-none',
+                'hover:bg-[var(--err-soft)] hover:text-[var(--err)] focus-visible:opacity-100',
+                hovered ? 'opacity-100' : 'opacity-0',
+              )}
+              aria-label={`Archiver la conversation ${title}`}
+            >
+              <Delete size={13} strokeWidth={1.75} />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="right">Archiver</TooltipContent>
       </Tooltip>
-    </Box>
+    </div>
   );
 };
 
@@ -252,28 +187,13 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
 
 const SkeletonList: React.FC = () => {
   return (
-    <Box sx={{ px: 0.5, pt: 1 }}>
+    <div className="px-0.5 pt-1.5">
       {[80, 65, 75].map((width) => (
-        <Box
-          key={width}
-          sx={{
-            mx: 0.5,
-            mb: 0.5,
-            py: 1,
-            px: 1.25,
-          }}
-        >
-          <Box
-            sx={{
-              width: `${width}%`,
-              height: 11,
-              borderRadius: '6px',
-              bgcolor: 'var(--hover)',
-            }}
-          />
-        </Box>
+        <div className="mx-0.5 mb-0.5 py-1.5 px-2" key={width}>
+          <div className="h-[11px] rounded-[6px] bg-[var(--hover)]" style={{ width: `${width}%` }} />
+        </div>
       ))}
-    </Box>
+    </div>
   );
 };
 

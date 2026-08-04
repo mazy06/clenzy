@@ -1,15 +1,16 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { SELECT_CHIP_CLASS } from './serviceRequestsListConstants';
 import {
-  Box,
-  Grid,
-  Typography,
-  FormControl,
-  InputLabel,
+  Badge,
+  Field,
+  FieldLabel,
   Select,
-  MenuItem,
-  FormHelperText,
-  Chip,
-} from '@mui/material';
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from '../../components/ui';
 import { Person, Group, BlockOutlined } from '../../icons';
 import { Controller, Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
@@ -155,48 +156,29 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
 
         {/* Type d'assignation - Chips */}
         {canAssignForProperty && (
-          <Box sx={{ mb: 2 }}>
-            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 0.75 }}>
+          <div className="mb-3">
+            <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1">
               {t('serviceRequests.fields.assignmentType')}
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+            </p>
+            <div className="flex gap-1 flex-wrap">
               {ASSIGNMENT_TYPES.map((at) => {
                 const isSelected = (watchedAssignedToType || '') === at.value;
                 return (
-                  <Chip
+                  <StatusChip
                     key={at.value}
+                    outlined
+                    selected={isSelected}
+                    pressed={isSelected}
+                    tokens={{ color: at.fg, bg: at.bg }}
                     icon={at.icon}
                     label={at.label}
                     onClick={disabled ? undefined : () => handleAssignmentTypeClick(at.value)}
                     disabled={disabled}
-                    size="small"
-                    aria-pressed={isSelected}
-                    sx={{
-                      height: 30,
-                      fontSize: '11.5px',
-                      fontWeight: isSelected ? 600 : 500,
-                      border: '1px solid',
-                      borderColor: isSelected ? at.fg : 'var(--line-2)',
-                      bgcolor: isSelected ? at.bg : 'var(--card)',
-                      color: isSelected ? at.fg : 'var(--body)',
-                      '& .MuiChip-icon': {
-                        fontSize: 14,
-                        ml: 0.5,
-                        color: isSelected ? at.fg : 'var(--muted)',
-                      },
-                      '& .MuiChip-label': { px: 0.75 },
-                      '&:hover': disabled ? {} : {
-                        bgcolor: isSelected ? at.bg : 'var(--hover)',
-                        borderColor: at.fg,
-                      },
-                      cursor: disabled ? 'default' : 'pointer',
-                      opacity: disabled ? 0.45 : 1,
-                      transition: 'background-color .15s, border-color .15s, color .15s',
-                    }}
+                    className={cn(SELECT_CHIP_CLASS, disabled && 'opacity-45')}
                   />
                 );
               })}
-            </Box>
+            </div>
 
             {/* Indication auto-sélection */}
             {watchedServiceType && (
@@ -204,27 +186,27 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                 const cat = getServiceCategory(watchedServiceType);
                 if (cat === 'cleaning') {
                   return (
-                    <Typography sx={{ fontSize: '10px', color: 'var(--faint)', fontStyle: 'italic', mt: 0.5 }}>
+                    <p className="cn-text-body1 text-[10px] text-[var(--faint)] italic mt-0.5">
                       Type nettoyage → assignation équipe pré-sélectionnée
-                    </Typography>
+                    </p>
                   );
                 }
                 if (cat === 'maintenance') {
                   return (
-                    <Typography sx={{ fontSize: '10px', color: 'var(--faint)', fontStyle: 'italic', mt: 0.5 }}>
+                    <p className="cn-text-body1 text-[10px] text-[var(--faint)] italic mt-0.5">
                       Type maintenance → assignation équipe pré-sélectionnée
-                    </Typography>
+                    </p>
                   );
                 }
                 return null;
               })()
             )}
-          </Box>
+          </div>
         )}
 
         {/* Assignation specifique - Select avec style cohérent */}
         {canAssignForProperty && watchedAssignedToType && (
-          <Box sx={{ mb: 1 }}>
+          <div className="mb-1.5">
             <Controller
               name="assignedToId"
               control={control}
@@ -233,90 +215,82 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                   ? users.find(u => u.id === field.value)
                   : teams.find(t => t.id === field.value);
                 const hasValue = !!selectedItem;
+                const fieldLabel = watchedAssignedToType === 'user'
+                  ? t('serviceRequests.fields.assignedToUser')
+                  : t('serviceRequests.fields.assignedToTeam');
 
                 return (
-                  <FormControl fullWidth disabled={disabled}>
-                    <InputLabel shrink>
-                      {watchedAssignedToType === 'user'
-                        ? t('serviceRequests.fields.assignedToUser')
-                        : t('serviceRequests.fields.assignedToTeam')}
-                    </InputLabel>
+                  <Field>
+                    <FieldLabel htmlFor="service-request-assigned-to">{fieldLabel}</FieldLabel>
+                    {/* Radix Select ne manipule que des chaines : l'id numerique du
+                        formulaire est converti aux deux extremites. */}
                     <Select
-                      value={field.value || ''}
-                      onChange={(e) =>
-                        field.onChange(e.target.value ? Number(e.target.value) : undefined)
-                      }
-                      onBlur={field.onBlur}
-                      label={
-                        watchedAssignedToType === 'user'
-                          ? t('serviceRequests.fields.assignedToUser')
-                          : t('serviceRequests.fields.assignedToTeam')
-                      }
-                      size="small"
+                      value={field.value != null ? String(field.value) : ''}
+                      onValueChange={(v) => field.onChange(v ? Number(v) : undefined)}
                       disabled={disabled}
-                      displayEmpty
-                      notched
-                      renderValue={() => (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    >
+                      <SelectTrigger
+                        id="service-request-assigned-to"
+                        className="w-full"
+                        onBlur={field.onBlur}
+                      >
+                        <div className="flex items-center gap-1">
                           {watchedAssignedToType === 'user' ? (
-                            <Box component="span" sx={{ display: 'inline-flex', color: hasValue ? 'var(--accent)' : 'var(--faint)' }}><Person size={16} strokeWidth={1.75} /></Box>
+                            <span className={cn('inline-flex', hasValue ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Person size={16} strokeWidth={1.75} /></span>
                           ) : (
-                            <Box component="span" sx={{ display: 'inline-flex', color: hasValue ? 'var(--accent)' : 'var(--faint)' }}><Group size={16} strokeWidth={1.75} /></Box>
+                            <span className={cn('inline-flex', hasValue ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Group size={16} strokeWidth={1.75} /></span>
                           )}
-                          <Typography sx={{ fontSize: '12.5px', color: hasValue ? 'var(--body)' : 'var(--faint)' }}>
+                          <span className={cn('cn-text-body1 text-[12.5px]', hasValue ? 'text-[var(--body)]' : 'text-[var(--faint)]')}>
                             {hasValue
                               ? watchedAssignedToType === 'user'
                                 ? `${(selectedItem as typeof users[number]).firstName} ${(selectedItem as typeof users[number]).lastName}`
                                 : (selectedItem as Team).name
                               : t('serviceRequests.fields.select')}
-                          </Typography>
-                        </Box>
-                      )}
-                    >
-                      {watchedAssignedToType === 'user'
-                        ? getAssignableUsers().map((user) => (
-                            <MenuItem key={user.id} value={user.id}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, width: '100%' }}>
-                                <Box component="span" sx={{ display: 'inline-flex', color: matchingSet.has(user.id) ? 'var(--ok)' : 'var(--accent)' }}><Person size={16} strokeWidth={1.75} /></Box>
-                                <Box sx={{ flex: 1, minWidth: 0 }}>
-                                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
-                                    {user.firstName} {user.lastName}
-                                  </Typography>
-                                  <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)' }}>
-                                    {user.role} • {user.email}
-                                  </Typography>
-                                </Box>
-                                {matchingSet.has(user.id) && (
-                                  <Chip
-                                    label="Propose"
-                                    size="small"
-                                    sx={{ height: 18, fontSize: '9.5px', fontWeight: 700, color: 'var(--ok)', bgcolor: 'var(--ok-soft)', '& .MuiChip-label': { px: 0.75 } }}
-                                  />
-                                )}
-                              </Box>
-                            </MenuItem>
-                          ))
-                        : filteredTeams.map((team) => (
-                            <MenuItem key={team.id} value={team.id}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Group size={16} strokeWidth={1.75} /></Box>
-                                <Box>
-                                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)', fontWeight: 500 }}>
-                                    {team.name}
-                                  </Typography>
-                                  <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)' }}>
-                                    {team.memberCount} {t('serviceRequests.members')} • {getInterventionTypeLabel(team.interventionType)}
-                                  </Typography>
-                                </Box>
-                              </Box>
-                            </MenuItem>
-                          ))}
+                          </span>
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {watchedAssignedToType === 'user'
+                          ? getAssignableUsers().map((user) => (
+                              <SelectItem key={user.id} value={String(user.id)}>
+                                <div className="flex items-center gap-1 w-full">
+                                  <span className={cn('inline-flex', matchingSet.has(user.id) ? 'text-[var(--ok)]' : 'text-[var(--accent)]')}><Person size={16} strokeWidth={1.75} /></span>
+                                  <div className="flex-1 min-w-0">
+                                    <span className="cn-text-body1 block text-[12.5px] text-[var(--body)]">
+                                      {user.firstName} {user.lastName}
+                                    </span>
+                                    <span className="cn-text-body1 block text-[10.5px] text-[var(--faint)]">
+                                      {user.role} • {user.email}
+                                    </span>
+                                  </div>
+                                  {matchingSet.has(user.id) && (
+                                    <Badge variant="secondary" className="h-[18px] text-[9.5px] font-bold text-[var(--ok)] bg-[var(--ok-soft)] px-1">Propose</Badge>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))
+                          : filteredTeams.map((team) => (
+                              <SelectItem key={team.id} value={String(team.id)}>
+                                <div className="flex items-center gap-1">
+                                  <span className="inline-flex text-[var(--accent)]"><Group size={16} strokeWidth={1.75} /></span>
+                                  <div>
+                                    <span className="cn-text-body1 block text-[12.5px] text-[var(--body)] font-medium">
+                                      {team.name}
+                                    </span>
+                                    <span className="cn-text-body1 block text-[10.5px] text-[var(--faint)]">
+                                      {team.memberCount} {t('serviceRequests.members')} • {getInterventionTypeLabel(team.interventionType)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                      </SelectContent>
                     </Select>
-                  </FormControl>
+                  </Field>
                 );
               }}
             />
-          </Box>
+          </div>
         )}
       </>
     );

@@ -1,12 +1,10 @@
-import React, { useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Alert,
-  CircularProgress,
-  Snackbar,
-} from '@mui/material';
+import React, { useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { cn } from '../../utils/cn';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { Info, TriangleAlert, X } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { useNotification } from '../../hooks/useNotification';
 import {
   Edit as EditIcon,
   Build as WrenchIcon,
@@ -26,6 +24,8 @@ import {
   getPriorityTokens,
 } from './interventionUtils';
 import InterventionProgressSteps from './InterventionProgressSteps';
+import InterventionQuotesSection from './InterventionQuotesSection';
+import { interventionsKeys } from './useInterventionsList';
 import { NotesDialog, PhotosDialog } from './InterventionDialogs';
 import WorkOrderDetailLayout, {
   type WorkOrderViewModel,
@@ -39,6 +39,8 @@ export default function InterventionDetailsPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
+  const { notify } = useNotification();
+  const queryClient = useQueryClient();
 
   const {
     intervention, loading, error, starting, completing,
@@ -80,25 +82,33 @@ export default function InterventionDetailsPage() {
     canUpdateProgress, handleUpdateProgressValue,
   }), [calculateProgress, areAllStepsCompleted, canUpdateProgress, handleUpdateProgressValue]);
 
+  // Le message de succes reste porte par le hook (etat metier) ; on le consomme
+  // ici en toast puis on le vide, ce qui remplace l'ancienne banniere flottante.
+  useEffect(() => {
+    if (!startSuccessMessage) return;
+    notify.success(startSuccessMessage);
+    setStartSuccessMessage(null);
+  }, [startSuccessMessage, notify, setStartSuccessMessage]);
+
   if (!permissionsLoaded || loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center py-12">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
   if (!canViewInterventions) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="info" sx={{ py: 1 }}>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom>{t('interventions.detail.unauthorized')}</Typography>
-          <Typography variant="body2">
+      <div className="p-3">
+        <BuiAlert variant="info" className="py-1.5">
+          <Info />
+          <AlertDescription><h6 className="cn-text-subtitle1 font-semibold mb-[0.35em]">{t('interventions.detail.unauthorized')}</h6><p className="cn-text-body2">
             {t('interventions.detail.unauthorizedMessage')}
             <br />{t('interventions.detail.unauthorizedContact')}
-          </Typography>
-        </Alert>
-      </Box>
+          </p></AlertDescription>
+        </BuiAlert>
+      </div>
     );
   }
 
@@ -185,9 +195,9 @@ export default function InterventionDetailsPage() {
   const vm = buildViewModel();
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+    <div className="flex flex-col h-full min-h-0">
       {/* ─── Header ──────────────────────────────────────────────────────── */}
-      <Box sx={{ flexShrink: 0 }}>
+      <div className="shrink-0">
         <PageHeader
           title={intervention?.title || t('interventions.detail.title')}
           subtitle={intervention
@@ -206,52 +216,74 @@ export default function InterventionDetailsPage() {
           backLabel={t('interventions.detail.backToList')}
           actions={
             canEditInterventions ? (
-              <Button variant="outlined" startIcon={<EditIcon size={18} strokeWidth={1.75} />}
-                onClick={() => navigate(`/interventions/${id}/edit`)} size="small"
+              <BuiButton variant="outline" size="sm"
+                onClick={() => navigate(`/interventions/${id}/edit`)}
                 title={t('interventions.detail.editButton')}>
+                <EditIcon strokeWidth={1.75} />
                 {t('interventions.detail.editButton')}
-              </Button>
+              </BuiButton>
             ) : undefined
           }
         />
-      </Box>
+      </div>
 
-      {error && <Alert severity="error" sx={{ mb: 1.5, py: 0.75, fontSize: '0.8125rem' }} onClose={() => setError(null)}>{error}</Alert>}
+      {error && <BuiAlert variant="destructive" className="mb-2 py-1 text-[0.8125rem]">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+        <AlertAction>
+          <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+            <X />
+          </BuiButton>
+        </AlertAction>
+      </BuiAlert>}
 
       {/* ─── Content ─────────────────────────────────────────────────────── */}
       {vm && intervention && (
         <WorkOrderDetailLayout
           vm={vm}
           propertyAction={
-            <Button
-              size="small"
+            // Action discrete au coin d'une carte : ghost, et xs pour retrouver
+            // la hauteur 24 que le sx d'origine imposait.
+            <BuiButton
+              variant="ghost"
+              size="xs"
               onClick={() => navigate(`/properties/${intervention.propertyId}`)}
-              sx={{ fontSize: '0.6875rem', textTransform: 'none', py: 0, minHeight: 24 }}
             >
               {t('serviceRequests.details.viewProperty')}
-            </Button>
+            </BuiButton>
           }
           extraSection={
-            <Box sx={{ ...workflowCardSx }}>
-              <Typography sx={WORKFLOW_TITLE_SX}>
-                {t('interventions.detail.workflowTitle', 'Suivi de l\'intervention')}
-              </Typography>
-              <InterventionProgressSteps
-                intervention={intervention}
-                photos={photosProps}
-                rooms={roomsProps}
-                steps={stepsProps}
-                progress={progressProps}
-                handleStartIntervention={handleStartIntervention}
-                handleCompleteIntervention={handleCompleteIntervention}
-                handleReopenIntervention={handleReopenIntervention}
-                starting={starting}
-                completing={completing}
-                canStartIntervention={canStartIntervention}
-                canStartOrUpdateIntervention={canStartOrUpdateIntervention}
-                isBeforeScheduledDate={isBeforeScheduledDate}
+            <>
+              <div className="p-3 mb-[9px] rounded-[14px] bg-[var(--card)] shadow-none border border-solid border-[var(--line)]">
+                <p className={cn(WORKFLOW_TITLE_CLASS, 'cn-text-body1')}>
+                  {t('interventions.detail.workflowTitle', 'Suivi de l\'intervention')}
+                </p>
+                <InterventionProgressSteps
+                  intervention={intervention}
+                  photos={photosProps}
+                  rooms={roomsProps}
+                  steps={stepsProps}
+                  progress={progressProps}
+                  handleStartIntervention={handleStartIntervention}
+                  handleCompleteIntervention={handleCompleteIntervention}
+                  handleReopenIntervention={handleReopenIntervention}
+                  starting={starting}
+                  completing={completing}
+                  canStartIntervention={canStartIntervention}
+                  canStartOrUpdateIntervention={canStartOrUpdateIntervention}
+                  isBeforeScheduledDate={isBeforeScheduledDate}
+                />
+              </div>
+              {/* Devis prestataires (M4) — l'approbation reporte le montant sur le
+                  coût estimé : on invalide la query détail pour rafraîchir les KPI. */}
+              <InterventionQuotesSection
+                interventionId={Number(id)}
+                canEdit={canEditInterventions}
+                onQuoteApproved={() => {
+                  queryClient.invalidateQueries({ queryKey: interventionsKeys.detail(id ?? '') });
+                }}
               />
-            </Box>
+            </>
           }
         />
       )}
@@ -281,36 +313,9 @@ export default function InterventionDetailsPage() {
         onSubmit={handlePhotoUpload}
         uploading={uploadingPhotos}
       />
-
-      <Snackbar
-        open={!!startSuccessMessage}
-        autoHideDuration={6000}
-        onClose={() => setStartSuccessMessage(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity="success" onClose={() => setStartSuccessMessage(null)} sx={{ width: '100%' }}>
-          {startSuccessMessage}
-        </Alert>
-      </Snackbar>
-    </Box>
+    </div>
   );
 }
 
-// Carte hairline plate (.pd-card) hébergeant le suivi interactif de l'intervention.
-const workflowCardSx = {
-  border: '1px solid var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: 2,
-  mb: 1.5,
-} as const;
-
-const WORKFLOW_TITLE_SX = {
-  fontSize: '10.5px',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '.05em',
-  color: 'var(--faint)',
-  mb: 1.5,
-} as const;
+/** Surtitre de la section « suivi » : 10,5 px, capitales espacées, encre pâle. */
+const WORKFLOW_TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-[9px]';

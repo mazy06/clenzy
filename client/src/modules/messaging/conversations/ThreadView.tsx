@@ -1,16 +1,15 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
-  Box,
-  CircularProgress,
-  InputBase,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Spinner,
   Tooltip,
-  Typography,
-} from '@mui/material';
-import type { SxProps, Theme } from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+import { cn } from '../../../utils/cn';
 import {
   ArrowBack as ArrowBackIcon,
   MoreHoriz as MoreHorizIcon,
@@ -21,41 +20,13 @@ import { type ThreadMessage, dayLabel, formatMsgTime } from './unified';
 
 // ─── Styles partagés (référence .mg-ico / .mg-ctool / .mg-send) ──────────────
 
-export const mgIcoSx: SxProps<Theme> = {
-  width: 36,
-  height: 36,
-  borderRadius: '11px',
-  border: '1px solid var(--line-2)',
-  bgcolor: 'var(--card)',
-  color: 'var(--muted)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-  p: 0,
-  flexShrink: 0,
-  transition: 'color .14s, border-color .14s',
-  '&:hover': { color: 'var(--accent)', borderColor: 'var(--accent)' },
-  '&:disabled': { opacity: 0.45, cursor: 'default' },
-};
+// Les anciennes constantes `mgIcoSx` / `composeToolSx` sont supprimees : leurs
+// deux consommateurs (ChannelThread, InternalThread) sont deja passes aux
+// classes equivalentes, plus personne ne les importait.
 
-export const composeToolSx: SxProps<Theme> = {
-  width: 30,
-  height: 30,
-  borderRadius: '8px',
-  border: 0,
-  bgcolor: 'transparent',
-  color: 'var(--muted)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-  p: 0,
-  flexShrink: 0,
-  transition: 'background .14s, color .14s',
-  '&:hover': { bgcolor: 'var(--bg)', color: 'var(--accent)' },
-  '&:disabled': { opacity: 0.45, cursor: 'default' },
-};
+/** Boutons d'icone de l'entete (reference .mg-ico). */
+const MG_ICO_CLS =
+  'flex items-center justify-center shrink-0 p-0 rounded-[11px] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] cursor-pointer [transition:color_.14s,border-color_.14s] hover:text-[var(--accent)] hover:border-[var(--accent)] disabled:opacity-[.45] disabled:cursor-default';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -128,7 +99,6 @@ export default function ThreadView({
   onBack,
 }: ThreadViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
 
   // Auto-scroll en bas à l'arrivée de messages.
   useEffect(() => {
@@ -156,188 +126,129 @@ export default function ThreadView({
   };
 
   return (
-    <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: 0, bgcolor: 'var(--bg)' }}>
+    <div className="flex-1 min-w-0 flex flex-col min-h-0 bg-[var(--bg)]">
       {/* ── Entête 62px ─────────────────────────────────────────────────── */}
-      <Box
-        sx={{
-          height: 62,
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.5,
-          px: 2.5,
-          bgcolor: 'var(--card)',
-          borderBottom: '1px solid var(--line)',
-        }}
-      >
+      <div className="h-[62px] shrink-0 flex items-center gap-2 px-3.5 bg-[var(--card)] border-b border-[var(--line)]">
         {showBack && (
-          <Box component="button" onClick={onBack} aria-label="Retour" sx={{ ...mgIcoSx, width: 32, height: 32 }}>
+          <button onClick={onBack} aria-label="Retour" className={cn(MG_ICO_CLS, 'w-8 h-8')}>
             <ArrowBackIcon size={16} strokeWidth={1.75} />
-          </Box>
+          </button>
         )}
-        <Box sx={{ minWidth: 0 }}>
-          <Typography
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 16,
-              fontWeight: 600,
-              color: 'var(--ink)',
-              lineHeight: 1.25,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
+        <div className="min-w-0">
+          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[16px] font-semibold text-[var(--ink)] leading-[1.25] whitespace-nowrap overflow-hidden text-ellipsis">
             {title}
-          </Typography>
-          <Box sx={{ fontSize: '11.5px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 0.75 }}>
+          </p>
+          <div className="text-[11.5px] text-[var(--muted)] flex items-center gap-1">
             {subtitle}
-          </Box>
-        </Box>
-        <Box sx={{ ml: 'auto', display: 'flex', gap: 1, alignItems: 'center' }}>
+          </div>
+        </div>
+        <div className="ms-auto flex gap-1.5 items-center">
           {actions.map((action) => (
-            <Tooltip key={action.key} title={action.title} arrow>
-              <Box component="button" onClick={action.onClick} aria-label={action.title} sx={mgIcoSx}>
-                {action.icon}
-              </Box>
+            <Tooltip key={action.key}>
+              <TooltipTrigger asChild>
+                <button type="button" onClick={action.onClick} aria-label={action.title} className={cn(MG_ICO_CLS, 'w-9 h-9')}>
+                  {action.icon}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{action.title}</TooltipContent>
             </Tooltip>
           ))}
           {menuItems.length > 0 && (
-            <Box
-              component="button"
-              onClick={(e: React.MouseEvent<HTMLElement>) => setMenuAnchor(e.currentTarget)}
-              aria-label="Plus d'actions"
-              sx={mgIcoSx}
-            >
-              <MoreHorizIcon size={16} strokeWidth={1.75} />
-            </Box>
+            // Le menu flottant devient un DropdownMenu : il s'ancre lui-meme sur
+            // son declencheur, l'etat `menuAnchor` n'a plus lieu d'etre.
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Plus d'actions"
+                  className={cn(MG_ICO_CLS, 'w-9 h-9')}
+                >
+                  <MoreHorizIcon size={16} strokeWidth={1.75} />
+                </button>
+              </DropdownMenuTrigger>
+              {/* `w-auto` : le gabarit cale sinon la largeur du menu sur celle du
+                  declencheur, ici un bouton de 36 px. */}
+              <DropdownMenuContent align="end" className="w-auto min-w-[180px]">
+                {menuItems.map((item) => (
+                  <DropdownMenuItem
+                    key={item.key}
+                    disabled={item.disabled}
+                    onSelect={() => item.onClick()}
+                    className="text-[12.5px] font-semibold gap-1.5"
+                  >
+                    {item.icon && (
+                      <span className="inline-flex min-w-[28px] items-center text-[var(--muted)]">{item.icon}</span>
+                    )}
+                    {item.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
-        </Box>
-        <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
-          {menuItems.map((item) => (
-            <MenuItem
-              key={item.key}
-              disabled={item.disabled}
-              onClick={() => {
-                setMenuAnchor(null);
-                item.onClick();
-              }}
-              sx={{ fontSize: '12.5px', fontWeight: 600 }}
-            >
-              {item.icon && <ListItemIcon sx={{ minWidth: 28, color: 'var(--muted)' }}>{item.icon}</ListItemIcon>}
-              <ListItemText primaryTypographyProps={{ fontSize: '12.5px', fontWeight: 600 }}>
-                {item.label}
-              </ListItemText>
-            </MenuItem>
-          ))}
-        </Menu>
-      </Box>
+        </div>
+      </div>
 
       {/* ── Messages ────────────────────────────────────────────────────── */}
-      <Box
-        ref={scrollRef}
-        sx={{ flex: 1, overflowY: 'auto', p: 2.5, display: 'flex', flexDirection: 'column', gap: 1.5, minHeight: 0 }}
-      >
+      <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-2 min-h-0" ref={scrollRef}>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress size={20} />
-          </Box>
+          <div className="flex justify-center py-6">
+            <Spinner className="size-5" />
+          </div>
         ) : grouped.length === 0 ? (
-          <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', textAlign: 'center', py: 4 }}>
+          <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] text-center py-6">
             Aucun message dans cette conversation
-          </Typography>
+          </p>
         ) : (
           grouped.map((group) => (
             <React.Fragment key={group.day}>
-              <Box
-                sx={{
-                  alignSelf: 'center',
-                  fontSize: '10.5px',
-                  fontWeight: 600,
-                  color: 'var(--faint)',
-                  bgcolor: 'var(--card)',
-                  border: '1px solid var(--line)',
-                  p: '4px 13px',
-                  borderRadius: '20px',
-                }}
-              >
+              <div className="self-center text-[10.5px] font-semibold text-[var(--faint)] bg-[var(--card)] border border-solid border-[var(--line)] p-[4px 13px] rounded-[20px]">
                 {group.day}
-              </Box>
+              </div>
               {group.msgs.map((msg) => (
-                <Box
+                <div
                   key={msg.id}
-                  sx={{
-                    maxWidth: '74%',
-                    p: '11px 14px',
-                    borderRadius: '15px',
-                    fontSize: 13,
-                    lineHeight: 1.5,
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                    ...(msg.out
-                      ? {
-                          alignSelf: 'flex-end',
-                          bgcolor: 'var(--accent)',
-                          color: '#fff',
-                          borderBottomRightRadius: '5px',
-                        }
-                      : {
-                          alignSelf: 'flex-start',
-                          bgcolor: 'var(--card)',
-                          border: '1px solid var(--line)',
-                          color: 'var(--body)',
-                          borderBottomLeftRadius: '5px',
-                        }),
-                  }}
+                  className={cn(
+                    'max-w-[74%] px-[14px] py-[11px] rounded-[15px] text-[13px] leading-[1.5] whitespace-pre-wrap break-words',
+                    msg.out
+                      ? 'self-end bg-[var(--accent)] text-[#fff] rounded-br-[5px]'
+                      : 'self-start bg-[var(--card)] border border-solid border-[var(--line)] text-[var(--body)] rounded-bl-[5px]',
+                  )}
                 >
                   {msg.text}
                   {msg.attachments && msg.attachments.length > 0 && (
-                    <Box sx={{ mt: 0.75, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                    <div className="mt-1 flex flex-col gap-0.5">
                       {msg.attachments.map((name) => (
-                        <Box key={name} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '11px', opacity: 0.85 }}>
+                        <div className="flex items-center gap-0.5 text-[11px] opacity-85" key={name}>
                           <AttachFileIcon size={11} strokeWidth={1.75} />
                           {name}
-                        </Box>
+                        </div>
                       ))}
-                    </Box>
+                    </div>
                   )}
-                  <Box
-                    sx={{
-                      fontSize: '9.5px',
-                      mt: 0.5,
-                      opacity: 0.7,
-                      fontVariantNumeric: 'tabular-nums',
-                      ...(msg.out && { textAlign: 'right' }),
-                    }}
-                  >
+                  {/* mt: 0.5 = 3px (theme.spacing vaut 6 dans ce projet, pas 8). */}
+                  <div className={cn('text-[9.5px] mt-[3px] opacity-70 tabular-nums', msg.out && 'text-right')}>
                     {formatMsgTime(msg.at)}
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               ))}
             </React.Fragment>
           ))
         )}
-      </Box>
+      </div>
 
       {/* ── Compose ─────────────────────────────────────────────────────── */}
-      <Box sx={{ flexShrink: 0, bgcolor: 'var(--card)', borderTop: '1px solid var(--line)' }}>
+      <div className="shrink-0 bg-[var(--card)] border-t border-[var(--line)]">
         {composeNotice}
-        <Box sx={{ p: '14px 20px' }}>
+        <div className="p-[14px 20px]">
           {composeExtra}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'flex-end',
-              gap: 1.25,
-              bgcolor: 'var(--field)',
-              border: '1px solid var(--field-line)',
-              borderRadius: '13px',
-              p: '8px 8px 8px 14px',
-            }}
-          >
-            <InputBase
-              multiline
-              maxRows={4}
+          <div className="flex items-end gap-[7.5px] bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[13px] p-[8px 8px 8px 14px]">
+            {/* `textarea` nu plutot que le primitif Textarea : la boite .mg-cbox
+                porte deja le cadre, le fond et le padding 8/8/8/14 — le gabarit
+                du primitif les doublerait. InputBase etait deja l'input MUI SANS
+                habillage, la transposition est donc a l'identique.
+                `field-sizing-content` + `max-h` reproduisent `maxRows={4}`. */}
+            <textarea
+              rows={1}
               placeholder={composePlaceholder}
               value={draft}
               disabled={composeDisabled}
@@ -348,39 +259,20 @@ export default function ThreadView({
                   handleSend();
                 }
               }}
-              // Réf .mg-cbox textarea : aucun padding propre (la boîte porte le
-              // padding 8/8/8/14), 12.5px lh 1.5, max-height 80.
-              sx={{ flex: 1, fontSize: '12.5px', color: 'var(--body)', lineHeight: 1.5, py: 0, '& textarea': { p: 0, maxHeight: 80 } }}
+              className="flex-1 min-w-0 p-0 border-none bg-transparent outline-none resize-none field-sizing-content max-h-[80px] text-[12.5px] leading-[1.5] text-[var(--body)] placeholder:text-[var(--faint)] disabled:opacity-50"
             />
             {composeTools}
-            <Box
-              component="button"
+            <button
               onClick={handleSend}
               disabled={!canSend}
               aria-label="Envoyer"
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: '11px',
-                bgcolor: 'var(--accent)',
-                color: '#fff',
-                border: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                flexShrink: 0,
-                transition: 'transform .12s, background .14s',
-                '&:hover': { bgcolor: 'var(--accent-deep)' },
-                '&:active': { transform: 'scale(.97)' },
-                '&:disabled': { opacity: 0.45, cursor: 'default' },
-              }}
+              className="flex items-center justify-center shrink-0 w-9 h-9 rounded-[11px] border-0 bg-[var(--accent)] text-[#fff] cursor-pointer [transition:transform_.12s,background_.14s] hover:bg-[var(--accent-deep)] active:scale-[.97] disabled:opacity-[.45] disabled:cursor-default"
             >
-              {sending ? <CircularProgress size={15} sx={{ color: '#fff' }} /> : <SendIcon size={15} strokeWidth={1.75} />}
-            </Box>
-          </Box>
-        </Box>
-      </Box>
-    </Box>
+              {sending ? <Spinner className="size-[15px] text-[#fff]" /> : <SendIcon size={15} strokeWidth={1.75} />}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

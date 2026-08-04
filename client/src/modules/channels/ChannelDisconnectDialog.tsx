@@ -1,12 +1,16 @@
 import React from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
   Alert,
-} from '@mui/material';
+  AlertDescription,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import type { OtaChannel } from '../../services/channels/otaChannels';
 
 interface ChannelDisconnectDialogProps {
@@ -32,26 +36,38 @@ const ChannelDisconnectDialog: React.FC<ChannelDisconnectDialogProps> = ({
     return null;
   };
 
+  const sharedWarning = channel ? getSharedChannelWarning(channel.id) : null;
+
   return (
-    <Dialog open={!!channel} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>
-        {t('channels.connect.disconnectConfirm', { channel: channel?.name ?? '' })}
-      </DialogTitle>
-      <DialogContent>
-        {channel && getSharedChannelWarning(channel.id) && (
-          <Alert severity="warning" sx={{ fontSize: '0.8125rem' }}>
-            {getSharedChannelWarning(channel.id)}
+    <Dialog open={!!channel} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="pe-8">
+            {t('channels.connect.disconnectConfirm', { channel: channel?.name ?? '' })}
+          </DialogTitle>
+          {/* Le seul corps de cette modale est l'avertissement de backend partage :
+              quand il n'y a rien a dire, la description reste vide plutot qu'inventee. */}
+          <DialogDescription className="sr-only">
+            {t('channels.airbnb.disconnect')}
+          </DialogDescription>
+        </DialogHeader>
+
+        {sharedWarning && (
+          <Alert variant="warning" className="text-[0.8125rem]">
+            <TriangleAlert />
+            <AlertDescription>{sharedWarning}</AlertDescription>
           </Alert>
         )}
+
+        <DialogFooter>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          <Button variant="destructive" size="sm" onClick={onConfirm}>
+            {t('channels.airbnb.disconnect')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions sx={{ px: 2.5, pb: 2 }}>
-        <Button size="small" onClick={onClose} sx={{ textTransform: 'none' }}>
-          {t('common.cancel')}
-        </Button>
-        <Button size="small" variant="contained" color="error" onClick={onConfirm} sx={{ textTransform: 'none' }}>
-          {t('channels.airbnb.disconnect')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };

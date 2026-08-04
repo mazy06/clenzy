@@ -1,10 +1,6 @@
 import React from 'react';
-import {
-  Box,
-  CircularProgress,
-  Typography,
-  Button
-} from '@mui/material';
+import { cn } from '../utils/cn';
+import { Button, Spinner } from './ui';
 import { Refresh, Warning as WarningIcon } from '../icons';
 
 interface LoadingStatesProps {
@@ -57,82 +53,50 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
   }
 
   return (
-    <Box sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '100vh',
-      gap: 2,
-      p: 3,
-      bgcolor: 'var(--bg)'
-    }}>
+    <div className="flex flex-col items-center justify-center h-[100vh] gap-3 p-4 bg-[var(--bg)]">
       {state === 'error-loading' ? (
         // Alerte pleine largeur — pattern .rm-conflict : fond -soft + border color-mix 30%
-        <Box
+        <div
           role="alert"
-          sx={{
-            maxWidth: 500,
-            width: '100%',
-            backgroundColor: 'var(--err-soft)',
-            border: '1px solid color-mix(in srgb, var(--err) 30%, transparent)',
-            borderRadius: '12px',
-            padding: '13px 16px',
-          }}
+          className="w-full max-w-[500px] rounded-[12px] px-4 py-[13px] bg-[var(--err-soft)] border border-solid border-[color-mix(in_srgb,var(--err)_30%,transparent)]"
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '13.5px', fontWeight: 700, color: 'var(--ink)' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}>
+          <div className="flex items-center gap-[9px] text-[13.5px] font-bold text-[var(--ink)]">
+            <span className="inline-flex text-[var(--err)]">
               <WarningIcon size={17} strokeWidth={1.75} />
-            </Box>
+            </span>
             {title}
-          </Box>
-          <Typography sx={{ fontSize: '12.5px', color: 'var(--body)', mt: 0.75 }}>
+          </div>
+          <p className="cn-text-body1 text-[12.5px] text-[var(--body)] mt-1">
             {description}
-          </Typography>
+          </p>
           {(onRetry || onClearError) && (
-            <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
+            <div className="flex gap-1.5 mt-2">
               {onRetry && (
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={onRetry}
-                  startIcon={<Refresh size={13} strokeWidth={1.75} />}
-                >
+                <Button variant="outline" size="sm" onClick={onRetry}>
+                  <Refresh strokeWidth={1.75} />
                   Réessayer
                 </Button>
               )}
               {onClearError && (
-                <Button
-                  variant="text"
-                  size="small"
-                  onClick={onClearError}
-                >
+                <Button variant="ghost" size="sm" onClick={onClearError}>
                   Ignorer
                 </Button>
               )}
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
       ) : (
         <>
-          <CircularProgress size={32} thickness={3.5} sx={{ color: 'var(--accent)' }} />
-          <Typography
-            textAlign="center"
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 16,
-              fontWeight: 600,
-              letterSpacing: '-.01em',
-              color: 'var(--ink)',
-            }}
-          >
+          <Spinner className="size-8 text-[var(--accent)]" />
+          <p className="cn-text-body1 text-center text-[16px] font-semibold tracking-[-.01em] text-[var(--ink)]" style={{ fontFamily: 'var(--font-display)' }}>
             {title}
-          </Typography>
-          <Typography textAlign="center" sx={{ fontSize: '12.5px', color: 'var(--muted)', mt: -1 }}>
+          </p>
+          {/* mt: -1 avec theme.spacing = 6 -> -6px, soit -mt-1.5 sur l'echelle Tailwind */}
+          <p className="cn-text-body1 text-center text-[12.5px] text-[var(--muted)] -mt-1.5">
             {description}
-          </Typography>
+          </p>
         </>
       )}
-    </Box>
+    </div>
   );
 };

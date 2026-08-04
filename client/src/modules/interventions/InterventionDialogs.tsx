@@ -1,15 +1,15 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
+import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
+import { CircleCheck, Info } from 'lucide-react';
 import {
-  Box,
-  Typography,
-  Button,
-  Alert,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-} from '@mui/material';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui';
+import { Textarea } from '../../components/ui';
 import {
   PhotoCamera as PhotoCameraIcon,
 } from '../../icons';
@@ -45,30 +45,40 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
   onStepNotesChange
 }) => {
   const { t } = useTranslation();
+  // Le champ n'a jamais eu de libelle visible : c'est le titre du dialogue qui
+  // le nomme. On le reprend en aria-label pour ne pas laisser la zone anonyme.
+  const notesAriaLabel =
+    currentStep === 'inspection'
+      ? t('interventions.dialogs.notesInspectionTitle')
+      : currentStep === 'rooms'
+        ? t('interventions.dialogs.notesRoomsTitle')
+        : t('interventions.dialogs.notesAfterTitle');
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-    >
-      <DialogTitle>
-        {currentStep === 'inspection' && t('interventions.dialogs.notesInspectionTitle')}
-        {currentStep === 'rooms' && t('interventions.dialogs.notesRoomsTitle')}
-        {currentStep === 'after_photos' && t('interventions.dialogs.notesAfterTitle')}
-      </DialogTitle>
-      <DialogContent>
-        <Alert severity="info" sx={{ mb: 2, mt: 1 }}>
-          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+    // maxWidth="md" MUI = 900 px.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[900px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {currentStep === 'inspection' && t('interventions.dialogs.notesInspectionTitle')}
+            {currentStep === 'rooms' && t('interventions.dialogs.notesRoomsTitle')}
+            {currentStep === 'after_photos' && t('interventions.dialogs.notesAfterTitle')}
+          </DialogTitle>
+        </DialogHeader>
+        <UiAlert variant="info" className="mb-3 mt-1.5">
+          <Info />
+          <AlertDescription><p className="cn-text-body2 text-[0.85rem]">
             {currentStep === 'inspection' && t('interventions.dialogs.notesInspectionAlert')}
             {currentStep === 'rooms' && t('interventions.dialogs.notesRoomsAlert')}
             {currentStep === 'after_photos' && t('interventions.dialogs.notesAfterAlert')}
-          </Typography>
-        </Alert>
-        <TextField
-          multiline
+          </p></AlertDescription>
+        </UiAlert>
+        <Textarea
+          id="intervention-notes"
+          aria-label={notesAriaLabel}
           rows={6}
-          fullWidth
+          // Le primitif pose field-sizing:content, qui neutralise `rows` :
+          // la hauteur de depart se garantit en min-h.
+          className="w-full mt-[6px] min-h-[6lh]"
           value={notesValue}
           onChange={(e) => {
             onNotesChange(e.target.value);
@@ -92,26 +102,22 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
               ? t('interventions.dialogs.notesRoomsPlaceholder')
               : t('interventions.dialogs.notesAfterPlaceholder')
           }
-          sx={{ mt: 1 }}
         />
-        <Alert severity="info" sx={{ mt: 1, py: 0.5 }}>
-          <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
+        <UiAlert variant="info" className="mt-1.5 py-0.5">
+          <Info />
+          <AlertDescription><span className="cn-text-caption text-[0.75rem]">
             {t('interventions.dialogs.notesAutoSave')}
-          </Typography>
-        </Alert>
+          </span></AlertDescription>
+        </UiAlert>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            {t('interventions.dialogs.cancel')}
+          </Button>
+          <Button onClick={onSubmit} disabled={updating}>
+            {updating ? t('interventions.dialogs.saving') : t('interventions.dialogs.save')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>
-          {t('interventions.dialogs.cancel')}
-        </Button>
-        <Button
-          onClick={onSubmit}
-          variant="contained"
-          disabled={updating}
-        >
-          {updating ? t('interventions.dialogs.saving') : t('interventions.dialogs.save')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };
@@ -141,32 +147,25 @@ export const PhotosDialog: React.FC<PhotosDialogProps> = ({
 }) => {
   const { t } = useTranslation();
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle>
-        <Box display="flex" alignItems="center" gap={1}>
-          <Box component="span" sx={{ display: 'inline-flex', color: photoType === 'before' ? 'var(--accent)' : 'var(--ok)' }}><PhotoCameraIcon size={20} strokeWidth={1.75} /></Box>
-          <Typography variant="h6">
+    // maxWidth="sm" MUI = 600 px.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          {/* Le titre porte deja la typo h6 du gabarit : plus de <h6> imbrique. */}
+          <DialogTitle className="flex items-center gap-1.5">
+            <span className={cn('inline-flex', photoType === 'before' ? 'text-[var(--accent)]' : 'text-[var(--ok)]')}><PhotoCameraIcon size={20} strokeWidth={1.75} /></span>
             {photoType === 'before' ? t('interventions.dialogs.photosBeforeTitle') : t('interventions.dialogs.photosAfterTitle')}
-          </Typography>
-        </Box>
-      </DialogTitle>
-      <DialogContent>
-        <Box sx={{ pt: 2 }}>
-          <Alert
-            severity={photoType === 'before' ? 'info' : 'success'}
-            sx={{ mb: 2 }}
-          >
-            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+          </DialogTitle>
+        </DialogHeader>
+        <div className="pt-3">
+          <UiAlert variant={photoType === 'before' ? 'info' : 'success'} className="mb-3">
+            {photoType === 'before' ? <Info /> : <CircleCheck />}
+            <AlertDescription><p className="cn-text-body2 text-[0.85rem]">
               {photoType === 'before'
                 ? t('interventions.dialogs.photosBeforeAlert')
                 : t('interventions.dialogs.photosAfterAlert')}
-            </Typography>
-          </Alert>
+            </p></AlertDescription>
+          </UiAlert>
           <PhotoUploader
             photos={selectedPhotos}
             onPhotosChange={onPhotosChange}
@@ -180,20 +179,16 @@ export const PhotosDialog: React.FC<PhotosDialogProps> = ({
             }
             columns={2}
           />
-        </Box>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            {t('interventions.dialogs.cancel')}
+          </Button>
+          <Button onClick={onSubmit} disabled={uploading || selectedPhotos.length === 0}>
+            {uploading ? t('interventions.dialogs.uploading') : t('interventions.dialogs.add')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>
-          {t('interventions.dialogs.cancel')}
-        </Button>
-        <Button
-          onClick={onSubmit}
-          variant="contained"
-          disabled={uploading || selectedPhotos.length === 0}
-        >
-          {uploading ? t('interventions.dialogs.uploading') : t('interventions.dialogs.add')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };

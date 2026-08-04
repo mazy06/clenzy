@@ -1,5 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Box, CircularProgress, InputBase, Tooltip, Typography, Alert } from '@mui/material';
+import { cn } from '../../../utils/cn';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Input, Spinner, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import {
   Search as SearchIcon,
   Archive as ArchiveIcon,
@@ -56,211 +59,86 @@ function ConversationRow({
 }) {
   const badge = getChannelBadge(item.channel);
   return (
-    <Box
+    // gap: 1.5 = 9px (theme.spacing vaut 6 dans ce projet). Le survol de la rangee
+    // revele l'action Archiver et masque la pastille non-lus : selecteurs descendants.
+    <div
       onClick={onSelect}
       data-highlight-id={conversationRawId(item) || undefined}
-      sx={{
-        display: 'flex',
-        gap: 1.5,
-        p: '13px 16px',
-        borderBottom: '1px solid var(--line)',
-        cursor: onSelect ? 'pointer' : 'default',
-        position: 'relative',
-        transition: 'background .12s',
-        bgcolor: active ? 'var(--accent-soft)' : 'transparent',
-        '&:hover': { bgcolor: active ? 'var(--accent-soft)' : onSelect ? 'var(--bg)' : 'transparent' },
-        ...(active && {
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 3,
-            bgcolor: 'var(--accent)',
-          },
-        }),
-        '&:hover .mg-archive': { opacity: 1, pointerEvents: 'auto' },
-        '&:hover .mg-unread': { opacity: 0 },
-      }}
+      className={cn(
+        'relative flex gap-[9px] px-4 py-[13px] border-b border-solid border-[var(--line)] [transition:background_.12s]',
+        'hover:[&_.mg-archive]:opacity-100 hover:[&_.mg-archive]:pointer-events-auto hover:[&_.mg-unread]:opacity-0',
+        onSelect ? 'cursor-pointer' : 'cursor-default',
+        active
+          ? "bg-[var(--accent-soft)] before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[var(--accent)]"
+          : cn('bg-transparent', onSelect && 'hover:bg-[var(--bg)]'),
+      )}
     >
       {/* Avatar initiales + pastille canal coin bas-droit */}
-      <Box
-        sx={{
-          width: 44,
-          height: 44,
-          borderRadius: '13px',
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontFamily: 'var(--font-display)',
-          fontWeight: 600,
-          fontSize: 15,
-          color: '#fff',
-          bgcolor: avatarColor(item.name),
-          position: 'relative',
-        }}
-      >
+      <div className="w-[44px] h-[44px] rounded-[13px] shrink-0 flex items-center justify-center font-semibold text-[15px] text-[#fff] relative" style={{ fontFamily: 'var(--font-display)', backgroundColor: avatarColor(item.name) }}>
         {initials(item.name)}
-        <Box
-          sx={{
-            position: 'absolute',
-            bottom: -3,
-            right: -3,
-            width: 18,
-            height: 18,
-            borderRadius: '7px',
-            border: '2px solid var(--card)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            bgcolor: badge.color,
-            color: '#fff',
-          }}
-        >
+        <div className="absolute w-[18px] h-[18px] rounded-[7px] border-[2px] border-solid border-[var(--card)] flex items-center justify-center text-[#fff]" style={{ bottom: -3, right: -3, backgroundColor: badge.color }}>
           <badge.Icon size={10} strokeWidth={2.5} />
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-          <Typography
-            component="span"
-            sx={{
-              fontSize: '13.5px',
-              fontWeight: 600,
-              color: 'var(--ink)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1">
+          <span className="text-[13.5px] font-semibold text-[var(--ink)] whitespace-nowrap overflow-hidden text-ellipsis">
             {item.name}
-          </Typography>
-          <Typography
-            component="span"
-            sx={{ ml: 'auto', fontSize: '10.5px', color: 'var(--faint)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}
-          >
+          </span>
+          <span className="ms-auto text-[10.5px] text-[var(--faint)] shrink-0 tabular-nums">
             {formatConvTime(item.lastAt)}
-          </Typography>
-        </Box>
-        <Typography sx={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600, m: '2px 0 3px' }}>
+          </span>
+        </div>
+        <p className="cn-text-body1 text-[11px] text-[var(--accent)] font-semibold m-[2px 0 3px]">
           {item.context}
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: '12px',
-            color: 'var(--muted)',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
+        </p>
+        <p className="cn-text-body1 text-[12px] text-[var(--muted)] whitespace-nowrap overflow-hidden text-ellipsis">
           {item.preview}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       {/* Badge non-lus (masqué au hover au profit de l'action archiver) */}
       {!onRestore && item.unreadCount > 0 && (
-        <Box
-          className="mg-unread"
-          sx={{
-            position: 'absolute',
-            right: 16,
-            bottom: 16,
-            minWidth: 18,
-            height: 18,
-            borderRadius: '9px',
-            bgcolor: 'var(--accent)',
-            color: '#fff',
-            fontSize: '10px',
-            fontWeight: 700,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            px: '5px',
-            transition: 'opacity .12s',
-          }}
-        >
+        <div className="mg-unread absolute end-[16px] bottom-[16px] min-w-[18px] h-[18px] rounded-[9px] bg-[var(--accent)] text-[#fff] text-[10px] font-bold flex items-center justify-center px-[5px]" style={{ transition: 'opacity .12s' }}>
           {item.unreadCount}
-        </Box>
+        </div>
       )}
 
       {/* Archiver — visible au hover */}
       {onArchive && archiveTitle && (
-        <Tooltip title={archiveTitle} arrow>
-          <Box
-            component="button"
-            className="mg-archive"
-            aria-label={archiveTitle}
-            onClick={(e: React.MouseEvent) => {
-              e.stopPropagation();
-              onArchive();
-            }}
-            sx={{
-              position: 'absolute',
-              right: 12,
-              bottom: 12,
-              width: 26,
-              height: 26,
-              borderRadius: '8px',
-              border: '1px solid var(--line-2)',
-              bgcolor: 'var(--card)',
-              color: 'var(--muted)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              p: 0,
-              opacity: 0,
-              pointerEvents: 'none',
-              transition: 'opacity .12s, color .14s, border-color .14s',
-              '&:hover': { color: 'var(--accent)', borderColor: 'var(--accent)' },
-            }}
-          >
-            <ArchiveIcon size={13} strokeWidth={1.75} />
-          </Box>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button className="mg-archive absolute end-[12px] bottom-[12px] w-[26px] h-[26px] rounded-[8px] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] flex items-center justify-center cursor-pointer p-0 opacity-0 pointer-events-none hover:text-[var(--accent)] hover:border-[var(--accent)]" style={{ transition: 'opacity .12s, color .14s, border-color .14s' }} aria-label={archiveTitle} onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                onArchive();
+              }}>
+              <ArchiveIcon size={13} strokeWidth={1.75} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{archiveTitle}</TooltipContent>
         </Tooltip>
       )}
 
       {/* Rouvrir / Restaurer — toujours visible (vue Archivés) */}
       {onRestore && restoreTitle && (
-        <Tooltip title={restoreTitle} arrow>
-          <Box
-            component="button"
-            aria-label={restoreTitle}
-            onClick={(e: React.MouseEvent) => {
-              e.stopPropagation();
-              onRestore();
-            }}
-            sx={{
-              alignSelf: 'center',
-              flexShrink: 0,
-              width: 30,
-              height: 30,
-              borderRadius: '8px',
-              border: '1px solid var(--line-2)',
-              bgcolor: 'var(--card)',
-              color: 'var(--muted)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              p: 0,
-              transition: 'color .14s, border-color .14s',
-              '&:hover': { color: 'var(--accent)', borderColor: 'var(--accent)' },
-            }}
-          >
-            {item.kind === 'form' ? (
-              <RestoreIcon size={14} strokeWidth={1.75} />
-            ) : (
-              <UnarchiveIcon size={14} strokeWidth={1.75} />
-            )}
-          </Box>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button className="self-center shrink-0 w-[30px] h-[30px] rounded-[8px] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] flex items-center justify-center cursor-pointer p-0 hover:text-[var(--accent)] hover:border-[var(--accent)]" style={{ transition: 'color .14s, border-color .14s' }} aria-label={restoreTitle} onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                onRestore();
+              }}>
+              {item.kind === 'form' ? (
+                <RestoreIcon size={14} strokeWidth={1.75} />
+              ) : (
+                <UnarchiveIcon size={14} strokeWidth={1.75} />
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{restoreTitle}</TooltipContent>
         </Tooltip>
       )}
-    </Box>
+    </div>
   );
 }
 
@@ -308,22 +186,17 @@ export default function ConversationList({
   return (
     <>
       {/* En-tête liste : recherche + pilules */}
-      <Box sx={{ p: '14px 16px', display: 'flex', flexDirection: 'column', gap: 1.375, borderBottom: '1px solid var(--line)' }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.125,
-            height: 38,
-            px: '13px',
-            bgcolor: 'var(--field)',
-            border: '1px solid var(--field-line)',
-            borderRadius: '11px',
-            color: 'var(--faint)',
-          }}
-        >
+      <div className="p-[14px 16px] flex flex-col gap-[8.25px]" style={{ borderBottom: '1px solid var(--line)' }}>
+        <div className="flex items-center gap-[6.75px] h-[38px] px-[13px] bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[11px] text-[var(--faint)]">
           <SearchIcon size={15} strokeWidth={1.75} />
-          <InputBase
+          {/* Champ NU : la boite de recherche (fond, liseré, hauteur) est le div
+              parent — le gabarit du kit est donc entierement neutralise ici. */}
+          <Input
+            aria-label={
+              isArchivedView
+                ? t('messagingHub.searchArchivedPlaceholder', 'Rechercher dans les archives…')
+                : t('messagingHub.searchPlaceholder', 'Rechercher une conversation…')
+            }
             placeholder={
               isArchivedView
                 ? t('messagingHub.searchArchivedPlaceholder', 'Rechercher dans les archives…')
@@ -331,51 +204,38 @@ export default function ConversationList({
             }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            sx={{ flex: 1, fontSize: '12.5px', color: 'var(--body)', '& input': { p: 0 } }}
+            // `md:text-[12.5px]` est indispensable : le gabarit pose `md:text-sm`,
+            // qui gagnerait sur une taille sans variante des 768 px.
+            className="flex-1 h-auto rounded-none border-0 bg-transparent p-0 text-[12.5px] md:text-[12.5px] text-[var(--body)] shadow-none focus-visible:border-0 focus-visible:ring-0"
           />
-        </Box>
-        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+        </div>
+        <div className="flex gap-1 flex-wrap">
           {subTabs
             .flatMap((tab) => {
               if (tab.hidden) return [];
               const active = filter === tab.value;
               return [
-                <Box
-                  key={tab.value}
-                  component="button"
-                  onClick={() => onFilterChange(tab.value)}
-                  sx={{
-                    fontFamily: 'inherit',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: active ? '#fff' : 'var(--muted)',
-                    p: '6px 13px',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    border: 0,
-                    bgcolor: active ? 'var(--accent)' : 'var(--field)',
-                    transition: 'background .14s, color .14s',
-                  }}
-                >
+                <button className={cn('text-[12px] font-semibold p-[6px 13px] rounded-[8px] cursor-pointer', active ? 'text-[#fff]' : 'text-[var(--muted)]', active ? 'bg-[var(--accent)]' : 'bg-[var(--field)]')} style={{ fontFamily: 'inherit', border: 0, transition: 'background .14s, color .14s' }} key={tab.value} onClick={() => onFilterChange(tab.value)}>
                   {tab.label}
-                </Box>,
+                </button>,
               ];
             })}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Conversations + formulaires */}
-      <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+      <div className="flex-1 overflow-y-auto min-h-0">
         {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress size={22} />
-          </Box>
+          <div className="flex justify-center py-6">
+            <Spinner className="size-[22px]" />
+          </div>
         ) : error ? (
-          <Alert severity="error" sx={{ m: 1.5, fontSize: '0.8125rem' }}>
-            {t('messagingHub.errorLoading', 'Impossible de charger les conversations.')}
+          <Alert variant="destructive" className="m-2 text-[0.8125rem]">
+            <TriangleAlert />
+            <AlertDescription>{t('messagingHub.errorLoading', 'Impossible de charger les conversations.')}</AlertDescription>
           </Alert>
         ) : filtered.length === 0 ? (
-          <Typography sx={{ px: 2, py: 4, textAlign: 'center', fontSize: '12.5px', color: 'var(--muted)' }}>
+          <p className="cn-text-body1 px-3 py-6 text-center text-[12.5px] text-[var(--muted)]">
             {search.trim()
               ? t('messagingHub.noSearchResults', 'Aucun résultat')
               : isArchivedView
@@ -383,7 +243,7 @@ export default function ConversationList({
                 : filter === 'forms'
                   ? t('messagingHub.noForms', 'Aucun formulaire reçu')
                   : t('messagingHub.noConversations', 'Aucune conversation')}
-          </Typography>
+          </p>
         ) : (
           filtered.map((item) =>
             isArchivedView ? (
@@ -417,7 +277,7 @@ export default function ConversationList({
             ),
           )
         )}
-      </Box>
+      </div>
     </>
   );
 }

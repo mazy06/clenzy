@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
+import { Alert as UiAlert, AlertAction, AlertDescription } from '../../components/ui';
+import { Info, TriangleAlert, CircleCheck, X } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Button } from '../../components/ui';
+import { Card } from '../../components/ui';
 import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Chip,
-  CircularProgress,
-  Alert,
-  Divider,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogContentText,
-  DialogActions,
-  TextField,
-} from '@mui/material';
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Separator,
+} from '../../components/ui';
+import { cn } from '../../utils/cn';
 import {
   Link as LinkIcon,
   LinkOff as LinkOffIcon,
@@ -45,11 +45,7 @@ import { marketDataConnectionApi, type MarketDataProvider } from '../../services
 import MarketDataProviderCard from './components/MarketDataProviderCard';
 import { kycConnectionApi, type KycProvider } from '../../services/api/kycConnectionApi';
 import KycProviderCard from './components/KycProviderCard';
-import {
-  COMING_SOON_CHIP_SX,
-  DISABLED_CARDS_SX,
-  blockInteraction,
-} from './components/disabledIntegration';
+import { blockInteraction } from './components/disabledIntegration';
 import { channelManagerConnectionApi, type ChannelManagerProvider } from '../../services/api/channelManagerConnectionApi';
 import ChannelManagerProviderCard from './components/ChannelManagerProviderCard';
 import ChannexMappingDialog from './components/ChannexMappingDialog';
@@ -92,65 +88,27 @@ import { useMarketingIntegration } from '../../hooks/useMarketingIntegration';
 // ─── Style helpers (Baitly palette) ─────────────────────────────────────────
 
 const ACCENT = 'var(--ok)';
-const PRIMARY = 'var(--accent)';
-const DANGER = 'var(--err)';
 const NEUTRAL = 'var(--muted)';
 const WARM = 'var(--warn)';
+
+// Grille des cards « Bientot disponible » — report de DISABLED_CARDS_SX (le jeton
+// MUI `divider` vaut var(--line)). Le `!important` d'origine n'est pas repris : les
+// selecteurs generes ici (classe + attribut + pseudo-classe) l'emportent deja sur
+// les utilitaires `hover:` portes par la card elle-meme. On evite toujours
+// `pointer-events: none`, qui tuerait aussi le hover et donc les tooltips.
+const DISABLED_GRID_CLASS = cn(
+  'grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5',
+  'opacity-[0.55] grayscale-[0.7] select-none',
+  '[&_[role=radio]]:cursor-not-allowed [&_[role=button]]:cursor-not-allowed',
+  '[&_[role=radio]:hover]:border-[var(--line)] [&_[role=button]:hover]:border-[var(--line)]',
+  '[&_[role=radio]:hover]:bg-transparent [&_[role=button]:hover]:bg-transparent',
+  '[&_[role=radio]:hover]:shadow-none [&_[role=button]:hover]:shadow-none',
+  '[&_[role=radio]:focus-visible]:shadow-none [&_[role=button]:focus-visible]:shadow-none',
+);
 
 // Channex est la seule integration fonctionnelle pour l'instant ; toutes les
 // autres sections affichent l'etat "Bientot disponible" via les utilitaires
 // partages dans disabledIntegration.ts.
-
-const refinedContainedSx = (color: string) => ({
-  bgcolor: 'transparent',
-  color,
-  border: '1px solid',
-  borderColor: color,
-  boxShadow: 'none',
-  '&:hover': {
-    bgcolor: `color-mix(in srgb, ${color} 10%, transparent)`,
-    borderColor: color,
-    boxShadow: 'none',
-  },
-});
-
-const refinedOutlinedSx = (hoverColor: string) => ({
-  textTransform: 'none' as const,
-  fontWeight: 600,
-  fontSize: '0.78rem',
-  letterSpacing: '0.01em',
-  borderRadius: '8px',
-  py: 0.625,
-  px: 1.5,
-  borderColor: 'divider',
-  color: 'text.primary',
-  transition:
-    'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-  '&:hover': {
-    borderColor: `color-mix(in srgb, ${hoverColor} 40%, transparent)`,
-    backgroundColor: `color-mix(in srgb, ${hoverColor} 10%, transparent)`,
-    color: hoverColor,
-  },
-  '&:focus-visible': { outline: `2px solid ${hoverColor}`, outlineOffset: 2 },
-});
-
-const buildStatusChipSx = (color: string) => ({
-  height: 22,
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  letterSpacing: '0.01em',
-  borderRadius: '6px',
-  px: 0.25,
-  backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
-  color,
-  border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-  '& .MuiChip-icon': {
-    color: `${color} !important`,
-    ml: '6px',
-    mr: '-2px',
-  },
-  '& .MuiChip-label': { px: 0.875 },
-});
 
 // ─── Integration metadata ──────────────────────────────────────────────────
 
@@ -507,74 +465,34 @@ export default function IntegrationsSection({
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" py={4}>
-        <CircularProgress size={32} />
-      </Box>
+      <div className="flex justify-center py-6">
+        <Spinner className="size-8" />
+      </div>
     );
   }
 
   const isConnected = !!status?.connected;
   const statusChip = notConfigured ? (
-    <Chip
-      icon={<ErrorOutline size={11} strokeWidth={2} />}
-      label={t('settings.integrations.pennylane.notConfigured', 'Non configuré')}
-      size="small"
-      sx={buildStatusChipSx(NEUTRAL)}
-    />
+    <StatusChip color={NEUTRAL} label={t('settings.integrations.pennylane.notConfigured', 'Non configuré')} icon={<ErrorOutline size={11} strokeWidth={2} />} />
   ) : isConnected ? (
-    <Chip
-      icon={<CheckCircleIcon size={11} strokeWidth={2} />}
-      label={t('settings.integrations.pennylane.connected')}
-      size="small"
-      sx={buildStatusChipSx(ACCENT)}
-    />
+    <StatusChip color={ACCENT} label={t('settings.integrations.pennylane.connected')} icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
   ) : (
-    <Chip
-      icon={<ErrorOutline size={11} strokeWidth={2} />}
-      label={t('settings.integrations.pennylane.notConnected')}
-      size="small"
-      sx={buildStatusChipSx(NEUTRAL)}
-    />
+    <StatusChip color={NEUTRAL} label={t('settings.integrations.pennylane.notConnected')} icon={<ErrorOutline size={11} strokeWidth={2} />} />
   );
 
   return (
-    <Box>
+    <div>
       {/* ─── Section : Marketing & Newsletter (Brevo — ACTIVE) ─────────── */}
       {showSection('marketing') && (
-      <Paper
-        id="section-marketing"
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          mb: 2,
-          px: 2,
-          py: 1.75,
-          scrollMarginTop: 80,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>Marketing &amp; Newsletter</Typography>
-          <Chip
-            icon={<CheckCircleIcon size={11} strokeWidth={2} />}
-            label="Disponible"
-            size="small"
-            sx={buildStatusChipSx(ACCENT)}
-          />
-        </Box>
-        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+      <Card className="gap-0 py-0 border-border mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-marketing">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <p className="cn-text-body1 text-[0.82rem] font-semibold">Marketing &amp; Newsletter</p>
+          <StatusChip color={ACCENT} label="Disponible" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
+        </div>
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           Synchronisez vos contacts (waitlist, newsletter, leads devis) vers votre plateforme d&apos;emailing pour vos campagnes.
-        </Typography>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 1.5,
-            mt: 1,
-          }}
-        >
+        </p>
+        <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
           <ServiceGridCard
             serviceTooltipId="BREVO"
             label="Brevo"
@@ -583,28 +501,13 @@ export default function IntegrationsSection({
             status={marketingConfigured ? 'connected' : 'idle'}
             onClick={() => setOpenMarketing(true)}
             logo={
-              <Box
-                sx={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '8px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: '#0B996E',
-                  color: '#fff',
-                  fontWeight: 700,
-                  fontSize: '1rem',
-                  flexShrink: 0,
-                }}
-                aria-hidden="true"
-              >
+              <div className="w-[40px] h-[40px] rounded-[8px] inline-flex items-center justify-center bg-[#0B996E] text-[#fff] font-bold text-[1rem] shrink-0" aria-hidden="true">
                 B
-              </Box>
+              </div>
             }
           />
-        </Box>
-      </Paper>
+        </div>
+      </Card>
       )}
       <IntegrationConfigDialog open={openMarketing} onClose={() => setOpenMarketing(false)}>
         <BrevoConfigCard />
@@ -612,67 +515,39 @@ export default function IntegrationsSection({
 
       {/* ─── Choix du provider signature (radio) ──────────────────────── */}
       {showSection('signature') && (
-      <Paper
-        id="section-signature"
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          mb: 2,
-          px: 2,
-          py: 1.75,
-          scrollMarginTop: 80,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+      <Card className="gap-0 py-0 border-border mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-signature">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <p className="cn-text-body1 text-[0.82rem] font-semibold">
             {t('settings.integrations.signatureProvider.title', 'Signature electronique')}
-          </Typography>
-          <Chip
-            label="Opérationnel — à brancher"
-            size="small"
-            sx={{
-              height: 18,
-              fontSize: '0.6rem',
-              fontWeight: 700,
-              color: 'var(--warn)',
-              backgroundColor: 'var(--warn-soft)',
-              border: '1px solid color-mix(in srgb, var(--warn) 25%, transparent)',
-              '& .MuiChip-label': { px: 0.875 },
-            }}
-          />
-        </Box>
-        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+          </p>
+          <StatusChip size="sm" tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }} label="Opérationnel — à brancher" className="text-[0.6rem]" />
+        </div>
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           {t(
             'settings.integrations.signatureProvider.description',
             'Deux intégrations prêtes côté code : Yousign (QTSP certifié ANSSI) et DocuSeal (open source self-hosted). Les mandats sont signés via le workflow interne Clenzy tant qu’aucune n’est branchée.',
           )}
-        </Typography>
+        </p>
         <SignatureProviderCards
           value={openSignatureProvider}
           onChange={(next) => setOpenSignatureProvider(next)}
           connectedSet={signatureConnectedSet}
           serviceFilter={selectedServiceId}
         />
-        <Alert
-          severity="info"
-          variant="outlined"
-          sx={{ mt: 1.25, borderRadius: '8px', fontSize: '0.75rem', py: 0.25 }}
-        >
-          {`Ces intégrations sont implémentées et fonctionnelles, mais pas branchées : pour en activer une, renseignez sa connexion (clé API Yousign ou instance DocuSeal) puis basculez la variable serveur SIGNATURE_PROVIDER. Provider actuellement actif : ${activeSignatureProvider === 'CLENZY_CUSTOM' ? 'workflow interne Clenzy (SES)' : activeSignatureProvider}.`}
-        </Alert>
+        <UiAlert variant="info" className="mt-2 text-[0.75rem] py-0.5">
+          <Info />
+          <AlertDescription>{`Ces intégrations sont implémentées et fonctionnelles, mais pas branchées : pour en activer une, renseignez sa connexion (clé API Yousign ou instance DocuSeal) puis basculez la variable serveur SIGNATURE_PROVIDER. Provider actuellement actif : ${activeSignatureProvider === 'CLENZY_CUSTOM' ? 'workflow interne Clenzy (SES)' : activeSignatureProvider}.`}</AlertDescription>
+        </UiAlert>
         {providerMessage && (
-          <Alert
-            severity={providerMessage.type}
-            variant="outlined"
-            sx={{ mt: 1.25, borderRadius: '8px', fontSize: '0.75rem', py: 0.25 }}
+          <UiAlert
+            variant={providerMessage.type === 'error' ? 'destructive' : 'success'}
+            className="mt-2 text-[0.75rem] py-0.5"
           >
-            {providerMessage.text}
-          </Alert>
+            {providerMessage.type === 'error' ? <TriangleAlert /> : <CircleCheck />}
+            <AlertDescription>{providerMessage.text}</AlertDescription>
+          </UiAlert>
         )}
-      </Paper>
+      </Card>
       )}
 
       {/* ─── Modal Pennylane (OAuth — inline car gere son propre sync) ── */}
@@ -681,241 +556,162 @@ export default function IntegrationsSection({
         onClose={() => setOpenSignatureProvider(null)}
         maxWidth="md"
       >
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          overflow: 'hidden',
-        }}
-      >
+      <Card className="gap-0 py-0 border-border overflow-hidden">
         {/* Header */}
-        <Box
-          sx={{
-            px: 2,
-            py: 1.75,
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 1.5,
-            borderBottom: isConnected ? '1px solid' : undefined,
-            borderColor: 'divider',
-          }}
+        <div
+          className={cn(
+            'px-3 py-[10.5px] flex items-start gap-[9px]',
+            isConnected && 'border-b border-solid border-[var(--line)]',
+          )}
         >
           {/* Brand tile */}
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: '10px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: PENNYLANE_BRAND,
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              letterSpacing: '0.04em',
-              flexShrink: 0,
-              
-            }}
-            aria-hidden="true"
-          >
+          <div className="w-[40px] h-[40px] rounded-[10px] inline-flex items-center justify-center text-[#fff] font-bold text-[0.85rem] tracking-[0.04em] shrink-0" style={{ backgroundColor: PENNYLANE_BRAND }} aria-hidden="true">
             {PENNYLANE_INITIALS}
-          </Box>
+          </div>
           {/* Info */}
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography
-              fontWeight={600}
-              sx={{
-                fontSize: '0.95rem',
-                lineHeight: 1.25,
-                color: 'text.primary',
-                letterSpacing: '-0.005em',
-              }}
-            >
+          <div className="flex-1 min-w-0">
+            <p className="cn-text-body1 font-semibold text-[0.95rem] leading-[1.25] text-foreground tracking-[-0.005em]">
               {t('settings.integrations.pennylane.title')}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: '0.78rem',
-                color: 'text.secondary',
-                lineHeight: 1.4,
-                mt: 0.25,
-              }}
-            >
+            </p>
+            <p className="cn-text-body1 text-[0.78rem] text-muted-foreground leading-[1.4] mt-0.5">
               {t('settings.integrations.pennylane.description')}
-            </Typography>
-          </Box>
+            </p>
+          </div>
           {/* Status chip */}
-          <Box sx={{ flexShrink: 0 }}>{statusChip}</Box>
-        </Box>
+          <div className="shrink-0">{statusChip}</div>
+        </div>
 
         {/* Body */}
-        <Box sx={{ p: 2 }}>
+        <div className="p-3">
           {isConnected ? (
             <>
               {/* Connection metadata */}
               {(status?.connectedAt || status?.lastSyncAt) && (
-                <Box sx={{ display: 'flex', gap: 2, mb: 1.5, flexWrap: 'wrap' }}>
+                <div className="flex gap-3 mb-2 flex-wrap">
                   {status.connectedAt && (
-                    <Typography
-                      sx={{
-                        fontSize: '0.72rem',
-                        color: 'text.secondary',
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
-                      <Typography component="span" sx={{ fontWeight: 600, color: 'text.primary', fontSize: '0.72rem' }}>
+                    <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums">
+                      <span className="font-semibold text-foreground text-[0.72rem]">
                         {t('settings.integrations.pennylane.connectedAt')} :
-                      </Typography>{' '}
+                      </span>{' '}
                       {new Date(status.connectedAt).toLocaleDateString('fr-FR')}
-                    </Typography>
+                    </p>
                   )}
                   {status.lastSyncAt && (
-                    <Typography
-                      sx={{
-                        fontSize: '0.72rem',
-                        color: 'text.secondary',
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
-                      <Typography component="span" sx={{ fontWeight: 600, color: 'text.primary', fontSize: '0.72rem' }}>
+                    <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums">
+                      <span className="font-semibold text-foreground text-[0.72rem]">
                         {t('settings.integrations.pennylane.lastSync')} :
-                      </Typography>{' '}
+                      </span>{' '}
                       {new Date(status.lastSyncAt).toLocaleString('fr-FR')}
-                    </Typography>
+                    </p>
                   )}
-                </Box>
+                </div>
               )}
 
               {/* Sync stats */}
               {syncStatus && (
-                <Box sx={{ display: 'flex', gap: 0.75, mb: 1.5, flexWrap: 'wrap' }}>
-                  <Chip
-                    icon={<ReceiptIcon size={11} strokeWidth={2} />}
-                    label={`${syncStatus.pendingInvoices} ${t('settings.integrations.pennylane.pendingInvoices')}`}
-                    size="small"
-                    sx={buildStatusChipSx(syncStatus.pendingInvoices > 0 ? WARM : NEUTRAL)}
-                  />
-                  <Chip
-                    icon={<ShoppingCartIcon size={11} strokeWidth={2} />}
-                    label={`${syncStatus.pendingExpenses} ${t('settings.integrations.pennylane.pendingExpenses')}`}
-                    size="small"
-                    sx={buildStatusChipSx(syncStatus.pendingExpenses > 0 ? WARM : NEUTRAL)}
-                  />
-                </Box>
+                <div className="flex gap-1 mb-2 flex-wrap">
+                  <StatusChip color={syncStatus.pendingInvoices > 0 ? WARM : NEUTRAL} label={`${syncStatus.pendingInvoices} ${t('settings.integrations.pennylane.pendingInvoices')}`} icon={<ReceiptIcon size={11} strokeWidth={2} />} />
+                  <StatusChip color={syncStatus.pendingExpenses > 0 ? WARM : NEUTRAL} label={`${syncStatus.pendingExpenses} ${t('settings.integrations.pennylane.pendingExpenses')}`} icon={<ShoppingCartIcon size={11} strokeWidth={2} />} />
+                </div>
               )}
 
-              <Divider sx={{ mb: 1.5, borderColor: 'divider' }} />
+              <Separator className="mb-[9px]" />
 
               {/* Sync actions */}
-              <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div className="flex gap-1 flex-wrap items-center">
                 <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={
-                    syncing ? (
-                      <CircularProgress size={14} color="inherit" />
-                    ) : (
-                      <ReceiptIcon size={14} strokeWidth={1.75} />
-                    )
-                  }
+                  variant="outline"
+                  size="sm"
                   onClick={() => handleSync('invoices')}
                   disabled={syncing}
-                  sx={refinedOutlinedSx(PRIMARY)}
                 >
+                  {syncing ? (
+                    <Spinner className="size-3.5" />
+                  ) : (
+                    <ReceiptIcon size={14} strokeWidth={1.75} />
+                  )}
                   {t('settings.integrations.pennylane.syncInvoices')}
                 </Button>
                 <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={
-                    syncing ? (
-                      <CircularProgress size={14} color="inherit" />
-                    ) : (
-                      <ShoppingCartIcon size={14} strokeWidth={1.75} />
-                    )
-                  }
+                  variant="outline"
+                  size="sm"
                   onClick={() => handleSync('expenses')}
                   disabled={syncing}
-                  sx={refinedOutlinedSx(PRIMARY)}
                 >
+                  {syncing ? (
+                    <Spinner className="size-3.5" />
+                  ) : (
+                    <ShoppingCartIcon size={14} strokeWidth={1.75} />
+                  )}
                   {t('settings.integrations.pennylane.syncExpenses')}
                 </Button>
+                {/* « Tout synchroniser » est l'action principale du panneau : seule
+                    encre pleine de la rangee, les deux syncs ciblees restent en outline. */}
                 <Button
-                  variant="contained"
-                  disableElevation
-                  size="small"
-                  startIcon={
-                    syncing ? (
-                      <CircularProgress size={14} color="inherit" />
-                    ) : (
-                      <SyncIcon size={14} strokeWidth={2} />
-                    )
-                  }
+                  variant="default"
+                  size="sm"
                   onClick={() => handleSync('all')}
                   disabled={syncing}
-                  sx={refinedContainedSx(ACCENT)}
                 >
+                  {syncing ? (
+                    <Spinner className="size-3.5" />
+                  ) : (
+                    <SyncIcon size={14} strokeWidth={2} />
+                  )}
                   {syncing
                     ? t('settings.integrations.pennylane.syncing')
                     : t('settings.integrations.pennylane.syncAll')}
                 </Button>
-                <Box sx={{ flexGrow: 1 }} />
+                <div className="grow" />
+                {/* Deconnexion = rupture du lien comptable : variante destructive. */}
                 <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<LinkOffIcon size={14} strokeWidth={1.75} />}
+                  variant="destructive"
+                  size="sm"
                   onClick={() => setDisconnectDialogOpen(true)}
-                  sx={refinedOutlinedSx(DANGER)}
                 >
+                  <LinkOffIcon size={14} strokeWidth={1.75} />
                   {t('settings.integrations.pennylane.disconnect')}
                 </Button>
-              </Box>
+              </div>
             </>
           ) : notConfigured ? (
-            <Alert
-              severity="info"
-              variant="outlined"
-              sx={{
-                mt: 0,
-                borderRadius: '8px',
-                fontSize: '0.8rem',
-                '& .MuiAlert-message': { padding: '4px 0' },
-              }}
-            >
-              {t(
-                'settings.integrations.pennylane.notConfiguredHelp',
-                "Cette intégration n'est pas activée sur cet environnement. Contactez votre administrateur pour configurer Pennylane.",
-              )}
-            </Alert>
+            <UiAlert variant="info" className="text-[0.8rem]">
+              <Info />
+              <AlertDescription>
+                {t(
+                  'settings.integrations.pennylane.notConfiguredHelp',
+                  "Cette intégration n'est pas activée sur cet environnement. Contactez votre administrateur pour configurer Pennylane.",
+                )}
+              </AlertDescription>
+            </UiAlert>
           ) : (
             <Button
-              variant="contained"
-              disableElevation
-              size="small"
-              startIcon={<LinkIcon size={14} strokeWidth={2} />}
+              variant="default"
+              size="sm"
               onClick={handleConnect}
-              sx={refinedContainedSx(PRIMARY)}
             >
+              <LinkIcon size={14} strokeWidth={2} />
               {t('settings.integrations.pennylane.connect')}
             </Button>
           )}
 
           {/* Sync feedback */}
           {syncMessage && (
-            <Alert
-              severity={syncMessage.type}
-              sx={{ mt: 1.75, borderRadius: '8px' }}
-              onClose={() => setSyncMessage(null)}
+            <UiAlert
+              variant={syncMessage.type === 'error' ? 'destructive' : 'success'}
+              className="mt-2.5"
             >
-              {syncMessage.text}
-            </Alert>
+              {syncMessage.type === 'error' ? <TriangleAlert /> : <CircleCheck />}
+              <AlertDescription>{syncMessage.text}</AlertDescription>
+              <AlertAction>
+                <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setSyncMessage(null)}>
+                  <X />
+                </Button>
+              </AlertAction>
+            </UiAlert>
           )}
-        </Box>
-      </Paper>
+        </div>
+      </Card>
       </IntegrationConfigDialog>
 
       {/* ─── Modals de config signature (Yousign + DocuSeal) ──────────── */}
@@ -941,34 +737,27 @@ export default function IntegrationsSection({
 
       {/* ─── Section : Comptabilité (QuickBooks) ──────────────────────── */}
       {showSection('accounting') && (
-      <Paper
-        id="section-accounting"
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          mt: 3,
-          mb: 2,
-          px: 2,
-          py: 1.75,
-          scrollMarginTop: 80,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+      <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-accounting">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <p className="cn-text-body1 text-[0.82rem] font-semibold">
             Comptabilité
-          </Typography>
-          <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
-        </Box>
-        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+          </p>
+          {/* Bordure en style inline : sa teinte est un color-mix calcule, que
+              Tailwind ne pourrait pas emettre depuis une classe. */}
+          <StatusChip
+            size="sm"
+            color={NEUTRAL}
+            label="Bientôt disponible"
+            sx={{ border: `1px solid color-mix(in srgb, ${NEUTRAL} 20%, transparent)` }}
+          />
+        </div>
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           Synchronisez factures et dépenses vers votre logiciel comptable.
-        </Typography>
+        </p>
         {/* Pennylane : connexion OAuth réelle (sync factures) — carte interactive,
             hors du wrapper « Bientôt disponible » des autres logiciels compta. */}
         {matchesService('PENNYLANE') && (
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 1.5, mt: 1 }}>
+          <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
             <ServiceGridCard
               providerId="PENNYLANE"
               serviceTooltipId="PENNYLANE"
@@ -979,19 +768,13 @@ export default function IntegrationsSection({
               status={connectedProviders.has('PENNYLANE') ? 'connected' : 'idle'}
               onClick={() => setOpenSignatureProvider('PENNYLANE')}
             />
-          </Box>
+          </div>
         )}
-        <Box
+        <div
           aria-disabled="true"
           onClickCapture={blockInteraction}
           onKeyDownCapture={blockInteraction}
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 1.5,
-            mt: 1,
-            ...DISABLED_CARDS_SX,
-          }}
+          className={DISABLED_GRID_CLASS}
         >
           {([
             { id: 'QUICKBOOKS', label: 'QuickBooks', desc: 'Intuit · OAuth2 · US/UK/CA' },
@@ -1009,8 +792,8 @@ export default function IntegrationsSection({
               onClick={() => setOpenAccountingProvider(p)}
             />
           ))}
-        </Box>
-      </Paper>
+        </div>
+      </Card>
       )}
       <IntegrationConfigDialog
         open={openAccountingProvider !== null}
@@ -1047,34 +830,20 @@ export default function IntegrationsSection({
 
       {/* ─── Section : Conformité légale (Chekin / Police MA / Absher KSA) ── */}
       {showSection('compliance') && (
-      <Paper
-        id="section-compliance"
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          mt: 3,
-          mb: 2,
-          px: 2,
-          py: 1.75,
-          scrollMarginTop: 80,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+      <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-compliance">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <p className="cn-text-body1 text-[0.82rem] font-semibold">
             Conformité légale
-          </Typography>
-        </Box>
-        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+          </p>
+        </div>
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           Automatisez la déclaration légale des voyageurs auprès des autorités locales (fiche police France, DGSN Maroc, Absher Arabie Saoudite). Évite les amendes et les contrôles surprises.
-        </Typography>
+        </p>
         {/* Chekin : API publique (clé API → JWT) — connexion + soumission réelles,
             carte interactive hors du wrapper « Bientôt disponible » des providers
             gouvernementaux (DGSN / Absher, partenariat officiel requis). */}
         {matchesService('CHEKIN') && (
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 1.5, mt: 1 }}>
+          <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
             <ServiceGridCard
               providerId="CHEKIN"
               label="Chekin"
@@ -1085,19 +854,13 @@ export default function IntegrationsSection({
               onClick={() => setOpenComplianceProvider('CHEKIN')}
               titleAdornment={<span aria-hidden="true" style={{ fontSize: '0.85rem' }}>🇫🇷</span>}
             />
-          </Box>
+          </div>
         )}
-        <Box
+        <div
           aria-disabled="true"
           onClickCapture={blockInteraction}
           onKeyDownCapture={blockInteraction}
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 1.5,
-            mt: 1,
-            ...DISABLED_CARDS_SX,
-          }}
+          className={DISABLED_GRID_CLASS}
         >
           {([
             { id: 'POLICE_MA',  label: 'Police Maroc',        desc: 'DGSN · déclaration voyageur',   flag: '🇲🇦' },
@@ -1116,8 +879,8 @@ export default function IntegrationsSection({
               titleAdornment={<span aria-hidden="true" style={{ fontSize: '0.85rem' }}>{flag}</span>}
             />
           ))}
-        </Box>
-      </Paper>
+        </div>
+      </Card>
       )}
       <IntegrationConfigDialog
         open={openComplianceProvider !== null}
@@ -1133,39 +896,18 @@ export default function IntegrationsSection({
 
       {/* ─── Section : KYC / Vérification d'identité ─────────────────── */}
       {showSection('kyc') && (
-      <Paper
-        id="section-kyc"
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          mt: 3,
-          mb: 2,
-          px: 2,
-          py: 1.75,
-          scrollMarginTop: 80,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+      <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-kyc">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <p className="cn-text-body1 text-[0.82rem] font-semibold">
             Vérification d'identité (KYC)
-          </Typography>
-        </Box>
-        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+          </p>
+        </div>
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           Vérification automatique des pièces d'identité des voyageurs (lutte contre la fraude, conformité LCB-FT). Indispensable pour les paiements sur compte et les réservations à forte valeur.
-        </Typography>
+        </p>
         {/* Les 3 providers ont une API publique : la connexion valide les credentials
             par un appel réel (Onfido token, Sumsub/Veriff requêtes signées HMAC). */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 1.5,
-            mt: 1,
-          }}
-        >
+        <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
           {([
             { id: 'SUMSUB', label: 'Sumsub',  desc: 'Leader MENA · KYC + KYB' },
             { id: 'VERIFF', label: 'Veriff',  desc: 'Qualité/prix · EU + MENA' },
@@ -1182,8 +924,8 @@ export default function IntegrationsSection({
               onClick={() => setOpenKycProvider(p)}
             />
           ))}
-        </Box>
-      </Paper>
+        </div>
+      </Card>
       )}
       <IntegrationConfigDialog
         open={openKycProvider !== null}
@@ -1199,35 +941,14 @@ export default function IntegrationsSection({
 
       {/* ─── Section : Channel Manager (middleware OTAs) ──────────────── */}
       {showSection('channel_manager') && (
-      <Paper
-        id="section-channel-manager"
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          mt: 3,
-          mb: 2,
-          px: 2,
-          py: 1.75,
-          scrollMarginTop: 80,
-        }}
-      >
-        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, mb: 0.5 }}>
+      <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-channel-manager">
+        <p className="cn-text-body1 text-[0.82rem] font-semibold mb-0.5">
           Channel Manager (middleware)
-        </Typography>
-        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+        </p>
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
           Connectez un middleware qui agrège plusieurs OTAs en une seule API — utile pour les marchés niches ou régionaux sans intégration directe. Les OTAs eux-mêmes (Airbnb, Booking, Vrbo) restent dans la tab <strong>Channels</strong>.
-        </Typography>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 1.5,
-            mt: 1,
-          }}
-        >
+        </p>
+        <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
           {([
             { id: 'CHANNEX',        label: 'Channex',        desc: '100+ OTAs · REST moderne · ~12 €/bien', comingSoon: false },
             { id: 'RENTALS_UNITED', label: 'Rentals United', desc: '60+ OTAs · EU + MENA',                  comingSoon: true  },
@@ -1249,8 +970,8 @@ export default function IntegrationsSection({
               }}
             />
           ))}
-        </Box>
-      </Paper>
+        </div>
+      </Card>
       )}
       <IntegrationConfigDialog
         open={openChannelManagerProvider !== null}
@@ -1283,55 +1004,36 @@ export default function IntegrationsSection({
 
       {/* ─── Section : OTAs (vitrine — gestion dans tab Channels) ────── */}
       {showSection('ota') && (
-        <Box id="section-ota" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-ota">
           <OtaShowcaseSection serviceFilter={selectedServiceId} disabled />
-        </Box>
+        </div>
       )}
 
       {/* ─── Messagerie WhatsApp : config provider ACTIVE (par org, plateforme) ───
           Pas une carte de catalogue : sélecteur d'org dédié + formulaire de config. */}
       {showSection('messaging') && (
-        <Box id="section-messaging" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-messaging">
           <IntegrationsWhatsAppConfig />
-        </Box>
+        </div>
       )}
 
       {/* ─── Sections catalogue (services informatifs avec tooltips riches) ─── */}
       {showSection('market_intelligence') && (
-        <Box id="section-market-intelligence" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-market-intelligence">
           {/* Cartes ACTIVES : la clé API saisie ici réveille l'adaptateur dormant
               au prochain cycle d'ingestion (roadmap market data). */}
-          <Paper
-            elevation={0}
-            sx={{
-              borderRadius: '12px',
-              border: '1px solid',
-              borderColor: 'divider',
-              boxShadow: 'none',
-              mt: 3,
-              mb: 2,
-              px: 2,
-              py: 1.75,
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-              <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+          <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <p className="cn-text-body1 text-[0.82rem] font-semibold">
                 Intelligence de marché — sources de données
-              </Typography>
-            </Box>
-            <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+              </p>
+            </div>
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
               Benchmarks ADR / occupation / RevPAR par zone pour le revenue management.
               Sans clé, le RMS fonctionne déjà avec les données réseau (first-party) et
               l'open data ; une clé active l'ingestion quotidienne du fournisseur.
-            </Typography>
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-                gap: 1.5,
-                mt: 1,
-              }}
-            >
+            </p>
+            <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
               {([
                 { id: 'AIRBTICS', label: 'Airbtics', desc: 'Fournisseur cible · Maroc + MAD natif · API key' },
                 { id: 'AIRROI',   label: 'AirROI',   desc: 'Appoint pay-per-call (~0,01 $/appel) · API key' },
@@ -1347,8 +1049,8 @@ export default function IntegrationsSection({
                   onClick={() => setOpenMarketDataProvider(p)}
                 />
               ))}
-            </Box>
-          </Paper>
+            </div>
+          </Card>
           <IntegrationConfigDialog
             open={openMarketDataProvider !== null}
             onClose={() => setOpenMarketDataProvider(null)}
@@ -1367,10 +1069,10 @@ export default function IntegrationsSection({
             title="Intelligence de marché — catalogue"
             description="Autres fournisseurs de données de marché (informatif)."
           />
-        </Box>
+        </div>
       )}
       {showSection('tax_automation') && (
-      <Box id="section-tax" sx={{ scrollMarginTop: 80 }}>
+      <div className="scroll-mt-[80px]" id="section-tax">
         <ServiceCatalogSection
           serviceFilter={selectedServiceId}
           category="tax_automation"
@@ -1378,10 +1080,10 @@ export default function IntegrationsSection({
           description="Calcul, collecte et déclaration automatique de la taxe de séjour. Compatible barèmes France et international. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
           configForService={partnerConfigForService}
         />
-      </Box>
+      </div>
       )}
       {showSection('insurance') && (
-        <Box id="section-insurance" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-insurance">
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="insurance"
@@ -1389,10 +1091,10 @@ export default function IntegrationsSection({
             description="Vérification des guests, caution dommages, assurances annulation. Réduisez les risques et générez du revenu d'affiliation. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
             configForService={partnerConfigForService}
           />
-        </Box>
+        </div>
       )}
       {showSection('cleaning_operations') && (
-        <Box id="section-cleaning" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-cleaning">
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="cleaning_operations"
@@ -1400,15 +1102,15 @@ export default function IntegrationsSection({
             description="Marketplaces de cleaners, checklists photo, gestion des inspections. Industrialisez les turnovers. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
             configForService={partnerConfigForService}
           />
-        </Box>
+        </div>
       )}
       {(showSection('smart_locks_iot') || showSection('noise_monitoring')) && (
-        <Box id="section-smart-locks" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-smart-locks">
           <IoTServicesSection />
-        </Box>
+        </div>
       )}
       {showSection('key_management') && (
-        <Box id="section-key-management" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-key-management">
           <ServiceCatalogSection
             disabled
             serviceFilter={selectedServiceId}
@@ -1416,10 +1118,10 @@ export default function IntegrationsSection({
             title="Gestion des clés"
             description="Réseaux de gardiens de clés pour les logements sans serrure connectée. Solution propriétaire Baitly ou partenaires externes."
           />
-        </Box>
+        </div>
       )}
       {showSection('activities_affiliate') && (
-        <Box id="section-activities" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-activities">
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="activities_affiliate"
@@ -1427,10 +1129,10 @@ export default function IntegrationsSection({
             description="Vendez des activités à vos guests en cross-sell. Commission affiliée 8-20 % par réservation."
             configForService={activityConfigForService}
           />
-        </Box>
+        </div>
       )}
       {showSection('reviews_reputation') && (
-        <Box id="section-reviews" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-reviews">
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="reviews_reputation"
@@ -1438,10 +1140,10 @@ export default function IntegrationsSection({
             description="Agrégation multi-canaux, sentiment analysis, automated responses. Suivez votre réputation cross-OTA. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
             configForService={partnerConfigForService}
           />
-        </Box>
+        </div>
       )}
       {showSection('marketing_crm') && (
-        <Box id="section-marketing" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-marketing">
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="marketing_crm"
@@ -1449,10 +1151,10 @@ export default function IntegrationsSection({
             description="Email marketing, automation, CRM commercial pour acquisition de nouveaux propriétaires et campagnes guest. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
             configForService={partnerConfigForService}
           />
-        </Box>
+        </div>
       )}
       {showSection('automation') && (
-        <Box id="section-automation" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-automation">
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="automation"
@@ -1460,10 +1162,10 @@ export default function IntegrationsSection({
             description="Connectez Baitly à des milliers d'apps via Zapier ou Make : collez l'URL de votre webhook et un secret de signature — l'émission des événements (réservations, check-ins, interventions) sera activée ensuite."
             configForService={partnerConfigForService}
           />
-        </Box>
+        </div>
       )}
       {showSection('guest_experience') && (
-        <Box id="section-guest-experience" sx={{ scrollMarginTop: 80 }}>
+        <div className="scroll-mt-[80px]" id="section-guest-experience">
           <ServiceCatalogSection
             serviceFilter={selectedServiceId}
             category="guest_experience"
@@ -1471,57 +1173,45 @@ export default function IntegrationsSection({
             description="Guest apps, check-in en ligne, upsells et boarding pass digital — en complément du livret d'accueil natif Baitly. Enregistrez vos accès dès maintenant — la synchronisation native arrive ensuite."
             configForService={partnerConfigForService}
           />
-        </Box>
+        </div>
       )}
 
       {/* ─── Disconnect confirmation dialog ────────────────────────────── */}
-      <Dialog
-        open={disconnectDialogOpen}
-        onClose={() => setDisconnectDialogOpen(false)}
-        PaperProps={{ sx: { borderRadius: '12px' } }}
-      >
-        <DialogTitle sx={{ fontSize: '0.95rem', fontWeight: 700, letterSpacing: '-0.005em' }}>
-          {t('settings.integrations.pennylane.disconnectTitle')}
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ fontSize: '0.85rem' }}>
-            {t('settings.integrations.pennylane.disconnectConfirm')}
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            onClick={() => setDisconnectDialogOpen(false)}
-            disabled={disconnecting}
-            size="small"
-            sx={{
-              textTransform: 'none',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              borderRadius: '8px',
-              color: 'text.secondary',
-            }}
-          >
-            {t('common.cancel')}
-          </Button>
-          <Button
-            variant="contained"
-            disableElevation
-            size="small"
-            onClick={handleDisconnect}
-            disabled={disconnecting}
-            startIcon={
-              disconnecting ? (
-                <CircularProgress size={14} color="inherit" />
+      <Dialog open={disconnectDialogOpen} onOpenChange={setDisconnectDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[0.95rem] font-bold tracking-[-0.005em]">
+              {t('settings.integrations.pennylane.disconnectTitle')}
+            </DialogTitle>
+            <DialogDescription className="text-[0.85rem]">
+              {t('settings.integrations.pennylane.disconnectConfirm')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDisconnectDialogOpen(false)}
+              disabled={disconnecting}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDisconnect}
+              disabled={disconnecting}
+            >
+              {disconnecting ? (
+                <Spinner className="size-3.5" />
               ) : (
                 <LinkOffIcon size={14} strokeWidth={1.75} />
-              )
-            }
-            sx={refinedContainedSx(DANGER)}
-          >
-            {t('settings.integrations.pennylane.disconnect')}
-          </Button>
-        </DialogActions>
+              )}
+              {t('settings.integrations.pennylane.disconnect')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
-    </Box>
+    </div>
   );
 }

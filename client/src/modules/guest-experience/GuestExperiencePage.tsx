@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Box } from '@mui/material';
+
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
 import { PageHeaderActionsProvider, usePageHeaderActionsSlot, usePageHeaderFiltersSlot } from '../../components/PageHeaderActionsContext';
@@ -65,7 +65,7 @@ const GuestExperiencePage: React.FC = () => {
     <PageHeaderActionsProvider slot={slot} filtersSlot={filtersSlot}>
       {/* En-tête + tabs FIXES ; seul le contenu sous les tabs défile (scroll interne,
           comme les pages à scroll propre du soft) → le PageHeader ne scrolle plus. */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      <div className="flex flex-col flex-1 min-h-0">
         <PageHeader
           title={t('guestExperience.title', 'Réservation & accueil')}
           subtitle={subtitle}
@@ -75,7 +75,7 @@ const GuestExperiencePage: React.FC = () => {
           showBackButton={false}
         />
         <PageTabs options={tabs} value={tab} onChange={setTab} />
-        <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
           {tab === 2 && isPlatformStaff ? (
             <StudioHome embedded />
           ) : tab === 1 ? (
@@ -83,8 +83,8 @@ const GuestExperiencePage: React.FC = () => {
           ) : (
             <WelcomeGuideAdmin />
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
     </PageHeaderActionsProvider>
   );
 };

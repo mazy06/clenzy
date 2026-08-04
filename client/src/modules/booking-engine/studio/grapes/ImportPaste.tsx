@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Box, ButtonBase } from '@mui/material';
+import { cn } from '../../../../utils/cn';
 import { AlertTriangle, ClipboardPaste } from 'lucide-react';
 import type { Editor } from 'grapesjs';
 import { importToHtml } from './import/registry';
@@ -31,21 +31,25 @@ export interface ImportPasteProps {
 /** Valeur du sélecteur de format : `auto` = auto-détection, sinon `TemplateImporter.id` imposé. */
 const AUTO = 'auto';
 
-const fieldSx = {
-  width: '100%',
-  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-  fontSize: 'var(--text-sm)',
-  lineHeight: 1.5,
-  color: 'var(--ink)',
-  bgcolor: 'var(--field)',
-  border: '1px solid var(--line)',
-  borderRadius: 'var(--radius-md)',
-  p: 1.25,
-  resize: 'vertical' as const,
-  outline: 'none',
-  '&:focus': { borderColor: 'var(--accent)' },
-  '&:disabled': { opacity: 0.6 },
-} as const;
+/** Classes des 2 zones de collage (litteral entier : Tailwind scanne le texte source). */
+const FIELD_CLASS = 'w-full font-[ui-monospace,_SFMono-Regular,_Menlo,_Consolas,_monospace] text-[var(--text-sm)] leading-[1.5] text-[var(--ink)] bg-[var(--field)] border border-solid border-[var(--line)] rounded-[var(--radius-md)] p-[7.5px] resize-y outline-none focus:border-[var(--accent)] disabled:opacity-60';
+
+/**
+ * Boutons maison de l'Importer (l'ancien `ButtonBase` + `sx`) : le kit n'a pas de
+ * variante calee sur les tokens `--text-md` / `--fw-*` du Studio. `font-[number:…]`
+ * car Tailwind v4 n'infere pas le type d'une graisse derriere `var(`.
+ */
+const IMPORT_BTN_BASE_CLASS =
+  'inline-flex items-center px-[15px] h-10 rounded-[var(--radius-md)] text-[var(--text-md)] cursor-pointer ' +
+  'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2';
+
+const IMPORT_BTN_GHOST_CLASS =
+  `${IMPORT_BTN_BASE_CLASS} text-[var(--ink)] border border-solid border-[var(--line)] bg-transparent ` +
+  'font-[number:var(--fw-medium)] hover:bg-[var(--hover)]';
+
+const IMPORT_BTN_SOLID_CLASS =
+  `${IMPORT_BTN_BASE_CLASS} gap-[4.5px] border-none bg-[var(--accent)] text-[var(--on-accent)] ` +
+  'font-[number:var(--fw-semibold)] hover:bg-[var(--accent-deep,var(--accent))] disabled:opacity-50';
 
 export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
   const [html, setHtml] = useState('');
@@ -80,127 +84,96 @@ export default function ImportPaste({ editor, onDone }: ImportPasteProps) {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-      <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', lineHeight: 1.5 }}>
+    <div className="flex flex-col gap-2">
+      <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.5]">
         Collez votre HTML ci-dessous (et, si besoin, le CSS séparément). Le contenu est converti puis
         assaini avant d’être chargé dans l’éditeur. Le canevas actuel sera remplacé.
-      </Box>
+      </div>
 
       {/* Sélecteur de format : auto-détection par défaut, ou format imposé (forceId). */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Box component="label" htmlFor="paste-format" sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)' }}>
+      <div className="flex items-center gap-1.5">
+        <label className="text-[var(--text-sm)] text-[var(--muted)]" htmlFor="paste-format">
           Format
-        </Box>
-        <Box
-          component="select"
-          id="paste-format"
-          value={format}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormat(e.target.value)}
-          sx={{
-            height: 34, px: 1, fontSize: 'var(--text-sm)', color: 'var(--ink)', bgcolor: 'var(--field)',
-            border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', outline: 'none', cursor: 'pointer',
-            '&:focus': { borderColor: 'var(--accent)' },
-          }}
-        >
+        </label>
+        <select className="h-[34px] px-1.5 text-[var(--text-sm)] text-[var(--ink)] bg-[var(--field)] border border-solid border-[var(--line)] rounded-[var(--radius-md)] cursor-pointer focus:border-[var(--accent)]" style={{ outline: 'none' }} id="paste-format" value={format} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormat(e.target.value)}>
           <option value={AUTO}>Détection automatique</option>
           {formats.map((f) => (
             <option key={f.id} value={f.id}>
               {f.label}
             </option>
           ))}
-        </Box>
-      </Box>
+        </select>
+      </div>
 
       {/* Zone HTML (requise). */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-        <Box component="label" htmlFor="paste-html" sx={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--ink)' }}>
+      <div className="flex flex-col gap-0.5">
+        <label className="text-[var(--text-sm)] font-[family-name:var(--fw-medium)] text-[var(--ink)]" htmlFor="paste-html">
           HTML
-        </Box>
-        <Box
-          component="textarea"
+        </label>
+        <textarea
           id="paste-html"
           value={html}
           placeholder="<section>…</section>"
           spellCheck={false}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setHtml(e.target.value)}
-          sx={{ ...fieldSx, minHeight: 160 }}
+          className={cn(FIELD_CLASS, 'min-h-[160px]')}
         />
-      </Box>
+      </div>
 
       {/* Zone CSS (optionnelle). */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-        <Box component="label" htmlFor="paste-css" sx={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--ink)' }}>
-          CSS <Box component="span" sx={{ color: 'var(--faint)', fontWeight: 'var(--fw-regular, 400)' }}>(optionnel)</Box>
-        </Box>
-        <Box
-          component="textarea"
+      <div className="flex flex-col gap-0.5">
+        <label className="text-[var(--text-sm)] font-[family-name:var(--fw-medium)] text-[var(--ink)]" htmlFor="paste-css">
+          CSS <span className="text-[var(--faint)]" style={{ fontWeight: 'var(--fw-regular, 400)' }}>(optionnel)</span>
+        </label>
+        <textarea
           id="paste-css"
           value={css}
           placeholder=".hero { … }"
           spellCheck={false}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCss(e.target.value)}
-          sx={{ ...fieldSx, minHeight: 100 }}
+          className={cn(FIELD_CLASS, 'min-h-[100px]')}
         />
-      </Box>
+      </div>
 
       {error ? (
-        <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--err, #c0392b)' }} role="alert">
+        <div className="text-[var(--text-sm)] text-[var(--err,_#c0392b)]" role="alert">
           {error}
-        </Box>
+        </div>
       ) : null}
 
       {warnings.length > 0 ? (
-        <Box
-          role="status"
-          sx={{
-            display: 'flex', flexDirection: 'column', gap: 0.5, p: 1.25,
-            bgcolor: 'var(--hover)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)',
-          }}
-        >
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>
+        <div className="flex flex-col gap-0.5 p-2 bg-[var(--hover)] border border-[var(--line)] rounded-[var(--radius-md)]" role="status">
+          <div className="inline-flex items-center gap-1 text-[var(--text-sm)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">
             <AlertTriangle size={15} strokeWidth={2} style={{ color: 'var(--err, #c0392b)' }} />
             Contenu importé avec des avertissements
-          </Box>
-          <Box component="ul" sx={{ m: 0, pl: 2.5, fontSize: 'var(--text-sm)', color: 'var(--muted)', lineHeight: 1.5 }}>
+          </div>
+          <ul className="m-0 ps-3.5 text-[var(--text-sm)] text-[var(--muted)] leading-[1.5]">
             {warnings.map((w, i) => (
-              <Box component="li" key={i}>
+              <li key={i}>
                 {w}
-              </Box>
+              </li>
             ))}
-          </Box>
-        </Box>
+          </ul>
+        </div>
       ) : null}
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+      <div className="flex justify-end gap-1.5">
         {/* Après un import avec avertissements, l'utilisateur confirme la fermeture (le contenu est déjà injecté). */}
         {warnings.length > 0 ? (
-          <ButtonBase
-            onClick={onDone}
-            sx={{
-              display: 'inline-flex', alignItems: 'center', px: 2.5, height: 40, borderRadius: 'var(--radius-md)',
-              color: 'var(--ink)', border: '1px solid var(--line)', fontWeight: 'var(--fw-medium)',
-              fontSize: 'var(--text-md)', cursor: 'pointer', '&:hover': { bgcolor: 'var(--hover)' },
-              '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-            }}
-          >
+          <button type="button" onClick={onDone} className={IMPORT_BTN_GHOST_CLASS}>
             Fermer
-          </ButtonBase>
+          </button>
         ) : null}
-        <ButtonBase
+        <button
+          type="button"
           onClick={runImport}
           disabled={!html.trim()}
-          sx={{
-            display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 2.5, height: 40,
-            borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)',
-            fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-md)', cursor: 'pointer',
-            '&.Mui-disabled': { opacity: 0.5 }, '&:hover': { bgcolor: 'var(--accent-deep, var(--accent))' },
-            '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-          }}
+          className={IMPORT_BTN_SOLID_CLASS}
         >
           <ClipboardPaste size={15} strokeWidth={2} />
           {warnings.length > 0 ? 'Réimporter' : 'Importer'}
-        </ButtonBase>
-      </Box>
-    </Box>
+        </button>
+      </div>
+    </div>
   );
 }

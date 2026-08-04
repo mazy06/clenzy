@@ -1,10 +1,17 @@
 import React, { useState, useCallback } from 'react';
+import StatusChip, { type ToneTokens } from '../../components/StatusChip';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import {
-  Box, Typography, Button, Chip, Switch, IconButton, Tooltip,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField,
-  MenuItem, ListSubheader, Select, FormControl, InputLabel, CircularProgress, Alert,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Card, CardContent, Grid, Skeleton, } from '@mui/material';
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+  Button, Field, FieldLabel, FieldDescription, Input,
+  Card, Skeleton, Switch,
+  Tooltip, TooltipTrigger, TooltipContent,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  NativeSelect, NativeSelectOption, NativeSelectOptGroup,
+} from '../../components/ui';
+import { cn } from '../../utils/cn';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -25,7 +32,6 @@ import ConditionsEditor from './ConditionsEditor';
 import ConstellationAutoRulesSection from './ConstellationAutoRulesSection';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
-import { SPACING } from '../../theme/spacing';
 import {
   useAutomationRules,
   useSystemAutomations,
@@ -67,21 +73,9 @@ const CHANNEL_OPTIONS: { value: MessageChannelType; label: string; icon: React.R
   { value: 'WHATSAPP', label: 'WhatsApp', icon: <WhatsAppIcon size={'0.875rem'} strokeWidth={1.75} /> },
 ];
 
-const CELL_SX = { py: 1.25 } as const;
-
 // ─── Chips soft (pilule fond -soft + texte couleur — pattern baseline §2) ────
-
-const pillSx = (bg: string, color: string) => ({
-  height: 22,
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  backgroundColor: bg,
-  color,
-  border: 'none',
-  borderRadius: 'var(--radius-pill)',
-  '& .MuiChip-icon': { color },
-  '& .MuiChip-label': { px: 1 },
-});
+// La géométrie est portée par StatusChip (`pill`) ; il ne reste ici que le
+// mapping statut → tons, qui lui est propre au domaine.
 
 // Canaux : constantes locales VALIDÉES messagerie (baseline §1 — WhatsApp /
 // Email / SMS) ; fond soft dérivé du même hex (texte couleur + fond -soft).
@@ -117,56 +111,32 @@ const channelIcon = (ch: MessageChannelType) => {
 };
 
 // Style du chip de statut d'une automatisation système (carte et liste).
-const systemStatusStyle = (status: string) =>
-  status === 'ACTIVE' ? pillSx('var(--ok-soft)', 'var(--ok)')
-    : status === 'INACTIVE' ? pillSx('var(--field)', 'var(--muted)')
-      : pillSx('var(--info-soft)', 'var(--info)');
+const systemStatusTokens = (status: string): ToneTokens =>
+  status === 'ACTIVE' ? { color: 'var(--ok)', bg: 'var(--ok-soft)' }
+    : status === 'INACTIVE' ? { color: 'var(--muted)', bg: 'var(--field)' }
+      : { color: 'var(--info)', bg: 'var(--info-soft)' };
 
 // Chips par colonne : déclencheur (+ timing), action, canal — pour aligner
 // les colonnes en vue liste et les regrouper en vue carte.
 const renderTriggerChips = (rule: AutomationRule) => (
   <>
-    <Chip
-      label={TRIGGER_LABELS[rule.triggerType] ?? rule.triggerType}
-      size="small"
-      sx={pillSx('var(--accent-soft)', 'var(--accent)')}
-    />
+    <StatusChip pill tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={TRIGGER_LABELS[rule.triggerType] ?? rule.triggerType} />
     {isLifecycleTrigger(rule.triggerType) && rule.triggerOffsetDays !== 0 && (
-      <Chip
-        label={`${rule.triggerOffsetDays > 0 ? '+' : ''}${rule.triggerOffsetDays}j`}
-        size="small"
-        sx={{ ...pillSx('var(--field)', 'var(--body)'), fontVariantNumeric: 'tabular-nums' }}
-      />
+      <StatusChip pill tokens={{ color: 'var(--body)', bg: 'var(--field)' }} label={`${rule.triggerOffsetDays > 0 ? '+' : ''}${rule.triggerOffsetDays}j`} className="tabular-nums" />
     )}
     {isLifecycleTrigger(rule.triggerType) && rule.triggerTime && (
-      <Chip
-        label={rule.triggerTime}
-        size="small"
-        sx={{ ...pillSx('var(--field)', 'var(--body)'), fontVariantNumeric: 'tabular-nums' }}
-      />
+      <StatusChip pill tokens={{ color: 'var(--body)', bg: 'var(--field)' }} label={rule.triggerTime} className="tabular-nums" />
     )}
   </>
 );
 
 const renderActionChip = (rule: AutomationRule) => (
-  <Chip
-    label={ACTION_LABELS[rule.actionType] ?? rule.actionType}
-    size="small"
-    sx={pillSx('var(--info-soft)', 'var(--info)')}
-  />
+  <StatusChip pill tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={ACTION_LABELS[rule.actionType] ?? rule.actionType} />
 );
 
 const renderChannelChip = (rule: AutomationRule) =>
   isMessagingAction(rule.actionType) ? (
-    <Chip
-      icon={channelIcon(rule.deliveryChannel) as React.ReactElement}
-      label={rule.deliveryChannel}
-      size="small"
-      sx={pillSx(
-        `${CHANNEL_HEX[rule.deliveryChannel] ?? '#67757C'}1F`,
-        CHANNEL_HEX[rule.deliveryChannel] ?? 'var(--muted)',
-      )}
-    />
+    <StatusChip pill tokens={{ color: CHANNEL_HEX[rule.deliveryChannel] ?? 'var(--muted)', bg: `${CHANNEL_HEX[rule.deliveryChannel] ?? '#67757C'}1F` }} label={rule.deliveryChannel} icon={channelIcon(rule.deliveryChannel) as React.ReactElement} />
   ) : null;
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -275,30 +245,23 @@ const AutomationRulesPage: React.FC = () => {
   // Ligne « liste » d'une automatisation système (lecture seule), mêmes colonnes
   // que les règles pour une liste unifiée.
   const renderSystemRow = (sa: (typeof systemAutomations)[number]) => (
-    <Box
-      key={sa.key}
-      sx={{
-        display: 'grid', gridTemplateColumns: LIST_COLUMNS, alignItems: 'center',
-        columnGap: 1.5, px: 2, py: 1.25, minWidth: 720,
-        borderTop: '1px solid var(--hairline)',
-      }}
-    >
-      <Chip label={sa.statusLabel} size="small" sx={{ ...systemStatusStyle(sa.status), justifySelf: 'start' }} />
-      <Box sx={{ minWidth: 0 }}>
-        <Typography noWrap sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink)' }}>{sa.label}</Typography>
-        <Typography noWrap sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>{sa.description}</Typography>
-      </Box>
-      <Box sx={{ display: 'flex', minWidth: 0 }}>
-        <Chip label={sa.triggerLabel} size="small" sx={pillSx('var(--accent-soft)', 'var(--accent)')} />
-      </Box>
-      <Box sx={{ display: 'flex', minWidth: 0 }}>
-        <Chip label={sa.actionLabel} size="small" sx={pillSx('var(--info-soft)', 'var(--info)')} />
-      </Box>
-      <Box sx={{ display: 'flex', minWidth: 0 }}>
-        <Chip label={sa.mechanism} size="small" sx={pillSx('var(--field)', 'var(--muted)')} />
-      </Box>
-      <Box />
-    </Box>
+    <div className="grid items-center gap-x-[9px] px-3 py-[7.5px] min-w-[720px]" style={{ gridTemplateColumns: LIST_COLUMNS, borderTop: '1px solid var(--hairline)' }} key={sa.key}>
+      <StatusChip pill tokens={systemStatusTokens(sa.status)} label={sa.statusLabel} className="justify-self-start" />
+      <div className="min-w-0">
+        <p className="cn-text-body1 truncate text-[0.8125rem] font-semibold text-[var(--ink)]">{sa.label}</p>
+        <p className="cn-text-body1 truncate text-[0.6875rem] text-muted-foreground">{sa.description}</p>
+      </div>
+      <div className="flex min-w-0">
+        <StatusChip pill tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={sa.triggerLabel} />
+      </div>
+      <div className="flex min-w-0">
+        <StatusChip pill tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={sa.actionLabel} />
+      </div>
+      <div className="flex min-w-0">
+        <StatusChip pill tokens={{ color: 'var(--muted)', bg: 'var(--field)' }} label={sa.mechanism} />
+      </div>
+      <div />
+    </div>
   );
 
   // Vue carte : tous les chips regroupés.
@@ -316,94 +279,123 @@ const AutomationRulesPage: React.FC = () => {
 
   // Exécutions (lecture seule) visibles par tous ; Modifier / Supprimer réservés
   // à la plateforme (les orgs sont en lecture seule).
+  // Le <span> autour de chaque bouton n'est pas decoratif : TooltipTrigger
+  // asChild pose une ref DOM sur son enfant, or les primitifs du kit sont des
+  // fonctions sans forwardRef (React 18) — sans le span, l'ancrage du tooltip
+  // serait perdu.
   const renderRuleActions = (rule: AutomationRule) => (
     <>
       {canEdit && (
-        <Tooltip title={t('common.edit', 'Modifier')}>
-          <IconButton size="small" onClick={() => handleOpenEdit(rule)}>
-            <EditIcon size={'0.875rem'} strokeWidth={1.75} />
-          </IconButton>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button variant="ghost" size="icon-sm" aria-label={t('common.edit', 'Modifier')} onClick={() => handleOpenEdit(rule)}>
+                <EditIcon size={'0.875rem'} strokeWidth={1.75} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('common.edit', 'Modifier')}</TooltipContent>
         </Tooltip>
       )}
-      <Tooltip title={t('automation.executions', 'Executions')}>
-        <IconButton size="small" color="info" onClick={() => { setExecRuleId(rule.id); setExecPage(0); }}>
-          <ExecutionsIcon size={'0.875rem'} strokeWidth={1.75} />
-        </IconButton>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            <Button variant="ghost" size="icon-sm" className="text-[var(--info)]" aria-label={t('automation.executions', 'Executions')} onClick={() => { setExecRuleId(rule.id); setExecPage(0); }}>
+              <ExecutionsIcon size={'0.875rem'} strokeWidth={1.75} />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>{t('automation.executions', 'Executions')}</TooltipContent>
       </Tooltip>
       {canEdit && (
-        <Tooltip title={t('common.delete', 'Supprimer')}>
-          <IconButton size="small" color="error" onClick={() => setDeleteTarget(rule)}>
-            <DeleteIcon size={'0.875rem'} strokeWidth={1.75} />
-          </IconButton>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button variant="ghost" size="icon-sm" className="text-[var(--err)]" aria-label={t('common.delete', 'Supprimer')} onClick={() => setDeleteTarget(rule)}>
+                <DeleteIcon size={'0.875rem'} strokeWidth={1.75} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('common.delete', 'Supprimer')}</TooltipContent>
         </Tooltip>
       )}
     </>
   );
 
   return (
-    <Box sx={{ p: SPACING.PAGE_PADDING }}>
+    // Padding de page : SPACING.PAGE_PADDING (2) = 12px avec theme.spacing = 6
+    <div className="p-3">
       <PageHeader
         title={t('automation.title', 'Regles d\'automatisation')}
         subtitle={t('automation.subtitle', 'Automatisez les messages et actions pour vos reservations')}
         showBackButton={false}
         backPath="/settings"
         actions={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <div className="flex items-center gap-1.5">
             {/* Sélecteur d'affichage : liste (défaut) / cartes */}
-            <Box sx={{ display: 'flex', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-              <Tooltip title={t('automation.view.list', 'Vue liste')}>
-                <IconButton
-                  size="small"
-                  onClick={() => setViewMode('list')}
-                  sx={{
-                    borderRadius: 0,
-                    color: viewMode === 'list' ? 'var(--accent)' : 'var(--muted)',
-                    backgroundColor: viewMode === 'list' ? 'var(--accent-soft)' : 'transparent',
-                  }}
-                >
-                  <ListViewIcon size={16} strokeWidth={1.75} />
-                </IconButton>
+            <div className="flex border border-[var(--hairline)] rounded-[var(--radius-md)] overflow-hidden">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t('automation.view.list', 'Vue liste')}
+                      aria-pressed={viewMode === 'list'}
+                      onClick={() => setViewMode('list')}
+                      className={viewMode === 'list'
+                        ? 'rounded-none text-[var(--accent)] bg-[var(--accent-soft)]'
+                        : 'rounded-none text-[var(--muted)]'}
+                    >
+                      <ListViewIcon size={16} strokeWidth={1.75} />
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{t('automation.view.list', 'Vue liste')}</TooltipContent>
               </Tooltip>
-              <Tooltip title={t('automation.view.card', 'Vue cartes')}>
-                <IconButton
-                  size="small"
-                  onClick={() => setViewMode('card')}
-                  sx={{
-                    borderRadius: 0,
-                    color: viewMode === 'card' ? 'var(--accent)' : 'var(--muted)',
-                    backgroundColor: viewMode === 'card' ? 'var(--accent-soft)' : 'transparent',
-                  }}
-                >
-                  <CardViewIcon size={16} strokeWidth={1.75} />
-                </IconButton>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t('automation.view.card', 'Vue cartes')}
+                      aria-pressed={viewMode === 'card'}
+                      onClick={() => setViewMode('card')}
+                      className={viewMode === 'card'
+                        ? 'rounded-none text-[var(--accent)] bg-[var(--accent-soft)]'
+                        : 'rounded-none text-[var(--muted)]'}
+                    >
+                      <CardViewIcon size={16} strokeWidth={1.75} />
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{t('automation.view.card', 'Vue cartes')}</TooltipContent>
               </Tooltip>
-            </Box>
+            </div>
             {canEdit && (
-              <Button
-                size="small"
-                variant="contained"
-                startIcon={<AddIcon size={16} strokeWidth={2} />}
-                onClick={handleOpenCreate}
-              >
+              <Button size="sm" onClick={handleOpenCreate}>
+                <AddIcon size={16} strokeWidth={2} />
                 {t('automation.create', 'Nouvelle regle')}
               </Button>
             )}
-          </Box>
+          </div>
         }
       />
 
       {/* ── Rules list ── */}
       {isLoading ? (
-        <Grid container spacing={1.5}>
+        <div className="grid grid-cols-12 gap-[9px]">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Grid item xs={12} md={6} key={i}>
-              <Skeleton variant="rounded" height={150} sx={{ borderRadius: 'var(--radius-lg)' }} />
-            </Grid>
+            <div className="col-span-12 min-[900px]:col-span-6" key={i}>
+              <Skeleton className="h-[150px] w-full rounded-[var(--radius-lg)]" />
+            </div>
           ))}
-        </Grid>
+        </div>
       ) : isError ? (
-        <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
-          {t('automation.error', 'Erreur lors du chargement des regles')}
+        <Alert variant="destructive" className="text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{t('automation.error', 'Erreur lors du chargement des regles')}</AlertDescription>
         </Alert>
       ) : sortedRules.length === 0 ? (
         <EmptyState
@@ -412,119 +404,104 @@ const AutomationRulesPage: React.FC = () => {
           description={t('automation.emptyDesc', "Les regles d'automatisation apparaitront ici.")}
           action={
             canEdit ? (
-              <Button
-                size="small"
-                variant="contained"
-                startIcon={<AddIcon size={16} strokeWidth={1.75} />}
-                onClick={handleOpenCreate}
-              >
+              <Button size="sm" onClick={handleOpenCreate}>
+                <AddIcon size={16} strokeWidth={1.75} />
                 {t('automation.create', 'Nouvelle regle')}
               </Button>
             ) : undefined
           }
         />
       ) : viewMode === 'card' ? (
-        <Grid container spacing={1.5}>
+        <div className="grid grid-cols-12 gap-[9px]">
           {sortedRules.map((rule) => (
-            <Grid item xs={12} md={6} key={rule.id}>
-              {/* Carte règle : peau MuiCard du thème (hairline r14, pas d'ombre) */}
-              <Card>
-                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                  {/* Header row : nom + toggle (Switch thème, nu) */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ink)', flex: 1 }}>
-                      {rule.name}
-                    </Typography>
-                    <Switch
-                      checked={rule.enabled}
-                      onChange={() => handleToggle(rule.id)}
-                      disabled={toggleMutation.isPending}
-                    />
-                  </Box>
+            <div className="col-span-12 min-[900px]:col-span-6" key={rule.id}>
+              {/* Carte règle : peau Card du kit (p: 2 MUI = 12 px avec spacing 6) */}
+              <Card className="gap-0 py-0 p-3">
+                {/* Header row : nom + toggle */}
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <p className="cn-text-body1 text-[0.875rem] font-semibold text-[var(--ink)] flex-1">
+                    {rule.name}
+                  </p>
+                  <Switch
+                    checked={rule.enabled}
+                    onCheckedChange={() => handleToggle(rule.id)}
+                    disabled={toggleMutation.isPending}
+                  />
+                </div>
 
-                  {/* Conditions / actions : chips -soft (déclencheur = accent) */}
-                  <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.5 }}>
-                    {renderRuleChips(rule)}
-                  </Box>
+                {/* Conditions / actions : chips -soft (déclencheur = accent) */}
+                <div className="flex gap-1 flex-wrap mb-2">
+                  {renderRuleChips(rule)}
+                </div>
 
-                  {/* Template */}
-                  {rule.templateName && (
-                    <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mb: 1 }}>
-                      Template: {rule.templateName}
-                    </Typography>
-                  )}
+                {/* Template */}
+                {rule.templateName && (
+                  <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mb-1.5">
+                    Template: {rule.templateName}
+                  </p>
+                )}
 
-                  {/* Actions */}
-                  <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    {renderRuleActions(rule)}
-                  </Box>
-                </CardContent>
+                {/* Actions */}
+                <div className="flex gap-0.5">
+                  {renderRuleActions(rule)}
+                </div>
               </Card>
-            </Grid>
+            </div>
           ))}
-        </Grid>
+        </div>
       ) : (
         // ── Vue LISTE (défaut) : lignes denses, chips alignés en colonnes ────
-        <Card sx={{ overflowX: 'auto' }}>
+        // Le defilement horizontal est porte par un div interne : la Card du kit
+        // pose deja overflow-hidden, qui gagnerait sur un overflow-x sur elle.
+        <Card className="gap-0 py-0">
+          <div className="overflow-x-auto">
           {sortedRules.map((rule, idx) => (
-            <Box
-              key={rule.id}
-              sx={{
-                display: 'grid', gridTemplateColumns: LIST_COLUMNS, alignItems: 'center',
-                columnGap: 1.5, px: 2, py: 1.25, minWidth: 720,
-                borderTop: idx === 0 ? 'none' : '1px solid var(--hairline)',
-              }}
-            >
+            <div className="grid items-center gap-x-[9px] px-3 py-[7.5px] min-w-[720px]" style={{ gridTemplateColumns: LIST_COLUMNS, borderTop: idx === 0 ? 'none' : '1px solid var(--hairline)' }} key={rule.id}>
+              {/* Le sx d'origine ne faisait que retailler le Switch en version
+                  compacte : c'est exactement size="sm" dans le kit. */}
               <Switch
+                size="sm"
+                className="justify-self-start"
                 checked={rule.enabled}
-                onChange={() => handleToggle(rule.id)}
+                onCheckedChange={() => handleToggle(rule.id)}
                 disabled={!canEdit || toggleMutation.isPending}
-                sx={{
-                  justifySelf: 'start',
-                  width: 30, height: 18, p: 0, display: 'flex',
-                  '& .MuiSwitch-switchBase': {
-                    p: 0, m: '2px',
-                    '&.Mui-checked': { transform: 'translateX(12px)' },
-                  },
-                  '& .MuiSwitch-thumb': { width: 14, height: 14, boxShadow: 'none' },
-                  '& .MuiSwitch-track': { borderRadius: 9, opacity: 1 },
-                }}
               />
-              <Box sx={{ minWidth: 0 }}>
-                <Typography noWrap sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink)' }}>
+              <div className="min-w-0">
+                <p className="cn-text-body1 truncate text-[0.8125rem] font-semibold text-[var(--ink)]">
                   {rule.name}
-                </Typography>
+                </p>
                 {rule.templateName && (
-                  <Typography noWrap sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                  <p className="cn-text-body1 truncate text-[0.6875rem] text-muted-foreground">
                     Template: {rule.templateName}
-                  </Typography>
+                  </p>
                 )}
-              </Box>
-              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', minWidth: 0 }}>
+              </div>
+              <div className="flex gap-0.5 flex-wrap min-w-0">
                 {renderTriggerChips(rule)}
-              </Box>
-              <Box sx={{ display: 'flex', minWidth: 0 }}>
+              </div>
+              <div className="flex min-w-0">
                 {renderActionChip(rule)}
-              </Box>
-              <Box sx={{ display: 'flex', minWidth: 0 }}>
+              </div>
+              <div className="flex min-w-0">
                 {renderChannelChip(rule)}
-              </Box>
-              <Box sx={{ display: 'flex', gap: 0.25, justifyContent: 'flex-end' }}>
+              </div>
+              <div className="flex gap-0.5 justify-end">
                 {renderRuleActions(rule)}
-              </Box>
-            </Box>
+              </div>
+            </div>
           ))}
           {/* Automatisations système (lecture seule) fusionnées dans la même liste */}
           {systemAutomations.length > 0 && (
             <>
-              <Box sx={{ px: 2, py: 1, borderTop: '1px solid var(--hairline)', backgroundColor: 'var(--field)' }}>
-                <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--faint)' }}>
+              <div className="px-3 py-1.5 border-t border-[var(--hairline)] bg-[var(--field)]">
+                <p className="cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.06em] text-[var(--faint)]">
                   {t('automation.system.title', 'Automatisations système')} · {t('automation.system.readOnly', 'Lecture seule')}
-                </Typography>
-              </Box>
+                </p>
+              </div>
               {systemAutomations.map((sa) => renderSystemRow(sa))}
             </>
           )}
+          </div>
         </Card>
       )}
 
@@ -534,45 +511,39 @@ const AutomationRulesPage: React.FC = () => {
       {/* En vue CARTE, les automatisations système restent une section dédiée en
           dessous ; en vue LISTE elles sont fusionnées dans la liste ci-dessus. */}
       {viewMode === 'card' && systemAutomations.length > 0 && (
-        <Box sx={{ mt: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-            <Typography sx={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--ink)' }}>
+        <div className="mt-6">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <p className="cn-text-body1 text-[0.95rem] font-semibold text-[var(--ink)]">
               {t('automation.system.title', 'Automatisations système')}
-            </Typography>
-            <Chip
-              label={t('automation.system.readOnly', 'Lecture seule')}
-              size="small"
-              sx={pillSx('var(--field)', 'var(--muted)')}
-            />
-          </Box>
-          <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mb: 1.5 }}>
+            </p>
+            <StatusChip pill tokens={{ color: 'var(--muted)', bg: 'var(--field)' }} label={t('automation.system.readOnly', 'Lecture seule')} />
+          </div>
+          <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground mb-2">
             {t('automation.system.subtitle', 'Automatisations gérées ailleurs dans le produit (hors règles). Affichées ici pour visibilité — leur statut reflète l’état réel.')}
-          </Typography>
-          <Grid container spacing={1.5}>
+          </p>
+          <div className="grid grid-cols-12 gap-[9px]">
             {systemAutomations.map((sa) => (
-              <Grid item xs={12} md={6} key={sa.key}>
-                <Card sx={{ opacity: 0.94 }}>
-                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
-                      <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ink)', flex: 1 }}>
-                        {sa.label}
-                      </Typography>
-                      <Chip label={sa.statusLabel} size="small" sx={systemStatusStyle(sa.status)} />
-                    </Box>
-                    <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', mb: 1 }}>
-                      {sa.description}
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
-                      <Chip label={sa.triggerLabel} size="small" sx={pillSx('var(--accent-soft)', 'var(--accent)')} />
-                      <Chip label={sa.actionLabel} size="small" sx={pillSx('var(--info-soft)', 'var(--info)')} />
-                      <Chip label={sa.mechanism} size="small" sx={pillSx('var(--field)', 'var(--muted)')} />
-                    </Box>
-                  </CardContent>
+              <div className="col-span-12 min-[900px]:col-span-6" key={sa.key}>
+                <Card className="gap-0 py-0 p-3 opacity-[0.94]">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <p className="cn-text-body1 text-[0.875rem] font-semibold text-[var(--ink)] flex-1">
+                      {sa.label}
+                    </p>
+                    <StatusChip pill tokens={systemStatusTokens(sa.status)} label={sa.statusLabel} />
+                  </div>
+                  <p className="cn-text-body1 text-[0.78rem] text-muted-foreground mb-1.5">
+                    {sa.description}
+                  </p>
+                  <div className="flex gap-1 flex-wrap">
+                    <StatusChip pill tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={sa.triggerLabel} />
+                    <StatusChip pill tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={sa.actionLabel} />
+                    <StatusChip pill tokens={{ color: 'var(--muted)', bg: 'var(--field)' }} label={sa.mechanism} />
+                  </div>
                 </Card>
-              </Grid>
+              </div>
             ))}
-          </Grid>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
@@ -585,156 +556,193 @@ const AutomationRulesPage: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════════
           Create / Edit Dialog
           ═══════════════════════════════════════════════════════════════════════ */}
-      <Dialog open={formOpen} onClose={() => setFormOpen(false)} maxWidth="sm" fullWidth>
-        {/* Peau modale + tailles de champs : portées par le thème global */}
-        <DialogTitle>
-          {editingRule
-            ? t('automation.editTitle', 'Modifier la regle')
-            : t('automation.createTitle', 'Nouvelle regle d\'automatisation')}
-        </DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-          <TextField
-            label={t('automation.form.name', 'Nom de la regle')}
-            size="small"
-            fullWidth
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          />
+      <Dialog open={formOpen} onOpenChange={(next) => { if (!next) setFormOpen(false); }}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingRule
+                ? t('automation.editTitle', 'Modifier la regle')
+                : t('automation.createTitle', 'Nouvelle regle d\'automatisation')}
+            </DialogTitle>
+          </DialogHeader>
+          {/* Le defilement est sur le corps du formulaire, pas sur DialogContent :
+              titre et pied restent visibles, comme avec le Dialog MUI. */}
+          <div className="flex flex-col gap-3 max-h-[65vh] overflow-y-auto">
+          <Field>
+            <FieldLabel htmlFor="automation-rule-name">
+              {t('automation.form.name', 'Nom de la regle')}
+            </FieldLabel>
+            <Input
+              id="automation-rule-name"
+              className="w-full"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            />
+          </Field>
 
-          <FormControl size="small" fullWidth>
-            <InputLabel>{t('automation.form.trigger', 'Declencheur')}</InputLabel>
-            <Select
+          <Field>
+            <FieldLabel htmlFor="automation-trigger">
+              {t('automation.form.trigger', 'Declencheur')}
+            </FieldLabel>
+            {/* Les ListSubheader MUI deviennent des <optgroup> : meme regroupement,
+                mais non selectionnables par construction. */}
+            <NativeSelect
+              id="automation-trigger"
+              className="w-full"
               value={formData.triggerType}
               onChange={(e) => handleTriggerChange(e.target.value as AutomationTrigger)}
-              label={t('automation.form.trigger', 'Declencheur')}
             >
-              {TRIGGER_GROUPS.flatMap((group) => [
-                <ListSubheader key={`grp-${group.label}`}>{group.label}</ListSubheader>,
-                ...group.triggers.map((tg) => (
-                  <MenuItem key={tg} value={tg}>
-                    {TRIGGER_LABELS[tg]}
-                  </MenuItem>
-                )),
-              ])}
-            </Select>
-          </FormControl>
+              {TRIGGER_GROUPS.map((group) => (
+                <NativeSelectOptGroup key={group.label} label={group.label}>
+                  {group.triggers.map((tg) => (
+                    <NativeSelectOption key={tg} value={tg}>
+                      {TRIGGER_LABELS[tg]}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelectOptGroup>
+              ))}
+            </NativeSelect>
+          </Field>
 
-          <FormControl size="small" fullWidth>
-            <InputLabel>{t('automation.form.action', 'Action')}</InputLabel>
-            <Select
+          <Field>
+            <FieldLabel htmlFor="automation-action">
+              {t('automation.form.action', 'Action')}
+            </FieldLabel>
+            <NativeSelect
+              id="automation-action"
+              className="w-full"
               value={formData.actionType ?? ''}
               onChange={(e) => setFormData({ ...formData, actionType: e.target.value as AutomationAction })}
-              label={t('automation.form.action', 'Action')}
             >
               {Array.from(new Set([
                 ...(TRIGGER_ACTIONS[formData.triggerType] ?? []),
                 ...(formData.actionType ? [formData.actionType] : []),
               ])).map((a) => (
-                <MenuItem key={a} value={a}>
+                <NativeSelectOption key={a} value={a}>
                   {ACTION_LABELS[a]}
-                </MenuItem>
+                </NativeSelectOption>
               ))}
-            </Select>
-          </FormControl>
+            </NativeSelect>
+          </Field>
 
           {/* Décalage/heure : uniquement pour les déclencheurs « cycle de vie ». */}
           {isLifecycleTrigger(formData.triggerType) && (
-            <Box sx={{ display: 'flex', gap: 1.5 }}>
-              <TextField
-                label={t('automation.form.offset', 'Delai (jours)')}
-                type="number"
-                size="small"
-                fullWidth
-                value={formData.triggerOffsetDays}
-                onChange={(e) => setFormData({ ...formData, triggerOffsetDays: Number(e.target.value) })}
-                inputProps={{ min: -30, max: 30, step: 1 }}
-              />
-              <TextField
-                label={t('automation.form.time', 'Heure')}
-                type="time"
-                size="small"
-                fullWidth
-                value={formData.triggerTime ?? '09:00'}
-                onChange={(e) => setFormData({ ...formData, triggerTime: e.target.value })}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Box>
+            <div className="flex gap-2">
+              <Field className="flex-1">
+                <FieldLabel htmlFor="automation-offset-days">
+                  {t('automation.form.offset', 'Delai (jours)')}
+                </FieldLabel>
+                <Input
+                  id="automation-offset-days"
+                  type="number"
+                  value={formData.triggerOffsetDays}
+                  onChange={(e) => setFormData({ ...formData, triggerOffsetDays: Number(e.target.value) })}
+                  min={-30}
+                  max={30}
+                  step={1}
+                />
+              </Field>
+              <Field className="flex-1">
+                <FieldLabel htmlFor="automation-trigger-time">
+                  {t('automation.form.time', 'Heure')}
+                </FieldLabel>
+                <Input
+                  id="automation-trigger-time"
+                  type="time"
+                  value={formData.triggerTime ?? '09:00'}
+                  onChange={(e) => setFormData({ ...formData, triggerTime: e.target.value })}
+                />
+              </Field>
+            </div>
           )}
 
           {/* Canal d'envoi : uniquement pour les actions de messagerie. */}
           {formData.actionType && isMessagingAction(formData.actionType) && (
-            <FormControl size="small" fullWidth>
-              <InputLabel>{t('automation.form.channel', 'Canal d\'envoi')}</InputLabel>
-              <Select
+            <Field>
+              <FieldLabel htmlFor="automation-channel">
+                {t('automation.form.channel', 'Canal d\'envoi')}
+              </FieldLabel>
+              {/* Une <option> native ne peut pas porter d'icone : le libelle seul
+                  suffit ici, les chips de la liste gardent l'icone du canal. */}
+              <NativeSelect
+                id="automation-channel"
+                className="w-full"
                 value={formData.deliveryChannel ?? 'EMAIL'}
                 onChange={(e) => setFormData({ ...formData, deliveryChannel: e.target.value as MessageChannelType })}
-                label={t('automation.form.channel', 'Canal d\'envoi')}
               >
                 {CHANNEL_OPTIONS.map((c) => (
-                  <MenuItem key={c.value} value={c.value}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {c.icon}
-                      {c.label}
-                    </Box>
-                  </MenuItem>
+                  <NativeSelectOption key={c.value} value={c.value}>
+                    {c.label}
+                  </NativeSelectOption>
                 ))}
-              </Select>
-            </FormControl>
+              </NativeSelect>
+            </Field>
           )}
 
           {/* Template : uniquement pour « Envoyer un message » (contenu libre). */}
           {formData.actionType && actionNeedsTemplate(formData.actionType) && (
-            <FormControl size="small" fullWidth>
-              <InputLabel>{t('automation.form.template', 'Template')}</InputLabel>
-              <Select
+            <Field>
+              <FieldLabel htmlFor="automation-template">
+                {t('automation.form.template', 'Template')}
+              </FieldLabel>
+              <NativeSelect
+                id="automation-template"
+                className="w-full"
                 value={formData.templateId ?? ''}
                 onChange={(e) => setFormData({ ...formData, templateId: e.target.value ? Number(e.target.value) : undefined })}
-                label={t('automation.form.template', 'Template')}
               >
-                <MenuItem value="">
-                  <em>{t('common.none', 'Aucun')}</em>
-                </MenuItem>
+                <NativeSelectOption value="">
+                  {t('common.none', 'Aucun')}
+                </NativeSelectOption>
                 {templates.map((tmpl: MessageTemplate) => (
-                  <MenuItem key={tmpl.id} value={tmpl.id}>
+                  <NativeSelectOption key={tmpl.id} value={tmpl.id}>
                     {tmpl.name}
-                  </MenuItem>
+                  </NativeSelectOption>
                 ))}
-              </Select>
-            </FormControl>
+              </NativeSelect>
+            </Field>
           )}
 
           {/* Délai de grâce (action_config) : uniquement pour la révocation de code. */}
           {formData.actionType && actionUsesGraceHours(formData.actionType) && (
-            <TextField
-              label={t('automation.form.graceHours', 'Delai de grace (heures)')}
-              type="number"
-              size="small"
-              fullWidth
-              value={parseActionConfig(formData.actionConfig).graceHours ?? 4}
-              onChange={(e) => setFormData({ ...formData, actionConfig: stringifyGraceHours(Number(e.target.value)) })}
-              inputProps={{ min: 0, max: 72, step: 1 }}
-              helperText={t('automation.form.graceHoursHelp', "Le code d'acces est revoque ce nombre d'heures apres le check-out.")}
-            />
+            <Field>
+              <FieldLabel htmlFor="automation-grace-hours">
+                {t('automation.form.graceHours', 'Delai de grace (heures)')}
+              </FieldLabel>
+              <Input
+                id="automation-grace-hours"
+                type="number"
+                className="w-full"
+                value={parseActionConfig(formData.actionConfig).graceHours ?? 4}
+                onChange={(e) => setFormData({ ...formData, actionConfig: stringifyGraceHours(Number(e.target.value)) })}
+                min={0}
+                max={72}
+                step={1}
+              />
+              <FieldDescription>
+                {t('automation.form.graceHoursHelp', "Le code d'acces est revoque ce nombre d'heures apres le check-out.")}
+              </FieldDescription>
+            </Field>
           )}
 
           <ConditionsEditor
             value={formData.conditions ?? undefined}
             onChange={(conditions) => setFormData({ ...formData, conditions })}
           />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setFormOpen(false)}>
+              {t('common.cancel', 'Annuler')}
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSubmit}
+              disabled={isMutating || !formData.name.trim()}
+            >
+              {isMutating ? <Spinner className="size-4" /> : editingRule ? t('common.save', 'Enregistrer') : t('common.create', 'Creer')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setFormOpen(false)} size="small">
-            {t('common.cancel', 'Annuler')}
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            onClick={handleSubmit}
-            disabled={isMutating || !formData.name.trim()}
-          >
-            {isMutating ? <CircularProgress size={16} /> : editingRule ? t('common.save', 'Enregistrer') : t('common.create', 'Creer')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* ═══════════════════════════════════════════════════════════════════════
@@ -755,7 +763,7 @@ const AutomationRulesPage: React.FC = () => {
         onConfirm={handleDelete}
         onClose={() => setDeleteTarget(null)}
       />
-    </Box>
+    </div>
   );
 };
 
@@ -778,51 +786,53 @@ const ExecutionsDialog: React.FC<{
   const totalElements = data?.totalElements ?? 0;
 
   return (
-    <Dialog open={ruleId !== null} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        {t('automation.executionsTitle', 'Historique des executions')}
-      </DialogTitle>
-      <DialogContent sx={{ pt: '16px !important' }}>
+    <Dialog open={ruleId !== null} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[900px]">
+        <DialogHeader>
+          <DialogTitle>
+            {t('automation.executionsTitle', 'Historique des executions')}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="max-h-[65vh] overflow-y-auto">
         {isLoading ? (
-          <Skeleton variant="rounded" height={220} sx={{ borderRadius: 'var(--radius-lg)' }} />
+          <Skeleton className="h-[220px] w-full rounded-[var(--radius-lg)]" />
         ) : executions.length === 0 ? (
-          <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', textAlign: 'center', py: 3 }}>
+          <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground text-center py-4">
             {t('automation.noExecutions', 'Aucune execution trouvee')}
-          </Typography>
+          </p>
         ) : (
           <>
-            <TableContainer>
-              {/* Entêtes overline + hairlines : portées par le thème global */}
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>{t('automation.exec.date', 'Date')}</TableCell>
-                    <TableCell>{t('automation.exec.guest', 'Client')}</TableCell>
-                    <TableCell>{t('automation.exec.reservation', 'Reservation')}</TableCell>
-                    <TableCell align="center">{t('automation.exec.status', 'Status')}</TableCell>
-                    <TableCell>{t('automation.exec.error', 'Erreur')}</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {executions.map((exec) => {
-                    const tokens = EXEC_STATUS_TOKENS[exec.status] ?? { color: 'var(--muted)', soft: 'var(--hover)' };
-                    return (
-                      <TableRow key={exec.id} hover>
-                        <TableCell sx={{ ...CELL_SX, fontVariantNumeric: 'tabular-nums' }}>{fmtDate(exec.createdAt)}</TableCell>
-                        <TableCell sx={CELL_SX}>{exec.guestName}</TableCell>
-                        <TableCell sx={{ ...CELL_SX, fontVariantNumeric: 'tabular-nums' }}>#{exec.reservationId}</TableCell>
-                        <TableCell align="center">
-                          <Chip label={exec.status} size="small" sx={pillSx(tokens.soft, tokens.color)} />
-                        </TableCell>
-                        <TableCell sx={{ ...CELL_SX, color: exec.errorMessage ? 'var(--err)' : 'var(--faint)' }}>
-                          {exec.errorMessage ?? '—'}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            {/* Entêtes overline + hairlines : portées par le primitif ;
+                le conteneur overflow-x-auto est déjà rendu par <Table>. */}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('automation.exec.date', 'Date')}</TableHead>
+                  <TableHead>{t('automation.exec.guest', 'Client')}</TableHead>
+                  <TableHead>{t('automation.exec.reservation', 'Reservation')}</TableHead>
+                  <TableHead className="text-center">{t('automation.exec.status', 'Status')}</TableHead>
+                  <TableHead>{t('automation.exec.error', 'Erreur')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {executions.map((exec) => {
+                  const tokens = EXEC_STATUS_TOKENS[exec.status] ?? { color: 'var(--muted)', soft: 'var(--hover)' };
+                  return (
+                    <TableRow key={exec.id}>
+                      <TableCell className="py-[7.5px] tabular-nums">{fmtDate(exec.createdAt)}</TableCell>
+                      <TableCell className="py-[7.5px]">{exec.guestName}</TableCell>
+                      <TableCell className="py-[7.5px] tabular-nums">#{exec.reservationId}</TableCell>
+                      <TableCell className="text-center">
+                        <StatusChip pill tokens={{ color: tokens.color, bg: tokens.soft }} label={exec.status} />
+                      </TableCell>
+                      <TableCell className={cn('py-[7.5px]', exec.errorMessage ? 'text-[var(--err)]' : 'text-[var(--faint)]')}>
+                        {exec.errorMessage ?? '—'}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
             <PagePagination
               count={totalElements}
               page={page}
@@ -831,12 +841,13 @@ const ExecutionsDialog: React.FC<{
             />
           </>
         )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            {t('common.close', 'Fermer')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} size="small">
-          {t('common.close', 'Fermer')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };

@@ -1,5 +1,4 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
 import {
   WeatherSun,
   WeatherCloudSun,
@@ -51,51 +50,35 @@ export const WeatherWidget: React.FC<WeatherWidgetProps> = ({ data }) => {
 
   if (items.length === 0) {
     return (
-      <Box sx={{ mt: 1, mb: 1.5 }}>
-        <Box sx={{
-          p: 2, borderRadius: '12px',
-          bgcolor: 'var(--warn-soft)',
-          textAlign: 'center',
-        }}>
-          <Typography sx={{ fontSize: '12.5px', color: 'var(--warn)' }}>
+      <div className="mt-1.5 mb-2">
+        <div className="p-3 rounded-[12px] bg-[var(--warn-soft)] text-center">
+          <p className="cn-text-body1 text-[12.5px] text-[var(--warn)]">
             Aucune donnee meteo disponible.
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5 }}>
+    <div className="mt-1.5 mb-2">
       {data.title && (
-        <Typography sx={{
-          display: 'block', mb: 0.75, fontSize: '10.5px', fontWeight: 700,
-          textTransform: 'uppercase', letterSpacing: '.05em',
-          color: 'var(--faint)',
-        }}>
+        <p className="cn-text-body1 block mb-1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
           {data.title}
-        </Typography>
+        </p>
       )}
 
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: 'repeat(4, minmax(72px, 1fr))', sm: `repeat(${items.length}, minmax(72px, 1fr))` },
-          gap: 0.75,
-          overflowX: 'auto',
-          // Scrollbar discrete
-          '&::-webkit-scrollbar': { height: 4 },
-          '&::-webkit-scrollbar-thumb': {
-            bgcolor: 'var(--line-2)',
-            borderRadius: 2,
-          },
-        }}
+      {/* Le nombre de colonnes depend des donnees : custom property, la rupture
+          sm (600px MUI) reste une variante statique. Scrollbar discrete. */}
+      <div
+        className="grid grid-cols-[repeat(4,_minmax(72px,_1fr))] min-[600px]:grid-cols-[var(--wx-cols)] gap-[4.5px] overflow-x-auto [&::-webkit-scrollbar]:h-[4px] [&::-webkit-scrollbar-thumb]:bg-[var(--line-2)] [&::-webkit-scrollbar-thumb]:rounded-[16px]"
+        style={{ '--wx-cols': `repeat(${items.length}, minmax(72px, 1fr))` } as React.CSSProperties}
       >
         {items.map((item) => (
           <WeatherDayTile key={item.date} item={item} />
         ))}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 
@@ -106,77 +89,35 @@ const WeatherDayTile: React.FC<{ item: WeatherItem }> = ({ item }) => {
   const tMin = item.tempMin;
 
   return (
-    <Box
-      sx={{
-        px: 0.75, py: 1,
-        borderRadius: '10px',
-        border: '1px solid var(--line)',
-        bgcolor: 'var(--card)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 0.4,
-        minWidth: 0,
-        textAlign: 'center',
-      }}
-    >
-      <Typography sx={{
-        fontSize: '10.5px', fontWeight: 700,
-        textTransform: 'uppercase',
-        color: 'var(--faint)',
-        letterSpacing: '.05em',
-      }}>
+    <div className="px-1 py-1.5 rounded-[10px] border border-[var(--line)] bg-[var(--card)] flex flex-col items-center gap-0.5 min-w-0 text-center">
+      <p className="cn-text-body1 text-[10.5px] font-bold uppercase text-[var(--faint)] tracking-[.05em]">
         {formatDay(item.date)}
-      </Typography>
-      <Typography sx={{
-        fontSize: '10.5px', color: 'var(--faint)',
-        fontVariantNumeric: 'tabular-nums',
-      }}>
+      </p>
+      <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] tabular-nums">
         {formatDate(item.date)}
-      </Typography>
-      <Box sx={{
-        color: iconColor(item.conditionCode),
-        display: 'inline-flex', my: 0.25,
-      }}>
+      </p>
+      <div className="inline-flex my-[1.5px]" style={{ color: iconColor(item.conditionCode) }}>
         <Icon size={22} />
-      </Box>
+      </div>
       {tMax !== undefined && tMax !== null && (
-        <Typography sx={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '0.95rem', fontWeight: 600,
-          color: 'var(--ink)',
-          fontVariantNumeric: 'tabular-nums',
-          lineHeight: 1,
-        }}>
+        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.95rem] font-semibold text-[var(--ink)] tabular-nums leading-[1]">
           {Math.round(tMax)}°
-        </Typography>
+        </p>
       )}
       {tMin !== undefined && tMin !== null && (
-        <Typography sx={{
-          fontSize: '11px',
-          color: 'var(--muted)',
-          fontVariantNumeric: 'tabular-nums',
-        }}>
+        <p className="cn-text-body1 text-[11px] text-[var(--muted)] tabular-nums">
           {Math.round(tMin)}°
-        </Typography>
+        </p>
       )}
       {rain > 0.1 && (
-        <Box sx={{
-          display: 'inline-flex', alignItems: 'center', gap: 0.25,
-          mt: 0.25,
-          color: 'var(--info)',
-        }}>
+        <div className="inline-flex items-center gap-0.5 mt-0.5 text-[var(--info)]">
           <WeatherDroplets size={10} />
-          <Typography sx={{
-            fontSize: '10.5px',
-            color: 'inherit',
-            fontVariantNumeric: 'tabular-nums',
-          }}>
+          <p className="cn-text-body1 text-[10.5px] text-inherit tabular-nums">
             {rain.toFixed(1)}mm
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

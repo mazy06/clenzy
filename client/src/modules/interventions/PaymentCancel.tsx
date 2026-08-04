@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Button, Card, CardContent } from '@mui/material';
+import { Button, Card, CardContent } from '../../components/ui';
 import { Cancel, ArrowBack } from "../../icons";
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -9,27 +9,24 @@ const PaymentCancel: React.FC = () => {
   const { t } = useTranslation();
 
   return (
-    <Box sx={{ maxWidth: 600, mx: 'auto', mt: 4 }}>
+    <div className="max-w-[600px] mx-auto mt-6">
       <Card>
-        <CardContent sx={{ textAlign: 'center', p: 4 }}>
-          <Box component="span" sx={{ display: "inline-flex", color: "var(--err)", mb: 2 }}><Cancel size={80} strokeWidth={1.5} /></Box>
-          <Typography variant="h4" gutterBottom>
+        {/* p: 4 = 24 px (spacing MUI 6). */}
+        <CardContent className="text-center p-6">
+          <span className="inline-flex text-[var(--err)] mb-3"><Cancel size={80} strokeWidth={1.5} /></span>
+          <h4 className="cn-text-h4 mb-[0.35em]">
             Paiement annulé
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+          </h4>
+          <p className="cn-text-body1 text-muted-foreground mb-4">
             Le paiement a ete annule. Vous pouvez reessayer depuis la page de facturation.
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<ArrowBack size={18} strokeWidth={1.75} />}
-            onClick={() => navigate('/billing')}
-          >
+          </p>
+          <Button onClick={() => navigate('/billing')}>
+            <ArrowBack size={18} strokeWidth={1.75} />
             Retour a la facturation
           </Button>
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

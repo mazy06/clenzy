@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { cn } from '../../../../utils/cn';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Box, ButtonBase, Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../../../components/ui';
 import {
   Rocket, PanelLeftClose, PanelLeftOpen,
   Undo2, Redo2, Eye, Maximize, Code, SquareDashed, FolderInput, Workflow, PaintBucket, Boxes, Trash2, Plus,
@@ -651,30 +652,39 @@ function ToolBtn({ icon: Icon, title, onClick, active = false, disabled = false,
   icon: LucideIcon; title: string; onClick: () => void; active?: boolean; disabled?: boolean; label?: string;
 }) {
   return (
-    <Tooltip title={title}>
-      <Box component="span" sx={{ display: 'inline-flex' }}>
-        <ButtonBase
-          onClick={onClick}
-          disabled={disabled}
-          aria-label={title}
-          aria-pressed={active}
-          sx={{
-            height: 30, minWidth: 30, px: label ? 1.25 : 0,
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 0.75,
-            borderRadius: 'var(--radius-sm)', cursor: 'pointer',
-            fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)',
-            color: active ? 'var(--accent)' : 'var(--muted)',
-            bgcolor: active ? 'var(--accent-soft)' : 'transparent',
-            transition: 'color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out)',
-            '&:hover': { color: active ? 'var(--accent)' : 'var(--ink)', bgcolor: active ? 'var(--accent-soft)' : 'var(--hover)' },
-            '&.Mui-disabled': { opacity: 0.4, cursor: 'default' },
-            '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-          }}
-        >
-          <Icon size={16} strokeWidth={2} />
-          {label && <Box component="span">{label}</Box>}
-        </ButtonBase>
-      </Box>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {/* Un bouton desactive n'emet pas d'evenement de survol : l'enveloppe
+            porte l'ancre du Tooltip a sa place. */}
+        <span className="inline-flex">
+          <button
+            type="button"
+            onClick={onClick}
+            disabled={disabled}
+            aria-label={title}
+            aria-pressed={active}
+            className={cn(
+              'inline-flex h-[30px] min-w-[30px] items-center justify-center gap-[4.5px] cursor-pointer',
+              'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+              'disabled:opacity-40 disabled:cursor-default',
+              label ? 'px-[7.5px]' : 'px-0',
+              active
+                ? 'text-[var(--accent)] bg-[var(--accent-soft)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]'
+                : 'text-[var(--muted)] bg-transparent hover:text-[var(--ink)] hover:bg-[var(--hover)]',
+            )}
+            style={{
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 'var(--fw-medium)',
+              transition: 'color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out)',
+            }}
+          >
+            <Icon size={16} strokeWidth={2} />
+            {label && <span>{label}</span>}
+          </button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{title}</TooltipContent>
     </Tooltip>
   );
 }
@@ -690,45 +700,65 @@ function CompositesPanel({ composites, canEditGlobal, onInsert, onEdit, onDelete
   onNew: () => void;
 }) {
   return (
-    <Box sx={{ p: 1.25, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-      <Box sx={{ fontSize: 'var(--text-xs)', color: 'var(--muted)', lineHeight: 1.4, px: 0.5 }}>
+    <div className="p-2 flex flex-col gap-1">
+      <div className="text-[var(--text-xs)] text-[var(--muted)] leading-[1.4] px-0.5">
         Clique pour insérer, ou glisse-dépose le composite depuis l'onglet « Blocs » (catégorie Composites).
-      </Box>
-      <ButtonBase
+      </div>
+      <button
+        type="button"
         onClick={onNew}
-        sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 0.75, height: 34, borderRadius: 'var(--radius-md)', border: '1px dashed var(--line)', color: 'var(--accent)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', cursor: 'pointer', '&:hover': { borderColor: 'var(--accent)', bgcolor: 'var(--accent-soft)' } }}
+        className="inline-flex h-[34px] items-center justify-center gap-[4.5px] border border-dashed border-[var(--line)] text-[var(--accent)] cursor-pointer hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]"
+        style={{ borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }}
       >
         <Plus size={15} strokeWidth={2} /> Nouveau composite
-      </ButtonBase>
+      </button>
       {composites.map((c) => (
-        <Box key={c.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.9, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--card)', transition: 'border-color var(--duration-fast) var(--ease-out)', '&:hover': { borderColor: 'var(--accent)' } }}>
-          <Box sx={{ flexShrink: 0, display: 'inline-flex', color: 'var(--muted)' }}><Boxes size={20} strokeWidth={1.8} /></Box>
-        <ButtonBase onClick={() => onInsert(c)} sx={{ flex: 1, minWidth: 0, display: 'block', textAlign: 'left', cursor: 'pointer' }}>
-            <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--ink)' }}>
+        <div className="flex items-center gap-1.5 px-1.5 py-[5.4px] rounded-[var(--radius-md)] border border-solid border-[var(--line)] bg-[var(--card)] hover:border-[var(--accent)]" style={{ transition: 'border-color var(--duration-fast) var(--ease-out)' }} key={c.id}>
+          <div className="shrink-0 inline-flex text-[var(--muted)]"><Boxes size={20} strokeWidth={1.8} /></div>
+        <button type="button" onClick={() => onInsert(c)} className="flex-1 min-w-0 block text-start cursor-pointer">
+            <span className="flex items-center gap-0.5 text-[var(--text-sm)] font-[family-name:var(--fw-medium)] text-[var(--ink)]">
               {c.name}
               {c.global && (
-                <Box component="span" sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', color: 'var(--accent)', bgcolor: 'var(--accent-soft)', px: 0.6, py: 0.1, borderRadius: 'var(--radius-sm)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Global</Box>
+                <span className="text-[var(--text-2xs)] font-[family-name:var(--fw-semibold)] text-[var(--accent)] bg-[var(--accent-soft)] px-1 py-0 rounded-[var(--radius-sm)] uppercase tracking-[.04em]">Global</span>
               )}
-            </Box>
-            <Box component="span" sx={{ display: 'block', fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>{compositeSummary(c)}</Box>
-          </ButtonBase>
+            </span>
+            <span className="block text-[var(--text-2xs)] text-[var(--muted)]">{compositeSummary(c)}</span>
+          </button>
           {!c.builtin && (!c.global || canEditGlobal) && (
-            <Tooltip title="Modifier">
-              <ButtonBase onClick={() => onEdit(c)} aria-label="Modifier" sx={{ flexShrink: 0, width: 26, height: 24, borderRadius: 'var(--radius-sm)', color: 'var(--muted)', cursor: 'pointer', '&:hover': { color: 'var(--accent)', bgcolor: 'var(--accent-soft)' } }}>
-                <Pencil size={14} strokeWidth={2} />
-              </ButtonBase>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => onEdit(c)}
+                  aria-label="Modifier"
+                  className="shrink-0 inline-flex items-center justify-center w-[26px] h-[24px] rounded-[var(--radius-sm)] text-[var(--muted)] cursor-pointer hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
+                >
+                  <Pencil size={14} strokeWidth={2} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Modifier</TooltipContent>
             </Tooltip>
           )}
           {!c.builtin && (!c.global || canEditGlobal) && (
-            <Tooltip title="Supprimer">
-              <ButtonBase onClick={() => onDelete(c)} aria-label="Supprimer" sx={{ flexShrink: 0, width: 26, height: 24, borderRadius: 'var(--radius-sm)', color: 'var(--muted)', cursor: 'pointer', '&:hover': { color: 'var(--danger, #d4453f)', bgcolor: 'var(--danger-soft, rgba(212,69,63,.12))' } }}>
-                <Trash2 size={14} strokeWidth={2} />
-              </ButtonBase>
+            <Tooltip>
+              {/* --danger / --danger-soft n'existent pas dans le theme : seuls les replis
+                  etaient rendus, on les ecrit donc tels quels (aucun changement visuel). */}
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => onDelete(c)}
+                  aria-label="Supprimer"
+                  className="shrink-0 inline-flex items-center justify-center w-[26px] h-[24px] rounded-[var(--radius-sm)] text-[var(--muted)] cursor-pointer hover:text-[#d4453f] hover:bg-[rgba(212,69,63,0.12)]"
+                >
+                  <Trash2 size={14} strokeWidth={2} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Supprimer</TooltipContent>
             </Tooltip>
           )}
-        </Box>
+        </div>
       ))}
-    </Box>
+    </div>
   );
 }
 
@@ -1583,20 +1613,20 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
 
   if (cfg.loading) {
     return (
-      <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 'var(--text-md)' }}>
+      <div className="h-full flex items-center justify-center text-[var(--muted)] text-[var(--text-md)]">
         Chargement de l’éditeur…
-      </Box>
+      </div>
     );
   }
 
   const chromeHidden = previewOn; // en aperçu : on masque toute la chrome (barre + pages + panneau)
 
   return (
-    <Box className="clenzy-grapes" sx={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+    <div className="clenzy-grapes relative flex flex-col h-full min-h-0">
       {/* Barre des pages (multi-page) — masquée en aperçu. */}
       {pageMode && !chromeHidden && (
-        <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0, borderBottom: '1px solid var(--line)', bgcolor: 'var(--bg)' }}>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
+        <div className="flex items-center shrink-0 border-b border-[var(--line)] bg-[var(--bg)]">
+          <div className="flex-1 min-w-0">
             <PagesBar
               pages={pages.pages}
               selectedId={pages.selectedPageId}
@@ -1608,167 +1638,173 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
               onReset={handleReset}
               busy={pages.loading}
             />
-          </Box>
+          </div>
           {/* Barre de LANGUES : bascule la langue d'édition (chips) + ajoute une langue supportée. La
               langue par défaut édite les pages `locale=null` ; les autres leurs variantes traduites. */}
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, px: 1, flexShrink: 0, borderLeft: '1px solid var(--line)' }}>
+          <div className="inline-flex items-center gap-0.5 px-1.5 shrink-0 border-s border-[var(--line)]">
             {pages.availableLocales.map((loc) => {
               const active = loc === pages.activeLocale;
               return (
-                <ButtonBase
+                <button
+                  type="button"
                   key={loc}
                   onClick={() => { void handleSelectLocale(loc); }}
                   aria-pressed={active}
-                  sx={{
-                    height: 24, px: 1, borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-2xs)',
-                    fontWeight: 'var(--fw-semibold)', letterSpacing: '.04em', cursor: 'pointer',
-                    color: active ? 'var(--on-accent)' : 'var(--muted)',
-                    bgcolor: active ? 'var(--accent)' : 'transparent',
-                    '&:hover': { bgcolor: active ? 'var(--accent)' : 'var(--hover)', color: active ? 'var(--on-accent)' : 'var(--ink)' },
-                  }}
+                  className={cn(
+                    'inline-flex items-center justify-center h-[24px] px-1.5 rounded-[var(--radius-sm)] tracking-[.04em] cursor-pointer',
+                    active
+                      ? 'text-[var(--on-accent)] bg-[var(--accent)] hover:text-[var(--on-accent)] hover:bg-[var(--accent)]'
+                      : 'text-[var(--muted)] bg-transparent hover:text-[var(--ink)] hover:bg-[var(--hover)]',
+                  )}
+                  style={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)' }}
                 >
                   {LOCALE_LABEL[loc] ?? loc.toUpperCase()}
-                </ButtonBase>
+                </button>
               );
             })}
             {SUPPORTED_LOCALES.flatMap((loc) => pages.availableLocales.includes(loc) ? [] : [(
-              <Tooltip key={loc} title={`Ajouter la langue ${LOCALE_LABEL[loc] ?? loc.toUpperCase()} (copie de la langue par défaut, à traduire)`}>
-                <ButtonBase
-                  onClick={() => { void handleAddLanguage(loc); }}
-                  disabled={pages.loading}
-                  sx={{
-                    height: 24, px: 0.75, borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-2xs)',
-                    fontWeight: 'var(--fw-medium)', color: 'var(--muted)', border: '1px dashed var(--line)',
-                    cursor: 'pointer', '&:hover': { color: 'var(--accent)', borderColor: 'var(--accent)' },
-                    '&.Mui-disabled': { opacity: 0.4 },
-                  }}
-                >
-                  + {LOCALE_LABEL[loc] ?? loc.toUpperCase()}
-                </ButtonBase>
+              <Tooltip key={loc}>
+                <TooltipTrigger asChild>
+                  {/* Un bouton desactive n'emet pas d'evenement de survol : l'enveloppe
+                      porte l'ancre du Tooltip a sa place. */}
+                  <span className="inline-flex">
+                    <button
+                      type="button"
+                      onClick={() => { void handleAddLanguage(loc); }}
+                      disabled={pages.loading}
+                      className="inline-flex items-center justify-center h-[24px] px-[4.5px] rounded-[var(--radius-sm)] text-[var(--muted)] border border-dashed border-[var(--line)] cursor-pointer hover:text-[var(--accent)] hover:border-[var(--accent)] disabled:opacity-40"
+                      style={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-medium)' }}
+                    >
+                      + {LOCALE_LABEL[loc] ?? loc.toUpperCase()}
+                    </button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {`Ajouter la langue ${LOCALE_LABEL[loc] ?? loc.toUpperCase()} (copie de la langue par défaut, à traduire)`}
+                </TooltipContent>
               </Tooltip>
             )])}
             {/* Auto-traduction IA (P1) : crée des VARIANTES en brouillon de la page active vers les
                 langues choisies (relecture humaine), via l'endpoint dédié — distinct du « Traduire »
                 in-place ci-dessous. Toujours disponible dès qu'une page est sélectionnée. */}
             {pages.selectedPage && autoTranslateTargets.length > 0 && (
-              <Tooltip title={t('bookingEngine.studio.ai.translate.pageTooltip', 'Traduire cette page (IA) — crée des variantes en brouillon')}>
-                <ButtonBase
-                  onClick={() => setAutoTranslateOpen(true)}
-                  disabled={pages.loading}
-                  aria-label={t('bookingEngine.studio.ai.translate.pageAction', 'Traduire (IA)')}
-                  sx={{
-                    height: 24, px: 1, ml: 0.5, borderRadius: 'var(--radius-sm)', display: 'inline-flex',
-                    alignItems: 'center', gap: 0.5, fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)',
-                    color: 'var(--accent)', border: '1px solid var(--accent)', cursor: 'pointer', whiteSpace: 'nowrap',
-                    '&:hover': { bgcolor: 'var(--accent)', color: 'var(--on-accent)' },
-                    '&.Mui-disabled': { opacity: 0.5 },
-                  }}
-                >
-                  <Languages size={13} strokeWidth={2.2} />
-                  {t('bookingEngine.studio.ai.translate.pageAction', 'Traduire (IA)')}
-                </ButtonBase>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <button
+                      type="button"
+                      onClick={() => setAutoTranslateOpen(true)}
+                      disabled={pages.loading}
+                      aria-label={t('bookingEngine.studio.ai.translate.pageAction', 'Traduire (IA)')}
+                      className="inline-flex items-center gap-[3px] h-[24px] px-1.5 ms-[3px] rounded-[var(--radius-sm)] whitespace-nowrap text-[var(--accent)] border border-solid border-[var(--accent)] cursor-pointer hover:bg-[var(--accent)] hover:text-[var(--on-accent)] disabled:opacity-50"
+                      style={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)' }}
+                    >
+                      <Languages size={13} strokeWidth={2.2} />
+                      {t('bookingEngine.studio.ai.translate.pageAction', 'Traduire (IA)')}
+                    </button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {t('bookingEngine.studio.ai.translate.pageTooltip', 'Traduire cette page (IA) — crée des variantes en brouillon')}
+                </TooltipContent>
               </Tooltip>
             )}
             {/* Traduction in-place : visible seulement hors langue par défaut. Traduit la page active. */}
             {pages.activeLocale !== pages.defaultLocale && (
-              <Tooltip title="Traduire cette page depuis la langue par défaut (IA)">
-                <ButtonBase
-                  onClick={() => { void handleTranslatePage(); }}
-                  disabled={translating || pages.loading}
-                  sx={{
-                    height: 24, px: 1, ml: 0.5, borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-2xs)',
-                    fontWeight: 'var(--fw-semibold)', color: 'var(--accent)', border: '1px solid var(--accent)',
-                    cursor: 'pointer', whiteSpace: 'nowrap',
-                    '&:hover': { bgcolor: 'var(--accent)', color: 'var(--on-accent)' },
-                    '&.Mui-disabled': { opacity: 0.5 },
-                  }}
-                >
-                  {translating ? 'Traduction…' : 'Traduire (IA)'}
-                </ButtonBase>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <button
+                      type="button"
+                      onClick={() => { void handleTranslatePage(); }}
+                      disabled={translating || pages.loading}
+                      className="inline-flex items-center justify-center h-[24px] px-1.5 ms-[3px] rounded-[var(--radius-sm)] whitespace-nowrap text-[var(--accent)] border border-solid border-[var(--accent)] cursor-pointer hover:bg-[var(--accent)] hover:text-[var(--on-accent)] disabled:opacity-50"
+                      style={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)' }}
+                    >
+                      {translating ? 'Traduction…' : 'Traduire (IA)'}
+                    </button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Traduire cette page depuis la langue par défaut (IA)</TooltipContent>
               </Tooltip>
             )}
             {pages.activeLocale !== pages.defaultLocale && (
-              <Tooltip title="Traduire TOUTES les pages de cette langue (IA)">
-                <ButtonBase
-                  onClick={() => { void handleTranslateAll(); }}
-                  disabled={translating || pages.loading}
-                  sx={{
-                    height: 24, px: 0.75, borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-2xs)',
-                    fontWeight: 'var(--fw-medium)', color: 'var(--muted)', border: '1px solid var(--line)',
-                    cursor: 'pointer', whiteSpace: 'nowrap',
-                    '&:hover': { color: 'var(--accent)', borderColor: 'var(--accent)' },
-                    '&.Mui-disabled': { opacity: 0.5 },
-                  }}
-                >
-                  Tout
-                </ButtonBase>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <button
+                      type="button"
+                      onClick={() => { void handleTranslateAll(); }}
+                      disabled={translating || pages.loading}
+                      className="inline-flex items-center justify-center h-[24px] px-[4.5px] rounded-[var(--radius-sm)] whitespace-nowrap text-[var(--muted)] border border-solid border-[var(--line)] cursor-pointer hover:text-[var(--accent)] hover:border-[var(--accent)] disabled:opacity-50"
+                      style={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-medium)' }}
+                    >
+                      Tout
+                    </button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Traduire TOUTES les pages de cette langue (IA)</TooltipContent>
               </Tooltip>
             )}
-          </Box>
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, px: 1, flexShrink: 0 }}>
-            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', color: needsPublish ? 'var(--warn, #B26B00)' : 'var(--ok)' }}>
-              <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: needsPublish ? 'var(--warn, #D4A574)' : 'var(--ok)' }} />
+          </div>
+          <div className="inline-flex items-center gap-1.5 px-1.5 shrink-0">
+            <div className={cn('inline-flex items-center gap-[3px] text-[var(--text-2xs)]', needsPublish ? 'text-[var(--warn,_#B26B00)]' : 'text-[var(--ok)]')} style={{ fontWeight: 'var(--fw-semibold)' }}>
+              <span className={cn('w-[6px] h-[6px] rounded-[50%]', needsPublish ? 'bg-[var(--warn,_#D4A574)]' : 'bg-[var(--ok)]')} />
               {needsPublish ? 'Brouillon non publié' : 'Publié'}
-            </Box>
-            <Tooltip title={needsPublish ? 'Publier la version en ligne' : 'Aucune modification à publier'}>
-              <Box component="span">
-                <ButtonBase
-                  onClick={() => { handlePublish(); }}
-                  disabled={publishing || !needsPublish}
-                  sx={{
-                    display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 28, px: 1.5,
-                    borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)',
-                    fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-sm)', cursor: 'pointer',
-                    '&:hover': { bgcolor: 'var(--accent-deep)' },
-                    '&.Mui-disabled': { opacity: 0.45 },
-                    '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                  }}
-                >
-                  <Rocket size={14} strokeWidth={2} /> {publishing ? 'Publication…' : 'Publier'}
-                </ButtonBase>
-              </Box>
+            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <button
+                    type="button"
+                    onClick={() => { handlePublish(); }}
+                    disabled={publishing || !needsPublish}
+                    className="inline-flex items-center gap-[3px] h-[28px] px-[9px] rounded-[var(--radius-md)] bg-[var(--accent)] text-[var(--on-accent)] cursor-pointer hover:bg-[var(--accent-deep)] disabled:opacity-45 focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2"
+                    style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }}
+                  >
+                    <Rocket size={14} strokeWidth={2} /> {publishing ? 'Publication…' : 'Publier'}
+                  </button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {needsPublish ? 'Publier la version en ligne' : 'Aucune modification à publier'}
+              </TooltipContent>
             </Tooltip>
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* Barre d'outils de l'éditeur (option A — 100 % React, un seul style de bouton). Masquée en aperçu. */}
       {!chromeHidden && (
-        <Box
-          className="cz-editor-toolbar"
-          sx={{
-            display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0, height: 44, px: 1,
-            borderBottom: '1px solid var(--line)', bgcolor: 'var(--card)',
-          }}
-        >
+        <div className="cz-editor-toolbar flex items-center gap-0.5 shrink-0 h-[44px] px-1.5 border-b border-[var(--line)] bg-[var(--card)]">
           <ToolBtn icon={Undo2} title="Annuler" onClick={doUndo} />
           <ToolBtn icon={Redo2} title="Rétablir" onClick={doRedo} />
-          <Box sx={{ width: '1px', height: 20, bgcolor: 'var(--line)', mx: 0.5 }} />
+          <div className="w-[1px] h-[20px] bg-[var(--line)] mx-0.5" />
           {/* Import = mode Avancé uniquement (import de design multi-standards). Masqué en Guidé. */}
           {!guided && <ToolBtn icon={FolderInput} title="Importer un design" label="Importer" onClick={() => setImportOpen(true)} />}
           <ToolBtn icon={Workflow} title="Parcours de réservation (modèles + composeur)" label="Funnel" onClick={handleFunnel} />
           <ToolBtn icon={PaintBucket} title="Insérer les styles de widgets (skin de base, à personnaliser)" label="Styles widgets" onClick={insertWidgetStyles} />
           <ToolBtn icon={ImagePlus} title="Logo du site (barre de navigation + pied de page)" label="Logo" onClick={() => logoInputRef.current?.click()} />
           <input ref={logoInputRef} type="file" accept="image/*" hidden onChange={() => { void handleLogoUpload(); }} />
-          <Box sx={{ flex: 1, minWidth: 8 }} />
+          <div className="flex-1 min-w-[8px]" />
           <ToolBtn icon={SquareDashed} title="Afficher les contours d'édition" active={outlineOn} onClick={toggleOutline} />
           <ToolBtn icon={Eye} title="Aperçu" active={previewOn} onClick={togglePreview} />
           <ToolBtn icon={Maximize} title="Plein écran" active={fullscreenOn} onClick={toggleFullscreen} />
           <ToolBtn icon={Code} title="Voir le code généré" onClick={openCode} />
-          <Box sx={{ width: '1px', height: 20, bgcolor: 'var(--line)', mx: 0.5 }} />
+          <div className="w-[1px] h-[20px] bg-[var(--line)] mx-0.5" />
           <ToolBtn
             icon={panelCollapsed ? PanelLeftOpen : PanelLeftClose}
             title={panelCollapsed ? 'Afficher le panneau' : 'Réduire le panneau'}
             onClick={() => setPanelCollapsed((c) => !c)}
           />
-        </Box>
+        </div>
       )}
 
       {/* Canvas (GrapesJS) + panneau droit (managers React). */}
-      <Box sx={{ display: 'flex', flex: 1, minHeight: 0 }}>
+      <div className="flex flex-1 min-h-0">
         {/* Zone canvas (relative) : ancre la dalle du constructeur SANS couvrir le panneau droit (onglets). */}
-        <Box sx={{ flex: 1, minWidth: 0, height: '100%', position: 'relative' }}>
-          <Box ref={containerRef} sx={{ width: '100%', height: '100%' }} />
+        <div className="flex-1 min-w-0 h-full relative">
+          <div className="w-full h-full" ref={containerRef} />
           {/* Dalle du constructeur de composite : overlay de la SEULE zone canvas (≠ plein écran). */}
           <CompositeBuilder
             open={compositeCreatorOpen}
@@ -1780,54 +1816,50 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
             onInsert={handleInsertCompositeDraft}
             onSave={handleSaveComposite}
           />
-        </Box>
+        </div>
         {/* Panneau droit : conteneurs des managers, TOUJOURS montés (cible `appendTo`) ; on bascule la
             vue par `display` et on réduit la largeur à 0 (sans démonter) au repli / en aperçu. */}
-        <Box
-          className="cz-rightpanel"
-          sx={{
-            flexShrink: 0, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-            // Replié pendant l'édition d'un composite → le constructeur (+ sa propre palette) est l'UNIQUE
-            // colonne de droite (pas de double colonne avec le panneau du Studio).
-            width: panelCollapsed || chromeHidden || compositeCreatorOpen ? 0 : 300,
-            borderLeft: panelCollapsed || chromeHidden || compositeCreatorOpen ? 'none' : '1px solid var(--line)',
-            bgcolor: 'var(--card)',
-          }}
-        >
+        <div className={cn('cz-rightpanel shrink-0 h-full overflow-hidden flex flex-col bg-[var(--card)]', panelCollapsed || chromeHidden || compositeCreatorOpen ? 'w-0' : 'w-[300px]', panelCollapsed || chromeHidden || compositeCreatorOpen ? 'border-s-[none]' : 'border-s-[1px_solid_var(--line)]')}>
           {/* Sélecteur de vue — en tête du panneau droit (segmented), FIXE (hors zone de scroll). */}
           {!panelCollapsed && !chromeHidden && (
-            <Box sx={{ flexShrink: 0, display: 'flex', justifyContent: 'center', p: 1, borderBottom: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
-              <Box sx={{ display: 'inline-flex', gap: 0.25, p: 0.25, borderRadius: 'var(--radius-md)', bgcolor: 'var(--field)' }}>
+            <div className="shrink-0 flex justify-center p-1.5 border-b border-[var(--line)] bg-[var(--card)]">
+              <div className="inline-flex gap-0.5 p-0.5 rounded-[var(--radius-md)] bg-[var(--field)]">
                 {visibleTabs.map(({ key, icon: Icon, label }) => {
                   const active = key === activeView;
                   return (
-                    <Tooltip key={key} title={label}>
-                      <ButtonBase
-                        onClick={() => setActiveView(key)}
-                        aria-label={label}
-                        aria-pressed={active}
-                        sx={{
-                          width: 34, height: 28, borderRadius: 'var(--radius-sm)', cursor: 'pointer',
-                          color: active ? 'var(--accent)' : 'var(--muted)',
-                          bgcolor: active ? 'var(--card)' : 'transparent',
-                          boxShadow: active ? 'var(--shadow-card)' : 'none',
-                          transition: 'color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out)',
-                          '&:hover': { color: active ? 'var(--accent)' : 'var(--ink)' },
-                          '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                        }}
-                      >
-                        <Icon size={16} strokeWidth={2} />
-                      </ButtonBase>
+                    <Tooltip key={key}>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => setActiveView(key)}
+                          aria-label={label}
+                          aria-pressed={active}
+                          className={cn(
+                            'inline-flex items-center justify-center w-[34px] h-[28px] rounded-[var(--radius-sm)] cursor-pointer',
+                            'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+                            active
+                              ? 'text-[var(--accent)] bg-[var(--card)] hover:text-[var(--accent)]'
+                              : 'text-[var(--muted)] bg-transparent hover:text-[var(--ink)]',
+                          )}
+                          style={{
+                            boxShadow: active ? 'var(--shadow-card)' : 'none',
+                            transition: 'color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out)',
+                          }}
+                        >
+                          <Icon size={16} strokeWidth={2} />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>{label}</TooltipContent>
                     </Tooltip>
                   );
                 })}
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
           {/* Contenu — SEUL à scroller : la barre de défilement n'apparaît plus au niveau des onglets. */}
-          <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
             {/* `data-guided` (mode Guidé) → la palette se restreint au set curé via CSS (`grapesStudio.css`). */}
-            <Box ref={blocksRef} {...(guided ? { 'data-guided': '' } : {})} sx={{ display: activeView === 'blocks' ? 'block' : 'none' }} />
+            <div ref={blocksRef} {...(guided ? { 'data-guided': '' } : {})} className={cn(activeView === 'blocks' ? 'block' : 'hidden')} />
             {activeView === 'composites' && (
               <CompositesPanel
                 composites={[...BUILTIN_COMPOSITES, ...globalComposites, ...savedComposites]}
@@ -1838,30 +1870,28 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
                 onNew={() => { setEditingComposite(null); setCompositeCreatorOpen(true); }}
               />
             )}
-            <Box ref={stylesRef} sx={{ display: activeView === 'styles' ? 'block' : 'none' }} />
-            <Box ref={layersRef} sx={{ display: activeView === 'layers' ? 'block' : 'none' }} />
-            <Box ref={traitsRef} sx={{ display: activeView === 'traits' ? 'block' : 'none' }} />
-          </Box>
-        </Box>
-      </Box>
+            <div className={cn(activeView === 'styles' ? 'block' : 'hidden')} ref={stylesRef} />
+            <div className={cn(activeView === 'layers' ? 'block' : 'hidden')} ref={layersRef} />
+            <div className={cn(activeView === 'traits' ? 'block' : 'hidden')} ref={traitsRef} />
+          </div>
+        </div>
+      </div>
 
       {/* Aperçu : seule affordance visible = quitter l'aperçu. */}
       {chromeHidden && (
-        <Tooltip title="Quitter l'aperçu">
-          <ButtonBase
-            onClick={togglePreview}
-            aria-label="Quitter l'aperçu"
-            sx={{
-              position: 'absolute', top: 12, right: 12, zIndex: 10,
-              height: 32, px: 1.5, display: 'inline-flex', alignItems: 'center', gap: 0.5,
-              borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)',
-              fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', cursor: 'pointer',
-              boxShadow: 'var(--shadow-card)',
-              '&:hover': { bgcolor: 'var(--accent-deep)' },
-            }}
-          >
-            <Eye size={15} strokeWidth={2} /> Quitter l’aperçu
-          </ButtonBase>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={togglePreview}
+              aria-label="Quitter l'aperçu"
+              className="absolute top-[12px] right-[12px] z-10 inline-flex items-center gap-[3px] h-[32px] px-[9px] rounded-[var(--radius-md)] bg-[var(--accent)] text-[var(--on-accent)] cursor-pointer hover:bg-[var(--accent-deep)]"
+              style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', boxShadow: 'var(--shadow-card)' }}
+            >
+              <Eye size={15} strokeWidth={2} /> Quitter l’aperçu
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>Quitter l'aperçu</TooltipContent>
         </Tooltip>
       )}
 
@@ -1886,6 +1916,6 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
         availableTargets={autoTranslateTargets}
         onTranslate={handleAutoTranslatePage}
       />
-    </Box>
+    </div>
   );
 }

@@ -1,22 +1,23 @@
 import React, { useEffect, useState } from "react";
+import { Spinner } from '../../../components/ui';
+import StatusChip from '../../../components/StatusChip';
 import {
   Alert,
-  Box,
-  Chip,
-  Stack,
-  CircularProgress,
-  IconButton,
-  InputAdornment,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
+  AlertDescription,
+  Button,
+  Input,
   Tooltip,
-  Typography,
-} from "@mui/material";
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../../../components/ui';
 import { Save, Upload } from "../../../icons";
 import SplitBarEditor from "./SplitBarEditor";
 import AffiliateImportDialog from "./AffiliateImportDialog";
@@ -70,15 +71,6 @@ const STATUS_META: Record<
     color: "var(--muted)",
     soft: "color-mix(in srgb, var(--muted) 8%, transparent)",
   },
-};
-
-const headCellSx = {
-  fontWeight: 700,
-  fontSize: "0.62rem",
-  letterSpacing: "0.06em",
-  textTransform: "uppercase" as const,
-  color: "text.secondary",
-  whiteSpace: "nowrap" as const,
 };
 
 export interface ServicesActivitiesPanelProps {
@@ -221,20 +213,18 @@ export default function ServicesActivitiesPanel({
 
   return (
     <>
-      <Typography
-        sx={{ fontSize: "0.75rem", fontWeight: 600, color: "text.secondary", mb: 1 }}
-      >
+      <p className="cn-text-body1 text-[0.75rem] font-semibold text-muted-foreground mb-1.5">
         {t("settings.services.upsellTitle", "Upsells — services vendus au voyageur")}
-      </Typography>
+      </p>
 
-      <Box sx={{ mb: 2 }}>
+      <div className="mb-3">
         {/* Pas de verrous ici : trois parts pilotees par deux taux seulement,
             dont un relatif au net. Figer une part ne pourrait pas etre honore
             sans bloquer la conversion — le cadenas mentirait. */}
         <SplitBarEditor segments={segments} onChange={handleSegmentsChange} />
-      </Box>
+      </div>
 
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25} sx={{ mb: 1.5 }}>
+      <div className="flex flex-col min-[600px]:flex-row gap-[7.5px] mb-[9px]">
         {renderInput({
           key: "upsellPlatform",
           label: t("settings.monetization.upsellFee", "Part plateforme (upsells)"),
@@ -252,55 +242,47 @@ export default function ServicesActivitiesPanel({
           onChange: onOrgPctChange,
           color: SHARE_CONCIERGE,
         })}
-      </Stack>
+      </div>
 
-      <Alert severity="info" sx={{ borderRadius: "8px", mb: 2.5 }}>
-        {t(
-          "settings.services.contractOverride",
-          "La part conciergerie peut être surchargée par le contrat de gestion d’un logement : c’est alors le taux du contrat qui s’applique, pas celui-ci.",
-        )}
+      <Alert variant="info" className="mb-[15px]">
+        <AlertDescription>
+          {t(
+            "settings.services.contractOverride",
+            "La part conciergerie peut être surchargée par le contrat de gestion d’un logement : c’est alors le taux du contrat qui s’applique, pas celui-ci.",
+          )}
+        </AlertDescription>
       </Alert>
 
-      <Box sx={{ borderTop: "1px solid", borderColor: "divider", pt: 1.5 }}>
-        <Typography
-          sx={{ fontSize: "0.75rem", fontWeight: 600, color: "text.secondary" }}
-        >
+      <div className="border-t border-[var(--line)] pt-2">
+        <p className="cn-text-body1 text-[0.75rem] font-semibold text-muted-foreground">
           {t("settings.services.activitiesTitle", "Activités — programmes d’affiliation")}
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: "0.72rem",
-            color: "text.secondary",
-            mt: 0.5,
-            mb: 1.25,
-            lineHeight: 1.5,
-          }}
-        >
+        </p>
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-0.5 mb-2 leading-[1.5]">
           {t(
             "settings.services.affiliationHint",
             "Le voyageur réserve chez le prestataire via un lien affilié. La commission est versée sur le compte affilié Baitly, qui en retient sa part et vous reverse le solde.",
           )}
-        </Typography>
+        </p>
 
-        <TableContainer sx={{ overflowX: "auto" }}>
-          <Table size="small" sx={{ minWidth: 460 }}>
-            <TableHead>
+        <div className="overflow-x-auto">
+          <Table className="min-w-[460px]">
+            <TableHeader>
               <TableRow>
-                <TableCell sx={headCellSx}>
+                <TableHead className="whitespace-nowrap">
                   {t("settings.services.source", "Source")}
-                </TableCell>
-                <TableCell sx={headCellSx}>
+                </TableHead>
+                <TableHead className="whitespace-nowrap">
                   {t("settings.services.status", "Statut")}
-                </TableCell>
-                <TableCell align="center" sx={headCellSx}>
+                </TableHead>
+                <TableHead className="text-center whitespace-nowrap">
                   {t("settings.services.baitlyRate", "Part Baitly")}
-                </TableCell>
-                <TableCell align="right" sx={headCellSx}>
+                </TableHead>
+                <TableHead className="text-end whitespace-nowrap">
                   {t("settings.split.ownerShare")}
-                </TableCell>
-                <TableCell align="right" sx={{ ...headCellSx, width: 60 }} />
+                </TableHead>
+                <TableHead className="text-end whitespace-nowrap w-[60px]" />
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {PROVIDERS.map((provider) => {
                 const config = byProvider.get(provider);
@@ -311,160 +293,110 @@ export default function ServicesActivitiesPanel({
                     : "INACTIVE";
                 const meta = STATUS_META[status];
                 return (
-                  <TableRow key={provider} hover>
+                  <TableRow key={provider}>
                     <TableCell>
-                      <Typography
-                        sx={{ fontSize: "0.8125rem", fontWeight: 600, whiteSpace: "nowrap" }}
-                      >
+                      <p className="cn-text-body1 text-[0.8125rem] font-semibold whitespace-nowrap">
                         {PROVIDER_LABELS[provider]}
-                      </Typography>
+                      </p>
                     </TableCell>
                     <TableCell>
-                      <Chip
+                      <StatusChip
+                        tokens={{ color: meta.color, bg: meta.soft }}
                         label={t(meta.key, meta.fallback)}
-                        size="small"
+                        className="h-5 border border-solid text-[0.65rem]"
                         sx={{
-                          height: 20,
-                          fontSize: "0.65rem",
-                          fontWeight: 600,
-                          borderRadius: "6px",
-                          backgroundColor: meta.soft,
-                          color: meta.color,
-                          border: `1px solid color-mix(in srgb, ${meta.color} 20%, transparent)`,
-                          "& .MuiChip-label": { px: 0.75 },
+                          borderColor: `color-mix(in srgb, ${meta.color} 20%, transparent)`,
                         }}
                       />
                     </TableCell>
-                    <TableCell align="center">
-                      <TextField
-                        type="number"
-                        size="small"
-                        placeholder="0"
-                        value={rates[provider] ?? ""}
-                        onChange={(e) =>
-                          setRates((prev) => ({ ...prev, [provider]: e.target.value }))
-                        }
-                        inputProps={{
-                          min: 0,
-                          max: 100,
-                          step: 0.5,
-                          "aria-label": `${t("settings.services.baitlyRate", "Part Baitly")} — ${PROVIDER_LABELS[provider]}`,
-                          style: {
-                            textAlign: "center",
-                            fontVariantNumeric: "tabular-nums",
-                            fontWeight: 600,
-                          },
-                        }}
-                        InputProps={{
-                          endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                          sx: { fontSize: "0.8125rem" },
-                        }}
-                        sx={{ width: 108 }}
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography
-                        sx={{
-                          fontSize: "0.78rem",
-                          fontWeight: 700,
-                          fontVariantNumeric: "tabular-nums",
-                          color: "text.primary",
-                        }}
-                      >
-                        {formatMoney(100 - platformRate(provider))}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Box sx={{ display: "inline-flex", gap: 0.5 }}>
-                      <Tooltip
-                        title={t(
-                          "settings.services.importTooltip",
-                          "Importer un rapport de conversions",
-                        )}
-                      >
-                        <IconButton
-                          size="small"
-                          onClick={() => setImportProvider(provider as ActivityProvider)}
-                          aria-label={`${t("settings.services.importTitle", "Importer un rapport")} — ${PROVIDER_LABELS[provider]}`}
-                          sx={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: "7px",
-                            color: "text.secondary",
-                            border: "1px solid",
-                            borderColor: "divider",
-                            transition:
-                              "border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)",
-                            "&:hover": {
-                              color: "var(--accent)",
-                              borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)",
-                            },
-                            "&:focus-visible": {
-                              outline: "2px solid var(--accent)",
-                              outlineOffset: 2,
-                            },
-                          }}
-                        >
-                          <Upload size={13} strokeWidth={1.75} />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title={t("common.save", "Enregistrer")}>
-                        <span>
-                          <IconButton
-                            size="small"
-                            onClick={() => saveRate(provider)}
-                            disabled={savingProvider === provider}
-                            aria-label={t("common.save", "Enregistrer")}
-                            sx={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: "7px",
-                              color: "text.secondary",
-                              border: "1px solid",
-                              borderColor: "divider",
-                              transition:
-                                "border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)",
-                              "&:hover": {
-                                color: "var(--accent)",
-                                borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)",
-                              },
-                              "&:focus-visible": {
-                                outline: "2px solid var(--accent)",
-                                outlineOffset: 2,
-                              },
-                            }}
-                          >
-                            {savingProvider === provider ? (
-                              <CircularProgress size={13} color="inherit" />
-                            ) : (
-                              <Save size={13} strokeWidth={1.75} />
-                            )}
-                          </IconButton>
+                    <TableCell className="text-center">
+                      <div className="relative inline-block w-[108px]">
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={rates[provider] ?? ""}
+                          onChange={(e) =>
+                            setRates((prev) => ({ ...prev, [provider]: e.target.value }))
+                          }
+                          min={0}
+                          max={100}
+                          step={0.5}
+                          aria-label={`${t("settings.services.baitlyRate", "Part Baitly")} — ${PROVIDER_LABELS[provider]}`}
+                          className="text-center text-[0.8125rem] font-semibold tabular-nums pe-6"
+                        />
+                        {/* Le « % » ne doit pas intercepter le clic : sinon il
+                            volerait le focus du champ qu'il annote. */}
+                        <span className="pointer-events-none absolute inset-y-0 end-2.5 flex items-center text-[0.8125rem] text-[var(--muted)]">
+                          %
                         </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-end">
+                      <p className="cn-text-body1 text-[0.78rem] font-bold tabular-nums text-foreground">
+                        {formatMoney(100 - platformRate(provider))}
+                      </p>
+                    </TableCell>
+                    <TableCell className="text-end">
+                      <div className="inline-flex gap-0.5">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setImportProvider(provider as ActivityProvider)}
+                            aria-label={`${t("settings.services.importTitle", "Importer un rapport")} — ${PROVIDER_LABELS[provider]}`}
+                            className="h-[28px] w-[28px] rounded-[7px] border border-solid border-[var(--line)] text-[var(--muted)] transition-[border-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[var(--accent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)]"
+                          >
+                            <Upload size={13} strokeWidth={1.75} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {t(
+                            "settings.services.importTooltip",
+                            "Importer un rapport de conversions",
+                          )}
+                        </TooltipContent>
                       </Tooltip>
-                      </Box>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* Le declencheur reste monte meme desactive : sinon
+                              l'infobulle disparaitrait pendant l'enregistrement,
+                              au moment ou elle est le plus utile. */}
+                          <span className="inline-flex">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => saveRate(provider)}
+                              disabled={savingProvider === provider}
+                              aria-label={t("common.save", "Enregistrer")}
+                              className="h-[28px] w-[28px] rounded-[7px] border border-solid border-[var(--line)] text-[var(--muted)] transition-[border-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[var(--accent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)]"
+                            >
+                              {savingProvider === provider ? (
+                                <Spinner className="size-[13px]" />
+                              ) : (
+                                <Save size={13} strokeWidth={1.75} />
+                              )}
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t("common.save", "Enregistrer")}</TooltipContent>
+                      </Tooltip>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
               })}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
 
-        <Typography
-          sx={{
-            fontSize: "0.72rem",
-            color: "text.secondary",
-            mt: 1,
-            lineHeight: 1.5,
-          }}
-        >
+        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-1.5 leading-[1.5]">
           {t(
             "settings.services.affiliationProjection",
             "Projection sur 100 € de commission d’affiliation perçue par Baitly, qui en retient sa part et vous reverse le solde. Un taux vide signifie qu’aucune part n’est retenue.",
           )}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       <AffiliateImportDialog
         open={importProvider !== null}

@@ -1,20 +1,16 @@
 import React from 'react';
+import { Badge } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import {
-  Box,
-  Typography,
-  TextField,
-  Grid,
-  InputAdornment,
-  Divider,
-  Paper,
-  Chip,
-  Switch,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  ListItemSecondaryAction,
-} from '@mui/material';
+  Field,
+  FieldLabel,
+  FieldDescription,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from '../../components/ui';
+import { Separator, Switch } from '../../components/ui';
 import {
   VolumeUp,
   Handshake,
@@ -39,12 +35,12 @@ interface TabMonitoringProps {
 
 function FeatureItem({ text }: { text: string }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.25 }}>
-      <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircleOutline size={16} strokeWidth={1.75} /></Box>
-      <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+    <div className="flex items-center gap-1 py-0.5">
+      <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircleOutline size={16} strokeWidth={1.75} /></span>
+      <p className="cn-text-body2 text-[0.8125rem]">
         {text}
-      </Typography>
-    </Box>
+      </p>
+    </div>
   );
 }
 
@@ -68,285 +64,272 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
     (config.monitoringClenzySupportPriceCents || 0);
 
   return (
-    <Box sx={{ pt: 2 }}>
+    <div className="pt-3">
       {/* ─── Section title ─────────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><VolumeUp size={20} strokeWidth={1.75} /></Box>
-        <Typography variant="subtitle1" fontWeight={600}>
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <span className="inline-flex text-primary"><VolumeUp size={20} strokeWidth={1.75} /></span>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {t('tarification.monitoring.title')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3.5">
         {t('tarification.monitoring.subtitle')}
-      </Typography>
+      </p>
 
       {/* ─── Two offers side by side ───────────────────────────────────── */}
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
 
         {/* ════════════════════════════════════════════════════════════════ */}
         {/* MINUT — Abonnement mensuel                                     */}
         {/* ════════════════════════════════════════════════════════════════ */}
-        <Grid item xs={12} md={6}>
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2.5,
-              height: '100%',
-              border: '1.5px solid',
-              borderColor: config.monitoringMinutEnabled ? 'primary.main' : 'divider',
-              borderRadius: 2,
-              transition: 'border-color 0.2s',
-              opacity: config.monitoringMinutEnabled ? 1 : 0.75,
-            }}
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <div
+            className={cn(
+              'h-full p-[15px] rounded-[16px] border-[1.5px] border-solid bg-[var(--card)]',
+              'transition-colors duration-200 motion-reduce:transition-none',
+              config.monitoringMinutEnabled
+                ? 'border-[var(--mui-primary)] opacity-100'
+                : 'border-[var(--line)] opacity-75',
+            )}
           >
             {/* Header */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <div className="flex items-center gap-1.5 mb-1.5">
               <Handshake size={22} strokeWidth={1.75} color='var(--accent)' />
-              <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem' }}>
+              <h6 className="cn-text-subtitle1 font-bold text-[1rem]">
                 {t('tarification.monitoring.minut.title')}
-              </Typography>
-              <Chip
-                label={t('tarification.monitoring.minut.badge')}
-                size="small"
-                color="primary"
-                variant="outlined"
-                sx={{ fontSize: '0.6875rem', height: 22 }}
-              />
-            </Box>
+              </h6>
+              <Badge variant="default" className="text-[0.6875rem] h-[22px]">{t('tarification.monitoring.minut.badge')}</Badge>
+            </div>
 
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem', mb: 2, lineHeight: 1.5 }}>
+            <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] mb-3 leading-[1.5]">
               {t('tarification.monitoring.minut.description')}
-            </Typography>
+            </p>
 
-            <Divider sx={{ my: 1.5 }} />
+            <Separator className="my-[9px]" />
 
             {/* Pricing model */}
-            <Typography variant="overline" sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', letterSpacing: '0.08em' }}>
+            <span className="cn-text-overline text-[0.6875rem] font-bold text-muted-foreground tracking-[0.08em]">
               {t('tarification.monitoring.minut.pricingModel')}
-            </Typography>
+            </span>
 
-            <Box sx={{ mt: 1, mb: 2 }}>
+            <div className="mt-1.5 mb-3">
               {config.monitoringMinutMonthlyPriceCents > 0 ? (
-                <TextField
-                  label={t('tarification.monitoring.minut.monthlyPrice')}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={centsToEuros(config.monitoringMinutMonthlyPriceCents)}
-                  onChange={(e) => onUpdate({ monitoringMinutMonthlyPriceCents: eurosToCents(e.target.value) })}
-                  disabled={!canEdit}
-                  InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="monitoring-minut-monthly-price">
+                    {t('tarification.monitoring.minut.monthlyPrice')}
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id="monitoring-minut-monthly-price"
+                      type="number"
+                      className="tabular-nums"
+                      value={centsToEuros(config.monitoringMinutMonthlyPriceCents)}
+                      onChange={(e) => onUpdate({ monitoringMinutMonthlyPriceCents: eurosToCents(e.target.value) })}
+                      disabled={!canEdit}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText><CurrencySymbol code={currency} />/mois</InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                </Field>
               ) : (
-                <Box
-                  sx={{
-                    p: 1.5,
-                    borderRadius: 1.5,
-                    bgcolor: 'grey.50',
-                    border: '1px dashed',
-                    borderColor: 'divider',
-                    textAlign: 'center',
-                  }}
-                >
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '1.1rem' }}>
+                <div className="p-[9px] rounded-[12px] bg-[var(--surface-2)] border border-dashed border-[var(--line)] text-center">
+                  <h6 className="cn-text-h6 font-bold text-muted-foreground text-[1.1rem]">
                     {t('tarification.monitoring.minut.onQuote')}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+                  </h6>
+                  <span className="cn-text-caption text-muted-foreground text-[0.6875rem]">
                     {t('tarification.monitoring.minut.onQuoteHint')}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               )}
-            </Box>
+            </div>
 
-            <Divider sx={{ my: 1.5 }} />
+            <Separator className="my-[9px]" />
 
             {/* Features */}
-            <Box sx={{ mb: 2 }}>
+            <div className="mb-3">
               <FeatureItem text={t('tarification.monitoring.minut.feature1')} />
               <FeatureItem text={t('tarification.monitoring.minut.feature2')} />
               <FeatureItem text={t('tarification.monitoring.minut.feature3')} />
               <FeatureItem text={t('tarification.monitoring.minut.feature4')} />
-            </Box>
+            </div>
 
-            <Divider sx={{ my: 1.5 }} />
+            <Separator className="my-[9px]" />
 
             {/* Enable switch */}
-            <List disablePadding>
-              <ListItem disableGutters sx={{ px: 0 }}>
-                <ListItemIcon sx={{ minWidth: 36 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: config.monitoringMinutEnabled ? 'primary.main' : 'text.disabled' }}><VolumeUp size={20} strokeWidth={1.75} /></Box>
-                </ListItemIcon>
-                <ListItemText
-                  primary={t('tarification.monitoring.enable')}
-                  primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600 }}
-                />
-                <ListItemSecondaryAction>
-                  <Switch
-                    edge="end"
-                    checked={config.monitoringMinutEnabled}
-                    onChange={(e) => onUpdate({ monitoringMinutEnabled: e.target.checked })}
-                    disabled={!canEdit}
-                  />
-                </ListItemSecondaryAction>
-              </ListItem>
-            </List>
-          </Paper>
-        </Grid>
+            <Field orientation="horizontal">
+              <span className={cn('inline-flex w-9 shrink-0', config.monitoringMinutEnabled ? 'text-[var(--mui-primary)]' : 'text-[var(--faint)]')}><VolumeUp size={20} strokeWidth={1.75} /></span>
+              <FieldLabel htmlFor="monitoring-minut-enabled" className="flex-1 text-[0.875rem] font-semibold">
+                {t('tarification.monitoring.enable')}
+              </FieldLabel>
+              <Switch
+                id="monitoring-minut-enabled"
+                checked={config.monitoringMinutEnabled}
+                onCheckedChange={(checked) => onUpdate({ monitoringMinutEnabled: checked })}
+                disabled={!canEdit}
+              />
+            </Field>
+          </div>
+        </div>
 
         {/* ════════════════════════════════════════════════════════════════ */}
         {/* CLENZY HARDWARE — Coût unique (Tuya OEM)                       */}
         {/* ════════════════════════════════════════════════════════════════ */}
-        <Grid item xs={12} md={6}>
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2.5,
-              height: '100%',
-              border: '1.5px solid',
-              borderColor: config.monitoringClenzyEnabled ? 'success.main' : 'divider',
-              borderRadius: 2,
-              transition: 'border-color 0.2s',
-              opacity: config.monitoringClenzyEnabled ? 1 : 0.75,
-            }}
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <div
+            className={cn(
+              'h-full p-[15px] rounded-[16px] border-[1.5px] border-solid bg-[var(--card)]',
+              'transition-colors duration-200 motion-reduce:transition-none',
+              config.monitoringClenzyEnabled
+                ? 'border-[var(--ok)] opacity-100'
+                : 'border-[var(--line)] opacity-75',
+            )}
           >
             {/* Header */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <div className="flex items-center gap-1.5 mb-1.5">
               <Memory size={22} strokeWidth={1.75} color='var(--ok)' />
-              <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem' }}>
+              <h6 className="cn-text-subtitle1 font-bold text-[1rem]">
                 {t('tarification.monitoring.clenzy.title')}
-              </Typography>
-              <Chip
-                label={t('tarification.monitoring.clenzy.badge')}
-                size="small"
-                color="success"
-                variant="outlined"
-                sx={{ fontSize: '0.6875rem', height: 22 }}
-              />
-            </Box>
+              </h6>
+              <Badge variant="success" className="text-[0.6875rem] h-[22px]">{t('tarification.monitoring.clenzy.badge')}</Badge>
+            </div>
 
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem', mb: 2, lineHeight: 1.5 }}>
+            <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] mb-3 leading-[1.5]">
               {t('tarification.monitoring.clenzy.description')}
-            </Typography>
+            </p>
 
-            <Divider sx={{ my: 1.5 }} />
+            <Separator className="my-[9px]" />
 
             {/* Pricing model */}
-            <Typography variant="overline" sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', letterSpacing: '0.08em' }}>
+            <span className="cn-text-overline text-[0.6875rem] font-bold text-muted-foreground tracking-[0.08em]">
               {t('tarification.monitoring.clenzy.pricingModel')}
-            </Typography>
+            </span>
 
-            <Grid container spacing={1.5} sx={{ mt: 0.5, mb: 1 }}>
-              <Grid item xs={6}>
-                <TextField
-                  label={t('tarification.monitoring.clenzy.devicePrice')}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={centsToEuros(config.monitoringClenzyDevicePriceCents)}
-                  onChange={(e) => onUpdate({ monitoringClenzyDevicePriceCents: eurosToCents(e.target.value) })}
-                  disabled={!canEdit}
-                  helperText={t('tarification.monitoring.clenzy.devicePriceHelp')}
-                  InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label={t('tarification.monitoring.clenzy.installationPrice')}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={centsToEuros(config.monitoringClenzyInstallationPriceCents)}
-                  onChange={(e) => onUpdate({ monitoringClenzyInstallationPriceCents: eurosToCents(e.target.value) })}
-                  disabled={!canEdit}
-                  helperText={t('tarification.monitoring.clenzy.installationPriceHelp')}
-                  InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label={t('tarification.monitoring.clenzy.configPrice')}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={centsToEuros(config.monitoringClenzyConfigPriceCents)}
-                  onChange={(e) => onUpdate({ monitoringClenzyConfigPriceCents: eurosToCents(e.target.value) })}
-                  disabled={!canEdit}
-                  helperText={t('tarification.monitoring.clenzy.configPriceHelp')}
-                  InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label={t('tarification.monitoring.clenzy.supportPrice')}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={centsToEuros(config.monitoringClenzySupportPriceCents)}
-                  onChange={(e) => onUpdate({ monitoringClenzySupportPriceCents: eurosToCents(e.target.value) })}
-                  disabled={!canEdit}
-                  helperText={t('tarification.monitoring.clenzy.supportPriceHelp')}
-                  InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-                />
-              </Grid>
-            </Grid>
+            <div className="grid grid-cols-12 gap-[9px] mt-[3px] mb-1.5">
+              <div className="col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="monitoring-device-price">
+                    {t('tarification.monitoring.clenzy.devicePrice')}
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id="monitoring-device-price"
+                      type="number"
+                      className="tabular-nums"
+                      value={centsToEuros(config.monitoringClenzyDevicePriceCents)}
+                      onChange={(e) => onUpdate({ monitoringClenzyDevicePriceCents: eurosToCents(e.target.value) })}
+                      disabled={!canEdit}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                  <FieldDescription>{t('tarification.monitoring.clenzy.devicePriceHelp')}</FieldDescription>
+                </Field>
+              </div>
+              <div className="col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="monitoring-installation-price">
+                    {t('tarification.monitoring.clenzy.installationPrice')}
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id="monitoring-installation-price"
+                      type="number"
+                      className="tabular-nums"
+                      value={centsToEuros(config.monitoringClenzyInstallationPriceCents)}
+                      onChange={(e) => onUpdate({ monitoringClenzyInstallationPriceCents: eurosToCents(e.target.value) })}
+                      disabled={!canEdit}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                  <FieldDescription>{t('tarification.monitoring.clenzy.installationPriceHelp')}</FieldDescription>
+                </Field>
+              </div>
+              <div className="col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="monitoring-config-price">
+                    {t('tarification.monitoring.clenzy.configPrice')}
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id="monitoring-config-price"
+                      type="number"
+                      className="tabular-nums"
+                      value={centsToEuros(config.monitoringClenzyConfigPriceCents)}
+                      onChange={(e) => onUpdate({ monitoringClenzyConfigPriceCents: eurosToCents(e.target.value) })}
+                      disabled={!canEdit}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                  <FieldDescription>{t('tarification.monitoring.clenzy.configPriceHelp')}</FieldDescription>
+                </Field>
+              </div>
+              <div className="col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="monitoring-support-price">
+                    {t('tarification.monitoring.clenzy.supportPrice')}
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id="monitoring-support-price"
+                      type="number"
+                      className="tabular-nums"
+                      value={centsToEuros(config.monitoringClenzySupportPriceCents)}
+                      onChange={(e) => onUpdate({ monitoringClenzySupportPriceCents: eurosToCents(e.target.value) })}
+                      disabled={!canEdit}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                  <FieldDescription>{t('tarification.monitoring.clenzy.supportPriceHelp')}</FieldDescription>
+                </Field>
+              </div>
+            </div>
 
             {/* Total */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                p: 1.25,
-                borderRadius: 1.5,
-                bgcolor: 'success.50',
-                border: '1px solid',
-                borderColor: 'success.200',
-                mb: 1.5,
-              }}
-            >
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.875rem' }}>
+            <div className="flex items-center justify-between p-2 rounded-[12px] bg-[success.50] border border-[success.200] mb-2">
+              <h6 className="cn-text-subtitle2 font-bold text-[0.875rem]">
                 {t('tarification.monitoring.clenzy.total')}
-              </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: 'success.main', fontSize: '1.25rem' }}>
+              </h6>
+              <h6 className="cn-text-h6 font-extrabold text-[var(--ok)] text-[1.25rem]">
                 {clenzyTotalCents > 0 ? <Money value={clenzyTotalCents / 100} decimals={0} /> : <>— <CurrencySymbol code={currency} /></>}
-              </Typography>
-            </Box>
+              </h6>
+            </div>
 
-            <Divider sx={{ my: 1.5 }} />
+            <Separator className="my-[9px]" />
 
             {/* Features */}
-            <Box sx={{ mb: 2 }}>
+            <div className="mb-3">
               <FeatureItem text={t('tarification.monitoring.clenzy.feature1')} />
               <FeatureItem text={t('tarification.monitoring.clenzy.feature2')} />
               <FeatureItem text={t('tarification.monitoring.clenzy.feature3')} />
               <FeatureItem text={t('tarification.monitoring.clenzy.feature4')} />
-            </Box>
+            </div>
 
-            <Divider sx={{ my: 1.5 }} />
+            <Separator className="my-[9px]" />
 
             {/* Enable switch */}
-            <List disablePadding>
-              <ListItem disableGutters sx={{ px: 0 }}>
-                <ListItemIcon sx={{ minWidth: 36 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: config.monitoringClenzyEnabled ? 'success.main' : 'text.disabled' }}><Memory size={20} strokeWidth={1.75} /></Box>
-                </ListItemIcon>
-                <ListItemText
-                  primary={t('tarification.monitoring.enable')}
-                  primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600 }}
-                />
-                <ListItemSecondaryAction>
-                  <Switch
-                    edge="end"
-                    checked={config.monitoringClenzyEnabled}
-                    onChange={(e) => onUpdate({ monitoringClenzyEnabled: e.target.checked })}
-                    disabled={!canEdit}
-                  />
-                </ListItemSecondaryAction>
-              </ListItem>
-            </List>
-          </Paper>
-        </Grid>
-      </Grid>
-    </Box>
+            <Field orientation="horizontal">
+              <span className={cn('inline-flex w-9 shrink-0', config.monitoringClenzyEnabled ? 'text-[#4A9B8E]' : 'text-[var(--faint)]')}><Memory size={20} strokeWidth={1.75} /></span>
+              <FieldLabel htmlFor="monitoring-clenzy-enabled" className="flex-1 text-[0.875rem] font-semibold">
+                {t('tarification.monitoring.enable')}
+              </FieldLabel>
+              <Switch
+                id="monitoring-clenzy-enabled"
+                checked={config.monitoringClenzyEnabled}
+                onCheckedChange={(checked) => onUpdate({ monitoringClenzyEnabled: checked })}
+                disabled={!canEdit}
+              />
+            </Field>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

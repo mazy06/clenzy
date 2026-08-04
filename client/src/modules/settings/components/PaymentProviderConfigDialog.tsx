@@ -1,21 +1,26 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, AlertDescription, Button } from '../../../components/ui';
+import { Info, TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../../components/ui';
 import {
-  Box,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  MenuItem,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Switch,
-  FormControlLabel,
-  IconButton,
-  InputAdornment,
-  CircularProgress,
-} from '@mui/material';
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../../components/ui';
 import { Close as CloseIcon, Visibility, VisibilityOff } from '../../../icons';
 import type {
   PaymentMethodConfig,
@@ -48,7 +53,6 @@ import { PAYMENT_PROVIDER_LABELS } from '../../../types/payment';
  */
 
 const ACCENT = 'var(--ok)';
-const NEUTRAL = 'var(--muted)';
 
 interface FieldSpec {
   key: string;
@@ -388,148 +392,151 @@ export default function PaymentProviderConfigDialog({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={saving ? undefined : onClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{ sx: { borderRadius: '12px' } }}
-    >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          fontSize: '0.95rem',
-          fontWeight: 700,
-          letterSpacing: '-0.005em',
-          pb: 1,
-        }}
+    <Dialog open={open} onOpenChange={(next) => { if (!next && !saving) onClose(); }}>
+      <DialogContent
+        className="sm:max-w-xl max-h-[85vh] overflow-y-auto rounded-[12px]"
+        showCloseButton={false}
       >
-        <Box>
-          Configurer {PAYMENT_PROVIDER_LABELS[providerType]}
-          <Typography
-            component="span"
-            sx={{ display: 'block', fontSize: '0.72rem', fontWeight: 400, color: 'text.secondary', mt: 0.25 }}
-          >
-            Renseignez les identifiants marchands. Les secrets sont chiffres avant stockage (AES-256-GCM).
-          </Typography>
-        </Box>
-        <IconButton onClick={onClose} disabled={saving} size="small">
-          <CloseIcon size={16} strokeWidth={2} />
-        </IconButton>
-      </DialogTitle>
+        <DialogHeader>
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <DialogTitle className="text-[0.95rem] font-bold tracking-[-0.005em]">
+                Configurer {PAYMENT_PROVIDER_LABELS[providerType]}
+              </DialogTitle>
+              <DialogDescription className="text-[0.72rem] font-normal mt-0.5">
+                Renseignez les identifiants marchands. Les secrets sont chiffres avant stockage (AES-256-GCM).
+              </DialogDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Fermer"
+              onClick={onClose}
+              disabled={saving}
+            >
+              <CloseIcon size={16} strokeWidth={2} />
+            </Button>
+          </div>
+        </DialogHeader>
 
-      <DialogContent dividers sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+        <div className="flex flex-col gap-[9px] border-y border-solid border-[var(--line)] py-3">
         {fields.length === 0 && (
-          <Alert severity="info" sx={{ borderRadius: '8px', fontSize: '0.8rem' }}>
-            Aucun parametre a configurer pour ce provider — utilisez le toggle pour l'activer / desactiver.
+          <Alert variant="info" className="text-[0.8rem]">
+            <Info />
+            <AlertDescription>Aucun parametre a configurer pour ce provider — utilisez le toggle pour l'activer / desactiver.</AlertDescription>
           </Alert>
         )}
 
         {fields.map((field) => {
           const isPassword = field.type === 'password';
           const showValue = isPassword ? !!showSecret[field.key] : true;
+          // `field.key` est unique dans le schema du provider affiche : il fait
+          // un id stable, contrairement a l'index de la boucle.
+          const fieldId = `payment-config-${field.key}`;
           return (
-            <TextField
-              key={field.key}
-              label={field.label}
-              type={field.type === 'select' ? undefined : (isPassword && !showValue ? 'password' : (field.type === 'number' ? 'number' : 'text'))}
-              select={field.type === 'select'}
-              value={values[field.key] ?? ''}
-              onChange={(e) => handleChange(field.key, e.target.value)}
-              helperText={field.helper}
-              required={field.required}
-              fullWidth
-              size="small"
-              placeholder={field.placeholder}
-              disabled={saving}
-              InputProps={isPassword ? {
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => toggleShow(field.key)}
-                      edge="end"
-                      size="small"
+            <Field key={field.key}>
+              <FieldLabel htmlFor={fieldId} className="text-[0.82rem]">
+                {field.label}
+              </FieldLabel>
+              {field.type === 'select' ? (
+                <NativeSelect
+                  id={fieldId}
+                  className="w-full text-[0.82rem]"
+                  value={values[field.key] ?? ''}
+                  onChange={(e) => handleChange(field.key, e.target.value)}
+                  required={field.required}
+                  disabled={saving}
+                >
+                  {field.options?.map((opt) => (
+                    <NativeSelectOption key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              ) : isPassword ? (
+                <InputGroup>
+                  <InputGroupInput
+                    id={fieldId}
+                    className="text-[0.82rem]"
+                    type={showValue ? 'text' : 'password'}
+                    value={values[field.key] ?? ''}
+                    onChange={(e) => handleChange(field.key, e.target.value)}
+                    required={field.required}
+                    placeholder={field.placeholder}
+                    disabled={saving}
+                  />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      size="icon-xs"
                       tabIndex={-1}
+                      onClick={() => toggleShow(field.key)}
+                      aria-label={showValue ? 'Masquer la valeur' : 'Afficher la valeur'}
                     >
                       {showValue ? <VisibilityOff size={16} /> : <Visibility size={16} />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              } : undefined}
-              sx={{
-                '& .MuiOutlinedInput-root': { fontSize: '0.82rem' },
-                '& .MuiInputLabel-root': { fontSize: '0.82rem' },
-                '& .MuiFormHelperText-root': { fontSize: '0.68rem', mt: 0.25 },
-              }}
-            >
-              {field.type === 'select' && field.options?.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.82rem' }}>
-                  {opt.label}
-                </MenuItem>
-              ))}
-            </TextField>
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                </InputGroup>
+              ) : (
+                <Input
+                  id={fieldId}
+                  className="text-[0.82rem]"
+                  type={field.type === 'number' ? 'number' : 'text'}
+                  value={values[field.key] ?? ''}
+                  onChange={(e) => handleChange(field.key, e.target.value)}
+                  required={field.required}
+                  placeholder={field.placeholder}
+                  disabled={saving}
+                />
+              )}
+              {field.helper && (
+                <FieldDescription className="text-[0.68rem]">{field.helper}</FieldDescription>
+              )}
+            </Field>
           );
         })}
 
-        <FormControlLabel
-          control={
-            <Switch
-              checked={sandboxMode}
-              onChange={(e) => setSandboxMode(e.target.checked)}
-              disabled={saving}
-              size="small"
-              sx={{
-              }}
-            />
-          }
-          label={
-            <Box>
-              <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
-                Mode sandbox
-              </Typography>
-              <Typography sx={{ fontSize: '0.68rem', color: 'text.secondary' }}>
-                Activez en developpement ; desactivez pour la production (apres validation KYB).
-              </Typography>
-            </Box>
-          }
-          sx={{ alignItems: 'flex-start', mt: 0.5 }}
-        />
+        <Field orientation="horizontal" className="items-start gap-2 mt-0.5">
+          <Switch
+            id="payment-config-sandbox"
+            checked={sandboxMode}
+            onCheckedChange={setSandboxMode}
+            disabled={saving}
+            size="sm"
+            className="mt-0.5"
+          />
+          <FieldLabel htmlFor="payment-config-sandbox" className="flex-col items-start gap-0">
+            <span className="cn-text-body1 text-[0.82rem] font-semibold">
+              Mode sandbox
+            </span>
+            <span className="cn-text-body1 text-[0.68rem] font-normal text-muted-foreground">
+              Activez en developpement ; desactivez pour la production (apres validation KYB).
+            </span>
+          </FieldLabel>
+        </Field>
 
         {error && (
-          <Alert severity="error" sx={{ borderRadius: '8px', fontSize: '0.8rem' }}>
-            {error}
+          <Alert variant="destructive" className="text-[0.8rem]">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-      </DialogContent>
+        </div>
 
-      <DialogActions sx={{ px: 3, py: 1.5, gap: 1 }}>
-        <Button
-          onClick={onClose}
-          disabled={saving}
-          size="small"
-          sx={{
-            textTransform: 'none',
-            fontSize: '0.78rem',
-            fontWeight: 600,
-            borderRadius: '8px',
-            color: NEUTRAL,
-          }}
-        >
-          Annuler
-        </Button>
-        <Button
-          variant="contained"
-          size="small"
-          onClick={handleSave}
-          disabled={saving || fields.length === 0}
-          startIcon={saving ? <CircularProgress size={14} color="inherit" /> : undefined}
-          sx={{ textTransform: 'none', fontWeight: 600 }}
-        >
-          {saving ? 'Enregistrement…' : 'Enregistrer'}
-        </Button>
-      </DialogActions>
+        <DialogFooter className="gap-1.5">
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={saving}>
+            Annuler
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={saving || fields.length === 0}
+          >
+            {saving && <Spinner className="size-3.5" />}
+            {saving ? 'Enregistrement…' : 'Enregistrer'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

@@ -1,24 +1,25 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { cn } from '../../utils/cn';
+import { Button, Spinner } from '../../components/ui';
 import {
-  Box,
-  Typography,
-  Button,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Tooltip,
-  CircularProgress,
   Alert,
+  AlertDescription,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-} from '@mui/material';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -44,11 +45,7 @@ import PagePagination from '../../components/PagePagination';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
-const CARD_SX = {
-  border: '1px solid var(--line)',
-  boxShadow: 'none',
-  borderRadius: 'var(--radius-lg)',
-} as const;
+const CARD_CLASS = 'border border-solid border-[var(--line)] shadow-none rounded-[var(--radius-lg)] bg-[var(--card)]';
 
 const STATUS_OPTIONS: ReservationStatus[] = [
   'pending',
@@ -202,12 +199,8 @@ const ReservationsList: React.FC = () => {
   ], [t]);
 
   const actionButtons = (
-    <Button
-      variant="contained"
-      size="small"
-      startIcon={<AddIcon size={16} strokeWidth={2} />}
-      onClick={handleCreate}
-    >
+    <Button size="sm" onClick={handleCreate}>
+      <AddIcon strokeWidth={2} />
       {t('reservations.create')}
     </Button>
   );
@@ -217,7 +210,7 @@ const ReservationsList: React.FC = () => {
       bare
       searchTerm={searchTerm}
       onSearchChange={(v) => { setSearchTerm(v); setPage(0); }}
-      searchPlaceholder={t('reservations.search') || 'Rechercher une réservation...'}
+      searchPlaceholder={t('reservations.search', 'Rechercher une réservation...')}
       filters={{
         status: {
           value: filters.status ?? '',
@@ -233,7 +226,7 @@ const ReservationsList: React.FC = () => {
         },
       }}
       counter={{
-        label: t('reservations.reservation') || 'réservation',
+        label: t('reservations.reservation', 'réservation'),
         count: totalElements,
         singular: '',
         plural: 's',
@@ -243,9 +236,9 @@ const ReservationsList: React.FC = () => {
 
   // ─── Render ──────────────────────────────────────────────────────
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Header + Filters */}
-      <Box sx={{ flexShrink: 0 }}>
+      <div className="shrink-0">
         <PageHeader
           title={t('reservations.title')}
           subtitle={t('reservations.subtitle')}
@@ -255,12 +248,13 @@ const ReservationsList: React.FC = () => {
           actions={actionButtons}
           filters={filterBar}
         />
-      </Box>
+      </div>
 
       {/* Error */}
       {isError && (
-        <Alert severity="error" sx={{ mb: 2, flexShrink: 0 }}>
-          {error ?? 'Erreur lors du chargement des reservations'}
+        <Alert variant="destructive" className="mb-3 shrink-0">
+          <TriangleAlert />
+          <AlertDescription>{error ?? 'Erreur lors du chargement des reservations'}</AlertDescription>
         </Alert>
       )}
 
@@ -273,7 +267,8 @@ const ReservationsList: React.FC = () => {
           title={t('reservations.noReservations')}
           description="Ajoutez votre première réservation manuellement, ou laissez Baitly importer vos calendriers Airbnb / Booking automatiquement."
           action={(
-            <Button variant="outlined" size="small" startIcon={<AddIcon size={16} strokeWidth={1.75} />} onClick={handleCreate}>
+            <Button variant="outline" size="sm" onClick={handleCreate}>
+              <AddIcon strokeWidth={1.75} />
               {t('reservations.create')}
             </Button>
           )}
@@ -281,72 +276,61 @@ const ReservationsList: React.FC = () => {
         />
       ) : (
         /* Data table */
-        <Paper ref={tableContainerRef} sx={{ ...CARD_SX, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <TableContainer sx={{ flex: 1, overflow: 'hidden' }}>
-            <Table size="small">
-              <TableHead>
-                {/* Entêtes overline portées par le thème global (10.5px faint uppercase) */}
-                <TableRow sx={{ '& th': { whiteSpace: 'nowrap' } }}>
-                  <TableCell>{t('reservations.fields.property')}</TableCell>
-                  <TableCell>{t('reservations.fields.guestName')}</TableCell>
-                  <TableCell>{t('reservations.fields.checkIn')}</TableCell>
-                  <TableCell>{t('reservations.fields.checkOut')}</TableCell>
-                  <TableCell>{t('reservations.fields.status')}</TableCell>
-                  <TableCell>{t('reservations.fields.source')}</TableCell>
-                  <TableCell align="right">{t('reservations.fields.totalPrice')}</TableCell>
-                  <TableCell align="center">Actions</TableCell>
+        <div ref={tableContainerRef} className={cn(CARD_CLASS, 'flex-1 min-h-0 flex flex-col overflow-hidden')}>
+          <div className="flex-1 overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="[&_th]:whitespace-nowrap">
+                  <TableHead>{t('reservations.fields.property')}</TableHead>
+                  <TableHead>{t('reservations.fields.guestName')}</TableHead>
+                  <TableHead>{t('reservations.fields.checkIn')}</TableHead>
+                  <TableHead>{t('reservations.fields.checkOut')}</TableHead>
+                  <TableHead>{t('reservations.fields.status')}</TableHead>
+                  <TableHead>{t('reservations.fields.source')}</TableHead>
+                  <TableHead className="text-end">{t('reservations.fields.totalPrice')}</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {reservations.map((r) => (
                   <TableRow
                     key={r.id}
                     data-highlight-id={String(r.id)}
-                    hover
-                    sx={{ '&:last-child td': { borderBottom: 0 } }}
                   >
                     <TableCell>
-                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.82rem' }}>
+                      <p className="cn-text-body2 font-medium text-[0.82rem]">
                         {r.propertyName}
-                      </Typography>
+                      </p>
                     </TableCell>
                     <TableCell>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontSize: '0.82rem',
-                          cursor: 'pointer',
-                          '&:hover': { color: 'var(--accent)', textDecoration: 'underline' },
-                        }}
-                        onClick={() => {
+                      <p className="cn-text-body2 text-[0.82rem] cursor-pointer hover:text-[var(--accent)] hover:decoration-[underline]" onClick={() => {
                           setSelectedGuestId(r.id);
                           setGuestDialogOpen(true);
-                        }}
-                      >
+                        }}>
                         {r.guestName}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      </p>
+                      <span className="cn-text-caption text-muted-foreground">
                         {r.guestCount} {r.guestCount > 1 ? 'voyageurs' : 'voyageur'}
-                      </Typography>
+                      </span>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" sx={{ fontSize: '0.82rem', fontVariantNumeric: 'tabular-nums' }}>
+                      <p className="cn-text-body2 text-[0.82rem] tabular-nums">
                         {formatDate(r.checkIn)}
-                      </Typography>
+                      </p>
                       {r.checkInTime && (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                        <span className="cn-text-caption text-muted-foreground tabular-nums">
                           {r.checkInTime}
-                        </Typography>
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" sx={{ fontSize: '0.82rem', fontVariantNumeric: 'tabular-nums' }}>
+                      <p className="cn-text-body2 text-[0.82rem] tabular-nums">
                         {formatDate(r.checkOut)}
-                      </Typography>
+                      </p>
                       {r.checkOutTime && (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                        <span className="cn-text-caption text-muted-foreground tabular-nums">
                           {r.checkOutTime}
-                        </Typography>
+                        </span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -355,36 +339,41 @@ const ReservationsList: React.FC = () => {
                     <TableCell>
                       <ReservationSourceBadge source={r.source} />
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell className="text-end">
                       {/* Montant : display (Space Grotesk) + tabular-nums (baseline §1 typo) */}
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontSize: '0.82rem',
-                          fontWeight: 600,
-                          fontFamily: 'var(--font-display)',
-                          fontVariantNumeric: 'tabular-nums',
-                          color: 'var(--ink)',
-                        }}
-                      >
+                      <p className="cn-text-body2 text-[0.82rem] font-semibold font-[family-name:var(--font-display)] tabular-nums text-[var(--ink)]">
                         {formatPrice(r.totalPrice)}
-                      </Typography>
+                      </p>
                     </TableCell>
-                    <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
-                      <Tooltip title={t('reservations.edit')}>
-                        <IconButton size="small" onClick={() => handleEdit(r)}>
-                          <EditIcon size={18} strokeWidth={1.75} />
-                        </IconButton>
+                    <TableCell className="text-center whitespace-nowrap">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* span : TooltipTrigger asChild pose une ref DOM que le
+                              Button du kit (fonction, React 18) ne transmet pas. */}
+                          <span className="inline-flex">
+                            <Button variant="ghost" size="icon-sm" aria-label={t('reservations.edit')} onClick={() => handleEdit(r)}>
+                              <EditIcon size={18} strokeWidth={1.75} />
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('reservations.edit')}</TooltipContent>
                       </Tooltip>
                       {r.status !== 'cancelled' && r.status !== 'checked_out' && (
-                        <Tooltip title={t('reservations.cancel')}>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleCancelClick(r)}
-                          >
-                            <CancelIcon size={18} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t('reservations.cancel')}
+                                onClick={() => handleCancelClick(r)}
+                                className="text-[var(--err)] hover:text-[var(--err)]"
+                              >
+                                <CancelIcon size={18} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('reservations.cancel')}</TooltipContent>
                         </Tooltip>
                       )}
                     </TableCell>
@@ -392,7 +381,7 @@ const ReservationsList: React.FC = () => {
                 ))}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
 
           <PagePagination
             count={totalElements}
@@ -400,7 +389,7 @@ const ReservationsList: React.FC = () => {
             onPageChange={(newPage) => setPage(newPage)}
             rowsPerPage={rowsPerPage}
           />
-        </Paper>
+        </div>
       )}
 
       {/* Create/Edit dialog */}
@@ -424,40 +413,43 @@ const ReservationsList: React.FC = () => {
       />
 
       {/* Cancel confirmation dialog */}
-      <Dialog open={cancelDialogOpen} onClose={() => setCancelDialogOpen(false)}>
-        {/* Peau modale portée par le thème global (titre display + filets + pied surface-2) */}
-        <DialogTitle>{t('reservations.cancel')}</DialogTitle>
+      <Dialog open={cancelDialogOpen} onOpenChange={(next) => { if (!next) setCancelDialogOpen(false); }}>
         <DialogContent>
-          <Typography variant="body2">
+        <DialogHeader>
+          <DialogTitle>{t('reservations.cancel')}</DialogTitle>
+        </DialogHeader>
+        <div>
+          <p className="cn-text-body2">
             {t('reservations.cancelConfirm')}
-          </Typography>
+          </p>
           {cancelTarget && (
-            <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>
+            <p className="cn-text-body2 mt-1.5 font-semibold">
               {cancelTarget.guestName} · {cancelTarget.propertyName}
-            </Typography>
+            </p>
           )}
-        </DialogContent>
-        <DialogActions>
+        </div>
+        <DialogFooter>
           <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setCancelDialogOpen(false)}
-            size="small"
             disabled={isCancelling}
           >
             Non
           </Button>
           <Button
+            variant="destructive"
+            size="sm"
             onClick={handleConfirmCancel}
-            color="error"
-            variant="contained"
-            size="small"
             disabled={isCancelling}
           >
-            {isCancelling ? <CircularProgress size={18} sx={{ mr: 1 }} /> : null}
+            {isCancelling ? <Spinner className="size-[18px]" /> : null}
             Oui, annuler
           </Button>
-        </DialogActions>
+        </DialogFooter>
+        </DialogContent>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

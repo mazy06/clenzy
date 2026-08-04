@@ -924,7 +924,7 @@ export function BAssistantSectionDemo() {
             </button>
           ))}
         </div>
-        <Button size="xs" variant="outline" className="mt-3 w-full">
+        <Button size="xs" variant="outline" className="mt-3 w-full shrink">
           Nouvelle conversation
         </Button>
       </div>

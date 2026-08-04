@@ -134,22 +134,35 @@ describe('PanelPropertyDetails', () => {
 
     it('should display cleaning base price', () => {
       render(<PanelPropertyDetails propertyId={42} />);
+      // L'accordeon du kit (Radix) DEMONTE le contenu replie, la ou MUI le
+      // gardait dans le DOM a hauteur 0. Les deux sont replies au depart : rien
+      // n'a bouge a l'ecran, mais le test doit maintenant ouvrir avant de lire.
+      fireEvent.click(screen.getByText('Configuration ménage'));
       expect(screen.getByText('60 EUR')).toBeInTheDocument();
     });
 
     it('should display cleaning duration', () => {
       render(<PanelPropertyDetails propertyId={42} />);
+      // L'accordeon du kit (Radix) DEMONTE le contenu replie, la ou MUI le
+      // gardait dans le DOM a hauteur 0. Les deux sont replies au depart : rien
+      // n'a bouge a l'ecran, mais le test doit maintenant ouvrir avant de lire.
+      fireEvent.click(screen.getByText('Configuration ménage'));
       expect(screen.getByText('120 min')).toBeInTheDocument();
     });
 
     it('should display check-in/out times', () => {
       render(<PanelPropertyDetails propertyId={42} />);
+      // L'accordeon du kit (Radix) DEMONTE le contenu replie, la ou MUI le
+      // gardait dans le DOM a hauteur 0. Les deux sont replies au depart : rien
+      // n'a bouge a l'ecran, mais le test doit maintenant ouvrir avant de lire.
+      fireEvent.click(screen.getByText('Configuration ménage'));
       expect(screen.getByText('15:00')).toBeInTheDocument();
       expect(screen.getByText('11:00')).toBeInTheDocument();
     });
 
     it('should display cleaning features', () => {
       render(<PanelPropertyDetails propertyId={42} />);
+      fireEvent.click(screen.getByText('Configuration ménage'));
       expect(screen.getByText('Extérieur')).toBeInTheDocument();
       expect(screen.getByText('Linge')).toBeInTheDocument();
     });
@@ -160,6 +173,7 @@ describe('PanelPropertyDetails', () => {
     it('should display cleaning notes in accordion', () => {
       render(<PanelPropertyDetails propertyId={42} />);
       expect(screen.getByText('Notes ménage')).toBeInTheDocument();
+      fireEvent.click(screen.getByText('Notes ménage'));
       expect(screen.getByText('Utiliser les produits bio')).toBeInTheDocument();
     });
   });
@@ -218,7 +232,10 @@ describe('PanelPropertyDetails', () => {
       });
 
       render(<PanelPropertyDetails propertyId={42} />);
-      expect(screen.getByRole('progressbar')).toBeInTheDocument();
+      // Le Spinner du kit annonce `role="status"` (une attente), la ou le
+      // CircularProgress de MUI annoncait `progressbar` (une progression
+      // mesurable) — ce qu'un chargement indetermine n'est pas.
+      expect(screen.getByRole('status')).toBeInTheDocument();
     });
   });
 

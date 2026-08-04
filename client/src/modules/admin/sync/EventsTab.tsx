@@ -1,26 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  Skeleton,
-  Alert,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  TextField,
-} from '@mui/material';
+import { cn } from '../../../utils/cn';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Skeleton, Card, CardContent } from '../../../components/ui';
+import { Field, FieldLabel, Input } from '../../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { syncAdminApi, SyncLog, SyncEventStats } from '../../../services/api/syncAdminApi';
 import FilterChipRow from '../../../components/FilterChipRow';
 import { useSyncAdminHeader } from '../SyncAdminPage';
 import PagePagination from '../../../components/PagePagination';
+import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 
 type ChannelOption = 'AIRBNB' | 'BOOKING' | 'VRBO' | 'ICAL' | 'OTHER';
 
@@ -33,26 +22,19 @@ const CHANNEL_OPTIONS: { value: ChannelOption; label: string; color: string }[] 
   { value: 'OTHER',   label: 'Autre',   color: 'var(--muted)' },
 ];
 
-/** Chip -soft : texte couleur + fond -soft (pilule/typo via thème global MuiChip) */
-const chipSx = (fg: string, bg: string) => ({
-  color: fg,
-  backgroundColor: bg,
-  '& .MuiChip-icon': { color: fg },
-});
-
-const DIRECTION_TOKEN: Record<string, { fg: string; bg: string }> = {
-  INBOUND: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-  OUTBOUND: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+const DIRECTION_TOKEN: Record<string, ToneTokens> = {
+  INBOUND: { color: 'var(--info)', bg: 'var(--info-soft)' },
+  OUTBOUND: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
 };
 
-const STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
-  SUCCESS: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  ERROR: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  FAILED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  PENDING: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+const STATUS_TOKEN: Record<string, ToneTokens> = {
+  SUCCESS: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
+  ERROR: { color: 'var(--err)', bg: 'var(--err-soft)' },
+  FAILED: { color: 'var(--err)', bg: 'var(--err-soft)' },
+  PENDING: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
 };
 
-const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
+const NEUTRAL_TOKEN: ToneTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
 
 /** Label overline (pattern entête de tuile/section) */
 const OVERLINE_SX = {
@@ -62,6 +44,9 @@ const OVERLINE_SX = {
   textTransform: 'uppercase',
   color: 'var(--faint)',
 } as const;
+
+/** Report en classes de `OVERLINE_SX`. */
+const OVERLINE_CLASS = 'text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)]';
 
 const EventsTab: React.FC = () => {
   const [events, setEvents] = useState<SyncLog[]>([]);
@@ -118,7 +103,7 @@ const EventsTab: React.FC = () => {
   // Register filters (Channel + Status + Depuis) into the page header.
   useEffect(() => {
     setHeaderFilters(
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+      <div className="flex items-center gap-2 flex-wrap">
         <FilterChipRow
           options={CHANNEL_OPTIONS}
           value={channel}
@@ -126,23 +111,26 @@ const EventsTab: React.FC = () => {
           allLabel="Tous"
           size="compact"
         />
-        <TextField
-          size="small"
-          label="Status"
-          value={status}
-          onChange={(e) => { setStatus(e.target.value); setPage(0); }}
-          sx={{ width: 140 }}
-        />
-        <TextField
-          size="small"
-          label="Depuis"
-          type="datetime-local"
-          value={from}
-          onChange={(e) => { setFrom(e.target.value); setPage(0); }}
-          InputLabelProps={{ shrink: true }}
-          sx={{ width: 200 }}
-        />
-      </Box>,
+        {/* Largeurs figees : ces filtres vivent dans une rangee flex, le `w-full`
+            du kit les etalerait chacun sur toute la largeur du header. */}
+        <Field className="w-[140px]">
+          <FieldLabel htmlFor="sync-events-status">Status</FieldLabel>
+          <Input
+            id="sync-events-status"
+            value={status}
+            onChange={(e) => { setStatus(e.target.value); setPage(0); }}
+          />
+        </Field>
+        <Field className="w-[200px]">
+          <FieldLabel htmlFor="sync-events-from">Depuis</FieldLabel>
+          <Input
+            id="sync-events-from"
+            type="datetime-local"
+            value={from}
+            onChange={(e) => { setFrom(e.target.value); setPage(0); }}
+          />
+        </Field>
+      </div>,
     );
     return () => setHeaderFilters(null);
   }, [setHeaderFilters, channel, status, from]);
@@ -157,88 +145,84 @@ const EventsTab: React.FC = () => {
   };
 
   return (
-    <Box>
+    <div>
       {/* Stats Cards — label overline, valeurs display tabular-nums */}
       {stats && (
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={4}>
-            <Card variant="outlined">
+        <div className="grid grid-cols-12 gap-3 mb-[18px]">
+          <div className="col-span-12 min-[600px]:col-span-4">
+            <Card>
               <CardContent>
-                <Typography sx={OVERLINE_SX}>Total (24h)</Typography>
-                <Typography
-                  variant="h4"
-                  sx={{ color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}
-                >
+                <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>Total (24h)</p>
+                <h4 className="cn-text-h4 text-[var(--ink)] tabular-nums">
                   {stats.totalLast24h}
-                </Typography>
+                </h4>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Card variant="outlined">
+          </div>
+          <div className="col-span-12 min-[600px]:col-span-4">
+            <Card>
               <CardContent>
-                <Typography sx={{ ...OVERLINE_SX, mb: 0.5 }}>Par Channel</Typography>
+                <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-[3px]')}>Par Channel</p>
                 {Object.entries(stats.byChannel).map(([ch, count]) => (
-                  <Typography key={ch} variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                  <p className="cn-text-body2 tabular-nums" key={ch}>
                     {ch}: {count}
-                  </Typography>
+                  </p>
                 ))}
                 {Object.keys(stats.byChannel).length === 0 && (
-                  <Typography variant="body2" sx={{ color: 'var(--muted)' }}>Aucune donnee</Typography>
+                  <p className="cn-text-body2 text-[var(--muted)]">Aucune donnee</p>
                 )}
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Card variant="outlined">
+          </div>
+          <div className="col-span-12 min-[600px]:col-span-4">
+            <Card>
               <CardContent>
-                <Typography sx={{ ...OVERLINE_SX, mb: 0.5 }}>Par Status</Typography>
+                <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-[3px]')}>Par Status</p>
                 {Object.entries(stats.byStatus).map(([s, count]) => (
-                  <Typography key={s} variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                  <p className="cn-text-body2 tabular-nums" key={s}>
                     {s}: {count}
-                  </Typography>
+                  </p>
                 ))}
                 {Object.keys(stats.byStatus).length === 0 && (
-                  <Typography variant="body2" sx={{ color: 'var(--muted)' }}>Aucune donnee</Typography>
+                  <p className="cn-text-body2 text-[var(--muted)]">Aucune donnee</p>
                 )}
               </CardContent>
             </Card>
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       )}
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <Alert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       {loading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+            <Skeleton key={i} className="h-9 w-full rounded-[9px]" />
           ))}
-        </Box>
+        </div>
       ) : (
         <>
-          <TableContainer
-            component={Paper}
-            variant="outlined"
-            sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}
-          >
-            <Table size="small">
-              <TableHead>
+          <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Channel</TableCell>
-                  <TableCell>Direction</TableCell>
-                  <TableCell>Event Type</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Error</TableCell>
-                  <TableCell>Duration (ms)</TableCell>
-                  <TableCell>Created At</TableCell>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Channel</TableHead>
+                  <TableHead>Direction</TableHead>
+                  <TableHead>Event Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Error</TableHead>
+                  <TableHead>Duration (ms)</TableHead>
+                  <TableHead>Created At</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {events.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center">Aucun event</TableCell>
+                    <TableCell colSpan={8} className="text-center">Aucun event</TableCell>
                   </TableRow>
                 ) : (
                   events.map((evt) => (
@@ -247,37 +231,25 @@ const EventsTab: React.FC = () => {
                       <TableCell>{evt.channel || '—'}</TableCell>
                       <TableCell>
                         {evt.direction ? (
-                          <Chip
+                          <StatusChip
                             label={evt.direction}
-                            size="small"
-                            sx={(() => {
-                              const tk = DIRECTION_TOKEN[evt.direction] ?? NEUTRAL_TOKEN;
-                              return chipSx(tk.fg, tk.bg);
-                            })()}
+                            tokens={DIRECTION_TOKEN[evt.direction] ?? NEUTRAL_TOKEN}
                           />
                         ) : '—'}
                       </TableCell>
                       <TableCell>{evt.eventType}</TableCell>
                       <TableCell>
                         {evt.status ? (
-                          <Chip
+                          <StatusChip
                             label={evt.status}
-                            size="small"
-                            sx={(() => {
-                              const tk = STATUS_TOKEN[evt.status] ?? NEUTRAL_TOKEN;
-                              return chipSx(tk.fg, tk.bg);
-                            })()}
+                            tokens={STATUS_TOKEN[evt.status] ?? NEUTRAL_TOKEN}
                           />
                         ) : '—'}
                       </TableCell>
                       <TableCell>
-                        <Typography
-                          variant="body2"
-                          sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                          title={evt.errorMessage || undefined}
-                        >
+                        <p className="cn-text-body2 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title={evt.errorMessage || undefined}>
                           {evt.errorMessage || '—'}
-                        </Typography>
+                        </p>
                       </TableCell>
                       <TableCell>{evt.durationMs}</TableCell>
                       <TableCell>
@@ -288,7 +260,7 @@ const EventsTab: React.FC = () => {
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
           <PagePagination
             count={totalElements}
             page={page}
@@ -299,7 +271,7 @@ const EventsTab: React.FC = () => {
           />
         </>
       )}
-    </Box>
+    </div>
   );
 };
 

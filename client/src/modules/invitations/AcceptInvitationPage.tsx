@@ -1,20 +1,24 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  CircularProgress,
-  Alert,
-  Chip,
-  ThemeProvider,
-  CssBaseline,
-  TextField,
-  Stack,
-  InputAdornment,
-  IconButton,
-} from '@mui/material';
+  Alert as BuiAlert,
+  AlertDescription,
+  AlertAction,
+  Button as BuiButton,
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { cn } from '../../utils/cn';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
   PersonAdd,
   CheckCircle,
@@ -28,7 +32,6 @@ import {
 import keycloak, { decodeJwt } from '../../keycloak';
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
 import apiClient, { ApiError } from '../../services/apiClient';
-import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import { setSessionCookie } from '../../services/storageService';
 
@@ -40,37 +43,26 @@ const BRAND_PRIMARY = '#6B8A9A';
  * Reutilise dans l'en-tete de la page pour coherence brand cross-channel.
  */
 function BaitlyWordmark({ size = 'lg' }: { size?: 'sm' | 'lg' }) {
-  const fontSize = size === 'lg' ? 26 : 18;
+  // La taille n'a que deux valeurs : les deux classes sont ecrites en dur,
+  // aucune ne derive d'une variable.
   return (
-    <Box
-      sx={{
-        fontSize,
-        fontWeight: 700,
-        letterSpacing: '-0.02em',
-        color: '#0f172a',
-        lineHeight: 1,
-        userSelect: 'none',
-      }}
+    <div
+      className={cn(
+        'font-bold leading-none tracking-[-0.02em] text-[#0f172a] select-none',
+        size === 'lg' ? 'text-[26px]' : 'text-[18px]',
+      )}
     >
-      Baitly<Box component="span" sx={{ color: BRAND_PRIMARY }}>.</Box>
-    </Box>
+      Baitly<span style={{ color: BRAND_PRIMARY }}>.</span>
+    </div>
   );
 }
 
 /** Petit chip "INVITATION" uppercase letter-spacing — meme style que le sous-titre email. */
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <Typography
-      sx={{
-        fontSize: 11,
-        fontWeight: 600,
-        textTransform: 'uppercase',
-        letterSpacing: '0.12em',
-        color: '#94a3b8',
-      }}
-    >
+    <p className="cn-text-body1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#94a3b8]">
       {children}
-    </Typography>
+    </p>
   );
 }
 
@@ -101,28 +93,29 @@ const getRoleLabel = (role: string) => {
   }
 };
 
-const getRoleColor = (role: string): 'primary' | 'secondary' | 'default' | 'error' | 'info' | 'success' | 'warning' => {
+const getRoleTone = (role: string): StatusTone => {
   switch (role) {
-    case 'OWNER': return 'error';
-    case 'SUPER_ADMIN': return 'error';
-    case 'ADMIN': return 'warning';
-    case 'SUPER_MANAGER': return 'secondary';
+    case 'OWNER': return 'err';
+    case 'SUPER_ADMIN': return 'err';
+    case 'ADMIN': return 'warn';
+    case 'SUPER_MANAGER': return 'neutral';
     case 'MANAGER': return 'info';
     case 'SUPERVISOR': return 'info';
-    case 'TECHNICIAN': return 'primary';
-    case 'HOUSEKEEPER': return 'default';
-    case 'LAUNDRY': return 'default';
-    case 'EXTERIOR_TECH': return 'primary';
-    case 'HOST': return 'success';
-    case 'MEMBER': return 'default';
-    default: return 'default';
+    case 'TECHNICIAN': return 'accent';
+    case 'HOUSEKEEPER': return 'neutral';
+    case 'LAUNDRY': return 'neutral';
+    case 'EXTERIOR_TECH': return 'accent';
+    case 'HOST': return 'ok';
+    case 'MEMBER': return 'neutral';
+    default: return 'neutral';
   }
 };
 
 export default function AcceptInvitationPage() {
-  // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
-  const { isRtl } = useGeoAuthLanguage();
-  const theme = useMemo(() => createBaitlyTheme({ isRtl }), [isRtl]);
+  // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en.
+  // Le hook est appele pour son EFFET (changeLanguage) : la direction RTL est
+  // ensuite portee par le DirectionProvider racine, plus par un theme local.
+  useGeoAuthLanguage();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
@@ -173,6 +166,8 @@ export default function AcceptInvitationPage() {
   const [registering, setRegistering] = useState(false);
 
   const isAuthenticated = keycloak.authenticated && keycloak.token;
+
+  const passwordMismatch = confirmPassword.length > 0 && password !== confirmPassword;
 
   // 1. Charger les infos de l'invitation au mount
   useEffect(() => {
@@ -324,43 +319,23 @@ export default function AcceptInvitationPage() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#f8fafc',
-          p: 2,
-        }}
-      >
-        <Paper
-          elevation={0}
-          sx={{
-            maxWidth: 480,
-            width: '100%',
-            p: { xs: 3, sm: 4.5 },
-            borderRadius: 2,
-            border: '1px solid #e2e8f0',
-            backgroundColor: '#ffffff',
-            textAlign: 'left',
-          }}
-        >
+    <div className="min-h-[100vh] flex items-center justify-center p-3" style={{ background: '#f8fafc' }}>
+        {/* borderRadius: 2 = 22 px (shape.borderRadius vaut 11 dans ce theme) ;
+            p 3 / 4.5 = 18 / 27 px (spacing 6), rupture sm MUI = 600 px. */}
+        <div className="w-full max-w-[480px] rounded-[22px] border border-solid border-[#e2e8f0] bg-[#ffffff] p-[18px] min-[600px]:p-[27px] text-left shadow-none">
           {/* Wordmark Baitly minimaliste (coherent avec l'email d'invitation) */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3.5 }}>
+          <div className="flex justify-center mb-5">
             <BaitlyWordmark size="lg" />
-          </Box>
+          </div>
 
           {/* Loading */}
           {state === 'loading' && (
-            <Box sx={{ py: 4 }}>
-              <CircularProgress size={48} />
-              <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
+            <div className="py-6">
+              <Spinner className="size-12" />
+              <p className="cn-text-body1 text-muted-foreground mt-3">
                 Chargement de l'invitation...
-              </Typography>
-            </Box>
+              </p>
+            </div>
           )}
 
           {/* Invitation Info */}
@@ -368,104 +343,44 @@ export default function AcceptInvitationPage() {
             <>
               {/* Hero : "INVITATION" label + nom de l'organisation. Pas de gradient
                   satureee — typographie pure, comme l'email. */}
-              <Box sx={{ mb: 3.5, textAlign: 'center' }}>
+              <div className="mb-5 text-center">
                 <SectionLabel>Invitation</SectionLabel>
-                <Typography
-                  sx={{
-                    mt: 1,
-                    fontSize: 14,
-                    color: '#64748b',
-                    lineHeight: 1.5,
-                  }}
-                >
+                <p className="cn-text-body1 mt-1.5 text-[14px] text-[#64748b] leading-[1.5]">
                   Tu es invite a rejoindre l'organisation
-                </Typography>
-                <Typography
-                  sx={{
-                    mt: 0.75,
-                    fontSize: 22,
-                    fontWeight: 700,
-                    letterSpacing: '-0.01em',
-                    color: '#0f172a',
-                    lineHeight: 1.2,
-                  }}
-                >
+                </p>
+                <p className="cn-text-body1 mt-1 text-[22px] font-bold tracking-[-0.01em] text-[#0f172a] leading-[1.2]">
                   {invitation.organizationName}
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
               {/* Bloc info : Role + email + expiration, layout aere */}
-              <Box
-                sx={{
-                  mb: 3,
-                  borderTop: '1px solid #f1f5f9',
-                  borderBottom: '1px solid #f1f5f9',
-                  py: 2,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 1.5,
-                }}
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 1,
-                  }}
-                >
-                  <Typography sx={{ fontSize: 13, color: '#64748b' }}>Role</Typography>
-                  <Chip
+              <div className="mb-4 border-t border-[#f1f5f9] border-b border-[#f1f5f9] py-3 flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-1.5">
+                  <p className="cn-text-body1 text-[13px] text-[#64748b]">Role</p>
+                  <StatusChip
+                    tone={getRoleTone(invitation.roleInvited)}
                     label={getRoleLabel(invitation.roleInvited)}
-                    color={getRoleColor(invitation.roleInvited)}
-                    size="small"
-                    sx={{ height: 22, fontSize: 11, fontWeight: 600, borderRadius: 1 }}
                   />
-                </Box>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 1,
-                  }}
-                >
-                  <Typography sx={{ fontSize: 13, color: '#64748b' }}>Email</Typography>
-                  <Typography
-                    sx={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: '#0f172a',
-                      maxWidth: '60%',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                    title={invitation.invitedEmail}
-                  >
+                </div>
+                <div className="flex items-center justify-between gap-1.5">
+                  <p className="cn-text-body1 text-[13px] text-[#64748b]">Email</p>
+                  <p className="cn-text-body1 text-[13px] font-semibold text-[#0f172a] max-w-[60%] overflow-hidden text-ellipsis whitespace-nowrap" title={invitation.invitedEmail}>
                     {invitation.invitedEmail}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
                 {invitation.expiresAt && (
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 1,
-                    }}
-                  >
-                    <Typography sx={{ fontSize: 13, color: '#64748b' }}>Expire</Typography>
-                    <Typography sx={{ fontSize: 13, color: '#475569' }}>
+                  <div className="flex items-center justify-between gap-1.5">
+                    <p className="cn-text-body1 text-[13px] text-[#64748b]">Expire</p>
+                    <p className="cn-text-body1 text-[13px] text-[#475569]">
                       {new Date(invitation.expiresAt).toLocaleDateString('fr-FR', {
                         day: 'numeric',
                         month: 'long',
                         year: 'numeric',
                       })}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                 )}
-              </Box>
+              </div>
 
               {isAuthenticated ? (
                 (() => {
@@ -474,16 +389,18 @@ export default function AcceptInvitationPage() {
                     && currentEmail.toLowerCase() !== invitation.invitedEmail.toLowerCase();
 
                   return emailMismatch ? (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                      <Alert severity="warning" sx={{ textAlign: 'left' }}>
-                        Vous etes connecte avec <strong>{currentEmail}</strong> mais cette
-                        invitation est destinee a <strong>{invitation.invitedEmail}</strong>.
-                        Deconnectez-vous pour creer un compte avec le bon email.
-                      </Alert>
-                      <Button
-                        variant="contained"
-                        size="large"
-                        fullWidth
+                    <div className="flex flex-col gap-2">
+                      <BuiAlert variant="warning" className="text-left">
+                        <TriangleAlert />
+                        <AlertDescription>
+                          Vous etes connecte avec <strong>{currentEmail}</strong> mais cette
+                          invitation est destinee a <strong>{invitation.invitedEmail}</strong>.
+                          Deconnectez-vous pour creer un compte avec le bon email.
+                        </AlertDescription>
+                      </BuiAlert>
+                      <BuiButton
+                        size="lg"
+                        className="w-full"
                         onClick={async () => {
                           sessionStorage.setItem('pending_invitation_token', token!);
                           // ⚠️ Le logout Keycloak seul ne suffit PAS : keycloak.ts
@@ -504,306 +421,306 @@ export default function AcceptInvitationPage() {
                           const redirectUri = `${window.location.origin}/accept-invitation?token=${encodeURIComponent(token!)}`;
                           window.location.href = keycloak.createLogoutUrl({ redirectUri });
                         }}
-                        sx={{ py: 1.25, fontWeight: 600, borderRadius: 1.5, textTransform: 'none', fontSize: 14 }}
                       >
                         Se deconnecter et creer un compte
-                      </Button>
-                    </Box>
+                      </BuiButton>
+                    </div>
                   ) : (
-                    <Button
-                      variant="contained"
-                      size="large"
-                      fullWidth
-                      startIcon={<PersonAdd />}
+                    <BuiButton
+                      size="lg"
+                      className="w-full"
                       onClick={handleAccept}
-                      sx={{ py: 1.25, fontWeight: 600, borderRadius: 1.5, textTransform: 'none', fontSize: 14 }}
                     >
+                      <PersonAdd />
                       Accepter l'invitation
-                    </Button>
+                    </BuiButton>
                   );
                 })()
               ) : (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  <Button
-                    variant="outlined"
-                    size="large"
-                    fullWidth
-                    startIcon={<PersonAdd />}
+                <div className="flex flex-col gap-2">
+                  {/* MUI donnait "outlined" aux deux actions du meme poids ; dans cette zone
+                      creer le compte EST l'action principale, "J'ai deja un compte" n'est
+                      qu'un renvoi — d'ou default + ghost plutot que outline + ghost. */}
+                  <BuiButton
+                    size="lg"
+                    className="w-full"
                     onClick={handleRegisterAndAccept}
-                    sx={{ py: 1.25, fontWeight: 600, borderRadius: 1.5, textTransform: 'none', fontSize: 14 }}
                   >
+                    <PersonAdd />
                     Creer un compte et accepter
-                  </Button>
-                  <Button
-                    variant="text"
-                    size="small"
-                    fullWidth
-                    startIcon={<LoginIcon />}
+                  </BuiButton>
+                  <BuiButton
+                    variant="ghost"
+                    size="sm"
+                    className="w-full"
                     onClick={handleLoginAndAccept}
-                    sx={{ fontWeight: 500 }}
                   >
+                    <LoginIcon />
                     J'ai deja un compte
-                  </Button>
-                </Box>
+                  </BuiButton>
+                </div>
               )}
             </>
           )}
 
           {/* Register form (inline, plus de redirection Keycloak) */}
           {state === 'register_form' && invitation && (
-            <Box sx={{ py: 1, textAlign: 'left' }}>
-              <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <div className="py-1.5 text-start">
+              <div className="text-center mb-4">
                 <SectionLabel>Creation de compte</SectionLabel>
-                <Typography
-                  sx={{
-                    mt: 1.25,
-                    fontSize: 14,
-                    color: '#475569',
-                    lineHeight: 1.5,
-                  }}
-                >
+                <p className="cn-text-body1 mt-2 text-[14px] text-[#475569] leading-[1.5]">
                   Rejoins <strong style={{ color: '#0f172a' }}>{invitation.organizationName}</strong>{' '}
                   en tant que {getRoleLabel(invitation.roleInvited).toLowerCase()}.
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
               {error && (
-                <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
-                  {error}
-                </Alert>
+                <BuiAlert variant="destructive" className="mb-3">
+                  <TriangleAlert />
+                  <AlertDescription>{error}</AlertDescription>
+                  <AlertAction>
+                    <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+                      <X />
+                    </BuiButton>
+                  </AlertAction>
+                </BuiAlert>
               )}
 
-              <Stack spacing={2}>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                  <TextField
-                    label="Prenom"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    fullWidth
-                    size="small"
-                    required
-                    autoComplete="given-name"
-                    autoFocus
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col min-[600px]:flex-row gap-3">
+                  <Field>
+                    <FieldLabel htmlFor="invite-first-name">Prenom</FieldLabel>
+                    <Input
+                      id="invite-first-name"
+                      className="w-full"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      required
+                      autoComplete="given-name"
+                      autoFocus
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="invite-last-name">Nom</FieldLabel>
+                    <Input
+                      id="invite-last-name"
+                      className="w-full"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      required
+                      autoComplete="family-name"
+                    />
+                  </Field>
+                </div>
+
+                <Field>
+                  <FieldLabel htmlFor="invite-email">Email</FieldLabel>
+                  <Input
+                    id="invite-email"
+                    className="w-full"
+                    value={invitation.invitedEmail}
+                    disabled
                   />
-                  <TextField
-                    label="Nom"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    fullWidth
-                    size="small"
+                  <FieldDescription>L'email est defini par l'invitation</FieldDescription>
+                </Field>
+
+                <Field>
+                  <FieldLabel htmlFor="invite-phone">Telephone</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon align="inline-start">
+                      <Phone size={16} strokeWidth={1.75} />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="invite-phone"
+                      placeholder="Ex: +33 6 12 34 56 78"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      autoComplete="tel"
+                    />
+                  </InputGroup>
+                  <FieldDescription>Optionnel — utile pour les notifications SMS</FieldDescription>
+                </Field>
+
+                <Field>
+                  <FieldLabel htmlFor="invite-password">Mot de passe</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon align="inline-start">
+                      <LockIcon size={16} strokeWidth={1.75} />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="invite-password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      autoComplete="new-password"
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupButton
+                        size="icon-xs"
+                        aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                        onClick={() => setShowPassword((v) => !v)}
+                      >
+                        {showPassword ? <VisibilityOff size={16} /> : <Visibility size={16} />}
+                      </InputGroupButton>
+                    </InputGroupAddon>
+                  </InputGroup>
+                  <FieldDescription>8 caracteres minimum</FieldDescription>
+                </Field>
+
+                <Field>
+                  <FieldLabel htmlFor="invite-password-confirm">Confirme le mot de passe</FieldLabel>
+                  <Input
+                    id="invite-password-confirm"
+                    className="w-full"
+                    type={showPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    autoComplete="family-name"
+                    autoComplete="new-password"
+                    aria-invalid={passwordMismatch}
                   />
-                </Stack>
+                  {passwordMismatch && (
+                    <FieldError>Les mots de passe ne correspondent pas</FieldError>
+                  )}
+                </Field>
 
-                <TextField
-                  label="Email"
-                  value={invitation.invitedEmail}
-                  disabled
-                  fullWidth
-                  size="small"
-                  helperText="L'email est defini par l'invitation"
-                />
-
-                <TextField
-                  label="Telephone"
-                  placeholder="Ex: +33 6 12 34 56 78"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  fullWidth
-                  size="small"
-                  autoComplete="tel"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Phone size={16} strokeWidth={1.75} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  helperText="Optionnel — utile pour les notifications SMS"
-                />
-
-                <TextField
-                  label="Mot de passe"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  fullWidth
-                  size="small"
-                  required
-                  autoComplete="new-password"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon size={16} strokeWidth={1.75} />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          size="small"
-                          onClick={() => setShowPassword((v) => !v)}
-                          edge="end"
-                          aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                        >
-                          {showPassword ? <VisibilityOff size={16} /> : <Visibility size={16} />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                  helperText="8 caracteres minimum"
-                />
-
-                <TextField
-                  label="Confirme le mot de passe"
-                  type={showPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  fullWidth
-                  size="small"
-                  required
-                  autoComplete="new-password"
-                  error={confirmPassword.length > 0 && password !== confirmPassword}
-                  helperText={
-                    confirmPassword.length > 0 && password !== confirmPassword
-                      ? 'Les mots de passe ne correspondent pas'
-                      : ' '
-                  }
-                />
-
-                <Button
-                  variant="contained"
-                  size="large"
-                  fullWidth
+                <BuiButton
+                  size="lg"
+                  className="w-full"
                   onClick={handleSubmitRegister}
                   disabled={registering}
-                  startIcon={registering ? <CircularProgress size={16} color="inherit" /> : <PersonAdd />}
-                  sx={{ py: 1.3, fontWeight: 600, borderRadius: 2 }}
                 >
+                  {registering ? <Spinner className="size-4" /> : <PersonAdd />}
                   {registering ? 'Creation en cours...' : 'Creer mon compte et accepter'}
-                </Button>
+                </BuiButton>
 
-                <Button
-                  variant="text"
-                  size="small"
+                <BuiButton
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setState('info')}
                   disabled={registering}
-                  sx={{ fontWeight: 500 }}
                 >
                   Retour
-                </Button>
-              </Stack>
-            </Box>
+                </BuiButton>
+              </div>
+            </div>
           )}
 
           {/* Accepting */}
           {state === 'accepting' && (
-            <Box sx={{ py: 4 }}>
-              <CircularProgress size={48} />
-              <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
+            <div className="py-6">
+              <Spinner className="size-12" />
+              <p className="cn-text-body1 text-muted-foreground mt-3">
                 Acceptation en cours...
-              </Typography>
-            </Box>
+              </p>
+            </div>
           )}
 
           {/* Complete Profile */}
           {state === 'complete_profile' && (
-            <Box sx={{ py: 2, textAlign: 'left' }}>
-              <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'success.main', mb: 1 }}><CheckCircle size={48} strokeWidth={1.75} /></Box>
-                <Typography variant="h6" fontWeight={700}>
+            <div className="py-3 text-start">
+              <div className="text-center mb-4">
+                <span className="inline-flex text-[var(--bui-success-ink)] mb-1.5"><CheckCircle size={48} strokeWidth={1.75} /></span>
+                <h6 className="cn-text-h6 font-bold">
                   Completez votre profil
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
+                </h6>
+                <p className="cn-text-body2 text-muted-foreground">
                   Vous avez rejoint <strong>{invitation?.organizationName}</strong>.
                   Verifiez vos informations avant de continuer.
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <TextField
-                  label="Prenom"
-                  value={keycloak.tokenParsed?.given_name || ''}
-                  disabled
-                  fullWidth
-                  size="small"
-                />
-                <TextField
-                  label="Nom"
-                  value={keycloak.tokenParsed?.family_name || ''}
-                  disabled
-                  fullWidth
-                  size="small"
-                />
-                <TextField
-                  label="Email"
-                  value={keycloak.tokenParsed?.email || invitation?.invitedEmail || ''}
-                  disabled
-                  fullWidth
-                  size="small"
-                />
-                <TextField
-                  label="Telephone"
-                  placeholder="Ex: +33 6 12 34 56 78"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  fullWidth
-                  size="small"
-                  helperText="Optionnel — utile pour les notifications SMS"
-                />
-              </Box>
+              <div className="flex flex-col gap-3">
+                <Field>
+                  <FieldLabel htmlFor="profile-first-name">Prenom</FieldLabel>
+                  <Input
+                    id="profile-first-name"
+                    className="w-full"
+                    value={keycloak.tokenParsed?.given_name || ''}
+                    disabled
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="profile-last-name">Nom</FieldLabel>
+                  <Input
+                    id="profile-last-name"
+                    className="w-full"
+                    value={keycloak.tokenParsed?.family_name || ''}
+                    disabled
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="profile-email">Email</FieldLabel>
+                  <Input
+                    id="profile-email"
+                    className="w-full"
+                    value={keycloak.tokenParsed?.email || invitation?.invitedEmail || ''}
+                    disabled
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="profile-phone">Telephone</FieldLabel>
+                  <Input
+                    id="profile-phone"
+                    className="w-full"
+                    placeholder="Ex: +33 6 12 34 56 78"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                  />
+                  <FieldDescription>Optionnel — utile pour les notifications SMS</FieldDescription>
+                </Field>
+              </div>
 
-              <Box sx={{ display: 'flex', gap: 1.5, mt: 3 }}>
-                <Button
-                  variant="contained"
-                  fullWidth
+              <div className="flex gap-2 mt-4">
+                <BuiButton
+                  className="w-full"
                   onClick={handleCompleteProfile}
                   disabled={savingProfile}
-                  sx={{ py: 1.2, fontWeight: 600, borderRadius: 2 }}
                 >
-                  {savingProfile ? <CircularProgress size={20} /> : 'Continuer'}
-                </Button>
-              </Box>
-            </Box>
+                  {savingProfile ? <Spinner className="size-5" /> : 'Continuer'}
+                </BuiButton>
+              </div>
+            </div>
           )}
 
           {/* Accepted */}
           {state === 'accepted' && (
-            <Box sx={{ py: 3 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'success.main', mb: 2 }}><CheckCircle size={64} strokeWidth={1.75} /></Box>
-              <Typography variant="h5" fontWeight={700} gutterBottom>
+            <div className="py-4">
+              <span className="inline-flex text-[var(--bui-success-ink)] mb-3"><CheckCircle size={64} strokeWidth={1.75} /></span>
+              <h5 className="cn-text-h5 font-bold mb-[0.35em]">
                 Bienvenue !
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
+              </h5>
+              <p className="cn-text-body1 text-muted-foreground">
                 Vous avez rejoint <strong>{invitation?.organizationName}</strong> avec succes.
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              </p>
+              <p className="cn-text-body2 text-muted-foreground mt-1.5">
                 Redirection vers le tableau de bord...
-              </Typography>
-            </Box>
+              </p>
+            </div>
           )}
 
           {/* Error */}
           {state === 'error' && (
-            <Box sx={{ py: 3 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'error.main', mb: 2 }}><ErrorOutline size={64} strokeWidth={1.75} /></Box>
-              <Typography variant="h6" fontWeight={600} gutterBottom>
+            <div className="py-4">
+              <span className="inline-flex text-destructive mb-3"><ErrorOutline size={64} strokeWidth={1.75} /></span>
+              <h6 className="cn-text-h6 font-semibold mb-[0.35em]">
                 Invitation non valide
-              </Typography>
-              <Alert severity="error" sx={{ mt: 2, textAlign: 'left' }}>
-                {error}
-              </Alert>
-              <Button
-                variant="outlined"
-                sx={{ mt: 3 }}
+              </h6>
+              <BuiAlert variant="destructive" className="mt-3 text-left">
+                <TriangleAlert />
+                <AlertDescription>{error}</AlertDescription>
+              </BuiAlert>
+              <BuiButton
+                variant="outline"
+                className="mt-[18px]"
                 onClick={() => navigate('/login', { replace: true })}
               >
                 Retour a la connexion
-              </Button>
-            </Box>
+              </BuiButton>
+            </div>
           )}
-        </Paper>
-      </Box>
-    </ThemeProvider>
+        </div>
+    </div>
   );
 }

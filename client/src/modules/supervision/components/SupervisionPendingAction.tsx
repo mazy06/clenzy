@@ -13,7 +13,7 @@
    ============================================================ */
 
 import { useState } from 'react';
-import { Box } from '@mui/material';
+import { cn } from '../../../utils/cn';
 import { Gavel, Check, Close } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { PendingAgentAction } from '../types';
@@ -40,88 +40,37 @@ export function SupervisionPendingAction({ action, onResolve }: SupervisionPendi
   };
 
   return (
-    <Box
+    // Entree discrete (tw-animate-css), desactivee si l'utilisateur prefere
+    // moins d'animation. Surface et bordure restent en style inline : elles
+    // viennent de constantes runtime, dont aucune classe ne peut naitre.
+    <div
       role="alertdialog"
       aria-label={t('supervision.approval.title', 'Validation requise')}
-      sx={{
-        width: 300,
-        borderRadius: '14px',
-        bgcolor: SURFACE,
-        border: BORDER,
-        backdropFilter: 'blur(10px)',
-        boxShadow: '0 16px 40px -22px rgba(0,0,0,.7)',
-        overflow: 'hidden',
-        color: '#E7E9FB',
-        // Entrée discrète, désactivée si l'utilisateur préfère moins d'animation.
-        '@keyframes supervisionApprovalIn': {
-          from: { opacity: 0, transform: 'translateY(-4px)' },
-          to: { opacity: 1, transform: 'translateY(0)' },
-        },
-        animation: 'supervisionApprovalIn 200ms ease-out',
-        '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-      }}
+      className="w-[300px] rounded-[14px] overflow-hidden backdrop-blur-[10px] shadow-[0_16px_40px_-22px_rgba(0,0,0,.7)] text-[#E7E9FB] animate-in fade-in-0 slide-in-from-top-1 duration-200 ease-out motion-reduce:animate-none"
+      style={{ backgroundColor: SURFACE, border: BORDER }}
     >
       {/* En-tête : intention (validation requise) + outil concerné */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, pt: 1.25, pb: 0.75 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 26,
-            height: 26,
-            borderRadius: '8px',
-            bgcolor: 'rgba(240,178,75,.16)',
-            color: ACCENT,
-            flexShrink: 0,
-          }}
-        >
+      <div className="flex items-center gap-1.5 px-2 pt-2 pb-1">
+        <div className="flex items-center justify-center w-[26px] h-[26px] rounded-[8px] bg-[rgba(240,178,75,.16)] shrink-0" style={{ color: ACCENT }}>
           <Gavel size={15} strokeWidth={2} />
-        </Box>
-        <Box sx={{ minWidth: 0 }}>
-          <Box sx={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.3, color: ACCENT, textTransform: 'uppercase' }}>
+        </div>
+        <div className="min-w-0">
+          <div className="text-[11px] font-bold tracking-[0.3px] uppercase" style={{ color: ACCENT }}>
             {t('supervision.approval.title', 'Validation requise')}
-          </Box>
-          <Box
-            sx={{
-              fontSize: 13.5,
-              fontWeight: 700,
-              lineHeight: 1.3,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
+          </div>
+          <div className="text-[13.5px] font-bold leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap">
             {action.toolName}
-          </Box>
-        </Box>
-      </Box>
+          </div>
+        </div>
+      </div>
 
       {/* Message d'explication remonté par l'agent */}
-      <Box
-        sx={{
-          px: 1.5,
-          pb: 1.25,
-          fontSize: 12.5,
-          lineHeight: 1.5,
-          color: 'rgba(231,233,251,.82)',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-        }}
-      >
+      <div className="px-2 pb-2 text-[12.5px] leading-[1.5] text-[rgba(231,233,251,.82)] whitespace-pre-wrap break-words">
         {action.message}
-      </Box>
+      </div>
 
       {/* Décision : Refuser (secondaire) / Valider (primaire ambre) */}
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 1,
-          px: 1.5,
-          py: 1.25,
-          borderTop: '1px solid rgba(255,255,255,.1)',
-        }}
-      >
+      <div className="flex gap-1.5 px-2 py-2 border-t border-[rgba(255,255,255,.1)]">
         <DecisionButton
           variant="reject"
           disabled={submitting}
@@ -140,8 +89,8 @@ export function SupervisionPendingAction({ action, onResolve }: SupervisionPendi
               : t('supervision.approval.validate', 'Valider')
           }
         />
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 
@@ -156,38 +105,25 @@ interface DecisionButtonProps {
 function DecisionButton({ variant, disabled, onClick, icon, label }: DecisionButtonProps) {
   const isValidate = variant === 'validate';
   return (
-    <Box
-      component="button"
+    <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      sx={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 0.625,
-        px: 1,
-        py: 0.75,
-        borderRadius: '10px',
-        fontFamily: 'inherit',
-        fontSize: 12.5,
-        fontWeight: 700,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        transition: 'background-color 180ms ease, border-color 180ms ease, color 180ms ease, opacity 180ms ease',
-        border: isValidate ? '1px solid transparent' : '1px solid rgba(255,255,255,.18)',
-        bgcolor: isValidate ? ACCENT : 'transparent',
-        color: isValidate ? '#0c0e2a' : '#E7E9FB',
-        '&:hover': disabled
-          ? {}
-          : isValidate
-            ? { bgcolor: '#F6C36B' }
-            : { bgcolor: 'rgba(255,255,255,.08)', borderColor: 'rgba(255,255,255,.3)' },
-        '&:disabled': { opacity: 0.55 },
-      }}
+      className={cn(
+        'flex-1 flex items-center justify-center gap-[3.75px] px-1.5 py-[4.5px] rounded-[10px]',
+        '[font-family:inherit] text-[12.5px] font-bold border border-solid',
+        'transition-[background-color,border-color,color,opacity] duration-[180ms] ease-[ease]',
+        'disabled:opacity-[.55]',
+        disabled ? 'cursor-not-allowed' : 'cursor-pointer',
+        // Hex ecrits en dur : une classe Tailwind ne peut pas naitre de la
+        // constante ACCENT (les classes sont emises a la compilation).
+        isValidate
+          ? 'border-transparent bg-[#F0B24B] text-[#0c0e2a] enabled:hover:bg-[#F6C36B]'
+          : 'border-[rgba(255,255,255,.18)] bg-transparent text-[#E7E9FB] enabled:hover:bg-[rgba(255,255,255,.08)] enabled:hover:border-[rgba(255,255,255,.3)]',
+      )}
     >
       {icon}
       <span>{label}</span>
-    </Box>
+    </button>
   );
 }

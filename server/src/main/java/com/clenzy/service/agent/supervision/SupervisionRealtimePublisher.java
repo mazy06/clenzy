@@ -35,7 +35,7 @@ public class SupervisionRealtimePublisher {
     /** Nouvelle entrée de feed poussée en temps réel (T6). */
     public void publishFeedAdded(Long propertyId, Long activityId, String moduleKey,
                                  String toolName, String summary, Instant at, Long messageLogId,
-                                 Long invoiceId) {
+                                 Long invoiceId, String tag) {
         if (propertyId == null || moduleKey == null) {
             return;
         }
@@ -52,6 +52,9 @@ public class SupervisionRealtimePublisher {
         }
         if (invoiceId != null) {
             entry.put("invoiceId", invoiceId);
+        }
+        if (tag != null) {
+            entry.put("tag", tag);
         }
         final Map<String, Object> event = new HashMap<>();
         event.put("type", "feed.added");

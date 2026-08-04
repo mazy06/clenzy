@@ -1,14 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Switch,
-  CircularProgress,
-  Alert,
-  Snackbar,
-} from '@mui/material';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Card, Switch } from '../../components/ui';
 import { Mail } from '../../icons';
+import { useNotification } from '../../hooks/useNotification';
 import { usersApi } from '../../services/api/usersApi';
 
 /**
@@ -24,14 +20,10 @@ import { usersApi } from '../../services/api/usersApi';
  * persistee immediatement (optimistic update + rollback en cas d'erreur).</p>
  */
 export default function MarketingPreferencesCard() {
+  const { notify } = useNotification();
   const [newsletterOptIn, setNewsletterOptIn] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error';
-  }>({ open: false, message: '', severity: 'success' });
 
   const loadPreferences = useCallback(async () => {
     try {
@@ -57,97 +49,67 @@ export default function MarketingPreferencesCard() {
     try {
       const result = await usersApi.updateMyMarketingPreferences(next);
       setNewsletterOptIn(result.newsletterOptIn);
-      setSnackbar({
-        open: true,
-        message: next
+      notify.success(
+        next
           ? 'Vous recevrez désormais notre newsletter.'
           : 'Vous ne recevrez plus notre newsletter.',
-        severity: 'success',
-      });
+      );
     } catch {
       // Rollback en cas d'erreur
       setNewsletterOptIn(previous);
-      setSnackbar({
-        open: true,
-        message: 'Erreur lors de la sauvegarde. Réessayez.',
-        severity: 'error',
-      });
+      notify.error('Erreur lors de la sauvegarde. Réessayez.');
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Paper sx={{ p: 2 }}>
+    <Card className="gap-0 py-0 p-3">
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}>
+      <div className="flex items-center gap-1.5 mb-3">
+        <span className="inline-flex text-[var(--mui-secondary)]">
           <Mail size={20} strokeWidth={1.75} />
-        </Box>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
+        </span>
+        <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
           Préférences marketing
-        </Typography>
-      </Box>
+        </h6>
+      </div>
 
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.8rem' }}>
+      <p className="cn-text-body2 text-muted-foreground mb-3 text-[0.8rem]">
         Gérez les communications marketing que vous recevez de Baitly. Vous pouvez retirer
         votre consentement à tout moment, conformément à l'article 7-3 du RGPD.
-      </Typography>
+      </p>
 
       {loadError && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          {loadError}
-        </Alert>
+        <UiAlert variant="warning" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{loadError}</AlertDescription>
+        </UiAlert>
       )}
 
       {newsletterOptIn === null && !loadError ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-          <CircularProgress size={20} />
-        </Box>
+        <div className="flex justify-center py-3">
+          <Spinner className="size-5" />
+        </div>
       ) : (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            py: 1,
-            px: 1.5,
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 1.5,
-          }}
-        >
-          <Box sx={{ flex: 1, minWidth: 0, pr: 2 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
+        <div className="flex items-center justify-between py-1.5 px-2 border border-[var(--line)] rounded-[12px]">
+          <div className="flex-1 min-w-0 pe-3">
+            <p className="cn-text-body2 font-semibold text-[0.875rem]">
               Newsletter Baitly
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.75rem' }}>
+            </p>
+            <span className="cn-text-caption text-muted-foreground block text-[0.75rem]">
               Nouveautés produit, conseils gestion locative, témoignages clients.
               Environ 1 email par mois.
-            </Typography>
-          </Box>
+            </span>
+          </div>
           <Switch
             checked={!!newsletterOptIn}
-            onChange={(e) => handleToggle(e.target.checked)}
+            onCheckedChange={(checked) => handleToggle(checked)}
             disabled={saving}
-            inputProps={{ 'aria-label': 'Activer ou désactiver la newsletter Baitly' }}
+            aria-label="Activer ou désactiver la newsletter Baitly"
           />
-        </Box>
+        </div>
       )}
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-      >
-        <Alert
-          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Paper>
+    </Card>
   );
 }

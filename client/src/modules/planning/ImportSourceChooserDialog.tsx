@@ -7,7 +7,13 @@
    « Channel Manager » du Dashboard.
    ============================================================ */
 
-import { Box, Dialog, DialogContent, DialogTitle, Typography } from '@mui/material';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui';
 import { CalendarMonth, Hub } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -31,7 +37,10 @@ interface ChoiceCardProps {
 
 function ChoiceCard({ icon, iconBg, iconColor, title, description, onSelect }: ChoiceCardProps) {
   return (
-    <Box
+    // iconColor vient des props : une classe Tailwind ne peut pas naitre d'une
+    // valeur d'execution, on la passe en variable CSS pour garder les classes
+    // de survol statiques. gap 1.25 = 7.5px, p 2 = 12px (theme.spacing = 6).
+    <div
       role="button"
       tabIndex={0}
       onClick={onSelect}
@@ -41,50 +50,26 @@ function ChoiceCard({ icon, iconBg, iconColor, title, description, onSelect }: C
           onSelect();
         }
       }}
-      sx={{
-        flex: 1,
-        minWidth: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 1.25,
-        p: 2,
-        borderRadius: '14px',
-        border: '1px solid var(--line)',
-        bgcolor: 'var(--card)',
-        cursor: 'pointer',
-        transition: 'border-color 180ms cubic-bezier(.16,1,.3,1), background 180ms cubic-bezier(.16,1,.3,1), box-shadow 180ms cubic-bezier(.16,1,.3,1)',
-        '&:hover': {
-          borderColor: iconColor,
-          boxShadow: `0 8px 24px -16px color-mix(in srgb, ${iconColor} 55%, transparent)`,
-        },
-        '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-      }}
+      style={{ '--choice-accent': iconColor } as React.CSSProperties}
+      className={
+        'flex-1 min-w-0 flex flex-col gap-[7.5px] p-3 rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] cursor-pointer '
+        + 'transition-[border-color,background,box-shadow] duration-[180ms] ease-[cubic-bezier(.16,1,.3,1)] motion-reduce:transition-none '
+        + 'hover:border-[var(--choice-accent)] hover:shadow-[0_8px_24px_-16px_color-mix(in_srgb,var(--choice-accent)_55%,transparent)] '
+        + 'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2'
+      }
     >
-      <Box
-        sx={{
-          width: 40,
-          height: 40,
-          borderRadius: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: iconBg,
-          color: iconColor,
-          flexShrink: 0,
-        }}
-      >
+      <div className="w-[40px] h-[40px] rounded-[12px] flex items-center justify-center shrink-0" style={{ backgroundColor: iconBg, color: iconColor }}>
         {icon}
-      </Box>
-      <Box>
-        <Typography sx={{ fontWeight: 700, fontSize: 14.5, color: 'var(--ink)', textWrap: 'balance' }}>
+      </div>
+      <div>
+        <p className="cn-text-body1 font-bold text-[14.5px] text-[var(--ink)] text-balance">
           {title}
-        </Typography>
-        <Typography sx={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.45, mt: 0.5 }}>
+        </p>
+        <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] leading-[1.45] mt-0.5">
           {description}
-        </Typography>
-      </Box>
-    </Box>
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -96,15 +81,19 @@ export default function ImportSourceChooserDialog({
 }: ImportSourceChooserDialogProps) {
   const { t } = useTranslation();
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        {t('planning.importChooser.title', 'Importer des réservations')}
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          {t('planning.importChooser.subtitle', 'Choisissez comment connecter vos canaux de réservation.')}
-        </Typography>
-      </DialogTitle>
-      <DialogContent sx={{ pb: 3 }}>
-        <Box sx={{ display: 'flex', gap: 1.5, flexDirection: { xs: 'column', sm: 'row' } }}>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>
+            {t('planning.importChooser.title', 'Importer des réservations')}
+          </DialogTitle>
+          {/* Le sous-titre etait un <p> imbrique dans le DialogTitle MUI ; la
+              primitive rend un <h2>, ou un <p> serait du HTML invalide. */}
+          <DialogDescription>
+            {t('planning.importChooser.subtitle', 'Choisissez comment connecter vos canaux de réservation.')}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex gap-[9px] flex-col min-[600px]:flex-row">
           <ChoiceCard
             icon={<CalendarMonth size={20} strokeWidth={1.75} />}
             iconBg="var(--accent-soft)"
@@ -133,7 +122,7 @@ export default function ImportSourceChooserDialog({
               onChooseChannelManager();
             }}
           />
-        </Box>
+        </div>
       </DialogContent>
     </Dialog>
   );

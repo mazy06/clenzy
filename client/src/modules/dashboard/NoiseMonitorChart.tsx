@@ -1,19 +1,16 @@
 import React, { useState } from 'react';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
+import { Badge } from '../../components/ui';
+import { Spinner } from '../../components/ui';
 import {
-  Box,
   Card,
   CardContent,
-  Typography,
-  Chip,
-  FormControl,
-  Select,
-  MenuItem,
+  NativeSelect,
+  NativeSelectOption,
   Tooltip,
-  CircularProgress,
-  alpha,
-  type SxProps,
-  type Theme,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import {
   VolumeUp,
   Warning,
@@ -51,44 +48,27 @@ const PROPERTY_COLORS = [
 ];
 
 // Overlay non bloquant centré sur la zone de tracé (le graphique reste visible derrière).
-const CHART_OVERLAY_SX: SxProps<Theme> = {
-  position: 'absolute',
-  inset: 0,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  pointerEvents: 'none',
-  p: 2,
-};
+const CHART_OVERLAY_CLASS =
+  'absolute inset-0 flex items-center justify-center pointer-events-none p-3';
 
 // Pastille translucide qui porte le message sans masquer les axes alentour.
-const CHART_OVERLAY_PILL_SX: SxProps<Theme> = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  gap: 0.5,
-  textAlign: 'center',
-  px: 2.5,
-  py: 1.5,
-  maxWidth: 320,
-  borderRadius: 2,
-  border: '1px solid',
-  borderColor: 'divider',
-  bgcolor: (t) => alpha(t.palette.background.paper, 0.86),
-  boxShadow: (t) => `0 6px 20px ${alpha(t.palette.common.black, 0.06)}`,
-  backdropFilter: 'blur(2px)',
-};
+// `background.paper` -> var(--card), `divider` -> var(--line) ; les alpha du sx
+// d'origine deviennent un color-mix et une ombre ecrite en clair.
+const CHART_OVERLAY_PILL_CLASS =
+  'flex flex-col items-center gap-0.5 text-center px-[15px] py-[9px] max-w-[320px] ' +
+  'rounded-[16px] border border-solid border-[var(--line)] backdrop-blur-[2px] ' +
+  'bg-[color-mix(in_srgb,var(--card)_86%,transparent)] shadow-[0_6px_20px_rgba(0,0,0,0.06)]';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function getNoiseStatus(level: number): { label: string; color: 'success' | 'warning' | 'error'; icon: React.ReactElement } {
+function getNoiseStatus(level: number): { label: string; tone: StatusTone; icon: React.ReactElement } {
   if (level <= NOISE_THRESHOLDS.normal) {
-    return { label: 'Normal', color: 'success', icon: <CheckCircle size={14} strokeWidth={1.75} /> };
+    return { label: 'Normal', tone: 'ok', icon: <CheckCircle size={14} strokeWidth={1.75} /> };
   }
   if (level <= NOISE_THRESHOLDS.warning) {
-    return { label: 'Élevé', color: 'warning', icon: <Warning size={14} strokeWidth={1.75} /> };
+    return { label: 'Élevé', tone: 'warn', icon: <Warning size={14} strokeWidth={1.75} /> };
   }
-  return { label: 'Critique', color: 'error', icon: <ErrorIcon size={14} strokeWidth={1.75} /> };
+  return { label: 'Critique', tone: 'err', icon: <ErrorIcon size={14} strokeWidth={1.75} /> };
 }
 
 const hourLabel = (h: number) => `${h.toString().padStart(2, '0')}:00`;
@@ -105,37 +85,22 @@ const NoiseTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) 
   if (!active || !payload?.length) return null;
 
   return (
-    <Box
-      sx={{
-        bgcolor: 'background.paper',
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        p: 1,
-        boxShadow: 1,
-        minWidth: 140,
-      }}
-    >
-      <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>
+    // boxShadow: 1 = index dans theme.shadows (aucun override projet) => elevation 1 de MUI, ecrite en clair.
+    <div className="bg-[var(--card)] border border-solid border-[var(--line)] rounded-[8px] p-[6px] min-w-[140px] shadow-[0px_2px_1px_-1px_rgba(0,0,0,0.2),0px_1px_1px_0px_rgba(0,0,0,0.14),0px_1px_3px_0px_rgba(0,0,0,0.12)]">
+      <p className="cn-text-body1 text-[0.6875rem] font-semibold text-muted-foreground mb-0.5">
         {label}
-      </Typography>
+      </p>
       {payload.map((entry) => {
         const status = getNoiseStatus(entry.value);
         return (
-          <Box key={entry.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: entry.color, flexShrink: 0 }} />
-            <Typography sx={{ fontSize: '0.6875rem', flex: 1 }}>{entry.name}</Typography>
-            <Chip
-              label={`${entry.value} dB`}
-              size="small"
-              color={status.color}
-              variant="outlined"
-              sx={{ height: 18, fontSize: '0.625rem', '& .MuiChip-label': { px: 0.5 } }}
-            />
-          </Box>
+          <div className="flex items-center gap-0.5 mb-0.5" key={entry.name}>
+            <div className="w-[8px] h-[8px] rounded-[50%] shrink-0" style={{ backgroundColor: entry.color }} />
+            <p className="cn-text-body1 text-[0.6875rem] flex-1">{entry.name}</p>
+            <StatusChip size="sm" tone={status.tone} label={`${entry.value} dB`} />
+          </div>
         );
       })}
-    </Box>
+    </div>
   );
 };
 
@@ -334,119 +299,63 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
   const recentAlerts = data.allAlerts.slice(0, 3);
 
   return (
-    <Card sx={{ height: '100%', width: '100%' }}>
-      <CardContent
-        sx={{
-          p: 1.25,
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          '&:last-child': { pb: 1.25 },
-        }}
-      >
+    <Card className="h-full w-full">
+      <CardContent className="p-[7.5px] h-full flex flex-col">
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75, flexShrink: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><VolumeUp size={16} strokeWidth={1.75} /></Box>
-            <Typography
-              sx={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-                color: 'text.secondary',
-              }}
-            >
+        <div className="flex items-center justify-between mb-1 shrink-0">
+          <div className="flex items-center gap-1">
+            <span className="inline-flex text-primary"><VolumeUp size={16} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 text-[0.75rem] font-bold uppercase tracking-[0.04em] text-muted-foreground">
               {isDevice ? 'Niveau sonore' : 'Monitoring sonore'}
-            </Typography>
-            <Chip
-              label={isDevice ? 'Dernières 24 h' : `${data.properties.length} capteur${data.properties.length > 1 ? 's' : ''}`}
-              size="small"
-              variant="outlined"
-              sx={{
-                height: 18,
-                fontSize: '0.5625rem',
-                fontWeight: 600,
-                borderColor: 'primary.main',
-                color: 'primary.main',
-                '& .MuiChip-label': { px: 0.5 },
-              }}
-            />
-          </Box>
+            </p>
+            <Badge variant="outline" className="h-[18px] text-[0.5625rem] font-semibold border-[var(--mui-primary)] text-[var(--mui-primary)] px-0.5">{isDevice ? 'Dernières 24 h' : `${data.properties.length} capteur${data.properties.length > 1 ? 's' : ''}`}</Badge>
+          </div>
 
           {!isDevice && (
-            <FormControl size="small" sx={{ minWidth: 130 }}>
-              <Select
-                value={selectedProperty}
-                onChange={(e) => setSelectedProperty(e.target.value)}
-                sx={{
-                  fontSize: '0.6875rem',
-                  height: 26,
-                  '& .MuiSelect-select': { py: 0.25, px: 1 },
-                }}
-              >
-                <MenuItem value="all" sx={{ fontSize: '0.75rem' }}>Tous les logements</MenuItem>
-                {propertyNames.map(name => (
-                  <MenuItem key={name} value={name} sx={{ fontSize: '0.75rem' }}>{name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            /* Filtre sans libelle visible (il jouxte le titre de la carte) :
+               l'aria-label reste la seule etiquette. */
+            <NativeSelect
+              size="sm"
+              className="min-w-[130px]"
+              aria-label="Filtrer par logement"
+              value={selectedProperty}
+              onChange={(e) => setSelectedProperty(e.target.value)}
+            >
+              <NativeSelectOption value="all">Tous les logements</NativeSelectOption>
+              {propertyNames.map(name => (
+                <NativeSelectOption key={name} value={name}>{name}</NativeSelectOption>
+              ))}
+            </NativeSelect>
           )}
-        </Box>
+        </div>
 
         {/* Current levels indicators — masqués en mode device (lecture live portée par le bandeau au-dessus) */}
         {!isDevice && (
-        <Box sx={{ display: 'flex', gap: 0.75, mb: 0.75, flexShrink: 0, flexWrap: 'wrap' }}>
+        <div className="flex gap-1 mb-1 shrink-0 flex-wrap">
           {data.properties.map((prop, idx) => {
             const status = getNoiseStatus(prop.currentLevel);
             return (
-              <Tooltip
-                key={prop.propertyId}
-                title={`Moy: ${prop.averageLevel} dB | Max: ${prop.maxLevel} dB`}
-                arrow
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    px: 0.75,
-                    py: 0.25,
-                    borderRadius: 1,
-                    bgcolor: `${PROPERTY_COLORS[idx % PROPERTY_COLORS.length]}10`,
-                    border: '1px solid',
-                    borderColor: `${PROPERTY_COLORS[idx % PROPERTY_COLORS.length]}30`,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      bgcolor: PROPERTY_COLORS[idx % PROPERTY_COLORS.length],
-                    }}
-                  />
-                  <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'text.secondary' }}>
-                    {prop.propertyName}
-                  </Typography>
-                  <Chip
-                    icon={status.icon}
-                    label={`${prop.currentLevel} dB`}
-                    size="small"
-                    color={status.color}
-                    variant="outlined"
-                    sx={{
-                      height: 18,
-                      fontSize: '0.5625rem',
-                      '& .MuiChip-icon': { fontSize: 12, ml: 0.25 },
-                      '& .MuiChip-label': { px: 0.5 },
-                    }}
-                  />
-                </Box>
+              <Tooltip key={prop.propertyId}>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-[3px] px-[4.5px] py-[1.5px] rounded-[8px] border border-solid" style={{ backgroundColor: `${PROPERTY_COLORS[idx % PROPERTY_COLORS.length]}10`, borderColor: `${PROPERTY_COLORS[idx % PROPERTY_COLORS.length]}30` }}>
+                    <div className="w-[6px] h-[6px] rounded-[50%]" style={{ backgroundColor: PROPERTY_COLORS[idx % PROPERTY_COLORS.length] }} />
+                    <p className="cn-text-body1 text-[0.625rem] font-semibold text-muted-foreground">
+                      {prop.propertyName}
+                    </p>
+                    <StatusChip
+                      size="sm"
+                      tone={status.tone}
+                      icon={status.icon}
+                      label={`${prop.currentLevel} dB`}
+                      className="text-[0.5625rem] [&>svg]:size-3"
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>{`Moy: ${prop.averageLevel} dB | Max: ${prop.maxLevel} dB`}</TooltipContent>
               </Tooltip>
             );
           })}
-        </Box>
+        </div>
         )}
 
         {/*
@@ -455,7 +364,7 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
           translucides PAR-DESSUS la zone de tracé (jamais un remplacement du graphe),
           pour que la structure du graphique soit lisible d'emblée.
         */}
-        <Box sx={{ flex: 1, minHeight: 0, position: 'relative' }}>
+        <div className="flex-1 min-h-0 relative">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={displayData} margin={{ top: 8, right: 12, left: -10, bottom: 8 }}>
               <defs>
@@ -526,65 +435,48 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
 
           {/* Overlay : chargement de l'historique réel (axes visibles derrière) */}
           {loading && (
-            <Box sx={CHART_OVERLAY_SX}>
-              <Box sx={CHART_OVERLAY_PILL_SX}>
-                <CircularProgress size={22} />
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+            <div className={CHART_OVERLAY_CLASS}>
+              <div className={CHART_OVERLAY_PILL_CLASS}>
+                <Spinner className="size-[22px]" />
+                <span className="cn-text-caption text-muted-foreground font-semibold">
                   Chargement de l'historique…
-                </Typography>
-              </Box>
-            </Box>
+                </span>
+              </div>
+            </div>
           )}
 
           {/* Overlay : aucune mesure encore remontée (le graphique reste « amorcé ») */}
           {!loading && combinedChartData.length === 0 && (
-            <Box sx={CHART_OVERLAY_SX}>
-              <Box sx={CHART_OVERLAY_PILL_SX}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}>
+            <div className={CHART_OVERLAY_CLASS}>
+              <div className={CHART_OVERLAY_PILL_CLASS}>
+                <span className="inline-flex text-primary">
                   <VolumeUp size={24} strokeWidth={1.5} />
-                </Box>
-                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                </span>
+                <p className="cn-text-body2 font-bold">
                   En attente des premières mesures
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.4 }}>
+                </p>
+                <span className="cn-text-caption text-muted-foreground leading-[1.4]">
                   Les courbes s'afficheront ici dès que le capteur remontera ses relevés.
-                </Typography>
-              </Box>
-            </Box>
+                </span>
+              </div>
+            </div>
           )}
-        </Box>
+        </div>
 
         {/* Recent alerts strip */}
         {recentAlerts.length > 0 && (
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 0.5,
-              mt: 0.5,
-              flexShrink: 0,
-              overflowX: 'auto',
-              '&::-webkit-scrollbar': { height: 4 },
-              '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 2 },
-            }}
-          >
+          <div className="flex gap-[3px] mt-[3px] shrink-0 overflow-x-auto [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-[var(--line)] [&::-webkit-scrollbar-thumb]:rounded-[16px]">
             {recentAlerts.map(alert => (
-              <Chip
+              <StatusChip
                 key={alert.id}
+                size="sm"
+                tone={alert.severity === 'critical' ? 'err' : 'warn'}
                 icon={alert.severity === 'critical' ? <ErrorIcon /> : <Warning />}
                 label={`${alert.propertyName}: ${alert.level} dB`}
-                size="small"
-                color={alert.severity === 'critical' ? 'error' : 'warning'}
-                variant="outlined"
-                sx={{
-                  height: 20,
-                  fontSize: '0.5625rem',
-                  flexShrink: 0,
-                  '& .MuiChip-icon': { fontSize: 12 },
-                  '& .MuiChip-label': { px: 0.5 },
-                }}
+                className="shrink-0 text-[0.5625rem] [&>svg]:size-3"
               />
             ))}
-          </Box>
+          </div>
         )}
       </CardContent>
     </Card>

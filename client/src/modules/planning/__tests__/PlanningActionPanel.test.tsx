@@ -182,10 +182,12 @@ describe('PlanningActionPanel', () => {
           event={makeReservationEvent()}
         />,
       );
-      expect(screen.getByText('Infos')).toBeInTheDocument();
-      expect(screen.getByText('Logement')).toBeInTheDocument();
-      expect(screen.getByText('Opérations')).toBeInTheDocument();
-      expect(screen.getByText('Paiement')).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Infos' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Logement' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Opérations' })).toBeInTheDocument();
+      // getByRole et non getByText : le stepper « Cycle de vie » de l'onglet
+      // Infos affiche aussi un jalon « Paiement ».
+      expect(screen.getByRole('tab', { name: 'Paiement' })).toBeInTheDocument();
     });
 
     it('should NOT show intervention-specific tabs for reservations', () => {

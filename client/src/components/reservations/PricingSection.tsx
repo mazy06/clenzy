@@ -1,13 +1,35 @@
 import React from 'react';
-import { Box, Typography, TextField, Tooltip, CircularProgress } from '@mui/material';
+import { Spinner } from '../ui';
+import { Field, FieldLabel, Input, InputGroup, InputGroupInput, InputGroupAddon } from '../ui';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui';
 import { Edit as EditIcon, RemoveCircleOutline as MinusCircleIcon, Percent } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
-import { SEC_SX, FIELD_SX, SEG_WRAP_SX, segBtnSx } from './reservationDialogStyles';
 
 interface Props {
   form: UseReservationFormResult;
 }
+
+// Equivalent classes de segBtnSx (reservationDialogStyles) avec les surcharges
+// locales de cet ecran : flex 1, gap 5px, padding uniforme 7px.
+const segTabCls = (on: boolean) =>
+  cn(
+    'inline-flex flex-1 cursor-pointer items-center justify-center gap-[5px] rounded-[7px] border-0 p-[7px]',
+    '[font-family:inherit] text-[12px] font-semibold whitespace-nowrap',
+    'transition-[background,color] duration-[140ms]',
+    'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]',
+    on
+      ? 'bg-[var(--card)] text-[var(--accent)] shadow-[0_1px_3px_rgba(21,36,45,.12)]'
+      : 'bg-transparent text-[var(--muted)] shadow-none',
+  );
+
+// Transposition en classes de SEC_SX (.rm-sec) — la constante reste exportee
+// dans reservationDialogStyles pour les consommateurs sx eventuels.
+const SEC_CLS = 'cn-text-body1 text-[10.5px] font-bold tracking-[0.08em] uppercase text-[var(--faint)]';
+
+// Ligne de detail du recap (override / menage / taxe de sejour).
+const RECAP_LINE_CLS = 'cn-text-body1 text-[12.5px] text-[var(--muted)] mt-[2px] tabular-nums';
 
 /**
  * Tarification : base /nuit DYNAMIQUE (PriceEngine, lecture seule) + override
@@ -20,14 +42,14 @@ const PricingSection: React.FC<Props> = ({ form }) => {
 
   // Détail par nuit (tooltip) : date → prix.
   const nightBreakdown = (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '2px 0' }}>
+    <div className="flex flex-col gap-[2px] py-[2px]">
       {form.nightDates.map((d, i) => (
-        <Box key={d} sx={{ display: 'flex', justifyContent: 'space-between', gap: '14px', fontVariantNumeric: 'tabular-nums' }}>
+        <div className="flex justify-between gap-3.5 tabular-nums" key={d}>
           <span>{d}</span>
           <b>{(form.nightlyPrices[i] ?? 0).toFixed(2)} €</b>
-        </Box>
+        </div>
       ))}
-    </Box>
+    </div>
   );
 
   const baseValue = form.baseNightlyAvg > 0
@@ -35,135 +57,117 @@ const PricingSection: React.FC<Props> = ({ form }) => {
     : '';
 
   const baseField = (
-    <TextField
-      label={t('reservations.dialog.basePerNight')}
-      value={baseValue}
-      fullWidth
-      disabled
-      InputProps={{
-        startAdornment: <Box component="span" sx={{ color: 'var(--faint)', fontSize: '14px', fontWeight: 600 }}>€</Box>,
-        endAdornment: form.pricingLoading ? (
-          <CircularProgress size={14} sx={{ color: 'var(--accent)' }} />
-        ) : form.priceVaries ? (
-          <Box
-            component="span"
-            sx={{
-              fontSize: '10px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em',
-              color: 'var(--accent)',
-              backgroundColor: 'var(--accent-soft)',
-              borderRadius: '6px',
-              padding: '2px 6px',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {t('reservations.dialog.priceVariable')}
-          </Box>
-        ) : undefined,
-      }}
-      InputLabelProps={{ shrink: true }}
-      sx={{ ...FIELD_SX, '& .MuiOutlinedInput-input': { fontVariantNumeric: 'tabular-nums' } }}
-    />
+    <Field>
+      <FieldLabel htmlFor="pricing-base-per-night">{t('reservations.dialog.basePerNight')}</FieldLabel>
+      <InputGroup>
+        <InputGroupAddon>
+          <span className="text-[var(--faint)] text-[14px] font-semibold">€</span>
+        </InputGroupAddon>
+        <InputGroupInput
+          id="pricing-base-per-night"
+          className="tabular-nums"
+          value={baseValue}
+          disabled
+        />
+        {(form.pricingLoading || form.priceVaries) && (
+          <InputGroupAddon align="inline-end">
+            {form.pricingLoading ? (
+              <Spinner className="size-3.5 text-[var(--accent)]" />
+            ) : (
+              <span className="rounded-[6px] bg-[var(--accent-soft)] px-1.5 py-[2px] text-[10px] font-bold uppercase tracking-[0.04em] whitespace-nowrap text-[var(--accent)]">
+                {t('reservations.dialog.priceVariable')}
+              </span>
+            )}
+          </InputGroupAddon>
+        )}
+      </InputGroup>
+    </Field>
   );
 
   return (
     <>
-      <Typography sx={SEC_SX}>{t('reservations.dialog.pricingSection')}</Typography>
+      <p className={SEC_CLS}>{t('reservations.dialog.pricingSection')}</p>
 
       {/* Base /nuit (dynamique, lecture seule) + override */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+      <div className="grid grid-cols-[1fr_1fr] gap-3">
         {form.priceVaries ? (
-          <Tooltip title={nightBreakdown} arrow placement="top">
-            <Box>{baseField}</Box>
+          <Tooltip>
+            {/* Le trigger enveloppe le <div> (element hote) : Radix y pose sa ref
+                d'ancrage, ce qu'un composant fonction React 18 ne peut recevoir. */}
+            <TooltipTrigger asChild>
+              <div>{baseField}</div>
+            </TooltipTrigger>
+            <TooltipContent side="top">{nightBreakdown}</TooltipContent>
           </Tooltip>
         ) : (
           baseField
         )}
-        <TextField
-          label={form.pricingLabel}
-          type="number"
-          value={form.pricingValue}
-          onChange={(e) => form.setPricingValue(e.target.value)}
-          fullWidth
-          disabled={locked}
-          placeholder="—"
-          inputProps={{ min: 0, step: 0.01 }}
-          InputLabelProps={{ shrink: true }}
-          sx={FIELD_SX}
-        />
-      </Box>
+        <Field>
+          <FieldLabel htmlFor="pricing-override">{form.pricingLabel}</FieldLabel>
+          <Input
+            id="pricing-override"
+            type="number"
+            min={0}
+            step={0.01}
+            className="tabular-nums"
+            value={form.pricingValue}
+            onChange={(e) => form.setPricingValue(e.target.value)}
+            disabled={locked}
+            placeholder="—"
+          />
+        </Field>
+      </div>
 
       {/* Onglets tarification (.rm-tariftabs) */}
-      <Box sx={{ ...SEG_WRAP_SX, width: '100%', opacity: locked ? 0.5 : 1, pointerEvents: locked ? 'none' : 'auto' }}>
-        <Box
-          component="button"
-          type="button"
-          onClick={() => form.selectPricingMode('custom')}
-          sx={{ ...segBtnSx(form.pricingMode === 'custom'), flex: 1, gap: '5px', padding: '7px' }}
-        >
+      <div
+        className={cn(
+          'inline-flex w-full gap-[2px] rounded-[10px] border border-solid border-[var(--field-line)] bg-[var(--field)] p-[3px]',
+          locked && 'opacity-50 pointer-events-none',
+        )}
+      >
+        <button type="button" onClick={() => form.selectPricingMode('custom')} className={segTabCls(form.pricingMode === 'custom')}>
           <EditIcon size={13} strokeWidth={1.75} />
           {t('reservations.dialog.tabCustom')}
-        </Box>
-        <Box
-          component="button"
-          type="button"
-          onClick={() => form.selectPricingMode('discount_euro')}
-          sx={{ ...segBtnSx(form.pricingMode === 'discount_euro'), flex: 1, gap: '5px', padding: '7px' }}
-        >
+        </button>
+        <button type="button" onClick={() => form.selectPricingMode('discount_euro')} className={segTabCls(form.pricingMode === 'discount_euro')}>
           <MinusCircleIcon size={13} strokeWidth={1.75} />
           {t('reservations.dialog.tabDiscountEuro')}
-        </Box>
-        <Box
-          component="button"
-          type="button"
-          onClick={() => form.selectPricingMode('discount_percent')}
-          sx={{ ...segBtnSx(form.pricingMode === 'discount_percent'), flex: 1, gap: '5px', padding: '7px' }}
-        >
+        </button>
+        <button type="button" onClick={() => form.selectPricingMode('discount_percent')} className={segTabCls(form.pricingMode === 'discount_percent')}>
           <Percent size={13} strokeWidth={1.75} />
           {t('reservations.dialog.tabDiscountPercent')}
-        </Box>
-      </Box>
+        </button>
+      </div>
 
       {/* Récap (.rm-recap) */}
       {form.numberOfNights > 0 && (
-        <Box sx={{ backgroundColor: 'var(--accent-soft)', borderRadius: '12px', padding: '14px 16px' }}>
-          <Typography sx={{ fontSize: '13px', color: 'var(--body)', fontVariantNumeric: 'tabular-nums' }}>
+        <div className="rounded-[12px] bg-[var(--accent-soft)] px-4 py-[14px]">
+          <p className="cn-text-body1 text-[13px] text-[var(--body)] tabular-nums">
             {form.nightsText} · {t('reservations.dialog.accommodation')} :{' '}
-            <Box component="b" sx={{ color: 'var(--ink)' }}>{form.baseAccommodationTotal.toFixed(2)} €</Box>
+            <b className="text-[var(--ink)]">{form.baseAccommodationTotal.toFixed(2)} €</b>
             {form.priceVaries && (
-              <Box component="span" sx={{ color: 'var(--accent)', fontWeight: 600 }}> · {t('reservations.dialog.priceVariable')}</Box>
+              <span className="text-[var(--accent)] font-semibold"> · {t('reservations.dialog.priceVariable')}</span>
             )}
-          </Typography>
+          </p>
           {overrideActive && (
-            <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
+            <p className={RECAP_LINE_CLS}>
               {form.pricingLabel} → {t('reservations.dialog.accommodation')} : {form.accommodationTotal.toFixed(2)} €
-            </Typography>
+            </p>
           )}
           {form.cleaningFeeAmount > 0 && (
-            <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
+            <p className={RECAP_LINE_CLS}>
               + {t('reservations.dialog.cleaningLine')} : {form.cleaningFeeAmount.toFixed(2)} €
-            </Typography>
+            </p>
           )}
           {form.touristTaxAmount > 0 && (
-            <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
+            <p className={RECAP_LINE_CLS}>
               + {t('reservations.dialog.touristTaxLine')} : {form.touristTaxAmount.toFixed(2)} €
-            </Typography>
+            </p>
           )}
-          <Typography
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '17px',
-              fontWeight: 600,
-              color: 'var(--accent-deep)',
-              marginTop: '6px',
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
+          <p className="cn-text-body1 [font-family:var(--font-display)] text-[17px] font-semibold text-[var(--accent-deep)] mt-[6px] tabular-nums">
             {t('reservations.dialog.total')} : {form.totalPrice.toFixed(2)} €
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
     </>
   );

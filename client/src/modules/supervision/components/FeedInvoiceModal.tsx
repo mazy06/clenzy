@@ -10,18 +10,19 @@
    ============================================================ */
 
 import { useEffect, useState, type ReactNode } from 'react';
+import StatusChip from '../../../components/StatusChip';
 import {
   Alert,
-  Box,
+  AlertDescription,
   Button,
-  Chip,
-  CircularProgress,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  Typography,
-} from '@mui/material';
+} from '../../../components/ui';
+import { CircleCheck, TriangleAlert, Info } from 'lucide-react';
+import { Spinner } from '../../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { invoicesApi, INVOICE_STATUS_COLORS, type Invoice } from '../../../services/api/invoicesApi';
@@ -34,12 +35,12 @@ interface FeedInvoiceModalProps {
 }
 
 const row = (label: string, value: ReactNode) => (
-  <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.5 }}>
-    <Typography variant="body2" color="text.secondary">{label}</Typography>
-    <Typography variant="body2" component="div" sx={{ fontWeight: 600, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+  <div className="flex justify-between gap-3 py-0.5">
+    <p className="cn-text-body2 text-muted-foreground">{label}</p>
+    <div className="cn-text-body2 font-semibold text-end tabular-nums">
       {value}
-    </Typography>
-  </Box>
+    </div>
+  </div>
 );
 
 export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) {
@@ -116,27 +117,22 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
   };
 
   return (
-    <Dialog open={invoiceId != null} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>{t('supervision.invoiceModal.title', 'Facture')}</DialogTitle>
-      <DialogContent dividers>
+    // maxWidth="xs" MUI = 444 px.
+    <Dialog open={invoiceId != null} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[444px]">
+        <DialogHeader>
+          <DialogTitle>{t('supervision.invoiceModal.title', 'Facture')}</DialogTitle>
+        </DialogHeader>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress size={24} />
-          </Box>
+          <div className="flex justify-center py-6">
+            <Spinner className="size-6" />
+          </div>
         ) : invoice ? (
           <>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-              <Typography sx={{ fontWeight: 700 }}>{invoice.invoiceNumber}</Typography>
-              <Chip
-                size="small"
-                label={t(`supervision.invoiceModal.status.${invoice.status}`, invoice.status)}
-                sx={{
-                  bgcolor: `color-mix(in srgb, ${INVOICE_STATUS_COLORS[invoice.status] ?? 'var(--muted)'} 18%, transparent)`,
-                  color: INVOICE_STATUS_COLORS[invoice.status] ?? 'var(--muted)',
-                  fontWeight: 700,
-                }}
-              />
-            </Box>
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="cn-text-body1 font-bold">{invoice.invoiceNumber}</p>
+              <StatusChip tokens={{ color: INVOICE_STATUS_COLORS[invoice.status] ?? 'var(--muted)', bg: `color-mix(in srgb, ${INVOICE_STATUS_COLORS[invoice.status] ?? 'var(--muted)'} 18%, transparent)` }} label={t(`supervision.invoiceModal.status.${invoice.status}`, invoice.status)} />
+            </div>
             {row(
               t('supervision.invoiceModal.amount', 'Montant TTC'),
               <Money value={invoice.totalTtc} from={invoice.currency || 'EUR'} />,
@@ -148,9 +144,12 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
             {invoice.reservationId != null
               && row(
                 t('supervision.invoiceModal.reservation', 'Réservation'),
+                // Rendu au sein d'une ligne cle/valeur : c'est un lien dans une
+                // phrase, pas un bouton — variante `link`, sans gabarit.
                 <Button
-                  size="small"
-                  sx={{ p: 0, minWidth: 0, fontWeight: 600 }}
+                  variant="link"
+                  size="xs"
+                  className="h-auto p-0 font-semibold"
                   onClick={() => { onClose(); navigate(`/reservations?highlight=${invoice.reservationId}`); }}
                 >
                   {`#${invoice.reservationId}`}
@@ -160,65 +159,69 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
               && row(
                 t('supervision.invoiceModal.intervention', 'Prestation'),
                 <Button
-                  size="small"
-                  sx={{ p: 0, minWidth: 0, fontWeight: 600 }}
+                  variant="link"
+                  size="xs"
+                  className="h-auto p-0 font-semibold"
                   onClick={() => { onClose(); navigate(`/interventions/${invoice.interventionId}`); }}
                 >
                   {`#${invoice.interventionId}`}
                 </Button>,
               )}
             {sentTo && (
-              <Alert severity="success" sx={{ mt: 1.5 }}>
-                {t('supervision.invoiceModal.sentTo', 'Lien de paiement envoyé à')} {sentTo}
+              <Alert variant="success" className="mt-2">
+                <CircleCheck />
+                <AlertDescription>{t('supervision.invoiceModal.sentTo', 'Lien de paiement envoyé à')}{sentTo}</AlertDescription>
               </Alert>
             )}
             {error && (
-              <Alert severity="error" sx={{ mt: 1.5 }}>
-                {error}
+              <Alert variant="destructive" className="mt-2">
+                <TriangleAlert />
+                <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
             {!payable && (
-              <Alert severity="info" sx={{ mt: 1.5 }}>
-                {t('supervision.invoiceModal.notPayable', 'Cette facture n’est pas (ou plus) payable en ligne.')}
+              <Alert variant="info" className="mt-2">
+                <Info />
+                <AlertDescription>{t('supervision.invoiceModal.notPayable', 'Cette facture n’est pas (ou plus) payable en ligne.')}</AlertDescription>
               </Alert>
             )}
           </>
         ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', py: 2 }}>
+          <p className="cn-text-body2 text-muted-foreground italic py-3">
             {error ?? t('supervision.invoiceModal.loadError', 'Facture introuvable ou inaccessible.')}
-          </Typography>
+          </p>
         )}
+        {/* Pied de modale : une seule action principale (Payer). Les autres
+            descendent d'un cran. Taille unique pour aligner la rangee. */}
+        {/* flex-row force : DialogActions MUI reste en ligne a toutes les tailles,
+            et l'entretoise flex-1 ci-dessous suppose un axe horizontal. */}
+        <DialogFooter className="gap-[6px] flex-row flex-wrap justify-start sm:justify-start">
+          <Button
+            variant="ghost"
+            onClick={() => { onClose(); navigate(`/billing?highlight=${invoiceId}`); }}
+          >
+            {t('supervision.invoiceModal.openBilling', 'Ouvrir dans Facturation')}
+          </Button>
+          <div className="flex-1" />
+          <Button variant="ghost" onClick={onClose}>{t('supervision.invoiceModal.close', 'Fermer')}</Button>
+          {payable && (
+            <>
+              <Button
+                variant="outline"
+                disabled={sending || sentTo != null}
+                onClick={handleSendLink}
+              >
+                {sending && <Spinner className="size-3.5" />}
+                {t('supervision.invoiceModal.sendLink', 'Envoyer le lien de paiement')}
+              </Button>
+              <Button disabled={paying} onClick={handlePay}>
+                {paying && <Spinner className="size-3.5" />}
+                {t('supervision.invoiceModal.pay', 'Payer')}
+              </Button>
+            </>
+          )}
+        </DialogFooter>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
-        <Button
-          size="small"
-          onClick={() => { onClose(); navigate(`/billing?highlight=${invoiceId}`); }}
-        >
-          {t('supervision.invoiceModal.openBilling', 'Ouvrir dans Facturation')}
-        </Button>
-        <Box sx={{ flex: 1 }} />
-        <Button onClick={onClose}>{t('supervision.invoiceModal.close', 'Fermer')}</Button>
-        {payable && (
-          <>
-            <Button
-              variant="outlined"
-              disabled={sending || sentTo != null}
-              onClick={handleSendLink}
-              startIcon={sending ? <CircularProgress size={14} /> : undefined}
-            >
-              {t('supervision.invoiceModal.sendLink', 'Envoyer le lien de paiement')}
-            </Button>
-            <Button
-              variant="contained"
-              disabled={paying}
-              onClick={handlePay}
-              startIcon={paying ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : undefined}
-            >
-              {t('supervision.invoiceModal.pay', 'Payer')}
-            </Button>
-          </>
-        )}
-      </DialogActions>
     </Dialog>
   );
 }

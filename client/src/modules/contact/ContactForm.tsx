@@ -1,24 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Button,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
   Alert,
-  CircularProgress,
-  Autocomplete,
-  FormHelperText,
-  Paper,
-  Divider
-} from '@mui/material';
+  AlertDescription,
+  Button,
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  Field,
+  FieldError,
+  FieldLabel,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupTextarea,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui';
+import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Card as BuiCard } from '../../components/ui';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
   Send as SendIcon,
   AttachFile as AttachFileIcon,
@@ -43,7 +50,6 @@ import ContactTemplates from './ContactTemplates';
 
 type ContactFormInput = z.input<typeof contactSchema>;
 
-import type { ChipColor } from '../../types';
 import type { Recipient } from '../../services/api';
 
 const MAX_FILE_SIZE_MB = 10;
@@ -60,6 +66,9 @@ function formatFileSize(bytes: number): string {
 interface ContactFormProps {
   onCancel?: () => void;
 }
+
+/** Libelle affiche pour un destinataire — sert aussi de cle de filtrage. */
+const recipientLabel = (r: Recipient) => `${r.firstName} ${r.lastName} (${r.email})`;
 
 const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
   const { user } = useAuth();
@@ -87,6 +96,9 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
   const messageValue = watch('message');
 
   const [attachments, setAttachments] = useState<File[]>([]);
+  // Saisie libre du destinataire : le Combobox du kit n'a pas de `freeSolo`, on
+  // pilote donc le texte du champ et on commet la valeur brute au blur.
+  const [recipientInput, setRecipientInput] = useState('');
   const [usersList, setUsersList] = useState<Recipient[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -151,6 +163,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
       await apiClient.upload('/contact/messages', formDataToSend);
       setSuccess(t('contact.success.messageSent'));
       reset();
+      setRecipientInput('');
       setAttachments([]);
     } catch (err: unknown) {
       const apiErr = err as { message?: string };
@@ -161,11 +174,11 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
   };
 
   // Generer les options avec traductions
-  const priorityOptions: Array<{ value: string; label: string; color: ChipColor }> = [
-    { value: 'LOW', label: t('contact.priorities.low'), color: 'success' },
-    { value: 'MEDIUM', label: t('contact.priorities.medium'), color: 'info' },
-    { value: 'HIGH', label: t('contact.priorities.high'), color: 'warning' },
-    { value: 'URGENT', label: t('contact.priorities.urgent'), color: 'error' }
+  const priorityOptions: Array<{ value: string; label: string; tone: StatusTone }> = [
+    { value: 'LOW', label: t('contact.priorities.low'), tone: 'ok' },
+    { value: 'MEDIUM', label: t('contact.priorities.medium'), tone: 'info' },
+    { value: 'HIGH', label: t('contact.priorities.high'), tone: 'warn' },
+    { value: 'URGENT', label: t('contact.priorities.urgent'), tone: 'err' }
   ];
 
   const categoryOptions = [
@@ -177,248 +190,258 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
   ];
 
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
+    <div className="max-w-[800px] mx-auto p-4">
       <PageHeader
         title={t('contact.newMessageTitle')}
         iconBadge={<MessageIcon />}
         onBack={onCancel}
         backPath="/contact"
       />
-      <Card>
-        <CardContent>
+      <BuiCard className="gap-0 py-0 p-4">
           {isRestrictedUser && (
-            <Alert severity="info" sx={{ mb: 3 }}>
-              {t('contact.info.restrictedUser')}
+            <Alert variant="info" className="mb-4">
+              <Info />
+              <AlertDescription>{t('contact.info.restrictedUser')}</AlertDescription>
             </Alert>
           )}
 
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
+            <Alert variant="destructive" className="mb-4">
+              <TriangleAlert />
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
           {success && (
-            <Alert severity="success" sx={{ mb: 3 }}>
-              {success}
+            <Alert variant="success" className="mb-4">
+              <CircleCheck />
+              <AlertDescription>{success}</AlertDescription>
             </Alert>
           )}
 
           <form onSubmit={rhfHandleSubmit(onSubmit)}>
-            <Grid container spacing={3}>
-              {/* Destinataire - Autocomplete */}
-              <Grid item xs={12}>
+            <div className="grid grid-cols-12 gap-[18px]">
+              {/* Destinataire - Combobox (liste des destinataires + saisie libre) */}
+              <div className="col-span-12">
                 <Controller
                   name="recipientId"
                   control={control}
                   render={({ field }) => (
-                    <Autocomplete
-                      freeSolo
-                      options={usersList}
-                      getOptionLabel={(option) => {
-                        if (typeof option === 'string') return option;
-                        return `${option.firstName} ${option.lastName} (${option.email})`;
-                      }}
-                      value={usersList.find(u => u.id === field.value) || field.value || null}
-                      onChange={(_, newValue) => {
-                        if (typeof newValue === 'string') {
-                          // Saisie libre (email)
-                          field.onChange(newValue.trim());
-                        } else if (newValue) {
-                          // Selection d'un utilisateur dans la liste
-                          field.onChange(newValue.id);
-                        } else {
-                          field.onChange('');
-                        }
-                      }}
-                      onInputChange={(_, inputValue, reason) => {
-                        if (reason === 'input') {
-                          // Mettre a jour la valeur a chaque frappe pour les saisies libres
-                          const trimmed = inputValue.trim();
-                          if (trimmed && !usersList.find(u => u.id === trimmed)) {
-                            field.onChange(trimmed);
+                    <Field>
+                      <FieldLabel htmlFor="contact-recipient">{t('contact.recipient')}</FieldLabel>
+                      {/* `value` reste NON controle : la valeur du formulaire peut
+                          etre un simple email saisi a la main, qui ne correspond a
+                          aucun item de la liste. Seule la saisie est controlee, la
+                          selection est consommee dans onValueChange. */}
+                      <Combobox<Recipient>
+                        items={usersList}
+                        itemToStringLabel={recipientLabel}
+                        isItemEqualToValue={(option, other) => option.id === other.id}
+                        inputValue={recipientInput}
+                        onInputValueChange={(next, details) => {
+                          setRecipientInput(next);
+                          // `input-change` est le pendant du reason 'input' de MUI :
+                          // on ne remonte que la frappe utilisateur.
+                          if (details.reason === 'input-change') {
+                            const trimmed = next.trim();
+                            if (trimmed && !usersList.some((u) => u.id === trimmed)) {
+                              field.onChange(trimmed);
+                            }
                           }
-                        }
-                      }}
-                      filterOptions={(options, { inputValue }) => {
-                        const lower = inputValue.toLowerCase();
-                        return options.filter(
-                          (o) =>
-                            o.firstName.toLowerCase().includes(lower) ||
-                            o.lastName.toLowerCase().includes(lower) ||
-                            o.email.toLowerCase().includes(lower)
-                        );
-                      }}
-                      loading={loading}
-                      disabled={loading}
-                      isOptionEqualToValue={(option, value) => {
-                        if (typeof value === 'string') return option.id === value || option.email === value;
-                        return option.id === value.id;
-                      }}
-                      renderOption={(props, option) => {
-                        const { key, ...optionProps } = props;
-                        return (
-                          <li key={key} {...optionProps}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <PersonIcon fontSize="small" />
-                              <Box>
-                                <Typography variant="body2">
-                                  {typeof option === 'string' ? option : `${option.firstName} ${option.lastName}`}
-                                </Typography>
-                                {typeof option !== 'string' && (
-                                  <Typography variant="caption" color="text.secondary">
-                                    {option.email} - {option.role}
-                                  </Typography>
-                                )}
-                              </Box>
-                            </Box>
-                          </li>
-                        );
-                      }}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label={t('contact.recipient')}
-                          placeholder={t('contact.recipientPlaceholder') || 'Sélectionner un utilisateur ou saisir un email'}
-                          error={!!errors.recipientId}
-                          helperText={errors.recipientId?.message}
-                          onBlur={(e) => {
+                        }}
+                        onValueChange={(next) => {
+                          if (next) {
+                            field.onChange(next.id);
+                            setRecipientInput(recipientLabel(next));
+                          } else {
+                            field.onChange('');
+                          }
+                        }}
+                      >
+                        <ComboboxInput
+                          id="contact-recipient"
+                          className="w-full"
+                          disabled={loading}
+                          placeholder={t('contact.recipientPlaceholder', 'Sélectionner un utilisateur ou saisir un email')}
+                          aria-invalid={!!errors.recipientId}
+                          onBlur={() => {
                             // Commettre la saisie libre quand le champ perd le focus
-                            const inputValue = (e.target as HTMLInputElement).value?.trim();
-                            if (inputValue) {
-                              const matchedUser = usersList.find(u =>
-                                `${u.firstName} ${u.lastName} (${u.email})` === inputValue
-                              );
-                              field.onChange(matchedUser ? matchedUser.id : inputValue);
+                            const typed = recipientInput.trim();
+                            if (typed) {
+                              const matchedUser = usersList.find((u) => recipientLabel(u) === typed);
+                              field.onChange(matchedUser ? matchedUser.id : typed);
                             }
                             field.onBlur();
                           }}
-                          InputProps={{
-                            ...params.InputProps,
-                            startAdornment: (
-                              <>
-                                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><EmailIcon  /></Box>
-                                {params.InputProps.startAdornment}
-                              </>
-                            ),
-                          }}
-                        />
-                      )}
-                    />
+                        >
+                          <InputGroupAddon>
+                            <span className="inline-flex text-muted-foreground"><EmailIcon /></span>
+                          </InputGroupAddon>
+                        </ComboboxInput>
+                        <ComboboxContent>
+                          <ComboboxEmpty>
+                            {loading
+                              ? t('common.loading', 'Chargement…')
+                              : t('contact.noRecipientFound', 'Aucun destinataire')}
+                          </ComboboxEmpty>
+                          <ComboboxList>
+                            {(option: Recipient) => (
+                              <ComboboxItem key={option.id} value={option}>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="inline-flex text-muted-foreground"><PersonIcon size={16} strokeWidth={1.75} /></span>
+                                  <div>
+                                    <p className="cn-text-body2">
+                                      {option.firstName} {option.lastName}
+                                    </p>
+                                    <span className="cn-text-caption text-muted-foreground">
+                                      {option.email} - {option.role}
+                                    </span>
+                                  </div>
+                                </div>
+                              </ComboboxItem>
+                            )}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                      {errors.recipientId && <FieldError>{errors.recipientId.message}</FieldError>}
+                    </Field>
                   )}
                 />
-              </Grid>
+              </div>
 
               {/* Sujet */}
-              <Grid item xs={12}>
+              <div className="col-span-12">
                 <Controller
                   name="subject"
                   control={control}
                   render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label={t('contact.subject')}
-                      error={!!errors.subject}
-                      helperText={errors.subject?.message}
-                      InputProps={{
-                        startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><SubjectIcon  /></Box>
-                      }}
-                    />
+                    // field.ref n'est pas transmis : les primitives du kit sont des
+                    // composants fonction sans forwardRef (React 18).
+                    <Field>
+                      <FieldLabel htmlFor="contact-subject">{t('contact.subject')}</FieldLabel>
+                      <InputGroup>
+                        <InputGroupAddon>
+                          <span className="inline-flex text-muted-foreground"><SubjectIcon /></span>
+                        </InputGroupAddon>
+                        <InputGroupInput
+                          id="contact-subject"
+                          name={field.name}
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          aria-invalid={!!errors.subject}
+                        />
+                      </InputGroup>
+                      {errors.subject && <FieldError>{errors.subject.message}</FieldError>}
+                    </Field>
                   )}
                 />
-              </Grid>
+              </div>
 
               {/* Priorite et Categorie */}
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <Controller
                   name="priority"
                   control={control}
                   render={({ field }) => (
-                    <FormControl fullWidth error={!!errors.priority}>
-                      <InputLabel>{t('contact.priority')}</InputLabel>
-                      <Select {...field}>
-                        {priorityOptions.map((option) => (
-                          <MenuItem key={option.value} value={option.value}>
-                            <Chip
-                              label={option.label}
-                              size="small"
-                              variant="outlined"
-                              color={option.color}
-                              sx={{ mr: 1, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
-                            />
-                            {option.label}
-                          </MenuItem>
-                        ))}
+                    // Select « riche » et non NativeSelect : les options portent un
+                    // StatusChip, qu'une <option> native ne peut pas afficher.
+                    <Field>
+                      <FieldLabel htmlFor="contact-priority">{t('contact.priority')}</FieldLabel>
+                      <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                        <SelectTrigger id="contact-priority" className="w-full" aria-invalid={!!errors.priority}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {priorityOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <StatusChip
+                                label={option.label}
+                                tone={option.tone}
+                                className="me-1.5"
+                              />
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
-                      {errors.priority && (
-                        <FormHelperText>{errors.priority.message}</FormHelperText>
-                      )}
-                    </FormControl>
+                      {errors.priority && <FieldError>{errors.priority.message}</FieldError>}
+                    </Field>
                   )}
                 />
-              </Grid>
+              </div>
 
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <Controller
                   name="category"
                   control={control}
                   render={({ field }) => (
-                    <FormControl fullWidth error={!!errors.category}>
-                      <InputLabel>{t('contact.category')}</InputLabel>
-                      <Select {...field}>
-                        {categoryOptions.map((option) => (
-                          <MenuItem key={option.value} value={option.value}>
-                            <Box component="span" sx={{ display: 'inline-flex', mr: 1 }}><CategoryIcon size={16} strokeWidth={1.75} /></Box>
-                            {option.label}
-                          </MenuItem>
-                        ))}
+                    <Field>
+                      <FieldLabel htmlFor="contact-category">{t('contact.category')}</FieldLabel>
+                      <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                        <SelectTrigger id="contact-category" className="w-full" aria-invalid={!!errors.category}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categoryOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <span className="inline-flex me-1.5"><CategoryIcon size={16} strokeWidth={1.75} /></span>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
-                      {errors.category && (
-                        <FormHelperText>{errors.category.message}</FormHelperText>
-                      )}
-                    </FormControl>
+                      {errors.category && <FieldError>{errors.category.message}</FieldError>}
+                    </Field>
                   )}
                 />
-              </Grid>
+              </div>
 
               {/* Message with template button */}
-              <Grid item xs={12}>
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+              <div className="col-span-12">
+                <div className="flex justify-end mb-1.5">
                   <ContactTemplates onSelectTemplate={handleSelectTemplate} />
-                </Box>
+                </div>
                 <Controller
                   name="message"
                   control={control}
                   render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label={t('contact.message')}
-                      multiline
-                      rows={6}
-                      error={!!errors.message}
-                      helperText={errors.message?.message}
-                      InputProps={{
-                        startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1, alignSelf: 'flex-start', mt: 1 }}><MessageIcon  /></Box>
-                      }}
-                    />
+                    <Field>
+                      <FieldLabel htmlFor="contact-message">{t('contact.message')}</FieldLabel>
+                      <InputGroup>
+                        {/* block-start : sur un textarea de 6 lignes, un addon inline
+                            centrerait l'icone a mi-hauteur du champ. */}
+                        <InputGroupAddon align="block-start">
+                          <span className="inline-flex text-muted-foreground"><MessageIcon /></span>
+                        </InputGroupAddon>
+                        <InputGroupTextarea
+                          id="contact-message"
+                          rows={6}
+                          name={field.name}
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          aria-invalid={!!errors.message}
+                        />
+                      </InputGroup>
+                      {errors.message && <FieldError>{errors.message.message}</FieldError>}
+                    </Field>
                   )}
                 />
-              </Grid>
+              </div>
 
               {/* Pieces jointes */}
-              <Grid item xs={12}>
-                <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="subtitle2">
-                      <Box component="span" sx={{ display: 'inline-flex', mr: 1, verticalAlign: 'middle' }}><AttachFileIcon  /></Box>
+              <div className="col-span-12">
+                <BuiCard className="gap-0 py-0 p-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <h6 className="cn-text-subtitle2">
+                      <span className="inline-flex me-1.5 align-[middle]"><AttachFileIcon  /></span>
                       {t('contact.attachments')}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    </h6>
+                    <span className="cn-text-caption text-muted-foreground">
                       Max {MAX_FILE_SIZE_MB} MB / {t('contact.attachmentCount')}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
 
                   <input
                     type="file"
@@ -428,46 +451,48 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                     id="file-input"
                   />
                   <label htmlFor="file-input">
-                    <Button
-                      variant="outlined"
-                      component="span"
-                      startIcon={<AttachFileIcon />}
-                      size="small"
-                    >
-                      {t('contact.addFiles')}
+                    {/* `component="span"` MUI : le declencheur doit rester un span pour
+                        que le label pilote l'input file -> asChild sur un span. */}
+                    <Button variant="outline" size="sm" asChild>
+                      <span>
+                        <AttachFileIcon />
+                        {t('contact.addFiles')}
+                      </span>
                     </Button>
                   </label>
 
                   {attachments.length > 0 && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                    <div className="mt-3">
+                      <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                         {t('contact.selectedFiles')}
-                      </Typography>
+                      </p>
                       {attachments.map((file, index) => (
-                        <Chip
+                        <StatusChip
                           key={index}
                           label={`${file.name} (${formatFileSize(file.size)})`}
                           onDelete={() => removeAttachment(index)}
-                          size="small"
-                          variant="outlined"
-                          sx={{ mr: 1, mb: 1, borderWidth: 1.5 }}
+                          className="me-1.5 mb-1.5"
                         />
                       ))}
-                    </Box>
+                    </div>
                   )}
-                </Paper>
-              </Grid>
+                </BuiCard>
+              </div>
 
               {/* Boutons */}
-              <Grid item xs={12}>
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <div className="col-span-12">
+                <div className="flex gap-3 justify-end">
+                  {/* `type="button"` explicite : le bouton natif du kit vaut `submit`
+                      par defaut dans un <form>, la ou MUI posait `button`. */}
                   <Button
-                    variant="outlined"
+                    type="button"
+                    variant="outline"
                     onClick={() => {
                       if (onCancel) {
                         onCancel();
                       } else {
                         reset();
+                        setRecipientInput('');
                         setAttachments([]);
                       }
                     }}
@@ -477,19 +502,17 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                   </Button>
                   <Button
                     type="submit"
-                    variant="contained"
-                    startIcon={submitting ? <CircularProgress size={20} /> : <SendIcon />}
                     disabled={submitting || loading}
                   >
+                    {submitting ? <Spinner className="size-5" /> : <SendIcon />}
                     {submitting ? t('contact.sending') : t('contact.send')}
                   </Button>
-                </Box>
-              </Grid>
-            </Grid>
+                </div>
+              </div>
+            </div>
           </form>
-        </CardContent>
-      </Card>
-    </Box>
+      </BuiCard>
+    </div>
   );
 };
 

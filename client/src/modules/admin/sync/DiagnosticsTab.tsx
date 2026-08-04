@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import {
-  Box,
-  Skeleton,
   Alert,
-  Typography,
-  Grid,
+  AlertDescription,
+  Skeleton,
   Card,
   CardContent,
-  Divider,
-} from '@mui/material';
+  Separator,
+} from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import {
   Hub,
   CheckCircle,
@@ -28,6 +28,9 @@ const OVERLINE_SX = {
   textTransform: 'uppercase',
   color: 'var(--faint)',
 } as const;
+
+/** Report en classes de `OVERLINE_SX`. */
+const OVERLINE_CLASS = 'text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)]';
 
 const DiagnosticsTab: React.FC = () => {
   const [diagnostics, setDiagnostics] = useState<DiagnosticsSummary | null>(null);
@@ -57,45 +60,48 @@ const DiagnosticsTab: React.FC = () => {
 
   if (loading) {
     return (
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Grid item xs={6} sm={4} md={2} key={i}>
-            <Skeleton variant="rounded" height={96} sx={{ borderRadius: '14px' }} />
-          </Grid>
+          <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2" key={i}>
+            <Skeleton className="h-24 w-full rounded-[14px]" />
+          </div>
         ))}
-      </Grid>
+      </div>
     );
   }
 
   if (error) {
-    return <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>;
+    return <Alert variant="destructive" className="mb-3">
+      <TriangleAlert />
+      <AlertDescription>{error}</AlertDescription>
+    </Alert>;
   }
 
   return (
-    <Box>
+    <div>
       {/* Diagnostics Summary — StatTile (carte plate hairline, valeur display) */}
       {diagnostics && (
         <>
-          <Typography variant="h6" gutterBottom sx={{ color: 'var(--ink)' }}>
+          <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
             Vue d'ensemble
-          </Typography>
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={6} sm={4} md={2}>
+          </h6>
+          <div className="grid grid-cols-12 gap-3 mb-[18px]">
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <StatTile icon={<Hub />} label="Total Connexions" value={diagnostics.totalConnections} color="#6B8A9A" />
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <StatTile icon={<CheckCircle />} label="Actives" value={diagnostics.activeConnections} color="#4A9B8E" />
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <StatTile icon={<HealthAndSafety />} label="Healthy" value={diagnostics.healthyConnections} color="#4A9B8E" />
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <StatTile icon={<HourglassEmpty />} label="Outbox Pending" value={diagnostics.pendingOutbox} color="#7BA3C2" />
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <StatTile icon={<ErrorOutline />} label="Outbox Failed" value={diagnostics.failedOutbox} color="#C97A7A" />
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <StatTile
                 icon={<Schedule />}
                 label="Oldest Pending"
@@ -106,107 +112,107 @@ const DiagnosticsTab: React.FC = () => {
                 }
                 color="#D4A574"
               />
-            </Grid>
-          </Grid>
+            </div>
+          </div>
 
           {/* Sync logs by status */}
           {Object.keys(diagnostics.syncLogsByStatus).length > 0 && (
-            <Card variant="outlined" sx={{ mb: 3 }}>
+            <Card className="mb-[18px]">
               <CardContent>
-                <Typography sx={{ ...OVERLINE_SX, mb: 1 }}>
+                <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
                   Sync Logs par Status
-                </Typography>
-                <Grid container spacing={1}>
+                </p>
+                <div className="grid grid-cols-12 gap-1.5">
                   {Object.entries(diagnostics.syncLogsByStatus).map(([status, count]) => (
-                    <Grid item xs={6} sm={3} key={status}>
-                      <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    <div className="col-span-6 min-[600px]:col-span-3" key={status}>
+                      <p className="cn-text-body2 tabular-nums">
                         <strong>{status}:</strong> {count}
-                      </Typography>
-                    </Grid>
+                      </p>
+                    </div>
                   ))}
-                </Grid>
+                </div>
               </CardContent>
             </Card>
           )}
         </>
       )}
 
-      <Divider sx={{ my: 3 }} />
+      <Separator className="my-[18px]" />
 
       {/* Metrics */}
       {metrics && (
         <>
-          <Typography variant="h6" gutterBottom sx={{ color: 'var(--ink)' }}>
+          <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
             Metriques
-          </Typography>
-          <Grid container spacing={2}>
+          </h6>
+          <div className="grid grid-cols-12 gap-3">
             {/* Latency P95 */}
-            <Grid item xs={12} md={4}>
-              <Card variant="outlined">
+            <div className="col-span-12 min-[900px]:col-span-4">
+              <Card>
                 <CardContent>
-                  <Typography sx={{ ...OVERLINE_SX, mb: 1 }}>
+                  <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
                     Sync Latency P95 (ms)
-                  </Typography>
+                  </p>
                   {Object.keys(metrics.syncLatencyP95).length > 0 ? (
                     Object.entries(metrics.syncLatencyP95).map(([channel, latency]) => (
-                      <Typography key={channel} variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                      <p className="cn-text-body2 tabular-nums" key={channel}>
                         {channel}: <strong>{latency}ms</strong>
-                      </Typography>
+                      </p>
                     ))
                   ) : (
-                    <Typography variant="body2" sx={{ color: 'var(--muted)' }}>Aucune donnee</Typography>
+                    <p className="cn-text-body2 text-[var(--muted)]">Aucune donnee</p>
                   )}
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
 
             {/* Success / Failure counts */}
-            <Grid item xs={12} md={4}>
-              <Card variant="outlined">
+            <div className="col-span-12 min-[900px]:col-span-4">
+              <Card>
                 <CardContent>
-                  <Typography sx={{ ...OVERLINE_SX, mb: 1 }}>
+                  <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
                     Sync Success / Failure
-                  </Typography>
+                  </p>
                   {Object.keys(metrics.syncSuccessCount).length > 0 || Object.keys(metrics.syncFailureCount).length > 0 ? (
                     <>
                       {Object.entries(metrics.syncSuccessCount).map(([channel, count]) => (
-                        <Typography key={`s-${channel}`} variant="body2" sx={{ color: 'var(--ok)', fontVariantNumeric: 'tabular-nums' }}>
+                        <p className="cn-text-body2 text-[var(--ok)] tabular-nums" key={`s-${channel}`}>
                           {channel} success: {count}
-                        </Typography>
+                        </p>
                       ))}
                       {Object.entries(metrics.syncFailureCount).map(([channel, count]) => (
-                        <Typography key={`f-${channel}`} variant="body2" sx={{ color: 'var(--err)', fontVariantNumeric: 'tabular-nums' }}>
+                        <p className="cn-text-body2 text-[var(--err)] tabular-nums" key={`f-${channel}`}>
                           {channel} failure: {count}
-                        </Typography>
+                        </p>
                       ))}
                     </>
                   ) : (
-                    <Typography variant="body2" sx={{ color: 'var(--muted)' }}>Aucune donnee</Typography>
+                    <p className="cn-text-body2 text-[var(--muted)]">Aucune donnee</p>
                   )}
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
 
             {/* Calendar stats */}
-            <Grid item xs={12} md={4}>
-              <Card variant="outlined">
+            <div className="col-span-12 min-[900px]:col-span-4">
+              <Card>
                 <CardContent>
-                  <Typography sx={{ ...OVERLINE_SX, mb: 1 }}>
+                  <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
                     Calendrier
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                  </p>
+                  <p className="cn-text-body2 tabular-nums">
                     Conflits: <strong>{metrics.calendarConflicts}</strong>
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                  </p>
+                  <p className="cn-text-body2 tabular-nums">
                     Double bookings bloques: <strong>{metrics.doubleBookingsPrevented}</strong>
-                  </Typography>
+                  </p>
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </>
       )}
-    </Box>
+    </div>
   );
 };
 

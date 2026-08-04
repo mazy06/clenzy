@@ -1,12 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  IconButton,
-  Button,
-  CircularProgress,
-} from '@mui/material';
+import { Spinner, Button } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import { ChevronLeft as ChevronLeftIcon } from '../../icons';
 import { ChevronRight as ChevronRightIcon } from '../../icons';
 import { CalendarMonth as CalendarMonthIcon, NightsStay } from '../../icons';
@@ -21,14 +15,8 @@ import MinNightsEditDialog from './MinNightsEditDialog';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
-const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: 1.5,
-} as const;
+/** Surface de carte partagée : hairline, rayon 14, fond --card, padding 9px. */
+const CARD_CLASS = 'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] p-[9px]';
 
 const SOURCE_COLORS: Record<string, string> = {
   OVERRIDE: '#D98E8E',
@@ -252,25 +240,21 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
   const selectedDatesSet = new Set(selectedDates);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, flex: 1 }}>
+    <div className="flex flex-col gap-2 flex-1">
       {/* ── Month navigation ── */}
-      <Paper sx={CARD_SX}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-          <IconButton onClick={onPrevMonth} size="small">
+      <div className={CARD_CLASS}>
+        <div className="flex items-center justify-center gap-0.5">
+          <Button variant="ghost" size="icon-sm" onClick={onPrevMonth} aria-label={t('common.previous', 'Précédent')}>
             <ChevronLeftIcon size={20} strokeWidth={1.75} />
-          </IconButton>
-          <Typography
-            variant="body2"
-            fontWeight={600}
-            sx={{ minWidth: 140, textAlign: 'center', textTransform: 'capitalize', fontSize: '0.8125rem' }}
-          >
+          </Button>
+          <p className="cn-text-body2 font-semibold min-w-[140px] text-center capitalize text-[0.8125rem]">
             {formatMonth(currentMonth, isFrench)}
-          </Typography>
-          <IconButton onClick={onNextMonth} size="small">
+          </p>
+          <Button variant="ghost" size="icon-sm" onClick={onNextMonth} aria-label={t('common.next', 'Suivant')}>
             <ChevronRightIcon size={20} strokeWidth={1.75} />
-          </IconButton>
-        </Box>
-      </Paper>
+          </Button>
+        </div>
+      </div>
 
       {/* ── No property selected — état vide standardisé ── */}
       {!selectedPropertyId && (
@@ -284,37 +268,26 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
 
       {/* ── Calendar grid ── */}
       {selectedPropertyId && (
-        <Paper sx={{ ...CARD_SX, position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div className={cn(CARD_CLASS, 'relative flex flex-1 flex-col')}>
           {calendarPricingLoading && (
-            <Box
-              sx={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'color-mix(in srgb, var(--card) 70%, transparent)',
-                zIndex: 2,
-                borderRadius: '14px',
-              }}
-            >
-              <CircularProgress size={28} />
-            </Box>
+            <div className="absolute inset-0 flex items-center justify-center bg-[color-mix(in_srgb,_var(--card)_70%,_transparent)] z-[2] rounded-[14px]">
+              <Spinner className="size-7" />
+            </div>
           )}
 
           {/* Day headers — overline (pattern entête planning) */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', mb: '2px' }}>
+          <div className="grid grid-cols-[repeat(7,_1fr)] gap-0.5 mb-0.5">
             {dayHeaders.map((label) => (
-              <Box key={label} sx={{ textAlign: 'center', py: 0.5 }}>
-                <Typography variant="caption" sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <div className="text-center py-0.5" key={label}>
+                <span className="cn-text-caption text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em]">
                   {label}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             ))}
-          </Box>
+          </div>
 
           {/* Calendar cells */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', flex: 1 }}>
+          <div className="grid grid-cols-[repeat(7,_1fr)] gap-0.5 flex-1">
             {calendarCells.map((cell) => {
               const pricing = pricingMap.get(cell.dateStr);
               const isSelected = selectedDatesSet.has(cell.dateStr);
@@ -322,7 +295,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
               const sourceColor = pricing ? getSourceColor(pricing.priceSource) : '#8BA0B3';
 
               return (
-                <Box
+                <div
                   key={cell.dateStr}
                   onMouseDown={(e) => cell.inMonth && handleCellMouseDown(cell.dateStr, e)}
                   onMouseEnter={() => cell.inMonth && handleCellMouseEnter(cell.dateStr)}
@@ -332,137 +305,93 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
                       setEditDialogOpen(true);
                     }
                   }}
-                  sx={{
-                    minHeight: 64,
-                    p: 0.5,
-                    borderRadius: '8px',
-                    userSelect: 'none',
-                    cursor: cell.inMonth ? 'pointer' : 'default',
-                    opacity: cell.inMonth ? 1 : 0.3,
-                    bgcolor: isSelected ? 'var(--accent-soft)' : 'transparent',
-                    border: '1px solid',
-                    borderColor: isSelected ? 'var(--accent)' : 'var(--line)',
-                    boxShadow: isSelected ? 'inset 0 0 0 1px var(--accent)' : 'none',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    transition: 'border-color 0.15s, background-color 0.15s',
-                    '&:hover': cell.inMonth && !isSelected
-                      ? { borderColor: 'var(--line-2)', bgcolor: 'var(--hover)' }
-                      : {},
-                  }}
+                  className={cn(
+                    'min-h-[64px] p-[3px] rounded-[8px] select-none border border-solid flex flex-col',
+                    cell.inMonth ? 'cursor-pointer opacity-100' : 'cursor-default opacity-30',
+                    isSelected
+                      ? 'bg-[var(--accent-soft)] border-[var(--accent)] shadow-[inset_0_0_0_1px_var(--accent)]'
+                      : 'bg-transparent border-[var(--line)] shadow-none',
+                    cell.inMonth && !isSelected && 'hover:border-[var(--line-2)] hover:bg-[var(--hover)]',
+                  )}
+                  style={{ transition: 'border-color 0.15s, background-color 0.15s' }}
                 >
                   {/* Pastille « aujourd'hui » — pattern planning (carré accent r8) */}
                   {isToday ? (
-                    <Box
-                      component="span"
-                      sx={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 20,
-                        height: 20,
-                        borderRadius: '7px',
-                        bgcolor: 'var(--accent)',
-                        color: 'var(--on-accent)',
-                        fontFamily: 'var(--font-display)',
-                        fontWeight: 600,
-                        fontSize: '0.6875rem',
-                        lineHeight: 1,
-                        alignSelf: 'flex-start',
-                      }}
-                    >
+                    <span className="inline-flex items-center justify-center w-[20px] h-[20px] rounded-[7px] bg-[var(--accent)] text-[var(--on-accent)] font-[family-name:var(--font-display)] font-semibold text-[0.6875rem] leading-[1] self-start">
                       {cell.date.getDate()}
-                    </Box>
+                    </span>
                   ) : (
-                    <Typography variant="caption" fontWeight={600} sx={{ lineHeight: 1, fontSize: '0.6875rem', fontVariantNumeric: 'tabular-nums' }}>
+                    <span className="cn-text-caption font-semibold leading-[1] text-[0.6875rem] tabular-nums">
                       {cell.date.getDate()}
-                    </Typography>
+                    </span>
                   )}
 
                   {pricing && pricing.nightlyPrice !== null && (
-                    <Typography
-                      variant="body2"
-                      fontWeight={600}
-                      sx={{
-                        flex: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: sourceColor,
-                        fontFamily: 'var(--font-display)',
-                        fontVariantNumeric: 'tabular-nums',
-                        fontSize: '0.8125rem',
-                      }}
-                    >
+                    <p className="cn-text-body2 font-semibold flex-1 flex items-center justify-center tabular-nums text-[0.8125rem]" style={{ color: sourceColor, fontFamily: 'var(--font-display)' }}>
                       {pricing.nightlyPrice}
-                    </Typography>
+                    </p>
                   )}
 
                   {pricing && (
-                    <Box sx={{ height: 3, borderRadius: 1, bgcolor: sourceColor, mt: 'auto' }} />
+                    <div className="h-[3px] rounded-[8px] mt-auto" style={{ backgroundColor: sourceColor }} />
                   )}
-                </Box>
+                </div>
               );
             })}
-          </Box>
+          </div>
 
           {/* Legend */}
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5, mt: 1.5, pt: 1, borderTop: '1px solid', borderColor: 'var(--line)' }}>
+          <div className="flex flex-wrap items-center gap-2 mt-2 pt-1.5 border-t border-[var(--line)]">
             {Object.entries(SOURCE_COLORS).map(([key, color]) => (
-              <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: color }} />
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
+              <div className="flex items-center gap-0.5" key={key}>
+                <div className="w-[10px] h-[10px] rounded-[50%]" style={{ backgroundColor: color }} />
+                <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
                   {t(`dynamicPricing.priceSource.${key}`)}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             ))}
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem', ml: 'auto', fontStyle: 'italic' }}>
+            <span className="cn-text-caption text-muted-foreground text-[0.625rem] ms-auto italic">
               {t('dynamicPricing.calendar.rangeHint', 'Cliquez-glissez pour sélectionner une plage')}
-            </Typography>
-          </Box>
-        </Paper>
+            </span>
+          </div>
+        </div>
       )}
 
       {/* ── Selection action bar ── */}
       {selectedDates.length > 0 && (
-        <Paper
-          sx={{
-            ...CARD_SX,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            bgcolor: 'var(--accent-soft)',
-            borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)',
-          }}
+        <div
+          className={cn(
+            CARD_CLASS,
+            'flex items-center justify-between bg-[var(--accent-soft)] border-[color-mix(in_srgb,_var(--accent)_30%,_transparent)]',
+          )}
         >
-          <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontVariantNumeric: 'tabular-nums' }}>
+          <p className="cn-text-body2 text-[0.8125rem] tabular-nums">
             {selectedDates.length} {t('common.date')}(s)
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          </p>
+          <div className="flex gap-1.5">
             <Button
-              variant="text"
-              size="small"
+              variant="ghost"
+              size="sm"
               onClick={() => setSelectedDates([])}
             >
               {t('common.cancel')}
             </Button>
             <Button
-              variant="outlined"
-              size="small"
-              startIcon={<NightsStay size={14} strokeWidth={1.75} />}
+              variant="outline"
+              size="sm"
               onClick={() => setMinNightsDialogOpen(true)}
             >
+              <NightsStay size={14} strokeWidth={1.75} />
               Min-nights
             </Button>
             <Button
-              variant="contained"
-              size="small"
+              size="sm"
               onClick={() => setEditDialogOpen(true)}
             >
               {t('dynamicPricing.calendar.editPrice')}
             </Button>
-          </Box>
-        </Paper>
+          </div>
+        </div>
       )}
 
       {/* Price edit dialog */}
@@ -483,7 +412,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
         selectedDates={selectedDates}
         loading={minNightsMutation.isPending}
       />
-    </Box>
+    </div>
   );
 };
 

@@ -1,23 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Button,
-  Alert,
-  CircularProgress,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  IconButton,
-  Tooltip,
-} from '@mui/material';
+import StatusChip from '../../components/StatusChip';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Card, CardContent, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Payment as PaymentIcon,
   Refresh as RefreshIcon,
@@ -153,53 +140,52 @@ const InterventionsPendingPayment: React.FC = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress sx={{ color: 'var(--accent)' }} />
-      </Box>
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Spinner className="size-10 text-[var(--accent)]" />
+      </div>
     );
   }
 
   if (!hasAccess) {
     return (
-      <Box>
-        <Alert severity="error">Vous n'avez pas acces a cette page</Alert>
-      </Box>
+      <div>
+        <BuiAlert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>Vous n'avez pas acces a cette page</AlertDescription>
+        </BuiAlert>
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={t('interventions.pendingPayment.title')}
         subtitle={t('interventions.pendingPayment.subtitle')}
         backPath="/dashboard"
         showBackButton={true}
         actions={
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<RefreshIcon size={16} strokeWidth={1.75} />}
-            onClick={loadInterventions}
-            title={t('common.refresh')}
-            sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
-          >
+          <BuiButton variant="outline" size="sm" onClick={loadInterventions} title={t('common.refresh')}>
+            <RefreshIcon size={16} strokeWidth={1.75} />
             {t('common.refresh')}
-          </Button>
+          </BuiButton>
         }
       />
 
       {error && (
-        <Alert
-          severity="error"
-          sx={{ mb: 2, borderRadius: '8px', fontSize: '0.8125rem' }}
-          onClose={() => setError(null)}
-        >
-          {error}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-3 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ─── Resume en haut ────────────────────────────────────────────── */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(200px, 280px))' }, gap: 1.5, mb: 2 }}>
+      <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_minmax(200px,_280px))] gap-[9px] mb-3">
         <StatTile
           icon={<HourglassIcon size={16} strokeWidth={1.75} />}
           label="Interventions en attente"
@@ -212,155 +198,111 @@ const InterventionsPendingPayment: React.FC = () => {
           value={<Money value={totalDue} from="EUR" />}
           color={ERR_HEX}
         />
-      </Box>
+      </div>
 
       {/* ─── Tableau ───────────────────────────────────────────────────── */}
       {interventions.length === 0 ? (
         <Card>
-          <CardContent sx={{ textAlign: 'center', py: 6 }}>
-            <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: 'var(--ok-soft)', color: 'var(--ok)', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
+          <CardContent className="text-center py-9">
+            <div className="w-[56px] h-[56px] rounded-[50%] bg-[var(--ok-soft)] text-[var(--ok)] flex items-center justify-center mx-auto mb-3">
               <PaymentIcon size={28} strokeWidth={1.5} />
-            </Box>
-            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--ink)', mb: 0.5 }}>
+            </div>
+            <h6 className="cn-text-h6 font-semibold text-[0.9375rem] text-[var(--ink)] mb-0.5">
               Aucun paiement en attente
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'var(--muted)', fontSize: '0.8125rem' }}>
+            </h6>
+            <p className="cn-text-body2 text-[var(--muted)] text-[0.8125rem]">
               Toutes vos interventions sont a jour.
-            </Typography>
+            </p>
           </CardContent>
         </Card>
       ) : (
-        <TableContainer
-          component={Paper}
-          sx={{
-            borderRadius: '14px',
-            boxShadow: 'none',
-            border: '1px solid var(--line)',
-            '& .MuiTableHead-root': {
-              bgcolor: 'var(--surface-2)',
-            },
-            '& .MuiTableCell-head': {
-              fontWeight: 700,
-              fontSize: '0.65625rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: 'var(--faint)',
-              borderBottom: '1px solid var(--line)',
-              py: 1.25,
-              whiteSpace: 'nowrap',
-            },
-            '& .MuiTableCell-body': {
-              fontSize: '0.8125rem',
-              color: 'var(--ink)',
-              py: 1.25,
-              borderBottom: '1px solid var(--line)',
-            },
-          }}
-        >
+        <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
           <Table>
-            <TableHead>
+            {/* Fond --surface-2 : seul ecart de l'ancien sx vis-a-vis du primitif. */}
+            <TableHeader className="bg-[var(--surface-2)]">
               <TableRow>
-                <TableCell>Intervention</TableCell>
-                <TableCell>Demandeur</TableCell>
-                <TableCell>Logement</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Date prevue</TableCell>
-                <TableCell align="right">Montant</TableCell>
-                <TableCell align="center">Actions</TableCell>
+                <TableHead>Intervention</TableHead>
+                <TableHead>Demandeur</TableHead>
+                <TableHead>Logement</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Date prevue</TableHead>
+                <TableHead className="text-end">Montant</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {interventions.map((intervention) => (
-                <TableRow
-                  key={intervention.id}
-                  sx={{
-                    cursor: 'pointer',
-                    transition: 'background-color 0.15s ease',
-                    '&:hover': {
-                      bgcolor: 'var(--hover)',
-                    },
-                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                  }}
-                >
+                <TableRow key={intervention.id} className="cursor-pointer">
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--ink)' }}>
+                    <p className="cn-text-body2 font-semibold text-[0.8125rem] text-[var(--ink)]">
                       {intervention.title}
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'var(--body)' }}>
+                    <p className="cn-text-body2 text-[0.8125rem] text-[var(--body)]">
                       {intervention.requestorName}
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8125rem' }}>
+                    <p className="cn-text-body2 font-medium text-[0.8125rem]">
                       {intervention.propertyName}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'var(--muted)', fontSize: '0.6875rem' }}>
+                    </p>
+                    <span className="cn-text-caption text-[var(--muted)] text-[0.6875rem]">
                       {intervention.propertyAddress}
-                    </Typography>
+                    </span>
                   </TableCell>
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
                     {(() => { const tk = getTypeTokens(intervention.type); return (
-                      <Chip
-                        label={getTypeLabel(intervention.type)}
-                        size="small"
-                        sx={{
-                          fontSize: '0.6875rem',
-                          height: 22,
-                          fontWeight: 600,
-                          backgroundColor: tk.bg,
-                          color: tk.color,
-                          borderRadius: '6px',
-                          '& .MuiChip-label': { px: 0.75 },
-                        }}
-                      />
+                      <StatusChip tokens={{ color: tk.color, bg: tk.bg }} label={getTypeLabel(intervention.type)} />
                     ); })()}
                   </TableCell>
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+                    <p className="cn-text-body2 text-[0.8125rem]">
                       {formatDate(intervention.scheduledDate)}
-                    </Typography>
+                    </p>
                   </TableCell>
-                  <TableCell align="right" onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--warn)', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
+                  <TableCell className="text-end" onClick={() => navigate(`/interventions/${intervention.id}`)}>
+                    <p className="cn-text-body2 font-semibold text-[0.875rem] text-[var(--warn)] font-[family-name:var(--font-display)] tabular-nums">
                       <Money value={intervention.estimatedCost} from="EUR" />
-                    </Typography>
+                    </p>
                   </TableCell>
-                  <TableCell align="center">
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-                      <Tooltip title="Voir les details">
-                        <IconButton
-                          size="small"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
-                          sx={{ color: 'var(--muted)', '&:hover': { color: 'var(--ink)', backgroundColor: 'var(--hover)' } }}
-                        >
-                          <VisibilityIcon size={18} strokeWidth={1.75} />
-                        </IconButton>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-0.5">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* Le span porte la ref que Radix pose sur son enfant :
+                              Button est une fonction, il n'en transmet pas. */}
+                          <span className="inline-flex">
+                            <BuiButton
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label="Voir les details"
+                              onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
+                              className="text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--hover)]"
+                            >
+                              <VisibilityIcon size={18} strokeWidth={1.75} />
+                            </BuiButton>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Voir les details</TooltipContent>
                       </Tooltip>
-                      <Button
-                        variant="contained"
-                        size="small"
-                        startIcon={processingPayment === intervention.id ? <CircularProgress size={14} color="inherit" /> : <PaymentIcon size={16} strokeWidth={1.75} />}
+                      {/* « Payer » est repete par ligne mais reste l'action meme de l'ecran :
+                          on garde la variante pleine plutot qu'une action de ligne discrete. */}
+                      <BuiButton
+                        size="sm"
                         onClick={(e) => { e.stopPropagation(); handlePay(intervention); }}
                         disabled={processingPayment === intervention.id || !intervention.estimatedCost}
-                        sx={{
-                          textTransform: 'none',
-                          fontWeight: 600,
-                          fontSize: '0.75rem',
-                          px: 1.5,
-                          py: 0.5,
-                        }}
                       >
+                        {processingPayment === intervention.id ? <Spinner className="size-3.5" /> : <PaymentIcon size={16} strokeWidth={1.75} />}
                         {processingPayment === intervention.id ? 'Chargement...' : 'Payer'}
-                      </Button>
-                    </Box>
+                      </BuiButton>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       {/* Modal de paiement Stripe Embedded */}
@@ -374,7 +316,7 @@ const InterventionsPendingPayment: React.FC = () => {
           interventionTitle={paymentTarget.title}
         />
       )}
-    </Box>
+    </div>
   );
 };
 

@@ -28,6 +28,11 @@ export function useServiceRequestsList() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedServiceRequest, setSelectedServiceRequest] = useState<ServiceRequest | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  // La cible de suppression est memorisee a part, comme celles du changement de
+  // statut et de l'assignation : le menu contextuel se referme des qu'on choisit
+  // une entree, ce qui vide `selectedServiceRequest` avant meme que la
+  // confirmation ne soit affichee.
+  const [selectedRequestForDeletion, setSelectedRequestForDeletion] = useState<ServiceRequest | null>(null);
 
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -126,18 +131,20 @@ export function useServiceRequestsList() {
   };
 
   const handleDelete = () => {
+    setSelectedRequestForDeletion(selectedServiceRequest);
     setDeleteDialogOpen(true);
   };
 
   const confirmDelete = async () => {
-    if (selectedServiceRequest) {
+    if (selectedRequestForDeletion) {
       try {
-        await serviceRequestsApi.delete(parseInt(selectedServiceRequest.id));
+        await serviceRequestsApi.delete(parseInt(selectedRequestForDeletion.id));
         invalidateList();
       } catch (err) {
       }
     }
     setDeleteDialogOpen(false);
+    setSelectedRequestForDeletion(null);
     handleMenuClose();
   };
 
@@ -358,6 +365,7 @@ export function useServiceRequestsList() {
     anchorEl, selectedServiceRequest,
     serviceRequests, loading, filteredServiceRequests,
     deleteDialogOpen, setDeleteDialogOpen,
+    selectedRequestForDeletion,
     statusChangeDialogOpen, setStatusChangeDialogOpen,
     selectedRequestForStatusChange, setSelectedRequestForStatusChange,
     newStatus, setNewStatus,

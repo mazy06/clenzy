@@ -1,22 +1,17 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  CircularProgress,
-  Alert,
-  Chip,
-  Divider,
-  IconButton,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TextField,
-  Tooltip,
-} from '@mui/material';
-import { useTheme, alpha } from '@mui/material/styles';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert, CircleCheck } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Button } from '../../components/ui';
+import { Separator, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { Input } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+
+/** Surface « tuile » : report en classes des `alpha(text.primary, .03/.08)`. */
+const TILE_CLASS =
+  'rounded-[12px] bg-[color-mix(in_srgb,var(--ink)_3%,transparent)] border border-solid border-[color-mix(in_srgb,var(--ink)_8%,transparent)]';
 import { AttachFile, Delete } from '../../icons';
 import apiClient from '../../services/apiClient';
 import { useNotification } from '../../hooks/useNotification';
@@ -91,7 +86,6 @@ interface KbSearchTestResponse {
  * backend (PreAuthorize hasAnyRole...).
  */
 export const KnowledgeBaseAdmin: React.FC = () => {
-  const theme = useTheme();
   const { notify } = useNotification();
   const { hasAnyRole } = useAuth();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -254,7 +248,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
     >
       {stats && (
         <>
-          <Box sx={{ mb: 2, display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+          <div className="mb-3 flex gap-2 flex-wrap">
             {[
               { label: 'Documents', value: stats.documents.total, detail: `${stats.documents.global} globaux · ${stats.documents.org} org` },
               { label: 'Extraits indexés', value: stats.chunks.indexed, detail: `sur ${stats.chunks.total}` },
@@ -265,39 +259,33 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                 detail: `lists · optimal ${stats.index.optimalLists ?? '—'}${stats.index.autoTuneEnabled ? ' · auto-tune actif' : ''}`,
               },
             ].map((kpi) => (
-              <Box
-                key={kpi.label}
-                sx={{
-                  px: 1.75, py: 1, minWidth: 150, borderRadius: 1.5,
-                  bgcolor: alpha(theme.palette.text.primary, 0.03),
-                  border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}`,
-                }}
-              >
-                <Typography variant="caption" color="text.secondary" component="div">
+              <div className={cn(TILE_CLASS, 'px-[10.5px] py-1.5 min-w-[150px]')} key={kpi.label}>
+                <div className="cn-text-caption text-muted-foreground">
                   {kpi.label}
-                </Typography>
-                <Typography variant="h6" sx={{ fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}>
+                </div>
+                <h6 className="cn-text-h6 tabular-nums leading-[1.2]">
                   {kpi.value}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" component="div">
+                </h6>
+                <div className="cn-text-caption text-muted-foreground">
                   {kpi.detail}
-                </Typography>
-              </Box>
+                </div>
+              </div>
             ))}
-          </Box>
+          </div>
           {stats.index.retuneRecommended && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              La base a grossi : l'index vectoriel (lists = {stats.index.currentLists}) est loin de
+            <Alert variant="warning" className="mb-3">
+              <TriangleAlert />
+              <AlertDescription>La base a grossi : l'index vectoriel (lists = {stats.index.currentLists}) est loin de
               sa taille optimale ({stats.index.optimalLists}) et dégrade la qualité de recherche de
               l'assistant. Activez la reconstruction automatique
               (<code>clenzy.assistant.kb.auto-tune-enabled</code>) ou recréez l'index — la commande
-              exacte est dans les logs du serveur (KbIndexTuningScheduler).
+              exacte est dans les logs du serveur (KbIndexTuningScheduler).</AlertDescription>
             </Alert>
           )}
         </>
       )}
 
-      <Box sx={{ mb: 2, display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="mb-3 flex gap-1.5 items-center flex-wrap">
         {canEdit && (
           <>
             <input
@@ -308,96 +296,93 @@ export const KnowledgeBaseAdmin: React.FC = () => {
               onChange={handleFileChange}
             />
             <Button
-              variant="contained"
-              startIcon={<AttachFile size={16} />}
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              sx={{ textTransform: 'none', cursor: 'pointer' }}
             >
+              <AttachFile size={16} />
               {uploading ? 'Indexation...' : 'Uploader un document'}
             </Button>
-            {uploading && <CircularProgress size={20} />}
+            {uploading && <Spinner className="size-5" />}
           </>
         )}
-        <Box sx={{ flex: 1 }} />
+        <div className="flex-1" />
         <Button
-          variant="text"
-          size="small"
+          variant="ghost"
+          size="sm"
           onClick={loadDocs}
           disabled={loading}
-          sx={{ textTransform: 'none', cursor: 'pointer' }}
         >
           Rafraichir
         </Button>
-      </Box>
+      </div>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <Alert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       {loading ? (
-        <Box display="flex" justifyContent="center" py={4}>
-          <CircularProgress size={24} />
-        </Box>
+        <div className="flex justify-center py-6">
+          <Spinner className="size-6" />
+        </div>
       ) : docs.length === 0 ? (
-        <Box sx={{
-          p: 3, textAlign: 'center',
-          bgcolor: alpha(theme.palette.text.primary, 0.03),
-          borderRadius: 1.5,
-        }}>
-          <Typography variant="body2" color="text.secondary">
+        <div className="p-[18px] text-center rounded-[12px] bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]">
+          <p className="cn-text-body2 text-muted-foreground">
             Aucun document indexe. Upload ton premier markdown pour activer le RAG.
-          </Typography>
-        </Box>
+          </p>
+        </div>
       ) : (
-        <Box sx={{ overflowX: 'auto' }}>
-          <Table size="small">
-            <TableHead>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>Titre</TableCell>
-                <TableCell>Source</TableCell>
-                <TableCell>Portee</TableCell>
-                <TableCell>Maj</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableHead>Titre</TableHead>
+                <TableHead>Source</TableHead>
+                <TableHead>Portee</TableHead>
+                <TableHead>Maj</TableHead>
+                <TableHead className="text-end">Actions</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {docs.map((doc) => (
                 <TableRow key={doc.id}>
-                  <TableCell sx={{ fontWeight: 500 }}>
+                  <TableCell className="font-medium">
                     {doc.title || '(sans titre)'}
                   </TableCell>
-                  <TableCell sx={{ fontSize: '0.75rem', color: theme.palette.text.secondary }}>
+                  <TableCell className="text-[0.75rem] text-[var(--muted)]">
                     {doc.sourcePath}
                   </TableCell>
                   <TableCell>
-                    <Chip
+                    {/* `tone` plutot que des tokens calcules : la paire
+                        encre/fond doux de la primitive est l'equivalent
+                        semantique des anciennes teintes `info`/`success`. */}
+                    <StatusChip
+                      tone={doc.scope === 'global' ? 'info' : 'ok'}
                       label={doc.scope === 'global' ? 'Global Baitly' : 'Mon organisation'}
-                      size="small"
-                      sx={{
-                        bgcolor: doc.scope === 'global'
-                          ? alpha(theme.palette.info.main, 0.14)
-                          : alpha(theme.palette.success.main, 0.14),
-                        color: doc.scope === 'global'
-                          ? theme.palette.info.dark
-                          : theme.palette.success.dark,
-                        height: 20,
-                        fontSize: '0.7rem',
-                        fontWeight: 600,
-                      }}
+                      className="h-[20px] text-[0.7rem]"
                     />
                   </TableCell>
-                  <TableCell sx={{ fontSize: '0.75rem', color: theme.palette.text.secondary }}>
+                  <TableCell className="text-[0.75rem] text-[var(--muted)]">
                     {new Date(doc.updatedAt).toLocaleDateString('fr-FR')}
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell className="text-end">
                     {canEdit && (
-                      <Tooltip title="Supprimer">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDelete(doc)}
-                          sx={{ cursor: 'pointer' }}
-                        >
-                          <Delete size={16} />
-                        </IconButton>
+                      // span intermediaire : TooltipTrigger asChild pose une ref DOM,
+                      // que le Button du kit (fonction, React 18) ne transmet pas.
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label="Supprimer"
+                              onClick={() => handleDelete(doc)}
+                            >
+                              <Delete size={16} />
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Supprimer</TooltipContent>
                       </Tooltip>
                     )}
                   </TableCell>
@@ -405,29 +390,28 @@ export const KnowledgeBaseAdmin: React.FC = () => {
               ))}
             </TableBody>
           </Table>
-        </Box>
+        </div>
       )}
 
       {canUploadGlobal && (
         <>
-          <Divider sx={{ my: 3 }} />
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <Box sx={{ flex: 1, minWidth: 240 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+          <Separator className="my-[18px]" />
+          <div className="flex gap-1.5 items-start flex-wrap">
+            <div className="flex-1 min-w-[240px]">
+              <h6 className="cn-text-subtitle2 font-semibold mb-0.5">
                 Évaluer le retrieval
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+              </h6>
+              <p className="cn-text-body2 text-muted-foreground">
                 Lance les {evalReport?.total ?? 40} questions du jeu de test officiel sur le
                 pipeline réel et mesure la qualité de recherche. À relancer après chaque
                 changement de documentation, de seuils ou de modèle (~30&nbsp;secondes,
                 quelques centimes d'API).
-              </Typography>
-            </Box>
+              </p>
+            </div>
             <Button
-              variant="outlined"
+              variant="outline"
               onClick={handleRunEval}
               disabled={evaluating}
-              sx={{ textTransform: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
               {evaluating
                 ? evalProgress
@@ -435,20 +419,20 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                   : 'Évaluation en cours…'
                 : "Lancer l'évaluation"}
             </Button>
-          </Box>
+          </div>
           {evaluating && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 2 }}>
-              <CircularProgress size={20} />
-              <Typography variant="caption" color="text.secondary">
+            <div className="flex items-center gap-2 py-3">
+              <Spinner className="size-5" />
+              <span className="cn-text-caption text-muted-foreground">
                 {evalProgress && evalProgress.done < evalProgress.total
                   ? `${evalProgress.done} question(s) sur ${evalProgress.total} évaluée(s) — le rythme s'adapte aux limites de l'API (jusqu'à ~15 min si elle est bridée).`
                   : 'Démarrage du run…'}
-              </Typography>
-            </Box>
+              </span>
+            </div>
           )}
           {evalReport && (
-            <Box sx={{ mt: 2 }}>
-              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 1.5 }}>
+            <div className="mt-3">
+              <div className="flex gap-2 flex-wrap mb-2">
                 {[
                   {
                     label: `Recall@${evalReport.topK}`,
@@ -461,75 +445,63 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                     detail: 'position moyenne du bon résultat',
                   },
                 ].map((kpi) => (
-                  <Box
-                    key={kpi.label}
-                    sx={{
-                      px: 1.75, py: 1, minWidth: 170, borderRadius: 1.5,
-                      bgcolor: alpha(theme.palette.text.primary, 0.03),
-                      border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}`,
-                    }}
-                  >
-                    <Typography variant="caption" color="text.secondary" component="div">
+                  <div className={cn(TILE_CLASS, 'px-[10.5px] py-1.5 min-w-[170px]')} key={kpi.label}>
+                    <div className="cn-text-caption text-muted-foreground">
                       {kpi.label}
-                    </Typography>
-                    <Typography variant="h6" sx={{ fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}>
+                    </div>
+                    <h6 className="cn-text-h6 tabular-nums leading-[1.2]">
                       {kpi.value}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" component="div">
+                    </h6>
+                    <div className="cn-text-caption text-muted-foreground">
                       {kpi.detail}
-                    </Typography>
-                  </Box>
+                    </div>
+                  </div>
                 ))}
-              </Box>
+              </div>
               {evalReport.misses.length === 0 ? (
-                <Alert severity="success">
-                  Toutes les questions du jeu de test retrouvent leur fiche : le retrieval est sain.
+                <Alert variant="success">
+                  <CircleCheck />
+                  <AlertDescription>Toutes les questions du jeu de test retrouvent leur fiche : le retrieval est sain.</AlertDescription>
                 </Alert>
               ) : (
                 <>
-                  <Typography variant="caption" color="text.secondary" component="div" sx={{ mb: 0.5 }}>
+                  <div className="cn-text-caption text-muted-foreground mb-0.5">
                     Questions sans leur fiche attendue dans le top {evalReport.topK} :
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                  </div>
+                  <div className="flex flex-col gap-1">
                     {evalReport.misses.map((miss, idx) => (
-                      <Box
-                        key={idx}
-                        sx={{
-                          px: 1.5, py: 1, borderRadius: 1.5,
-                          bgcolor: alpha(theme.palette.warning.main, 0.08),
-                          border: `1px solid ${alpha(theme.palette.warning.main, 0.25)}`,
-                        }}
-                      >
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      <div className="px-[9px] py-1.5 rounded-[12px] bg-[color-mix(in_srgb,var(--warn)_8%,transparent)] border border-solid border-[color-mix(in_srgb,var(--warn)_25%,transparent)]" key={idx}>
+                        <p className="cn-text-body2 font-semibold">
                           {miss.question}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" component="div">
+                        </p>
+                        <div className="cn-text-caption text-muted-foreground">
                           attendu : {miss.expected} · obtenu : {miss.retrieved.join(', ') || 'aucun résultat'}
-                        </Typography>
-                      </Box>
+                        </div>
+                      </div>
                     ))}
-                  </Box>
+                  </div>
                 </>
               )}
-            </Box>
+            </div>
           )}
         </>
       )}
 
       {canEdit && (
         <>
-          <Divider sx={{ my: 3 }} />
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+          <Separator className="my-[18px]" />
+          <h6 className="cn-text-subtitle2 font-semibold mb-0.5">
             Tester la recherche
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          </h6>
+          <p className="cn-text-body2 text-muted-foreground mb-2">
             Exécute la même recherche que l'assistant (vectorielle + mots-clés + re-ranking)
             et montre les extraits retrouvés avec leur score de pertinence.
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 2 }}>
-            <TextField
-              size="small"
-              fullWidth
+          </p>
+          <div className="flex gap-1.5 items-center mb-3">
+            {/* Pas de libelle visible : le champ suit le titre « Tester la
+                recherche » — d'ou l'aria-label qui le nomme pour l'assistance. */}
+            <Input
+              aria-label="Question à tester"
               placeholder="Ex. : comment configurer la taxe de séjour ?"
               value={testQuery}
               onChange={(e) => setTestQuery(e.target.value)}
@@ -537,76 +509,57 @@ export const KnowledgeBaseAdmin: React.FC = () => {
               disabled={testing}
             />
             <Button
-              variant="outlined"
+              variant="outline"
               onClick={handleSearchTest}
               disabled={testing || !testQuery.trim()}
-              sx={{ textTransform: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
               {testing ? 'Recherche...' : 'Tester'}
             </Button>
-          </Box>
+          </div>
           {testing && (
-            <Box display="flex" justifyContent="center" py={2}>
-              <CircularProgress size={20} />
-            </Box>
+            <div className="flex justify-center py-3">
+              <Spinner className="size-5" />
+            </div>
           )}
           {testResult && testResult.items.length === 0 && (
-            <Alert severity="warning">
-              Aucun extrait trouvé pour cette question. L'assistant répondra sans contexte
-              documentaire — envisagez d'ajouter ou de compléter un document.
+            <Alert variant="warning">
+              <TriangleAlert />
+              <AlertDescription>Aucun extrait trouvé pour cette question. L'assistant répondra sans contexte
+              documentaire — envisagez d'ajouter ou de compléter un document.</AlertDescription>
             </Alert>
           )}
           {testResult && testResult.items.length > 0 && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <div className="flex flex-col gap-2">
               {testResult.items.map((hit, idx) => {
                 const aboveThreshold = hit.relevance >= testResult.relevanceThreshold;
                 return (
-                  <Box
-                    key={`${hit.documentId}-${idx}`}
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 1.5,
-                      bgcolor: alpha(theme.palette.text.primary, 0.03),
-                      border: `1px solid ${alpha(theme.palette.text.primary, 0.08)}`,
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mb: 0.5, flexWrap: 'wrap' }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  <div className={cn(TILE_CLASS, 'p-[9px]')} key={`${hit.documentId}-${idx}`}>
+                    <div className="flex gap-1.5 items-center mb-0.5 flex-wrap">
+                      <p className="cn-text-body2 font-semibold">
                         {hit.title || hit.sourcePath}
-                      </Typography>
-                      <Chip
+                      </p>
+                      <StatusChip
+                        tone={aboveThreshold ? 'ok' : 'warn'}
                         label={`${Math.round(hit.relevance * 100)} %`}
-                        size="small"
-                        sx={{
-                          height: 20,
-                          fontSize: '0.7rem',
-                          fontWeight: 600,
-                          fontVariantNumeric: 'tabular-nums',
-                          bgcolor: aboveThreshold
-                            ? alpha(theme.palette.success.main, 0.14)
-                            : alpha(theme.palette.warning.main, 0.14),
-                          color: aboveThreshold
-                            ? theme.palette.success.dark
-                            : theme.palette.warning.dark,
-                        }}
+                        className="h-[20px] text-[0.7rem] tabular-nums"
                       />
                       {!aboveThreshold && (
-                        <Typography variant="caption" color="text.secondary">
+                        <span className="cn-text-caption text-muted-foreground">
                           sous le seuil d'injection automatique
                           ({Math.round(testResult.relevanceThreshold * 100)} %)
-                        </Typography>
+                        </span>
                       )}
-                    </Box>
-                    <Typography variant="caption" color="text.secondary" component="div" sx={{ mb: 0.5 }}>
+                    </div>
+                    <div className="cn-text-caption text-muted-foreground mb-0.5">
                       {hit.sourcePath}
-                    </Typography>
-                    <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                    </div>
+                    <p className="cn-text-body2 whitespace-pre-line">
                       {hit.snippet}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                 );
               })}
-            </Box>
+            </div>
           )}
         </>
       )}

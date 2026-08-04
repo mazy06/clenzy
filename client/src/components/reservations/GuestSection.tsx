@@ -1,9 +1,38 @@
 import React from 'react';
-import { Box, Typography, TextField, MenuItem, Chip, Autocomplete, CircularProgress } from '@mui/material';
+import { Spinner } from '../ui';
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  Field,
+  FieldLabel,
+  Input,
+  InputGroupAddon,
+  Textarea,
+  NativeSelect,
+  NativeSelectOption,
+} from '../ui';
+import StatusChip from '../StatusChip';
 import { Person, PersonOutline, Search as SearchIcon, Group as GroupIcon, Remove as RemoveIcon, Add as AddIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
-import { SEC_SX, COMPACT_FIELD_SX, COMPACT_TEXTAREA_SX, STEP_BTN_SX, AdornIcon } from './reservationDialogStyles';
+import type { GuestDto } from '../../services/api';
+
+// Transposition en classes de SEC_SX (.rm-sec) — meme motif que STEP_BTN_CLS :
+// la constante sx reste exportee dans reservationDialogStyles.
+const SEC_CLS = 'cn-text-body1 text-[10.5px] font-bold tracking-[0.08em] uppercase text-[var(--faint)]';
+
+// Transposition en classes de STEP_BTN_SX (.rm-count) — la constante reste
+// exportee dans reservationDialogStyles pour les consommateurs sx eventuels.
+const STEP_BTN_CLS =
+  'w-[30px] h-[30px] rounded-[8px] border-0 bg-[var(--card)] text-[var(--body)] cursor-pointer ' +
+  'flex items-center justify-center p-0 transition-[color] duration-[140ms] ' +
+  'enabled:hover:text-[var(--accent)] disabled:opacity-40 disabled:cursor-default ' +
+  'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-[1px]';
 
 interface Props {
   form: UseReservationFormResult;
@@ -23,53 +52,30 @@ const renderStepper = (
   incDisabled: boolean,
   ariaLabel: string,
 ) => (
-  <Box
-    sx={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '4px',
-      backgroundColor: 'var(--field)',
-      border: '1px solid var(--field-line)',
-      borderRadius: '10px',
-      padding: '3px',
-      flexShrink: 0,
-    }}
-  >
-    <Box component="button" type="button" aria-label={`${ariaLabel} −`} onClick={onDec} disabled={decDisabled} sx={STEP_BTN_SX}>
+  <div className="flex items-center gap-[4px] bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[10px] p-[3px] shrink-0">
+    <button type="button" aria-label={`${ariaLabel} −`} onClick={onDec} disabled={decDisabled} className={STEP_BTN_CLS}>
       <RemoveIcon size={15} strokeWidth={1.75} />
-    </Box>
-    <Box
-      sx={{
-        fontFamily: 'var(--font-display)',
-        fontSize: '15px',
-        fontWeight: 600,
-        color: 'var(--ink)',
-        minWidth: 28,
-        textAlign: 'center',
-        userSelect: 'none',
-        fontVariantNumeric: 'tabular-nums',
-      }}
-    >
+    </button>
+    <div className="font-[family-name:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] min-w-[28px] text-center select-none tabular-nums">
       {value}
-    </Box>
-    <Box component="button" type="button" aria-label={`${ariaLabel} +`} onClick={onInc} disabled={incDisabled} sx={STEP_BTN_SX}>
+    </div>
+    <button type="button" aria-label={`${ariaLabel} +`} onClick={onInc} disabled={incDisabled} className={STEP_BTN_CLS}>
       <AddIcon size={15} strokeWidth={1.75} />
-    </Box>
-  </Box>
+    </button>
+  </div>
 );
 
 // Champ en lecture seule (infos d'un voyageur — édition de réservation uniquement).
-const roField = (label: string, value?: string | null, multiline = false) => (
-  <TextField
-    label={label}
-    value={value || '—'}
-    disabled
-    fullWidth
-    multiline={multiline}
-    minRows={multiline ? 2 : undefined}
-    InputLabelProps={{ shrink: true }}
-    sx={multiline ? COMPACT_TEXTAREA_SX : COMPACT_FIELD_SX}
-  />
+// L'id est passe par l'appelant : le libellé du kit ne designe le champ que via htmlFor/id.
+const roField = (id: string, label: string, value?: string | null, multiline = false) => (
+  <Field>
+    <FieldLabel htmlFor={id}>{label}</FieldLabel>
+    {multiline ? (
+      <Textarea id={id} className="w-full" rows={2} value={value || '—'} disabled readOnly />
+    ) : (
+      <Input id={id} className="w-full" value={value || '—'} disabled readOnly />
+    )}
+  </Field>
 );
 
 /**
@@ -81,208 +87,208 @@ const roField = (label: string, value?: string | null, multiline = false) => (
 const GuestSection: React.FC<Props> = ({ form }) => {
   const { t } = useTranslation();
 
+  // Gabarit plus haut que la puce de statut : ici la puce porte une identite
+  // (le voyageur choisi), pas un etat — d'ou l'encre `--ink` et l'accent reserve
+  // aux deux affordances (icone, croix).
   const guestChip = (
-    <Chip
+    <StatusChip
       icon={<Person size={15} strokeWidth={1.75} />}
       label={form.selectedGuest?.fullName}
       onDelete={form.fieldsLocked ? undefined : form.clearGuest}
-      sx={{
-        height: 32,
-        borderRadius: '10px',
-        backgroundColor: 'var(--accent-soft)',
-        color: 'var(--ink)',
-        fontWeight: 600,
-        fontSize: '12.5px',
-        '& .MuiChip-icon': { color: 'var(--accent)' },
-        '& .MuiChip-deleteIcon': { color: 'var(--accent)', '&:hover': { color: 'var(--accent-deep)' } },
-      }}
+      tokens={{ color: 'var(--ink)', bg: 'var(--accent-soft)' }}
+      className="h-8 rounded-[10px] text-[12.5px] [&>svg]:text-[var(--accent)] [&>button>svg]:text-[var(--accent)]"
     />
   );
 
+  // La recherche est faite par le SERVEUR (requete debouncee) : `filter={null}`
+  // coupe le filtrage client du primitif, qui re-filtrerait une liste deja
+  // filtree et masquerait des resultats. `value={null}` reprend la semantique de
+  // l'ancien Autocomplete : le champ ne garde pas la selection, il la remonte au
+  // formulaire (qui remplace alors ce champ par la puce du voyageur).
   const searchField = (
-    <Autocomplete
-      freeSolo={false}
-      options={form.searchResults}
-      getOptionLabel={(option) => option.fullName}
-      renderOption={(props, option) => {
-        const { key, ...optionProps } = props;
-        return (
-          <Box component="li" key={key} {...optionProps}>
-            <Box>
-              <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>{option.fullName}</Typography>
-              {option.email && <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)' }}>{option.email}</Typography>}
-            </Box>
-          </Box>
-        );
-      }}
-      inputValue={form.guestSearchQuery}
-      onInputChange={(_, val) => form.setGuestSearchQuery(val)}
+    <Combobox<GuestDto>
+      items={form.searchResults}
+      itemToStringLabel={(guest) => guest.fullName}
+      itemToStringValue={(guest) => guest.fullName}
+      filter={null}
       value={null}
-      onChange={(_, val) => { if (val) form.setSelectedGuest(val); }}
-      loading={form.isSearching}
-      noOptionsText={form.debouncedSearch.length >= 2 ? t('reservations.dialog.noGuestFound') : t('reservations.dialog.typeToSearch')}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: '12px',
-            border: '1px solid var(--line)',
-            boxShadow: 'var(--shadow-pop)',
-            backgroundColor: 'var(--card)',
-            backgroundImage: 'none',
-          },
-        },
-      }}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          placeholder={t('reservations.dialog.searchGuest')}
-          sx={[
-            COMPACT_FIELD_SX,
-            {
-              '& .MuiOutlinedInput-root': { padding: '0 39px 0 11px' },
-              '& .MuiOutlinedInput-root .MuiAutocomplete-input': { padding: '0 0 0 8px', height: 36, fontWeight: 500 },
-            },
-          ]}
-          InputProps={{
-            ...params.InputProps,
-            startAdornment: <AdornIcon><SearchIcon size={15} strokeWidth={1.75} /></AdornIcon>,
-            endAdornment: (
-              <>
-                {form.isSearching ? <CircularProgress size={16} sx={{ color: 'var(--accent)' }} /> : null}
-                {params.InputProps.endAdornment}
-              </>
-            ),
-          }}
-        />
-      )}
-    />
+      onValueChange={(val) => { if (val) form.setSelectedGuest(val); }}
+      inputValue={form.guestSearchQuery}
+      onInputValueChange={(val) => form.setGuestSearchQuery(val)}
+    >
+      <ComboboxInput
+        className="w-full"
+        showTrigger={false}
+        placeholder={t('reservations.dialog.searchGuest')}
+      >
+        <InputGroupAddon align="inline-start">
+          <span className="inline-flex text-[var(--faint)]">
+            <SearchIcon size={15} strokeWidth={1.75} />
+          </span>
+        </InputGroupAddon>
+        {form.isSearching ? (
+          <InputGroupAddon align="inline-end">
+            <Spinner className="size-4 text-[var(--accent)]" />
+          </InputGroupAddon>
+        ) : null}
+      </ComboboxInput>
+      <ComboboxContent>
+        <ComboboxEmpty>
+          {form.debouncedSearch.length >= 2
+            ? t('reservations.dialog.noGuestFound')
+            : t('reservations.dialog.typeToSearch')}
+        </ComboboxEmpty>
+        <ComboboxList>
+          {(guest: GuestDto) => (
+            <ComboboxItem key={guest.id} value={guest}>
+              <div>
+                <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)]">{guest.fullName}</p>
+                {guest.email && (
+                  <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">{guest.email}</p>
+                )}
+              </div>
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
   );
 
   // Formulaire voyageur ÉDITABLE (création) — champs newGuest*, persistés au submit.
   const editableGuestForm = (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '2px' }}>
-        <Typography sx={{ ...SEC_SX, whiteSpace: 'nowrap' }}>
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center gap-[10px] mt-[2px]">
+        <p className={cn(SEC_CLS, 'whitespace-nowrap')}>
           {form.selectedGuest ? t('reservations.dialog.editGuest') : t('reservations.dialog.newGuest')}
-        </Typography>
-        <Box sx={{ flex: 1, height: '1px', backgroundColor: 'var(--line)' }} />
-      </Box>
+        </p>
+        <div className="flex-1 h-[1px] bg-[var(--line)]" />
+      </div>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-        <TextField
-          label={t('reservations.dialog.firstName')}
-          value={form.newGuestFirstName}
-          onChange={(e) => form.setNewGuestFirstName(e.target.value)}
-          required
-          InputLabelProps={{ shrink: true }}
-          sx={COMPACT_FIELD_SX}
+      <div className="grid grid-cols-[1fr_1fr] gap-2.5">
+        <Field>
+          <FieldLabel htmlFor="guest-new-firstname">{t('reservations.dialog.firstName')}</FieldLabel>
+          <Input
+            id="guest-new-firstname"
+            className="w-full"
+            required
+            value={form.newGuestFirstName}
+            onChange={(e) => form.setNewGuestFirstName(e.target.value)}
+          />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="guest-new-lastname">{t('reservations.dialog.lastName')}</FieldLabel>
+          <Input
+            id="guest-new-lastname"
+            className="w-full"
+            required
+            value={form.newGuestLastName}
+            onChange={(e) => form.setNewGuestLastName(e.target.value)}
+          />
+        </Field>
+      </div>
+      <div className="grid grid-cols-[1fr_1fr] gap-2.5">
+        <Field>
+          <FieldLabel htmlFor="guest-new-email">{t('reservations.fields.guestEmail')}</FieldLabel>
+          <Input
+            id="guest-new-email"
+            className="w-full"
+            type="email"
+            value={form.newGuestEmail}
+            onChange={(e) => form.setNewGuestEmail(e.target.value)}
+          />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="guest-new-phone">{t('reservations.fields.guestPhone')}</FieldLabel>
+          <Input
+            id="guest-new-phone"
+            className="w-full"
+            value={form.newGuestPhone}
+            onChange={(e) => form.setNewGuestPhone(e.target.value)}
+          />
+        </Field>
+      </div>
+      <div className="grid grid-cols-[1fr_1fr] gap-2.5">
+        <Field>
+          <FieldLabel htmlFor="guest-new-country">{t('reservations.dialog.nationality')}</FieldLabel>
+          <NativeSelect
+            id="guest-new-country"
+            className="w-full"
+            value={form.newGuestCountry}
+            onChange={(e) => form.setNewGuestCountry(e.target.value)}
+          >
+            <NativeSelectOption value="">—</NativeSelectOption>
+            {COUNTRY_OPTIONS.map((c) => (
+              <NativeSelectOption key={c} value={c}>{c}</NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="guest-new-language">{t('reservations.dialog.language')}</FieldLabel>
+          <NativeSelect
+            id="guest-new-language"
+            className="w-full"
+            value={form.newGuestLanguage}
+            onChange={(e) => form.setNewGuestLanguage(e.target.value)}
+          >
+            {LANGUAGE_OPTIONS.map((l) => (
+              <NativeSelectOption key={l} value={l}>{l.toUpperCase()}</NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </Field>
+      </div>
+      <Field>
+        <FieldLabel htmlFor="guest-new-notes">{t('reservations.dialog.guestNotes')}</FieldLabel>
+        <Textarea
+          id="guest-new-notes"
+          className="w-full"
+          rows={1}
+          placeholder={t('reservations.dialog.notesPlaceholder')}
+          value={form.newGuestNotes}
+          onChange={(e) => form.setNewGuestNotes(e.target.value)}
         />
-        <TextField
-          label={t('reservations.dialog.lastName')}
-          value={form.newGuestLastName}
-          onChange={(e) => form.setNewGuestLastName(e.target.value)}
-          required
-          InputLabelProps={{ shrink: true }}
-          sx={COMPACT_FIELD_SX}
-        />
-      </Box>
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-        <TextField
-          label={t('reservations.fields.guestEmail')}
-          type="email"
-          value={form.newGuestEmail}
-          onChange={(e) => form.setNewGuestEmail(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={COMPACT_FIELD_SX}
-        />
-        <TextField
-          label={t('reservations.fields.guestPhone')}
-          value={form.newGuestPhone}
-          onChange={(e) => form.setNewGuestPhone(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={COMPACT_FIELD_SX}
-        />
-      </Box>
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-        <TextField
-          select
-          label={t('reservations.dialog.nationality')}
-          value={form.newGuestCountry}
-          onChange={(e) => form.setNewGuestCountry(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={COMPACT_FIELD_SX}
-          SelectProps={{ displayEmpty: true }}
-        >
-          <MenuItem value="">—</MenuItem>
-          {COUNTRY_OPTIONS.map((c) => (
-            <MenuItem key={c} value={c}>{c}</MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          label={t('reservations.dialog.language')}
-          value={form.newGuestLanguage}
-          onChange={(e) => form.setNewGuestLanguage(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={COMPACT_FIELD_SX}
-        >
-          {LANGUAGE_OPTIONS.map((l) => (
-            <MenuItem key={l} value={l}>{l.toUpperCase()}</MenuItem>
-          ))}
-        </TextField>
-      </Box>
-      <TextField
-        label={t('reservations.dialog.guestNotes')}
-        value={form.newGuestNotes}
-        onChange={(e) => form.setNewGuestNotes(e.target.value)}
-        fullWidth
-        multiline
-        minRows={1}
-        placeholder={t('reservations.dialog.notesPlaceholder')}
-        InputLabelProps={{ shrink: true }}
-        sx={COMPACT_TEXTAREA_SX}
-      />
-    </Box>
+      </Field>
+    </div>
   );
 
   return (
     <>
-      <Typography sx={{ ...SEC_SX, marginTop: '4px' }}>{t('reservations.dialog.traveler')}</Typography>
+      <p className={cn(SEC_CLS, 'mt-[4px]')}>{t('reservations.dialog.traveler')}</p>
 
       {form.isEdit ? (
         // ── ÉDITION : comportement inchangé — voyageur en lecture seule ──
         form.selectedGuest && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <div className="flex flex-col gap-3.5">
+            <div className="flex items-center gap-2.5 min-w-0">
               {guestChip}
               {form.selectedGuest.email && (
-                <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] overflow-hidden text-ellipsis whitespace-nowrap">
                   {form.selectedGuest.email}
-                </Typography>
+                </p>
               )}
-            </Box>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                {roField(t('reservations.dialog.firstName'), form.selectedGuest.firstName)}
-                {roField(t('reservations.dialog.lastName'), form.selectedGuest.lastName)}
-              </Box>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                {roField(t('reservations.fields.guestEmail'), form.selectedGuest.email)}
-                {roField(t('reservations.fields.guestPhone'), form.selectedGuest.phone)}
-              </Box>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                {roField(t('reservations.dialog.nationality'), form.selectedGuest.countryCode)}
-                {roField(t('reservations.dialog.language'), form.selectedGuest.language)}
-              </Box>
-              {form.selectedGuest.notes && roField(t('reservations.dialog.guestNotes'), form.selectedGuest.notes, true)}
-            </Box>
-          </Box>
+            </div>
+            <div className="flex flex-col gap-3.5">
+              <div className="grid grid-cols-[1fr_1fr] gap-3">
+                {roField('guest-ro-firstname', t('reservations.dialog.firstName'), form.selectedGuest.firstName)}
+                {roField('guest-ro-lastname', t('reservations.dialog.lastName'), form.selectedGuest.lastName)}
+              </div>
+              <div className="grid grid-cols-[1fr_1fr] gap-3">
+                {roField('guest-ro-email', t('reservations.fields.guestEmail'), form.selectedGuest.email)}
+                {roField('guest-ro-phone', t('reservations.fields.guestPhone'), form.selectedGuest.phone)}
+              </div>
+              <div className="grid grid-cols-[1fr_1fr] gap-3">
+                {roField('guest-ro-country', t('reservations.dialog.nationality'), form.selectedGuest.countryCode)}
+                {roField('guest-ro-language', t('reservations.dialog.language'), form.selectedGuest.language)}
+              </div>
+              {form.selectedGuest.notes &&
+                roField('guest-ro-notes', t('reservations.dialog.guestNotes'), form.selectedGuest.notes, true)}
+            </div>
+          </div>
         )
       ) : (
         // ── CRÉATION : recherche/chip + champs toujours éditables ──
         <>
           {form.selectedGuest ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>{guestChip}</Box>
+            <div className="flex items-center gap-2.5 min-w-0">{guestChip}</div>
           ) : (
             searchField
           )}
@@ -291,15 +297,15 @@ const GuestSection: React.FC<Props> = ({ form }) => {
       )}
 
       {/* Occupation — voyageurs + dont enfants, regroupés (steppers cohérents). */}
-      <Box sx={{ border: '1px solid var(--line)', borderRadius: '12px', overflow: 'hidden', backgroundColor: 'var(--card)' }}>
+      <div className="border border-[var(--line)] rounded-[12px] overflow-hidden bg-[var(--card)]">
         {/* Voyageurs */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 14px' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', flexShrink: 0 }}>
+        <div className="flex items-center gap-3 px-[14px] py-[11px]">
+          <span className="inline-flex text-[var(--accent)] shrink-0">
             <GroupIcon size={18} strokeWidth={1.75} />
-          </Box>
-          <Typography sx={{ flex: 1, minWidth: 0, fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>
+          </span>
+          <p className="cn-text-body1 flex-1 min-w-0 text-[13.5px] font-semibold text-[var(--ink)]">
             {t('reservations.dialog.travelers')}
-          </Typography>
+          </p>
           {renderStepper(
             form.guestCount,
             () => form.setGuestCount((c) => Math.max(1, c - 1)),
@@ -308,23 +314,23 @@ const GuestSection: React.FC<Props> = ({ form }) => {
             form.guestCount >= 20 || form.fieldsLocked,
             t('reservations.dialog.travelers'),
           )}
-        </Box>
+        </div>
 
-        <Box sx={{ height: '1px', backgroundColor: 'var(--line)' }} />
+        <div className="h-[1px] bg-[var(--line)]" />
 
         {/* dont enfants (mineurs) — exonérés de la taxe de séjour */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 14px' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', flexShrink: 0 }}>
+        <div className="flex items-center gap-3 px-[14px] py-[11px]">
+          <span className="inline-flex text-[var(--accent)] shrink-0">
             <PersonOutline size={18} strokeWidth={1.75} />
-          </Box>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3 }}>
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)] leading-[1.3]">
               {t('reservations.fields.childrenCount')}
-            </Typography>
-            <Typography sx={{ fontSize: '11px', color: 'var(--muted)', lineHeight: 1.3 }}>
+            </p>
+            <p className="cn-text-body1 text-[11px] text-[var(--muted)] leading-[1.3]">
               {t('reservations.fields.childrenCountHelp')}
-            </Typography>
-          </Box>
+            </p>
+          </div>
           {renderStepper(
             form.childrenCount,
             () => form.setChildrenCount(Math.max(0, form.childrenCount - 1)),
@@ -333,8 +339,8 @@ const GuestSection: React.FC<Props> = ({ form }) => {
             form.childrenCount >= form.guestCount || form.fieldsLocked,
             t('reservations.fields.childrenCount'),
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
     </>
   );
 };

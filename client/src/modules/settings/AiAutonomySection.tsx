@@ -1,27 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Button, Card, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  FormControl,
-  InputLabel,
-  LinearProgress,
-  MenuItem,
-  Paper,
-  Select,
+  Field,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
+import SettingSentence from '../../components/baitly/SettingSentence';
+import {
+  Progress,
   Skeleton,
   Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography,
-} from '@mui/material';
+} from '../../components/ui';
 import { ShieldCheck, Gauge } from 'lucide-react';
+import { cn } from '../../utils/cn';
 import { useTranslation } from 'react-i18next';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
   aiAutonomyApi,
   type AutonomyBudget,
@@ -35,11 +32,11 @@ import {
  * Paramètres > IA > Supervision.
  */
 
-const TRUST_STATUS_COLOR: Record<TrustRule['status'], 'default' | 'success' | 'warning'> = {
-  SUGGESTED: 'warning',
-  ACTIVE: 'success',
-  DISMISSED: 'default',
-  REVOKED: 'default',
+const TRUST_STATUS_TONE: Record<TrustRule['status'], StatusTone> = {
+  SUGGESTED: 'warn',
+  ACTIVE: 'ok',
+  DISMISSED: 'neutral',
+  REVOKED: 'neutral',
 };
 
 // Comportements premium branchés côté serveur (X8-b) — affichés même absents du
@@ -145,180 +142,190 @@ export default function AiAutonomySection() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
-        <Skeleton variant="rounded" height={140} />
-        <Skeleton variant="rounded" height={96} />
-      </Box>
+      <div className="flex flex-col gap-2 mb-3">
+        <Skeleton className="h-[140px] w-full rounded-lg" />
+        <Skeleton className="h-[96px] w-full rounded-lg" />
+      </div>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
-      {error && <Alert severity="warning">{error}</Alert>}
+    <div className="flex flex-col gap-2 mb-3">
+      {error && <Alert variant="warning">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       {/* ── Sous-budget d'autonomie premium (X4) ── */}
-      <Paper variant="outlined" sx={{ p: 1.75 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+      <Card className="gap-0 py-0 p-2.5">
+        <div className="flex items-center gap-1.5 mb-0.5">
           <Gauge size={18} aria-hidden />
-          <Typography variant="subtitle2">
+          <h6 className="cn-text-subtitle2">
             {t('aiAutonomy.budgetTitle', "Budget d'autonomie premium")}
-          </Typography>
-        </Box>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+          </h6>
+        </div>
+        <span className="cn-text-caption text-muted-foreground block mb-2">
           {t(
             'aiAutonomy.budgetSubtitle',
             "Plafond mensuel des actions proactives premium. L'autonomie socle (auto-réponses, alertes, briefings) reste incluse et n'est jamais décomptée. Plafond à 0 = autonomie premium désactivée.",
           )}
-        </Typography>
+        </span>
 
-        <Box sx={{ mb: 1.5 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-            <Typography variant="caption" color="text.secondary">
+        <div className="mb-2">
+          <div className="flex justify-between mb-0.5">
+            <span className="cn-text-caption text-muted-foreground">
               {t('aiAutonomy.consumedThisCycle', 'Consommé ce cycle')}
-            </Typography>
-            <Typography variant="caption" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+            </span>
+            <span className="cn-text-caption tabular-nums">
               {consumedCredits.toLocaleString()} / {capValue.toLocaleString()}{' '}
               {t('aiAutonomy.credits', 'crédits')}
-            </Typography>
-          </Box>
-          <LinearProgress
-            variant="determinate"
+            </span>
+          </div>
+          {/* Branches LITTERALES : une classe Tailwind est emise a la compilation,
+              elle ne peut pas naitre d'une valeur d'execution. */}
+          <Progress
             value={gaugeRatio}
-            sx={{
-              height: 6,
-              borderRadius: 3,
-              '& .MuiLinearProgress-bar': {
-                backgroundColor: gaugeRatio >= 100 ? '#C97A7A' : gaugeRatio >= 80 ? '#D4A574' : '#4A9B8E',
-              },
-            }}
+            className={cn(
+              'h-1.5 rounded-full',
+              gaugeRatio >= 100
+                ? '[&_[data-slot=progress-indicator]]:bg-[#C97A7A]'
+                : gaugeRatio >= 80
+                  ? '[&_[data-slot=progress-indicator]]:bg-[#D4A574]'
+                  : '[&_[data-slot=progress-indicator]]:bg-[#4A9B8E]',
+            )}
           />
-        </Box>
+        </div>
 
-        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
-          <TextField
-            label={t('aiAutonomy.capLabel', 'Plafond (crédits / mois)')}
+        {/* Budget en phrase — primitive SettingSentence (projection « Réglages
+            en phrase ») : « Plafonner à N crédits par mois, puis … », au lieu
+            de deux champs empilés qui obligent à reconstruire la règle. */}
+        <SettingSentence>
+          {t('aiAutonomy.capSentenceStart', 'Plafonner à')}
+          <Input
+            id="ai-autonomy-cap"
+            aria-label={t('aiAutonomy.capLabel', 'Plafond (crédits / mois)')}
             type="number"
-            size="small"
+            min={0}
+            className="w-24 text-center tabular-nums"
             value={capCredits}
             onChange={(e) => setCapCredits(e.target.value)}
-            inputProps={{ min: 0, style: { fontVariantNumeric: 'tabular-nums' } }}
-            sx={{ width: 200 }}
           />
-          <FormControl size="small" sx={{ minWidth: 220 }}>
-            <InputLabel>{t('aiAutonomy.onCapLabel', 'Au plafond')}</InputLabel>
-            <Select
-              value={onCap}
-              label={t('aiAutonomy.onCapLabel', 'Au plafond')}
-              onChange={(e) => setOnCap(e.target.value)}
-            >
-              <MenuItem value="NOTIFY_ONLY">
-                {t('aiAutonomy.onCapNotify', 'Notifier seulement (suggestions sans exécution)')}
-              </MenuItem>
-              <MenuItem value="PAUSE">
-                {t('aiAutonomy.onCapPause', "Mettre l'autonomie en pause")}
-              </MenuItem>
-            </Select>
-          </FormControl>
+          {t('aiAutonomy.capSentenceMiddle', 'crédits par mois, puis')}
+          <NativeSelect
+            id="ai-autonomy-on-cap"
+            aria-label={t('aiAutonomy.onCapLabel', 'Au plafond')}
+            value={onCap}
+            onChange={(e) => setOnCap(e.target.value)}
+          >
+            <NativeSelectOption value="NOTIFY_ONLY">
+              {t('aiAutonomy.onCapNotify', 'Notifier seulement (suggestions sans exécution)')}
+            </NativeSelectOption>
+            <NativeSelectOption value="PAUSE">
+              {t('aiAutonomy.onCapPause', "Mettre l'autonomie en pause")}
+            </NativeSelectOption>
+          </NativeSelect>
+        </SettingSentence>
+        <div className="mt-2">
+          {/* Seule action de la carte budget, elle valide la saisie : c'est l'action
+              principale de la zone, d'ou `default` la ou MUI n'avait qu'un outlined. */}
           <Button
-            variant="outlined"
-            size="small"
+            size="sm"
             onClick={handleSaveBudget}
             disabled={saving}
-            sx={{ textTransform: 'none' }}
           >
             {t('aiAutonomy.save', 'Enregistrer')}
           </Button>
-        </Box>
+        </div>
 
         {/* Toggles des comportements premium — alimentés au fil des branchements (X8-b). */}
-        <Box sx={{ mt: 1.5 }}>
+        <div className="mt-2">
           {behaviorKeys.length === 0 ? (
-            <Typography variant="caption" color="text.secondary">
+            <span className="cn-text-caption text-muted-foreground">
               {t(
                 'aiAutonomy.noBehaviors',
                 'Aucun comportement premium branché pour le moment — les interrupteurs apparaîtront ici (ex. optimisation tarifaire proactive).',
               )}
-            </Typography>
+            </span>
           ) : (
             behaviorKeys.map((key) => (
-              <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Field orientation="horizontal" className="gap-1.5" key={key}>
                 <Switch
-                  size="small"
+                  id={`ai-autonomy-behavior-${key}`}
+                  size="sm"
                   checked={Boolean(behaviors[key])}
-                  onChange={(e) => setBehaviors((cur) => ({ ...cur, [key]: e.target.checked }))}
+                  onCheckedChange={(next) => setBehaviors((cur) => ({ ...cur, [key]: next }))}
                 />
-                <Typography variant="body2">
+                <FieldLabel htmlFor={`ai-autonomy-behavior-${key}`} className="cn-text-body2">
                   {t(`aiAutonomy.behavior.${key}`, key)}
-                </Typography>
-              </Box>
+                </FieldLabel>
+              </Field>
             ))
           )}
-        </Box>
-      </Paper>
+        </div>
+      </Card>
 
       {/* ── Règles de Confiance (X2) ── */}
-      <Paper variant="outlined" sx={{ p: 1.75 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+      <Card className="gap-0 py-0 p-2.5">
+        <div className="flex items-center gap-1.5 mb-0.5">
           <ShieldCheck size={18} aria-hidden />
-          <Typography variant="subtitle2">
+          <h6 className="cn-text-subtitle2">
             {t('aiAutonomy.trustTitle', 'Règles de Confiance')}
-          </Typography>
-        </Box>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+          </h6>
+        </div>
+        <span className="cn-text-caption text-muted-foreground block mb-1.5">
           {t(
             'aiAutonomy.trustSubtitle',
             "Quand vous confirmez plusieurs fois la même action, l'assistant propose de ne plus demander. Chaque règle est visible et révocable ici — les actions d'argent ne sont jamais éligibles.",
           )}
-        </Typography>
+        </span>
 
         {rules.length === 0 ? (
-          <Typography variant="caption" color="text.secondary">
+          <span className="cn-text-caption text-muted-foreground">
             {t('aiAutonomy.noRules', 'Aucune règle pour le moment — elles apparaissent après plusieurs confirmations de la même action.')}
-          </Typography>
+          </span>
         ) : (
-          <Table size="small">
-            <TableHead>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('aiAutonomy.rule.tool', 'Action')}</TableCell>
-                <TableCell>{t('aiAutonomy.rule.status', 'Statut')}</TableCell>
-                <TableCell align="right">{t('aiAutonomy.rule.confirmations', 'Confirmations')}</TableCell>
-                <TableCell align="right">{t('aiAutonomy.rule.actions', '')}</TableCell>
+                <TableHead>{t('aiAutonomy.rule.tool', 'Action')}</TableHead>
+                <TableHead>{t('aiAutonomy.rule.status', 'Statut')}</TableHead>
+                <TableHead className="text-end">{t('aiAutonomy.rule.confirmations', 'Confirmations')}</TableHead>
+                <TableHead className="text-end">{t('aiAutonomy.rule.actions', '')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {rules.map((rule) => (
-                <TableRow key={rule.id} hover>
-                  <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>
+                <TableRow key={rule.id}>
+                  <TableCell className="font-mono text-[0.8125rem]">
                     {rule.toolName}
                   </TableCell>
                   <TableCell>
-                    <Chip
-                      size="small"
-                      variant="outlined"
-                      color={TRUST_STATUS_COLOR[rule.status]}
+                    <StatusChip
+                      tone={TRUST_STATUS_TONE[rule.status]}
                       label={t(`aiAutonomy.status.${rule.status}`, rule.status)}
                     />
                   </TableCell>
-                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                  <TableCell className="text-end tabular-nums">
                     {rule.confirmationsSeen}
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell className="text-end">
                     {rule.status === 'SUGGESTED' && (
                       <>
+                        {/* Actions de ligne : « Accepter » garde un cadre pour rester
+                            l'issue attendue, « Ignorer » reste sans cadre. */}
                         <Button
-                          size="small"
+                          variant="outline"
+                          size="sm"
                           disabled={acting === rule.id}
                           onClick={() => handleRuleAction(rule, 'accept')}
-                          sx={{ textTransform: 'none' }}
                         >
                           {t('aiAutonomy.accept', 'Accepter')}
                         </Button>
                         <Button
-                          size="small"
-                          color="inherit"
+                          variant="ghost"
+                          size="sm"
                           disabled={acting === rule.id}
                           onClick={() => handleRuleAction(rule, 'dismiss')}
-                          sx={{ textTransform: 'none' }}
                         >
                           {t('aiAutonomy.dismiss', 'Ignorer')}
                         </Button>
@@ -326,11 +333,10 @@ export default function AiAutonomySection() {
                     )}
                     {rule.status === 'ACTIVE' && (
                       <Button
-                        size="small"
-                        color="inherit"
+                        variant="ghost"
+                        size="sm"
                         disabled={acting === rule.id}
                         onClick={() => handleRuleAction(rule, 'revoke')}
-                        sx={{ textTransform: 'none' }}
                       >
                         {t('aiAutonomy.revoke', 'Révoquer')}
                       </Button>
@@ -341,7 +347,7 @@ export default function AiAutonomySection() {
             </TableBody>
           </Table>
         )}
-      </Paper>
-    </Box>
+      </Card>
+    </div>
   );
 }

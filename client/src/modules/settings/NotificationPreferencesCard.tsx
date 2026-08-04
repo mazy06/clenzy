@@ -1,24 +1,28 @@
 import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
+import { cn } from '../../utils/cn';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { useNotification } from '../../hooks/useNotification';
 import {
-  Box,
-  Paper,
-  Typography,
-  Switch,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
   Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  CircularProgress,
-  Alert,
-  Snackbar,
-  Chip,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+  Card,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemTitle,
+  Switch,
   Tooltip,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import StatusChip from '../../components/StatusChip';
 import {
-  ExpandMore,
   Notifications,
   Build,
   Description,
@@ -253,7 +257,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const { notify } = useNotification();
 
   const loadPreferences = useCallback(async () => {
     try {
@@ -315,16 +319,16 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
       });
 
       if (Object.keys(changed).length === 0) {
-        setSnackbar({ open: true, message: 'Aucune modification a sauvegarder', severity: 'success' });
+        notify.success('Aucune modification a sauvegarder');
         return;
       }
 
       const updated = await notificationPreferencesApi.update(changed);
       setPreferences(updated);
       setOriginalPrefs(updated);
-      setSnackbar({ open: true, message: 'Preferences sauvegardees avec succes', severity: 'success' });
+      notify.success('Preferences sauvegardees avec succes');
     } catch {
-      setSnackbar({ open: true, message: 'Erreur lors de la sauvegarde', severity: 'error' });
+      notify.error('Erreur lors de la sauvegarde');
     } finally {
       setSaving(false);
     }
@@ -338,151 +342,129 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
 
   if (loading) {
     return (
-      <Paper sx={{ p: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
-        <CircularProgress size={32} />
-      </Paper>
+      <Card className="gap-0 py-0 p-4 flex justify-center items-center min-h-[200px]">
+        <Spinner className="size-8" />
+      </Card>
     );
   }
 
   if (error) {
     return (
-      <Paper sx={{ p: 3 }}>
-        <Alert severity="warning">{error}</Alert>
-      </Paper>
+      <Card className="gap-0 py-0 p-4">
+        <UiAlert variant="warning">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </UiAlert>
+      </Card>
     );
   }
 
   return (
-    <Paper sx={{ p: 2 }}>
+    <Card className="gap-0 py-0 p-3">
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><Notifications size={20} strokeWidth={1.75} /></Box>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
+      <div className="flex items-center gap-1.5 mb-3">
+        <span className="inline-flex text-[var(--mui-secondary)]"><Notifications size={20} strokeWidth={1.75} /></span>
+        <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
           Preferences de notifications
-        </Typography>
-      </Box>
+        </h6>
+      </div>
 
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.8rem' }}>
+      <p className="cn-text-body2 text-muted-foreground mb-3 text-[0.8rem]">
         Choisissez les notifications que vous souhaitez recevoir. Desactivez celles qui ne vous interessent pas.
-      </Typography>
+      </p>
 
       {/* Categories Accordions — grille 2 colonnes */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-          gap: 1,
-          alignItems: 'start',
-        }}
-      >
+      {/* md MUI = 900px (breakpoints non configures) et gap: 1 = 6px (spacing 6). */}
+      <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[1fr_1fr] gap-1.5 items-start">
         {CATEGORIES.map((category) => {
           const stats = getCategoryStats(category);
           const allEnabled = stats.enabled === stats.total;
           const noneEnabled = stats.enabled === 0;
 
           return (
+            // Un Accordion par categorie : les panneaux MUI etaient independants
+            // (aucun n'en fermait un autre) et chacun est une cellule de la grille.
             <Accordion
               key={category.id}
-              disableGutters
-              sx={{
-                '&:before': { display: 'none' },
-                boxShadow: 'none',
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: '8px !important',
-                m: 0,
-                '&.Mui-expanded': { m: 0 },
-              }}
+              type="single"
+              collapsible
+              className="rounded-[8px] border border-solid border-[var(--line)]"
             >
-              <AccordionSummary
-                expandIcon={<ExpandMore />}
-                sx={{ minHeight: 48, '& .MuiAccordionSummary-content': { my: 0.5 } }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', pr: 1 }}>
-                  <Box sx={{ color: noneEnabled ? 'text.disabled' : category.color, display: 'flex', transition: 'color 0.2s' }}>
-                    {category.icon}
-                  </Box>
-                  <Typography
-                    variant="body2"
-                    fontWeight={600}
-                    sx={{
-                      flex: 1,
-                      color: noneEnabled ? 'text.disabled' : 'text.primary',
-                      transition: 'color 0.2s',
-                    }}
-                  >
-                    {category.label}
-                  </Typography>
-                  <Chip
-                    label={`${stats.enabled}/${stats.total}`}
-                    size="small"
-                    color={allEnabled ? 'success' : noneEnabled ? 'default' : 'warning'}
-                    variant="outlined"
-                    sx={{ fontSize: '0.7rem', height: 22 }}
-                  />
-                  <Tooltip title={allEnabled ? 'Desactiver toute la section' : noneEnabled ? 'Activer toute la section' : 'Tout activer'}>
-                    <Switch
-                      size="small"
-                      checked={!noneEnabled}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                        e.stopPropagation();
-                        handleToggleCategory(category, noneEnabled ? true : false);
-                      }}
-                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                      color={allEnabled ? 'success' : 'warning'}
-                      sx={{ ml: 0.5 }}
-                    />
-                  </Tooltip>
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails sx={{ pt: 0, pb: 1, opacity: noneEnabled ? 0.45 : 1, transition: 'opacity 0.2s' }}>
-                <List dense disablePadding>
-                  {category.keys.map((nKey) => (
-                    <ListItem key={nKey.key} sx={{ py: 0.25, px: 1 }}>
-                      <ListItemText
-                        primary={
-                          <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
-                            {nKey.title}
-                          </Typography>
-                        }
-                        secondary={
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
-                            {nKey.description}
-                          </Typography>
-                        }
-                      />
-                      <ListItemSecondaryAction>
-                        <Switch
-                          edge="end"
-                          size="small"
-                          checked={preferences[nKey.key] !== false}
-                          onChange={(_, checked) => handleToggle(nKey.key, checked)}
+              <AccordionItem value={category.id} className="border-b-0">
+                {/* Le Switch ne peut PAS vivre dans le trigger : celui-ci est un
+                    <button>, en imbriquer un second est invalide et le clic
+                    piloterait l'accordeon. Il devient donc son frere de rangee —
+                    ce qui rend aussi les stopPropagation d'origine inutiles. */}
+                <div className="flex items-center">
+                  <div className="flex-1 min-w-0">
+                    <AccordionTrigger className="min-h-12 w-full items-center px-3">
+                      <div className="flex items-center gap-1.5 w-full pe-1.5">
+                        {/* La couleur de categorie vient des donnees : elle passe par style, pas par une classe. */}
+                        <div className="flex [transition:color_0.2s]" style={{ color: noneEnabled ? 'var(--faint)' : category.color }}>
+                          {category.icon}
+                        </div>
+                        <p className={cn('cn-text-body2 font-semibold flex-1 text-start', noneEnabled ? 'text-[var(--faint)]' : 'text-[var(--ink)]')} style={{ transition: 'color 0.2s' }}>
+                          {category.label}
+                        </p>
+                        <StatusChip
+                          tone={allEnabled ? 'ok' : noneEnabled ? 'neutral' : 'warn'}
+                          label={`${stats.enabled}/${stats.total}`}
+                          className="text-[0.7rem]"
                         />
-                      </ListItemSecondaryAction>
-                    </ListItem>
-                  ))}
-                </List>
-              </AccordionDetails>
+                      </div>
+                    </AccordionTrigger>
+                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      {/* span : TooltipTrigger asChild pose une ref DOM, que le
+                          Switch du kit (fonction, React 18) ne transmet pas. */}
+                      <span className="inline-flex me-3">
+                        <Switch
+                          size="sm"
+                          checked={!noneEnabled}
+                          onCheckedChange={() => handleToggleCategory(category, noneEnabled ? true : false)}
+                          className={allEnabled
+                            ? 'data-checked:bg-[var(--ok)]'
+                            : 'data-checked:bg-[var(--warn)]'}
+                        />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {allEnabled ? 'Desactiver toute la section' : noneEnabled ? 'Activer toute la section' : 'Tout activer'}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <AccordionContent
+                  className={cn('px-3 pt-0 pb-1.5 [transition:opacity_0.2s]', noneEnabled && 'opacity-45')}
+                >
+                  <ItemGroup>
+                    {category.keys.map((nKey) => (
+                      <Item key={nKey.key} size="xs" className="px-1.5 py-[1.5px]">
+                        <ItemContent>
+                          <ItemTitle className="text-[0.82rem] font-normal">
+                            {nKey.title}
+                          </ItemTitle>
+                          <ItemDescription className="text-[0.72rem]">
+                            {nKey.description}
+                          </ItemDescription>
+                        </ItemContent>
+                        <ItemActions>
+                          <Switch
+                            size="sm"
+                            checked={preferences[nKey.key] !== false}
+                            onCheckedChange={(checked) => handleToggle(nKey.key, checked)}
+                          />
+                        </ItemActions>
+                      </Item>
+                    ))}
+                  </ItemGroup>
+                </AccordionContent>
+              </AccordionItem>
             </Accordion>
           );
         })}
-      </Box>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-      >
-        <Alert
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Paper>
+      </div>
+    </Card>
   );
 });
 

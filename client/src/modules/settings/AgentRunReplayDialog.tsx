@@ -1,19 +1,18 @@
 import { useEffect, useState } from 'react';
+import StatusChip from '../../components/StatusChip';
+import { Badge } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import {
-  Alert,
-  Box,
-  Button,
-  Chip,
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogHeader,
   DialogTitle,
-  IconButton,
   Skeleton,
-  TextField,
-  Typography,
-  useTheme,
-} from '@mui/material';
-import { Brain, Wrench, GitBranch, PauseCircle, FileText, X } from 'lucide-react';
+} from '../../components/ui';
+import { Field, FieldLabel, Input } from '../../components/ui';
+import { Brain, Wrench, GitBranch, PauseCircle, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { agentRunApi, type AgentRunReplay, type AgentRunStep } from '../../services/api/agentRunApi';
 
@@ -38,7 +37,6 @@ const KIND_ICON: Record<AgentRunStep['kind'], typeof Brain> = {
 
 export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
   const { t } = useTranslation();
-  const theme = useTheme();
   const [replay, setReplay] = useState<AgentRunReplay | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,132 +56,118 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
       .finally(() => setLoading(false));
   }, [open, runId, t]);
 
+  // `theme.palette.error.main` -> jeton Signature equivalent (plus de useTheme).
   const statusColor = (status: string): string => {
-    if (status === 'ERROR') return theme.palette.error.main;
+    if (status === 'ERROR') return 'var(--err)';
     if (status === 'PAUSED') return '#D4A574';
     return '#4A9B8E';
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
-        <Box>
-          <Typography variant="h6" sx={{ lineHeight: 1.2 }}>
-            {t('agentReplay.title', 'Replay du run')}
-          </Typography>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="max-w-[600px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{t('agentReplay.title', 'Replay du run')}</DialogTitle>
           {replay && (
-            <Typography variant="caption" color="text.secondary">
+            <DialogDescription>
               {t(`agentReplay.origin.${replay.origin}`, replay.origin)}
               {' · '}
               {new Date(replay.startedAt).toLocaleString()}
-            </Typography>
+            </DialogDescription>
           )}
-        </Box>
-        <IconButton onClick={onClose} size="small" aria-label={t('common.close', 'Fermer')}>
-          <X size={18} />
-        </IconButton>
-      </DialogTitle>
-      <DialogContent dividers>
+        </DialogHeader>
         {loading && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Skeleton variant="rounded" height={48} />
-            <Skeleton variant="rounded" height={48} />
-            <Skeleton variant="rounded" height={48} />
-          </Box>
+          <div className="flex flex-col gap-1.5">
+            <Skeleton className="h-12 rounded-[8px]" />
+            <Skeleton className="h-12 rounded-[8px]" />
+            <Skeleton className="h-12 rounded-[8px]" />
+          </div>
         )}
-        {error && <Alert severity="warning">{error}</Alert>}
+        {error && <Alert variant="warning">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>}
         {replay && !loading && (
           <>
-            <Box sx={{ display: 'flex', gap: 0.75, mb: 1.5, flexWrap: 'wrap' }}>
-              <Chip
-                size="small"
-                label={t(`agentReplay.status.${replay.status}`, replay.status)}
-                sx={{ bgcolor: statusColor(replay.status), color: '#fff' }}
-              />
-              <Chip
-                size="small"
-                variant="outlined"
-                label={`${replay.steps.length} ${t('agentReplay.steps', 'étapes')}`}
-              />
-            </Box>
+            <div className="flex gap-1 mb-2 flex-wrap">
+              <StatusChip tokens={{ color: '#fff', bg: statusColor(replay.status) }} label={t(`agentReplay.status.${replay.status}`, replay.status)} />
+              <Badge variant="outline">{`${replay.steps.length} ${t('agentReplay.steps', 'étapes')}`}</Badge>
+            </div>
             {replay.error && (
-              <Alert severity="error" sx={{ mb: 1.5 }}>
-                {replay.error}
+              <Alert variant="destructive" className="mb-2">
+                <TriangleAlert />
+                <AlertDescription>{replay.error}</AlertDescription>
               </Alert>
             )}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            <div className="flex flex-col gap-1">
               {replay.steps.map((step) => {
                 const Icon = KIND_ICON[step.kind] ?? Brain;
                 const tokens = step.promptTokens + step.completionTokens;
                 return (
-                  <Box
+                  <div
                     key={step.seq}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 1.25,
-                      p: 1,
-                      borderRadius: 1,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderLeft: '2px solid',
-                      borderLeftColor: step.status === 'ERROR' ? theme.palette.error.main : 'divider',
-                    }}
+                    className="flex items-start gap-[7.5px] p-1.5 rounded-[8px] border border-solid border-[var(--line)] border-l-2"
+                    // Teinte d'erreur decidee a l'execution ; sinon le lisere
+                    // garde la couleur de bordure posee par la classe.
+                    style={{ borderLeftColor: step.status === 'ERROR' ? 'var(--err)' : undefined }}
                   >
                     <Icon
                       size={16}
                       style={{ marginTop: 2, flexShrink: 0 }}
-                      color={theme.palette.text.secondary}
+                      color="var(--muted)"
                       aria-hidden
                     />
-                    <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <p className="cn-text-body2 font-semibold">
                           {t(`agentReplay.kind.${step.kind}`, step.kind)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </p>
+                        <span className="cn-text-caption text-muted-foreground">
                           {step.toolName ?? step.agent}
-                        </Typography>
-                      </Box>
+                        </span>
+                      </div>
                       {step.detail && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                        <span className="cn-text-caption text-muted-foreground block">
                           {step.detail}
-                        </Typography>
+                        </span>
                       )}
-                    </Box>
+                    </div>
                     {tokens > 0 && (
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}
-                      >
+                      <span className="cn-text-caption text-muted-foreground tabular-nums whitespace-nowrap">
                         {tokens.toLocaleString()} tok
-                      </Typography>
+                      </span>
                     )}
-                  </Box>
+                  </div>
                 );
               })}
-            </Box>
+            </div>
             {replay.userQuery && (
-              <Box sx={{ mt: 2, pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
-                <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+              <div className="mt-3 pt-2 border-t border-[var(--line)]">
+                <h6 className="cn-text-subtitle2 mb-0.5">
                   {t('agentReplay.whatIf.title', 'Et si… ? (rejouer avec une hypothèse)')}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                </h6>
+                <span className="cn-text-caption text-muted-foreground block mb-1.5">
                   {t('agentReplay.whatIf.subtitle',
                     'Le prompt de re-analyse est copié — collez-le dans le chat de l\u2019assistant pour lancer le what-if.')}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                  <TextField
-                    size="small"
-                    fullWidth
-                    value={hypothesis}
-                    onChange={(e) => setHypothesis(e.target.value)}
-                    placeholder={t('agentReplay.whatIf.placeholder', 'Ex. : avec un tarif nuit à 95 € au lieu de 120 €')}
-                  />
+                </span>
+                <div className="flex gap-1.5 items-start">
+                  <Field className="flex-1">
+                    {/* Libelle masque : le titre « Et si… ? » juste au-dessus fait
+                        office d'intitule visible, mais le champ doit garder un nom. */}
+                    <FieldLabel htmlFor="agent-replay-hypothesis" className="sr-only">
+                      {t('agentReplay.whatIf.title', 'Et si… ? (rejouer avec une hypothèse)')}
+                    </FieldLabel>
+                    <Input
+                      id="agent-replay-hypothesis"
+                      value={hypothesis}
+                      onChange={(e) => setHypothesis(e.target.value)}
+                      placeholder={t('agentReplay.whatIf.placeholder', 'Ex. : avec un tarif nuit à 95 € au lieu de 120 €')}
+                    />
+                  </Field>
                   <Button
-                    variant="outlined"
-                    size="small"
+                    variant="outline"
+                    size="sm"
+                    className="whitespace-nowrap"
                     disabled={whatIfStatus === 'busy' || !hypothesis.trim()}
                     onClick={async () => {
                       setWhatIfStatus('busy');
@@ -197,7 +181,6 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
                         setTimeout(() => setWhatIfStatus('idle'), 4000);
                       }
                     }}
-                    sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
                   >
                     {whatIfStatus === 'copied'
                       ? t('agentReplay.whatIf.copied', 'Copié !')
@@ -205,8 +188,8 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
                         ? t('agentReplay.whatIf.error', 'Échec')
                         : t('agentReplay.whatIf.copy', 'Copier le prompt')}
                   </Button>
-                </Box>
-              </Box>
+                </div>
+              </div>
             )}
           </>
         )}

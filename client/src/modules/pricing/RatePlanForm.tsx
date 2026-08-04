@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { Spinner } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import {
-  Box,
-  Typography,
-  Paper,
   Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormControlLabel,
+  Field,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  NativeSelect,
+  NativeSelectOption,
   Switch,
-  CircularProgress,
-  IconButton,
-} from '@mui/material';
+} from '../../components/ui';
 import { Close as CloseIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -23,14 +22,8 @@ import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPr
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
-const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: 1.5,
-} as const;
+const CARD_CLS =
+  'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] p-[9px]';
 
 const PLAN_TYPES = ['BASE', 'SEASONAL', 'PROMOTIONAL', 'LAST_MINUTE'] as const;
 
@@ -117,82 +110,101 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
   const isValid = name.trim() !== '' && nightlyPrice !== '' && !isNaN(parseFloat(nightlyPrice));
 
   return (
-    <Paper sx={CARD_SX}>
+    <div className={CARD_CLS}>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      <div className="flex justify-between items-center mb-2">
+        <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em]">
           {editingPlan ? t('dynamicPricing.ratePlan.edit') : t('dynamicPricing.ratePlan.create')}
-        </Typography>
+        </p>
         {editingPlan && (
-          <IconButton size="small" onClick={onCancel} sx={{ p: 0.25 }}>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={onCancel}
+            aria-label={t('common.cancel')}
+          >
             <CloseIcon size={16} strokeWidth={1.75} />
-          </IconButton>
+          </Button>
         )}
-      </Box>
+      </div>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      <div className="flex flex-col gap-2">
         {/* Name */}
-        <TextField
-          label={t('dynamicPricing.ratePlan.name')}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          fullWidth
-          size="small"
-        />
+        <Field>
+          <FieldLabel htmlFor="rate-plan-name">{t('dynamicPricing.ratePlan.name')}</FieldLabel>
+          <Input
+            id="rate-plan-name"
+            className="w-full"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </Field>
 
         {/* Type */}
-        <FormControl fullWidth size="small">
-          <InputLabel>{t('common.type')}</InputLabel>
-          <Select value={type} label={t('common.type')} onChange={(e) => setType(e.target.value)}>
+        <Field>
+          <FieldLabel htmlFor="rate-plan-type">{t('common.type')}</FieldLabel>
+          <NativeSelect
+            id="rate-plan-type"
+            className="w-full"
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+          >
             {PLAN_TYPES.map((pt) => (
-              <MenuItem key={pt} value={pt}>
+              <NativeSelectOption key={pt} value={pt}>
                 {t(`dynamicPricing.ratePlan.types.${pt}`)}
-              </MenuItem>
+              </NativeSelectOption>
             ))}
-          </Select>
-        </FormControl>
+          </NativeSelect>
+        </Field>
 
         {/* Price + Currency + Priority row */}
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <TextField
-            label={t('dynamicPricing.ratePlan.nightlyPrice')}
-            type="number"
-            value={nightlyPrice}
-            onChange={(e) => setNightlyPrice(e.target.value)}
-            fullWidth
-            size="small"
-            inputProps={{ min: 0, step: 1 }}
-          />
-          <TextField
-            label={t('common.currency') || 'Devise'}
-            value={activeCurrency}
-            disabled
-            size="small"
-            sx={{ width: 90 }}
-            InputProps={{
-              startAdornment: (
-                <Typography variant="body2" sx={{ mr: 0.5, fontWeight: 600, color: 'text.secondary' }}>
+        <div className="flex gap-1.5">
+          <Field className="flex-1 min-w-0">
+            <FieldLabel htmlFor="rate-plan-nightly-price">
+              {t('dynamicPricing.ratePlan.nightlyPrice')}
+            </FieldLabel>
+            <Input
+              id="rate-plan-nightly-price"
+              className="w-full"
+              type="number"
+              value={nightlyPrice}
+              onChange={(e) => setNightlyPrice(e.target.value)}
+              min={0}
+              step={1}
+            />
+          </Field>
+          <Field className="w-[90px] shrink-0">
+            <FieldLabel htmlFor="rate-plan-currency">{t('common.currency', 'Devise')}</FieldLabel>
+            <InputGroup>
+              <InputGroupAddon align="inline-start">
+                <span className="cn-text-body2 font-semibold text-muted-foreground">
                   <CurrencySymbol code={activeCurrency} />
-                </Typography>
-              ),
-            }}
-          />
-          <TextField
-            label={t('dynamicPricing.ratePlan.priority')}
-            type="number"
-            value={priority}
-            onChange={(e) => setPriority(e.target.value)}
-            size="small"
-            sx={{ width: 100 }}
-            inputProps={{ min: 0, step: 1 }}
-          />
-        </Box>
+                </span>
+              </InputGroupAddon>
+              <InputGroupInput id="rate-plan-currency" value={activeCurrency} disabled />
+            </InputGroup>
+          </Field>
+          <Field className="w-[100px] shrink-0">
+            <FieldLabel htmlFor="rate-plan-priority">
+              {t('dynamicPricing.ratePlan.priority')}
+            </FieldLabel>
+            <Input
+              id="rate-plan-priority"
+              className="w-full"
+              type="number"
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+              min={0}
+              step={1}
+            />
+          </Field>
+        </div>
 
         {/* Date range — shared mini calendar */}
-        <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem', mb: 0.5, display: 'block' }}>
+        <div>
+          <span className="cn-text-caption text-muted-foreground text-[0.625rem] mb-0.5 block">
             {t('dynamicPricing.ratePlan.dateRange')}
-          </Typography>
+          </span>
           <MiniDateRangePicker
             startDate={startDate}
             endDate={endDate}
@@ -200,93 +212,79 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
             onChangeEnd={setEndDate}
             isFrench={isFrench}
           />
-        </Box>
+        </div>
 
         {/* Days of week */}
-        <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem', mb: 0.5, display: 'block' }}>
+        <div>
+          <span className="cn-text-caption text-muted-foreground text-[0.625rem] mb-0.5 block">
             {t('dynamicPricing.ratePlan.daysOfWeek')}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: '3px' }}>
+          </span>
+          <div className="flex gap-[3px]">
             {(() => {
               const daysOfWeekSet = new Set(daysOfWeek);
               return dayLabels.map((label, idx) => {
               const dayValue = idx + 1;
               const selected = daysOfWeekSet.has(dayValue);
               return (
-                <Box
+                <div
                   key={label}
                   onClick={() => toggleDay(dayValue)}
                   aria-pressed={selected}
-                  sx={{
-                    flex: 1,
-                    textAlign: 'center',
-                    py: 0.5,
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    border: '1px solid',
-                    borderColor: selected ? 'var(--accent)' : 'var(--field-line)',
-                    bgcolor: selected ? 'var(--accent-soft)' : 'var(--field)',
-                    transition: 'border-color 0.15s, background-color 0.15s',
-                    '&:hover': {
-                      borderColor: selected ? 'var(--accent)' : 'var(--faint)',
-                    },
-                  }}
+                  className={cn(
+                    'flex-1 text-center py-[3px] rounded-[8px] cursor-pointer border border-solid transition-[border-color,background-color] duration-150',
+                    selected
+                      ? 'border-[var(--accent)] bg-[var(--accent-soft)] hover:border-[var(--accent)]'
+                      : 'border-[var(--field-line)] bg-[var(--field)] hover:border-[var(--faint)]',
+                  )}
                 >
-                  <Typography
-                    variant="caption"
-                    fontWeight={selected ? 700 : 500}
-                    sx={{
-                      fontSize: '0.5625rem',
-                      color: selected ? 'var(--accent)' : 'var(--muted)',
-                    }}
-                  >
+                  <span className={cn('cn-text-caption text-[0.5625rem]', selected ? 'font-bold' : 'font-medium', selected ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}>
                     {label}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               );
               });
             })()}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* Active toggle */}
-        <FormControlLabel
-          control={
-            <Switch size="small" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-          }
-          label={
-            <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
-              {isActive ? t('dynamicPricing.ratePlan.active') : t('dynamicPricing.ratePlan.inactive')}
-            </Typography>
-          }
-        />
+        <Field orientation="horizontal" className="w-fit">
+          <Switch
+            id="rate-plan-active"
+            size="sm"
+            checked={isActive}
+            onCheckedChange={setIsActive}
+          />
+          <FieldLabel htmlFor="rate-plan-active" className="cn-text-caption text-[0.75rem] font-normal">
+            {isActive ? t('dynamicPricing.ratePlan.active') : t('dynamicPricing.ratePlan.inactive')}
+          </FieldLabel>
+        </Field>
 
         {/* Actions */}
-        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+        <div className="flex gap-1.5 justify-end">
           {editingPlan && (
             <Button
-              size="small"
+              variant="ghost"
+              size="sm"
               onClick={onCancel}
               disabled={loading}
-              sx={{ fontSize: '0.75rem', textTransform: 'none' }}
+              className="text-[0.75rem]"
             >
               {t('common.cancel')}
             </Button>
           )}
           <Button
-            variant="contained"
-            size="small"
+            size="sm"
             onClick={handleSave}
             disabled={loading || !isValid}
-            startIcon={loading ? <CircularProgress size={14} /> : undefined}
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}
+            className="text-[0.75rem]"
           >
+            {loading && <Spinner className="size-3.5" />}
             {editingPlan ? t('common.save') : t('dynamicPricing.ratePlan.create')}
           </Button>
-        </Box>
-      </Box>
-    </Paper>
+        </div>
+      </div>
+    </div>
   );
 };
 

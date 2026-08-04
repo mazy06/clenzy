@@ -109,6 +109,19 @@ public class GuestDeclaration {
     @Column(name = "provider_type", length = 30)
     private String providerType;
 
+    /**
+     * Mandat au titre duquel la déclaration a été déposée.
+     *
+     * <p>La conciergerie télédéclare avec SES identifiants, y compris pour les
+     * biens de propriétaires tiers : sans cette référence, rien n'établissait
+     * qu'elle y était autorisée — un propriétaire contestant une déclaration
+     * faite en son nom ne trouvait aucune pièce en face. {@code null} = le
+     * déclarant exploite son propre bien (aucun mandat en jeu), ou déclaration
+     * antérieure au mandat déclaratif.</p>
+     */
+    @Column(name = "management_contract_id")
+    private Long managementContractId;
+
     @Column(name = "submitted_at")
     private LocalDateTime submittedAt;
 
@@ -157,6 +170,9 @@ public class GuestDeclaration {
     public void setCountryCode(String countryCode) { this.countryCode = countryCode; }
     public boolean isSubmittedToProvider() { return submittedToProvider; }
     public void setSubmittedToProvider(boolean submittedToProvider) { this.submittedToProvider = submittedToProvider; }
+    public Long getManagementContractId() { return managementContractId; }
+    public void setManagementContractId(Long managementContractId) { this.managementContractId = managementContractId; }
+
     public String getProviderType() { return providerType; }
     public void setProviderType(String providerType) { this.providerType = providerType; }
     public LocalDateTime getSubmittedAt() { return submittedAt; }

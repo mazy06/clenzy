@@ -1,17 +1,35 @@
 import React, { useState } from 'react';
-import { Box, Typography, TextField, MenuItem, CircularProgress } from '@mui/material';
+import { Spinner } from '../ui';
+import {
+  Field,
+  FieldLabel,
+  NativeSelect,
+  NativeSelectOption,
+  Textarea,
+} from '../ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { Lock, Build } from '../../icons';
+import { Lock } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { calendarPricingApi } from '../../services/api/calendarPricingApi';
 import { planningKeys } from '../../modules/planning/hooks/usePlanningData';
 import { reservationsKeys } from '../../hooks/useReservations';
-import { INTERVENTION_TYPE_TOKEN_COLORS } from '../../modules/planning/constants';
+import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
-import { SEC_SX, FIELD_SX, TEXTAREA_SX, FOOT_SX, BTN_GHOST_SX, BTN_PRIMARY_SX } from './reservationDialogStyles';
 import PropertySelectField from './PropertySelectField';
 import ReservationRangeCalendar from './ReservationRangeCalendar';
 import ConflictAlert from './ConflictAlert';
+
+// Equivalent classes du BTN_BASE_SX de reservationDialogStyles (.s-btn) —
+// le .ts partage reste la source pour les autres ecrans du dialogue.
+const BTN_BASE_CLS =
+  'inline-flex h-[38px] cursor-pointer items-center gap-2 rounded-[11px] border border-solid border-transparent px-[17px] py-0 '
+  + '[font-family:inherit] text-[12.5px] font-semibold '
+  + '[transition:transform_.12s,background_.14s,border-color_.14s,color_.14s] enabled:active:scale-[.97] '
+  + 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]';
+
+// Transposition en classes de SEC_SX (.rm-sec) — la constante reste exportee
+// dans reservationDialogStyles pour les consommateurs sx eventuels.
+const SEC_CLS = 'cn-text-body1 text-[10.5px] font-bold tracking-[0.08em] uppercase text-[var(--faint)]';
 
 type BlockType = 'BLOCKED' | 'MAINTENANCE';
 
@@ -65,11 +83,11 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
 
   return (
     <>
-      <Box sx={{ flex: 1, overflowY: 'auto', padding: '22px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+      <div className="flex flex-1 flex-col gap-[18px] overflow-y-auto p-[22px]">
         {form.showPropertySelector && <PropertySelectField form={form} />}
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <Typography sx={SEC_SX}>{t('reservations.dialog.stayDates')}</Typography>
+        <div className="flex flex-col gap-2.5">
+          <p className={SEC_CLS}>{t('reservations.dialog.stayDates')}</p>
           <ReservationRangeCalendar
             startDate={form.startDate}
             endDate={form.endDate}
@@ -85,75 +103,70 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
             locale={form.locale}
             weekdayLabels={form.weekdayLabels}
           />
-        </Box>
+        </div>
 
-        <TextField
-          select
-          label={t('reservations.dialog.blockTypeLabel')}
-          value={blockType}
-          onChange={(e) => setBlockType(e.target.value as BlockType)}
-          fullWidth
-          InputLabelProps={{ shrink: true }}
-          sx={FIELD_SX}
-        >
-          <MenuItem value="BLOCKED">
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.blocked }}>
-                <Lock size={15} strokeWidth={1.75} />
-              </Box>
-              {t('reservations.dialog.blockTypeBlocked')}
-            </Box>
-          </MenuItem>
-          <MenuItem value="MAINTENANCE">
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
-                <Build size={15} strokeWidth={1.75} />
-              </Box>
-              {t('reservations.dialog.blockTypeMaintenance')}
-            </Box>
-          </MenuItem>
-        </TextField>
+        {/* Un select natif ne peut pas peindre d icone dans ses options :
+            les pastilles Lock / Build de l ancien menu MUI disparaissent. */}
+        <Field>
+          <FieldLabel htmlFor="block-type">{t('reservations.dialog.blockTypeLabel')}</FieldLabel>
+          <NativeSelect
+            id="block-type"
+            className="w-full"
+            value={blockType}
+            onChange={(e) => setBlockType(e.target.value as BlockType)}
+          >
+            <NativeSelectOption value="BLOCKED">{t('reservations.dialog.blockTypeBlocked')}</NativeSelectOption>
+            <NativeSelectOption value="MAINTENANCE">{t('reservations.dialog.blockTypeMaintenance')}</NativeSelectOption>
+          </NativeSelect>
+        </Field>
 
         {nights > 0 && (
-          <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+          <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] tabular-nums">
             {nights} {t(nights > 1 ? 'reservations.dialog.blockNights' : 'reservations.dialog.blockNight')}
-          </Typography>
+          </p>
         )}
 
-        <TextField
-          label={t('reservations.dialog.blockReason')}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder={t('reservations.dialog.blockReasonPlaceholder')}
-          multiline
-          minRows={2}
-          fullWidth
-          InputLabelProps={{ shrink: true }}
-          sx={TEXTAREA_SX}
-        />
+        <Field>
+          <FieldLabel htmlFor="block-reason">{t('reservations.dialog.blockReason')}</FieldLabel>
+          <Textarea
+            id="block-reason"
+            className="w-full"
+            rows={2}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder={t('reservations.dialog.blockReasonPlaceholder')}
+          />
+        </Field>
 
         <ConflictAlert form={form} />
 
         {error && (
-          <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--err)' }}>{error}</Typography>
+          <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--err)]">{error}</p>
         )}
-      </Box>
+      </div>
 
-      <Box sx={{ ...FOOT_SX, justifyContent: 'flex-end' }}>
-        <Box component="button" type="button" onClick={onClose} sx={BTN_GHOST_SX}>
+      <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-solid border-[var(--line)] bg-[var(--surface-2)] px-[22px] py-[14px]">
+        <button
+          type="button"
+          onClick={onClose}
+          className={cn(BTN_BASE_CLS, 'bg-transparent text-[var(--muted)] hover:text-[var(--ink)]')}
+        >
           {t('common.cancel')}
-        </Box>
-        <Box
-          component="button"
+        </button>
+        <button
           type="button"
           onClick={handleBlock}
           disabled={saving || !canSubmit}
-          sx={BTN_PRIMARY_SX}
+          className={cn(
+            BTN_BASE_CLS,
+            'border-[var(--accent)] bg-transparent text-[var(--accent)]',
+            'enabled:hover:bg-[var(--accent-soft)] disabled:cursor-not-allowed disabled:opacity-45',
+          )}
         >
-          {saving ? <CircularProgress size={15} /> : <Lock size={15} strokeWidth={2} />}
+          {saving ? <Spinner className="size-[15px]" /> : <Lock size={15} strokeWidth={2} />}
           {saving ? t('reservations.dialog.blockSubmitting') : t('reservations.dialog.blockSubmit')}
-        </Box>
-      </Box>
+        </button>
+      </div>
     </>
   );
 };

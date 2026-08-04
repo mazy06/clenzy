@@ -1,26 +1,29 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import StatusChip from '../../../components/StatusChip';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { Info, CircleCheck, TriangleAlert } from 'lucide-react';
+import { Spinner, Button } from '../../../components/ui';
 import {
-  Box,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  Radio,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   RadioGroup,
-  FormControlLabel,
-  FormControl,
-  FormLabel,
-  CircularProgress,
-  IconButton,
-  Stack,
-  Chip,
-  MenuItem,
-} from '@mui/material';
+  RadioGroupItem,
+} from '../../../components/ui';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../../components/ui';
 import { Close as CloseIcon, Save } from '../../../icons';
+import { cn } from '../../../utils/cn';
 import { accountingApi } from '../../../services/api/accountingApi';
 import type {
   OwnerPayoutConfig,
@@ -368,284 +371,259 @@ export default function PayoutMethodEditDialog({
   // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <Dialog
-      open={open}
-      onClose={saving ? undefined : onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{ sx: { borderRadius: '12px' } }}
-    >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          fontSize: '0.95rem',
-          fontWeight: 700,
-          letterSpacing: '-0.005em',
-        }}
+    <Dialog open={open} onOpenChange={(next) => { if (!next && !saving) onClose(); }}>
+      <DialogContent
+        className="max-w-[900px] max-h-[88vh] overflow-y-auto rounded-[12px]"
+        showCloseButton={false}
       >
-        <Box>
-          Méthode de reversement
-          {ownerName && (
-            <Typography
-              component="span"
-              sx={{ display: 'block', fontSize: '0.72rem', fontWeight: 400, color: 'text.secondary', mt: 0.25 }}
+        <DialogHeader>
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <DialogTitle className="text-[0.95rem] font-bold tracking-[-0.005em]">
+                Méthode de reversement
+              </DialogTitle>
+              {ownerName && (
+                <DialogDescription className="text-[0.72rem] mt-0.5">
+                  Propriétaire : {ownerName}
+                </DialogDescription>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Fermer"
+              onClick={onClose}
+              disabled={saving}
             >
-              Propriétaire : {ownerName}
-            </Typography>
-          )}
-        </Box>
-        <IconButton onClick={onClose} disabled={saving} size="small">
-          <CloseIcon size={16} strokeWidth={2} />
-        </IconButton>
-      </DialogTitle>
+              <CloseIcon size={16} strokeWidth={2} />
+            </Button>
+          </div>
+        </DialogHeader>
 
-      <DialogContent dividers sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {/* ─── Sélecteur de méthode ───────────────────────────── */}
-        <FormControl>
-          <FormLabel sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'text.primary', mb: 1 }}>
-            Choisissez le rail de virement
-          </FormLabel>
-          <RadioGroup
-            value={selectedMethod}
-            onChange={(e) => setSelectedMethod(e.target.value as PayoutMethod)}
-            sx={{ gap: 0.5 }}
-          >
-            {METHOD_OPTIONS.map((opt) => (
-              <Box
-                key={opt.value}
-                sx={{
-                  border: '1px solid',
-                  borderColor: selectedMethod === opt.value ? 'var(--accent)' : 'divider',
-                  backgroundColor: selectedMethod === opt.value ? 'var(--accent-soft)' : 'transparent',
-                  borderRadius: '8px',
-                  px: 1.5,
-                  py: 1,
-                  cursor: 'pointer',
-                  transition: 'border-color 150ms, background-color 150ms',
-                  '&:hover': { borderColor: 'color-mix(in srgb, var(--accent) 53%, transparent)', backgroundColor: 'color-mix(in srgb, var(--accent) 4%, transparent)' },
-                }}
-                onClick={() => setSelectedMethod(opt.value)}
-              >
-                <FormControlLabel
-                  value={opt.value}
-                  control={<Radio size="small" sx={{ p: 0.5, mr: 1 }} />}
-                  label={
-                    <Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.875 }}>
-                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                          {opt.label}
-                        </Typography>
-                        {opt.badge && (
-                          <Chip
-                            label={opt.badge}
-                            size="small"
-                            sx={{
-                              height: 18,
-                              fontSize: '0.6rem',
-                              fontWeight: 700,
-                              letterSpacing: '0.04em',
-                              bgcolor: `${opt.badgeColor}14`,
-                              color: opt.badgeColor,
-                              border: `1px solid ${opt.badgeColor}33`,
-                              '& .MuiChip-label': { px: 0.75 },
-                            }}
-                          />
-                        )}
-                      </Box>
-                      <Typography
-                        sx={{ fontSize: '0.72rem', color: 'text.secondary', lineHeight: 1.4, mt: 0.25 }}
-                      >
-                        {opt.description}
-                      </Typography>
-                    </Box>
-                  }
-                  sx={{ alignItems: 'flex-start', m: 0, width: '100%' }}
-                />
-              </Box>
-            ))}
-          </RadioGroup>
-        </FormControl>
+        {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+        <div className="flex flex-col gap-3 border-y border-solid border-[var(--line)] py-3">
+          {/* ─── Sélecteur de méthode ───────────────────────────── */}
+          <div>
+            <p className="cn-text-body1 text-[0.78rem] font-bold text-[var(--ink)] mb-1.5">
+              Choisissez le rail de virement
+            </p>
+            <RadioGroup
+              value={selectedMethod}
+              onValueChange={(v) => setSelectedMethod(v as PayoutMethod)}
+              className="gap-[3px]"
+            >
+              {METHOD_OPTIONS.map((opt) => (
+                // <label> plutot qu'un onClick sur une div : le clic n'importe ou
+                // dans la carte coche le radio, et le libelle reste associe.
+                <label
+                  key={opt.value}
+                  className={cn(
+                    'flex items-start gap-1.5 cursor-pointer rounded-[8px] border border-solid px-[9px] py-1.5',
+                    '[transition:border-color_150ms,background-color_150ms]',
+                    'hover:border-[color-mix(in_srgb,var(--accent)_53%,transparent)] hover:bg-[color-mix(in_srgb,var(--accent)_4%,transparent)]',
+                    selectedMethod === opt.value
+                      ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                      : 'border-[var(--line)] bg-transparent',
+                  )}
+                >
+                  <RadioGroupItem value={opt.value} className="mt-[3px]" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p className="cn-text-body1 text-[0.85rem] font-semibold">
+                        {opt.label}
+                      </p>
+                      {opt.badge && (
+                        <StatusChip size="sm" tokens={{ color: opt.badgeColor ?? 'var(--muted)', bg: `${opt.badgeColor ?? 'var(--muted)'}14` }} label={opt.badge} className="text-[0.6rem] tracking-[0.04em]" />
+                      )}
+                    </div>
+                    <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.4] mt-0.5">
+                      {opt.description}
+                    </p>
+                  </div>
+                </label>
+              ))}
+            </RadioGroup>
+          </div>
 
         {/* ─── Section IBAN (SEPA + Wise) ─────────────────────────── */}
         {requiresIban && (
-          <Stack spacing={1.5}>
-            <Alert severity="info" sx={{ borderRadius: '8px', fontSize: '0.8rem' }}>
-              {hasExistingIban
+          <div className="flex flex-col gap-[9px]">
+            <Alert variant="info" className="text-[0.8rem]">
+              <Info />
+              <AlertDescription>{hasExistingIban
                 ? 'Les coordonnées bancaires actuelles sont affichées et conservées par défaut. Cliquez dans le champ IBAN pour saisir un nouveau numéro — sinon, gardez les valeurs existantes.'
                 : selectedMethod === 'WISE'
                 ? 'Wise utilisera ces coordonnées pour créer le recipient. Le virement sera converti automatiquement dans la devise du compte destinataire.'
-                : 'Coordonnées du compte destinataire utilisées pour le fichier SEPA pain.001 et le virement bancaire.'}
+                : 'Coordonnées du compte destinataire utilisées pour le fichier SEPA pain.001 et le virement bancaire.'}</AlertDescription>
             </Alert>
-            <TextField
-              label="IBAN"
-              value={iban}
-              onChange={(e) => {
-                setIban(e.target.value);
-                setIbanError('');
-              }}
-              onFocus={(e) => {
-                // Si le champ contient encore le mask (****0189), on selectionne
-                // tout le contenu pour qu'un nouveau collage/saisie le remplace
-                // d'un seul coup. UX standard pour les champs pre-remplis.
-                if (ibanUnchanged) {
-                  e.target.select();
-                }
-              }}
-              error={!!ibanError}
-              helperText={
-                ibanError ||
-                (hasExistingIban
-                  ? ibanUnchanged
-                    ? 'IBAN actuel conservé. Tapez un nouvel IBAN pour le remplacer.'
-                    : 'Nouvel IBAN. Format : FR76 1234 5678 9012 3456 7890 123'
-                  : 'Format : FR76 1234 5678 9012 3456 7890 123')
-              }
-              size="small"
-              fullWidth
-              InputProps={{
-                sx: { fontFamily: 'monospace', fontSize: '0.875rem', fontVariantNumeric: 'tabular-nums' },
-              }}
-            />
-            <Stack direction="row" spacing={1.5}>
-              <TextField
-                label="BIC / SWIFT"
-                value={bic}
-                onChange={(e) => setBic(e.target.value)}
-                size="small"
-                sx={{ flex: 1 }}
-                InputProps={{
-                  sx: { fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em', textTransform: 'uppercase' },
+            <Field>
+              <FieldLabel htmlFor="payout-iban">IBAN</FieldLabel>
+              <Input
+                id="payout-iban"
+                className="font-mono text-[0.875rem] tabular-nums"
+                value={iban}
+                onChange={(e) => {
+                  setIban(e.target.value);
+                  setIbanError('');
                 }}
+                onFocus={(e) => {
+                  // Si le champ contient encore le mask (****0189), on selectionne
+                  // tout le contenu pour qu'un nouveau collage/saisie le remplace
+                  // d'un seul coup. UX standard pour les champs pre-remplis.
+                  if (ibanUnchanged) {
+                    e.target.select();
+                  }
+                }}
+                aria-invalid={!!ibanError}
               />
-              <TextField
-                label="Titulaire du compte"
-                value={holder}
-                onChange={(e) => setHolder(e.target.value)}
-                size="small"
-                sx={{ flex: 2 }}
-              />
-            </Stack>
-          </Stack>
+              {ibanError ? (
+                <FieldError>{ibanError}</FieldError>
+              ) : (
+                <FieldDescription>
+                  {hasExistingIban
+                    ? ibanUnchanged
+                      ? 'IBAN actuel conservé. Tapez un nouvel IBAN pour le remplacer.'
+                      : 'Nouvel IBAN. Format : FR76 1234 5678 9012 3456 7890 123'
+                    : 'Format : FR76 1234 5678 9012 3456 7890 123'}
+                </FieldDescription>
+              )}
+            </Field>
+            <div className="flex flex-row gap-[9px]">
+              <Field className="flex-1">
+                <FieldLabel htmlFor="payout-bic">BIC / SWIFT</FieldLabel>
+                <Input
+                  id="payout-bic"
+                  className="tabular-nums uppercase tracking-[0.04em]"
+                  value={bic}
+                  onChange={(e) => setBic(e.target.value)}
+                />
+              </Field>
+              <Field className="flex-[2]">
+                <FieldLabel htmlFor="payout-holder">Titulaire du compte</FieldLabel>
+                <Input
+                  id="payout-holder"
+                  value={holder}
+                  onChange={(e) => setHolder(e.target.value)}
+                />
+              </Field>
+            </div>
+          </div>
         )}
 
         {/* ─── Section Open Banking ───────────────────────────────── */}
         {selectedMethod === 'OPEN_BANKING' && (
-          <Stack spacing={1.5}>
-            <Alert severity="info" sx={{ borderRadius: '8px', fontSize: '0.8rem' }}>
-              En cliquant sur "Connecter ma banque" ci-dessous, vous serez redirigé vers le portail
+          <div className="flex flex-col gap-[9px]">
+            <Alert variant="info" className="text-[0.8rem]">
+              <Info />
+              <AlertDescription>En cliquant sur "Connecter ma banque" ci-dessous, vous serez redirigé vers le portail
               de votre banque pour signer le SCA bancaire. Le consent est valable 90 jours et permet à Baitly
-              d'initier des virements SEPA depuis votre compte sans repasser par 2FA.
+              d'initier des virements SEPA depuis votre compte sans repasser par 2FA.</AlertDescription>
             </Alert>
-            <TextField
-              label="Banque"
-              value={institutionId}
-              onChange={(e) => setInstitutionId(e.target.value)}
-              size="small"
-              fullWidth
-              select
-              disabled={institutionsLoading}
-              helperText={
-                institutionsLoading
+            <Field>
+              <FieldLabel htmlFor="payout-institution">Banque</FieldLabel>
+              <NativeSelect
+                id="payout-institution"
+                className="w-full"
+                value={institutionId}
+                onChange={(e) => setInstitutionId(e.target.value)}
+                disabled={institutionsLoading}
+              >
+                {institutions && institutions.length > 0 ? (
+                  // Liste dynamique GoCardless
+                  institutions.map((inst) => (
+                    <NativeSelectOption key={inst.id} value={inst.id}>
+                      {inst.name}
+                    </NativeSelectOption>
+                  ))
+                ) : (
+                  // Fallback : liste codée en dur si l'API GoCardless n'est pas joignable
+                  <>
+                    <NativeSelectOption value="SANDBOXFINANCE_SFIN0000">
+                      Sandbox Finance (test uniquement)
+                    </NativeSelectOption>
+                    <NativeSelectOption value="BNP_PARIBAS_BNPAFRPP">BNP Paribas</NativeSelectOption>
+                    <NativeSelectOption value="SOCIETE_GENERALE_SOGEFRPP">Société Générale</NativeSelectOption>
+                    <NativeSelectOption value="LCL_CRLYFRPP">LCL</NativeSelectOption>
+                    <NativeSelectOption value="CREDIT_AGRICOLE_AGRIFRPP">Crédit Agricole</NativeSelectOption>
+                    <NativeSelectOption value="CIC_CMCIFRPP">CIC</NativeSelectOption>
+                    <NativeSelectOption value="BANQUE_POSTALE_PSSTFRPP">La Banque Postale</NativeSelectOption>
+                    <NativeSelectOption value="HSBC_FR_CCFRFRPP">HSBC</NativeSelectOption>
+                  </>
+                )}
+              </NativeSelect>
+              <FieldDescription>
+                {institutionsLoading
                   ? 'Chargement de la liste des banques…'
                   : institutions && institutions.length > 0
                     ? `${institutions.length} banques disponibles via GoCardless.`
-                    : 'Liste GoCardless indisponible — utilisez la liste de secours ci-dessous ou Sandbox pour les tests.'
-              }
-            >
-              {institutions && institutions.length > 0 ? (
-                // Liste dynamique GoCardless
-                institutions.map((inst) => (
-                  <MenuItem key={inst.id} value={inst.id} sx={{ fontSize: '0.82rem' }}>
-                    {inst.name}
-                  </MenuItem>
-                ))
-              ) : (
-                // Fallback : liste codée en dur si l'API GoCardless n'est pas joignable
-                <>
-                  <MenuItem value="SANDBOXFINANCE_SFIN0000" sx={{ fontSize: '0.82rem' }}>
-                    Sandbox Finance (test uniquement)
-                  </MenuItem>
-                  <MenuItem value="BNP_PARIBAS_BNPAFRPP" sx={{ fontSize: '0.82rem' }}>BNP Paribas</MenuItem>
-                  <MenuItem value="SOCIETE_GENERALE_SOGEFRPP" sx={{ fontSize: '0.82rem' }}>Société Générale</MenuItem>
-                  <MenuItem value="LCL_CRLYFRPP" sx={{ fontSize: '0.82rem' }}>LCL</MenuItem>
-                  <MenuItem value="CREDIT_AGRICOLE_AGRIFRPP" sx={{ fontSize: '0.82rem' }}>Crédit Agricole</MenuItem>
-                  <MenuItem value="CIC_CMCIFRPP" sx={{ fontSize: '0.82rem' }}>CIC</MenuItem>
-                  <MenuItem value="BANQUE_POSTALE_PSSTFRPP" sx={{ fontSize: '0.82rem' }}>La Banque Postale</MenuItem>
-                  <MenuItem value="HSBC_FR_CCFRFRPP" sx={{ fontSize: '0.82rem' }}>HSBC</MenuItem>
-                </>
-              )}
-            </TextField>
+                    : 'Liste GoCardless indisponible — utilisez la liste de secours ci-dessous ou Sandbox pour les tests.'}
+              </FieldDescription>
+            </Field>
             {currentConfig?.openBankingConsentActive && (
-              <Alert severity="success" sx={{ borderRadius: '8px', fontSize: '0.8rem' }}>
-                Consent SCA déjà actif{currentConfig.openBankingConsentExpiresAt
+              <Alert variant="success" className="text-[0.8rem]">
+                <CircleCheck />
+                <AlertDescription>Consent SCA déjà actif{currentConfig.openBankingConsentExpiresAt
                   ? ` jusqu'au ${new Date(currentConfig.openBankingConsentExpiresAt).toLocaleDateString('fr-FR')}`
-                  : ''}.
+                  : ''}.</AlertDescription>
               </Alert>
             )}
-          </Stack>
+          </div>
         )}
 
         {/* ─── Section Stripe Connect ─────────────────────────────── */}
         {selectedMethod === 'STRIPE_CONNECT' && (
-          <Alert severity="info" sx={{ borderRadius: '8px', fontSize: '0.8rem' }}>
-            {mode === 'self'
+          <Alert variant="info" className="text-[0.8rem]">
+            <Info />
+            <AlertDescription>{mode === 'self'
               ? "L'onboarding Stripe Connect se fait depuis la section dédiée plus bas dans Mes reversements."
-              : "Le propriétaire doit compléter lui-même l'onboarding Stripe Connect via sa page Mes reversements."}
-            {currentConfig?.stripeOnboardingComplete && (
-              <Box component="span" sx={{ display: 'block', mt: 0.5, color: ACCENT, fontWeight: 600 }}>
+              : "Le propriétaire doit compléter lui-même l'onboarding Stripe Connect via sa page Mes reversements."}{currentConfig?.stripeOnboardingComplete && (
+              <span className="block mt-[3px] font-semibold" style={{ color: ACCENT }}>
                 ✓ Onboarding Stripe complété pour ce propriétaire.
-              </Box>
-            )}
+              </span>
+            )}</AlertDescription>
           </Alert>
         )}
 
         {/* ─── Section Manual ──────────────────────────────────────── */}
         {selectedMethod === 'MANUAL' && (
-          <Alert severity="warning" sx={{ borderRadius: '8px', fontSize: '0.8rem' }}>
-            Le propriétaire reçoit ses paiements hors-Baitly (espèces, chèque, virement perso).
-            Aucune exécution automatique possible : les payouts devront être marqués comme payés à la main.
+          <Alert variant="warning" className="text-[0.8rem]">
+            <TriangleAlert />
+            <AlertDescription>Le propriétaire reçoit ses paiements hors-Baitly (espèces, chèque, virement perso).
+            Aucune exécution automatique possible : les payouts devront être marqués comme payés à la main.</AlertDescription>
           </Alert>
         )}
 
         {error && (
-          <Alert severity="error" sx={{ borderRadius: '8px', fontSize: '0.8rem' }}>
-            {error}
+          <Alert variant="destructive" className="text-[0.8rem]">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-      </DialogContent>
+        </div>
 
-      <DialogActions sx={{ px: 3, py: 1.5, gap: 1 }}>
-        <Button
-          onClick={onClose}
-          disabled={saving}
-          size="small"
-          sx={{
-            textTransform: 'none',
-            fontSize: '0.78rem',
-            fontWeight: 600,
-            borderRadius: '8px',
-            color: NEUTRAL,
-          }}
-        >
-          Annuler
-        </Button>
-        <Button
-          variant="contained"
-          size="small"
-          onClick={handleSave}
-          disabled={isSaveDisabled}
-          startIcon={
-            saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />
-          }
-          sx={{ textTransform: 'none', fontWeight: 600 }}
-        >
-          {selectedMethod === 'OPEN_BANKING'
-            ? 'Connecter ma banque'
-            : saving ? 'Enregistrement…' : 'Enregistrer'}
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          {/* Sortie de modale volontairement effacee (le sx d'origine la teintait
+              en --muted) : ghost plutot que outline. */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            disabled={saving}
+          >
+            Annuler
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={isSaveDisabled}
+          >
+            {saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
+            {selectedMethod === 'OPEN_BANKING'
+              ? 'Connecter ma banque'
+              : saving ? 'Enregistrement…' : 'Enregistrer'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

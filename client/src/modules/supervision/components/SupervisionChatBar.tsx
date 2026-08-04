@@ -12,8 +12,8 @@
    ============================================================ */
 
 import { useEffect, useRef, useState } from 'react';
-import { Box, IconButton, Tooltip } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { cn } from '../../../utils/cn';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { Send, SmartToy } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { ConversationTurn } from '../types';
@@ -55,62 +55,36 @@ export function SupervisionChatBar({ conversation, busy, onSend }: SupervisionCh
   const hasTranscript = conversation.length > 0;
 
   return (
-    <Box
-      sx={{
-        // Surface/bordure via tokens MUI → suit le thème de la session (clair
-        // ou sombre) et matche le reste du PMS. En flottant sur le canvas de la
-        // constellation, elle reste lisible dans les deux modes.
-        borderRadius: '14px',
-        bgcolor: 'background.paper',
-        border: '1px solid',
-        borderColor: 'divider',
-        backdropFilter: 'blur(10px)',
-        boxShadow: (t) => `0 16px 40px -22px ${alpha(t.palette.common.black, 0.35)}`,
-        overflow: 'hidden',
-        transition: 'border-color 160ms ease, box-shadow 160ms ease',
-        // Focus du champ → bordure au token d'accent de la session.
-        '&:focus-within': {
-          borderColor: 'var(--accent)',
-          boxShadow: '0 0 0 3px var(--accent-soft)',
-        },
-      }}
+    // Surface/bordure via tokens de session → suit le thème (clair ou sombre) et
+    // matche le reste du PMS. L'ombre reprend `alpha(common.black, .35)` : les deux
+    // palettes du projet fixent common.black a #000000, elle est donc figeable.
+    // Focus du champ → bordure au token d'accent de la session.
+    <div
+      className={
+        'overflow-hidden rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] ' +
+        'backdrop-blur-[10px] shadow-[0_16px_40px_-22px_rgba(0,0,0,0.35)] ' +
+        'transition-[border-color,box-shadow] duration-[160ms] ease-[ease] ' +
+        'focus-within:border-[var(--accent)] focus-within:shadow-[0_0_0_3px_var(--accent-soft)]'
+      }
     >
       {/* Transcription */}
       {hasTranscript && (
-        <Box
-          ref={transcriptRef}
-          sx={{
-            maxHeight: 220,
-            overflowY: 'auto',
-            px: 1.75,
-            pt: 1.5,
-            pb: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1,
-          }}
-        >
+        <div className="max-h-[220px] overflow-y-auto px-2.5 pt-2 pb-1.5 flex flex-col gap-1.5" ref={transcriptRef}>
           {conversation.map((turn) => (
             <ConversationBubble key={turn.id} turn={turn} />
           ))}
           {busy && <ThinkingRow label={t('supervision.chat.thinking', 'Les agents travaillent…')} />}
-        </Box>
+        </div>
       )}
 
       {/* Champ de saisie */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'flex-end',
-          gap: 1,
-          px: 1.25,
-          py: 1,
-          borderTop: hasTranscript ? '1px solid' : 'none',
-          borderColor: 'divider',
-        }}
+      <div
+        className={cn(
+          'flex items-end gap-1.5 px-[7.5px] py-1.5',
+          hasTranscript && 'border-t border-solid border-[var(--line)]',
+        )}
       >
-        <Box
-          component="textarea"
+        <textarea
           rows={1}
           value={value}
           disabled={busy}
@@ -124,136 +98,83 @@ export function SupervisionChatBar({ conversation, busy, onSend }: SupervisionCh
               submit();
             }
           }}
-          sx={{
-            flex: 1,
-            resize: 'none',
-            border: 'none',
-            outline: 'none',
-            bgcolor: 'transparent',
-            color: 'text.primary',
-            caretColor: 'var(--accent)',
-            fontFamily: 'inherit',
-            fontSize: 13.5,
-            lineHeight: 1.5,
-            maxHeight: 96,
-            py: 0.75,
-            px: 0.5,
-            '&::placeholder': { color: 'text.secondary', opacity: 1 },
-            '&:disabled': { color: 'text.disabled', cursor: 'not-allowed' },
-          }}
+          className={
+            'flex-1 resize-none border-none outline-none bg-transparent [font-family:inherit] ' +
+            'max-h-[96px] px-[3px] py-[4.5px] text-[13.5px] leading-normal text-[var(--ink)] caret-[var(--accent)] ' +
+            'placeholder:text-[var(--muted)] placeholder:opacity-100 ' +
+            'disabled:cursor-not-allowed disabled:text-[var(--faint)]'
+          }
         />
-        <Tooltip title={t('supervision.chat.send', 'Envoyer')} arrow>
-          {/* span : Tooltip a besoin d'un enfant montable même quand le bouton est désactivé */}
-          <span>
-            <IconButton
-              onClick={submit}
-              disabled={busy || value.trim().length === 0}
-              aria-label={t('supervision.chat.send', 'Envoyer')}
-              size="small"
-              sx={{
+        <Tooltip>
+          {/* span : le trigger a besoin d'un enfant montable qui porte une ref,
+              meme quand le bouton est desactive */}
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button
+                onClick={submit}
+                disabled={busy || value.trim().length === 0}
+                aria-label={t('supervision.chat.send', 'Envoyer')}
                 // Token d'accent de la session (var(--accent)) — pas le primary
                 // MUI figé sur l'indigo par défaut.
-                color: 'var(--on-accent)',
-                bgcolor: 'var(--accent)',
-                width: 34,
-                height: 34,
-                transition: 'background-color 180ms ease, opacity 180ms ease',
-                '&:hover': { bgcolor: 'var(--accent-deep)' },
-                '&.Mui-disabled': {
-                  bgcolor: 'var(--accent-soft)',
-                  color: 'var(--accent)',
-                },
-              }}
-            >
-              <Send size={16} strokeWidth={2} />
-            </IconButton>
-          </span>
+                className={
+                  'size-[34px] rounded-full bg-[var(--accent)] text-[var(--on-accent)] ' +
+                  'transition-[background-color,opacity] duration-[180ms] ' +
+                  'hover:bg-[var(--accent-deep)] ' +
+                  'disabled:opacity-100 disabled:bg-[var(--accent-soft)] disabled:text-[var(--accent)]'
+                }
+              >
+                <Send size={16} strokeWidth={2} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('supervision.chat.send', 'Envoyer')}</TooltipContent>
         </Tooltip>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 
 function ConversationBubble({ turn }: { turn: ConversationTurn }) {
   const isOperator = turn.role === 'operator';
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: isOperator ? 'flex-end' : 'flex-start',
-      }}
-    >
-      <Box
-        sx={{
-          maxWidth: '85%',
-          px: 1.25,
-          py: 0.75,
-          borderRadius: isOperator ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
-          bgcolor: (t) => (isOperator ? 'var(--accent-soft)' : t.palette.action.hover),
-          border: '1px solid',
-          borderColor: (t) => (isOperator ? 'var(--accent)' : t.palette.divider),
-          color: 'text.primary',
-          fontSize: 13,
-          lineHeight: 1.5,
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-        }}
+    <div className={cn('flex flex-col', isOperator ? 'items-end' : 'items-start')}>
+      <div
+        className={cn(
+          'max-w-[85%] border border-solid px-[7.5px] py-[4.5px] text-[13px] leading-normal',
+          'text-[var(--ink)] whitespace-pre-wrap wrap-break-word',
+          isOperator
+            ? 'rounded-[12px_12px_4px_12px] border-[var(--accent)] bg-[var(--accent-soft)]'
+            : 'rounded-[12px_12px_12px_4px] border-[var(--line)] bg-[var(--hover)]',
+        )}
       >
         {turn.text || '…'}
-      </Box>
+      </div>
       {turn.at && (
-        <Box
-          sx={{
-            mt: 0.25,
-            fontSize: 10.5,
-            color: 'text.disabled',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
+        <div className="mt-0.5 text-[10.5px] text-muted-foreground opacity-60 tabular-nums">
           {formatTime(turn.at)}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }
 
 function ThinkingRow({ label }: { label: string }) {
   return (
-    <Box
-      role="status"
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 0.75,
-        color: 'var(--accent)',
-        fontSize: 12,
-        fontWeight: 600,
-        '@keyframes supervisionDotPulse': {
-          '0%, 80%, 100%': { opacity: 0.25 },
-          '40%': { opacity: 1 },
-        },
-      }}
-    >
+    <div role="status" className="flex items-center gap-[4.5px] text-[var(--accent)] text-[12px] font-semibold">
       <SmartToy size={14} />
       <span>{label}</span>
-      <Box component="span" sx={{ display: 'inline-flex', gap: '3px', ml: 0.25 }}>
+      <span className="inline-flex gap-[3px] ms-[1.5px]">
+        {/* Les keyframes maison vivaient dans le `sx` Emotion : on reprend la
+            pulsation `pulse` fournie par Tailwind, au meme rythme (1,2 s). Le
+            decalage depend de l'index a l'execution → style inline. */}
         {[0, 1, 2].map((i) => (
-          <Box
+          <span
             key={i}
-            component="span"
-            sx={{
-              width: 4,
-              height: 4,
-              borderRadius: '50%',
-              bgcolor: 'var(--accent)',
-              animation: 'supervisionDotPulse 1.2s infinite ease-in-out',
-              animationDelay: `${i * 0.16}s`,
-              '@media (prefers-reduced-motion: reduce)': { animation: 'none', opacity: 0.6 },
-            }}
+            className="size-[4px] rounded-full bg-[var(--accent)] animate-[pulse_1.2s_ease-in-out_infinite] motion-reduce:animate-none motion-reduce:opacity-60"
+            style={{ animationDelay: `${i * 0.16}s` }}
           />
         ))}
-      </Box>
-    </Box>
+      </span>
+    </div>
   );
 }

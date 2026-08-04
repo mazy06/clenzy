@@ -1,12 +1,14 @@
 import React, { useCallback } from 'react';
+import { cn } from '../../utils/cn';
 import {
-  Box,
-  Grid,
-  Typography,
-  TextField,
-  Checkbox,
-  FormControlLabel,
-} from '@mui/material';
+  Field,
+  FieldError,
+  FieldLabel,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '../../components/ui';
+import { Checkbox } from '../../components/ui';
 import {
   Euro,
   Bed,
@@ -31,6 +33,9 @@ const SECTION_TITLE_SX = {
   mb: 1.5,
 } as const;
 
+/** Report en classes de `SECTION_TITLE_SX`. */
+const SECTION_TITLE_CLASS = 'text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-[var(--muted)] mb-[9px]';
+
 const CATEGORY_TITLE_SX = {
   fontSize: '0.75rem',
   fontWeight: 600,
@@ -38,9 +43,15 @@ const CATEGORY_TITLE_SX = {
   mb: 0.75,
 } as const;
 
+/** Report en classes de `CATEGORY_TITLE_SX`. */
+const CATEGORY_TITLE_CLASS = 'text-[0.75rem] font-semibold text-[var(--ink)] mb-[4.5px]';
+
 const CHECKBOX_LABEL_SX = {
   fontSize: '0.8125rem',
 } as const;
+
+/** Report en classes de `CHECKBOX_LABEL_SX`. */
+const CHECKBOX_LABEL_CLASS = 'text-[0.8125rem]';
 
 // ─── Amenities configuration ────────────────────────────────────────────────
 
@@ -66,204 +77,238 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
     const { t } = useTranslation();
 
     return (
-      <Box>
-        <Typography sx={SECTION_TITLE_SX}>
+      <div>
+        <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
           {t('properties.characteristics')}
-        </Typography>
+        </p>
 
-        <Grid container spacing={1.5}>
-          <Grid item xs={6} md={4}>
+        <div className="grid grid-cols-12 gap-[9px]">
+          <div className="col-span-6 min-[900px]:col-span-4">
             <Controller
               name="bedroomCount"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  type="number"
-                  label={t('properties.bedroomCount')}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  required
-                  size="small"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  InputProps={{
-                    startAdornment: <Bed size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "var(--muted)" }} />,
-                  }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="property-bedroom-count">{t('properties.bedroomCount')}</FieldLabel>
+                  {/* field.ref n'est pas transmis : les primitives du kit sont des
+                      composants fonction sans forwardRef (React 18), le passer
+                      declencherait un avertissement sans jamais s'attacher. */}
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <Bed size={16} strokeWidth={1.75} />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="property-bedroom-count"
+                      type="number"
+                      name={field.name}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onBlur={field.onBlur}
+                      required
+                      aria-invalid={!!fieldState.error}
+                    />
+                  </InputGroup>
+                  {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                </Field>
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={6} md={4}>
+          <div className="col-span-6 min-[900px]:col-span-4">
             <Controller
               name="bathroomCount"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  type="number"
-                  label={t('properties.bathroomCount')}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  required
-                  size="small"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  InputProps={{
-                    startAdornment: <Bathroom size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "var(--muted)" }} />,
-                  }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="property-bathroom-count">{t('properties.bathroomCount')}</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <Bathroom size={16} strokeWidth={1.75} />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="property-bathroom-count"
+                      type="number"
+                      name={field.name}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onBlur={field.onBlur}
+                      required
+                      aria-invalid={!!fieldState.error}
+                    />
+                  </InputGroup>
+                  {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                </Field>
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={6} md={4}>
+          <div className="col-span-6 min-[900px]:col-span-4">
             <Controller
               name="squareMeters"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  type="number"
-                  label={t('properties.surface')}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  required
-                  size="small"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  InputProps={{
-                    startAdornment: <SquareFoot size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "var(--muted)" }} />,
-                  }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="property-square-meters">{t('properties.surface')}</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <SquareFoot size={16} strokeWidth={1.75} />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="property-square-meters"
+                      type="number"
+                      name={field.name}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onBlur={field.onBlur}
+                      required
+                      aria-invalid={!!fieldState.error}
+                    />
+                  </InputGroup>
+                  {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                </Field>
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={6} md={6}>
+          <div className="col-span-6 min-[900px]:col-span-6">
             <Controller
               name="maxGuests"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  type="number"
-                  label={t('properties.maxGuests')}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  required
-                  size="small"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  InputProps={{
-                    startAdornment: <Group size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "var(--muted)" }} />,
-                  }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="property-max-guests">{t('properties.maxGuests')}</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <Group size={16} strokeWidth={1.75} />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="property-max-guests"
+                      type="number"
+                      name={field.name}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onBlur={field.onBlur}
+                      required
+                      aria-invalid={!!fieldState.error}
+                    />
+                  </InputGroup>
+                  {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                </Field>
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <Controller
               name="nightlyPrice"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  type="number"
-                  label={t('properties.nightlyPriceField')}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  size="small"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  InputProps={{
-                    startAdornment: <Euro size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "var(--muted)" }} />,
-                  }}
-                  placeholder={t('properties.nightlyPricePlaceholder')}
-                  inputProps={{ step: '0.01', min: '0' }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="property-nightly-price">{t('properties.nightlyPriceField')}</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <Euro size={16} strokeWidth={1.75} />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="property-nightly-price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      name={field.name}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onBlur={field.onBlur}
+                      placeholder={t('properties.nightlyPricePlaceholder')}
+                      aria-invalid={!!fieldState.error}
+                    />
+                  </InputGroup>
+                  {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                </Field>
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <Controller
               name="minimumNights"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  type="number"
-                  label="Nuitées minimum"
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  size="small"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  InputProps={{
-                    startAdornment: <NightsStay size={16} strokeWidth={1.75} style={{ marginRight: 6, color: "var(--muted)" }} />,
-                  }}
-                  placeholder="1"
-                  inputProps={{ step: '1', min: '1' }}
-                />
+                <Field>
+                  <FieldLabel htmlFor="property-minimum-nights">Nuitées minimum</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <NightsStay size={16} strokeWidth={1.75} />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="property-minimum-nights"
+                      type="number"
+                      step="1"
+                      min="1"
+                      name={field.name}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onBlur={field.onBlur}
+                      placeholder="1"
+                      aria-invalid={!!fieldState.error}
+                    />
+                  </InputGroup>
+                  {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                </Field>
               )}
             />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
 
         {/* ─── Amenities Section ─────────────────────────────────────────── */}
-        <Box sx={{ mt: 3 }}>
-          <Typography sx={SECTION_TITLE_SX}>
+        <div className="mt-4">
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
             {t('properties.amenities.title')}
-          </Typography>
+          </p>
 
           <Controller
             name="amenities"
             control={control}
             render={({ field }) => (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div className="flex flex-col gap-3">
                 {AMENITIES_CATEGORIES.map((category) => (
-                  <Box key={category.key}>
-                    <Typography sx={CATEGORY_TITLE_SX}>
+                  <div key={category.key}>
+                    <p className={cn(CATEGORY_TITLE_CLASS, 'cn-text-body1')}>
                       {t(`properties.amenities.categories.${category.key}`)}
-                    </Typography>
-                    <Grid container spacing={0.5}>
+                    </p>
+                    <div className="grid grid-cols-12 gap-[3px]">
                       {category.items.map((amenity) => {
                         const checked = field.value?.includes(amenity) || false;
                         return (
-                          <Grid item xs={6} md={4} key={amenity}>
-                            <FormControlLabel
-                              control={
-                                <Checkbox
-                                  checked={checked}
-                                  onChange={(e) => {
-                                    const newValue = e.target.checked
-                                      ? [...(field.value || []), amenity]
-                                      : (field.value || []).filter((v: string) => v !== amenity);
-                                    field.onChange(newValue);
-                                  }}
-                                  size="small"
-                                />
-                              }
-                              label={
-                                <Typography sx={CHECKBOX_LABEL_SX}>
-                                  {t(`properties.amenities.items.${amenity}`)}
-                                </Typography>
-                              }
-                            />
-                          </Grid>
+                          <div className="col-span-6 min-[900px]:col-span-4" key={amenity}>
+                            <Field orientation="horizontal">
+                              <Checkbox
+                                id={`property-amenity-${amenity}`}
+                                checked={checked}
+                                onCheckedChange={(next) => {
+                                  const newValue = next === true
+                                    ? [...(field.value || []), amenity]
+                                    : (field.value || []).filter((v: string) => v !== amenity);
+                                  field.onChange(newValue);
+                                }}
+                              />
+                              <FieldLabel
+                                htmlFor={`property-amenity-${amenity}`}
+                                className={cn(CHECKBOX_LABEL_CLASS, 'cn-text-body1 font-normal')}
+                              >
+                                {t(`properties.amenities.items.${amenity}`)}
+                              </FieldLabel>
+                            </Field>
+                          </div>
                         );
                       })}
-                    </Grid>
-                  </Box>
+                    </div>
+                  </div>
                 ))}
-              </Box>
+              </div>
             )}
           />
-        </Box>
-      </Box>
+        </div>
+      </div>
     );
   }
 );

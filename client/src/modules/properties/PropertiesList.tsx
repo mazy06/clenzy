@@ -1,7 +1,14 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Box, Alert, Button, Tooltip, IconButton, Fab } from '@mui/material';
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { Add, Home } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -19,12 +26,14 @@ import ChannexFullDisconnectDialog from '../settings/components/ChannexFullDisco
 import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
 import { usePropertiesList, propertiesListKeys } from '../../hooks/usePropertiesList';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
+import { usePropertyKpiSummaries } from '../../hooks/usePropertyKpiSummaries';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import { useContractedPropertyIds } from '../../hooks/useContractedPropertyIds';
 import ManagementContractFormModal from '../contracts/ManagementContractFormModal';
-import { ICON_BUTTON_SX, ITEMS_PER_PAGE, LIST_DEFAULT_ROWS } from './propertiesListConstants';
+import { ITEMS_PER_PAGE, LIST_DEFAULT_ROWS } from './propertiesListConstants';
 import PropertiesMapView from './PropertiesMapView';
 import PropertiesGridView from './PropertiesGridView';
+import PropertiesPortfolioTiles from './PropertiesPortfolioTiles';
 import PropertiesTableView from './PropertiesTableView';
 import PropertyDeleteDialog from './PropertyDeleteDialog';
 import PropertyStatusToggleDialog from './PropertyStatusToggleDialog';
@@ -146,6 +155,16 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
     url.searchParams.delete('diagnoseChannex');
     window.history.replaceState({}, '', url.toString());
   }, [properties, diagnoseTarget, openDiagnoseFor]);
+
+  // ─── KPI opérationnels ────────────────────────────────────────────
+  // Une seule requête batchée pour TOUT le portefeuille (ensemble stable :
+  // pas de refetch au fil de la recherche). Les tuiles portefeuille agrègent
+  // sur les logements filtrés ; la grille pioche ses cartes dans la même map.
+  const allPropertyIds = useMemo(
+    () => properties.map((p) => Number(p.id)),
+    [properties],
+  );
+  const kpiMap = usePropertyKpiSummaries(allPropertyIds);
 
   // ─── Filtering ────────────────────────────────────────────────────
 
@@ -280,29 +299,22 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
   // ─── Render ───────────────────────────────────────────────────────
 
   const actionButtons = (
-    <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
-      <ExportButton
-        data={filteredProperties}
-        columns={exportColumns}
-        fileName="proprietes"
-        variant="icon"
-      />
-      <Tooltip title={t('properties.create')}>
-        <IconButton
-          size="small"
-          onClick={() => navigate('/properties/new')}
-          sx={{
-            ...ICON_BUTTON_SX,
-            color: 'var(--accent)',
-            border: '1px solid var(--accent)',
-            bgcolor: 'transparent',
-            '&:hover': { bgcolor: 'var(--accent-soft)', borderColor: 'var(--accent-deep)', color: 'var(--accent-deep)' },
-          }}
-        >
-          <Add size={20} strokeWidth={1.75} />
-        </IconButton>
+    <div className="flex gap-1 items-center">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t('properties.create')}
+            onClick={() => navigate('/properties/new')}
+            className="rounded-[9px] border border-solid border-[var(--accent)] bg-transparent text-[var(--accent)] hover:bg-[var(--accent-soft)] hover:border-[var(--accent-deep)] hover:text-[var(--accent-deep)]"
+          >
+            <Add size={20} strokeWidth={1.75} />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{t('properties.create')}</TooltipContent>
       </Tooltip>
-    </Box>
+    </div>
   );
 
   const filterBar = (
@@ -335,11 +347,18 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
         mode: viewMode,
         onChange: setViewMode,
       }}
+      extraActions={(
+        <ExportButton
+          data={filteredProperties}
+          columns={exportColumns}
+          fileName="proprietes"
+        />
+      )}
     />
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Portal actions into parent's PageHeader when embedded.
           Ternaires explicites (au lieu de &&) pour eviter de passer le
           booleen false en children — MUI Box.propTypes rale sinon. */}
@@ -347,7 +366,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
       {embedded && filtersContainer ? createPortal(filterBar, filtersContainer) : null}
 
       {!embedded ? (
-        <Box sx={{ flexShrink: 0 }}>
+        <div className="shrink-0">
           <PageHeader
             title={t('properties.title')}
             subtitle={t('properties.subtitle')}
@@ -357,35 +376,35 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
             actions={actionButtons}
             filters={filterBar}
           />
-        </Box>
+        </div>
       ) : null}
 
       {/* Gate de rattrapage : rappel des logements sans contrat de gestion actif. */}
       {canManageContracts && missingContractIds.size > 0 ? (
         <Alert
-          severity="warning"
-          icon={false}
-          sx={{
-            mb: 1, flexShrink: 0, borderRadius: '11px', fontSize: '12.5px',
-            bgcolor: 'var(--warn-soft)', color: 'var(--body)',
-            border: '1px solid color-mix(in srgb, var(--warn) 30%, transparent)',
-            '& .MuiAlert-message': { fontSize: '12.5px' },
-            '& .MuiAlert-action .MuiButton-root': { color: 'var(--warn)' },
-          }}
-          action={
-            <Button
-              color="inherit"
-              size="small"
-              onClick={() => openContractModal([...missingContractIds][0] ?? null)}
-              sx={{ textTransform: 'none', fontWeight: 600 }}
-            >
-              {t('contracts.gate.cta', 'Établir les contrats')}
-            </Button>
-          }
+          variant="warning"
+          className="mb-1.5 shrink-0 flex items-center gap-2 rounded-[11px] text-[12.5px] bg-[var(--warn-soft)] text-[var(--body)] border border-solid border-[color-mix(in_srgb,var(--warn)_30%,transparent)]"
         >
-          {`${missingContractIds.size} ${t('contracts.gate.banner', "logement(s) sans contrat de gestion actif. La répartition par défaut de l'organisation s'applique en attendant.")}`}
+          <AlertDescription className="flex-1 min-w-0 text-[12.5px] text-[var(--body)]">
+            {`${missingContractIds.size} ${t('contracts.gate.banner', "logement(s) sans contrat de gestion actif. La répartition par défaut de l'organisation s'applique en attendant.")}`}
+          </AlertDescription>
+          {/* CTA d'un bandeau d'avertissement : la teinte --warn est portee par
+              le bouton lui-meme. */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => openContractModal([...missingContractIds][0] ?? null)}
+            className="shrink-0 text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+          >
+            {t('contracts.gate.cta', 'Établir les contrats')}
+          </Button>
         </Alert>
       ) : null}
+
+      {/* Tuiles portefeuille (projection) — l'agrégat suit les filtres. */}
+      {filteredProperties.length > 0 && (
+        <PropertiesPortfolioTiles properties={filteredProperties} kpiMap={kpiMap} />
+      )}
 
       {/* Liste des propriétés */}
       {filteredProperties.length === 0 ? (
@@ -399,11 +418,11 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           } — ${t('properties.propertiesDescription')}`}
           action={(isAdmin() || isManager() || isHost()) && (
             <Button
-              variant="outlined"
-              size="small"
-              startIcon={<Add size={16} strokeWidth={1.75} />}
+              variant="outline"
+              size="sm"
               onClick={() => navigate('/properties/new')}
             >
+              <Add size={16} strokeWidth={1.75} />
               {t('properties.createFirst')}
             </Button>
           )}
@@ -429,6 +448,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           totalCount={filteredProperties.length}
           page={page}
           onPageChange={setPage}
+          kpiMap={kpiMap}
           channexMappings={channexMappings}
           cleaningEstimates={cleaningEstimates}
           onDelete={handleDeleteRequest}
@@ -486,27 +506,18 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
 
       {/* FAB pour ajouter rapidement */}
       {(isAdmin() || isManager() || isHost()) ? (
-        <Fab
-          aria-label="add"
-          size="small"
-          sx={{
-            position: 'fixed',
-            bottom: 16,
-            right: 16,
-            display: { md: 'none' },
-            width: 40,
-            height: 40,
-            bgcolor: 'var(--card)',
-            color: 'var(--accent)',
-            border: '1px solid var(--accent)',
-            boxShadow: 'var(--shadow-pop)',
-            '&:hover': { bgcolor: 'var(--accent-soft)' },
-            '& .MuiSvgIcon-root': { fontSize: 20 },
-          }}
+        // Le Fab MUI n'a pas d'equivalent dans le kit : c'est un bouton rond
+        // flottant, rendu ici par le Button du kit. `md` MUI = 900 px (les
+        // breakpoints Tailwind lisent 768), d'ou le seuil explicite.
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t('properties.create')}
           onClick={() => navigate('/properties/new')}
+          className="fixed bottom-4 right-4 z-40 size-10 rounded-full min-[900px]:hidden bg-[var(--card)] text-[var(--accent)] border border-solid border-[var(--accent)] shadow-[var(--shadow-pop)] hover:bg-[var(--accent-soft)]"
         >
           <Add size={20} strokeWidth={1.75} />
-        </Fab>
+        </Button>
       ) : null}
 
       {/* Quick Win #5 : Diagnose + Repair dialog (declenche par clic sur health badge) */}
@@ -532,6 +543,6 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
           onSuccess={() => { void refreshChannexMappings(); }}
         />
       )}
-    </Box>
+    </div>
   );
 }

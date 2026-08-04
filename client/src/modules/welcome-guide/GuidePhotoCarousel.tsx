@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Box, Skeleton, useMediaQuery } from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Skeleton } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
 import { propertyPhotosApi } from '../../services/api/propertyPhotosApi';
@@ -14,9 +15,12 @@ interface GuidePhotoCarouselProps {
   alt?: string;
   /** Ids à afficher en premier (ex: photos de couverture du livret). */
   priorityIds?: number[];
-  /** Rayon d'arrondi (clé spacing MUI ou valeur CSS). Défaut 14px. */
+  /** Rayon d'arrondi — valeur CSS (un nombre est lu en px). Défaut 14px. */
   radius?: number | string;
 }
+
+/** Pendant en classes de l'ancien objet `frame` (le rayon reste en style : prop). */
+const FRAME_CLASS = 'relative w-full aspect-[16/11] overflow-hidden bg-[var(--hover)] shrink-0';
 
 /**
  * Mini-carrousel des photos d'un logement, pensé pour les cartes de liste.
@@ -34,7 +38,6 @@ export default function GuidePhotoCarousel({
   radius = '14px',
 }: GuidePhotoCarouselProps) {
   const accent = themeAccent(theme);
-  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 
   const { data: photos = [], isLoading } = useQuery({
     queryKey: ['property-photos', propertyId],
@@ -73,28 +76,18 @@ export default function GuidePhotoCarousel({
     touchX.current = null;
   };
 
-  const frame = {
-    position: 'relative' as const,
-    width: '100%',
-    aspectRatio: '16 / 11',
-    borderRadius: radius,
-    overflow: 'hidden',
-    bgcolor: 'action.hover',
-    flexShrink: 0,
-  };
-
   if (propertyId != null && isLoading) {
-    return <Skeleton variant="rounded" sx={{ ...frame, borderRadius: radius }} animation="wave" />;
+    return <Skeleton className={FRAME_CLASS} style={{ borderRadius: radius }} />;
   }
 
   const allFailed = count > 0 && slides.every((s) => failed.has(s.id));
   if (!count || allFailed) {
     return (
-      <Box
-        sx={{
-          ...frame,
-          display: 'grid',
-          placeItems: 'center',
+      <div
+        className={cn(FRAME_CLASS, 'grid place-items-center')}
+        // Le degrade et la teinte derivent du theme du livret : valeurs d'execution.
+        style={{
+          borderRadius: radius,
           background: `linear-gradient(135deg, ${accent}22, ${accent}0d)`,
           color: accent,
         }}
@@ -102,41 +95,32 @@ export default function GuidePhotoCarousel({
         role="img"
       >
         <ImageOff size={22} strokeWidth={1.5} style={{ opacity: 0.65 }} />
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box
-      sx={{
-        ...frame,
-        '&:hover .gpc-nav, &:focus-within .gpc-nav': { opacity: 1 },
-      }}
+    <div
+      className={cn(FRAME_CLASS, '[&:hover_.gpc-nav]:opacity-100 [&:focus-within_.gpc-nav]:opacity-100')}
+      style={{ borderRadius: radius }}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
       {slides.map((s, i) => {
         if (failed.has(s.id)) return null;
         return (
-          <Box
+          <img
             key={s.id}
-            component="img"
             src={s.url}
             alt={alt ? `${alt} — photo ${i + 1}` : `photo ${i + 1}`}
             loading="lazy"
             decoding="async"
             draggable={false}
             onError={() => setFailed((prev) => new Set(prev).add(s.id))}
-            sx={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              opacity: i === current ? 1 : 0,
-              transition: reduceMotion ? 'none' : 'opacity .45s ease',
-              pointerEvents: 'none',
-            }}
+            // Le crossfade passe en classe : `motion-reduce` remplace le
+            // useMediaQuery MUI, sans re-render au changement de preference.
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none transition-opacity duration-[450ms] ease-[ease] motion-reduce:transition-none"
+            style={{ opacity: i === current ? 1 : 0 }}
           />
         );
       })}
@@ -145,73 +129,46 @@ export default function GuidePhotoCarousel({
         <>
           <CarouselArrow side="left" onClick={() => go(-1)} />
           <CarouselArrow side="right" onClick={() => go(1)} />
-          <Box
-            sx={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 7,
-              display: 'flex',
-              justifyContent: 'center',
-              gap: 0.5,
-              pointerEvents: 'none',
-            }}
-          >
+          <div className="absolute start-[0px] end-[0px] bottom-[7px] flex justify-center gap-0.5 pointer-events-none">
             {slides.map((s, i) => (
-              <Box
+              <div
                 key={s.id}
-                sx={{
-                  width: i === current ? 14 : 5,
-                  height: 5,
-                  borderRadius: 5,
-                  bgcolor: i === current ? 'common.white' : 'rgba(255,255,255,0.55)',
-                  boxShadow: '0 0 2px rgba(0,0,0,0.4)',
-                  transition: 'width .25s ease, background-color .25s ease',
-                }}
+                className={cn(
+                  'h-[5px] rounded-[5px] shadow-[0_0_2px_rgba(0,0,0,0.4)]',
+                  i === current ? 'w-[14px] bg-white' : 'w-[5px] bg-[rgba(255,255,255,0.55)]',
+                )}
+                style={{ transition: 'width .25s ease, background-color .25s ease' }}
               />
             ))}
-          </Box>
+          </div>
         </>
       )}
-    </Box>
+    </div>
   );
 }
 
 function CarouselArrow({ side, onClick }: { side: 'left' | 'right'; onClick: () => void }) {
   const Icon = side === 'left' ? ChevronLeft : ChevronRight;
   return (
-    <Box
-      className="gpc-nav"
-      component="button"
+    <button
+      className={cn(
+        // `gpc-nav` reste : le conteneur parent (Box) revele les fleches via
+        // `&:hover .gpc-nav`.
+        'gpc-nav absolute top-1/2 -translate-y-1/2 w-[28px] h-[28px] grid place-items-center',
+        'p-0 border-none rounded-full text-white bg-[rgba(20,20,25,0.45)] backdrop-blur-[2px]',
+        'cursor-pointer opacity-0 transition-[opacity,background-color] duration-200',
+        'hover:bg-[rgba(20,20,25,0.7)]',
+        'focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-white',
+        side === 'left' ? 'left-[6px]' : 'right-[6px]',
+      )}
       type="button"
       aria-label={side === 'left' ? 'Photo précédente' : 'Photo suivante'}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
-      sx={{
-        position: 'absolute',
-        top: '50%',
-        [side]: 6,
-        transform: 'translateY(-50%)',
-        width: 28,
-        height: 28,
-        display: 'grid',
-        placeItems: 'center',
-        p: 0,
-        border: 'none',
-        borderRadius: '50%',
-        color: 'common.white',
-        bgcolor: 'rgba(20,20,25,0.45)',
-        backdropFilter: 'blur(2px)',
-        cursor: 'pointer',
-        opacity: 0,
-        transition: 'opacity .2s ease, background-color .2s ease',
-        '&:hover': { bgcolor: 'rgba(20,20,25,0.7)' },
-        '&:focus-visible': { opacity: 1, outline: '2px solid', outlineColor: 'common.white' },
-      }}
     >
       <Icon size={16} strokeWidth={2} />
-    </Box>
+    </button>
   );
 }

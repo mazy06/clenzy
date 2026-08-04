@@ -278,8 +278,13 @@ public class AutoApplyGate {
                             && Boolean.TRUE.equals(envelopeInputs.get(INPUT_CANCELLATION_CONFIRMED));
             case SupervisionActionType.PAYMENT_REMINDER ->
                     paymentReminderEnvelope(orgId, envelopeInputs);
-            // CLEANING_REQUEST / REVIEW_DRAFT_REPLY : enveloppe vide (cf. javadoc classe).
-            default -> true;
+            // Enveloppe vide DÉLIBÉRÉE (opérations internes réversibles, cf. javadoc classe) :
+            case SupervisionActionType.CLEANING_REQUEST,
+                 SupervisionActionType.REVIEW_DRAFT_REPLY,
+                 SupervisionActionType.REASSIGN_CLEANING -> true;
+            // Type inconnu du gate : fail-safe HITL — un futur type ajouté au catalogue
+            // sans enveloppe explicite ne doit JAMAIS s'auto-appliquer en silence.
+            default -> false;
         };
     }
 

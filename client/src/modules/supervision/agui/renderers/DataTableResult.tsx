@@ -8,7 +8,7 @@
    Aucun tool backend n'émet ce hint aujourd'hui — renderer forward-compatible.
    ============================================================ */
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { cn } from '../../../../utils/cn';
 import { Overline, humanizeKey } from './shared';
 
 interface ColumnObj {
@@ -57,79 +57,57 @@ export const DataTableResult: React.FC<{ data: DataTableData }> = ({ data }) => 
 
   if (rows.length === 0 || columns.length === 0) {
     return (
-      <Box sx={{ mt: 1, mb: 1.5, px: 2, py: 2, borderRadius: '12px', border: '1px solid var(--line)', bgcolor: 'var(--card)', textAlign: 'center' }}>
-        <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>Aucune donnée.</Typography>
-      </Box>
+      <div className="mt-1.5 mb-2 px-3 py-3 rounded-[12px] border border-[var(--line)] bg-[var(--card)] text-center">
+        <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">Aucune donnée.</p>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5 }}>
+    <div className="mt-1.5 mb-2">
       {data.title && <Overline sx={{ mb: 0.75 }}>{data.title}</Overline>}
 
-      <Box sx={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
-            gap: 1,
-            px: 1.5,
-            py: 0.75,
-            bgcolor: 'var(--surface-2)',
-            borderBottom: '1px solid var(--line)',
-          }}
-        >
+      <div className="rounded-[12px] overflow-hidden border border-[var(--line)] bg-[var(--card)]">
+        <div className="grid gap-1.5 px-[9px] py-[4.5px] bg-[var(--surface-2)]" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`, borderBottom: '1px solid var(--line)' }}>
           {columns.map((col) => (
             <Overline key={col.key} sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: col.numeric ? 'right' : 'left' }}>
               {col.label}
             </Overline>
           ))}
-        </Box>
+        </div>
 
         {visible.map((row, idx) => (
-          <Box
+          <div
             key={idx}
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
-              gap: 1,
-              px: 1.5,
-              py: 1,
-              borderTop: idx > 0 ? '1px solid var(--line)' : 'none',
-              transition: 'background .12s',
-              '&:hover': { bgcolor: 'var(--hover)' },
-              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            }}
+            className={cn(
+              'grid gap-1.5 px-[9px] py-1.5 transition-[background] duration-[120ms] hover:bg-[var(--hover)] motion-reduce:transition-none',
+              idx > 0 && 'border-t border-solid border-[var(--line)]',
+            )}
+            style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
           >
             {columns.map((col, colIdx) => {
               const v = cellValue(row, col, colIdx);
               return (
-                <Typography
+                <p
                   key={col.key}
-                  sx={{
-                    fontSize: '12.5px',
-                    color: 'var(--body)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    textAlign: col.numeric ? 'right' : 'left',
-                    fontVariantNumeric: 'tabular-nums',
-                    ...(col.numeric && { fontWeight: 500 }),
-                  }}
+                  className={cn(
+                    'cn-text-body1 text-[12.5px] text-[var(--body)] whitespace-nowrap overflow-hidden text-ellipsis tabular-nums',
+                    col.numeric ? 'text-right font-medium' : 'text-left',
+                  )}
                 >
                   {v === null || v === undefined || v === '' ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v)}
-                </Typography>
+                </p>
               );
             })}
-          </Box>
+          </div>
         ))}
-      </Box>
+      </div>
 
       {hidden > 0 && (
-        <Typography sx={{ display: 'block', mt: 0.75, fontSize: '11.5px', color: 'var(--muted)', fontStyle: 'italic' }}>
+        <p className="cn-text-body1 block mt-1 text-[11.5px] text-[var(--muted)] italic">
           + {hidden} de plus
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
   );
 };

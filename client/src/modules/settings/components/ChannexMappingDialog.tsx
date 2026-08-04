@@ -14,24 +14,25 @@
  * Reference : docs/strategy/channex-integration-plan.md (Sprint 5)
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { cn } from '../../../utils/cn';
+import StatusChip from '../../../components/StatusChip';
+import { Badge, Button } from '../../../components/ui';
+import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert, Info } from 'lucide-react';
+import { Spinner } from '../../../components/ui';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  IconButton,
-  Box,
-  Typography,
-  Button,
-  ButtonBase,
-  TextField,
-  CircularProgress,
-  Alert,
-  Stack,
-  Divider,
   Tooltip,
-  Chip,
-} from '@mui/material';
-import { X, Plus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Clock, PauseCircle, ExternalLink, Download, Link2, ArrowLeft, ChevronRight, Globe, Home, Sparkles, Settings as SettingsIcon } from 'lucide-react';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+import { Field, FieldLabel, FieldDescription, Input } from '../../../components/ui';
+import { Plus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Clock, PauseCircle, ExternalLink, Download, Link2, ArrowLeft, ChevronRight, Globe, Home, Sparkles, Settings as SettingsIcon } from 'lucide-react';
 
 import { useTranslation } from '../../../hooks/useTranslation';
 import { propertiesApi, type Property } from '../../../services/api/propertiesApi';
@@ -105,21 +106,15 @@ function StatusBadge({ status }: { status: ChannexSyncStatus }) {
   }, [status]);
 
   return (
-    <Tooltip title={meta.description} placement="top" arrow>
-      <Chip
-        size="small"
-        icon={icon}
-        label={meta.label}
-        sx={{
-          backgroundColor: `${meta.color}1A`,
-          color: meta.color,
-          fontWeight: 600,
-          fontSize: '0.7rem',
-          height: 22,
-          '& .MuiChip-icon': { color: meta.color, marginLeft: '6px' },
-          '& .MuiChip-label': { paddingLeft: '6px', paddingRight: '8px' },
-        }}
-      />
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {/* Tooltip pose une ref sur son enfant, que StatusChip ne transmet pas
+            (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
+        <span className="inline-flex">
+          <StatusChip tokens={{ color: meta.color, bg: `${meta.color}1A` }} label={meta.label} icon={icon} className="text-[0.7rem]" />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top">{meta.description}</TooltipContent>
     </Tooltip>
   );
 }
@@ -127,34 +122,15 @@ function StatusBadge({ status }: { status: ChannexSyncStatus }) {
 // Carte d'action « choix » — style Signature (tokens, hover accent, sans
 // transform). NB : `${ACCENT}1A` était invalide (var() + alpha) → on utilise
 // les tokens dédiés var(--accent-soft).
-const choiceCardSx = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 1.5,
-  width: '100%',
-  p: '14px 16px',
-  borderRadius: '12px',
-  border: '1px solid var(--line)',
-  bgcolor: 'var(--card)',
-  textAlign: 'left',
-  cursor: 'pointer',
-  transition: 'border-color .15s, background-color .15s',
-  '&:hover': { borderColor: 'var(--accent)', bgcolor: 'var(--accent-soft)' },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-} as const;
+const CHOICE_CARD_CLASS = [
+  'flex items-center gap-[9px] w-full py-[14px] px-[16px] rounded-[12px]',
+  'border border-solid border-[var(--line)] bg-[var(--card)] text-start cursor-pointer',
+  'transition-[border-color,background-color] duration-150 motion-reduce:transition-none',
+  'hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]',
+  'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+].join(' ');
 
-const choiceIconSx = {
-  width: 40,
-  height: 40,
-  borderRadius: '10px',
-  bgcolor: 'var(--accent-soft)',
-  color: 'var(--accent)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  flexShrink: 0,
-} as const;
+const CHOICE_ICON_CLASS = 'w-10 h-10 rounded-[10px] bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center shrink-0';
 
 export default function ChannexMappingDialog({ open, onClose, guided = false }: ChannexMappingDialogProps) {
   const { t } = useTranslation();
@@ -492,55 +468,47 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-        <DialogTitle
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 2,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-            py: 1.5,
-          }}
-        >
-          <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0, flex: 1 }}>
+      <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+          {/* La croix de fermeture vient de DialogContent : `pe-10` lui reserve sa place. */}
+          <DialogHeader className="flex-row items-center gap-1.5 -mx-4 px-4 pb-[9px] pe-10 border-b border-solid border-[var(--line)]">
             {view !== 'CHOICE' && (
-              <Tooltip title="Retour au choix initial">
-                <IconButton
-                  size="small"
-                  onClick={() => setView('CHOICE')}
-                  sx={{ flexShrink: 0 }}
-                >
-                  <ArrowLeft size={18} />
-                </IconButton>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Retour au choix initial"
+                      onClick={() => setView('CHOICE')}
+                    >
+                      <ArrowLeft size={18} />
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Retour au choix initial</TooltipContent>
               </Tooltip>
             )}
-            <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography sx={{ fontSize: '0.95rem', fontWeight: 700 }}>
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="text-[0.95rem] font-bold">
                 {view === 'CHOICE'
                   ? (guided
                     ? t('channexGuided.title', 'Distribuez vos logements')
                     : 'Distribution OTA — Que voulez-vous faire ?')
                   : 'Connecter mes proprietes aux OTAs'}
-              </Typography>
-              <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+              </DialogTitle>
+              <DialogDescription className="text-[0.75rem]">
                 {view === 'CHOICE'
                   ? (guided
                     ? t('channexGuided.subtitle', 'Mettez vos annonces sur Airbnb, Booking, Vrbo… et synchronisez tout depuis Baitly.')
                     : 'Choisissez si vous voulez importer une propriete deja en ligne, ou connecter une propriete deja dans Baitly.')
                   : 'Selectionnez une propriete pour l\'enregistrer dans le hub puis y brancher Airbnb, Booking, etc.'}
-              </Typography>
-            </Box>
-          </Stack>
-          <IconButton onClick={onClose} size="small" sx={{ flexShrink: 0 }}>
-            <X size={18} />
-          </IconButton>
-        </DialogTitle>
+              </DialogDescription>
+            </div>
+          </DialogHeader>
 
-        <DialogContent sx={{ pt: 2 }}>
           {view === 'CHOICE' ? (
-            <Stack spacing={1.5}>
+            <div className="flex flex-col gap-[9px]">
               {/* Mode guide (end-user) : on masque le diagnostic technique et le
                   health panel par defaut (trop techniques) et on les expose
                   derriere un toggle discret. En mode Integrations (non guide),
@@ -550,17 +518,15 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                   {/* Note calme de degradation gracieuse : si un appel Channex a
                       echoue (API incomplete), on ne montre PAS d'erreur technique. */}
                   {guidedDegraded && (
-                    <Alert
-                      severity="info"
-                      variant="outlined"
-                      icon={<Clock size={16} />}
-                      sx={{ fontSize: '0.78rem', alignItems: 'center' }}
-                    >
-                      {t(
-                        'channexGuided.configuringNote',
-                        'La connexion au Channel Manager est en cours de configuration. Vous pouvez tout de meme preparer vos logements ci-dessous.',
-                      )}
-                    </Alert>
+                    <UiAlert variant="info" className="text-[0.78rem]">
+                      <Clock size={16} />
+                      <AlertDescription>
+                        {t(
+                          'channexGuided.configuringNote',
+                          'La connexion au Channel Manager est en cours de configuration. Vous pouvez tout de meme preparer vos logements ci-dessous.',
+                        )}
+                      </AlertDescription>
+                    </UiAlert>
                   )}
                 </>
               ) : (
@@ -585,209 +551,176 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                   drift actif — un bouton orange visible suggererait un probleme
                   alors qu'il n'y en a pas. Affiche le count en suffixe quand > 0. */}
               {!guided && activeDriftsCount > 0 && (
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <div className="flex justify-end">
+                  {/* Alerte discrete au-dessus du contenu : ghost teinte --warn plutot
+                      que default — ce n'est pas l'action principale de l'ecran. */}
                   <Button
-                    size="small"
-                    startIcon={<AlertCircle size={14} />}
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setPriceDriftsOpen(true)}
-                    sx={{
-                      textTransform: 'none',
-                      fontSize: '0.78rem',
-                      color: 'var(--warn)',
-                    }}
+                    className="text-[var(--warn)] hover:bg-[var(--warn-soft)]"
                   >
+                    <AlertCircle />
                     Voir les conflits de prix Baitly ↔ OTA ({activeDriftsCount})
                   </Button>
-                </Box>
+                </div>
               )}
 
               {!guided && (
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ display: 'block', lineHeight: 1.5, mb: 0.5 }}
-                >
+                <span className="cn-text-caption text-muted-foreground block leading-[1.5] mb-0.5">
                   Deux scenarios possibles selon votre situation :
-                </Typography>
+                </span>
               )}
 
               {/* Card 1 : Importer une propriete deja en ligne dans un OTA */}
-              <ButtonBase
+              <button
+                type="button"
                 onClick={() => setImportDialogOpen(true)}
-                sx={choiceCardSx}
+                className={CHOICE_CARD_CLASS}
               >
-                <Box sx={choiceIconSx}>
+                <div className={CHOICE_ICON_CLASS}>
                   <Globe size={22} />
-                </Box>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="body2" fontWeight={700} sx={{ mb: 0.25 }}>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="cn-text-body2 font-bold mb-0.5">
                     {guided
                       ? t('channexGuided.importTitle', 'Importer mes annonces existantes')
                       : 'Importer une propriete deja en ligne'}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ display: 'block', lineHeight: 1.5 }}
-                  >
+                  </p>
+                  <span className="cn-text-caption text-muted-foreground block leading-[1.5]">
                     {guided
                       ? t('channexGuided.importDesc', 'Depuis Airbnb, Booking ou Vrbo — infos pré-remplies.')
                       : 'Vous avez deja des listings sur Airbnb / Booking / Vrbo qui ne sont pas encore dans Baitly. Detectez et importez-les en masse avec leurs metadonnees (nom, devise, capacite) deja pre-remplies.'}
-                  </Typography>
-                </Box>
-                <Box sx={{ color: 'text.disabled', flexShrink: 0, alignSelf: 'center' }}>
+                  </span>
+                </div>
+                <div className="text-muted-foreground opacity-60 shrink-0 self-center">
                   <ChevronRight size={18} />
-                </Box>
-              </ButtonBase>
+                </div>
+              </button>
 
               {/* Card 2 : Connecter une propriete deja dans le PMS */}
-              <ButtonBase
+              <button
+                type="button"
                 onClick={() => setView('CONNECT_EXISTING')}
-                sx={choiceCardSx}
+                className={CHOICE_CARD_CLASS}
               >
-                <Box sx={choiceIconSx}>
+                <div className={CHOICE_ICON_CLASS}>
                   <Home size={22} />
-                </Box>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="body2" fontWeight={700} sx={{ mb: 0.25 }}>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="cn-text-body2 font-bold mb-0.5">
                     {guided
                       ? t('channexGuided.connectTitle', 'Connecter un de mes logements')
                       : 'Connecter une propriete deja dans Baitly'}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ display: 'block', lineHeight: 1.5 }}
-                  >
+                  </p>
+                  <span className="cn-text-caption text-muted-foreground block leading-[1.5]">
                     {guided
                       ? t('channexGuided.connectDesc', 'Un logement déjà dans Baitly, publié sur les plateformes.')
                       : 'Vous avez une propriete dans Baitly que vous voulez distribuer sur Airbnb, Booking, Vrbo, etc. Connectez-la au hub puis branchez les OTAs en quelques clics.'}
-                  </Typography>
-                </Box>
-                <Box sx={{ color: 'text.disabled', flexShrink: 0, alignSelf: 'center' }}>
+                  </span>
+                </div>
+                <div className="text-muted-foreground opacity-60 shrink-0 self-center">
                   <ChevronRight size={18} />
-                </Box>
-              </ButtonBase>
+                </div>
+              </button>
 
               {/* Card 3 : Gerer les OTAs connectes (voir/deconnecter Airbnb, Booking, etc.) */}
-              <ButtonBase
+              <button
+                type="button"
                 onClick={() => setView('MANAGE_OTAS')}
-                sx={choiceCardSx}
+                className={CHOICE_CARD_CLASS}
               >
-                <Box sx={choiceIconSx}>
+                <div className={CHOICE_ICON_CLASS}>
                   <Link2 size={22} />
-                </Box>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="body2" fontWeight={700} sx={{ mb: 0.25 }}>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="cn-text-body2 font-bold mb-0.5">
                     {guided
                       ? t('channexGuided.manageTitle', 'Gerer mes OTA connectes')
                       : 'Gerer les OTAs connectes'}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ display: 'block', lineHeight: 1.5 }}
-                  >
+                  </p>
+                  <span className="cn-text-caption text-muted-foreground block leading-[1.5]">
                     {guided
                       ? t('channexGuided.manageDesc', 'Voir et déconnecter vos plateformes reliées.')
                       : 'Voir tous les OTAs (Airbnb, Booking, Vrbo, ...) actuellement connectes au hub, et les deconnecter si besoin (supprime le channel + les tokens OAuth).'}
-                  </Typography>
-                </Box>
-                <Box sx={{ color: 'text.disabled', flexShrink: 0, alignSelf: 'center' }}>
+                  </span>
+                </div>
+                <div className="text-muted-foreground opacity-60 shrink-0 self-center">
                   <ChevronRight size={18} />
-                </Box>
-              </ButtonBase>
+                </div>
+              </button>
 
               {/* Mode guide : diagnostic technique masque derriere un toggle
                   discret. Jamais auto-affiche (pas de HTTP 401 / CHANNEX_API_KEY
                   jete a l'utilisateur final). Le banner reste replie au mount. */}
               {guided && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', pt: 0.5 }}>
+                <div className="flex justify-center pt-0.5">
+                  {/* Toggle discret, volontairement efface : ghost xs en encre --muted. */}
                   <Button
-                    size="small"
+                    variant="ghost"
+                    size="xs"
                     onClick={() => setShowTechStatus((v) => !v)}
-                    sx={{
-                      textTransform: 'none',
-                      fontSize: '0.72rem',
-                      fontWeight: 500,
-                      color: 'text.secondary',
-                      cursor: 'pointer',
-                      '&:hover': { color: 'var(--accent)', backgroundColor: 'transparent' },
-                    }}
+                    className="text-[var(--muted)] hover:bg-transparent hover:text-[var(--accent)]"
                   >
                     {showTechStatus
                       ? t('channexGuided.techToggleHide', 'Masquer l\'etat technique')
                       : t('channexGuided.techToggleShow', 'Etat technique de la connexion')}
                   </Button>
-                </Box>
+                </div>
               )}
               {guided && showTechStatus && <ChannexPreflightBanner defaultCollapsed />}
-            </Stack>
+            </div>
           ) : view === 'MANAGE_OTAS' ? (
-            <Stack spacing={1.5}>
+            <div className="flex flex-col gap-[9px]">
               {/* Mode guide : si la liste des OTAs n'a pas pu charger (API
                   incomplete), note calme au lieu d'une erreur technique. */}
               {guided && guidedDegraded && (
-                <Alert
-                  severity="info"
-                  variant="outlined"
-                  icon={<Clock size={16} />}
-                  sx={{ fontSize: '0.78rem', alignItems: 'center' }}
-                >
-                  {t(
-                    'channexGuided.configuringNote',
-                    'La connexion au Channel Manager est en cours de configuration. Vous pouvez tout de meme preparer vos logements ci-dessous.',
-                  )}
-                </Alert>
+                <UiAlert variant="info" className="text-[0.78rem]">
+                  <Clock size={16} />
+                  <AlertDescription>
+                    {t(
+                      'channexGuided.configuringNote',
+                      'La connexion au Channel Manager est en cours de configuration. Vous pouvez tout de meme preparer vos logements ci-dessous.',
+                    )}
+                  </AlertDescription>
+                </UiAlert>
               )}
               {!guided && otasError && (
-                <Alert severity="error" variant="outlined" sx={{ fontSize: '0.78rem' }}>
-                  {otasError}
-                </Alert>
+                <UiAlert variant="destructive" className="text-[0.78rem]">
+                  <TriangleAlert />
+                  <AlertDescription>{otasError}</AlertDescription>
+                </UiAlert>
               )}
 
               {otasLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                  <CircularProgress size={24} />
-                </Box>
+                <div className="flex justify-center py-6">
+                  <Spinner className="size-6" />
+                </div>
               ) : connectedOtas.length === 0 ? (
-                <Box sx={{ py: 5, textAlign: 'center', px: 2 }}>
-                  <Box
-                    sx={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: '50%',
-                      bgcolor: 'var(--accent-soft)',
-                      color: ACCENT,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mb: 1.5,
-                    }}
-                  >
+                <div className="py-7 text-center px-3">
+                  <div className="w-[56px] h-[56px] rounded-[50%] bg-[var(--accent-soft)] inline-flex items-center justify-center mb-[9px]" style={{ color: ACCENT }}>
                     <Link2 size={24} />
-                  </Box>
-                  <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+                  </div>
+                  <p className="cn-text-body2 font-semibold mb-0.5">
                     Aucun OTA connecte
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                  </p>
+                  <span className="cn-text-caption text-muted-foreground block mb-3">
                     Pour connecter Airbnb / Booking / Vrbo, retournez au choix initial et selectionnez
                     "Importer une propriete deja en ligne".
-                  </Typography>
+                  </span>
                   <Button
-                    size="small"
+                    size="sm"
                     onClick={() => setView('CHOICE')}
-                    variant="outlined"
-                    sx={{ textTransform: 'none' }}
+                    variant="outline"
                   >
                     Retour au choix
                   </Button>
-                </Box>
+                </div>
               ) : (
                 <>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                  <span className="cn-text-caption text-muted-foreground block mb-0.5">
                     {connectedOtas.length} OTA{connectedOtas.length > 1 ? 's' : ''} actuellement connecte{connectedOtas.length > 1 ? 's' : ''} au hub :
-                  </Typography>
+                  </span>
                   {connectedOtas.map((ota) => {
                     const otaOption = ota.otaName
                       ? CHANNEX_OTA_OPTIONS.find(
@@ -799,166 +732,105 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                     const brandFg = otaOption?.brandColorFg ?? '#FFFFFF';
                     const initials = otaOption?.initials ?? ota.otaName.slice(0, 2);
                     return (
-                      <Box
-                        key={ota.channelId}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1.5,
-                          p: 1.5,
-                          borderRadius: 1.5,
-                          border: '1px solid',
-                          borderColor: 'divider',
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 1,
-                            bgcolor: brand,
-                            color: brandFg,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                            fontWeight: 700,
-                            fontSize: '0.95rem',
-                          }}
-                        >
+                      <div className="flex items-center gap-2 p-2 rounded-[12px] border border-[var(--line)]" key={ota.channelId}>
+                        <div className="w-[40px] h-[40px] rounded-[8px] flex items-center justify-center shrink-0 font-bold text-[0.95rem]" style={{ backgroundColor: brand, color: brandFg }}>
                           {initials}
-                        </Box>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.25, flexWrap: 'wrap' }}>
-                            <Typography variant="body2" fontWeight={600} noWrap>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-row items-center gap-1.5 mb-[1.5px] flex-wrap">
+                            <p className="cn-text-body2 font-semibold truncate">
                               {otaOption?.name ?? ota.otaName} — {ota.title || 'Sans titre'}
-                            </Typography>
+                            </p>
                             {ota.isActive ? (
-                              <Chip
-                                size="small"
-                                label="Actif"
-                                sx={{
-                                  height: 18,
-                                  fontSize: '0.65rem',
-                                  bgcolor: 'var(--ok-soft)',
-                                  color: 'var(--ok)',
-                                }}
-                              />
+                              <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--ok-soft)] text-[var(--ok)]">Actif</Badge>
                             ) : ota.hasOauthToken ? (
-                              <Chip
-                                size="small"
-                                label="OAuth fait, mapping a finaliser"
-                                sx={{
-                                  height: 18,
-                                  fontSize: '0.65rem',
-                                  bgcolor: 'var(--warn-soft)',
-                                  color: 'var(--warn)',
-                                }}
-                              />
+                              <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--warn-soft)] text-[var(--warn)]">OAuth fait, mapping a finaliser</Badge>
                             ) : (
-                              <Chip
-                                size="small"
-                                label="Non authentifie"
-                                sx={{
-                                  height: 18,
-                                  fontSize: '0.65rem',
-                                  bgcolor: 'var(--err-soft)',
-                                  color: 'var(--err)',
-                                }}
-                              />
+                              <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--err-soft)] text-[var(--err)]">Non authentifie</Badge>
                             )}
-                          </Stack>
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.3 }}>
+                          </div>
+                          <span className="cn-text-caption text-muted-foreground block leading-[1.3]">
                             Lie a : {ota.attachedPropertyTitle || '(aucune)'}
-                          </Typography>
-                        </Box>
-                        <Tooltip title="Deconnecter cet OTA (supprime tokens OAuth)">
-                          <IconButton
-                            size="small"
-                            onClick={() => setDisconnectOtaConfirm(ota)}
-                            sx={{ color: 'var(--err)' }}
-                          >
-                            <Trash2 size={16} />
-                          </IconButton>
+                          </span>
+                        </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="Deconnecter cet OTA"
+                                onClick={() => setDisconnectOtaConfirm(ota)}
+                                className="text-[var(--err)]"
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Deconnecter cet OTA (supprime tokens OAuth)</TooltipContent>
                         </Tooltip>
-                      </Box>
+                      </div>
                     );
                   })}
                 </>
               )}
-            </Stack>
+            </div>
           ) : (
             <>
           {globalError && (
-            <Alert severity="error" sx={{ mb: 2, fontSize: '0.78rem' }}>
-              {globalError}
-            </Alert>
+            <UiAlert variant="destructive" className="mb-3 text-[0.78rem]">
+              <TriangleAlert />
+              <AlertDescription>{globalError}</AlertDescription>
+            </UiAlert>
           )}
 
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress size={28} />
-            </Box>
+            <div className="flex justify-center py-6">
+              <Spinner className="size-7" />
+            </div>
           ) : properties.length === 0 ? (
-            <Typography sx={{ textAlign: 'center', py: 4, color: 'text.secondary', fontSize: '0.85rem' }}>
+            <p className="cn-text-body1 text-center py-6 text-muted-foreground text-[0.85rem]">
               Aucune propriete dans votre organisation.
-            </Typography>
+            </p>
           ) : (
-            <Stack divider={<Divider />} spacing={0}>
+            // Le separateur du Stack MUI devient une bordure haute par ligne
+            // (la premiere n'en porte pas) : meme trait, sans composant intercale.
+            <div className="flex flex-col">
               {properties.map((property) => {
                 const mapping = mappings.get(property.id);
                 const isBusy = busyPropertyId === property.id;
                 return (
-                  <Box
-                    key={property.id}
-                    sx={{
-                      py: 1.5,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 2,
-                    }}
-                  >
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography sx={{ fontSize: '0.85rem', fontWeight: 600 }} noWrap>
+                  <div className="py-2 flex items-center justify-between gap-3 border-t border-solid border-[var(--line)] first:border-t-0" key={property.id}>
+                    <div className="flex-1 min-w-0">
+                      <p className="cn-text-body1 text-[0.85rem] font-semibold truncate">
                         {property.name}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.25 }}>
-                        <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }} noWrap>
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="cn-text-body1 text-[0.7rem] text-muted-foreground truncate">
                           {property.city} · {property.type}
-                        </Typography>
+                        </p>
                         {mapping && <StatusBadge status={mapping.syncStatus} />}
-                      </Box>
+                      </div>
                       {mapping?.lastSyncError && (
-                        <Tooltip title={mapping.lastSyncError} arrow>
-                          <Typography
-                            sx={{
-                              fontSize: '0.7rem',
-                              color: 'var(--err)',
-                              mt: 0.5,
-                              fontStyle: 'italic',
-                              maxWidth: 360,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {mapping.lastSyncError}
-                          </Typography>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <p className="cn-text-body1 text-[0.7rem] text-[var(--err)] mt-0.5 italic max-w-[360px] overflow-hidden text-ellipsis whitespace-nowrap">
+                              {mapping.lastSyncError}
+                            </p>
+                          </TooltipTrigger>
+                          <TooltipContent>{mapping.lastSyncError}</TooltipContent>
                         </Tooltip>
                       )}
-                    </Box>
+                    </div>
 
-                    <Stack direction="row" spacing={1} alignItems="center">
+                    <div className="flex flex-row gap-1.5 items-center">
                       {!mapping ? (
                         <Button
-                          variant="contained"
-                          size="small"
-                          startIcon={<Plus size={14} />}
+                          size="sm"
                           disabled={isBusy}
                           onClick={() => handleConnectClick(property)}
-                          sx={{ textTransform: 'none', fontSize: '0.75rem' }}
                         >
+                          <Plus />
                           Connecter
                         </Button>
                       ) : (
@@ -972,7 +844,7 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                               (o) => o.attachedPropertyId === mapping.channexPropertyId,
                             );
                             return (
-                              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mr: 0.5 }}>
+                              <div className="flex flex-row gap-[3px] items-center me-[3px]">
                                 {CHANNEX_OTA_OPTIONS.map((opt) => {
                                   const conn = propertyOtas.find(
                                     (o) => o.otaName.toLowerCase() === opt.apiChannelName.toLowerCase()
@@ -986,151 +858,141 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                                       ? `${opt.name} · OAuth fait, mapping a finaliser`
                                       : `${opt.name} · Cliquer pour connecter`;
                                   const logo = OTA_LOGO_BY_CODE[opt.code];
+                                  // Meme contenu pour les deux formes ; seule l'enveloppe change
+                                  // (element inerte quand l'OTA est deja synchronise, bouton sinon).
+                                  const badgeInner = (
+                                    <>
+                                      {logo && (
+                                        <img className="w-full h-full rounded-[4px] object-contain bg-[var(--card)] border border-solid border-[var(--line)] p-0.5" src={logo} alt={opt.name} />
+                                      )}
+                                      {isActive && (
+                                        <div className="absolute w-[11px] h-[11px] rounded-[50%] bg-[var(--ok)] text-[var(--on-accent)] flex items-center justify-center border-[2px] border-solid border-[var(--card)]" style={{ top: -3, right: -3 }}>
+                                          <CheckCircle2 size={7} strokeWidth={4} />
+                                        </div>
+                                      )}
+                                      {!isActive && hasToken && (
+                                        <div className="absolute w-[9px] h-[9px] rounded-[50%] bg-[var(--warn)] border-[2px] border-solid border-[var(--card)]" style={{ top: -3, right: -3 }} />
+                                      )}
+                                    </>
+                                  );
                                   return (
-                                    <Tooltip key={opt.code} title={tooltipLabel} arrow>
-                                      <Box
-                                        component={isActive ? 'div' : 'button'}
-                                        onClick={isActive ? undefined : () => setPickerDialog({ open: true, property })}
-                                        disabled={isActive ? undefined : isBusy}
-                                        sx={{
-                                          position: 'relative',
-                                          display: 'inline-flex',
-                                          width: 22,
-                                          height: 22,
-                                          p: 0,
-                                          border: 'none',
-                                          background: 'transparent',
-                                          cursor: isActive ? 'default' : 'pointer',
-                                          opacity: isActive ? 1 : 0.35,
-                                          filter: isActive ? 'none' : 'grayscale(100%)',
-                                          transition: 'opacity 150ms ease, filter 150ms ease',
-                                          '&:hover': isActive ? {} : { opacity: 0.7, filter: 'grayscale(50%)' },
-                                        }}
-                                      >
-                                        {logo && (
-                                          <Box
-                                            component="img"
-                                            src={logo}
-                                            alt={opt.name}
-                                            sx={{
-                                              width: '100%',
-                                              height: '100%',
-                                              borderRadius: 0.5,
-                                              objectFit: 'contain',
-                                              bgcolor: 'var(--card)',
-                                              border: '1px solid var(--line)',
-                                              p: '2px',
-                                            }}
-                                          />
-                                        )}
-                                        {isActive && (
-                                          <Box
-                                            sx={{
-                                              position: 'absolute',
-                                              top: -3,
-                                              right: -3,
-                                              width: 11,
-                                              height: 11,
-                                              borderRadius: '50%',
-                                              bgcolor: 'var(--ok)',
-                                              color: 'var(--on-accent)',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'center',
-                                              border: '2px solid var(--card)',
-                                            }}
+                                    <Tooltip key={opt.code}>
+                                      <TooltipTrigger asChild>
+                                        {isActive ? (
+                                          <span className="relative inline-flex w-[22px] h-[22px] p-0 cursor-default">
+                                            {badgeInner}
+                                          </span>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            onClick={() => setPickerDialog({ open: true, property })}
+                                            disabled={isBusy}
+                                            aria-label={tooltipLabel}
+                                            className="relative inline-flex w-[22px] h-[22px] p-0 border-none bg-transparent cursor-pointer opacity-35 grayscale transition-[opacity,filter] duration-150 hover:opacity-70 hover:grayscale-[50%]"
                                           >
-                                            <CheckCircle2 size={7} strokeWidth={4} />
-                                          </Box>
+                                            {badgeInner}
+                                          </button>
                                         )}
-                                        {!isActive && hasToken && (
-                                          <Box
-                                            sx={{
-                                              position: 'absolute',
-                                              top: -3,
-                                              right: -3,
-                                              width: 9,
-                                              height: 9,
-                                              borderRadius: '50%',
-                                              bgcolor: 'var(--warn)',
-                                              border: '2px solid var(--card)',
-                                            }}
-                                          />
-                                        )}
-                                      </Box>
+                                      </TooltipTrigger>
+                                      <TooltipContent>{tooltipLabel}</TooltipContent>
                                     </Tooltip>
                                   );
                                 })}
-                              </Stack>
+                              </div>
                             );
                           })()}
-                          <Tooltip title="Re-sync contenu OTA (nom, commodités) — re-scrape Airbnb + applique vos aliases">
-                            <span>
-                              <IconButton
-                                size="small"
-                                disabled={isBusy}
-                                onClick={() => handleResyncContent(property)}
-                                sx={{ color: '#8B5CF6' }}
-                              >
-                                <Sparkles size={14} />
-                              </IconButton>
-                            </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Re-sync contenu OTA"
+                                  disabled={isBusy}
+                                  onClick={() => handleResyncContent(property)}
+                                  className="text-[#8B5CF6]"
+                                >
+                                  <Sparkles size={14} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Re-sync contenu OTA (nom, commodités) — re-scrape Airbnb + applique vos aliases</TooltipContent>
                           </Tooltip>
-                          <Tooltip title="Re-pousser prix + dispo Baitly vers les OTAs (6 mois)">
-                            <span>
-                              <IconButton
-                                size="small"
-                                disabled={isBusy}
-                                onClick={() => handleResync(property)}
-                                sx={{ color: ACCENT }}
-                              >
-                                {isBusy ? <CircularProgress size={14} /> : <RefreshCw size={14} />}
-                              </IconButton>
-                            </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Re-pousser prix et disponibilites"
+                                  disabled={isBusy}
+                                  onClick={() => handleResync(property)}
+                                  className="text-[var(--accent)]"
+                                >
+                                  {isBusy ? <Spinner className="size-3.5" /> : <RefreshCw size={14} />}
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Re-pousser prix + dispo Baitly vers les OTAs (6 mois)</TooltipContent>
                           </Tooltip>
-                          <Tooltip title="Importer les bookings OTA existants (Airbnb / Booking / ...)">
-                            <span>
-                              <IconButton
-                                size="small"
-                                disabled={isBusy}
-                                onClick={() => handlePullBookings(property)}
-                                sx={{ color: 'var(--info)' }}
-                              >
-                                <Download size={14} />
-                              </IconButton>
-                            </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Importer les bookings OTA existants"
+                                  disabled={isBusy}
+                                  onClick={() => handlePullBookings(property)}
+                                  className="text-[var(--info)]"
+                                >
+                                  <Download size={14} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Importer les bookings OTA existants (Airbnb / Booking / ...)</TooltipContent>
                           </Tooltip>
-                          <Tooltip title="Push pricing settings (weekend / occupancy / LOS / min-max nights) vers Channex">
-                            <span>
-                              <IconButton
-                                size="small"
-                                disabled={isBusy}
-                                onClick={() => handlePushPricingSettings(property)}
-                                sx={{ color: 'var(--ok)' }}
-                              >
-                                <SettingsIcon size={14} />
-                              </IconButton>
-                            </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Push pricing settings vers Channex"
+                                  disabled={isBusy}
+                                  onClick={() => handlePushPricingSettings(property)}
+                                  className="text-[var(--ok)]"
+                                >
+                                  <SettingsIcon size={14} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Push pricing settings (weekend / occupancy / LOS / min-max nights) vers Channex</TooltipContent>
                           </Tooltip>
-                          <Tooltip title="Deconnecter">
-                            <span>
-                              <IconButton
-                                size="small"
-                                disabled={isBusy}
-                                onClick={() => handleDisconnect(property)}
-                                sx={{ color: 'var(--err)' }}
-                              >
-                                <Trash2 size={14} />
-                              </IconButton>
-                            </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label="Deconnecter"
+                                  disabled={isBusy}
+                                  onClick={() => handleDisconnect(property)}
+                                  className="text-[var(--err)]"
+                                >
+                                  <Trash2 size={14} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Deconnecter</TooltipContent>
                           </Tooltip>
                         </>
                       )}
-                    </Stack>
-                  </Box>
+                    </div>
+                  </div>
                 );
               })}
-            </Stack>
+            </div>
           )}
             </>
           )}
@@ -1140,188 +1002,163 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
       {/* Sub-dialog: connect form */}
       <Dialog
         open={connectForm.open}
-        onClose={() => setConnectForm(initialConnectForm)}
-        maxWidth="sm"
-        fullWidth
+        onOpenChange={(next) => { if (!next) setConnectForm(initialConnectForm); }}
       >
-        <DialogTitle sx={{ borderBottom: '1px solid', borderColor: 'divider', py: 1.5 }}>
-          <Typography sx={{ fontSize: '0.9rem', fontWeight: 700 }}>
-            Connecter "{connectForm.property?.name}" au hub de distribution
-          </Typography>
-          <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mt: 0.25 }}>
-            {connectForm.mode === 'AUTO_CREATE'
-              ? "Baitly va creer Property + Room Type + Rate Plan automatiquement dans le hub"
-              : "Renseignez les 3 identifiants du hub (visibles dans votre dashboard)"}
-          </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="-mx-4 px-4 pb-[9px] pe-10 border-b border-solid border-[var(--line)]">
+            <DialogTitle className="text-[0.9rem] font-bold">
+              Connecter "{connectForm.property?.name}" au hub de distribution
+            </DialogTitle>
+            <DialogDescription className="text-[0.72rem] mt-0.5">
+              {connectForm.mode === 'AUTO_CREATE'
+                ? "Baitly va creer Property + Room Type + Rate Plan automatiquement dans le hub"
+                : "Renseignez les 3 identifiants du hub (visibles dans votre dashboard)"}
+            </DialogDescription>
+          </DialogHeader>
           {connectForm.error && (
-            <Alert severity="error" sx={{ mb: 2, fontSize: '0.78rem' }}>
-              {connectForm.error}
-            </Alert>
+            <UiAlert variant="destructive" className="mb-3 text-[0.78rem]">
+              <TriangleAlert />
+              <AlertDescription>{connectForm.error}</AlertDescription>
+            </UiAlert>
           )}
 
           {/* Mode toggle */}
-          <Stack spacing={1} sx={{ mb: 2 }}>
-            <Box
+          <div className="flex flex-col gap-1.5 mb-3">
+            <div
               role="button"
               tabIndex={0}
               onClick={() => setConnectForm((s) => ({ ...s, mode: 'AUTO_CREATE', error: null }))}
-              sx={{
-                p: 1.25,
-                border: '1.5px solid',
-                borderColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'divider',
-                borderRadius: 1.5,
-                cursor: 'pointer',
-                backgroundColor: connectForm.mode === 'AUTO_CREATE' ? 'var(--accent-soft)' : 'background.paper',
-                transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                '&:hover': { borderColor: ACCENT },
-              }}
+              className={cn(
+                'p-[7.5px] border-[1.5px] border-solid rounded-[12px] cursor-pointer hover:border-[var(--accent)]',
+                connectForm.mode === 'AUTO_CREATE'
+                  ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                  : 'border-[var(--line)] bg-[var(--card)]',
+              )}
+              style={{ transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)' }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box
-                  sx={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: '50%',
-                    border: '2px solid',
-                    borderColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'divider',
-                    backgroundColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'transparent',
-                    flexShrink: 0,
-                  }}
-                />
-                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
+              <div className="flex items-center gap-1.5">
+                {/* `divider` etait un jeton MUI dans un style inline : declaration
+                    invalide, silencieusement ignoree. Le trait du kit est --line. */}
+                <div className="w-[16px] h-[16px] rounded-[50%] border-[2px] border-solid shrink-0" style={{ borderColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'var(--line)', backgroundColor: connectForm.mode === 'AUTO_CREATE' ? ACCENT : 'transparent' }} />
+                <p className="cn-text-body1 text-[0.8rem] font-semibold">
                   Creation automatique <span style={{ color: ACCENT, fontSize: '0.75rem', fontWeight: 700 }}>RECOMMANDE</span>
-                </Typography>
-              </Box>
-              <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', ml: 3, mt: 0.5 }}>
+                </p>
+              </div>
+              <p className="cn-text-body1 text-[0.72rem] text-muted-foreground ms-4 mt-0.5">
                 Baitly cree la Property, le Room Type et le Rate Plan automatiquement dans le hub de distribution en utilisant les infos de votre propriete.
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
-            <Box
+            <div
               role="button"
               tabIndex={0}
               onClick={() => setConnectForm((s) => ({ ...s, mode: 'IMPORT_EXISTING', error: null }))}
-              sx={{
-                p: 1.25,
-                border: '1.5px solid',
-                borderColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'divider',
-                borderRadius: 1.5,
-                cursor: 'pointer',
-                backgroundColor: connectForm.mode === 'IMPORT_EXISTING' ? 'var(--accent-soft)' : 'background.paper',
-                transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                '&:hover': { borderColor: ACCENT },
-              }}
+              className={cn(
+                'p-[7.5px] border-[1.5px] border-solid rounded-[12px] cursor-pointer hover:border-[var(--accent)]',
+                connectForm.mode === 'IMPORT_EXISTING'
+                  ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                  : 'border-[var(--line)] bg-[var(--card)]',
+              )}
+              style={{ transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)' }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box
-                  sx={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: '50%',
-                    border: '2px solid',
-                    borderColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'divider',
-                    backgroundColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'transparent',
-                    flexShrink: 0,
-                  }}
-                />
-                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
+              <div className="flex items-center gap-1.5">
+                <div className="w-[16px] h-[16px] rounded-[50%] border-[2px] border-solid shrink-0" style={{ borderColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'var(--line)', backgroundColor: connectForm.mode === 'IMPORT_EXISTING' ? ACCENT : 'transparent' }} />
+                <p className="cn-text-body1 text-[0.8rem] font-semibold">
                   Importer des IDs existants
-                </Typography>
-              </Box>
-              <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', ml: 3, mt: 0.5 }}>
+                </p>
+              </div>
+              <p className="cn-text-body1 text-[0.72rem] text-muted-foreground ms-4 mt-0.5">
                 Vous avez deja cree la propriete dans le hub de distribution et possedez les 3 UUIDs.
-              </Typography>
-            </Box>
-          </Stack>
+              </p>
+            </div>
+          </div>
 
           {/* Champs IDs : visibles uniquement en mode IMPORT */}
           {connectForm.mode === 'IMPORT_EXISTING' && (
-            <Stack spacing={1.5}>
-              <TextField
-                label="Property ID (hub)"
-                fullWidth
-                size="small"
-                value={connectForm.channexPropertyId}
-                onChange={(e) =>
-                  setConnectForm((s) => ({ ...s, channexPropertyId: e.target.value }))
-                }
-                disabled={connectForm.submitting}
-                placeholder="ex: 8f8a2c1a-4b5e-..."
-                helperText="UUID de la Property dans le hub de distribution"
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                label="Room Type ID (hub)"
-                fullWidth
-                size="small"
-                value={connectForm.channexRoomTypeId}
-                onChange={(e) =>
-                  setConnectForm((s) => ({ ...s, channexRoomTypeId: e.target.value }))
-                }
-                disabled={connectForm.submitting}
-                placeholder="ex: 1d2e3f4a-..."
-                helperText="Room Type rattache a la property"
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                label="Default Rate Plan ID (hub)"
-                fullWidth
-                size="small"
-                value={connectForm.channexDefaultRatePlanId}
-                onChange={(e) =>
-                  setConnectForm((s) => ({ ...s, channexDefaultRatePlanId: e.target.value }))
-                }
-                disabled={connectForm.submitting}
-                placeholder="ex: 5b6c7d8e-..."
-                helperText="Rate Plan par defaut utilise pour pousser les prix"
-                InputLabelProps={{ shrink: true }}
-              />
-            </Stack>
+            <div className="flex flex-col gap-[9px]">
+              <Field>
+                <FieldLabel htmlFor="channex-property-id">Property ID (hub)</FieldLabel>
+                <Input
+                  id="channex-property-id"
+                  className="w-full"
+                  value={connectForm.channexPropertyId}
+                  onChange={(e) =>
+                    setConnectForm((s) => ({ ...s, channexPropertyId: e.target.value }))
+                  }
+                  disabled={connectForm.submitting}
+                  placeholder="ex: 8f8a2c1a-4b5e-..."
+                />
+                <FieldDescription>UUID de la Property dans le hub de distribution</FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="channex-room-type-id">Room Type ID (hub)</FieldLabel>
+                <Input
+                  id="channex-room-type-id"
+                  className="w-full"
+                  value={connectForm.channexRoomTypeId}
+                  onChange={(e) =>
+                    setConnectForm((s) => ({ ...s, channexRoomTypeId: e.target.value }))
+                  }
+                  disabled={connectForm.submitting}
+                  placeholder="ex: 1d2e3f4a-..."
+                />
+                <FieldDescription>Room Type rattache a la property</FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="channex-rate-plan-id">Default Rate Plan ID (hub)</FieldLabel>
+                <Input
+                  id="channex-rate-plan-id"
+                  className="w-full"
+                  value={connectForm.channexDefaultRatePlanId}
+                  onChange={(e) =>
+                    setConnectForm((s) => ({ ...s, channexDefaultRatePlanId: e.target.value }))
+                  }
+                  disabled={connectForm.submitting}
+                  placeholder="ex: 5b6c7d8e-..."
+                />
+                <FieldDescription>Rate Plan par defaut utilise pour pousser les prix</FieldDescription>
+              </Field>
+            </div>
           )}
 
           {/* Recap mode AUTO_CREATE */}
           {connectForm.mode === 'AUTO_CREATE' && connectForm.property && (
-            <Alert severity="info" sx={{ fontSize: '0.72rem' }}>
-              <strong>Sera cree dans le hub de distribution :</strong>
-              <Box component="ul" sx={{ margin: 0, paddingInlineStart: 2, mt: 0.5 }}>
+            <UiAlert variant="info" className="text-[0.72rem]">
+              <Info />
+              <AlertDescription><strong>Sera cree dans le hub de distribution :</strong><ul className="m-0 ps-3 mt-[3px]">
                 <li>Property : <em>{connectForm.property.name}</em> ({connectForm.property.city}, {connectForm.property.country})</li>
                 <li>Room Type : 1 unite, capacite {connectForm.property.maxGuests} personnes</li>
                 <li>Rate Plan : Standard Rate, per_room</li>
-              </Box>
-            </Alert>
+              </ul></AlertDescription>
+            </UiAlert>
           )}
 
-          <Alert severity="info" sx={{ mt: 2, fontSize: '0.72rem' }}>
-            Apres connexion, un push initial de 6 mois (prix + disponibilites) sera declenche automatiquement.
+          <UiAlert variant="info" className="mt-3 text-[0.72rem]">
+            <Info />
+            <AlertDescription>Apres connexion, un push initial de 6 mois (prix + disponibilites) sera declenche automatiquement.
             {connectForm.mode === 'AUTO_CREATE' && (
               <> Pour connecter ensuite Airbnb / Booking / Vrbo, utilisez le bouton de connexion (lien) sur la propriete une fois creee.</>
-            )}
-          </Alert>
+            )}</AlertDescription>
+          </UiAlert>
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 2 }}>
+          <div className="flex justify-end gap-1.5 mt-3">
             <Button
-              size="small"
+              variant="outline"
+              size="sm"
               onClick={() => setConnectForm(initialConnectForm)}
               disabled={connectForm.submitting}
-              sx={{ textTransform: 'none' }}
             >
               Annuler
             </Button>
             <Button
-              variant="contained"
-              size="small"
+              size="sm"
               onClick={handleConnectSubmit}
               disabled={connectForm.submitting}
-              startIcon={
-                connectForm.submitting ? <CircularProgress size={12} color="inherit" /> : null
-              }
-              sx={{ textTransform: 'none' }}
             >
+              {connectForm.submitting ? <Spinner className="size-3" /> : null}
               {connectForm.submitting ? 'Connexion...' : 'Connecter'}
             </Button>
-          </Box>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -1455,60 +1292,41 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
       {/* Confirmation de deconnexion OTA (suppression channel + tokens OAuth) */}
       <Dialog
         open={disconnectOtaConfirm !== null}
-        onClose={() => setDisconnectOtaConfirm(null)}
-        maxWidth="xs"
-        fullWidth
+        onOpenChange={(next) => { if (!next) setDisconnectOtaConfirm(null); }}
       >
-        <DialogTitle
-          sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, pb: 1 }}
-        >
-          <Box
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: 1,
-              bgcolor: 'var(--err-soft)',
-              color: 'var(--err)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              mt: 0.25,
-            }}
-          >
-            <AlertCircle size={18} />
-          </Box>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="subtitle1" fontWeight={600} sx={{ lineHeight: 1.3 }}>
-              Deconnecter cet OTA&nbsp;?
-            </Typography>
-          </Box>
-        </DialogTitle>
-        <DialogContent sx={{ pt: 1, pb: 1.5 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+        <DialogContent>
+          <DialogHeader className="flex-row items-start gap-1.5 pe-10">
+            <div className="w-[32px] h-[32px] rounded-[8px] bg-[var(--err-soft)] text-[var(--err)] flex items-center justify-center shrink-0 mt-0.5">
+              <AlertCircle size={18} />
+            </div>
+            <div className="min-w-0">
+              <DialogTitle className="font-semibold leading-[1.3]">
+                Deconnecter cet OTA&nbsp;?
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+          <DialogDescription>
             <strong>{disconnectOtaConfirm?.otaName}</strong> sera deconnecte du hub.
             Les tokens OAuth seront supprimes et vous devrez refaire toute l'authentification
             pour reconnecter cet OTA. Les bookings deja synchronises restent dans Baitly.
-          </Typography>
+          </DialogDescription>
+          <DialogFooter>
+            <Button
+              onClick={() => setDisconnectOtaConfirm(null)}
+              size="sm"
+              variant="outline"
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleDisconnectOta}
+              size="sm"
+              variant="destructive"
+            >
+              Deconnecter
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, px: 3, pb: 2 }}>
-          <Button
-            onClick={() => setDisconnectOtaConfirm(null)}
-            size="small"
-            sx={{ textTransform: 'none', color: 'text.secondary' }}
-          >
-            Annuler
-          </Button>
-          <Button
-            onClick={handleDisconnectOta}
-            size="small"
-            variant="contained"
-            color="error"
-            sx={{ textTransform: 'none' }}
-          >
-            Deconnecter
-          </Button>
-        </Box>
       </Dialog>
     </>
   );

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, Box, Typography, useMediaQuery } from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Dialog, DialogContent, DialogTitle } from '../ui';
 import { Check, ArrowBack, ArrowForward } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useReservationForm } from './useReservationForm';
 import type { ReservationDialogProps, UseReservationFormResult } from './useReservationForm';
-import { BTN_GHOST_SX, BTN_PRIMARY_SX, FOOT_SX } from './reservationDialogStyles';
 import ReservationDialogHeader from './ReservationDialogHeader';
 import ReservationWizardSteps from './ReservationWizardSteps';
 import PropertySelectField from './PropertySelectField';
@@ -28,49 +28,54 @@ export type ReservationDialogEntryMode = 'reservation' | 'block';
 // ÉDITION = écran unique 2 colonnes. Soumission INTERNE : invalide planningKeys.all ET
 // reservationsKeys.all.
 
+// Equivalents en classes de FOOT_SX / BTN_GHOST_SX / BTN_PRIMARY_SX (reservationDialogStyles).
+// Les constantes sx restent exportees pour les autres sous-composants encore en Box.
+const FOOT_CLS =
+  'flex items-center gap-2.5 px-[22px] py-[14px] border-t border-solid border-[var(--line)] bg-[var(--surface-2)] shrink-0';
+const BTN_BASE_CLS =
+  'inline-flex items-center gap-2 h-[38px] px-[17px] rounded-[11px] font-[inherit] text-[12.5px] font-semibold cursor-pointer border border-solid border-transparent [transition:transform_.12s,background_.14s,border-color_.14s,color_.14s] active:enabled:scale-[.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]';
+const BTN_GHOST_CLS = `${BTN_BASE_CLS} bg-transparent text-[var(--muted)] hover:text-[var(--ink)]`;
+const BTN_PRIMARY_CLS = `${BTN_BASE_CLS} bg-transparent border-[var(--accent)] text-[var(--accent)] hover:enabled:bg-[var(--accent-soft)] disabled:opacity-[.45] disabled:cursor-not-allowed`;
+
 // ─── Corps édition (écran unique, 2 colonnes) ─────────────────────────────────
 const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }> = ({ form, onClose }) => {
   const { t } = useTranslation();
-  const stackColumns = useMediaQuery('(max-width: 900px)');
 
   return (
     <>
-      <Box sx={{ flex: 1, overflowY: 'auto', display: 'grid', gridTemplateColumns: stackColumns ? '1fr' : '1fr 1fr', gap: 0 }}>
-        <Box
-          sx={{
-            padding: '22px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '18px',
-            borderRight: stackColumns ? 'none' : '1px solid var(--line)',
-            borderBottom: stackColumns ? '1px solid var(--line)' : 'none',
-          }}
+      {/* max-width: 900px MUI => la 2e colonne apparait a partir de 901 px. */}
+      <div className="flex-1 overflow-y-auto grid gap-0 grid-cols-[1fr] min-[901px]:grid-cols-[1fr_1fr]">
+        <div
+          className={cn(
+            'flex flex-col gap-[18px] p-[22px] border-solid border-[var(--line)]',
+            'border-b min-[901px]:border-b-0 min-[901px]:border-r',
+          )}
         >
           <StaySection form={form} />
           <GuestSection form={form} />
-        </Box>
-        <Box sx={{ padding: '22px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        </div>
+        <div className="flex flex-col gap-[18px] p-[22px]">
           <PricingSection form={form} />
           <ExtrasSection form={form} />
-        </Box>
+        </div>
 
         <ConflictAlert form={form} fullWidth />
         {form.error && (
-          <Typography sx={{ gridColumn: '1 / -1', margin: '0 22px 20px', fontSize: '12.5px', fontWeight: 600, color: 'var(--err)' }}>
+          <p className="cn-text-body1 col-span-full mt-0 mx-[22px] mb-5 text-[12.5px] font-semibold text-[var(--err)]">
             {form.error}
-          </Typography>
+          </p>
         )}
-      </Box>
+      </div>
 
-      <Box sx={{ ...FOOT_SX, justifyContent: 'flex-end' }}>
-        <Box component="button" type="button" onClick={onClose} sx={BTN_GHOST_SX}>
+      <div className={cn(FOOT_CLS, 'justify-end')}>
+        <button type="button" onClick={onClose} className={BTN_GHOST_CLS}>
           {t('common.cancel')}
-        </Box>
-        <Box component="button" type="button" onClick={form.handleSubmit} disabled={form.submitDisabled} sx={BTN_PRIMARY_SX}>
+        </button>
+        <button type="button" onClick={form.handleSubmit} disabled={form.submitDisabled} className={BTN_PRIMARY_CLS}>
           <Check size={15} strokeWidth={2} />
           {form.saving ? t('reservations.dialog.submitSaving') : t('common.save')}
-        </Box>
-      </Box>
+        </button>
+      </div>
     </>
   );
 };
@@ -109,7 +114,7 @@ const CreateWizard: React.FC<{
     <>
       <ReservationWizardSteps steps={stepLabels} current={step} reachable={reachable} onStepClick={goStep} />
 
-      <Box sx={{ flex: 1, overflowY: 'auto', padding: '22px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+      <div className="flex flex-1 flex-col gap-[18px] overflow-y-auto p-[22px]">
         {step === 1 && (
           <>
             {form.showPropertySelector && <PropertySelectField form={form} />}
@@ -127,38 +132,38 @@ const CreateWizard: React.FC<{
         {step === 4 && <FinalizeStep form={form} />}
 
         {form.error && (
-          <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--err)' }}>{form.error}</Typography>
+          <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--err)]">{form.error}</p>
         )}
-      </Box>
+      </div>
 
-      <Box sx={FOOT_SX}>
-        <Box component="button" type="button" onClick={onClose} sx={BTN_GHOST_SX}>
+      <div className={FOOT_CLS}>
+        <button type="button" onClick={onClose} className={BTN_GHOST_CLS}>
           {t('common.cancel')}
-        </Box>
-        <Box sx={{ marginInlineStart: 'auto', display: 'flex', gap: '10px' }}>
+        </button>
+        <div className="ms-auto flex gap-2.5">
           {step > 1 && (
-            <Box component="button" type="button" onClick={() => setStep((s) => s - 1)} sx={BTN_GHOST_SX}>
+            <button type="button" onClick={() => setStep((s) => s - 1)} className={BTN_GHOST_CLS}>
               <ArrowBack size={15} strokeWidth={2} />
               {t('reservations.dialog.previous')}
-            </Box>
+            </button>
           )}
           {step < 4 ? (
-            <Box component="button" type="button" onClick={() => canGoNext && setStep((s) => s + 1)} disabled={!canGoNext} sx={BTN_PRIMARY_SX}>
+            <button type="button" onClick={() => canGoNext && setStep((s) => s + 1)} disabled={!canGoNext} className={BTN_PRIMARY_CLS}>
               {t('reservations.dialog.next')}
               <ArrowForward size={15} strokeWidth={2} />
-            </Box>
+            </button>
           ) : (
-            <Box component="button" type="button" onClick={form.handleSubmit} disabled={finalizeDisabled} sx={BTN_PRIMARY_SX}>
+            <button type="button" onClick={form.handleSubmit} disabled={finalizeDisabled} className={BTN_PRIMARY_CLS}>
               <Check size={15} strokeWidth={2} />
               {form.saving
                 ? t('reservations.dialog.submitCreating')
                 : form.requestPayment
                   ? t('reservations.dialog.submitCreatePayment')
                   : t('reservations.dialog.submitCreate')}
-            </Box>
+            </button>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
     </>
   );
 };
@@ -166,7 +171,6 @@ const CreateWizard: React.FC<{
 // ─── Shell ────────────────────────────────────────────────────────────────────
 const ReservationDialog: React.FC<ReservationDialogProps> = (props) => {
   const { open, onClose } = props;
-  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const isCreate = props.mode === 'create';
 
   const form = useReservationForm(props);
@@ -188,48 +192,37 @@ const ReservationDialog: React.FC<ReservationDialogProps> = (props) => {
   const isBlock = isCreate && entryMode === 'block';
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth={false}
-      PaperProps={{
-        sx: {
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      {/* Le header du dialogue porte deja sa croix : pas de bouton du gabarit.
+          L'animation d'entree et le voile viennent du kit (et respectent deja
+          prefers-reduced-motion) — l'ancien keyframes local est redondant. */}
+      <DialogContent
+        showCloseButton={false}
+        className={cn(
+          'flex flex-col overflow-hidden p-0 max-w-[95vw] max-h-[92vh]',
+          'rounded-[18px] border border-solid border-[var(--line)] bg-[var(--card)] text-[var(--body)] shadow-[var(--shadow-pop)]',
           // Wizard = colonne unique (assez large pour le calendrier 2 mois) ; édition = 2 colonnes.
-          width: isCreate ? 740 : 980,
-          maxWidth: '95vw',
-          maxHeight: '92vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          backgroundColor: 'var(--card)',
-          backgroundImage: 'none',
-          color: 'var(--body)',
-          border: '1px solid var(--line)',
-          borderRadius: '18px',
-          boxShadow: 'var(--shadow-pop)',
-          '@keyframes rmodalIn': {
-            from: { transform: 'translateY(12px) scale(.985)' },
-            to: { transform: 'none' },
-          },
-          animation: reduceMotion ? 'none' : 'rmodalIn .22s cubic-bezier(.16,1,.3,1)',
-        },
-      }}
-      slotProps={{ backdrop: { sx: { backgroundColor: 'rgba(10,18,24,.5)', backdropFilter: 'blur(3px)' } } }}
-    >
-      <ReservationDialogHeader
-        form={form}
-        onClose={onClose}
-        entryMode={entryMode}
-        onEntryModeChange={setEntryMode}
-        showModeToggle={isCreate}
-      />
-      {isBlock ? (
-        <BlockBody form={form} onClose={onClose} />
-      ) : isCreate ? (
-        <CreateWizard form={form} onClose={onClose} step={step} setStep={setStep} />
-      ) : (
-        <EditBody form={form} onClose={onClose} />
-      )}
+          isCreate ? 'w-[740px]' : 'w-[980px]',
+        )}
+      >
+        <DialogTitle className="sr-only">
+          {isCreate ? 'Nouvelle réservation' : 'Modifier la réservation'}
+        </DialogTitle>
+        <ReservationDialogHeader
+          form={form}
+          onClose={onClose}
+          entryMode={entryMode}
+          onEntryModeChange={setEntryMode}
+          showModeToggle={isCreate}
+        />
+        {isBlock ? (
+          <BlockBody form={form} onClose={onClose} />
+        ) : isCreate ? (
+          <CreateWizard form={form} onClose={onClose} step={step} setStep={setStep} />
+        ) : (
+          <EditBody form={form} onClose={onClose} />
+        )}
+      </DialogContent>
     </Dialog>
   );
 };

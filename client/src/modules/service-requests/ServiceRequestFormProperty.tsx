@@ -1,15 +1,9 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
-  Chip,
-  TextField,
-} from '@mui/material';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { FORM_TAG_TOKENS, FORM_TAG_CLASS } from './serviceRequestsListConstants';
+import { Field, FieldError, FieldLabel, Input } from '../../components/ui';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui';
 import {
   Home,
   Person,
@@ -91,28 +85,7 @@ export interface ServiceRequestFormPropertyProps {
   currentUser?: CurrentUserInfo | null;
 }
 
-// ─── Stable sx ──────────────────────────────────────────────────────────────
-
-const TAGS_CONTAINER_SX = {
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: 0.75,
-  mt: 1.5,
-  mb: 0.5,
-} as const;
-
 // Chip neutre « champ » (.fr-chip) : fond --field, icône accent (géométrie pilule du thème).
-const TAG_SX = {
-  height: 30,
-  fontSize: '11.5px',
-  fontWeight: 500,
-  color: 'var(--body)',
-  bgcolor: 'var(--field)',
-  border: '1px solid var(--field-line)',
-  '& .MuiChip-icon': { fontSize: 14, ml: 0.5, color: 'var(--accent)' },
-  '& .MuiChip-label': { px: 0.75 },
-} as const;
-
 const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = React.memo(
   ({ control, errors, properties, users, isAdminOrManager, selectedProperty, disabled = false, currentUser }) => {
     const { t } = useTranslation();
@@ -240,130 +213,106 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
     return (
       <>
         {/* Titre de la demande */}
-        <Box sx={{ mb: 2 }}>
+        <div className="mb-3">
           <Controller
             name="title"
             control={control}
             render={({ field, fieldState }) => (
-              <FormControl fullWidth error={!!fieldState.error}>
-                <InputLabel shrink>
+              <Field>
+                <FieldLabel htmlFor="service-request-title">
                   {t('serviceRequests.fields.title')} *
-                </InputLabel>
-                <TextField
-                  {...field}
-                  fullWidth
+                </FieldLabel>
+                {/* field.ref n'est pas transmis : les primitives du kit sont des
+                    composants fonction sans forwardRef (React 18), le passer
+                    declencherait un avertissement sans jamais s'attacher. */}
+                <Input
+                  id="service-request-title"
+                  className="w-full"
+                  name={field.name}
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
                   disabled={disabled}
+                  required
                   placeholder={t('serviceRequests.fields.titlePlaceholder')}
-                  size="small"
-                  error={!!fieldState.error}
-                  InputLabelProps={{ shrink: true }}
-                  label={`${t('serviceRequests.fields.title')} *`}
+                  aria-invalid={!!fieldState.error}
                 />
-                {fieldState.error && (
-                  <FormHelperText>{fieldState.error.message}</FormHelperText>
-                )}
-              </FormControl>
+                {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+              </Field>
             )}
           />
-        </Box>
+        </div>
 
         {/* Propriete */}
-        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1.5 }}>
+        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-2">
           {t('serviceRequests.sections.property')}
-        </Typography>
+        </p>
 
         {/* Propriété et Demandeur sur la même ligne */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 1.5 }}>
+        <div className="flex gap-3 mb-2">
           {/* Propriété */}
-          <Box sx={{ flex: 7 }}>
+          <div className="flex-[7]">
             <Controller
               name="propertyId"
               control={control}
+              // Liste riche (pastille de logement par option) -> Select du kit :
+              // une <option> native ne peut porter aucun balisage.
               render={({ field, fieldState }) => {
                 const selectedProp = properties.find(p => p.id === field.value);
                 return (
-                  <FormControl fullWidth error={!!fieldState.error}>
-                    <InputLabel shrink>
+                  <Field>
+                    <FieldLabel htmlFor="service-request-property">
                       {t('serviceRequests.fields.property')}
-                    </InputLabel>
+                    </FieldLabel>
                     <Select
-                      value={field.value}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                      onBlur={field.onBlur}
-                      label={t('serviceRequests.fields.property')}
-                      size="small"
-                      displayEmpty
-                      notched
-                      renderValue={() => (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: selectedProp ? 'var(--accent)' : 'var(--faint)' }}><Home size={16} strokeWidth={1.75} /></Box>
-                          <Typography sx={{ fontSize: '12.5px', color: selectedProp ? 'var(--body)' : 'var(--faint)' }}>
-                            {selectedProp
-                              ? `${selectedProp.name} - ${selectedProp.address}, ${selectedProp.city}`
-                              : t('serviceRequests.fields.selectProperty')}
-                          </Typography>
-                        </Box>
-                      )}
+                      value={field.value ? String(field.value) : ''}
+                      onValueChange={(value) => field.onChange(Number(value))}
                     >
-                      {properties.map((property) => (
-                        <MenuItem key={property.id} value={property.id}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Home size={16} strokeWidth={1.75} /></Box>
-                            <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
+                      <SelectTrigger
+                        id="service-request-property"
+                        size="sm"
+                        className="w-full *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:text-start"
+                        aria-invalid={!!fieldState.error}
+                        onBlur={field.onBlur}
+                      >
+                        <span className={cn('inline-flex shrink-0', selectedProp ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Home size={16} strokeWidth={1.75} /></span>
+                        <SelectValue placeholder={t('serviceRequests.fields.selectProperty')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {properties.map((property) => (
+                          <SelectItem key={property.id} value={String(property.id)}>
+                            <span className="inline-flex text-[var(--accent)]"><Home size={16} strokeWidth={1.75} /></span>
+                            <span className="cn-text-body1 text-[12.5px] text-[var(--body)]">
                               {property.name} - {property.address}, {property.city}
-                            </Typography>
-                          </Box>
-                        </MenuItem>
-                      ))}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
-                    {fieldState.error && (
-                      <FormHelperText>{fieldState.error.message}</FormHelperText>
-                    )}
-                  </FormControl>
+                    {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                  </Field>
                 );
               }}
             />
-          </Box>
+          </div>
 
           {/* Demandeur — lecture seule, trace l'utilisateur connecté */}
-          <Box sx={{ flex: 5 }}>
+          <div className="flex-[5]">
             {currentUser ? (
-              <Box>
-                <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 0.5, ml: 0.25 }}>
+              <div>
+                <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-0.5 ms-0.5">
                   {t('serviceRequests.fields.requestor')}
-                </Typography>
-                <Box sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.75,
-                  px: 1.25,
-                  py: 0.75,
-                  borderRadius: '11px',
-                  bgcolor: 'var(--field)',
-                  border: '1px solid var(--field-line)',
-                  minHeight: 40,
-                }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Person size={16} strokeWidth={1.75} /></Box>
-                  <Typography sx={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--ink)', flex: 1 }}>
+                </p>
+                <div className="flex items-center gap-1 px-2 py-1 rounded-[11px] bg-[var(--field)] border border-[var(--field-line)] min-h-[40px]">
+                  <span className="inline-flex text-[var(--accent)]"><Person size={16} strokeWidth={1.75} /></span>
+                  <p className="cn-text-body1 text-[12.5px] font-medium text-[var(--ink)] flex-1">
                     {currentUser.name}
-                  </Typography>
+                  </p>
                   {currentUser.roleLabel && (
-                    <Chip
-                      label={currentUser.roleLabel}
-                      size="small"
-                      sx={{
-                        height: 20,
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        border: 'none',
-                        bgcolor: currentUser.role === 'ADMIN' ? 'var(--err-soft)' : currentUser.role === 'MANAGER' ? 'var(--warn-soft)' : 'var(--accent-soft)',
-                        color: currentUser.role === 'ADMIN' ? 'var(--err)' : currentUser.role === 'MANAGER' ? 'var(--warn)' : 'var(--accent)',
-                        '& .MuiChip-label': { px: 0.75 },
-                      }}
-                    />
+                    <StatusChip tokens={{ color: currentUser.role === 'ADMIN' ? 'var(--err)' : currentUser.role === 'MANAGER' ? 'var(--warn)' : 'var(--accent)', bg: currentUser.role === 'ADMIN' ? 'var(--err-soft)' : currentUser.role === 'MANAGER' ? 'var(--warn-soft)' : 'var(--accent-soft)' }} label={currentUser.roleLabel} className="h-[20px] text-[10px]" />
                   )}
-                </Box>
-              </Box>
+                </div>
+              </div>
             ) : (
               /* Fallback: ancien Select si currentUser pas fourni (compatibilité) */
               <Controller
@@ -373,66 +322,58 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                   const selectedUser = users.find(u => u.id === field.value);
                   const hasValue = !!selectedUser;
                   return (
-                    <FormControl fullWidth error={!!fieldState.error}>
-                      <InputLabel shrink>
+                    <Field>
+                      <FieldLabel htmlFor="service-request-requestor">
                         {t('serviceRequests.fields.requestor')}
-                      </InputLabel>
+                      </FieldLabel>
                       <Select
-                        value={field.value ?? ''}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                        onBlur={field.onBlur}
-                        label={t('serviceRequests.fields.requestor')}
+                        value={field.value ? String(field.value) : ''}
+                        onValueChange={(value) => field.onChange(Number(value))}
                         disabled={!isAdminOrManager}
-                        size="small"
-                        displayEmpty
-                        notched
-                        renderValue={() => (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: hasValue ? 'var(--accent)' : 'var(--faint)' }}><Person size={16} strokeWidth={1.75} /></Box>
-                            <Typography sx={{ fontSize: '12.5px', color: hasValue ? 'var(--body)' : 'var(--faint)' }}>
-                              {hasValue
-                                ? `${selectedUser.firstName} ${selectedUser.lastName}`
-                                : t('serviceRequests.fields.selectRequestor')}
-                            </Typography>
-                          </Box>
-                        )}
                       >
-                        {users.map((u) => (
-                          <MenuItem key={u.id} value={u.id}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Person size={16} strokeWidth={1.75} /></Box>
-                              <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
+                        <SelectTrigger
+                          id="service-request-requestor"
+                          size="sm"
+                          className="w-full *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:text-start"
+                          aria-invalid={!!fieldState.error}
+                          onBlur={field.onBlur}
+                        >
+                          <span className={cn('inline-flex shrink-0', hasValue ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Person size={16} strokeWidth={1.75} /></span>
+                          <SelectValue placeholder={t('serviceRequests.fields.selectRequestor')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users.map((u) => (
+                            <SelectItem key={u.id} value={String(u.id)}>
+                              <span className="inline-flex text-[var(--accent)]"><Person size={16} strokeWidth={1.75} /></span>
+                              <span className="cn-text-body1 text-[12.5px] text-[var(--body)]">
                                 {u.firstName} {u.lastName}
-                              </Typography>
-                            </Box>
-                          </MenuItem>
-                        ))}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
-                      {fieldState.error && (
-                        <FormHelperText>{fieldState.error.message}</FormHelperText>
-                      )}
-                    </FormControl>
+                      {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                    </Field>
                   );
                 }}
               />
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* Chips caractéristiques du logement */}
         {propertyTags.length > 0 && (
-          <Box sx={TAGS_CONTAINER_SX}>
+          <div className="mt-[9px] mb-[3px] flex flex-wrap gap-[4.5px]">
             {propertyTags.map((tag) => (
-              <Chip
+              <StatusChip
                 key={tag.label}
+                tokens={FORM_TAG_TOKENS}
                 icon={tag.icon}
                 label={tag.label}
-                size="small"
-                variant="outlined"
-                sx={TAG_SX}
+                className={FORM_TAG_CLASS}
               />
             ))}
-          </Box>
+          </div>
         )}
       </>
     );

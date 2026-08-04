@@ -1,11 +1,13 @@
 import React from 'react';
-import { Box, CircularProgress } from '@mui/material';
+import { Spinner } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import { Inventory2, LocalLaundryService, Receipt } from '../../icons';
 import { useTabKeyParam } from '../../components/tabKeyParam';
 import { usePropertyInventory } from '../../hooks/usePropertyInventory';
 import InventoryItemsSection from './inventory/InventoryItemsSection';
 import LaundryItemsSection from './inventory/LaundryItemsSection';
 import LaundryQuotesSection from './inventory/LaundryQuotesSection';
+import PropertyStockSection from './inventory/PropertyStockSection';
 
 interface Props {
   propertyId: number;
@@ -14,13 +16,14 @@ interface Props {
 
 // Sous-onglet imbrique dans PropertyDetails > Inventaire : persiste dans l'URL via ?subtab=<key>
 // (param distinct du ?tab= top-level). Cles : items / laundry / quotes.
-const INVENTORY_SUBTABS = [{ key: 'items' }, { key: 'laundry' }, { key: 'quotes' }];
+const INVENTORY_SUBTABS = [{ key: 'items' }, { key: 'laundry' }, { key: 'quotes' }, { key: 'stock' }];
 
 // Sous-onglets niveau 2 — pattern pilules .s-subtab (fond --field, actif accent-soft/accent).
 const subtabs = [
   { label: 'Inventaire du logement', icon: <Inventory2 size={15} strokeWidth={1.75} /> },
   { label: 'Linge de maison', icon: <LocalLaundryService size={15} strokeWidth={1.75} /> },
   { label: 'Devis / Factures', icon: <Receipt size={15} strokeWidth={1.75} /> },
+  { label: 'Stock consommable', icon: <Inventory2 size={15} strokeWidth={1.75} /> },
 ];
 
 export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
@@ -36,50 +39,41 @@ export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-        <CircularProgress size={32} />
-      </Box>
+      <div className="flex justify-center py-9">
+        <Spinner className="size-8" />
+      </div>
     );
   }
 
   return (
-    <Box>
-      <Box role="tablist" sx={{ display: 'flex', gap: '6px', mb: 2, flexWrap: 'wrap' }}>
+    <div>
+      <div className="flex gap-1.5 mb-3 flex-wrap" role="tablist">
         {subtabs.map((st, i) => {
           const active = subTab === i;
           return (
-            <Box
+            <button
               key={st.label}
-              component="button"
               type="button"
               role="tab"
               aria-selected={active}
               onClick={() => setSubTab(i)}
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '7px',
-                height: 30,
-                px: '13px',
-                borderRadius: 999,
-                border: '1px solid transparent',
-                bgcolor: active ? 'var(--accent-soft)' : 'var(--field)',
-                color: active ? 'var(--accent)' : 'var(--muted)',
-                fontSize: '12px',
-                fontWeight: 600,
-                fontFamily: 'var(--font-sans)',
-                cursor: 'pointer',
-                transition: 'background-color .14s, color .14s',
-                '&:hover': { color: active ? 'var(--accent)' : 'var(--body)' },
-                '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-              }}
+              className={cn(
+                'inline-flex items-center gap-[7px] h-[30px] px-[13px] rounded-full',
+                'border border-solid border-transparent',
+                'text-[12px] font-semibold font-[family-name:var(--font-sans)] cursor-pointer',
+                'transition-[background-color,color] duration-[140ms]',
+                'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+                active
+                  ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+                  : 'bg-[var(--field)] text-[var(--muted)] hover:text-[var(--body)]',
+              )}
             >
               {st.icon}
               {st.label}
-            </Box>
+            </button>
           );
         })}
-      </Box>
+      </div>
 
       {subTab === 0 && (
         <InventoryItemsSection
@@ -111,6 +105,10 @@ export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
           onConfirm={confirmQuote}
         />
       )}
-    </Box>
+
+      {subTab === 3 && (
+        <PropertyStockSection propertyId={propertyId} canEdit={canEdit} />
+      )}
+    </div>
   );
 }

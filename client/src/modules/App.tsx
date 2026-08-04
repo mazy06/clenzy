@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Spinner } from '../components/ui';
+
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 import keycloak, { keycloakInitPromise } from '../keycloak';
@@ -31,6 +32,8 @@ const Privacy = lazy(() => import('./legal/Privacy'));
 const AcceptInvitationPage = lazy(() => import('./invitations/AcceptInvitationPage'));
 const PublicKeyVerification = lazy(() => import('../pages/PublicKeyVerification'));
 const PublicGuide = lazy(() => import('./welcome-guide/PublicGuide'));
+const PublicStayTransfer = lazy(() => import('./stay-transfer/PublicStayTransfer'));
+const PublicStayModification = lazy(() => import('./stay-transfer/PublicStayModification'));
 const PublicOwnerConstellation = lazy(() => import('./owner-portal/PublicOwnerConstellation'));
 const ContractSignPage = lazy(() => import('./contracts/public/ContractSignPage'));
 const PublicBookingPage = lazy(() => import('./booking-engine/public/PublicBookingPage'));
@@ -90,7 +93,7 @@ function HardRedirectToLogin(): null {
 const PUBLIC_ROUTES = ['/login', '/inscription', '/inscription/success', '/inscription/confirm', '/forgot-password', '/support', '/accept-invitation', '/supervision-demo'];
 
 // Routes publiques avec paramètres (prefix match)
-const PUBLIC_ROUTE_PREFIXES = ['/verify-key/', '/guide/', '/sign/', '/booking/', '/owner-view/'];
+const PUBLIC_ROUTE_PREFIXES = ['/verify-key/', '/guide/', '/sign/', '/booking/', '/owner-view/', '/transfer/', '/stay-change/'];
 
 const App: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -286,19 +289,12 @@ const App: React.FC = () => {
   // Les routes publiques (/login, /inscription) ne doivent pas être bloquées par le loading
   if ((!initialized || authLoading) && !isPublicRoute) {
     return (
-      <Box sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        gap: 2
-      }}>
-        <CircularProgress size={60} />
-        <Typography variant="h6" color="text.secondary">
+      <div className="flex flex-col items-center justify-center h-[100vh] gap-3">
+        <Spinner className="size-[60px]" />
+        <h6 className="cn-text-h6 text-muted-foreground">
           Chargement de l'authentification...
-        </Typography>
-      </Box>
+        </h6>
+      </div>
     );
   }
 
@@ -367,6 +363,12 @@ const App: React.FC = () => {
           {/* Route publique pour le livret d'accueil numerique (guest) */}
           <Route path="/guide/:token" element={<PublicGuide />} />
 
+          {/* Proposition de relogement (M11 v2) — accord explicite du voyageur */}
+          <Route path="/transfer/:token" element={<PublicStayTransfer />} />
+
+          {/* Avenant de séjour (STAY_MODIFICATION v2) — accord explicite du voyageur */}
+          <Route path="/stay-change/:token" element={<PublicStayModification />} />
+
           {/* Constellation Propriétaire — lecture seule white-label (campagne X9) */}
           <Route path="/owner-view/:token" element={<PublicOwnerConstellation />} />
 
@@ -392,38 +394,24 @@ const App: React.FC = () => {
             ) : (
               // Si authentifié, afficher soit le chargement soit l'app
               authLoading ? (
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  height: '100vh', 
-                  gap: 2 
-                }}>
-                  <CircularProgress size={60} />
-                  <Typography variant="h6" color="text.secondary">
+                <div className="flex flex-col items-center justify-center h-[100vh] gap-3">
+                  <Spinner className="size-[60px]" />
+                  <h6 className="cn-text-h6 text-muted-foreground">
                     Chargement de l'utilisateur...
-                  </Typography>
-                </Box>
+                  </h6>
+                </div>
               ) : user ? (
                 <MainLayoutFull>
                   <AuthenticatedApp />
                 </MainLayoutFull>
               ) : (
                 // Si pas d'utilisateur mais authentifié, afficher un chargement temporaire
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  height: '100vh', 
-                  gap: 2 
-                }}>
-                  <CircularProgress size={60} />
-                  <Typography variant="h6" color="text.secondary">
+                <div className="flex flex-col items-center justify-center h-[100vh] gap-3">
+                  <Spinner className="size-[60px]" />
+                  <h6 className="cn-text-h6 text-muted-foreground">
                     Chargement des données utilisateur...
-                  </Typography>
-                </Box>
+                  </h6>
+                </div>
               )
             )
           } 

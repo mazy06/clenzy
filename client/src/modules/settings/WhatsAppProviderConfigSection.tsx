@@ -1,19 +1,22 @@
 import React, { useEffect, useState } from 'react';
+import { Badge } from '../../components/ui';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X, CircleCheck } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Divider,
-  Stack,
+  Field,
+  FieldLabel,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  Separator,
   Switch,
-  TextField,
   Tooltip,
-  Typography,
-  alpha,
-  useTheme,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { cn } from '../../utils/cn';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { CheckCircle, ErrorOutline, InfoOutlined, Save } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -24,6 +27,13 @@ import {
 } from '../../services/api/whatsAppConfigApi';
 import OpenWaQrScanDialog from './components/OpenWaQrScanDialog';
 import MetaEmbeddedSignupButton from './components/MetaEmbeddedSignupButton';
+
+/** Couleur MUI historique du badge des option cards -> ton de la primitive. */
+const BADGE_TONES: Record<'success' | 'warning' | 'info', StatusTone> = {
+  success: 'ok',
+  warning: 'warn',
+  info: 'info',
+};
 
 /**
  * Section Settings > Messagerie > Provider WhatsApp.
@@ -45,7 +55,7 @@ import MetaEmbeddedSignupButton from './components/MetaEmbeddedSignupButton';
  *   <li>Le formulaire dessous change selon le provider selectionne</li>
  *   <li>Les credentials de l'autre provider restent en base (utile pour
  *       revenir en arriere sans re-saisir)</li>
- *   <li>Les secrets (apiToken, openwaApiKey) sont en TextField type=password
+ *   <li>Les secrets (apiToken, openwaApiKey) sont en Input type=password
  *       avec un placeholder "deja configure" si {@code hasApiToken} = true</li>
  *   <li>Bouton Save grise tant qu'aucun changement</li>
  * </ul>
@@ -60,7 +70,6 @@ import MetaEmbeddedSignupButton from './components/MetaEmbeddedSignupButton';
  */
 export default function WhatsAppProviderConfigSection() {
   const { t } = useTranslation();
-  const theme = useTheme();
 
   const [config, setConfig] = useState<WhatsAppConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -159,9 +168,9 @@ export default function WhatsAppProviderConfigSection() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-        <CircularProgress size={28} />
-      </Box>
+      <div className="flex justify-center py-9">
+        <Spinner className="size-7" />
+      </div>
     );
   }
 
@@ -175,32 +184,32 @@ export default function WhatsAppProviderConfigSection() {
   const statusChip = !config
     ? null
     : !enabled
-      ? <Chip label="Désactivé" size="small" sx={{ bgcolor: alpha(theme.palette.text.primary, 0.08) }} />
+      ? <StatusChip tone="neutral" label="Désactivé" />
       : isProviderConfigured
-        ? <Chip icon={<CheckCircle size={14} />} label="Connecté" size="small" color="success" />
-        : <Chip icon={<ErrorOutline size={14} />} label="Configuration incomplète" size="small" color="warning" />;
+        ? <Badge variant="success"><CheckCircle size={14} />Connecté</Badge>
+        : <Badge variant="warning"><ErrorOutline size={14} />Configuration incomplète</Badge>;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <div className="flex flex-col gap-4">
       {/* Header section */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
-        <Box>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h6 className="cn-text-h6 font-semibold mb-0.5">
             {t('settings.whatsapp.title', 'Provider WhatsApp')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
+          </h6>
+          <p className="cn-text-body2 text-muted-foreground">
             {t('settings.whatsapp.subtitle',
               "Choisissez comment Baitly envoie vos messages WhatsApp à vos voyageurs.")}
-          </Typography>
-        </Box>
+          </p>
+        </div>
         {statusChip}
-      </Box>
+      </div>
 
       {/* Provider toggle — deux option cards mutuellement exclusives : le provider
           NON sélectionné est verrouillé tant que les envois sont activés (un seul
           provider actif à la fois). Pour changer : désactiver les envois d'abord. */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+      <div className="flex flex-col gap-1.5">
+        <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[1fr_1fr] gap-3">
           <ProviderOptionCard
             selected={provider === 'META'}
             onClick={() => setProvider('META')}
@@ -236,45 +245,46 @@ export default function WhatsAppProviderConfigSection() {
               'Throughput limité (20 msg/min)',
             ]}
           />
-        </Box>
+        </div>
         {enabled && (
-          <Typography variant="caption" color="text.secondary">
+          <span className="cn-text-caption text-muted-foreground">
             {t('settings.whatsapp.providerLockHint',
               'Un seul provider actif à la fois. Désactivez « Activer les envois » ci-dessous pour changer de provider.')}
-          </Typography>
+          </span>
         )}
-      </Box>
+      </div>
 
       {/* Disclaimer OpenWA — condensé : une ligne + détail complet en tooltip */}
       {provider === 'OPENWA' && (
-        <Alert
-          severity="warning"
-          icon={<ErrorOutline size={18} />}
-          sx={{ py: 0.5, '& .MuiAlert-message': { display: 'flex', alignItems: 'center', gap: 0.75 } }}
-        >
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            {t('settings.whatsapp.openwaDisclaimer.short',
-              'OpenWA est hors conditions Meta — risque de ban du compte.')}
-          </Typography>
-          <Tooltip
-            arrow
-            title={t('settings.whatsapp.openwaDisclaimer.body',
-              "WhatsApp peut bannir le compte associé sans préavis en cas de détection d'automation ou d'abus. " +
-              'Nous recommandons OpenWA uniquement pour les phases de test ou les organisations en trial. ' +
-              'Pour la production B2B, utilisez Meta Cloud API officielle.')}
-          >
-            <Box component="span" sx={{ display: 'inline-flex', cursor: 'help', color: 'warning.main' }}>
-              <InfoOutlined size={15} strokeWidth={1.75} />
-            </Box>
-          </Tooltip>
-        </Alert>
+        <BuiAlert variant="warning">
+          <ErrorOutline size={18} />
+          <AlertDescription className="flex items-center gap-[4.5px]">
+            <span className="cn-text-body2 font-medium">
+              {t('settings.whatsapp.openwaDisclaimer.short',
+                'OpenWA est hors conditions Meta — risque de ban du compte.')}
+            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex cursor-help text-[#D4A574]">
+                  <InfoOutlined size={15} strokeWidth={1.75} />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {t('settings.whatsapp.openwaDisclaimer.body',
+                  "WhatsApp peut bannir le compte associé sans préavis en cas de détection d'automation ou d'abus. " +
+                  'Nous recommandons OpenWA uniquement pour les phases de test ou les organisations en trial. ' +
+                  'Pour la production B2B, utilisez Meta Cloud API officielle.')}
+              </TooltipContent>
+            </Tooltip>
+          </AlertDescription>
+        </BuiAlert>
       )}
 
-      <Divider />
+      <Separator />
 
       {/* Form selon provider */}
       {provider === 'META' ? (
-        <Stack spacing={2}>
+        <div className="flex flex-col gap-3">
           {/* Embedded Signup — methode rapide (~5 min, sans Meta Business Manager
               prealable). Le composant gere lui-meme son etat ; si la Meta App
               n'est pas configuree cote serveur (META_APP_ID vide), il rend null
@@ -287,116 +297,143 @@ export default function WhatsAppProviderConfigSection() {
             }}
           />
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, my: 1 }}>
-            <Divider sx={{ flex: 1 }} />
-            <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+          <div className="flex items-center gap-3 my-1.5">
+            <Separator className="flex-1" />
+            <span className="cn-text-caption text-muted-foreground whitespace-nowrap">
               {t('settings.whatsapp.meta.orManual', 'OU configuration manuelle')}
-            </Typography>
-            <Divider sx={{ flex: 1 }} />
-          </Box>
+            </span>
+            <Separator className="flex-1" />
+          </div>
 
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+          <h6 className="cn-text-subtitle2 font-semibold">
             {t('settings.whatsapp.meta.formTitle', 'Identifiants Meta Cloud API')}
-          </Typography>
-          <TextField
-            label={t('settings.whatsapp.meta.apiToken', 'API Token (permanent)')}
-            type="password"
-            value={apiToken}
-            onChange={(e) => setApiToken(e.target.value)}
-            placeholder={config?.hasApiToken ? '••••••••••••  (déjà configuré, laissez vide pour conserver)' : 'EAAxxxxxxxxxxxxxxxx...'}
-            fullWidth
-            size="small"
-            autoComplete="off"
-            InputProps={{
-              endAdornment: (
+          </h6>
+          <Field>
+            <FieldLabel htmlFor="whatsapp-meta-api-token">
+              {t('settings.whatsapp.meta.apiToken', 'API Token (permanent)')}
+            </FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="whatsapp-meta-api-token"
+                type="password"
+                value={apiToken}
+                onChange={(e) => setApiToken(e.target.value)}
+                placeholder={config?.hasApiToken ? '••••••••••••  (déjà configuré, laissez vide pour conserver)' : 'EAAxxxxxxxxxxxxxxxx...'}
+                autoComplete="off"
+              />
+              <InputGroupAddon align="inline-end">
                 <FieldInfo text={t('settings.whatsapp.meta.apiTokenHelp',
                   'Token permanent depuis Meta Business Manager > System Users > Generate Token.')} />
-              ),
-            }}
-          />
-          <TextField
-            label={t('settings.whatsapp.meta.phoneNumberId', 'Phone Number ID')}
-            value={phoneNumberId}
-            onChange={(e) => setPhoneNumberId(e.target.value)}
-            placeholder="123456789012345"
-            fullWidth
-            size="small"
-            InputProps={{
-              endAdornment: <FieldInfo text="ID numérique du numéro WhatsApp Business approuvé." />,
-            }}
-          />
-          <TextField
-            label={t('settings.whatsapp.meta.businessAccountId', 'Business Account ID')}
-            value={businessAccountId}
-            onChange={(e) => setBusinessAccountId(e.target.value)}
-            placeholder="987654321098765"
-            fullWidth
-            size="small"
-            InputProps={{
-              endAdornment: <FieldInfo text="ID du Business Account (WABA). Utilisé pour les templates." />,
-            }}
-          />
-          <TextField
-            label={t('settings.whatsapp.meta.webhookVerifyToken', 'Webhook Verify Token')}
-            value={webhookVerifyToken}
-            onChange={(e) => setWebhookVerifyToken(e.target.value)}
-            placeholder={config?.hasApiToken ? '•••••  (laissez vide pour conserver)' : 'une chaîne secrète de votre choix'}
-            fullWidth
-            size="small"
-            autoComplete="off"
-            InputProps={{
-              endAdornment: <FieldInfo text="Chaîne secrète que VOUS choisissez et saisissez à l'identique côté Meta (Configuration → Webhooks → Verify token). Valide l'abonnement du webhook entrant." />,
-            }}
-          />
-        </Stack>
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="whatsapp-meta-phone-number-id">
+              {t('settings.whatsapp.meta.phoneNumberId', 'Phone Number ID')}
+            </FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="whatsapp-meta-phone-number-id"
+                value={phoneNumberId}
+                onChange={(e) => setPhoneNumberId(e.target.value)}
+                placeholder="123456789012345"
+              />
+              <InputGroupAddon align="inline-end">
+                <FieldInfo text="ID numérique du numéro WhatsApp Business approuvé." />
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="whatsapp-meta-business-account-id">
+              {t('settings.whatsapp.meta.businessAccountId', 'Business Account ID')}
+            </FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="whatsapp-meta-business-account-id"
+                value={businessAccountId}
+                onChange={(e) => setBusinessAccountId(e.target.value)}
+                placeholder="987654321098765"
+              />
+              <InputGroupAddon align="inline-end">
+                <FieldInfo text="ID du Business Account (WABA). Utilisé pour les templates." />
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="whatsapp-meta-webhook-verify-token">
+              {t('settings.whatsapp.meta.webhookVerifyToken', 'Webhook Verify Token')}
+            </FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="whatsapp-meta-webhook-verify-token"
+                value={webhookVerifyToken}
+                onChange={(e) => setWebhookVerifyToken(e.target.value)}
+                placeholder={config?.hasApiToken ? '•••••  (laissez vide pour conserver)' : 'une chaîne secrète de votre choix'}
+                autoComplete="off"
+              />
+              <InputGroupAddon align="inline-end">
+                <FieldInfo text="Chaîne secrète que VOUS choisissez et saisissez à l'identique côté Meta (Configuration → Webhooks → Verify token). Valide l'abonnement du webhook entrant." />
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
+        </div>
       ) : (
-        <Stack spacing={2}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+        <div className="flex flex-col gap-3">
+          <h6 className="cn-text-subtitle2 font-semibold">
             {t('settings.whatsapp.openwa.formTitle', 'Connexion à votre instance OpenWA')}
-          </Typography>
-          <TextField
-            label={t('settings.whatsapp.openwa.masterKey', 'Master key OpenWA')}
-            type="password"
-            value={openwaApiKey}
-            onChange={(e) => setOpenwaApiKey(e.target.value)}
-            placeholder={config?.hasOpenwaApiKey ? '••••••••••••  (déjà configurée, laissez vide pour conserver)' : 'dev-admin-key'}
-            fullWidth
-            size="small"
-            autoComplete="off"
-            InputProps={{
-              endAdornment: <FieldInfo text="Clé ADMIN de l'instance OpenWA (header X-API-Key). En dev : dev-admin-key. Stockée chiffrée en base, jamais exposée." />,
-            }}
-          />
-          <TextField
-            label={t('settings.whatsapp.openwa.sessionId', 'Session ID')}
-            value={openwaSessionId}
-            placeholder={t('settings.whatsapp.openwa.sessionIdAuto', '(généré automatiquement)')}
-            fullWidth
-            size="small"
-            disabled
-            InputProps={{
-              endAdornment: <FieldInfo text="Identifiant de la session OpenWA, généré automatiquement au scan du QR code." />,
-            }}
-          />
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1, flexWrap: 'wrap' }}>
-            <Button
-              variant="outlined"
-              size="small"
+          </h6>
+          <Field>
+            <FieldLabel htmlFor="whatsapp-openwa-master-key">
+              {t('settings.whatsapp.openwa.masterKey', 'Master key OpenWA')}
+            </FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="whatsapp-openwa-master-key"
+                type="password"
+                value={openwaApiKey}
+                onChange={(e) => setOpenwaApiKey(e.target.value)}
+                placeholder={config?.hasOpenwaApiKey ? '••••••••••••  (déjà configurée, laissez vide pour conserver)' : 'dev-admin-key'}
+                autoComplete="off"
+              />
+              <InputGroupAddon align="inline-end">
+                <FieldInfo text="Clé ADMIN de l'instance OpenWA (header X-API-Key). En dev : dev-admin-key. Stockée chiffrée en base, jamais exposée." />
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="whatsapp-openwa-session-id">
+              {t('settings.whatsapp.openwa.sessionId', 'Session ID')}
+            </FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="whatsapp-openwa-session-id"
+                value={openwaSessionId}
+                placeholder={t('settings.whatsapp.openwa.sessionIdAuto', '(généré automatiquement)')}
+                disabled
+              />
+              <InputGroupAddon align="inline-end">
+                <FieldInfo text="Identifiant de la session OpenWA, généré automatiquement au scan du QR code." />
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            <BuiButton
+              variant="outline"
+              size="sm"
               onClick={() => setQrDialogOpen(true)}
               disabled={!config?.hasOpenwaApiKey}
-              disableElevation
             >
               {config?.openwaSessionId
                 ? t('settings.whatsapp.openwa.rescan', 'Re-scanner le QR code')
                 : t('settings.whatsapp.openwa.scan', 'Scanner le QR code')}
-            </Button>
-            <Typography variant="caption" color="text.secondary">
+            </BuiButton>
+            <span className="cn-text-caption text-muted-foreground">
               {config?.hasOpenwaApiKey
                 ? t('settings.whatsapp.openwa.scanHint', 'Crée la session et affiche le QR à scanner avec votre téléphone.')
                 : t('settings.whatsapp.openwa.scanHintNoKey', 'Saisissez la master key et enregistrez avant de scanner.')}
-            </Typography>
-          </Box>
-        </Stack>
+            </span>
+          </div>
+        </div>
       )}
 
       {/* Dialog QR scan — flow Phase 4b complet (creation session, polling status).
@@ -413,49 +450,58 @@ export default function WhatsAppProviderConfigSection() {
         }}
       />
 
-      <Divider />
+      <Separator />
 
       {/* Toggle enable */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-        <Box>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h6 className="cn-text-subtitle2 font-semibold">
             {t('settings.whatsapp.enable', 'Activer les envois WhatsApp')}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
+          </h6>
+          <span className="cn-text-caption text-muted-foreground">
             {enabled
               ? t('settings.whatsapp.enableOn', "Baitly enverra les messages WhatsApp via le provider sélectionné.")
               : t('settings.whatsapp.enableOff', "Aucun message WhatsApp ne sera envoyé.")}
-          </Typography>
-        </Box>
+          </span>
+        </div>
         <Switch
           checked={enabled}
-          onChange={(e) => setEnabled(e.target.checked)}
-          color="primary"
+          onCheckedChange={setEnabled}
+          aria-label={t('settings.whatsapp.enable', 'Activer les envois WhatsApp')}
         />
-      </Box>
+      </div>
 
       {/* Feedback */}
       {error && (
-        <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>
+        <BuiAlert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {success && (
-        <Alert severity="success">{t('settings.whatsapp.saved', 'Configuration enregistrée.')}</Alert>
+        <BuiAlert variant="success">
+          <CircleCheck />
+          <AlertDescription>{t('settings.whatsapp.saved', 'Configuration enregistrée.')}</AlertDescription>
+        </BuiAlert>
       )}
 
       {/* Save button */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Button
-          variant="contained"
-          disableElevation
-          startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
+      <div className="flex justify-end">
+        <BuiButton
           onClick={handleSave}
           disabled={!hasChanges || saving}
-          size="small"
+          size="sm"
         >
+          {saving ? <Spinner className="size-3.5" /> : <Save strokeWidth={1.75} />}
           {saving ? t('common.saving', 'Enregistrement...') : t('common.save', 'Enregistrer')}
-        </Button>
-      </Box>
-    </Box>
+        </BuiButton>
+      </div>
+    </div>
   );
 }
 
@@ -480,20 +526,13 @@ interface ProviderOptionCardProps {
  */
 function FieldInfo({ text }: { text: string }) {
   return (
-    <Tooltip arrow title={text}>
-      <Box
-        component="span"
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          cursor: 'help',
-          color: 'text.disabled',
-          transition: 'color 150ms ease-out',
-          '&:hover': { color: 'text.secondary' },
-        }}
-      >
-        <InfoOutlined size={15} strokeWidth={1.75} />
-      </Box>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex items-center cursor-help text-[var(--faint)] [transition:color_150ms_ease-out] hover:text-[var(--muted)]">
+          <InfoOutlined size={15} strokeWidth={1.75} />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{text}</TooltipContent>
     </Tooltip>
   );
 }
@@ -508,111 +547,81 @@ function ProviderOptionCard({
   pros,
   cons,
 }: ProviderOptionCardProps) {
-  const theme = useTheme();
   return (
-    <Box
-      component="button"
+    // Carte-radio sur mesure : <button> nu + classes. Les etats selectionne / desactive
+    // sont ecrits en branches litterales, une classe Tailwind ne pouvant pas naitre
+    // d'une variable ; les jetons MUI sont traduits en variables CSS.
+    <button
       type="button"
       onClick={disabled ? undefined : onClick}
       aria-pressed={selected}
       aria-disabled={disabled || undefined}
       tabIndex={disabled ? -1 : 0}
-      sx={{
-        textAlign: 'left',
-        p: 1.5,
-        borderRadius: 2,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.45 : 1,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1.25,
-        bgcolor: selected ? alpha(theme.palette.primary.main, 0.06) : 'background.paper',
-        border: '1.5px solid',
-        borderColor: selected ? theme.palette.primary.main : alpha(theme.palette.text.primary, 0.12),
-        transition: 'border-color 180ms ease-out, background-color 180ms ease-out, opacity 180ms ease-out',
-        fontFamily: 'inherit',
-        '&:hover': disabled
-          ? {}
-          : {
-              borderColor: selected ? theme.palette.primary.main : alpha(theme.palette.primary.main, 0.5),
-            },
-        '&:focus-visible': {
-          outline: `2px solid ${alpha(theme.palette.primary.main, 0.5)}`,
-          outlineOffset: 2,
-        },
-      }}
+      className={cn(
+        'flex items-center gap-[7.5px] text-start p-[9px] rounded-[16px] border-[1.5px] border-solid [font-family:inherit]',
+        'transition-[border-color,background-color,opacity] duration-[180ms] ease-out',
+        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--mui-primary)_50%,transparent)]',
+        disabled ? 'cursor-not-allowed opacity-45' : 'cursor-pointer opacity-100',
+        selected
+          ? 'bg-[color-mix(in_srgb,var(--mui-primary)_6%,transparent)] border-[var(--mui-primary)]'
+          : 'bg-[var(--card)] border-[color-mix(in_srgb,var(--ink)_12%,transparent)]',
+        !disabled && !selected && 'hover:border-[color-mix(in_srgb,var(--mui-primary)_50%,transparent)]',
+        !disabled && selected && 'hover:border-[var(--mui-primary)]',
+      )}
     >
       {/* Indicateur radio */}
-      <Box
-        sx={{
-          width: 18,
-          height: 18,
-          borderRadius: '50%',
-          flexShrink: 0,
-          border: '2px solid',
-          borderColor: selected ? theme.palette.primary.main : alpha(theme.palette.text.primary, 0.3),
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'border-color 150ms ease-out',
-        }}
+      <div
+        className={cn(
+          'w-[18px] h-[18px] rounded-full shrink-0 border-[2px] border-solid inline-flex items-center justify-center',
+          '[transition:border-color_150ms_ease-out]',
+          selected ? 'border-[var(--mui-primary)]' : 'border-[color-mix(in_srgb,var(--ink)_30%,transparent)]',
+        )}
       >
         {selected && (
-          <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: theme.palette.primary.main }} />
+          <div className="w-[9px] h-[9px] rounded-full bg-[var(--mui-primary)]" />
         )}
-      </Box>
+      </div>
 
       {/* Titre + badge + sous-titre */}
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{title}</Typography>
-          <Chip
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1 flex-wrap">
+          <h6 className="cn-text-subtitle2 font-semibold">{title}</h6>
+          <StatusChip
+            size="sm"
+            tone={BADGE_TONES[badge.color]}
             label={badge.label}
-            size="small"
-            color={badge.color}
-            variant="outlined"
-            sx={{ height: 18, '& .MuiChip-label': { px: 0.75, fontSize: '0.6875rem' } }}
+            className="text-[0.6875rem]"
           />
-        </Box>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+        </div>
+        <span className="cn-text-caption text-muted-foreground block mt-0.5">
           {subtitle}
-        </Typography>
-      </Box>
+        </span>
+      </div>
 
       {/* Avantages / limites — en tooltip pour ne pas alourdir la card */}
-      <Tooltip
-        arrow
-        title={
-          <Stack spacing={0.5} sx={{ py: 0.5 }}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex shrink-0 cursor-help text-[var(--muted)] [transition:color_150ms_ease-out] hover:text-[var(--ink)]">
+            <InfoOutlined size={16} strokeWidth={1.75} />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          <div className="flex flex-col gap-[3px] py-[3px]">
             {pros.map((p) => (
-              <Box key={p} sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, fontSize: '0.72rem' }}>
-                <Box component="span" sx={{ color: 'success.light', fontWeight: 700, lineHeight: 1.4 }}>✓</Box>
+              <div className="flex items-start gap-1 text-[0.72rem]" key={p}>
+                <span className="text-[var(--mui-success-l)] font-bold leading-[1.4]">✓</span>
                 <span>{p}</span>
-              </Box>
+              </div>
             ))}
             {cons.map((c) => (
-              <Box key={c} sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, fontSize: '0.72rem', opacity: 0.85 }}>
-                <Box component="span" sx={{ fontWeight: 700, lineHeight: 1.4 }}>−</Box>
+              <div className="flex items-start gap-1 text-[0.72rem] opacity-85" key={c}>
+                <span className="font-bold leading-[1.4]">−</span>
                 <span>{c}</span>
-              </Box>
+              </div>
             ))}
-          </Stack>
-        }
-      >
-        <Box
-          component="span"
-          sx={{
-            display: 'inline-flex',
-            flexShrink: 0,
-            color: 'text.secondary',
-            cursor: 'help',
-            transition: 'color 150ms ease-out',
-            '&:hover': { color: 'text.primary' },
-          }}
-        >
-          <InfoOutlined size={16} strokeWidth={1.75} />
-        </Box>
+          </div>
+        </TooltipContent>
       </Tooltip>
-    </Box>
+    </button>
   );
 }

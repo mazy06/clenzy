@@ -1,27 +1,23 @@
 import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import StatusChip from '../../components/StatusChip';
+import { Badge } from '../../components/ui';
+import { Alert as UiAlert, AlertDescription, AlertAction, Button } from '../../components/ui';
+import { TriangleAlert, X, CircleCheck } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import {
-  Box,
-  Typography,
   Card,
   CardContent,
-  CircularProgress,
-  Alert,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Progress,
   Tooltip,
-  IconButton,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-  LinearProgress,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import {
   Lock,
   GppGood,
@@ -109,7 +105,6 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
   const [complianceResults, setComplianceResults] = useState<Record<number, ComplianceReport>>({});
   const [searchResult, setSearchResult] = useState<DocumentGeneration | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [countryMenuAnchor, setCountryMenuAnchor] = useState<HTMLElement | null>(null);
 
   // Auto-verification state
   const [autoCheckProgress, setAutoCheckProgress] = useState(0);
@@ -196,7 +191,6 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
   };
 
   const handleCountryChange = async (newCountryCode: string) => {
-    setCountryMenuAnchor(null);
     if (!fiscalProfile || newCountryCode === fiscalProfile.countryCode) return;
     try {
       await updateFiscalMutation.mutateAsync({
@@ -212,9 +206,9 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center p-6">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
@@ -224,77 +218,82 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
   const countryFlag = COUNTRY_FLAGS[countryCode] || '';
 
   return (
-    <Box>
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
+    <div>
+      {error && <UiAlert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+        <AlertAction>
+          <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setActionError(null)}>
+            <X />
+          </Button>
+        </AlertAction>
+      </UiAlert>}
+      {success && <UiAlert variant="success" className="mb-3">
+        <CircleCheck />
+        <AlertDescription>{success}</AlertDescription>
+        <AlertAction>
+          <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setSuccess(null)}>
+            <X />
+          </Button>
+        </AlertAction>
+      </UiAlert>}
 
       {/* ─── Country & Standard indicator ────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+      <div className="flex items-center gap-1.5 mb-3">
         {isAdmin ? (
-          <>
-            <Chip
-              icon={<Public size={14} strokeWidth={1.75} />}
-              label={`${countryFlag} ${countryLabel} \u2014 ${standardName}`}
-              deleteIcon={<ExpandMore />}
-              onDelete={(e) => setCountryMenuAnchor(e.currentTarget as HTMLElement)}
-              onClick={(e) => setCountryMenuAnchor(e.currentTarget)}
-              sx={{
-                color: 'var(--accent)',
-                bgcolor: 'var(--accent-soft)',
-                cursor: 'pointer',
-                '& .MuiChip-icon': { color: 'var(--accent)' },
-                '& .MuiChip-deleteIcon': { color: 'var(--accent)' },
-                '&:hover': { bgcolor: 'var(--accent-soft)', borderColor: 'var(--accent)' },
-              }}
-            />
-            <Menu
-              anchorEl={countryMenuAnchor}
-              open={Boolean(countryMenuAnchor)}
-              onClose={() => setCountryMenuAnchor(null)}
-              slotProps={{ paper: { sx: { minWidth: 220, mt: 0.5 } } }}
-            >
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              {/* Bouton natif plutot que le span attendu : il porte la ref que
+                  Radix pose sur son enfant (StatusChip est une fonction, il n'en
+                  transmet pas) ET reste atteignable au clavier.
+                  Le chevron etait monte en `deleteIcon`, avec un `onDelete` qui
+                  ouvrait le meme menu que le corps de la puce : deux commandes
+                  pour une seule action, dont une annoncee \u00ab supprimer \u00bb. Ici, une
+                  puce = un bouton, et le chevron n'est plus qu'un decor. */}
+              <button
+                type="button"
+                aria-label={`${countryLabel} \u2014 ${standardName}`}
+                className="inline-flex cursor-pointer border-0 bg-transparent p-0"
+              >
+                <StatusChip
+                  tone="accent"
+                  icon={<Public size={14} strokeWidth={1.75} />}
+                  label={
+                    <span className="inline-flex items-center gap-1">
+                      {`${countryFlag} ${countryLabel} \u2014 ${standardName}`}
+                      <ExpandMore className="size-3.5 opacity-70" aria-hidden />
+                    </span>
+                  }
+                />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[220px]">
               {COUNTRY_OPTIONS.map((opt) => (
-                <MenuItem
+                <DropdownMenuItem
                   key={opt.code}
-                  onClick={() => handleCountryChange(opt.code)}
-                  selected={opt.code === countryCode}
-                  sx={{ fontSize: '0.85rem', py: 1 }}
+                  onSelect={() => handleCountryChange(opt.code)}
+                  className="gap-2 py-1.5 text-[0.85rem]"
                 >
-                  <ListItemIcon sx={{ minWidth: 32 }}>
-                    <Typography sx={{ fontSize: '1.1rem' }}>{opt.flag}</Typography>
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={opt.label}
-                    secondary={opt.standard}
-                    primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 500 }}
-                    secondaryTypographyProps={{ fontSize: '0.72rem' }}
-                  />
+                  <span className="w-8 shrink-0 text-[1.1rem] leading-none">{opt.flag}</span>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="text-[0.85rem] font-medium">{opt.label}</span>
+                    <span className="text-[0.72rem] text-[var(--muted)]">{opt.standard}</span>
+                  </span>
                   {opt.code === countryCode && (
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)', ml: 1 }}><Check size={18} strokeWidth={1.75} /></Box>
+                    <span className="inline-flex text-[var(--ok)] ms-1.5"><Check size={18} strokeWidth={1.75} /></span>
                   )}
-                </MenuItem>
+                </DropdownMenuItem>
               ))}
-            </Menu>
-          </>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : (
-          <Chip
-            icon={<Public size={14} strokeWidth={1.75} />}
-            label={`${countryFlag} ${countryLabel} \u2014 ${standardName}`}
-            sx={{ color: 'var(--accent)', bgcolor: 'var(--accent-soft)', '& .MuiChip-icon': { color: 'var(--accent)' } }}
-          />
+          <Badge variant="secondary" className="text-[var(--accent)] bg-[var(--accent-soft)] [&>svg]:text-[var(--accent)]"><Public size={14} strokeWidth={1.75} />{`${countryFlag} ${countryLabel} \u2014 ${standardName}`}</Badge>
         )}
-      </Box>
+      </div>
 
       {/* ─── KPIs (primitive StatTile) ───────────────────────────────── */}
       {stats && (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
-            gap: 1.5,
-            mb: 3,
-          }}
-        >
+        <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(4,_1fr)] gap-[9px] mb-[18px]">
           <StatTile
             icon={<Description size={16} strokeWidth={1.75} />}
             label={t('documents.compliance.totalDocuments')}
@@ -319,105 +318,119 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
             value={`${stats.averageComplianceScore}%`}
             color={ACCENT_TEAL}
           />
-        </Box>
+        </div>
       )}
 
       {/* ─── Search result ────────────────────────────────────────────── */}
-      {searchError && <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setSearchError(null)}>{searchError}</Alert>}
+      {searchError && <UiAlert variant="warning" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{searchError}</AlertDescription>
+        <AlertAction>
+          <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setSearchError(null)}>
+            <X />
+          </Button>
+        </AlertAction>
+      </UiAlert>}
       {searchResult && (
-        <Box sx={{ mb: 2, p: 2, bgcolor: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: '12px' }}>
-          <Typography variant="body2">
+        <div className="mb-3 p-3 bg-[var(--surface-2)] border border-[var(--line)] rounded-[12px]">
+          <p className="cn-text-body2">
             <strong>N. Legal :</strong> {searchResult.legalNumber} &nbsp;|&nbsp;
             <strong>Type :</strong> {searchResult.documentType} &nbsp;|&nbsp;
             <strong>{t('documents.compliance.file')} :</strong> {searchResult.fileName || '\u2014'} &nbsp;|&nbsp;
             <strong>Date :</strong> {formatDate(searchResult.createdAt)} &nbsp;|&nbsp;
             <strong>{t('documents.compliance.locked')} :</strong>{' '}
             {searchResult.locked ? (
-              <Chip icon={<Lock size={14} strokeWidth={1.75} />} label={t('common.yes')} size="small" sx={{ color: 'var(--warn)', bgcolor: 'var(--warn-soft)', '& .MuiChip-icon': { color: 'var(--warn)' } }} />
+              <Badge variant="secondary" className="text-[var(--warn)] bg-[var(--warn-soft)] [&>svg]:text-[var(--warn)]"><Lock size={14} strokeWidth={1.75} />{t('common.yes')}</Badge>
             ) : (
-              <Chip label={t('common.no')} size="small" sx={{ color: 'var(--muted)', bgcolor: 'var(--hover)' }} />
+              <Badge variant="secondary" className="text-[var(--muted)] bg-[var(--hover)]">{t('common.no')}</Badge>
             )}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
 
       {/* ─── Template compliance check ────────────────────────────────── */}
       <Card>
         <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 600, color: 'var(--ink)' }}>
+          <div className="flex items-center justify-between mb-3">
+            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[16px] font-semibold text-[var(--ink)]">
               {t('documents.compliance.templateVerification')}
-            </Typography>
-            <Tooltip title="Relancer la verification" arrow>
-              <IconButton
-                size="small"
-                onClick={handleManualRecheck}
-                disabled={autoCheckRunning}
-                aria-label="Relancer la verification"
-                sx={{ cursor: 'pointer', color: 'var(--accent)', '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' } }}
-              >
-                <Box component="span" sx={{ display: 'inline-flex', animation: autoCheckRunning ? 'spin 1s linear infinite' : 'none', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } }, '@media (prefers-reduced-motion: reduce)': { animation: 'none' } }}>
-                  <Refresh size={20} strokeWidth={1.75} />
-                </Box>
-              </IconButton>
+            </p>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/* Le span porte la ref que Radix pose sur son enfant : Button
+                    est une fonction, il n'en transmet pas. */}
+                <span className="inline-flex">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={handleManualRecheck}
+                    disabled={autoCheckRunning}
+                    aria-label="Relancer la verification"
+                    className="text-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
+                  >
+                    {/* `animate-spin` de Tailwind = animation: spin 1s linear infinite, identique aux keyframes locales remplacees. */}
+                    <span className={cn('inline-flex', autoCheckRunning && 'animate-spin motion-reduce:animate-none')}>
+                      <Refresh size={20} strokeWidth={1.75} />
+                    </span>
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Relancer la verification</TooltipContent>
             </Tooltip>
-          </Box>
+          </div>
 
           {/* Progress bar during auto-check */}
           {autoCheckRunning && (
-            <Box sx={{ mb: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-                <Typography variant="caption" color="text.secondary">
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="cn-text-caption text-muted-foreground">
                   Verification en cours... {autoCheckProgress}/{autoCheckTotal}
-                </Typography>
-                <Typography variant="caption" fontWeight={600} sx={{ color: 'var(--accent)', fontVariantNumeric: 'tabular-nums', fontFamily: 'var(--font-display)' }}>
+                </span>
+                <span className="cn-text-caption font-semibold text-[var(--accent)] tabular-nums font-[family-name:var(--font-display)]">
                   {autoCheckTotal > 0 ? Math.round((autoCheckProgress / autoCheckTotal) * 100) : 0}%
-                </Typography>
-              </Box>
-              <LinearProgress
-                variant="determinate"
+                </span>
+              </div>
+              <Progress
                 value={autoCheckTotal > 0 ? (autoCheckProgress / autoCheckTotal) * 100 : 0}
-                sx={{
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: 'var(--accent-soft)',
-                  '& .MuiLinearProgress-bar': {
-                    transition: 'transform 0.6s ease',
-                    borderRadius: 3,
-                    backgroundColor: 'var(--accent)',
-                  },
-                  '@media (prefers-reduced-motion: reduce)': {
-                    '& .MuiLinearProgress-bar': { transition: 'none' },
-                  },
-                }}
+                className={cn(
+                  'h-1.5 rounded-[3px] bg-[var(--accent-soft)]',
+                  '[&_[data-slot=progress-indicator]]:rounded-[24px]',
+                  '[&_[data-slot=progress-indicator]]:bg-[var(--accent)]',
+                  '[&_[data-slot=progress-indicator]]:duration-[600ms]',
+                  'motion-reduce:[&_[data-slot=progress-indicator]]:transition-none',
+                )}
               />
-            </Box>
+            </div>
           )}
 
           {/* Completion message */}
           {!autoCheckRunning && autoCheckTotal > 0 && autoCheckProgress === autoCheckTotal && (
-            <Alert severity="success" sx={{ mb: 2 }} icon={<GppGood />}>
-              Verification terminee — {autoCheckTotal} templates verifies
-            </Alert>
+            <UiAlert variant="success" className="mb-3">
+              <GppGood />
+              <AlertDescription>
+                Verification terminee — {autoCheckTotal} templates verifies
+              </AlertDescription>
+            </UiAlert>
           )}
 
-          <TableContainer component={Paper} variant="outlined">
-            <Table size="small">
-              <TableHead>
+          {/* Report du Paper variant="outlined" : rayon theme.shape 8px, filet --line, fond --card. */}
+          <div className="overflow-x-auto rounded-lg border border-solid border-[var(--line)] bg-[var(--card)]">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>Template</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>{t('documents.compliance.activeLabel')}</TableCell>
-                  <TableCell>{t('documents.compliance.complianceLabel')}</TableCell>
-                  <TableCell>Score</TableCell>
-                  <TableCell align="right">{t('common.actions')}</TableCell>
+                  <TableHead>Template</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>{t('documents.compliance.activeLabel')}</TableHead>
+                  <TableHead>{t('documents.compliance.complianceLabel')}</TableHead>
+                  <TableHead>Score</TableHead>
+                  <TableHead className="text-end">{t('common.actions')}</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {templates.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
-                      <Typography color="text.secondary">{t('documents.compliance.noTemplates')}</Typography>
+                    <TableCell colSpan={6} className="text-center py-[18px]">
+                      <p className="cn-text-body1 text-muted-foreground">{t('documents.compliance.noTemplates')}</p>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -427,111 +440,93 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                     return (
                       <TableRow
                         key={tpl.id}
-                        hover
-                        sx={{
-                          transition: 'background-color 0.4s ease',
+                        className={cn(
+                          'transition-colors duration-[.4s] motion-reduce:transition-none',
                           // Pas de side-stripe (interdit absolu) : surlignage -soft seul.
-                          ...(isChecking && { backgroundColor: 'var(--accent-soft)' }),
-                          '@keyframes fadeIn': {
-                            from: { opacity: 0, transform: 'translateX(-8px)' },
-                            to: { opacity: 1, transform: 'translateX(0)' },
-                          },
-                          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                        }}
+                          isChecking && 'bg-[var(--accent-soft)]',
+                        )}
                       >
                         <TableCell>
-                          <Typography variant="body2" fontWeight={500}>{tpl.name}</Typography>
+                          <p className="cn-text-body2 font-medium">{tpl.name}</p>
                         </TableCell>
                         <TableCell>
-                          <Chip label={tpl.documentType} size="small" sx={{ color: 'var(--accent)', bgcolor: 'var(--accent-soft)' }} />
+                          <Badge variant="secondary" className="text-[var(--accent)] bg-[var(--accent-soft)]">{tpl.documentType}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Chip
+                          <StatusChip
+                            tone={tpl.active ? 'ok' : 'neutral'}
                             label={tpl.active ? t('documents.compliance.active') : t('documents.compliance.inactive')}
-                            size="small"
-                            sx={tpl.active
-                              ? { color: 'var(--ok)', bgcolor: 'var(--ok-soft)' }
-                              : { color: 'var(--muted)', bgcolor: 'var(--hover)' }}
                           />
                         </TableCell>
                         <TableCell>
                           {isChecking ? (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <CircularProgress size={16} sx={{ color: 'var(--accent)' }} />
-                              <Typography variant="caption" color="text.secondary">Verification...</Typography>
-                            </Box>
+                            <div className="flex items-center gap-1.5">
+                              <Spinner className="size-4 text-[var(--accent)]" />
+                              <span className="cn-text-caption text-muted-foreground">Verification...</span>
+                            </div>
                           ) : report ? (
-                            <Tooltip
-                              arrow
-                              title={
-                                report.compliant
-                                  ? t('documents.compliance.allMentionsPresent')
-                                  : `${t('documents.compliance.missingMentionsLabel')} : ${report.missingMentions.join(', ')}`
-                              }
-                            >
-                              {(() => {
-                                const tone = report.compliant
-                                  ? { c: 'var(--ok)', bg: 'var(--ok-soft)' }
-                                  : { c: 'var(--err)', bg: 'var(--err-soft)' };
-                                return (
-                                  <Chip
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                {/* Le `span` porte la ref que Tooltip pose sur son
+                                    enfant : StatusChip est une fonction, il n'en
+                                    transmet pas, et l'infobulle ne s'ancrerait pas. */}
+                                <span className="inline-flex">
+                                  <StatusChip
+                                    tone={report.compliant ? 'ok' : 'err'}
                                     icon={
                                       report.compliant
                                         ? <GppGood size={12} strokeWidth={1.75} />
                                         : <GppBad size={12} strokeWidth={1.75} />
                                     }
                                     label={report.compliant ? t('documents.compliance.compliant') : t('documents.compliance.nonCompliant')}
-                                    size="small"
-                                    sx={{
-                                      color: tone.c, bgcolor: tone.bg,
-                                      '& .MuiChip-icon': { color: tone.c },
-                                      animation: 'fadeIn 0.4s ease',
-                                      '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-                                    }}
+                                    className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-left-2 duration-300"
                                   />
-                                );
-                              })()}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {report.compliant
+                                  ? t('documents.compliance.allMentionsPresent')
+                                  : `${t('documents.compliance.missingMentionsLabel')} : ${report.missingMentions.join(', ')}`}
+                              </TooltipContent>
                             </Tooltip>
                           ) : (
-                            <Typography variant="caption" color="text.secondary">En attente</Typography>
+                            <span className="cn-text-caption text-muted-foreground">En attente</span>
                           )}
                         </TableCell>
                         <TableCell>
                           {isChecking ? (
-                            <CircularProgress size={16} sx={{ color: 'var(--accent)' }} />
+                            <Spinner className="size-4 text-[var(--accent)]" />
                           ) : report ? (
-                            <Typography
-                              variant="body2"
-                              fontWeight={600}
-                              sx={{
-                                fontVariantNumeric: 'tabular-nums',
-                                fontFamily: 'var(--font-display)',
-                                color: report.score >= 80 ? 'var(--ok)' : report.score >= 50 ? 'var(--warn)' : 'var(--err)',
-                                animation: 'fadeIn 0.4s ease',
-                                '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-                              }}
+                            <p
+                              className={cn(
+                                'cn-text-body2 font-semibold tabular-nums [font-family:var(--font-display)] animate-[fadeIn_0.4s_ease] motion-reduce:animate-none',
+                                report.score >= 80 ? 'text-[var(--ok)]' : report.score >= 50 ? 'text-[var(--warn)]' : 'text-[var(--err)]',
+                              )}
                             >
                               {report.score}%
-                            </Typography>
+                            </p>
                           ) : '\u2014'}
                         </TableCell>
-                        <TableCell align="right">
+                        <TableCell className="text-end">
                           {report ? (
-                            <Tooltip title={report.compliant ? 'Conforme' : 'Non conforme'} arrow>
-                              {report.compliant ? (
-                                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)', animation: 'fadeIn 0.4s ease', '@media (prefers-reduced-motion: reduce)': { animation: 'none' } }}>
-                                  <GppGood size={20} strokeWidth={1.75} />
-                                </Box>
-                              ) : (
-                                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)', animation: 'fadeIn 0.4s ease', '@media (prefers-reduced-motion: reduce)': { animation: 'none' } }}>
-                                  <GppBad size={20} strokeWidth={1.75} />
-                                </Box>
-                              )}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                {report.compliant ? (
+                                  <span className="inline-flex text-[var(--ok)] animate-[fadeIn_0.4s_ease] motion-reduce:animate-none">
+                                    <GppGood size={20} strokeWidth={1.75} />
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex text-[var(--err)] animate-[fadeIn_0.4s_ease] motion-reduce:animate-none">
+                                    <GppBad size={20} strokeWidth={1.75} />
+                                  </span>
+                                )}
+                              </TooltipTrigger>
+                              <TooltipContent>{report.compliant ? 'Conforme' : 'Non conforme'}</TooltipContent>
                             </Tooltip>
                           ) : isChecking ? (
-                            <CircularProgress size={18} sx={{ color: 'var(--accent)' }} />
+                            <Spinner className="size-[18px] text-[var(--accent)]" />
                           ) : (
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><VerifiedUser size={20} strokeWidth={1.75} /></Box>
+                            <span className="inline-flex text-[var(--faint)]"><VerifiedUser size={20} strokeWidth={1.75} /></span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -540,10 +535,10 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 });
 

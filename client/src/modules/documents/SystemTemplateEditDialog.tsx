@@ -1,20 +1,23 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, AlertDescription, Button } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Card } from '../../components/ui';
 import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  Divider,
-  Grid,
-  MenuItem,
-  Paper,
-  TextField,
-  Typography,
-} from '@mui/material';
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Input,
+  Textarea,
+  NativeSelect,
+  Separator,
+} from '../../components/ui';
+import { cn } from '../../utils/cn';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -192,163 +195,162 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
   const saving = upsertMutation.isPending || removeMutation.isPending;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth PaperProps={{ sx: { minHeight: '70vh' } }}>
-      <DialogTitle>{t('messaging.templates.editor.editSystemTitle')}</DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        aria-describedby={undefined}
+        className="max-w-[1200px] min-h-[70vh] max-h-[90vh] overflow-y-auto"
+      >
+        <DialogHeader>
+          <DialogTitle>{t('messaging.templates.editor.editSystemTitle')}</DialogTitle>
+        </DialogHeader>
 
-      <DialogContent dividers>
+        {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+        <div className="border-y border-solid border-[var(--line)] py-3">
         {isLoading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-            <CircularProgress />
-          </Box>
+          <div className="flex justify-center p-6">
+            <Spinner className="size-10" />
+          </div>
         )}
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {t('systemEmailTemplates.dialog.loadError')}
+          <Alert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{t('systemEmailTemplates.dialog.loadError')}</AlertDescription>
           </Alert>
         )}
 
         {upsertMutation.error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {t('systemEmailTemplates.dialog.saveError')} {upsertMutation.error.message}
+          <Alert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{t('systemEmailTemplates.dialog.saveError')}{upsertMutation.error.message}</AlertDescription>
           </Alert>
         )}
         {removeMutation.error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {t('systemEmailTemplates.dialog.resetError')}
+          <Alert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{t('systemEmailTemplates.dialog.resetError')}</AlertDescription>
           </Alert>
         )}
 
         {group && (
-          <Grid container spacing={3}>
+          <div className="grid grid-cols-12 gap-[18px]">
             {/* ── Formulaire (gauche, 7/12) ── */}
-            <Grid item xs={12} md={7}>
-              <Grid container spacing={2}>
+            <div className="col-span-12 min-[900px]:col-span-7">
+              <div className="grid grid-cols-12 gap-3">
                 {/* Nom du template (readonly — slug systeme immuable) */}
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label={t('messaging.templates.editor.name')}
-                    value={friendlyName}
-                    size="small"
-                    InputProps={{ readOnly: true }}
-                    helperText={t('messaging.templates.editor.systemNameHelper')}
-                  />
-                </Grid>
+                <div className="col-span-12 min-[600px]:col-span-6">
+                  <Field>
+                    <FieldLabel htmlFor="systpl-name">{t('messaging.templates.editor.name')}</FieldLabel>
+                    <Input id="systpl-name" value={friendlyName} readOnly />
+                    <FieldDescription>{t('messaging.templates.editor.systemNameHelper')}</FieldDescription>
+                  </Field>
+                </div>
                 {/* Type / Destinataire (readonly) */}
-                <Grid item xs={6} sm={3}>
-                  <TextField
-                    fullWidth
-                    label={t('messaging.templates.editor.recipient')}
-                    value={recipientLabel}
-                    size="small"
-                    InputProps={{ readOnly: true }}
-                  />
-                </Grid>
+                <div className="col-span-6 min-[600px]:col-span-3">
+                  <Field>
+                    <FieldLabel htmlFor="systpl-recipient">{t('messaging.templates.editor.recipient')}</FieldLabel>
+                    <Input id="systpl-recipient" value={recipientLabel} readOnly />
+                  </Field>
+                </div>
                 {/* Langue (select fr/en/ar) */}
-                <Grid item xs={6} sm={3}>
-                  <TextField
-                    fullWidth
-                    select
-                    label={t('messaging.templates.editor.language')}
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    size="small"
-                  >
-                    {LANGUAGES.map((lang) => {
-                      const tpl = group.languages[lang.value];
-                      const isCustom = tpl && !tpl.isSystem;
-                      return (
-                        <MenuItem key={lang.value} value={lang.value} disabled={!tpl}>
-                          {lang.label}
-                          {isCustom && (
-                            <Box
-                              component="span"
-                              sx={{
-                                ml: 1,
-                                width: 6,
-                                height: 6,
-                                borderRadius: '50%',
-                                bgcolor: 'var(--accent)',
-                                display: 'inline-block',
-                              }}
-                            />
-                          )}
-                        </MenuItem>
-                      );
-                    })}
-                  </TextField>
-                </Grid>
+                <div className="col-span-6 min-[600px]:col-span-3">
+                  <Field>
+                    <FieldLabel htmlFor="systpl-language">{t('messaging.templates.editor.language')}</FieldLabel>
+                    <NativeSelect
+                      id="systpl-language"
+                      className="w-full"
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value)}
+                    >
+                      {LANGUAGES.map((lang) => {
+                        const tpl = group.languages[lang.value];
+                        const isCustom = tpl && !tpl.isSystem;
+                        // Une <option> ne peut pas contenir d'element : la pastille
+                        // « surcharge locale » devient une puce textuelle.
+                        return (
+                          <option key={lang.value} value={lang.value} disabled={!tpl}>
+                            {lang.label}{isCustom ? ' •' : ''}
+                          </option>
+                        );
+                      })}
+                    </NativeSelect>
+                  </Field>
+                </div>
+                {/* Les refs visent l'element de saisie lui-meme : l'insertion de
+                    variable se fait A LA POSITION DU CURSEUR, pas en fin de champ. */}
                 {/* Subject */}
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label={t('messaging.templates.editor.subject')}
-                    value={subject}
-                    onChange={(e) => { setSubject(e.target.value); setTouched(true); }}
-                    onFocus={() => { activeFieldRef.current = 'subject'; }}
-                    inputRef={subjectRef}
-                    size="small"
-                    required
-                    helperText={t('messaging.templates.editor.subjectHelper')}
-                  />
-                </Grid>
+                <div className="col-span-12">
+                  <Field>
+                    <FieldLabel htmlFor="sys-tpl-subject">
+                      {t('messaging.templates.editor.subject')}
+                    </FieldLabel>
+                    <Input
+                      id="sys-tpl-subject"
+                      ref={subjectRef}
+                      value={subject}
+                      onChange={(e) => { setSubject(e.target.value); setTouched(true); }}
+                      onFocus={() => { activeFieldRef.current = 'subject'; }}
+                      required
+                    />
+                    <FieldDescription>{t('messaging.templates.editor.subjectHelper')}</FieldDescription>
+                  </Field>
+                </div>
                 {/* Body multiline */}
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label={t('messaging.templates.editor.body')}
-                    value={body}
-                    onChange={(e) => { setBody(e.target.value); setTouched(true); }}
-                    onFocus={() => { activeFieldRef.current = 'body'; }}
-                    inputRef={bodyRef}
-                    multiline
-                    rows={12}
-                    required
-                    helperText={t('systemEmailTemplates.dialog.bodyHelper')}
-                    InputProps={{
-                      sx: language === 'ar' ? { direction: 'rtl' } : undefined,
-                    }}
-                  />
-                </Grid>
-              </Grid>
+                <div className="col-span-12">
+                  <Field>
+                    <FieldLabel htmlFor="sys-tpl-body">
+                      {t('messaging.templates.editor.body')}
+                    </FieldLabel>
+                    <Textarea
+                      id="sys-tpl-body"
+                      ref={bodyRef}
+                      value={body}
+                      onChange={(e) => { setBody(e.target.value); setTouched(true); }}
+                      onFocus={() => { activeFieldRef.current = 'body'; }}
+                      required
+                      // `field-sizing: content` du kit neutralise `rows`.
+                      className={cn('min-h-[12lh]', language === 'ar' && '[direction:rtl]')}
+                    />
+                    <FieldDescription>{t('systemEmailTemplates.dialog.bodyHelper')}</FieldDescription>
+                  </Field>
+                </div>
+              </div>
 
               {/* ── Preview (apercu plain text avec variables remplacees) ── */}
-              <Box sx={{ mt: 3 }}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <div className="mt-4">
+                <h6 className="cn-text-subtitle2 text-muted-foreground mb-[0.35em]">
                   {t('messaging.templates.editor.preview')}
-                </Typography>
-                <Paper variant="outlined" sx={{ p: 2, bgcolor: 'var(--surface-2)', borderColor: 'var(--line)' }}>
-                  <Typography variant="subtitle2" gutterBottom>
+                </h6>
+                <Card className="gap-0 py-0 p-3 bg-[var(--surface-2)] border-[var(--line)]">
+                  <h6 className="cn-text-subtitle2 mb-[0.35em]">
                     {t('messaging.templates.editor.previewSubject')}: {getPreviewText(subject) || '—'}
-                  </Typography>
-                  <Divider sx={{ my: 1 }} />
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      whiteSpace: 'pre-wrap',
-                      fontFamily: 'inherit',
-                      direction: language === 'ar' ? 'rtl' : 'ltr',
-                    }}
+                  </h6>
+                  <Separator className="my-1.5" />
+                  <p
+                    className={cn(
+                      'cn-text-body2 whitespace-pre-wrap font-[inherit]',
+                      language === 'ar' ? '[direction:rtl]' : '[direction:ltr]',
+                    )}
                   >
                     {getPreviewText(body) || '—'}
-                  </Typography>
-                </Paper>
-                <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>
+                  </p>
+                </Card>
+                <span className="cn-text-caption text-muted-foreground opacity-60 block mt-0.5">
                   {t('systemEmailTemplates.dialog.previewNote')}
-                </Typography>
-              </Box>
-            </Grid>
+                </span>
+              </div>
+            </div>
 
             {/* ── Sidebar variables (droite, 5/12) ── */}
-            <Grid item xs={12} md={5}>
-              <Paper variant="outlined" sx={{ p: 2, position: 'sticky', top: 16 }}>
-                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+            <div className="col-span-12 min-[900px]:col-span-5">
+              <div className="sticky top-4 rounded-[11px] border border-solid border-[var(--line)] bg-[var(--card)] p-3">
+                <h6 className="cn-text-subtitle2 font-semibold mb-[0.35em]">
                   {t('messaging.templates.editor.variables')}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+                </h6>
+                <span className="cn-text-caption text-muted-foreground block mb-2">
                   {t('messaging.templates.editor.variablesDesc')}
-                </Typography>
+                </span>
                 <VariablePicker
                   variables={userVariables}
                   usedKeys={usedVariables}
@@ -356,36 +358,37 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
                   systemVariablesUsed={systemVarsUsed}
                   showDetails
                 />
-              </Paper>
-            </Grid>
-          </Grid>
+              </div>
+            </div>
+          </div>
         )}
-      </DialogContent>
+        </div>
 
-      <DialogActions sx={{ px: 3, py: 1.5 }}>
+        <DialogFooter>
         {isOverride && (
           <Button
-            startIcon={<Replay size={16} strokeWidth={1.75} />}
+            variant="outline"
+            className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             onClick={handleResetToSystem}
             disabled={saving}
-            color="warning"
           >
+            <Replay size={16} strokeWidth={1.75} />
             {t('systemEmailTemplates.dialog.resetToSystem')}
           </Button>
         )}
-        <Box sx={{ flex: 1 }} />
-        <Button onClick={onClose} disabled={saving}>
+        <div className="flex-1" />
+        <Button variant="ghost" onClick={onClose} disabled={saving}>
           {t('common.cancel')}
         </Button>
         <Button
-          variant="contained"
-          startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <Save />}
           onClick={handleSave}
           disabled={saving || !touched || !subject.trim() || !body.trim()}
         >
+          {saving ? <Spinner className="size-4" /> : <Save />}
           {saving ? t('common.processing') : t('common.save')}
         </Button>
-      </DialogActions>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

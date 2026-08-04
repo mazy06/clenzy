@@ -1,5 +1,5 @@
 import React from 'react';
-import { Chip } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
 import { useTranslation } from '../../hooks/useTranslation';
 
 interface MissingContractChipProps {
@@ -14,21 +14,12 @@ interface MissingContractChipProps {
 const MissingContractChip: React.FC<MissingContractChipProps> = ({ onClick }) => {
   const { t } = useTranslation();
   return (
-    <Chip
+    <StatusChip
       label={t('contracts.gate.badge', 'Contrat manquant')}
-      size="small"
+      tone="warn"
+      size="sm"
       onClick={onClick}
-      sx={{
-        height: 18,
-        fontSize: '10.5px',
-        fontWeight: 700,
-        bgcolor: 'var(--warn-soft)',
-        color: 'var(--warn)',
-        border: 'none',
-        cursor: 'pointer',
-        '&:hover': { bgcolor: 'var(--warn-soft)', opacity: 0.85 },
-        '& .MuiChip-label': { px: 0.75 },
-      }}
+      className="text-[10.5px] font-bold"
     />
   );
 };

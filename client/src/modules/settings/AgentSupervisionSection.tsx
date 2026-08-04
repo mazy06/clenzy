@@ -1,19 +1,11 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Switch,
-  Divider,
-  Select,
-  MenuItem,
-  TextField,
-  CircularProgress,
-  Alert,
-  Snackbar,
-  useTheme,
-  alpha,
-} from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert, Info } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Input, NativeSelect, Separator, Switch } from '../../components/ui';
 import AiSettingsCard from './AiSettingsCard';
+import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -36,10 +28,7 @@ const AUTONOMY_LABEL_KEY: Record<AutonomyLevel, string> = {
 function ModuleDot({ moduleKey }: { moduleKey: string }) {
   const color = AGENT_META[moduleKey as AgentId]?.color ?? 'var(--accent)';
   return (
-    <Box
-      sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: color, flexShrink: 0 }}
-      aria-hidden
-    />
+    <div className="w-[10px] h-[10px] rounded-[50%] shrink-0" style={{ backgroundColor: color }} aria-hidden />
   );
 }
 
@@ -50,15 +39,13 @@ function ModuleDot({ moduleKey }: { moduleKey: string }) {
  */
 export default function AgentSupervisionSection() {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const { notify } = useNotification();
   const { hasAnyRole } = useAuth();
   // Écriture réservée aux admins d'org (aligné sur le PUT backend).
   const canEdit = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST']);
 
   const { data: config, isLoading, error } = useSupervisionConfig();
   const updateMutation = useUpdateSupervisionConfig();
-  const [savedOpen, setSavedOpen] = React.useState(false);
   // Champ budget : édité localement, persisté au blur (évite un PUT par frappe).
   const [budgetInput, setBudgetInput] = React.useState('');
   React.useEffect(() => {
@@ -66,7 +53,9 @@ export default function AgentSupervisionSection() {
   }, [config]);
 
   const persist = (next: SupervisionConfig) => {
-    updateMutation.mutate(next, { onSuccess: () => setSavedOpen(true) });
+    updateMutation.mutate(next, {
+      onSuccess: () => notify.success(t('settings.ai.supervision.saved', 'Configuration enregistrée')),
+    });
   };
 
   const handleBudgetCommit = () => {
@@ -106,170 +95,156 @@ export default function AgentSupervisionSection() {
       )}
     >
       {isLoading ? (
-        <Box display="flex" justifyContent="center" py={3}>
-          <CircularProgress size={24} />
-        </Box>
+        <div className="flex justify-center py-[18px]">
+          <Spinner className="size-6" />
+        </div>
       ) : error ? (
-        <Alert severity="error">
-          {t('settings.ai.supervision.loadError', "Impossible de charger la configuration.")}
+        <Alert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>{t('settings.ai.supervision.loadError', "Impossible de charger la configuration.")}</AlertDescription>
         </Alert>
       ) : config ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="flex flex-col">
           {/* ── Master : activation de la feature ── */}
-          <Box sx={{ display: 'flex', alignItems: 'center', py: 1.5 }}>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body2" fontWeight={600}>
+          <div className="flex items-center py-2">
+            <div className="flex-1 min-w-0">
+              {/* Le titre du reglage EST le libelle de l'interrupteur : rendu en
+                  <label> pour que le clic et le lecteur d'ecran l'atteignent. */}
+              <label htmlFor="supervision-master" className="cn-text-body2 font-semibold block">
                 {t('settings.ai.supervision.master.label', 'Activer le superviseur')}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+              </label>
+              <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
                 {t(
                   'settings.ai.supervision.master.description',
                   "Affiche la constellation dans le planning et autorise les agents à proposer des actions.",
                 )}
-              </Typography>
-            </Box>
+              </span>
+            </div>
             <Switch
+              id="supervision-master"
               checked={config.enabled}
-              onChange={(e) => handleMaster(e.target.checked)}
+              onCheckedChange={handleMaster}
               disabled={!canEdit || busy}
-              size="small"
+              size="sm"
             />
-          </Box>
+          </div>
 
-          <Divider />
+          <Separator />
 
           {/* ── Pause globale ── */}
-          <Box sx={{ display: 'flex', alignItems: 'center', py: 1.5, opacity: config.enabled ? 1 : 0.5 }}>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body2" fontWeight={600}>
+          <div className={cn('flex items-center py-[9px]', config.enabled ? 'opacity-100' : 'opacity-50')}>
+            <div className="flex-1 min-w-0">
+              <label htmlFor="supervision-paused" className="cn-text-body2 font-semibold block">
                 {t('settings.ai.supervision.paused.label', 'Mettre en pause')}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+              </label>
+              <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
                 {t(
                   'settings.ai.supervision.paused.description',
                   "Suspend temporairement l'activité automatique des agents (la config est conservée).",
                 )}
-              </Typography>
-            </Box>
+              </span>
+            </div>
             <Switch
+              id="supervision-paused"
               checked={config.paused}
-              onChange={(e) => handlePaused(e.target.checked)}
+              onCheckedChange={handlePaused}
               disabled={!canEdit || busy || !config.enabled}
-              size="small"
+              size="sm"
             />
-          </Box>
+          </div>
 
-          <Divider />
+          <Separator />
 
           {/* ── Budget (plafond de scans automatiques) ── */}
-          <Box sx={{ display: 'flex', alignItems: 'center', py: 1.5, opacity: config.enabled ? 1 : 0.5 }}>
-            <Box sx={{ flex: 1, minWidth: 0, pr: 2 }}>
-              <Typography variant="body2" fontWeight={600}>
+          <div className={cn('flex items-center py-[9px]', config.enabled ? 'opacity-100' : 'opacity-50')}>
+            <div className="flex-1 min-w-0 pe-3">
+              {/* Le titre du reglage EST le libelle du champ : rendu en <label>
+                  pour que le clic et le lecteur d'ecran atteignent l'input. */}
+              <label htmlFor="supervision-daily-budget" className="cn-text-body2 font-semibold block">
                 {t('settings.ai.supervision.budget.label', 'Plafond de scans automatiques')}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+              </label>
+              <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
                 {t(
                   'settings.ai.supervision.budget.description',
                   "Nombre maximum d'analyses automatiques par jour pour l'organisation (0 = aucune analyse automatique). Limite le coût IA.",
                 )}
-              </Typography>
-            </Box>
-            <TextField
+              </span>
+            </div>
+            <Input
+              id="supervision-daily-budget"
               type="number"
-              size="small"
+              min={0}
+              step={1}
+              className="w-16 shrink-0 text-end tabular-nums"
               value={budgetInput}
               onChange={(e) => setBudgetInput(e.target.value)}
               onBlur={handleBudgetCommit}
               disabled={!canEdit || busy || !config.enabled}
-              inputProps={{ min: 0, step: 1, style: { textAlign: 'right', width: 64 } }}
-              sx={{ flexShrink: 0 }}
             />
-          </Box>
+          </div>
 
-          <Divider sx={{ mb: 1 }} />
+          <Separator className="mb-1.5" />
 
           {/* ── Modules ── */}
-          <Typography
-            variant="overline"
-            color="text.secondary"
-            sx={{ mt: 1, mb: 0.5, fontWeight: 700, letterSpacing: '0.04em' }}
-          >
+          <span className="cn-text-overline text-muted-foreground mt-1.5 mb-0.5 font-bold tracking-[0.04em]">
             {t('settings.ai.supervision.modules.title', 'Modules')}
-          </Typography>
+          </span>
 
           {config.modules.map((module, index) => {
             const disabled = !canEdit || busy || !config.enabled;
             return (
               <React.Fragment key={module.key}>
-                {index > 0 && <Divider sx={{ ml: 3 }} />}
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    py: 1.25,
-                    opacity: config.enabled && module.enabled ? 1 : 0.55,
-                    transition: 'opacity 0.15s ease',
-                  }}
-                >
+                {index > 0 && <Separator className="ms-[18px] data-horizontal:w-auto" />}
+                <div className={cn('flex items-center gap-[9px] py-[7.5px]', config.enabled && module.enabled ? 'opacity-100' : 'opacity-55')} style={{ transition: 'opacity 0.15s ease' }}>
                   <ModuleDot moduleKey={module.key} />
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+                  <div className="flex-1 min-w-0">
+                    <p className="cn-text-body2 font-semibold leading-[1.3]">
                       {t(module.labelKey, module.key)}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
 
                   {/* Niveau d'autonomie */}
-                  <Select
+                  <NativeSelect
+                    aria-label={t('settings.ai.supervision.modules.autonomyLabel', "Niveau d'autonomie")}
+                    className="min-w-[168px] shrink-0 [&_select]:text-[0.8rem]"
                     value={module.autonomy}
                     onChange={(e) => handleModule(module.key, { autonomy: e.target.value as AutonomyLevel })}
                     disabled={disabled || !module.enabled}
-                    size="small"
-                    sx={{
-                      minWidth: 168,
-                      fontSize: '0.8rem',
-                      bgcolor: isDark ? alpha('#fff', 0.03) : alpha('#000', 0.015),
-                    }}
                   >
                     {AUTONOMY_LEVELS.map((level) => (
-                      <MenuItem key={level} value={level} sx={{ fontSize: '0.8rem' }}>
+                      <option key={level} value={level}>
                         {t(AUTONOMY_LABEL_KEY[level], level)}
-                      </MenuItem>
+                      </option>
                     ))}
-                  </Select>
+                  </NativeSelect>
 
                   {/* Activer/désactiver le module */}
                   <Switch
+                    aria-label={t(module.labelKey, module.key)}
                     checked={module.enabled}
-                    onChange={(e) => handleModule(module.key, { enabled: e.target.checked })}
+                    onCheckedChange={(checked) => handleModule(module.key, { enabled: checked })}
                     disabled={disabled}
-                    size="small"
+                    size="sm"
                   />
-                </Box>
+                </div>
               </React.Fragment>
             );
           })}
 
           {!canEdit && (
-            <Alert severity="info" sx={{ mt: 2 }}>
-              {t('settings.ai.supervision.readOnly', 'Lecture seule — seul un administrateur peut modifier ces réglages.')}
+            <Alert variant="info" className="mt-3">
+              <Info />
+              <AlertDescription>{t('settings.ai.supervision.readOnly', 'Lecture seule — seul un administrateur peut modifier ces réglages.')}</AlertDescription>
             </Alert>
           )}
           {updateMutation.isError && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {t('settings.ai.supervision.saveError', "Échec de l'enregistrement. Réessayez.")}
+            <Alert variant="destructive" className="mt-3">
+              <TriangleAlert />
+              <AlertDescription>{t('settings.ai.supervision.saveError', "Échec de l'enregistrement. Réessayez.")}</AlertDescription>
             </Alert>
           )}
-        </Box>
+        </div>
       ) : null}
-
-      <Snackbar
-        open={savedOpen}
-        autoHideDuration={2200}
-        onClose={() => setSavedOpen(false)}
-        message={t('settings.ai.supervision.saved', 'Configuration enregistrée')}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      />
     </AiSettingsCard>
   );
 }

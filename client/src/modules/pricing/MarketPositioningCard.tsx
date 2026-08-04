@@ -1,11 +1,16 @@
 import React from 'react';
-import { Box, Chip, Paper, Skeleton, Tooltip, Typography } from '@mui/material';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { Badge } from '../../components/ui';
+import { Card } from '../../components/ui';
+import { Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, TrendingDown, Remove as Minus, Info } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { marketPositioningApi, type MarketPositioning } from '../../services/api/marketPositioningApi';
 
-const NUM_SX = { fontVariantNumeric: 'tabular-nums' } as const;
+/** Chiffres alignes en colonne (KPI, prix). */
+const NUM_CLASS = 'tabular-nums';
 
 const SOURCE_LABEL: Record<string, string> = {
   FIRST_PARTY: 'Réseau Baitly',
@@ -29,7 +34,7 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
   });
 
   if (isLoading) {
-    return <Skeleton variant="rounded" height={92} sx={{ borderRadius: '12px' }} />;
+    return <Skeleton className="h-[92px] w-full rounded-[12px]" />;
   }
   if (isError || !data) {
     return null; // signal complémentaire : on ne bloque jamais l'écran de pricing
@@ -61,43 +66,43 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
         : t('marketPositioning.aligned', 'Aligné sur le marché');
 
   return (
-    <Paper variant="outlined" sx={{ p: 1.75, borderRadius: '12px' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.25, flexWrap: 'wrap' }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+    <Card className="gap-0 py-0 p-2.5">
+      <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+        <h6 className="cn-text-subtitle2 font-bold">
           {t('marketPositioning.title', 'Positionnement marché')}
           {data.area ? ` — ${data.area}` : ''}
-        </Typography>
-        <Chip
-          size="small"
+        </h6>
+        {/* Teinte plus sourde que la recette `-soft` de la primitive (8 % au lieu
+            de 12 %), cernee d'une hairline : la puce est un reperage de lecture,
+            pas un statut. `border-solid` est requis, le gabarit posant
+            `border-none`. */}
+        <StatusChip
+          tokens={{ color, bg: `color-mix(in srgb, ${color} 8%, transparent)` }}
           icon={<Icon size={14} />}
           label={label}
-          sx={{
-            color,
-            backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
-            border: `1px solid color-mix(in srgb, ${color} 22%, transparent)`,
-            fontWeight: 600,
-            '& .MuiChip-icon': { color: `${color} !important` },
-          }}
+          className="border border-solid"
+          sx={{ borderColor: `color-mix(in srgb, ${color} 22%, transparent)` }}
         />
         {!noMarket && data.source && (
-          <Tooltip
-            title={t('marketPositioning.sourceHint',
-              'Provenance et fiabilité de la donnée marché. Le « réseau Baitly » est votre réalisé, jamais présenté comme le marché entier.')}
-          >
-            <Chip
-              size="small"
-              variant="outlined"
-              icon={<Info size={13} />}
-              label={`${SOURCE_LABEL[data.source] ?? data.source} · ${
-                data.confidence != null ? `${Math.round(data.confidence * 100)} %` : '—'}`}
-              sx={{ color: 'var(--muted)', borderColor: 'var(--line)' }}
-            />
+          <Tooltip>
+            {/* `span` intercalaire : le declencheur Radix pose une ref, que la
+                primitive Badge (simple fonction) ne transmet pas. */}
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Badge variant="outline" className="text-[var(--muted)] border-[var(--line)]"><Info size={13} />{`${SOURCE_LABEL[data.source] ?? data.source} · ${
+                    data.confidence != null ? `${Math.round(data.confidence * 100)} %` : '—'}`}</Badge>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              {t('marketPositioning.sourceHint',
+                'Provenance et fiabilité de la donnée marché. Le « réseau Baitly » est votre réalisé, jamais présenté comme le marché entier.')}
+            </TooltipContent>
           </Tooltip>
         )}
-      </Box>
+      </div>
 
       {/* Double signal : votre bien vs marché */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+      <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-[9px]">
         <SignalBlock
           label={t('marketPositioning.yourProperty', 'Votre logement')}
           adr={money(data.propertyAdr)}
@@ -113,12 +118,12 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
           occLabel={t('marketPositioning.occupancy', 'Occupation')}
           muted
         />
-      </Box>
+      </div>
 
-      <Typography variant="caption" sx={{ color: 'var(--muted)', display: 'block', mt: 1 }}>
+      <span className="cn-text-caption text-[var(--muted)] block mt-1.5">
         {data.headline}
-      </Typography>
-    </Paper>
+      </span>
+    </Card>
   );
 };
 
@@ -130,28 +135,21 @@ const SignalBlock: React.FC<{
   occLabel: string;
   muted?: boolean;
 }> = ({ label, adr, occ, adrLabel, occLabel, muted }) => (
-  <Box
-    sx={{
-      p: 1.25,
-      borderRadius: '8px',
-      backgroundColor: muted ? 'transparent' : 'color-mix(in srgb, var(--accent) 5%, transparent)',
-      border: '1px solid var(--line)',
-    }}
-  >
-    <Typography variant="caption" sx={{ color: 'var(--muted)', display: 'block', mb: 0.5 }}>
+  <div className={cn('p-[7.5px] rounded-[8px] border border-solid border-[var(--line)]', muted ? 'bg-[transparent]' : 'bg-[color-mix(in_srgb,_var(--accent)_5%,_transparent)]')}>
+    <span className="cn-text-caption text-[var(--muted)] block mb-0.5">
       {label}
-    </Typography>
-    <Box sx={{ display: 'flex', gap: 2 }}>
-      <Box>
-        <Typography variant="caption" sx={{ color: 'var(--muted)' }}>{adrLabel}</Typography>
-        <Typography sx={{ ...NUM_SX, fontWeight: 700 }}>{adr}</Typography>
-      </Box>
-      <Box>
-        <Typography variant="caption" sx={{ color: 'var(--muted)' }}>{occLabel}</Typography>
-        <Typography sx={{ ...NUM_SX, fontWeight: 700 }}>{occ}</Typography>
-      </Box>
-    </Box>
-  </Box>
+    </span>
+    <div className="flex gap-3">
+      <div>
+        <span className="cn-text-caption text-[var(--muted)]">{adrLabel}</span>
+        <p className={cn(NUM_CLASS, 'cn-text-body1 font-bold')}>{adr}</p>
+      </div>
+      <div>
+        <span className="cn-text-caption text-[var(--muted)]">{occLabel}</span>
+        <p className={cn(NUM_CLASS, 'cn-text-body1 font-bold')}>{occ}</p>
+      </div>
+    </div>
+  </div>
 );
 
 export default MarketPositioningCard;

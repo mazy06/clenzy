@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  Divider,
-  Skeleton,
-  Alert,
-  Chip,
-} from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Badge } from '../../components/ui';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Separator, Skeleton } from '../../components/ui';
 import {
   Receipt as ReceiptIcon,
 } from '../../icons';
@@ -56,7 +53,7 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
   if (loading) {
     return (
       <SettingsSection title={t('billing.title')} icon={ReceiptIcon} accent="accent">
-        <Skeleton variant="rectangular" height={100} sx={{ borderRadius: '8px' }} />
+        <Skeleton className="h-[100px] w-full rounded-[8px]" />
       </SettingsSection>
     );
   }
@@ -64,8 +61,9 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
   if (error) {
     return (
       <SettingsSection title={t('billing.title')} icon={ReceiptIcon} accent="accent">
-        <Alert severity="error" sx={{ borderRadius: '8px' }}>
-          {error}
+        <Alert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       </SettingsSection>
     );
@@ -77,118 +75,65 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
   const discountPercent = Math.round((1 - summary.billingPeriodDiscount) * 100);
 
   const periodChip = (
-    <Chip
-      label={BILLING_PERIOD_LABELS[summary.billingPeriod] || summary.billingPeriod}
-      size="small"
-      sx={{
-        backgroundColor: 'var(--accent-soft)',
-        color: 'var(--accent)',
-        '& .MuiChip-label': { px: 0.875 },
-      }}
-    />
+    <Badge variant="secondary" className="bg-[var(--accent-soft)] text-[var(--accent)] px-1.5">{BILLING_PERIOD_LABELS[summary.billingPeriod] || summary.billingPeriod}</Badge>
   );
 
   return (
     <SettingsSection title={t('billing.title')} icon={ReceiptIcon} accent="accent" action={periodChip}>
       {/* Base plan */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.625 }}>
-        <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
+      <div className="flex justify-between items-baseline mb-1">
+        <p className="cn-text-body1 text-[0.8rem] text-muted-foreground">
           {t('billing.basePlan')}
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: '0.8rem',
-            fontWeight: 600,
-            color: 'text.primary',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
+        </p>
+        <p className="cn-text-body1 text-[0.8rem] font-semibold text-foreground tabular-nums">
           <Money value={summary.basePriceCents / 100} />
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       {/* Per-seat */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.5 }}>
-        <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
+      <div className="flex justify-between items-baseline mb-0.5">
+        <p className="cn-text-body1 text-[0.8rem] text-muted-foreground">
           {t('billing.seats')} ({summary.billableSeats} × <Money value={summary.perSeatPriceCents / 100} />)
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: '0.8rem',
-            fontWeight: 600,
-            color: 'text.primary',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
+        </p>
+        <p className="cn-text-body1 text-[0.8rem] font-semibold text-foreground tabular-nums">
           <Money value={summary.seatsTotalCents / 100} />
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
-      <Typography
-        sx={{
-          display: 'block',
-          fontSize: '0.7rem',
-          color: 'text.disabled',
-          fontVariantNumeric: 'tabular-nums',
-          mb: 1,
-        }}
-      >
+      <p className="cn-text-body1 block text-[0.7rem] text-muted-foreground opacity-60 tabular-nums mb-1.5">
         {summary.memberCount} {t('billing.members')} · {summary.freeSeats} {t('billing.included')}
-      </Typography>
+      </p>
 
-      <Divider sx={{ mb: 1, borderColor: 'divider' }} />
+      <Separator className="mb-1.5" />
 
       {/* Total */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: hasDiscount ? 0.625 : 0 }}>
-        <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'text.primary' }}>
+      <div className={cn('flex justify-between items-baseline', hasDiscount ? 'mb-[3.75px]' : 'mb-0')}>
+        <p className="cn-text-body1 text-[0.85rem] font-bold text-foreground">
           {t('billing.monthlyTotal')}
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: '0.95rem',
-            fontWeight: 700,
-            fontVariantNumeric: 'tabular-nums',
-            letterSpacing: '-0.01em',
-            color: hasDiscount ? 'text.disabled' : 'var(--ok)',
-            ...(hasDiscount && { textDecoration: 'line-through' }),
-          }}
+        </p>
+        <p
+          className={cn(
+            'cn-text-body1 text-[0.95rem] font-bold tabular-nums tracking-[-0.01em]',
+            hasDiscount ? 'text-[var(--faint)] line-through' : 'text-[var(--ok)]',
+          )}
         >
           <Money value={summary.totalMonthlyCents / 100} />
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       {/* Effective with discount */}
       {hasDiscount && (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-            <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--ok)' }}>
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-1">
+            <p className="cn-text-body1 text-[0.85rem] font-bold text-[var(--ok)]">
               {t('billing.effectiveMonthly')}
-            </Typography>
-            <Chip
-              label={`-${discountPercent}%`}
-              size="small"
-              sx={{
-                height: 18,
-                fontSize: '0.65rem',
-                backgroundColor: 'var(--ok-soft)',
-                color: 'var(--ok)',
-                fontVariantNumeric: 'tabular-nums',
-                '& .MuiChip-label': { px: 0.625 },
-              }}
-            />
-          </Box>
-          <Typography
-            sx={{
-              fontSize: '0.95rem',
-              fontWeight: 700,
-              color: 'var(--ok)',
-              fontVariantNumeric: 'tabular-nums',
-              letterSpacing: '-0.01em',
-            }}
-          >
+            </p>
+            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--ok-soft)] text-[var(--ok)] tabular-nums px-1">{`-${discountPercent}%`}</Badge>
+          </div>
+          <p className="cn-text-body1 text-[0.95rem] font-bold text-[var(--ok)] tabular-nums tracking-[-0.01em]">
             <Money value={summary.effectiveMonthlyCents / 100} />
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
     </SettingsSection>
   );

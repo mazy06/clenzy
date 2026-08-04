@@ -1,16 +1,15 @@
 import React, { useMemo, useState } from 'react';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { Button, Card } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box,
-  Paper,
-  Typography,
-  IconButton,
-  Chip,
+  ToggleGroup,
+  ToggleGroupItem,
   Tooltip,
-  Button,
-  ToggleButton,
-  ToggleButtonGroup,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import {
   ChevronLeft,
   ChevronRight,
@@ -84,6 +83,15 @@ function statusIcon(status: string, size: number, color: string) {
   return <HourglassEmpty size={size} strokeWidth={2} color={color} />;
 }
 
+// Segmente de vue : l'etat choisi est porte par `data-state=on` cote Radix, la
+// ou MUI utilisait `.Mui-selected`.
+const TOGGLE_ITEM_CLASS =
+  'normal-case text-[12px] font-semibold px-[9px] py-[2.4px] gap-[3px] border-none rounded-[8px] '
+  + 'text-[var(--muted)] transition-[background-color,color] duration-[140ms] '
+  + 'hover:bg-transparent hover:text-[var(--body)] '
+  + 'data-[state=on]:bg-[var(--card)] data-[state=on]:text-[var(--accent)] '
+  + 'data-[state=on]:shadow-[0_1px_3px_color-mix(in_srgb,var(--ink)_10%,transparent)]';
+
 // ─── Stat card ───────────────────────────────────────────────────────────────
 
 interface StatCardProps {
@@ -97,44 +105,19 @@ interface StatCardProps {
 
 function StatCard({ icon, label, value, fg, bg }: StatCardProps) {
   return (
-    <Paper
-      sx={{
-        p: '14px 16px',
-        borderRadius: '13px',
-        border: '1px solid var(--line)',
-        bgcolor: 'var(--card)',
-        boxShadow: 'none',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1.25,
-        minWidth: 0,
-        flex: '1 1 0',
-      }}
-    >
-      <Box
-        sx={{
-          width: 36,
-          height: 36,
-          borderRadius: '11px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: fg,
-          bgcolor: bg,
-          flexShrink: 0,
-        }}
-      >
+    <div className="px-4 py-[14px] rounded-[13px] border border-solid border-[var(--line)] bg-[var(--card)] shadow-none flex items-center gap-[7.5px] min-w-0 flex-[1_1_0]">
+      <div className="w-[36px] h-[36px] rounded-[11px] flex items-center justify-center shrink-0" style={{ color: fg, backgroundColor: bg }}>
         {icon}
-      </Box>
-      <Box sx={{ minWidth: 0 }}>
-        <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', lineHeight: 1.2 }}>
+      </div>
+      <div className="min-w-0">
+        <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] font-bold uppercase tracking-[.04em] leading-[1.2]">
           {label}
-        </Typography>
-        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 600, lineHeight: 1.2, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-.01em' }}>
+        </p>
+        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[18px] font-semibold leading-[1.2] text-[var(--ink)] tabular-nums tracking-[-.01em]">
           {value}
-        </Typography>
-      </Box>
-    </Paper>
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -217,9 +200,9 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div className="flex flex-col gap-3">
       {/* ─── Stats ───────────────────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+      <div className="flex gap-2 flex-wrap">
         <StatCard
           icon={<Build size={18} strokeWidth={1.75} />}
           label="Total"
@@ -250,101 +233,66 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
           value={<Money value={stats.revenue} from="EUR" decimals={0} />}
           fg="var(--accent)" bg="var(--accent-soft)"
         />
-      </Box>
+      </div>
 
       {/* ─── View toggle ─────────────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-        <ToggleButtonGroup
+      <div className="flex justify-between items-center flex-wrap gap-1.5">
+        <ToggleGroup
+          type="single"
+          size="sm"
+          spacing={0}
           value={view}
-          exclusive
-          onChange={(_, v) => v && setView(v)}
-          size="small"
-          sx={{
-            bgcolor: 'var(--field)',
-            border: '1px solid var(--field-line)',
-            borderRadius: '10px',
-            p: '3px',
-            gap: '2px',
-            '& .MuiToggleButton-root': {
-              textTransform: 'none',
-              fontSize: '12px',
-              fontWeight: 600,
-              px: 1.5,
-              py: 0.4,
-              gap: 0.5,
-              border: 'none',
-              borderRadius: '8px !important',
-              color: 'var(--muted)',
-              transition: 'background-color .14s, color .14s',
-              '&:hover': { bgcolor: 'transparent', color: 'var(--body)' },
-            },
-            '& .Mui-selected': {
-              bgcolor: 'var(--card) !important',
-              color: 'var(--accent) !important',
-              boxShadow: '0 1px 3px color-mix(in srgb, var(--ink) 10%, transparent)',
-            },
-          }}
+          // Radix renvoie '' quand on re-clique l'option active : le garde-fou
+          // evite de laisser la vue sans mode.
+          onValueChange={(v) => { if (v) setView(v as typeof view); }}
+          className="bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[10px] p-[3px] gap-[2px]"
         >
-          <ToggleButton value="calendar">
+          <ToggleGroupItem value="calendar" className={TOGGLE_ITEM_CLASS}>
             <CalendarMonth size={14} strokeWidth={1.75} />
             Calendrier
-          </ToggleButton>
-          <ToggleButton value="list">
+          </ToggleGroupItem>
+          <ToggleGroupItem value="list" className={TOGGLE_ITEM_CLASS}>
             <ViewList size={14} strokeWidth={1.75} />
             Liste
-          </ToggleButton>
-        </ToggleButtonGroup>
+          </ToggleGroupItem>
+        </ToggleGroup>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <div className="flex items-center gap-1.5">
           {view === 'calendar' && (
             <>
-              <Button
-                size="small"
-                onClick={goToToday}
-                sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 500 }}
-              >
+              <Button variant="ghost" size="sm" onClick={goToToday}>
                 Aujourd'hui
               </Button>
-              <IconButton size="small" onClick={prevMonth}>
+              <Button variant="ghost" size="icon-sm" aria-label="Mois précédent" onClick={prevMonth}>
                 <ChevronLeft size={18} strokeWidth={1.75} />
-              </IconButton>
-              <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, minWidth: 130, textAlign: 'center', textTransform: 'capitalize' }}>
+              </Button>
+              <p className="cn-text-body1 text-[0.875rem] font-semibold min-w-[130px] text-center capitalize">
                 {MONTH_NAMES_FR[monthAnchor.getMonth()]} {monthAnchor.getFullYear()}
-              </Typography>
-              <IconButton size="small" onClick={nextMonth}>
+              </p>
+              <Button variant="ghost" size="icon-sm" aria-label="Mois suivant" onClick={nextMonth}>
                 <ChevronRight size={18} strokeWidth={1.75} />
-              </IconButton>
+              </Button>
             </>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* ─── Calendar view ───────────────────────────────────────────────── */}
       {view === 'calendar' && (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1.5fr 1fr' }, gap: 2 }}>
+        <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[1.5fr_1fr] gap-3">
           {/* Calendar grid */}
-          <Paper sx={{ p: 2, borderRadius: '14px', border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none' }}>
+          <Card className="gap-0 py-0 p-3 bg-[var(--card)]">
             {/* Weekday header */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 1 }}>
+            <div className="grid grid-cols-7 mb-1.5">
               {DAY_LABELS_FR.map((d) => (
-                <Typography
-                  key={d}
-                  sx={{
-                    fontSize: '10.5px',
-                    fontWeight: 700,
-                    color: 'var(--faint)',
-                    textAlign: 'center',
-                    textTransform: 'uppercase',
-                    letterSpacing: '.05em',
-                  }}
-                >
+                <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] text-center uppercase tracking-[.05em]" key={d}>
                   {d}
-                </Typography>
+                </p>
               ))}
-            </Box>
+            </div>
 
             {/* Day cells */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.5 }}>
+            <div className="grid grid-cols-7 gap-0.5">
               {cells.map((d) => {
                 const inMonth = d.getMonth() === monthAnchor.getMonth();
                 const isToday = isSameDay(d, today);
@@ -353,223 +301,137 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                 const hasItems = items.length > 0;
 
                 return (
-                  <Box
+                  <div
                     key={dateKey(d)}
                     onClick={() => setSelectedDay(d)}
-                    sx={{
-                      minHeight: 56,
-                      borderRadius: '8px',
-                      p: 0.75,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      cursor: 'pointer',
-                      bgcolor: isSelected
-                        ? 'var(--accent)'
-                        : hasItems
-                          ? 'var(--accent-soft)'
-                          : 'transparent',
-                      color: isSelected ? 'var(--on-accent)' : 'inherit',
-                      border: '1px solid',
-                      borderColor: isToday && !isSelected ? 'var(--accent)' : 'transparent',
-                      opacity: inMonth ? 1 : 0.35,
-                      transition: 'background-color .14s, border-color .14s',
-                      '&:hover': {
-                        bgcolor: isSelected ? 'var(--accent)' : 'var(--hover)',
-                      },
-                      '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-                    }}
+                    // p 0.75 = 4.5px (theme.spacing = 6)
+                    className={cn(
+                      'min-h-[56px] rounded-[8px] p-[4.5px] flex flex-col cursor-pointer border border-solid',
+                      'transition-[background-color,border-color] duration-[140ms]',
+                      'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+                      isSelected
+                        ? 'bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent)]'
+                        : cn(
+                            hasItems ? 'bg-[var(--accent-soft)]' : 'bg-transparent',
+                            'text-inherit hover:bg-[var(--hover)]',
+                          ),
+                      isToday && !isSelected ? 'border-[var(--accent)]' : 'border-transparent',
+                      inMonth ? 'opacity-100' : 'opacity-35',
+                    )}
                   >
-                    <Typography
-                      sx={{
-                        fontFamily: 'var(--font-display)',
-                        fontSize: '12px',
-                        fontWeight: isToday || isSelected ? 700 : 500,
-                        textAlign: 'right',
-                        lineHeight: 1.2,
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
+                    <p className={cn('cn-text-body1 text-[12px] text-end leading-[1.2] tabular-nums', isToday || isSelected ? 'font-bold' : 'font-medium')} style={{ fontFamily: 'var(--font-display)' }}>
                       {d.getDate()}
-                    </Typography>
+                    </p>
                     {hasItems && (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.25, mt: 'auto' }}>
+                      <div className="flex flex-wrap gap-0.5 mt-auto">
                         {items.slice(0, 3).map((iv) => (
-                          <Box
-                            key={iv.id}
-                            sx={{
-                              width: 6,
-                              height: 6,
-                              borderRadius: '3px',
-                              bgcolor: isSelected ? 'var(--on-accent)' : interventionStatusTokens(iv.status).fg,
-                              opacity: isSelected ? 0.9 : 1,
-                            }}
-                          />
+                          <div className={cn('w-[6px] h-[6px] rounded-[3px]', isSelected ? 'opacity-90' : 'opacity-100')} style={{ backgroundColor: isSelected ? 'var(--on-accent)' : interventionStatusTokens(iv.status).fg }} key={iv.id} />
                         ))}
                         {items.length > 3 && (
-                          <Typography
-                            sx={{
-                              fontSize: '0.5625rem',
-                              fontWeight: 700,
-                              color: isSelected ? 'var(--on-accent)' : 'var(--muted)',
-                            }}
-                          >
+                          <p className={cn('cn-text-body1 text-[0.5625rem] font-bold', isSelected ? 'text-[var(--on-accent)]' : 'text-[var(--muted)]')}>
                             +{items.length - 3}
-                          </Typography>
+                          </p>
                         )}
-                      </Box>
+                      </div>
                     )}
-                  </Box>
+                  </div>
                 );
               })}
-            </Box>
+            </div>
 
             {/* Legend */}
-            <Box sx={{ display: 'flex', gap: 1.5, mt: 2, pt: 1.5, borderTop: '1px solid var(--line)', flexWrap: 'wrap' }}>
+            <div className="flex gap-2 mt-3 pt-2 border-t border-[var(--line)] flex-wrap">
               {[
                 { label: 'En attente', color: 'var(--warn)' },
                 { label: 'En cours', color: 'var(--info)' },
                 { label: 'Terminée', color: 'var(--ok)' },
                 { label: 'Annulée', color: 'var(--muted)' },
               ].map((leg) => (
-                <Box key={leg.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Box sx={{ width: 9, height: 9, borderRadius: '3px', bgcolor: leg.color }} />
-                  <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)' }}>{leg.label}</Typography>
-                </Box>
+                <div className="flex items-center gap-0.5" key={leg.label}>
+                  <div className="w-[9px] h-[9px] rounded-[3px]" style={{ backgroundColor: leg.color }} />
+                  <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">{leg.label}</p>
+                </div>
               ))}
-            </Box>
-          </Paper>
+            </div>
+          </Card>
 
           {/* Selected day details */}
-          <Paper sx={{ p: 2, borderRadius: '14px', border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none', display: 'flex', flexDirection: 'column' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-              <Box
-                sx={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 1.5,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: isSameDay(selectedDay, today) ? 'var(--accent)' : 'var(--accent-soft)',
-                  color: isSameDay(selectedDay, today) ? 'var(--on-accent)' : 'var(--accent)',
-                }}
-              >
+          <Card className="gap-0 py-0 p-3 bg-[var(--card)] flex flex-col">
+            <div className="flex items-center gap-1.5 mb-2">
+              <div className={cn('w-[32px] h-[32px] rounded-[12px] flex items-center justify-center', isSameDay(selectedDay, today) ? 'bg-[var(--accent)]' : 'bg-[var(--accent-soft)]', isSameDay(selectedDay, today) ? 'text-[var(--on-accent)]' : 'text-[var(--accent)]')}>
                 <CalendarMonth size={16} strokeWidth={1.75} />
-              </Box>
-              <Box>
-                <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, textTransform: 'capitalize', lineHeight: 1.2 }}>
+              </div>
+              <div>
+                <p className="cn-text-body1 text-[0.9375rem] font-bold capitalize leading-[1.2]">
                   {selectedDay.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                </Typography>
-                <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                </p>
+                <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
                   {selectedDayItems.length === 0
                     ? 'Aucune intervention'
                     : `${selectedDayItems.length} intervention${selectedDayItems.length > 1 ? 's' : ''}`}
-                </Typography>
-              </Box>
-            </Box>
+                </p>
+              </div>
+            </div>
 
             {selectedDayItems.length === 0 ? (
-              <Box
-                sx={{
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  py: 3,
-                  color: 'text.disabled',
-                }}
-              >
+              <div className="flex-1 flex flex-col items-center justify-center py-4 text-muted-foreground opacity-60">
                 <CalendarMonth size={28} strokeWidth={1.5} />
-                <Typography sx={{ fontSize: '0.75rem', mt: 1 }}>
+                <p className="cn-text-body1 text-[0.75rem] mt-1.5">
                   Sélectionnez un jour avec un point coloré
-                </Typography>
-              </Box>
+                </p>
+              </div>
             ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <div className="flex flex-col gap-1.5">
                 {selectedDayItems.map((iv) => {
                   const tk = interventionStatusTokens(iv.status);
                   return (
-                    <Box
-                      key={iv.id}
-                      onClick={() => navigate(`/interventions/${iv.id}`)}
-                      sx={{
-                        p: 1.25,
-                        borderRadius: '11px',
-                        border: '1px solid var(--line)',
-                        cursor: 'pointer',
-                        transition: 'border-color .14s, background-color .14s',
-                        '&:hover': {
-                          borderColor: 'var(--line-2)',
-                          bgcolor: 'var(--hover)',
-                        },
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.5, gap: 1 }}>
-                        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, lineHeight: 1.3 }}>
+                    <div className="p-[7.5px] rounded-[11px] border border-solid border-[var(--line)] cursor-pointer hover:border-[var(--line-2)] hover:bg-[var(--hover)]" style={{ transition: 'border-color .14s, background-color .14s' }} key={iv.id} onClick={() => navigate(`/interventions/${iv.id}`)}>
+                      <div className="flex justify-between items-start mb-0.5 gap-1.5">
+                        <p className="cn-text-body1 text-[0.8125rem] font-semibold leading-[1.3]">
                           {getInterventionTypeLabel(iv.type, t)}
-                        </Typography>
-                        <Chip
-                          icon={statusIcon(iv.status, 12, tk.fg)}
-                          label={getInterventionStatusLabel(iv.status, t)}
-                          size="small"
-                          sx={{
-                            height: 20,
-                            bgcolor: tk.bg,
-                            color: tk.fg,
-                            border: 'none',
-                            '& .MuiChip-icon': { ml: 0.5, mr: -0.25, color: `${tk.fg} !important` },
-                            '& .MuiChip-label': { px: 1 },
-                          }}
-                        />
-                      </Box>
+                        </p>
+                        <StatusChip tokens={{ color: tk.fg, bg: tk.bg }} label={getInterventionStatusLabel(iv.status, t)} icon={statusIcon(iv.status, 12, tk.fg)} className="h-[20px]" />
+                      </div>
                       {iv.description && (
-                        <Typography
-                          sx={{
-                            fontSize: '0.75rem',
-                            color: 'text.secondary',
-                            mb: 0.5,
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            lineHeight: 1.4,
-                          }}
-                        >
+                        // line-clamp-2 pose display/-webkit-box-orient/overflow d'un bloc
+                        <p className="cn-text-body1 text-[0.75rem] text-[var(--muted)] mb-[3px] line-clamp-2 leading-[1.4]">
                           {iv.description}
-                        </Typography>
+                        </p>
                       )}
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div className="flex justify-between items-center">
                         {iv.cost != null && iv.cost > 0 ? (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
+                          <div className="flex items-center gap-0.5">
+                            <span className="inline-flex text-[var(--accent)]">
                               <Euro size={12} strokeWidth={1.75} />
-                            </Box>
-                            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+                            </span>
+                            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[12.5px] font-semibold text-[var(--ink)] tabular-nums">
                               <Money value={iv.cost} from="EUR" decimals={0} />
-                            </Typography>
-                          </Box>
+                            </p>
+                          </div>
                         ) : (
-                          <Box />
+                          <div />
                         )}
-                        <Tooltip title="Voir le détail">
-                          <Box sx={{ display: 'inline-flex', color: 'text.disabled' }}>
-                            <ChevronRight size={14} strokeWidth={1.75} />
-                          </Box>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex text-muted-foreground opacity-60">
+                              <ChevronRight size={14} strokeWidth={1.75} />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Voir le détail</TooltipContent>
                         </Tooltip>
-                      </Box>
-                    </Box>
+                      </div>
+                    </div>
                   );
                 })}
-              </Box>
+              </div>
             )}
-          </Paper>
-        </Box>
+          </Card>
+        </div>
       )}
 
       {/* ─── List view ───────────────────────────────────────────────────── */}
       {view === 'list' && (
-        <Paper sx={{ borderRadius: '14px', border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none', overflow: 'hidden' }}>
+        <Card className="gap-0 py-0 bg-[var(--card)] overflow-hidden">
           {(() => {
             // Group by month-year
             const groups = new Map<string, PropertyIntervention[]>();
@@ -586,94 +448,58 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
             return Array.from(groups.entries()).map(([key, items]) => {
               const [y, m] = key.split('-').map(Number);
               return (
-                <Box key={key}>
-                  <Box
-                    sx={{
-                      px: 2,
-                      py: 1,
-                      bgcolor: 'var(--surface-2)',
-                      borderBottom: '1px solid var(--line)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      position: 'sticky',
-                      top: 0,
-                      zIndex: 1,
-                    }}
-                  >
-                    <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)' }}>
+                <div key={key}>
+                  <div className="px-3 py-1.5 bg-[var(--surface-2)] border-b border-[var(--line)] flex items-center justify-between sticky top-[0px] z-[1]">
+                    <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
                       {MONTH_NAMES_FR[m]} {y}
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>
+                    </p>
+                    <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60">
                       {items.length} intervention{items.length > 1 ? 's' : ''}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                   {items.map((iv) => {
                     const tk = interventionStatusTokens(iv.status);
                     return (
-                      <Box
+                      // Breakpoint MUI sm = 600px (non configure) : variante exacte min-[600px].
+                      <div
                         key={iv.id}
                         onClick={() => navigate(`/interventions/${iv.id}`)}
-                        sx={{
-                          display: 'grid',
-                          gridTemplateColumns: { xs: '70px 1fr auto', sm: '80px 1fr 130px 90px 20px' },
-                          gap: 1.5,
-                          alignItems: 'center',
-                          px: 2,
-                          py: 1.25,
-                          cursor: 'pointer',
-                          borderBottom: '1px solid var(--line)',
-                          '&:last-child': { borderBottom: 'none' },
-                          '&:hover': { bgcolor: 'var(--hover)' },
-                          transition: 'background-color .14s',
-                        }}
+                        className="grid grid-cols-[70px_1fr_auto] min-[600px]:grid-cols-[80px_1fr_130px_90px_20px] gap-[9px] items-center px-3 py-[7.5px] cursor-pointer border-b border-solid border-[var(--line)] last:border-b-0 hover:bg-[var(--hover)] transition-[background-color] duration-[140ms]"
                       >
-                        <Box sx={{ textAlign: 'center' }}>
-                          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 600, lineHeight: 1, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+                        <div className="text-center">
+                          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[17px] font-semibold leading-[1] text-[var(--ink)] tabular-nums">
                             {new Date(iv.scheduledDate).getDate()}
-                          </Typography>
-                          <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                          </p>
+                          <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[.06em]">
                             {new Date(iv.scheduledDate).toLocaleDateString('fr-FR', { weekday: 'short' })}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                          </p>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="cn-text-body1 text-[0.8125rem] font-semibold">
                             {getInterventionTypeLabel(iv.type, t)}
-                          </Typography>
+                          </p>
                           {iv.description && (
-                            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', mt: 0.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap">
                               {iv.description}
-                            </Typography>
+                            </p>
                           )}
-                        </Box>
-                        <Chip
-                          icon={statusIcon(iv.status, 12, tk.fg)}
-                          label={getInterventionStatusLabel(iv.status, t)}
-                          size="small"
-                          sx={{
-                            bgcolor: tk.bg,
-                            color: tk.fg,
-                            border: 'none',
-                            display: { xs: 'none', sm: 'inline-flex' },
-                            '& .MuiChip-icon': { ml: 0.5, mr: -0.25, color: `${tk.fg} !important` },
-                            '& .MuiChip-label': { px: 1 },
-                          }}
-                        />
-                        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '13px', fontWeight: 600, color: 'var(--ink)', textAlign: 'right', display: { xs: 'none', sm: 'block' }, fontVariantNumeric: 'tabular-nums' }}>
+                        </div>
+                        <StatusChip tokens={{ color: tk.fg, bg: tk.bg }} label={getInterventionStatusLabel(iv.status, t)} icon={statusIcon(iv.status, 12, tk.fg)} />
+                        <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)] text-end hidden min-[600px]:block tabular-nums" style={{ fontFamily: 'var(--font-display)' }}>
                           {iv.cost != null && iv.cost > 0 ? <Money value={iv.cost} from="EUR" decimals={0} /> : '—'}
-                        </Typography>
-                        <Box sx={{ display: { xs: 'none', sm: 'inline-flex' }, color: 'text.disabled' }}>
+                        </p>
+                        <div className="hidden min-[600px]:inline-flex text-[var(--faint)]">
                           <ChevronRight size={16} strokeWidth={1.75} />
-                        </Box>
-                      </Box>
+                        </div>
+                      </div>
                     );
                   })}
-                </Box>
+                </div>
               );
             });
           })()}
-        </Paper>
+        </Card>
       )}
-    </Box>
+    </div>
   );
 }

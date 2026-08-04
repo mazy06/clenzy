@@ -1,20 +1,18 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { cn } from '../../utils/cn';
+import { Badge } from '../../components/ui';
+import { Spinner } from '../../components/ui';
+import { Card, Button } from '../../components/ui';
+import { Field, FieldLabel, Input } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Box,
-  Paper,
-  Typography,
-  TextField,
-  Button,
-  IconButton,
   Switch,
-  FormControlLabel,
-  Chip,
-  Stack,
-  CircularProgress,
+  Separator,
   Tooltip,
-  Divider,
-} from '@mui/material';
+  TooltipTrigger,
+  TooltipContent,
+} from '../../components/ui';
+import StatusChip from '../../components/StatusChip';
 import { Plus, Pencil, Trash2, CalendarRange, X } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -62,8 +60,6 @@ const EMPTY_FORM: FormState = {
   daysOfWeek: [],
   priority: '',
 };
-
-const inputSx = { '& .MuiInputBase-input': { fontSize: '0.82rem' } };
 
 const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => {
   const { t } = useTranslation();
@@ -164,176 +160,228 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
 
   if (propertyId == null) {
     return (
-      <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, textAlign: 'center' }}>
-        <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
+      <Card className="gap-0 py-0 p-4 text-center">
+        <p className="cn-text-body1 text-[0.85rem] text-muted-foreground">
           {t('restrictions.selectProperty', 'Sélectionnez un logement pour gérer ses restrictions de séjour.')}
-        </Typography>
-      </Paper>
+        </p>
+      </Card>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start', flexWrap: { xs: 'wrap', lg: 'nowrap' } }}>
+    <div className="flex gap-[9px] items-start flex-wrap min-[1200px]:flex-nowrap">
       {/* ── Formulaire (création / édition) ── */}
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 5, minWidth: 300 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-          <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.01em' }}>
+      <Card className="gap-0 p-3 flex-[5] min-w-[300px]">
+        <div className="flex items-center justify-between mb-2">
+          <p className="cn-text-body1 text-[0.8rem] font-bold tracking-[0.01em]">
             {editingId != null
               ? t('restrictions.editTitle', 'Modifier la restriction')
               : t('restrictions.newTitle', 'Nouvelle restriction')}
-          </Typography>
+          </p>
           {editingId != null && (
-            <Tooltip title={t('common.cancel', 'Annuler')}>
-              <IconButton size="small" onClick={resetForm}><X size={15} /></IconButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon-sm" onClick={resetForm} aria-label={t('common.cancel', 'Annuler')}>
+                  <X size={15} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t('common.cancel', 'Annuler')}</TooltipContent>
             </Tooltip>
           )}
-        </Box>
+        </div>
 
-        <Stack spacing={1.5}>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <TextField
-              label={t('restrictions.start', 'Début')} type="date" size="small" fullWidth
-              InputLabelProps={{ shrink: true }} sx={inputSx}
-              value={form.startDate}
-              onChange={(e) => setForm((s) => ({ ...s, startDate: e.target.value }))}
-            />
-            <TextField
-              label={t('restrictions.end', 'Fin')} type="date" size="small" fullWidth
-              InputLabelProps={{ shrink: true }} sx={inputSx}
-              value={form.endDate}
-              onChange={(e) => setForm((s) => ({ ...s, endDate: e.target.value }))}
-            />
-          </Box>
+        <div className="flex flex-col gap-[9px]">
+          <div className="flex gap-1.5">
+            <Field>
+              <FieldLabel htmlFor="restriction-start-date">{t('restrictions.start', 'Début')}</FieldLabel>
+              <Input
+                id="restriction-start-date"
+                type="date"
+                value={form.startDate}
+                onChange={(e) => setForm((s) => ({ ...s, startDate: e.target.value }))}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="restriction-end-date">{t('restrictions.end', 'Fin')}</FieldLabel>
+              <Input
+                id="restriction-end-date"
+                type="date"
+                value={form.endDate}
+                onChange={(e) => setForm((s) => ({ ...s, endDate: e.target.value }))}
+              />
+            </Field>
+          </div>
 
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <TextField
-              label={t('restrictions.minStay', 'Séjour min (nuits)')} type="number" size="small" fullWidth
-              InputLabelProps={{ shrink: true }} inputProps={{ min: 1 }} sx={inputSx}
-              value={form.minStay}
-              onChange={(e) => setForm((s) => ({ ...s, minStay: e.target.value }))}
-            />
-            <TextField
-              label={t('restrictions.maxStay', 'Séjour max (nuits)')} type="number" size="small" fullWidth
-              InputLabelProps={{ shrink: true }} inputProps={{ min: 1 }} sx={inputSx}
-              value={form.maxStay}
-              onChange={(e) => setForm((s) => ({ ...s, maxStay: e.target.value }))}
-            />
-          </Box>
+          <div className="flex gap-1.5">
+            <Field>
+              <FieldLabel htmlFor="restriction-min-stay">{t('restrictions.minStay', 'Séjour min (nuits)')}</FieldLabel>
+              <Input
+                id="restriction-min-stay"
+                type="number"
+                min={1}
+                value={form.minStay}
+                onChange={(e) => setForm((s) => ({ ...s, minStay: e.target.value }))}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="restriction-max-stay">{t('restrictions.maxStay', 'Séjour max (nuits)')}</FieldLabel>
+              <Input
+                id="restriction-max-stay"
+                type="number"
+                min={1}
+                value={form.maxStay}
+                onChange={(e) => setForm((s) => ({ ...s, maxStay: e.target.value }))}
+              />
+            </Field>
+          </div>
 
-          <Stack direction="row" spacing={2}>
-            <FormControlLabel
-              control={<Switch size="small" checked={form.closedToArrival}
-                onChange={(e) => setForm((s) => ({ ...s, closedToArrival: e.target.checked }))} />}
-              label={<Typography sx={{ fontSize: '0.78rem' }}>{t('restrictions.cta', 'Arrivée fermée (CTA)')}</Typography>}
-            />
-            <FormControlLabel
-              control={<Switch size="small" checked={form.closedToDeparture}
-                onChange={(e) => setForm((s) => ({ ...s, closedToDeparture: e.target.checked }))} />}
-              label={<Typography sx={{ fontSize: '0.78rem' }}>{t('restrictions.ctd', 'Départ fermé (CTD)')}</Typography>}
-            />
-          </Stack>
+          <div className="flex flex-row gap-3">
+            <Field orientation="horizontal" className="w-auto">
+              <Switch
+                id="restriction-cta"
+                size="sm"
+                checked={form.closedToArrival}
+                onCheckedChange={(checked) => setForm((s) => ({ ...s, closedToArrival: checked }))}
+              />
+              <FieldLabel htmlFor="restriction-cta" className="text-[0.78rem] font-normal">
+                {t('restrictions.cta', 'Arrivée fermée (CTA)')}
+              </FieldLabel>
+            </Field>
+            <Field orientation="horizontal" className="w-auto">
+              <Switch
+                id="restriction-ctd"
+                size="sm"
+                checked={form.closedToDeparture}
+                onCheckedChange={(checked) => setForm((s) => ({ ...s, closedToDeparture: checked }))}
+              />
+              <FieldLabel htmlFor="restriction-ctd" className="text-[0.78rem] font-normal">
+                {t('restrictions.ctd', 'Départ fermé (CTD)')}
+              </FieldLabel>
+            </Field>
+          </div>
 
-          <Box>
-            <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 0.5 }}>
+          <div>
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
               {t('restrictions.daysOfWeek', 'Jours concernés (vide = tous)')}
-            </Typography>
-            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+            </p>
+            <div className="flex flex-row flex-wrap gap-[3px]">
               {DOW.map((d) => (
-                <Chip
-                  key={d.v} label={d.label} size="small" clickable
-                  variant={form.daysOfWeek.includes(d.v) ? 'filled' : 'outlined'}
-                  color={form.daysOfWeek.includes(d.v) ? 'primary' : 'default'}
+                <StatusChip
+                  key={d.v}
+                  label={d.label}
+                  tone="accent"
+                  outlined
+                  selected={form.daysOfWeek.includes(d.v)}
+                  pressed={form.daysOfWeek.includes(d.v)}
                   onClick={() => toggleDow(d.v)}
-                  sx={{ fontSize: '0.7rem', height: 24 }}
+                  className="border-solid text-[0.7rem] h-6"
                 />
               ))}
-            </Stack>
-          </Box>
+            </div>
+          </div>
 
-          <TextField
-            label={t('restrictions.priority', 'Priorité (optionnel)')} type="number" size="small"
-            InputLabelProps={{ shrink: true }} sx={{ ...inputSx, maxWidth: 180 }}
-            value={form.priority}
-            onChange={(e) => setForm((s) => ({ ...s, priority: e.target.value }))}
-          />
+          <Field className="max-w-[180px]">
+            <FieldLabel htmlFor="restriction-priority">{t('restrictions.priority', 'Priorité (optionnel)')}</FieldLabel>
+            <Input
+              id="restriction-priority"
+              type="number"
+              value={form.priority}
+              onChange={(e) => setForm((s) => ({ ...s, priority: e.target.value }))}
+            />
+          </Field>
 
           {error && (
-            <Typography sx={{ fontSize: '0.75rem', color: 'var(--err, #C97A7A)' }}>{error}</Typography>
+            <p className="cn-text-body1 text-[0.75rem] text-[var(--err,_#C97A7A)]">{error}</p>
           )}
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+          <div className="flex justify-end gap-1.5">
             {editingId != null && (
-              <Button size="small" onClick={resetForm} sx={{ textTransform: 'none' }}>
+              <Button variant="ghost" size="sm" onClick={resetForm}>
                 {t('common.cancel', 'Annuler')}
               </Button>
             )}
-            <Button
-              variant="contained" size="small" disableElevation
-              startIcon={saving ? <CircularProgress size={13} color="inherit" /> : <Plus size={14} />}
-              onClick={handleSubmit} disabled={saving}
-              sx={{ textTransform: 'none' }}
-            >
+            <Button size="sm" onClick={handleSubmit} disabled={saving}>
+              {saving ? <Spinner className="size-[13px]" /> : <Plus size={14} />}
               {editingId != null ? t('common.save', 'Enregistrer') : t('restrictions.add', 'Ajouter')}
             </Button>
-          </Box>
-        </Stack>
-      </Paper>
+          </div>
+        </div>
+      </Card>
 
       {/* ── Liste des restrictions ── */}
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, flex: 7, minWidth: 320 }}>
-        <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, mb: 1.5 }}>
+      <Card className="gap-0 p-3 flex-[7] min-w-[320px]">
+        <p className="cn-text-body1 text-[0.8rem] font-bold mb-2">
           {t('restrictions.listTitle', 'Restrictions actives')}{' '}
-          <Typography component="span" sx={{ fontSize: '0.72rem', color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+          <span className="text-[0.72rem] text-muted-foreground tabular-nums">
             ({restrictions.length})
-          </Typography>
-        </Typography>
+          </span>
+        </p>
 
         {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress size={22} /></Box>
+          <div className="flex justify-center py-6"><Spinner className="size-[22px]" /></div>
         ) : restrictions.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+          <div className="text-center py-6 text-muted-foreground">
             <CalendarRange size={26} strokeWidth={1.5} style={{ opacity: 0.5 }} />
-            <Typography sx={{ fontSize: '0.78rem', mt: 1 }}>
+            <p className="cn-text-body1 text-[0.78rem] mt-1.5">
               {t('restrictions.empty', 'Aucune restriction pour ce logement.')}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         ) : (
-          <Stack divider={<Divider flexItem />} spacing={0}>
-            {restrictions.map((r) => (
-              <Box key={r.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1 }}>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+          // Le `divider` du Stack MUI n'a pas d'equivalent declaratif : le filet
+          // est insere explicitement entre deux lignes.
+          <div className="flex flex-col">
+            {restrictions.map((r, idx) => (
+              <React.Fragment key={r.id}>
+                {idx > 0 && <Separator />}
+                <div className="flex items-center gap-1.5 py-1.5">
+                <div className="flex-1 min-w-0">
+                  <p className="cn-text-body1 text-[0.8rem] font-semibold tabular-nums">
                     {r.startDate} → {r.endDate}
-                  </Typography>
-                  <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
-                    {r.minStay != null && <Chip size="small" label={`min ${r.minStay}`} sx={{ fontSize: '0.68rem', height: 20 }} />}
-                    {r.maxStay != null && <Chip size="small" label={`max ${r.maxStay}`} sx={{ fontSize: '0.68rem', height: 20 }} />}
-                    {r.closedToArrival && <Chip size="small" color="warning" label="CTA" sx={{ fontSize: '0.68rem', height: 20 }} />}
-                    {r.closedToDeparture && <Chip size="small" color="warning" label="CTD" sx={{ fontSize: '0.68rem', height: 20 }} />}
+                  </p>
+                  <div className="flex flex-row flex-wrap gap-[3px] mt-[3px]">
+                    {r.minStay != null && <Badge variant="secondary" className="text-[0.68rem] h-[20px]">{`min ${r.minStay}`}</Badge>}
+                    {r.maxStay != null && <Badge variant="secondary" className="text-[0.68rem] h-[20px]">{`max ${r.maxStay}`}</Badge>}
+                    {r.closedToArrival && <Badge variant="warning" className="text-[0.68rem] h-[20px]">CTA</Badge>}
+                    {r.closedToDeparture && <Badge variant="warning" className="text-[0.68rem] h-[20px]">CTD</Badge>}
                     {!!r.daysOfWeek?.length && (
-                      <Chip size="small" variant="outlined"
-                        label={r.daysOfWeek.map((d) => DOW.find((x) => x.v === d)?.label).join(' ')}
-                        sx={{ fontSize: '0.68rem', height: 20 }} />
+                      <Badge variant="outline" className="text-[0.68rem] h-[20px]">{r.daysOfWeek.map((d) => DOW.find((x) => x.v === d)?.label).join(' ')}</Badge>
                     )}
-                  </Stack>
-                </Box>
-                <Tooltip title={t('common.edit', 'Modifier')}>
-                  <IconButton size="small" onClick={() => handleEdit(r)}><Pencil size={14} /></IconButton>
+                  </div>
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon-sm" onClick={() => handleEdit(r)} aria-label={t('common.edit', 'Modifier')}>
+                      <Pencil size={14} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t('common.edit', 'Modifier')}</TooltipContent>
                 </Tooltip>
-                <Tooltip title={t('common.delete', 'Supprimer')}>
-                  <span>
-                    <IconButton size="small" onClick={() => deleteMutation.mutate(r.id)}
-                      disabled={deleteMutation.isPending} sx={{ color: 'var(--err, #C97A7A)' }}>
-                      <Trash2 size={14} />
-                    </IconButton>
-                  </span>
+                {/* Le span garde l'infobulle atteignable quand le bouton est
+                    desactive (un bouton disabled n'emet plus d'evenement). */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => deleteMutation.mutate(r.id)}
+                        disabled={deleteMutation.isPending}
+                        aria-label={t('common.delete', 'Supprimer')}
+                        className="text-[var(--err,_#C97A7A)]"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>{t('common.delete', 'Supprimer')}</TooltipContent>
                 </Tooltip>
-              </Box>
+                </div>
+              </React.Fragment>
             ))}
-          </Stack>
+          </div>
         )}
-      </Paper>
-    </Box>
+      </Card>
+    </div>
   );
 };
 

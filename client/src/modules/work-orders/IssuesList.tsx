@@ -1,31 +1,31 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Button as BuiButton } from '../../components/ui';
+import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Box,
-  Button,
-  CircularProgress,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  IconButton,
-  MenuItem,
-  Snackbar,
-  Alert,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
   Tooltip,
-  Typography,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  Textarea,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
 import { Add, OpenInNew, Refresh, ReportProblem } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useNotification } from '../../hooks/useNotification';
 import { useAuth } from '../../hooks/useAuth';
 import { MANAGER_ROLES } from '../../constants/roles';
 import { propertiesApi } from '../../services/api/propertiesApi';
@@ -68,6 +68,7 @@ interface IssuesListProps {
 
 export default function IssuesList({ embedded = false, actionsContainer, filtersContainer }: IssuesListProps) {
   const { t } = useTranslation();
+  const { notify } = useNotification();
   const { hasAnyRole } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -87,7 +88,6 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
   const [createSeverity, setCreateSeverity] = useState<IssueSeverity>('MEDIUM');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [createdToast, setCreatedToast] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
 
   // Panneau détail / qualification
@@ -169,7 +169,7 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
         severity: createSeverity,
       });
       setCreateOpen(false);
-      setCreatedToast(true);
+      notify.success(t('issues.create.success', 'Anomalie signalée'));
       await load();
     } catch {
       setCreateError(t('issues.create.error', 'Création impossible — vérifiez les champs.'));
@@ -233,19 +233,25 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
 
   const actionButtons = (
     <>
-      <Tooltip title={t('common.refresh', 'Rafraîchir')}>
-        <IconButton onClick={load} size="small" sx={{ cursor: 'pointer' }}>
-          <Refresh fontSize="small" />
-        </IconButton>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            <BuiButton
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('common.refresh', 'Rafraîchir')}
+              onClick={load}
+            >
+              <Refresh size={16} strokeWidth={1.75} />
+            </BuiButton>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>{t('common.refresh', 'Rafraîchir')}</TooltipContent>
       </Tooltip>
-      <Button
-        variant="contained"
-        size="small"
-        startIcon={<Add />}
-        onClick={openCreate}
-      >
+      <BuiButton size="sm" onClick={openCreate}>
+        <Add />
         {t('issues.create.button', 'Signaler une anomalie')}
-      </Button>
+      </BuiButton>
     </>
   );
 
@@ -260,9 +266,9 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
   );
 
   const content = loading ? (
-    <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-      <CircularProgress size={28} />
-    </Box>
+    <div className="flex justify-center py-9">
+      <Spinner className="size-7" />
+    </div>
   ) : issues.length === 0 ? (
     <EmptyState
       icon={<ReportProblem />}
@@ -274,42 +280,41 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
       variant="transparent"
     />
   ) : (
-    <TableContainer sx={{ overflowX: 'auto' }}>
-      <Table size="small">
-        <TableHead>
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
           <TableRow>
-            <TableCell>{t('issues.columns.date', 'Date')}</TableCell>
-            <TableCell>{t('issues.columns.property', 'Logement')}</TableCell>
-            <TableCell>{t('issues.columns.title', 'Anomalie')}</TableCell>
-            <TableCell>{t('issues.columns.severity', 'Sévérité')}</TableCell>
-            <TableCell align="right">{t('issues.columns.suggestedCost', 'Coût suggéré')}</TableCell>
-            <TableCell>{t('issues.columns.status', 'Statut')}</TableCell>
+            <TableHead>{t('issues.columns.date', 'Date')}</TableHead>
+            <TableHead>{t('issues.columns.property', 'Logement')}</TableHead>
+            <TableHead>{t('issues.columns.title', 'Anomalie')}</TableHead>
+            <TableHead>{t('issues.columns.severity', 'Sévérité')}</TableHead>
+            <TableHead className="text-end">{t('issues.columns.suggestedCost', 'Coût suggéré')}</TableHead>
+            <TableHead>{t('issues.columns.status', 'Statut')}</TableHead>
           </TableRow>
-        </TableHead>
+        </TableHeader>
         <TableBody>
           {issues.map((issue) => (
             <TableRow
               key={issue.id}
-              hover
               onClick={() => openDetail(issue)}
-              sx={{ cursor: 'pointer' }}
+              className="cursor-pointer"
             >
-              <TableCell sx={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+              <TableCell className="whitespace-nowrap tabular-nums">
                 {issue.createdAt ? new Date(issue.createdAt).toLocaleDateString() : '—'}
               </TableCell>
               <TableCell>{issue.propertyName ?? '—'}</TableCell>
               <TableCell>
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>{issue.title}</Typography>
+                <p className="cn-text-body2 font-medium">{issue.title}</p>
                 {issue.reportedByName && (
-                  <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+                  <span className="cn-text-caption text-[var(--muted)]">
                     {t('issues.reportedBy', 'Signalée par')} {issue.reportedByName}
-                  </Typography>
+                  </span>
                 )}
               </TableCell>
               <TableCell>
                 <StatusChip tone={SEVERITY_TONES[issue.severity]} label={severityLabel(issue.severity)} dot />
               </TableCell>
-              <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+              <TableCell className="text-end tabular-nums">
                 {issue.suggestedCost != null ? formatCurrency(issue.suggestedCost) : '—'}
               </TableCell>
               <TableCell>
@@ -319,257 +324,273 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
           ))}
         </TableBody>
       </Table>
-    </TableContainer>
+    </div>
   );
 
   return (
-    <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+    <div className="flex-1 min-h-0 flex flex-col overflow-auto">
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
       {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}
       {!embedded && (
-        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+        <div className="flex flex-row items-center justify-between mb-[9px]">
           {filterBar}
           {actionButtons}
-        </Stack>
+        </div>
       )}
 
       {content}
 
       {/* ── Dialog de création (signalement depuis le web) ── */}
-      <Dialog open={createOpen} onClose={() => !creating && setCreateOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('issues.create.title', 'Signaler une anomalie')}</DialogTitle>
-        <DialogContent dividers>
-          <Stack gap={2} sx={{ pt: 0.5 }}>
-            <TextField
-              select
-              required
-              label={t('issues.create.property', 'Logement')}
-              value={createPropertyId === '' ? '' : createPropertyId}
-              onChange={(e) => setCreatePropertyId(Number(e.target.value))}
-              size="small"
-              fullWidth
-              SelectProps={{ displayEmpty: true }}
-              InputLabelProps={{ shrink: true }}
-            >
-              <MenuItem value="" disabled>{t('issues.create.selectProperty', 'Sélectionner un logement')}</MenuItem>
-              {properties.map((property) => (
-                <MenuItem key={property.id} value={property.id}>{property.name}</MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              required
-              label={t('issues.columns.title', 'Anomalie')}
-              value={createTitle}
-              onChange={(e) => setCreateTitle(e.target.value)}
-              size="small"
-              fullWidth
-            />
-            <TextField
-              label={t('issues.create.description', 'Description (optionnelle)')}
-              value={createDescription}
-              onChange={(e) => setCreateDescription(e.target.value)}
-              size="small"
-              fullWidth
-              multiline
-              minRows={2}
-            />
-            <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}>
-              <TextField
-                select
-                label={t('issues.fields.category', 'Catégorie')}
-                value={createCategory}
-                onChange={(e) => setCreateCategory(e.target.value)}
-                size="small"
-                fullWidth
+      <Dialog open={createOpen} onOpenChange={(next) => { if (!next && !creating) setCreateOpen(false); }}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>{t('issues.create.title', 'Signaler une anomalie')}</DialogTitle>
+          </DialogHeader>
+          {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+          <div className="flex flex-col gap-3 border-y border-solid border-[var(--line)] py-3">
+            <Field>
+              <FieldLabel htmlFor="issue-create-property">{t('issues.create.property', 'Logement')}</FieldLabel>
+              <NativeSelect
+                id="issue-create-property"
+                className="w-full"
+                required
+                value={createPropertyId === '' ? '' : String(createPropertyId)}
+                onChange={(e) => setCreatePropertyId(Number(e.target.value))}
               >
-                <MenuItem value="">{t('issues.create.noCategory', 'Sans catégorie')}</MenuItem>
-                {ISSUE_CATEGORIES.map((category) => (
-                  <MenuItem key={category} value={category}>
-                    {t(`issues.categories.${category.toLowerCase()}`, category)}
-                  </MenuItem>
+                <NativeSelectOption value="" disabled>
+                  {t('issues.create.selectProperty', 'Sélectionner un logement')}
+                </NativeSelectOption>
+                {properties.map((property) => (
+                  <NativeSelectOption key={property.id} value={property.id}>{property.name}</NativeSelectOption>
                 ))}
-              </TextField>
-              <TextField
-                select
-                label={t('issues.fields.severity', 'Sévérité')}
-                value={createSeverity}
-                onChange={(e) => setCreateSeverity(e.target.value as IssueSeverity)}
-                size="small"
-                sx={{ minWidth: 150 }}
-              >
-                {SEVERITIES.map((severity) => (
-                  <MenuItem key={severity} value={severity}>{severityLabel(severity)}</MenuItem>
-                ))}
-              </TextField>
-            </Stack>
+              </NativeSelect>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="issue-create-title">{t('issues.columns.title', 'Anomalie')}</FieldLabel>
+              <Input
+                id="issue-create-title"
+                className="w-full"
+                required
+                value={createTitle}
+                onChange={(e) => setCreateTitle(e.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="issue-create-description">
+                {t('issues.create.description', 'Description (optionnelle)')}
+              </FieldLabel>
+              {/* min-h-[2lh] : le primitif pose `field-sizing: content`, qui
+                  neutralise `rows`. */}
+              <Textarea
+                id="issue-create-description"
+                className="w-full min-h-[2lh]"
+                rows={2}
+                value={createDescription}
+                onChange={(e) => setCreateDescription(e.target.value)}
+              />
+            </Field>
+            <div className="flex flex-col min-[600px]:flex-row gap-[9px]">
+              <Field>
+                <FieldLabel htmlFor="issue-create-category">{t('issues.fields.category', 'Catégorie')}</FieldLabel>
+                <NativeSelect
+                  id="issue-create-category"
+                  className="w-full"
+                  value={createCategory}
+                  onChange={(e) => setCreateCategory(e.target.value)}
+                >
+                  <NativeSelectOption value="">{t('issues.create.noCategory', 'Sans catégorie')}</NativeSelectOption>
+                  {ISSUE_CATEGORIES.map((category) => (
+                    <NativeSelectOption key={category} value={category}>
+                      {t(`issues.categories.${category.toLowerCase()}`, category)}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </Field>
+              <Field className="min-w-[150px]">
+                <FieldLabel htmlFor="issue-create-severity">{t('issues.fields.severity', 'Sévérité')}</FieldLabel>
+                <NativeSelect
+                  id="issue-create-severity"
+                  className="w-full"
+                  value={createSeverity}
+                  onChange={(e) => setCreateSeverity(e.target.value as IssueSeverity)}
+                >
+                  {SEVERITIES.map((severity) => (
+                    <NativeSelectOption key={severity} value={severity}>{severityLabel(severity)}</NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </Field>
+            </div>
             {createError && (
-              <Typography variant="body2" sx={{ color: 'var(--err)' }}>{createError}</Typography>
+              <p className="cn-text-body2 text-[var(--err)]">{createError}</p>
             )}
-          </Stack>
+          </div>
+          <DialogFooter>
+            <BuiButton variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>
+              {t('common.cancel', 'Annuler')}
+            </BuiButton>
+            <BuiButton
+              onClick={handleCreate}
+              disabled={creating || createPropertyId === '' || createTitle.trim() === ''}
+            >
+              {t('issues.create.submit', 'Signaler')}
+            </BuiButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setCreateOpen(false)} disabled={creating}>
-            {t('common.cancel', 'Annuler')}
-          </Button>
-          <Button
-            onClick={handleCreate}
-            variant="contained"
-            disabled={creating || createPropertyId === '' || createTitle.trim() === ''}
-          >
-            {t('issues.create.submit', 'Signaler')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
-      <Snackbar
-        open={createdToast}
-        autoHideDuration={4000}
-        onClose={() => setCreatedToast(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity="success" variant="filled" onClose={() => setCreatedToast(false)}>
-          {t('issues.create.success', 'Anomalie signalée')}
-        </Alert>
-      </Snackbar>
-
       {/* ── Panneau détail / qualification ── */}
-      <Dialog open={selected != null} onClose={() => setSelected(null)} maxWidth="sm" fullWidth>
+      <Dialog open={selected != null} onOpenChange={(next) => { if (!next) setSelected(null); }}>
+        <DialogContent className="sm:max-w-[600px]">
         {selected && (
           <>
-            <DialogTitle sx={{ pb: 1 }}>
-              <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
-                <Typography component="span" variant="h6" sx={{ flex: 1, minWidth: 0 }}>
+            <DialogHeader>
+              <DialogTitle className="flex flex-row items-center gap-1.5 flex-wrap">
+                <span className="flex-1 min-w-0">
                   {selected.title}
-                </Typography>
+                </span>
                 <StatusChip tone={STATUS_TONES[selected.status]} label={statusLabel(selected.status)} />
-              </Stack>
-            </DialogTitle>
-            <DialogContent dividers>
-              <Stack gap={2}>
-                <Box>
-                  <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+              </DialogTitle>
+            </DialogHeader>
+            {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+            <div className="flex flex-col gap-3 border-y border-solid border-[var(--line)] py-3">
+                <div>
+                  <span className="cn-text-caption text-[var(--muted)]">
                     {selected.propertyName ?? '—'}
                     {' · '}
                     {selected.createdAt ? new Date(selected.createdAt).toLocaleString() : ''}
                     {selected.reportedByName ? ` · ${t('issues.reportedBy', 'Signalée par')} ${selected.reportedByName}` : ''}
-                  </Typography>
+                  </span>
                   {selected.description && (
-                    <Typography variant="body2" sx={{ mt: 0.75, whiteSpace: 'pre-wrap' }}>
+                    <p className="cn-text-body2 mt-1 whitespace-pre-wrap">
                       {selected.description}
-                    </Typography>
+                    </p>
                   )}
                   {selected.dismissReason && (
-                    <Typography variant="body2" sx={{ mt: 0.75, color: 'var(--muted)' }}>
+                    <p className="cn-text-body2 mt-1 text-[var(--muted)]">
                       {t('issues.dismissedReason', 'Motif du rejet')} : {selected.dismissReason}
-                    </Typography>
+                    </p>
                   )}
-                </Box>
+                </div>
 
                 {selected.status === 'CONVERTED' && selected.convertedServiceRequestId != null && (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<OpenInNew />}
+                  <BuiButton
+                    variant="outline"
+                    size="sm"
                     onClick={() => navigate(`/service-requests/${selected.convertedServiceRequestId}`)}
-                    sx={{ alignSelf: 'flex-start' }}
+                    className="self-start"
                   >
+                    <OpenInNew />
                     {t('issues.openServiceRequest', 'Voir la demande de maintenance')}
-                  </Button>
+                  </BuiButton>
                 )}
 
                 {canManage && isActionable && (
-                  <Stack gap={1.5}>
-                    <Typography variant="subtitle2">
+                  <div className="flex flex-col gap-[9px]">
+                    <h6 className="cn-text-subtitle2">
                       {t('issues.qualifySection', 'Qualification')}
-                    </Typography>
-                    <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}>
-                      <TextField
-                        label={t('issues.fields.category', 'Catégorie')}
-                        value={editCategory}
-                        onChange={(e) => setEditCategory(e.target.value)}
-                        size="small"
-                        fullWidth
-                        helperText={t('issues.fields.categoryHelp', 'Alignée sur le catalogue travaux → chiffrage automatique')}
-                      />
-                      <TextField
-                        select
-                        label={t('issues.fields.severity', 'Sévérité')}
-                        value={editSeverity}
-                        onChange={(e) => setEditSeverity(e.target.value as IssueSeverity)}
-                        size="small"
-                        sx={{ minWidth: 140 }}
-                      >
-                        {SEVERITIES.map((severity) => (
-                          <MenuItem key={severity} value={severity}>{severityLabel(severity)}</MenuItem>
-                        ))}
-                      </TextField>
-                      <TextField
-                        label={t('issues.fields.suggestedCost', 'Coût (€)')}
-                        value={editCost}
-                        onChange={(e) => setEditCost(e.target.value.replace(',', '.'))}
-                        size="small"
-                        type="number"
-                        inputProps={{ min: 0, step: '0.01' }}
-                        sx={{ minWidth: 120 }}
-                      />
-                    </Stack>
-                  </Stack>
+                    </h6>
+                    <div className="flex flex-col min-[600px]:flex-row gap-[9px]">
+                      <Field>
+                        <FieldLabel htmlFor="issue-edit-category">{t('issues.fields.category', 'Catégorie')}</FieldLabel>
+                        <Input
+                          id="issue-edit-category"
+                          className="w-full"
+                          value={editCategory}
+                          onChange={(e) => setEditCategory(e.target.value)}
+                        />
+                        <FieldDescription>
+                          {t('issues.fields.categoryHelp', 'Alignée sur le catalogue travaux → chiffrage automatique')}
+                        </FieldDescription>
+                      </Field>
+                      <Field className="min-w-[140px]">
+                        <FieldLabel htmlFor="issue-edit-severity">{t('issues.fields.severity', 'Sévérité')}</FieldLabel>
+                        <NativeSelect
+                          id="issue-edit-severity"
+                          className="w-full"
+                          value={editSeverity}
+                          onChange={(e) => setEditSeverity(e.target.value as IssueSeverity)}
+                        >
+                          {SEVERITIES.map((severity) => (
+                            <NativeSelectOption key={severity} value={severity}>{severityLabel(severity)}</NativeSelectOption>
+                          ))}
+                        </NativeSelect>
+                      </Field>
+                      <Field className="min-w-[120px]">
+                        <FieldLabel htmlFor="issue-edit-cost">{t('issues.fields.suggestedCost', 'Coût (€)')}</FieldLabel>
+                        <Input
+                          id="issue-edit-cost"
+                          className="w-full"
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={editCost}
+                          onChange={(e) => setEditCost(e.target.value.replace(',', '.'))}
+                        />
+                      </Field>
+                    </div>
+                  </div>
                 )}
 
                 {canManage && isActionable && confirmConvert && (
-                  <Typography variant="body2" sx={{ color: 'var(--warn)' }}>
+                  <p className="cn-text-body2 text-[var(--warn)]">
                     {t('issues.convertConfirm', 'Créer une demande de maintenance pré-chiffrée à')}{' '}
-                    <Box component="span" sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                    <span className="font-semibold tabular-nums">
                       {selected.suggestedCost != null
                         ? formatCurrency(selected.suggestedCost)
                         : t('issues.noCost', 'chiffrage manuel')}
-                    </Box>
+                    </span>
                     {' — '}{t('issues.convertConfirmSuffix', 'confirmer ?')}
-                  </Typography>
+                  </p>
                 )}
 
                 {canManage && isActionable && !confirmConvert && (
-                  <TextField
-                    label={t('issues.fields.dismissReason', 'Motif de rejet (optionnel)')}
-                    value={dismissReason}
-                    onChange={(e) => setDismissReason(e.target.value)}
-                    size="small"
-                    fullWidth
-                  />
+                  <Field>
+                    <FieldLabel htmlFor="issue-dismiss-reason">
+                      {t('issues.fields.dismissReason', 'Motif de rejet (optionnel)')}
+                    </FieldLabel>
+                    <Input
+                      id="issue-dismiss-reason"
+                      className="w-full"
+                      value={dismissReason}
+                      onChange={(e) => setDismissReason(e.target.value)}
+                    />
+                  </Field>
                 )}
 
                 {error && (
-                  <Typography variant="body2" sx={{ color: 'var(--err)' }}>{error}</Typography>
+                  <p className="cn-text-body2 text-[var(--err)]">{error}</p>
                 )}
-              </Stack>
-            </DialogContent>
-            <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
-              <Button onClick={() => setSelected(null)} disabled={saving}>
+            </div>
+            <DialogFooter className="gap-1.5">
+              <BuiButton variant="ghost" onClick={() => setSelected(null)} disabled={saving}>
                 {t('common.close', 'Fermer')}
-              </Button>
+              </BuiButton>
               {canManage && isActionable && (
                 <>
-                  <Button onClick={handleDismiss} disabled={saving} color="inherit">
+                  {/* « Rejeter » reste tertiaire (ghost) : c'est l'issue de secours,
+                      pas une suppression — la conversion est l'action attendue. */}
+                  <BuiButton variant="ghost" onClick={handleDismiss} disabled={saving}>
                     {t('issues.actions.dismiss', 'Rejeter')}
-                  </Button>
-                  <Button onClick={handleQualify} disabled={saving} variant="outlined">
+                  </BuiButton>
+                  <BuiButton variant="outline" onClick={handleQualify} disabled={saving}>
                     {t('issues.actions.qualify', 'Qualifier')}
-                  </Button>
+                  </BuiButton>
                   {confirmConvert ? (
-                    <Button onClick={handleConvert} disabled={saving} variant="contained">
+                    <BuiButton onClick={handleConvert} disabled={saving}>
                       {t('issues.actions.confirmConvert', 'Confirmer la conversion')}
-                    </Button>
+                    </BuiButton>
                   ) : (
-                    <Button onClick={() => setConfirmConvert(true)} disabled={saving} variant="contained">
+                    <BuiButton onClick={() => setConfirmConvert(true)} disabled={saving}>
                       {t('issues.actions.convert', 'Convertir en maintenance')}
-                    </Button>
+                    </BuiButton>
                   )}
                 </>
               )}
-            </DialogActions>
+            </DialogFooter>
           </>
         )}
+        </DialogContent>
       </Dialog>
-    </Box>
+    </div>
   );
 }

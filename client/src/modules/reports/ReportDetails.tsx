@@ -1,16 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  CircularProgress,
-  Alert,
-  Skeleton,
-  Divider,
-} from '@mui/material';
+import { Card, CardContent, Separator, Skeleton } from '../../components/ui';
 import {
   Euro as EuroIcon,
   Schedule as ScheduleIcon,
@@ -56,6 +49,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { cn } from '../../utils/cn';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -63,6 +57,7 @@ import { useAnalyticsEngine } from '../../hooks/useAnalyticsEngine';
 import PageHeader from '../../components/PageHeader';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 import PeriodSegmented from './PeriodSegmented';
+import StatTile from '../../components/baitly/StatTile';
 import DashboardErrorBoundary from '../dashboard/DashboardErrorBoundary';
 import AnalyticsGlobalPerformance from '../dashboard/analytics/AnalyticsGlobalPerformance';
 import AnalyticsRevenue from '../dashboard/analytics/AnalyticsRevenue';
@@ -103,27 +98,29 @@ const EMPTY_INTERVENTIONS: Array<{ estimatedCost?: number; actualCost?: number; 
 
 // ─── Mini chart constants (Pricing + Forecasts combined section) ────────────
 // Couleurs SVG (séries/grilles/ticks) : tokens résolus via useChartTokens().
-const MINI_CHART_CARD_SX = { width: '100%', height: 220 } as const;
-const MINI_CHART_CONTENT_SX = { p: 1.25, height: '100%', display: 'flex', flexDirection: 'column', '&:last-child': { pb: 1.25 } } as const;
-const MINI_CHART_LABEL_SX = { fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: 'var(--faint)', mb: 0.5, flexShrink: 0 } as const;
+// `--card-spacing` porte le rembourrage de la carte du kit (py sur la carte,
+// px sur le contenu) : c'est le report de l'ancien `p: 1.25` (7,5 px).
+const MINI_CHART_CARD_CLASS = 'w-full h-[220px] [--card-spacing:7.5px]';
+const MINI_CHART_CONTENT_CLASS = 'flex-1 min-h-0 flex flex-col';
+// Libelle overline des mini-cartes (ex-MINI_CHART_LABEL_SX : mb 0.5 = 3 px avec spacing 6).
+const MINI_CHART_LABEL_CLASS =
+  'cn-text-body1 text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-[3px] shrink-0';
 const MINI_CHART_MARGIN = { top: 4, right: 6, left: -18, bottom: 4 } as const;
 
 // ─── Shared sx constants ────────────────────────────────────────────────────
 // Cartes : peau globale MuiCard (r14 hairline, hover --line-2) — pas de
 // transform au hover (anti-pattern baseline §5).
 
-const HERO_CARD_SX = { height: '100%' } as const;
+// Report en classes des anciens `sx` de cartes : hauteur pleine + rembourrage
+// (ex-`p: 2` = 12 px pour les cartes hero/graphe, `p: 1.5` = 9 px pour les
+// cartes secondaires).
+const HERO_CARD_CLASS = 'h-full [--card-spacing:12px]';
 
-const SECONDARY_CARD_SX = { height: '100%' } as const;
+const SECONDARY_CARD_CLASS = 'h-full [--card-spacing:9px]';
 
-const SECTION_LABEL_SX = {
-  fontSize: '10.5px',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.05em',
-  color: 'var(--faint)',
-  mb: 1,
-} as const;
+// Libelle de section overline (ex-SECTION_LABEL_SX : mb 1 = 6 px avec spacing 6).
+const SECTION_LABEL_CLASS =
+  'cn-text-body1 text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-1.5';
 
 // ─── Shared KPI types ───────────────────────────────────────────────────────
 
@@ -145,90 +142,83 @@ const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
   const Icon = isUp ? TrendingUp : isDown ? TrendingDown : Remove;
   const color = isUp ? 'var(--ok)' : isDown ? 'var(--err)' : 'var(--faint)';
   return (
-    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, mt: 0.25 }}>
-      <Box component="span" sx={{ display: 'inline-flex', color }}>
+    <div className="inline-flex items-center gap-0.5 mt-0.5">
+      <span className="inline-flex" style={{ color }}>
         <Icon size={12} strokeWidth={1.75} />
-      </Box>
-      <Typography sx={{ fontSize: '10.5px', fontWeight: 600, color, fontVariantNumeric: 'tabular-nums' }}>
+      </span>
+      {/* Couleur choisie a l'execution (haut/bas/plat) : style inline, une classe
+          Tailwind ne peut pas naitre d'une variable. */}
+      <p className="cn-text-body1 text-[10.5px] font-semibold tabular-nums" style={{ color }}>
         {isUp ? '+' : ''}{value}%
-      </Typography>
-    </Box>
+      </p>
+    </div>
   );
 };
 
+/**
+ * Adaptateur : les cartes heros de tous les onglets de rapports rendent
+ * desormais la tuile de la projection (StatTile), sans changer un seul site
+ * d'appel. La teinte hex/var d'icone des appelants est rabattue sur les
+ * classes semantiques de la tuile ; l'indice porte tendance et sous-titre.
+ */
+const KPI_ICON_CLASS: Record<string, string | undefined> = {
+  'var(--ok)': 'text-success',
+  'var(--warn)': 'text-warning',
+  'var(--err)': 'text-destructive',
+  'var(--info)': 'text-info',
+  'var(--accent)': undefined,
+};
+
 const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, loading }) => (
-  <Card sx={HERO_CARD_SX}>
-    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-      {loading ? (
-        <Box>
-          <Skeleton variant="text" width="50%" height={14} />
-          <Skeleton variant="text" width="70%" height={28} sx={{ mt: 0.5 }} />
-          <Skeleton variant="text" width="40%" height={12} sx={{ mt: 0.5 }} />
-        </Box>
-      ) : (
+  <StatTile
+    icon={item.icon}
+    label={item.title}
+    value={item.value}
+    iconClassName={KPI_ICON_CLASS[item.iconColor]}
+    loading={loading}
+    className="h-full"
+    hint={
+      item.trend !== undefined ? (
+        // Meme forme textuelle que le TrendHint du Dashboard : le <b> est
+        // style par la tuile elle-meme. TrendBadge rendrait un div dans le
+        // span du hint — HTML invalide.
         <>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
-            <Box
-              sx={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 32, height: 32, borderRadius: 1, flexShrink: 0,
-                color: item.iconColor,
-                bgcolor: `color-mix(in srgb, ${item.iconColor} 12%, transparent)`,
-                '& svg': { width: 16, height: 16 },
-              }}
-            >
-              {item.icon}
-            </Box>
-            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-              {item.title}
-            </Typography>
-          </Box>
-          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.025em', color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
-            {item.value}
-          </Typography>
-          {item.subtitle && (
-            <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', mt: 0.25, lineHeight: 1.2 }}>
-              {item.subtitle}
-            </Typography>
-          )}
-          {item.trend !== undefined && <TrendBadge value={item.trend} />}
+          <b>{item.trend > 0 ? '+' : ''}{item.trend} %</b>
+          {item.subtitle ? ` · ${item.subtitle}` : ''}
         </>
-      )}
-    </CardContent>
-  </Card>
+      ) : (
+        item.subtitle
+      )
+    }
+  />
 );
 
 const SecondaryKpiRow: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, loading }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, py: 1, px: 0.5 }}>
-    <Box
-      sx={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: 28, height: 28, borderRadius: 0.75, flexShrink: 0,
-        color: item.iconColor,
-        bgcolor: `color-mix(in srgb, ${item.iconColor} 10%, transparent)`,
-        '& svg': { width: 14, height: 14 },
-      }}
+  <div className="flex items-center gap-2 py-1.5 px-0.5">
+    <div
+      className="flex items-center justify-center w-7 h-7 rounded-[6px] shrink-0 text-[var(--kpi-icon)] bg-[color-mix(in_srgb,_var(--kpi-icon)_10%,_transparent)] [&_svg]:w-[14px] [&_svg]:h-[14px]"
+      style={{ '--kpi-icon': item.iconColor } as React.CSSProperties}
     >
       {item.icon}
-    </Box>
-    <Box sx={{ flex: 1, minWidth: 0 }}>
-      <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', fontWeight: 500, lineHeight: 1.2 }}>
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] font-medium leading-[1.2]">
         {item.title}
-      </Typography>
-    </Box>
-    <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+      </p>
+    </div>
+    <div className="text-end shrink-0">
       {loading ? (
-        <Skeleton variant="text" width={48} height={18} />
+        <Skeleton className="h-[18px] w-12 rounded-[4px]" />
       ) : (
         <>
-          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.875rem', fontWeight: 600, lineHeight: 1.2, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.875rem] font-semibold leading-[1.2] text-[var(--ink)] tabular-nums">
             {item.value}
-          </Typography>
+          </p>
           {item.trend !== undefined && <TrendBadge value={item.trend} />}
         </>
       )}
-    </Box>
-  </Box>
+    </div>
+  </div>
 );
 
 // ─── Custom Tooltip ─────────────────────────────────────────────────────────
@@ -243,21 +233,21 @@ interface CustomTooltipProps {
 const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
   if (!active || !payload || payload.length === 0) return null;
   return (
-    <Box sx={{ px: 1.25, py: 0.75, borderRadius: '8px', bgcolor: 'var(--ink)', color: 'var(--bg)' }}>
+    <div className="px-2 py-1 rounded-[8px] bg-[var(--ink)] text-[var(--bg)]">
       {label && (
-        <Typography sx={{ fontWeight: 700, mb: 0.25, fontSize: '11.5px', color: 'var(--bg)' }}>
+        <p className="cn-text-body1 font-bold mb-0.5 text-[11.5px] text-[var(--bg)]">
           {label}
-        </Typography>
+        </p>
       )}
       {payload.map((entry) => (
-        <Box key={entry.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-          <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: entry.color || 'var(--accent)', flexShrink: 0 }} />
-          <Typography sx={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--bg)', fontVariantNumeric: 'tabular-nums' }}>
+        <div className="flex items-center gap-1" key={entry.name}>
+          <div className="w-[8px] h-[8px] rounded-[2px] shrink-0" style={{ backgroundColor: entry.color || 'var(--accent)' }} />
+          <p className="cn-text-body1 text-[11.5px] font-semibold text-[var(--bg)] tabular-nums">
             {entry.name}: {entry.value}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       ))}
-    </Box>
+    </div>
   );
 };
 
@@ -270,11 +260,11 @@ interface ChartCardProps {
 
 // Carte de graphe : peau globale MuiCard (r14 hairline) + titre overline.
 const ChartCard: React.FC<ChartCardProps> = ({ title, children }) => (
-  <Card sx={{ height: '100%' }}>
-    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-      <Typography sx={{ fontSize: '10.5px', fontWeight: 700, mb: 2, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+  <Card className={HERO_CARD_CLASS}>
+    <CardContent>
+      <p className="cn-text-body1 text-[10.5px] font-bold mb-3 text-[var(--faint)] uppercase tracking-[0.05em]">
         {title}
-      </Typography>
+      </p>
       {children}
     </CardContent>
   </Card>
@@ -288,17 +278,17 @@ interface EmptyChartStateProps {
 }
 
 const EmptyChartState: React.FC<EmptyChartStateProps> = ({ message, description }) => (
-  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
-    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', mb: 1 }}><BarChartIcon size={48} strokeWidth={1.5} /></Box>
-    <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
+  <div className="flex flex-col items-center py-6">
+    <span className="inline-flex text-[var(--faint)] mb-1.5"><BarChartIcon size={48} strokeWidth={1.5} /></span>
+    <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
       {message}
-    </Typography>
+    </p>
     {description && (
-      <Typography sx={{ fontSize: '11.5px', color: 'var(--faint)', mt: 0.5 }}>
+      <p className="cn-text-body1 text-[11.5px] text-[var(--faint)] mt-0.5">
         {description}
-      </Typography>
+      </p>
     )}
-  </Box>
+  </div>
 );
 
 // ─── Report: Interventions ──────────────────────────────────────────────────
@@ -335,9 +325,9 @@ const InterventionsReport: React.FC = () => {
       loadingMessage={t('reports.charts.loadingData')}
     >
       {data ? (
-        <Box>
+        <div>
           {/* ─── Hero KPIs ───────────────────────────────────────── */}
-          <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
+          <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
             {([
               {
                 key: 'total', title: t('reports.kpi.totalInterventions', 'Total interventions'),
@@ -357,23 +347,23 @@ const InterventionsReport: React.FC = () => {
                 value: `${kpis?.avgPerMonth ?? 0}`, icon: <Speed />, iconColor: 'var(--info)',
               },
             ] as KpiItem[]).map((kpi) => (
-              <Grid item xs={6} sm={3} key={kpi.key}>
+              <div className="col-span-6 min-[600px]:col-span-3" key={kpi.key}>
                 <HeroKpiCard item={kpi} loading={false} />
-              </Grid>
+              </div>
             ))}
-          </Grid>
+          </div>
 
           {/* ─── Secondary KPIs (status breakdown + type breakdown) ── */}
-          <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
-            <Grid item xs={12} md={6}>
-              <Card sx={SECONDARY_CARD_SX}>
-                <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                  <Typography sx={SECTION_LABEL_SX}>
+          <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
+            <div className="col-span-12 min-[900px]:col-span-6">
+              <Card className={SECONDARY_CARD_CLASS}>
+                <CardContent>
+                  <p className={SECTION_LABEL_CLASS}>
                     {t('reports.kpi.statusBreakdown', 'Repartition par statut')}
-                  </Typography>
+                  </p>
                   {data.byStatus.map((item, i) => (
                     <React.Fragment key={item.name}>
-                      {i > 0 && <Box sx={{ borderTop: '1px solid', borderColor: 'var(--line)' }} />}
+                      {i > 0 && <div className="border-t border-[var(--line)]" />}
                       <SecondaryKpiRow
                         item={{
                           key: item.name, title: item.name, value: `${item.value}`,
@@ -385,16 +375,16 @@ const InterventionsReport: React.FC = () => {
                   ))}
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card sx={SECONDARY_CARD_SX}>
-                <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                  <Typography sx={SECTION_LABEL_SX}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
+              <Card className={SECONDARY_CARD_CLASS}>
+                <CardContent>
+                  <p className={SECTION_LABEL_CLASS}>
                     {t('reports.kpi.typeBreakdown', 'Repartition par type')}
-                  </Typography>
+                  </p>
                   {data.byType.map((item, i) => (
                     <React.Fragment key={item.name}>
-                      {i > 0 && <Box sx={{ borderTop: '1px solid', borderColor: 'var(--line)' }} />}
+                      {i > 0 && <div className="border-t border-[var(--line)]" />}
                       <SecondaryKpiRow
                         item={{
                           key: item.name, title: item.name, value: `${item.value}`,
@@ -406,12 +396,12 @@ const InterventionsReport: React.FC = () => {
                   ))}
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
 
           {/* ─── Charts: Status pie + Type bar side by side ─────── */}
-          <Grid container spacing={1.5} sx={{ mb: 2 }}>
-            <Grid item xs={12} md={6}>
+          <div className="grid grid-cols-12 gap-[9px] mb-3">
+            <div className="col-span-12 min-[900px]:col-span-6">
               <ChartCard title={t('reports.charts.interventionsByStatus')}>
                 {data.byStatus.length > 0 ? (
                   <ResponsiveContainer width="100%" height={280}>
@@ -437,8 +427,8 @@ const InterventionsReport: React.FC = () => {
                   <EmptyChartState message={t('reports.charts.noData')} />
                 )}
               </ChartCard>
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
               <ChartCard title={t('reports.charts.interventionsByType')}>
                 {data.byType.length > 0 ? (
                   <ResponsiveContainer width="100%" height={280}>
@@ -458,12 +448,12 @@ const InterventionsReport: React.FC = () => {
                   <EmptyChartState message={t('reports.charts.noData')} />
                 )}
               </ChartCard>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
 
           {/* ─── Chart: Monthly trend (full width area chart) ───── */}
-          <Grid container spacing={1.5} sx={{ mb: 2 }}>
-            <Grid item xs={12}>
+          <div className="grid grid-cols-12 gap-[9px] mb-3">
+            <div className="col-span-12">
               <ChartCard title={t('reports.charts.interventionsByMonth')}>
                 {data.byMonth.some((m) => m.total > 0) ? (
                   <ResponsiveContainer width="100%" height={280}>
@@ -493,12 +483,12 @@ const InterventionsReport: React.FC = () => {
                   <EmptyChartState message={t('reports.charts.noData')} />
                 )}
               </ChartCard>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
 
           {/* ─── Chart: Priority (horizontal bar) ───────────────── */}
-          <Grid container spacing={1.5}>
-            <Grid item xs={12} md={6}>
+          <div className="grid grid-cols-12 gap-[9px]">
+            <div className="col-span-12 min-[900px]:col-span-6">
               <ChartCard title={t('reports.charts.interventionsByPriority')}>
                 {data.byPriority.length > 0 ? (
                   <ResponsiveContainer width="100%" height={220}>
@@ -518,9 +508,9 @@ const InterventionsReport: React.FC = () => {
                   <EmptyChartState message={t('reports.charts.noData')} />
                 )}
               </ChartCard>
-            </Grid>
-          </Grid>
-        </Box>
+            </div>
+          </div>
+        </div>
       ) : (
         <EmptyChartState message={t('reports.charts.noData')} description={t('reports.charts.noDataDescription')} />
       )}
@@ -573,9 +563,9 @@ const TeamsReport: React.FC = () => {
       loadingMessage={t('reports.charts.loadingData')}
     >
       {data ? (
-        <Box>
+        <div>
           {/* ─── Hero KPIs ───────────────────────────────────────── */}
-          <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
+          <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
             {([
               {
                 key: 'teams', title: t('reports.kpi.totalTeams', 'Equipes'),
@@ -594,63 +584,63 @@ const TeamsReport: React.FC = () => {
                 value: `${kpis?.avgTasksPerTeam ?? 0}`, icon: <Speed />, iconColor: 'var(--warn)',
               },
             ] as KpiItem[]).map((kpi) => (
-              <Grid item xs={6} sm={3} key={kpi.key}>
+              <div className="col-span-6 min-[600px]:col-span-3" key={kpi.key}>
                 <HeroKpiCard item={kpi} loading={false} />
-              </Grid>
+              </div>
             ))}
-          </Grid>
+          </div>
 
           {/* ─── Secondary KPIs (task status + top performer) ────── */}
-          <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
-            <Grid item xs={12} md={6}>
-              <Card sx={SECONDARY_CARD_SX}>
-                <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                  <Typography sx={SECTION_LABEL_SX}>
+          <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
+            <div className="col-span-12 min-[900px]:col-span-6">
+              <Card className={SECONDARY_CARD_CLASS}>
+                <CardContent>
+                  <p className={SECTION_LABEL_CLASS}>
                     {t('reports.kpi.taskStatus', 'Statut des taches')}
-                  </Typography>
+                  </p>
                   {([
                     { key: 'completed', title: t('reports.charts.completed'), value: `${kpis?.totalCompleted ?? 0}`, icon: <CheckCircle />, iconColor: 'var(--ok)' },
                     { key: 'inProgress', title: t('reports.charts.inProgress'), value: `${kpis?.totalInProgress ?? 0}`, icon: <Engineering />, iconColor: 'var(--info)' },
                     { key: 'pending', title: t('reports.charts.pending'), value: `${kpis?.totalPending ?? 0}`, icon: <HourglassEmpty />, iconColor: 'var(--warn)' },
                   ] as KpiItem[]).map((kpi, i) => (
                     <React.Fragment key={kpi.key}>
-                      {i > 0 && <Box sx={{ borderTop: '1px solid', borderColor: 'var(--line)' }} />}
+                      {i > 0 && <div className="border-t border-[var(--line)]" />}
                       <SecondaryKpiRow item={kpi} loading={false} />
                     </React.Fragment>
                   ))}
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card sx={SECONDARY_CARD_SX}>
-                <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                  <Typography sx={SECTION_LABEL_SX}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
+              <Card className={SECONDARY_CARD_CLASS}>
+                <CardContent>
+                  <p className={SECTION_LABEL_CLASS}>
                     {t('reports.kpi.topPerformer', 'Meilleure equipe')}
-                  </Typography>
+                  </p>
                   {kpis?.topPerformer ? (
-                    <Box sx={{ py: 1.5, textAlign: 'center' }}>
-                      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', fontWeight: 600, letterSpacing: '-0.015em', color: 'var(--accent)', mb: 0.5 }}>
+                    <div className="py-2 text-center">
+                      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.25rem] font-semibold tracking-[-0.015em] text-[var(--accent)] mb-0.5">
                         {kpis.topPerformer.name}
-                      </Typography>
-                      <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                      </p>
+                      <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums">
                         {kpis.topPerformer.completed} {t('reports.charts.completed').toLowerCase()}
                         {' / '}
                         {kpis.topPerformer.completed + kpis.topPerformer.inProgress + kpis.topPerformer.pending} {t('reports.kpi.totalTasks', 'total').toLowerCase()}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                   ) : (
-                    <Typography sx={{ fontSize: '11.5px', color: 'var(--faint)', textAlign: 'center', py: 2 }}>
+                    <p className="cn-text-body1 text-[11.5px] text-[var(--faint)] text-center py-3">
                       {t('reports.charts.noData')}
-                    </Typography>
+                    </p>
                   )}
                 </CardContent>
               </Card>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
 
           {/* ─── Charts: Stacked performance + Completion rates ──── */}
-          <Grid container spacing={1.5}>
-            <Grid item xs={12} md={7}>
+          <div className="grid grid-cols-12 gap-[9px]">
+            <div className="col-span-12 min-[900px]:col-span-7">
               <ChartCard title={t('reports.charts.teamPerformance')}>
                 {data.teamPerformance.length > 0 ? (
                   <ResponsiveContainer width="100%" height={350}>
@@ -669,8 +659,8 @@ const TeamsReport: React.FC = () => {
                   <EmptyChartState message={t('reports.charts.noData')} />
                 )}
               </ChartCard>
-            </Grid>
-            <Grid item xs={12} md={5}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-5">
               <ChartCard title={t('reports.kpi.completionRateByTeam', 'Taux de completion par equipe')}>
                 {teamCompletionRates.length > 0 ? (
                   <ResponsiveContainer width="100%" height={350}>
@@ -690,9 +680,9 @@ const TeamsReport: React.FC = () => {
                   <EmptyChartState message={t('reports.charts.noData')} />
                 )}
               </ChartCard>
-            </Grid>
-          </Grid>
-        </Box>
+            </div>
+          </div>
+        </div>
       ) : (
         <EmptyChartState message={t('reports.charts.noData')} description={t('reports.charts.noDataDescription')} />
       )}
@@ -738,21 +728,21 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
   return (
     <>
       {showInlineFilter && (
-        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+        <div className="mb-3 flex justify-end">
           <PeriodSegmented<DashboardPeriod>
             value={period}
             onChange={setPeriod}
             options={PERIOD_OPTIONS}
             ariaLabel={t('reports.periodFilter', 'Période')}
           />
-        </Box>
+        </div>
       )}
 
       {/* ─── Hero KPIs from operational data ───────────────────── */}
       <DataFetchWrapper loading={loading} error={error} onRetry={retry} loadingMessage={t('reports.charts.loadingData')}>
         {data ? (
-          <Box>
-            <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
+          <div>
+            <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
               {([
                 {
                   key: 'properties', title: t('reports.kpi.totalProperties', 'Proprietes'),
@@ -771,37 +761,37 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
                   value: convertAndFormat(kpis?.avgCostPerProperty ?? 0, 'EUR'), icon: <EuroIcon />, iconColor: 'var(--ok)',
                 },
               ] as KpiItem[]).map((kpi) => (
-                <Grid item xs={6} sm={3} key={kpi.key}>
+                <div className="col-span-6 min-[600px]:col-span-3" key={kpi.key}>
                   <HeroKpiCard item={kpi} loading={false} />
-                </Grid>
+                </div>
               ))}
-            </Grid>
+            </div>
 
             {/* ─── Secondary KPIs ─── */}
-            <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
-              <Grid item xs={12} md={6}>
-                <Card sx={SECONDARY_CARD_SX}>
-                  <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                    <Typography sx={SECTION_LABEL_SX}>
+            <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
+              <div className="col-span-12 min-[900px]:col-span-6">
+                <Card className={SECONDARY_CARD_CLASS}>
+                  <CardContent>
+                    <p className={SECTION_LABEL_CLASS}>
                       {t('reports.kpi.operationalMetrics', 'Indicateurs operationnels')}
-                    </Typography>
+                    </p>
                     {([
                       { key: 'avgInt', title: t('reports.kpi.avgInterventions', 'Moy. interventions / bien'), value: `${kpis?.avgInterventionsPerProperty ?? 0}`, icon: <Speed />, iconColor: 'var(--info)' },
                       { key: 'topProp', title: t('reports.kpi.mostActive', 'Bien le plus actif'), value: kpis?.topProperty?.name ?? '-', icon: <PriorityHigh />, iconColor: 'var(--err)' },
                     ] as KpiItem[]).map((kpi, i) => (
                       <React.Fragment key={kpi.key}>
-                        {i > 0 && <Box sx={{ borderTop: '1px solid', borderColor: 'var(--line)' }} />}
+                        {i > 0 && <div className="border-t border-[var(--line)]" />}
                         <SecondaryKpiRow item={kpi} loading={false} />
                       </React.Fragment>
                     ))}
                   </CardContent>
                 </Card>
-              </Grid>
-            </Grid>
+              </div>
+            </div>
 
             {/* ─── Chart: Interventions + cost per property ─────── */}
-            <Grid container spacing={1.5} sx={{ mb: 3 }}>
-              <Grid item xs={12}>
+            <div className="grid grid-cols-12 gap-[9px] mb-[18px]">
+              <div className="col-span-12">
                 <ChartCard title={t('reports.charts.interventionsPerProperty')}>
                   {data.propertyStats.length > 0 ? (
                     <ResponsiveContainer width="100%" height={350}>
@@ -820,45 +810,45 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
                     <EmptyChartState message={t('reports.charts.noData')} />
                   )}
                 </ChartCard>
-              </Grid>
-            </Grid>
-          </Box>
+              </div>
+            </div>
+          </div>
         ) : (
           <EmptyChartState message={t('reports.charts.noData')} description={t('reports.charts.noDataDescription')} />
         )}
       </DataFetchWrapper>
 
       {/* ─── Analytics widgets ─── */}
-      <Divider sx={{ my: 2.5 }} />
-      <Typography sx={{ ...SECTION_LABEL_SX, mb: 2 }}>
+      <Separator className="my-[15px]" />
+      <p className={cn(SECTION_LABEL_CLASS, 'mb-3')}>
         {t('reports.charts.analyticsInsights', 'Analyses avancees')}
-      </Typography>
+      </p>
 
-      <Grid container spacing={1.5} sx={{ mb: 2 }}>
-        <Grid item xs={12} md={6}>
+      <div className="grid grid-cols-12 gap-[9px] mb-3">
+        <div className="col-span-12 min-[900px]:col-span-6">
           <DashboardErrorBoundary widgetName="Occupation">
             <AnalyticsOccupancy data={analytics?.occupancy ?? null} loading={analyticsLoading} />
           </DashboardErrorBoundary>
-        </Grid>
-        <Grid item xs={12} md={6}>
+        </div>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <DashboardErrorBoundary widgetName="Analyse Clientele">
             <AnalyticsClientAnalysis data={analytics?.clients ?? null} loading={analyticsLoading} />
           </DashboardErrorBoundary>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
-      <Grid container spacing={1.5}>
-        <Grid item xs={12} md={6}>
+      <div className="grid grid-cols-12 gap-[9px]">
+        <div className="col-span-12 min-[900px]:col-span-6">
           <DashboardErrorBoundary widgetName="Performance par Logement">
             <AnalyticsPropertyPerformance period={period} />
           </DashboardErrorBoundary>
-        </Grid>
-        <Grid item xs={12} md={6}>
+        </div>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <DashboardErrorBoundary widgetName="Benchmark">
             <AnalyticsBenchmark data={analytics?.benchmark ?? null} loading={analyticsLoading} />
           </DashboardErrorBoundary>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </>
   );
 };
@@ -883,14 +873,14 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
   return (
     <>
       {showInlineFilter && (
-        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+        <div className="mb-3 flex justify-end">
           <PeriodSegmented<DashboardPeriod>
             value={period}
             onChange={setPeriod}
             options={PERIOD_OPTIONS}
             ariaLabel={t('reports.periodFilter', 'Période')}
           />
-        </Box>
+        </div>
       )}
 
       {/* ─── Vue d'ensemble — KPIs globaux ─── */}
@@ -899,18 +889,18 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
       </DashboardErrorBoundary>
 
       {/* ─── Alerts & Recommendations side by side ─── */}
-      <Grid container spacing={1.5} sx={{ mb: 2 }}>
-        <Grid item xs={12} md={6}>
+      <div className="grid grid-cols-12 gap-[9px] mb-3">
+        <div className="col-span-12 min-[900px]:col-span-6">
           <DashboardErrorBoundary widgetName="Alertes Business">
             <AnalyticsAlerts data={analytics?.alerts ?? null} loading={analyticsLoading} />
           </DashboardErrorBoundary>
-        </Grid>
-        <Grid item xs={12} md={6}>
+        </div>
+        <div className="col-span-12 min-[900px]:col-span-6">
           <DashboardErrorBoundary widgetName="Recommandations">
             <AnalyticsRecommendations data={analytics?.recommendations ?? null} loading={analyticsLoading} />
           </DashboardErrorBoundary>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
       {/* ─── Revenue & tarifs ─── */}
       <DashboardErrorBoundary widgetName="Revenus">
@@ -918,25 +908,25 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
       </DashboardErrorBoundary>
 
       {/* ─── Pricing + Forecasts combined: 3 charts + 6 KPIs ─── */}
-      <Box sx={{ mb: 2 }}>
-        <Typography sx={{ ...SECTION_LABEL_SX, mb: 1.5 }}>
+      <div className="mb-3">
+        <p className={cn(SECTION_LABEL_CLASS, 'mb-[9px]')}>
           {t('reports.charts.pricingAndForecasts', 'Tarifs & Prévisions')}
-        </Typography>
-        <Grid container spacing={1.5}>
+        </p>
+        <div className="grid grid-cols-12 gap-[9px]">
           {/* Left: 3 charts on same line */}
-          <Grid item xs={12} md={8}>
-            <Grid container spacing={1.5}>
+          <div className="col-span-12 min-[900px]:col-span-8">
+            <div className="grid grid-cols-12 gap-[9px]">
               {/* Chart 1: Prix Moyen vs RevPAN */}
-              <Grid item xs={12} sm={4}>
-                <Card sx={MINI_CHART_CARD_SX}>
-                  <CardContent sx={MINI_CHART_CONTENT_SX}>
-                    <Typography sx={MINI_CHART_LABEL_SX}>
+              <div className="col-span-12 min-[600px]:col-span-4">
+                <Card className={MINI_CHART_CARD_CLASS}>
+                  <CardContent className={MINI_CHART_CONTENT_CLASS}>
+                    <p className={MINI_CHART_LABEL_CLASS}>
                       {t('dashboard.analytics.priceVsRevPAN')}
-                    </Typography>
+                    </p>
                     {analyticsLoading || !analytics?.pricing ? (
-                      <Skeleton variant="rounded" sx={{ flex: 1, borderRadius: 'var(--radius-sm)' }} />
+                      <Skeleton className="flex-1 rounded-[var(--radius-sm)]" />
                     ) : (
-                      <Box sx={{ flex: 1, minHeight: 0 }}>
+                      <div className="flex-1 min-h-0">
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={analytics.pricing.avgPriceVsRevPAN} margin={MINI_CHART_MARGIN}>
                             <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
@@ -947,23 +937,23 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                             <Line type="monotone" dataKey="revPAN" name="RevPAN" stroke={ct.info} strokeWidth={1.5} dot={{ r: 2 }} strokeDasharray="5 3" />
                           </LineChart>
                         </ResponsiveContainer>
-                      </Box>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
-              </Grid>
+              </div>
 
               {/* Chart 2: Prix par Type */}
-              <Grid item xs={12} sm={4}>
-                <Card sx={MINI_CHART_CARD_SX}>
-                  <CardContent sx={MINI_CHART_CONTENT_SX}>
-                    <Typography sx={MINI_CHART_LABEL_SX}>
+              <div className="col-span-12 min-[600px]:col-span-4">
+                <Card className={MINI_CHART_CARD_CLASS}>
+                  <CardContent className={MINI_CHART_CONTENT_CLASS}>
+                    <p className={MINI_CHART_LABEL_CLASS}>
                       {t('dashboard.analytics.priceByType')}
-                    </Typography>
+                    </p>
                     {analyticsLoading || !analytics?.pricing ? (
-                      <Skeleton variant="rounded" sx={{ flex: 1, borderRadius: 'var(--radius-sm)' }} />
+                      <Skeleton className="flex-1 rounded-[var(--radius-sm)]" />
                     ) : (
-                      <Box sx={{ flex: 1, minHeight: 0 }}>
+                      <div className="flex-1 min-h-0">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={analytics.pricing.byPropertyType} margin={MINI_CHART_MARGIN}>
                             <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
@@ -973,23 +963,23 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                             <Bar dataKey="avgPrice" name={t('dashboard.analytics.avgPrice')} fill={ct.accent} radius={[3, 3, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
-                      </Box>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
-              </Grid>
+              </div>
 
               {/* Chart 3: Projection des Revenus */}
-              <Grid item xs={12} sm={4}>
-                <Card sx={MINI_CHART_CARD_SX}>
-                  <CardContent sx={MINI_CHART_CONTENT_SX}>
-                    <Typography sx={MINI_CHART_LABEL_SX}>
+              <div className="col-span-12 min-[600px]:col-span-4">
+                <Card className={MINI_CHART_CARD_CLASS}>
+                  <CardContent className={MINI_CHART_CONTENT_CLASS}>
+                    <p className={MINI_CHART_LABEL_CLASS}>
                       {t('dashboard.analytics.forecastChart')}
-                    </Typography>
+                    </p>
                     {analyticsLoading || !analytics?.forecast ? (
-                      <Skeleton variant="rounded" sx={{ flex: 1, borderRadius: 'var(--radius-sm)' }} />
+                      <Skeleton className="flex-1 rounded-[var(--radius-sm)]" />
                     ) : (
-                      <Box sx={{ flex: 1, minHeight: 0 }}>
+                      <div className="flex-1 min-h-0">
                         <ResponsiveContainer width="100%" height="100%">
                           <ComposedChart data={analytics.forecast.chartData} margin={MINI_CHART_MARGIN}>
                             <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
@@ -1003,48 +993,48 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                             <Line type="monotone" dataKey="forecast" name={t('dashboard.analytics.forecastLabel')} stroke={ct.info} strokeWidth={1.5} strokeDasharray="6 3" dot={{ r: 2 }} />
                           </ComposedChart>
                         </ResponsiveContainer>
-                      </Box>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
-              </Grid>
-            </Grid>
+              </div>
+            </div>
 
             {/* Scenarios below charts */}
             {analytics?.forecast && !analyticsLoading && (
-              <Card sx={{ width: '100%', mt: 1.5 }}>
-                <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
-                  <Typography sx={MINI_CHART_LABEL_SX}>
+              <Card className="w-full mt-[9px] [--card-spacing:7.5px]">
+                <CardContent>
+                  <p className={MINI_CHART_LABEL_CLASS}>
                     {t('dashboard.analytics.scenarios')}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 3, mt: 0.5 }}>
+                  </p>
+                  <div className="flex gap-4 mt-0.5">
                     {[analytics.forecast.scenarios.optimistic, analytics.forecast.scenarios.realistic, analytics.forecast.scenarios.pessimistic].map((s, i) => {
                       // Réf. SCEN (widget-board) : optimiste --ok, réaliste --info, pessimiste --warn
                       const colors = ['var(--ok)', 'var(--info)', 'var(--warn)'];
                       return (
-                        <Box key={s.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <Box sx={{ width: 9, height: 9, borderRadius: '3px', bgcolor: colors[i], flexShrink: 0 }} />
-                          <Box>
-                            <Typography sx={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2 }}>
+                        <div className="flex items-center gap-1" key={s.label}>
+                          <div className="w-[9px] h-[9px] rounded-[3px] shrink-0" style={{ backgroundColor: colors[i] }} />
+                          <div>
+                            <p className="cn-text-body1 text-[11.5px] font-semibold text-[var(--ink)] leading-[1.2]">
                               {s.label}
-                            </Typography>
-                            <Typography sx={{ fontSize: '10.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                            </p>
+                            <p className="cn-text-body1 text-[10.5px] text-[var(--muted)] tabular-nums">
                               <Money value={s.revenue} from="EUR" /> &bull; {s.occupancy}% occ.
-                            </Typography>
-                          </Box>
-                        </Box>
+                            </p>
+                          </div>
+                        </div>
                       );
                     })}
-                  </Box>
+                  </div>
                 </CardContent>
               </Card>
             )}
-          </Grid>
+          </div>
 
           {/* Right: 6 KPIs in 2 columns of 3 */}
-          <Grid item xs={12} md={4}>
-            <Grid container spacing={1.5}>
-              <Grid item xs={6}>
+          <div className="col-span-12 min-[900px]:col-span-4">
+            <div className="grid grid-cols-12 gap-[9px]">
+              <div className="col-span-6">
                 <AnalyticsWidgetCard
                   title={t('dashboard.analytics.forecast30d')}
                   value={analytics?.forecast ? convertAndFormat(analytics.forecast.revenue30d, 'EUR') : '-'}
@@ -1052,8 +1042,8 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                   icon={<Timeline color="primary" />}
                   loading={analyticsLoading}
                 />
-              </Grid>
-              <Grid item xs={6}>
+              </div>
+              <div className="col-span-6">
                 <AnalyticsWidgetCard
                   title={t('dashboard.analytics.optimalPrice')}
                   value={analytics?.pricing ? convertAndFormat(analytics.pricing.optimalPrice, 'EUR') : '-'}
@@ -1061,8 +1051,8 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                   icon={<PriceChange color="success" />}
                   loading={analyticsLoading}
                 />
-              </Grid>
-              <Grid item xs={6}>
+              </div>
+              <div className="col-span-6">
                 <AnalyticsWidgetCard
                   title={t('dashboard.analytics.forecast90d')}
                   value={analytics?.forecast ? convertAndFormat(analytics.forecast.revenue90d, 'EUR') : '-'}
@@ -1070,8 +1060,8 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                   icon={<Timeline color="info" />}
                   loading={analyticsLoading}
                 />
-              </Grid>
-              <Grid item xs={6}>
+              </div>
+              <div className="col-span-6">
                 <AnalyticsWidgetCard
                   title={t('dashboard.analytics.elasticity')}
                   value={analytics?.pricing ? `${analytics.pricing.elasticity.toFixed(2)}` : '-'}
@@ -1079,8 +1069,8 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                   icon={<TuneOutlined color="info" />}
                   loading={analyticsLoading}
                 />
-              </Grid>
-              <Grid item xs={6}>
+              </div>
+              <div className="col-span-6">
                 <AnalyticsWidgetCard
                   title={t('dashboard.analytics.forecast365d')}
                   value={analytics?.forecast ? convertAndFormat(analytics.forecast.revenue365d, 'EUR') : '-'}
@@ -1088,8 +1078,8 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                   icon={<Timeline color="success" />}
                   loading={analyticsLoading}
                 />
-              </Grid>
-              <Grid item xs={6}>
+              </div>
+              <div className="col-span-6">
                 <AnalyticsWidgetCard
                   title={t('dashboard.analytics.forecastOccupancy', 'Occupation prévisionnelle')}
                   value={analytics?.forecast ? `${analytics.forecast.occupancy30d}%` : '-'}
@@ -1097,17 +1087,17 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                   icon={<Hotel color="warning" />}
                   loading={analyticsLoading}
                 />
-              </Grid>
-            </Grid>
-          </Grid>
-        </Grid>
-      </Box>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* ─── Donnees operationnelles ─── */}
-      <Divider sx={{ my: 2.5 }} />
-      <Typography sx={{ ...SECTION_LABEL_SX, mb: 2 }}>
+      <Separator className="my-[15px]" />
+      <p className={cn(SECTION_LABEL_CLASS, 'mb-3')}>
         {t('reports.charts.operationalData', 'Donnees operationnelles')}
-      </Typography>
+      </p>
 
       <DataFetchWrapper
         loading={loading}
@@ -1116,8 +1106,8 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
         loadingMessage={t('reports.charts.loadingData')}
       >
         {data ? (
-          <Grid container spacing={1.5}>
-            <Grid item xs={12} md={6}>
+          <div className="grid grid-cols-12 gap-[9px]">
+            <div className="col-span-12 min-[900px]:col-span-6">
               <ChartCard title={t('reports.charts.revenueByMonth')}>
                 {data.monthlyFinancials.some((m) => m.revenue > 0 || m.expenses > 0) ? (
                   <ResponsiveContainer width="100%" height={280}>
@@ -1146,8 +1136,8 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                   <EmptyChartState message={t('reports.charts.noData')} />
                 )}
               </ChartCard>
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
               <ChartCard title={t('reports.charts.costBreakdown')}>
                 {data.costBreakdown.length > 0 && data.costBreakdown.some((c) => c.value > 0) ? (
                   <ResponsiveContainer width="100%" height={280}>
@@ -1173,8 +1163,8 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                   <EmptyChartState message={t('reports.charts.noData')} />
                 )}
               </ChartCard>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         ) : (
           <EmptyChartState message={t('reports.charts.noData')} description={t('reports.charts.noDataDescription')} />
         )}
@@ -1267,9 +1257,10 @@ const ReportDetails: React.FC = () => {
   // Invalid type
   if (!currentReportType) {
     return (
-      <Box>
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {t('reports.invalidType')}
+      <div>
+        <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{t('reports.invalidType')}</AlertDescription>
         </Alert>
         <PageHeader
           title={t('reports.title')}
@@ -1277,46 +1268,47 @@ const ReportDetails: React.FC = () => {
           backPath="/reports"
           showBackButton={true}
         />
-      </Box>
+      </div>
     );
   }
 
   // Auth loading
   if (authLoading || !permissionChecked) {
     return (
-      <Box>
+      <div>
         <PageHeader
           title={currentReportType.title}
           subtitle={t('reports.sections.' + type + '.description')}
           backPath="/reports"
           showBackButton={true}
         />
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-          <CircularProgress />
-        </Box>
-      </Box>
+        <div className="flex justify-center p-6">
+          <Spinner className="size-10" />
+        </div>
+      </div>
     );
   }
 
   // Permission error
   if (permissionError) {
     return (
-      <Box>
+      <div>
         <PageHeader
           title={currentReportType.title}
           subtitle={t('reports.sections.' + type + '.description')}
           backPath="/reports"
           showBackButton={true}
         />
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {permissionError}
+        <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{permissionError}</AlertDescription>
         </Alert>
-        <Box sx={{ textAlign: 'center', p: 4 }}>
-          <Typography variant="body1" color="text.secondary">
+        <div className="text-center p-6">
+          <p className="cn-text-body1 text-muted-foreground">
             {t('reports.noPermissionMessage')}
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
     );
   }
 
@@ -1324,7 +1316,7 @@ const ReportDetails: React.FC = () => {
   const ReportComponent = currentReportType.component;
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={currentReportType.title}
         subtitle={t('reports.sections.' + type + '.description')}
@@ -1332,7 +1324,7 @@ const ReportDetails: React.FC = () => {
         showBackButton={true}
       />
       <ReportComponent />
-    </Box>
+    </div>
   );
 };
 

@@ -1,4 +1,3 @@
-import { Box, ButtonBase } from '@mui/material';
 import { LayoutTemplate } from 'lucide-react';
 import { GALLERY_TEMPLATES, type GalleryTemplate } from './import/galleryTemplates';
 
@@ -22,41 +21,45 @@ export default function ImportGallery({ onImportTemplate, onDone }: ImportGaller
 
   if (GALLERY_TEMPLATES.length === 0) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, py: 6, textAlign: 'center', color: 'var(--muted)' }}>
+      <div className="flex flex-col items-center gap-1.5 py-9 text-center text-[var(--muted)]">
         <LayoutTemplate size={28} strokeWidth={1.75} style={{ color: 'var(--faint)' }} />
-        <Box sx={{ fontSize: 'var(--text-md)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>Galerie de templates</Box>
-        <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--faint)' }}>Catalogue en cours de constitution.</Box>
-      </Box>
+        <div className="text-[var(--text-md)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">Galerie de templates</div>
+        <div className="text-[var(--text-sm)] text-[var(--faint)]">Catalogue en cours de constitution.</div>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-      <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', lineHeight: 1.5 }}>
+    <div className="flex flex-col gap-2">
+      <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.5]">
         Choisissez un modèle de départ. Le canevas actuel sera remplacé ; vous pourrez tout éditer ensuite.
-      </Box>
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 1.5 }}>
+      </div>
+      <div className="grid grid-cols-[repeat(auto-fill,_minmax(180px,_1fr))] gap-[9px]">
         {GALLERY_TEMPLATES.map((tpl) => (
-          <ButtonBase
+          <button
+            type="button"
             key={tpl.id}
             onClick={() => choose(tpl)}
-            sx={{
-              display: 'flex', flexDirection: 'column', alignItems: 'stretch', textAlign: 'left',
-              border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', overflow: 'hidden', cursor: 'pointer',
-              bgcolor: 'var(--card)', transition: 'border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out)',
-              '&:hover': { borderColor: 'var(--accent)', boxShadow: 'var(--shadow-card)' },
-              '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-            }}
+            className={
+              'flex flex-col items-stretch text-left overflow-hidden cursor-pointer '
+              + 'border border-solid border-[var(--line)] rounded-[var(--radius-md)] bg-[var(--card)] '
+              + '[transition:border-color_var(--duration-fast)_var(--ease-out),box-shadow_var(--duration-fast)_var(--ease-out)] '
+              + 'hover:border-[var(--accent)] hover:shadow-[var(--shadow-card)] '
+              + 'focus-visible:[outline:2px_solid_var(--accent)] focus-visible:[outline-offset:2px]'
+            }
           >
             {/* Aperçu : vignette si fournie, sinon bande d'accent du template. */}
-            <Box sx={{ height: 96, bgcolor: 'var(--field)', backgroundImage: tpl.thumbnail ? `url("${tpl.thumbnail}")` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }} />
-            <Box sx={{ p: 1.25, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-              <Box sx={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>{tpl.name}</Box>
-              {tpl.description ? <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>{tpl.description}</Box> : null}
-            </Box>
-          </ButtonBase>
+            <div
+              className="h-24 bg-[var(--field)] bg-cover bg-center"
+              style={{ backgroundImage: tpl.thumbnail ? `url("${tpl.thumbnail}")` : 'none' }}
+            />
+            <div className="p-2 flex flex-col gap-0.5">
+              <div className="text-[var(--text-sm)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">{tpl.name}</div>
+              {tpl.description ? <div className="text-[var(--text-2xs)] text-[var(--muted)]">{tpl.description}</div> : null}
+            </div>
+          </button>
         ))}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

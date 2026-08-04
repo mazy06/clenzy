@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { Box, Typography } from '@mui/material';
 import type { ToolCallExecuted } from '../../../hooks/useAgent';
 import { KpiSummaryWidget } from './KpiSummaryWidget';
 import { DataTableWidget } from './DataTableWidget';
@@ -121,29 +120,17 @@ const UnknownPayloadFallback: React.FC<{
   if (entries.length === 0) return null;
 
   return (
-    <Box
-      sx={{
-        mt: 1, mb: 1.5,
-        p: 1.5,
-        borderRadius: '10px',
-        border: '1px solid var(--line)',
-        bgcolor: 'var(--card)',
-      }}
-    >
+    <div className="mt-1.5 mb-2 p-2 rounded-[10px] border border-[var(--line)] bg-[var(--card)]">
       {entries.map(([k, v]) => (
-        <Box key={k} sx={{ display: 'flex', gap: 1, py: 0.25 }}>
-          <Typography
-            sx={{ minWidth: 100, color: 'var(--muted)', fontSize: '11.5px', lineHeight: 1.6 }}
-          >
+        <div className="flex gap-1.5 py-0.5" key={k}>
+          <p className="cn-text-body1 min-w-[100px] text-[var(--muted)] text-[11.5px] leading-[1.6]">
             {k}
-          </Typography>
-          <Typography
-            sx={{ fontSize: '12.5px', color: 'var(--body)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}
-          >
+          </p>
+          <p className="cn-text-body1 text-[12.5px] text-[var(--body)] font-medium tabular-nums">
             {String(v)}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       ))}
-    </Box>
+    </div>
   );
 };

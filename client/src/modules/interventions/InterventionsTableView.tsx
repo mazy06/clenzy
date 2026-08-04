@@ -1,7 +1,13 @@
 import React from 'react';
+import StatusChip from '../../components/StatusChip';
 import {
-  Box, Typography, Chip, Tooltip, IconButton, LinearProgress,
-  Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, } from '@mui/material';
+  Button,
+  Progress,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility as VisibilityIcon, MoreVert } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -12,7 +18,7 @@ import {
   getInterventionTypeLabel,
 } from '../../utils/statusUtils';
 import { getStatusTokens, getPriorityTokens, getTypeTokens } from './interventionUtils';
-import { LIST_PAPER_SX, stripPropertySuffix, formatDateShort, getProgress } from './interventionsListConstants';
+import { stripPropertySuffix, formatDateShort, getProgress } from './interventionsListConstants';
 import PagePagination from '../../components/PagePagination';
 
 interface InterventionsTableViewProps {
@@ -33,172 +39,138 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
   const { t } = useTranslation();
 
   return (
-    <Paper ref={containerRef} sx={{ ...LIST_PAPER_SX, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <TableContainer sx={{ flex: 1, overflow: 'hidden' }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow
-              sx={{
-                '& th': {
-                  fontWeight: 700,
-                  fontSize: '0.65625rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  color: 'var(--faint)',
-                  borderBottom: '1px solid var(--line)',
-                  whiteSpace: 'nowrap',
-                },
-              }}
-            >
-              <TableCell>Titre</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Propriété</TableCell>
-              <TableCell>Assigné à</TableCell>
-              <TableCell align="center">Statut</TableCell>
-              <TableCell align="center">Priorité</TableCell>
-              <TableCell align="center">Progression</TableCell>
-              <TableCell>Planifié le</TableCell>
-              <TableCell align="center">Actions</TableCell>
+    <div
+      ref={containerRef}
+      className="border border-solid border-[var(--line)] rounded-[14px] bg-[var(--card)] flex-1 min-h-0 flex flex-col overflow-hidden"
+    >
+      <div className="flex-1 overflow-hidden">
+        <Table>
+          <TableHeader>
+            {/* Le gabarit du kit porte deja poids/taille/casse/filet : seuls
+                l'interlettrage 0.06em et le nowrap etaient un ajout du sx. */}
+            <TableRow className="[&>th]:tracking-[0.06em] [&>th]:whitespace-nowrap">
+              <TableHead>Titre</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Propriété</TableHead>
+              <TableHead>Assigné à</TableHead>
+              <TableHead className="text-center">Statut</TableHead>
+              <TableHead className="text-center">Priorité</TableHead>
+              <TableHead className="text-center">Progression</TableHead>
+              <TableHead>Planifié le</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {interventions.map((intervention) => {
               if (!intervention?.id) return null;
               return (
                 <TableRow
                   key={intervention.id}
-                  hover
-                  sx={{
-                    cursor: 'pointer',
-                    '&:last-child td': { borderBottom: 0 },
-                  }}
+                  className="cursor-pointer"
                   onClick={() => navigate(`/interventions/${intervention.id}`)}
                 >
                   <TableCell>
-                    <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.82rem' }}>
+                    <p className="cn-text-body2 font-semibold text-[0.82rem]">
                       {stripPropertySuffix(intervention.title, intervention.propertyName)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
+                    </p>
+                    <span className="cn-text-caption text-muted-foreground text-[0.68rem]">
                       {intervention.requestorName}
-                    </Typography>
+                    </span>
                   </TableCell>
                   <TableCell>
                     {(() => { const tk = getTypeTokens(intervention.type); return (
-                    <Chip
-                      label={getInterventionTypeLabel(intervention.type, t)}
-                      size="small"
-                      sx={{
-                        backgroundColor: tk.bg,
-                        color: tk.color,
-                        borderRadius: '6px',
-                        fontWeight: 600,
-                        fontSize: '0.62rem',
-                        height: 22,
-                        '& .MuiChip-label': { px: 0.75 },
-                      }}
-                    />
+                    <StatusChip tokens={{ color: tk.color, bg: tk.bg }} label={getInterventionTypeLabel(intervention.type, t)} className="text-[0.62rem]" />
                     ); })()}
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                    <p className="cn-text-body2 text-[0.82rem]">
                       {intervention.propertyName}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
+                    </p>
+                    <span className="cn-text-caption text-muted-foreground text-[0.68rem]">
                       {intervention.propertyAddress}
-                    </Typography>
+                    </span>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                    <p className="cn-text-body2 text-[0.82rem]">
                       {intervention.assignedToName || '—'}
-                    </Typography>
+                    </p>
                     {intervention.assignedToType && (
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
+                      <span className="cn-text-caption text-muted-foreground text-[0.68rem]">
                         {intervention.assignedToType === 'team' ? 'Équipe' : 'Utilisateur'}
-                      </Typography>
+                      </span>
                     )}
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell className="text-center">
                     {(() => { const tk = getStatusTokens(intervention.status); return (
-                      <Chip
-                        label={getInterventionStatusLabel(intervention.status, t)}
-                        size="small"
-                        sx={{
-                          backgroundColor: tk.bg,
-                          color: tk.color,
-                          borderRadius: '6px',
-                          fontWeight: 600,
-                          fontSize: '0.75rem',
-                          height: 24,
-                          '& .MuiChip-label': { px: 1 },
-                        }}
-                      />
+                      <StatusChip tokens={{ color: tk.color, bg: tk.bg }} label={getInterventionStatusLabel(intervention.status, t)} className="text-[0.75rem] h-[24px]" />
                     ); })()}
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell className="text-center">
                     {(() => { const tk = getPriorityTokens(intervention.priority); return (
-                      <Chip
-                        label={getInterventionPriorityLabel(intervention.priority, t)}
-                        size="small"
-                        sx={{
-                          backgroundColor: tk.bg,
-                          color: tk.color,
-                          borderRadius: '6px',
-                          fontWeight: 600,
-                          fontSize: '0.75rem',
-                          height: 24,
-                          '& .MuiChip-label': { px: 1 },
-                        }}
-                      />
+                      <StatusChip tokens={{ color: tk.color, bg: tk.bg }} label={getInterventionPriorityLabel(intervention.priority, t)} className="text-[0.75rem] h-[24px]" />
                     ); })()}
                   </TableCell>
-                  <TableCell align="center">
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 80 }}>
-                      <LinearProgress
-                        variant="determinate"
+                  <TableCell className="text-center">
+                    <div className="flex items-center gap-1 min-w-[80px]">
+                      {/* La teinte de la barre depend de l'avancement : elle passe
+                          par une custom property, une classe Tailwind ne pouvant
+                          pas naitre d'une valeur calculee. */}
+                      <Progress
                         value={getProgress(intervention)}
-                        sx={{
-                          flex: 1,
-                          height: 6,
-                          borderRadius: 3,
-                          bgcolor: 'var(--hover)',
-                          '& .MuiLinearProgress-bar': {
-                            borderRadius: 3,
-                            bgcolor: getProgress(intervention) === 100 ? 'var(--ok)'
+                        style={{
+                          '--progress-tint':
+                            getProgress(intervention) === 100 ? 'var(--ok)'
                               : getProgress(intervention) >= 50 ? 'var(--info)' : 'var(--warn)',
-                          },
-                        }}
+                        } as React.CSSProperties}
+                        className="flex-1 h-1.5 rounded-full bg-[var(--hover)] [&>[data-slot=progress-indicator]]:rounded-full [&>[data-slot=progress-indicator]]:bg-[var(--progress-tint)]"
                       />
-                      <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.68rem', minWidth: 28, fontVariantNumeric: 'tabular-nums' }}>
+                      <span className="cn-text-caption font-semibold text-[0.68rem] min-w-[28px] tabular-nums">
                         {getProgress(intervention)}%
-                      </Typography>
-                    </Box>
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                    <p className="cn-text-body2 text-[0.82rem]">
                       {formatDateShort(intervention.scheduledDate)}
-                    </Typography>
+                    </p>
                     {intervention.estimatedDurationHours > 0 && (
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
+                      <span className="cn-text-caption text-muted-foreground text-[0.68rem]">
                         ~{intervention.estimatedDurationHours}h
-                      </Typography>
+                      </span>
                     )}
                   </TableCell>
-                  <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
-                    <Tooltip title="Détails">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
-                      >
-                        <VisibilityIcon size={18} strokeWidth={1.75} />
-                      </IconButton>
+                  <TableCell className="text-center whitespace-nowrap">
+                    {/* span intermediaire : TooltipTrigger asChild pose une ref DOM,
+                        que le Button du kit (fonction, React 18) ne transmet pas. */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Détails"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
+                          >
+                            <VisibilityIcon size={18} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Détails</TooltipContent>
                     </Tooltip>
-                    <Tooltip title="Actions">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => { e.stopPropagation(); onMenuOpen(e, intervention); }}
-                      >
-                        <MoreVert size={18} strokeWidth={1.75} />
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Actions"
+                            onClick={(e) => { e.stopPropagation(); onMenuOpen(e, intervention); }}
+                          >
+                            <MoreVert size={18} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Actions</TooltipContent>
                     </Tooltip>
                   </TableCell>
                 </TableRow>
@@ -206,14 +178,14 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
             })}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
       <PagePagination
         count={totalCount}
         page={page}
         onPageChange={(p) => onPageChange(p)}
         rowsPerPage={rowsPerPage}
       />
-    </Paper>
+    </div>
   );
 };
 

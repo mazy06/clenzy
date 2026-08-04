@@ -1,22 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  Chip,
-  CircularProgress,
-  IconButton,
-  MenuItem,
-  Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography,
-} from '@mui/material';
+import StatusChip from '../../components/StatusChip';
+import { Alert, AlertDescription, Button, Field, FieldLabel, Input } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Card, NativeSelect, NativeSelectOption } from '../../components/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BarChart as BarChartIcon, Delete as DeleteIcon } from '../../icons';
 import EmptyState from '../../components/EmptyState';
@@ -32,7 +20,6 @@ import {
 const DIMENSIONS: ReportDimension[] = ['PROPERTY', 'CHANNEL', 'PERIOD', 'COUNTRY'];
 const METRICS: ReportMetric[] = ['REVENUE', 'ADR', 'REVPAR', 'OCCUPANCY', 'FEES', 'MARGIN'];
 const GRANULARITIES: ReportGranularity[] = ['DAY', 'WEEK', 'MONTH', 'YEAR'];
-const NUM_SX = { fontVariantNumeric: 'tabular-nums' } as const;
 
 const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -104,70 +91,80 @@ const CustomReport: React.FC = () => {
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <div className="flex flex-col gap-2">
       {/* ── Définition ── */}
-      <Card variant="outlined" sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-        <Box>
-          <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+      <Card className="p-[9px] gap-[7.5px] [--card-spacing:0px]">
+        <div>
+          <span className="cn-text-caption text-[var(--muted)]">
             {t('reports.custom.dimensionsLabel', 'Dimensions')}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mt: 0.5 }}>
+          </span>
+          <div className="flex gap-1 flex-wrap mt-0.5">
             {DIMENSIONS.map((d) => (
-              <Chip
+              <StatusChip
                 key={d}
+                outlined
+                selected={dimensions.includes(d)}
+                pressed={dimensions.includes(d)}
+                tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
                 label={dimensionLabel(d)}
-                size="small"
-                color={dimensions.includes(d) ? 'primary' : 'default'}
-                variant={dimensions.includes(d) ? 'filled' : 'outlined'}
                 onClick={() => toggle(dimensions, d, setDimensions)}
-                sx={{ cursor: 'pointer' }}
               />
             ))}
-          </Box>
-        </Box>
-        <Box>
-          <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+          </div>
+        </div>
+        <div>
+          <span className="cn-text-caption text-[var(--muted)]">
             {t('reports.custom.metricsLabel', 'Métriques')}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mt: 0.5 }}>
+          </span>
+          <div className="flex gap-1 flex-wrap mt-0.5">
             {METRICS.map((m) => (
-              <Chip
+              <StatusChip
                 key={m}
+                outlined
+                selected={metrics.includes(m)}
+                pressed={metrics.includes(m)}
+                tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
                 label={metricLabel(m)}
-                size="small"
-                color={metrics.includes(m) ? 'primary' : 'default'}
-                variant={metrics.includes(m) ? 'filled' : 'outlined'}
                 onClick={() => toggle(metrics, m, setMetrics)}
-                sx={{ cursor: 'pointer' }}
               />
             ))}
-          </Box>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-          <Select size="small" value={granularity} onChange={(e) => setGranularity(e.target.value as ReportGranularity)}>
+          </div>
+        </div>
+        {/* items-end : les libelles passent AU-DESSUS des champs, les boutons
+            doivent donc s'aligner sur le bas de la rangee, plus sur son milieu. */}
+        <div className="flex gap-1.5 flex-wrap items-end">
+          {/* Le champ n'a jamais porte de libelle visible : l'intitule reste
+              accessible par aria-label, comme cote MUI. */}
+          <NativeSelect
+            size="sm"
+            aria-label={t('reports.custom.granularityLabel', 'Granularité')}
+            value={granularity}
+            onChange={(e) => setGranularity(e.target.value as ReportGranularity)}
+          >
             {GRANULARITIES.map((g) => (
-              <MenuItem key={g} value={g}>{t(`reports.custom.granularities.${g}`, g)}</MenuItem>
+              <NativeSelectOption key={g} value={g}>{t(`reports.custom.granularities.${g}`, g)}</NativeSelectOption>
             ))}
-          </Select>
-          <TextField
-            size="small"
-            type="date"
-            label={t('reports.custom.from', 'Du')}
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            size="small"
-            type="date"
-            label={t('reports.custom.to', 'Au')}
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
+          </NativeSelect>
+          <Field className="w-40">
+            <FieldLabel htmlFor="custom-report-from">{t('reports.custom.from', 'Du')}</FieldLabel>
+            <Input
+              id="custom-report-from"
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+            />
+          </Field>
+          <Field className="w-40">
+            <FieldLabel htmlFor="custom-report-to">{t('reports.custom.to', 'Au')}</FieldLabel>
+            <Input
+              id="custom-report-to"
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+            />
+          </Field>
           <Button
-            variant="contained"
-            size="small"
+            size="sm"
             disabled={!canRun || runMutation.isPending}
             onClick={() => runMutation.mutate()}
           >
@@ -175,59 +172,61 @@ const CustomReport: React.FC = () => {
               ? t('reports.custom.running', 'Calcul…')
               : t('reports.custom.run', 'Exécuter')}
           </Button>
-          <Box sx={{ flex: 1 }} />
-          <TextField
-            size="small"
+          <div className="flex-1" />
+          <Input
+            id="custom-report-view-name"
+            className="w-48"
             placeholder={t('reports.custom.viewNamePlaceholder', 'Nom de la vue')}
+            aria-label={t('reports.custom.viewNamePlaceholder', 'Nom de la vue')}
             value={viewName}
             onChange={(e) => setViewName(e.target.value)}
           />
           <Button
-            variant="outlined"
-            size="small"
+            variant="outline"
+            size="sm"
             disabled={!canRun || viewName.trim().length === 0 || saveMutation.isPending}
             onClick={() => saveMutation.mutate()}
           >
             {t('reports.custom.save', 'Sauvegarder')}
           </Button>
-        </Box>
+        </div>
         {(viewsQuery.data?.length ?? 0) > 0 && (
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+          <div className="flex gap-1 flex-wrap items-center">
+            <span className="cn-text-caption text-[var(--muted)]">
               {t('reports.custom.savedViews', 'Vues sauvegardées :')}
-            </Typography>
+            </span>
             {viewsQuery.data?.map((v) => (
-              <Chip
+              <StatusChip
                 key={v.id}
+                outlined
+                tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
                 label={v.name}
-                size="small"
-                variant="outlined"
                 onClick={() => loadView(v.id)}
                 onDelete={() => deleteMutation.mutate(v.id)}
-                deleteIcon={<DeleteIcon size={14} />}
-                sx={{ cursor: 'pointer' }}
+                deleteLabel={t('reports.custom.deleteView', 'Supprimer la vue')}
               />
             ))}
-          </Box>
+          </div>
         )}
       </Card>
 
       {/* ── Résultat ── */}
       {runMutation.isError && (
-        <Alert severity="error">
-          {t('reports.custom.runError', "L'exécution du rapport a échoué.")}
+        <Alert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>{t('reports.custom.runError', "L'exécution du rapport a échoué.")}</AlertDescription>
         </Alert>
       )}
       {runMutation.isPending && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={28} />
-        </Box>
+        <div className="flex justify-center py-6">
+          <Spinner className="size-7" />
+        </div>
       )}
       {result && !runMutation.isPending && (
-        <Card variant="outlined" sx={{ p: 1.5 }}>
-          <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+        <Card className="p-[9px] [--card-spacing:0px]">
+          <span className="cn-text-caption text-[var(--muted)]">
             {t('reports.custom.resultCurrency', 'Montants en')} {result.currency}
-          </Typography>
+          </span>
           {result.rows.length === 0 ? (
             <EmptyState
               icon={<BarChartIcon />}
@@ -235,26 +234,26 @@ const CustomReport: React.FC = () => {
               variant="plain"
             />
           ) : (
-            <Box sx={{ overflowX: 'auto' }}>
-              <Table size="small">
-                <TableHead>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
                     {result.dimensions.map((d) => (
-                      <TableCell key={d}>{dimensionLabel(d)}</TableCell>
+                      <TableHead key={d}>{dimensionLabel(d)}</TableHead>
                     ))}
                     {result.metrics.map((m) => (
-                      <TableCell key={m} align="right">{metricLabel(m)}</TableCell>
+                      <TableHead key={m} className="text-end">{metricLabel(m)}</TableHead>
                     ))}
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {result.rows.map((row) => (
-                    <TableRow key={row.dimensionValues.join('|')} hover>
+                    <TableRow key={row.dimensionValues.join('|')}>
                       {row.dimensionValues.map((value, i) => (
                         <TableCell key={`${i}-${value}`}>{value}</TableCell>
                       ))}
                       {result.metrics.map((m) => (
-                        <TableCell key={m} align="right" sx={NUM_SX}>
+                        <TableCell key={m} className="text-end tabular-nums">
                           {formatValue(m, row.metrics[m])}
                         </TableCell>
                       ))}
@@ -262,7 +261,7 @@ const CustomReport: React.FC = () => {
                   ))}
                 </TableBody>
               </Table>
-            </Box>
+            </div>
           )}
         </Card>
       )}
@@ -276,7 +275,7 @@ const CustomReport: React.FC = () => {
           )}
         />
       )}
-    </Box>
+    </div>
   );
 };
 

@@ -1,20 +1,14 @@
 import React, { useMemo, useRef, useState } from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  Button,
-  Alert,
-  Chip,
-  CircularProgress,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-} from '@mui/material';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { Badge } from '../../components/ui';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Card } from '../../components/ui';
+import { Button } from '../../components/ui';
+import { Skeleton } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { AccountBalance, CheckCircle, Refresh } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { loadConnectAndInitialize } from '@stripe/connect-js';
@@ -105,170 +99,161 @@ export default function MyProPayoutsSettings() {
 
   if (payoutsQuery.isLoading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Skeleton variant="rounded" height={140} sx={{ borderRadius: '13px' }} />
-        <Skeleton variant="rounded" height={220} sx={{ borderRadius: '13px' }} />
-      </Box>
+      <div className="flex flex-col gap-3">
+        <Skeleton className="h-[140px] w-full rounded-[13px]" />
+        <Skeleton className="h-[220px] w-full rounded-[13px]" />
+      </div>
     );
   }
   if (payoutsQuery.isError) {
-    return <Alert severity="error">{t('settings.myProPayouts.loadError')}</Alert>;
+    return <Alert variant="destructive">
+      <TriangleAlert />
+      <AlertDescription>{t('settings.myProPayouts.loadError')}</AlertDescription>
+    </Alert>;
   }
 
   const statusChip = data?.onboardingCompleted ? (
-    <Chip
-      size="small"
-      icon={<CheckCircle size={13} strokeWidth={2} />}
-      label={t('settings.myProPayouts.statusComplete')}
-      sx={{ bgcolor: 'color-mix(in srgb, var(--ok, #4A9B8E) 12%, transparent)', color: 'var(--ok, #4A9B8E)', fontWeight: 700 }}
-    />
+    <StatusChip tokens={{ color: 'var(--ok, #4A9B8E)', bg: 'color-mix(in srgb, var(--ok, #4A9B8E) 12%, transparent)' }} label={t('settings.myProPayouts.statusComplete')} icon={<CheckCircle size={13} strokeWidth={2} />} />
   ) : data?.accountCreated ? (
-    <Chip size="small" label={t('settings.myProPayouts.statusInProgress')}
-      sx={{ bgcolor: 'var(--field)', color: 'var(--muted)', fontWeight: 700 }} />
+    <Badge variant="secondary" className="bg-[var(--field)] text-[var(--muted)] font-bold">{t('settings.myProPayouts.statusInProgress')}</Badge>
   ) : (
-    <Chip size="small" label={t('settings.myProPayouts.statusNotStarted')}
-      sx={{ bgcolor: 'var(--field)', color: 'var(--muted)', fontWeight: 700 }} />
+    <Badge variant="secondary" className="bg-[var(--field)] text-[var(--muted)] font-bold">{t('settings.myProPayouts.statusNotStarted')}</Badge>
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div className="flex flex-col gap-3">
       {/* ── Compte de versement (onboarding embarqué) ─────────────────────── */}
-      <Paper id="pro-onboarding" sx={{ border: '1px solid var(--line)', boxShadow: 'none', borderRadius: '13px', p: 2.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1, flexWrap: 'wrap' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
+      <Card className="gap-0 py-0 p-3.5" id="pro-onboarding">
+        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+          <span className="inline-flex text-[var(--accent)]">
             <AccountBalance size={18} strokeWidth={1.75} />
-          </Box>
-          <Typography sx={{ fontWeight: 600, fontSize: '14px', color: 'var(--ink)' }}>
+          </span>
+          <p className="cn-text-body1 font-semibold text-[14px] text-[var(--ink)]">
             {t('settings.myProPayouts.accountSection')}
-          </Typography>
+          </p>
           {statusChip}
-          <Box sx={{ marginInlineStart: 'auto', display: 'flex', gap: 1 }}>
+          <div className="ms-auto flex gap-1.5">
             {data?.accountCreated && !data?.onboardingCompleted && (
               <Button
-                size="small"
-                variant="text"
-                startIcon={refreshMutation.isPending ? <CircularProgress size={14} /> : <Refresh size={14} strokeWidth={1.75} />}
+                variant="ghost"
+                size="sm"
                 onClick={() => refreshMutation.mutate()}
                 disabled={refreshMutation.isPending}
               >
+                {refreshMutation.isPending ? <Spinner className="size-3.5" /> : <Refresh size={14} strokeWidth={1.75} />}
                 {t('settings.myProPayouts.refreshStatus')}
               </Button>
             )}
             {!data?.onboardingCompleted && (
               <Button
-                size="small"
-                variant="contained"
+                variant="default"
+                size="sm"
                 onClick={startOnboarding}
                 disabled={initializing || onboardingOpen}
-                startIcon={initializing ? <CircularProgress size={14} color="inherit" /> : undefined}
               >
+                {initializing ? <Spinner className="size-3.5" /> : null}
                 {data?.accountCreated
                   ? t('settings.myProPayouts.resumeOnboarding')
                   : t('settings.myProPayouts.startOnboarding')}
               </Button>
             )}
-          </Box>
-        </Box>
-        <Typography sx={{ fontSize: '12px', color: 'var(--muted)' }}>
+          </div>
+        </div>
+        <p className="cn-text-body1 text-[12px] text-[var(--muted)]">
           {t('settings.myProPayouts.accountHint')}
-        </Typography>
+        </p>
 
         {onboardingError && (
-          <Alert severity="error" sx={{ mt: 1.5, fontSize: '12.5px' }}>{onboardingError}</Alert>
+          <Alert variant="destructive" className="mt-2 text-[12.5px]">
+            <TriangleAlert />
+            <AlertDescription>{onboardingError}</AlertDescription>
+          </Alert>
         )}
 
         {/* Conteneur du composant Stripe embarqué — le pro reste dans Baitly. */}
-        <Box
-          ref={containerRef}
-          sx={{ mt: onboardingOpen ? 2 : 0, minHeight: onboardingOpen ? 420 : 0, transition: 'min-height .2s' }}
-        />
-      </Paper>
+        <div className={cn(onboardingOpen ? 'mt-3' : 'mt-0', onboardingOpen ? 'min-h-[420px]' : 'min-h-0')} style={{ transition: 'min-height .2s' }} ref={containerRef} />
+      </Card>
 
       {/* ── Historique des versements ─────────────────────────────────────── */}
-      <Paper sx={{ border: '1px solid var(--line)', boxShadow: 'none', borderRadius: '13px', overflow: 'hidden' }}>
-        <Box sx={{ px: 2.5, pt: 2, pb: 1 }}>
-          <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}>
+      <Card className="gap-0 py-0 overflow-hidden">
+        <div className="px-3.5 pt-3 pb-1.5">
+          <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
             {t('settings.myProPayouts.historySection')}
-          </Typography>
-        </Box>
+          </p>
+        </div>
         {records.length === 0 ? (
-          <Typography sx={{ px: 2.5, pb: 2.5, fontSize: '12.5px', color: 'var(--muted)', fontStyle: 'italic' }}>
+          <p className="cn-text-body1 px-3.5 pb-3.5 text-[12.5px] text-[var(--muted)] italic">
             {t('settings.myProPayouts.noPayouts')}
-          </Typography>
+          </p>
         ) : (
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>{t('settings.myProPayouts.colDate')}</TableCell>
-                  <TableCell>{t('settings.myProPayouts.colMission')}</TableCell>
-                  <TableCell align="right">{t('settings.myProPayouts.colAmount')}</TableCell>
-                  <TableCell align="right">{t('settings.myProPayouts.colCommission')}</TableCell>
-                  <TableCell>{t('settings.myProPayouts.colStatus')}</TableCell>
+                  <TableHead>{t('settings.myProPayouts.colDate')}</TableHead>
+                  <TableHead>{t('settings.myProPayouts.colMission')}</TableHead>
+                  <TableHead className="text-end">{t('settings.myProPayouts.colAmount')}</TableHead>
+                  <TableHead className="text-end">{t('settings.myProPayouts.colCommission')}</TableHead>
+                  <TableHead>{t('settings.myProPayouts.colStatus')}</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
+                {/* Le filet de la derniere ligne est deja retire par le primitif. */}
                 {records.map((record) => (
-                  <TableRow key={record.id} hover sx={{ '&:last-child td': { borderBottom: 0 } }}>
-                    <TableCell sx={{ fontVariantNumeric: 'tabular-nums', fontSize: '12.5px' }}>
+                  <TableRow key={record.id}>
+                    <TableCell className="tabular-nums">
                       {new Date(record.createdAt).toLocaleDateString('fr-FR')}
                     </TableCell>
-                    <TableCell sx={{ fontSize: '12.5px' }}>
+                    <TableCell>
                       <a href={`/interventions/${record.interventionId}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>
                         #{record.interventionId}
                       </a>
                     </TableCell>
-                    <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, fontSize: '12.5px' }}>
+                    <TableCell className="text-end tabular-nums font-semibold">
                       {record.amount} €
                     </TableCell>
-                    <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums', fontSize: '12.5px', color: 'var(--muted)' }}>
+                    <TableCell className="text-end tabular-nums text-[var(--muted)]">
                       {record.commissionAmount > 0 ? `−${record.commissionAmount} €` : '—'}
                     </TableCell>
                     <TableCell>
-                      <Box component="span" sx={{
-                        fontSize: '10.5px', fontWeight: 700, borderRadius: '7px', padding: '2px 7px',
-                        color: STATUS_COLOR[record.status],
-                        backgroundColor: `color-mix(in srgb, ${STATUS_COLOR[record.status]} 12%, transparent)`,
-                        whiteSpace: 'nowrap',
-                      }}>
+                      {/* Couleurs derivees du statut a l'execution : inline, pas de classe. */}
+                      <span
+                        className="text-[10.5px] font-bold rounded-[7px] py-[2px] px-[7px] whitespace-nowrap"
+                        style={{
+                          color: STATUS_COLOR[record.status],
+                          backgroundColor: `color-mix(in srgb, ${STATUS_COLOR[record.status]} 12%, transparent)`,
+                        }}
+                      >
                         {t(`settings.myProPayouts.status.${record.status}`)}
                         {record.status === 'BLOCKED' && record.failureReason
                           ? ` · ${t(`settings.myProPayouts.reason.${record.failureReason}`, record.failureReason)}`
                           : ''}
-                      </Box>
+                      </span>
                       {record.status === 'BLOCKED' && record.failureReason === 'PROOF_MISSING' && (
-                        <Box sx={{ mt: 0.5 }}>
+                        <div className="mt-0.5">
                           <a
                             href={`/interventions/${record.interventionId}`}
                             style={{ fontSize: '11.5px', color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}
                           >
                             {t('settings.myProPayouts.completeMission')}
                           </a>
-                        </Box>
+                        </div>
                       )}
                       {record.status === 'BLOCKED' && record.failureReason === 'ONBOARDING_INCOMPLETE' && (
-                        <Box sx={{ mt: 0.5 }}>
-                          <Box
-                            component="button"
-                            type="button"
-                            onClick={() => document.getElementById('pro-onboarding')?.scrollIntoView({ behavior: 'smooth' })}
-                            sx={{
-                              background: 'none', border: 'none', p: 0, cursor: 'pointer',
-                              fontSize: '11.5px', color: 'var(--accent)', fontWeight: 600, fontFamily: 'inherit',
-                            }}
-                          >
+                        <div className="mt-0.5">
+                          <button className="border-none p-0 cursor-pointer text-[11.5px] text-[var(--accent)] font-semibold" style={{ background: 'none', fontFamily: 'inherit' }} type="button" onClick={() => document.getElementById('pro-onboarding')?.scrollIntoView({ behavior: 'smooth' })}>
                             {t('settings.myProPayouts.finishOnboarding')}
-                          </Box>
-                        </Box>
+                          </button>
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
         )}
-      </Paper>
-    </Box>
+      </Card>
+    </div>
   );
 }

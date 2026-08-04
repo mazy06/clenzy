@@ -49,8 +49,17 @@ async function getConfig(): Promise<SupervisionConfig | null> {
 /**
  * Applique un niveau d'autonomie : `'all'` → tous les agents, sinon l'agent ciblé.
  * Best-effort : renvoie true si persisté (PUT ok), false sinon (l'appelant garde l'état).
+ *
+ * La PLEINE autonomie ne passe PAS par ce PUT (le serveur l'y refuse sans
+ * acceptation tracée) : elle est routée vers l'endpoint de consentement, qui
+ * enregistre qui accepte, quand et sur quel texte. En masse (`'all'`), elle est
+ * refusée tout court — on n'engage pas la responsabilité de l'organisation sur
+ * dix agents d'un seul clic.
  */
 export async function applyAutonomy(target: AgentId | 'all', level: AutonomyLevel): Promise<boolean> {
+  if (level === 'full') {
+    return target === 'all' ? false : acceptFullAutonomy(target);
+  }
   const config = await getConfig();
   if (!config) return false;
   const modules = config.modules.map((m) =>
@@ -63,6 +72,35 @@ export async function applyAutonomy(target: AgentId | 'all', level: AutonomyLeve
       headers: authHeaders(true),
       body: JSON.stringify({ ...config, modules }),
     });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Version du texte d'avertissement de la pleine autonomie. À INCRÉMENTER dès
+ * que le texte change : une acceptation ne vaut que pour ce qui a été lu, et
+ * la trace serveur conserve la version acceptée.
+ */
+export const FULL_AUTONOMY_NOTICE_VERSION = '2026-08-v1';
+
+/**
+ * Acceptation de la pleine autonomie d'un agent : le serveur trace l'auteur,
+ * l'instant et la version du texte, PUIS applique le niveau. Passer par un PUT
+ * de config ne suffit pas — le serveur y refuse FULL sans trace.
+ */
+export async function acceptFullAutonomy(agentId: AgentId): Promise<boolean> {
+  try {
+    const res = await fetch(
+      buildApiUrl(`/ai/supervision/modules/${agentId}/full-autonomy-consent`),
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: authHeaders(true),
+        body: JSON.stringify({ noticeVersion: FULL_AUTONOMY_NOTICE_VERSION }),
+      },
+    );
     return res.ok;
   } catch {
     return false;

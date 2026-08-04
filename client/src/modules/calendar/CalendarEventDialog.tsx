@@ -1,15 +1,15 @@
 import React from 'react';
+import StatusChip from '../../components/StatusChip';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
-  Box,
-  Typography,
-  Chip,
-  Divider,
-} from '@mui/material';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Separator,
+} from '../../components/ui';
 import {
   LocationOn as LocationIcon,
   Person as PersonIcon,
@@ -42,11 +42,12 @@ const pillSx = (bg: string, color: string) => ({
 });
 
 /** Couleur sémantique MUI → pilule soft (primary = accent thémable). */
-const chipColorSx = (color: ChipColor) => {
-  if (color === 'primary') return pillSx('var(--accent-soft)', 'var(--accent)');
-  if (color === 'default') return pillSx('var(--field)', 'var(--muted)');
+/** Tokens de la primitive pour une couleur semantique MUI historique. */
+const chipColorTokens = (color: ChipColor) => {
+  if (color === 'primary') return { color: 'var(--accent)', bg: 'var(--accent-soft)' };
+  if (color === 'default') return { color: 'var(--muted)', bg: 'var(--field)' };
   const hex = semanticToHex(color);
-  return pillSx(`${hex}1F`, hex);
+  return { color: hex, bg: `${hex}1F` };
 };
 
 interface CalendarEventDialogProps {
@@ -110,105 +111,85 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      {/* Titre display + filets : portés par le thème global */}
-      <DialogTitle>{intervention.title}</DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle className="pe-8">{intervention.title}</DialogTitle>
+          <DialogDescription>{intervention.propertyName}</DialogDescription>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: '16px !important' }}>
         {/* Chips: Status, Priority, Type — pilules soft (jamais d'aplat plein) */}
-        <Box display="flex" gap={0.75} mb={2} flexWrap="wrap">
-          <Chip
-            label={getStatusLabel(intervention.status)}
-            size="small"
-            sx={chipColorSx(getStatusChipColor(intervention.status))}
-          />
-          <Chip
-            label={getPriorityLabel(intervention.priority)}
-            size="small"
-            sx={chipColorSx(getPriorityChipColor(intervention.priority))}
-          />
-          <Chip
-            label={getTypeLabel(intervention.type, t)}
-            size="small"
-            sx={chipColorSx('primary')}
-          />
-        </Box>
+        <div className="flex gap-[4.5px] mb-3 flex-wrap">
+          <StatusChip pill tokens={chipColorTokens(getStatusChipColor(intervention.status))} label={getStatusLabel(intervention.status)} />
+          <StatusChip pill tokens={chipColorTokens(getPriorityChipColor(intervention.priority))} label={getPriorityLabel(intervention.priority)} />
+          <StatusChip pill tokens={chipColorTokens('primary')} label={getTypeLabel(intervention.type, t)} />
+        </div>
 
-        <Divider sx={{ mb: 2 }} />
+        <Separator className="mb-3" />
 
         {/* Property */}
-        <Box display="flex" alignItems="center" mb={1.5}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><LocationIcon size={18} strokeWidth={1.75} /></Box>
-          <Box>
-            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+        <div className="flex items-center mb-[9px]">
+          <span className="inline-flex text-muted-foreground me-1.5"><LocationIcon size={18} strokeWidth={1.75} /></span>
+          <div>
+            <p className="cn-text-body2 font-medium">
               {intervention.propertyName}
-            </Typography>
+            </p>
             {intervention.propertyAddress && (
-              <Typography variant="caption" color="text.secondary">
+              <span className="cn-text-caption text-muted-foreground">
                 {intervention.propertyAddress}
-              </Typography>
+              </span>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* Scheduled date */}
-        <Box display="flex" alignItems="center" mb={1.5}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><CalendarIcon size={18} strokeWidth={1.75} /></Box>
-          <Typography variant="body2">
+        <div className="flex items-center mb-[9px]">
+          <span className="inline-flex text-muted-foreground me-1.5"><CalendarIcon size={18} strokeWidth={1.75} /></span>
+          <p className="cn-text-body2">
             {formatDate(intervention.scheduledDate)}
-          </Typography>
-        </Box>
+          </p>
+        </div>
 
         {/* Duration */}
-        <Box display="flex" alignItems="center" mb={1.5}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><ScheduleIcon size={18} strokeWidth={1.75} /></Box>
-          <Typography variant="body2">
+        <div className="flex items-center mb-[9px]">
+          <span className="inline-flex text-muted-foreground me-1.5"><ScheduleIcon size={18} strokeWidth={1.75} /></span>
+          <p className="cn-text-body2">
             {formatDuration(intervention.estimatedDurationHours)}
-          </Typography>
-        </Box>
+          </p>
+        </div>
 
         {/* Assigned to */}
         {intervention.assignedToName && (
-          <Box display="flex" alignItems="center" mb={1.5}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><PersonIcon size={18} strokeWidth={1.75} /></Box>
-            <Typography variant="body2">
+          <div className="flex items-center mb-[9px]">
+            <span className="inline-flex text-muted-foreground me-1.5"><PersonIcon size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2">
               {intervention.assignedToName}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
 
         {/* Description */}
         {intervention.description && (
           <>
-            <Divider sx={{ my: 1.5 }} />
-            <Box display="flex" alignItems="flex-start" mb={1}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1, mt: 0.25 }}><AssignmentIcon size={18} strokeWidth={1.75} /></Box>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 3,
-                  WebkitBoxOrient: 'vertical',
-                }}
-              >
+            <Separator className="my-[9px]" />
+            <div className="flex items-start mb-1.5">
+              <span className="inline-flex text-muted-foreground me-1.5 mt-0.5"><AssignmentIcon size={18} strokeWidth={1.75} /></span>
+              <p className="cn-text-body2 line-clamp-3 text-[var(--muted)]">
                 {intervention.description}
-              </Typography>
-            </Box>
+              </p>
+            </div>
           </>
         )}
-      </DialogContent>
 
-      <DialogActions>
-        <Button onClick={onClose} size="small">
-          Fermer
-        </Button>
-        <Button variant="contained" onClick={handleViewDetails} size="small">
-          Voir les details
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            Fermer
+          </Button>
+          <Button size="sm" onClick={handleViewDetails}>
+            Voir les details
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

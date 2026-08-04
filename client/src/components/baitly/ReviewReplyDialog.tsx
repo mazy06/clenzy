@@ -57,6 +57,11 @@ export interface ReviewReplyDialogProps {
   };
   /** Clés react-query à invalider après publication (listes à rafraîchir). */
   invalidateKeys?: readonly (readonly unknown[])[];
+  /**
+   * Réponse PUBLIÉE avec succès (jamais sur simple fermeture) — la file HITL
+   * de supervision s'en sert pour écarter la carte d'avis correspondante.
+   */
+  onPublished?: () => void;
 }
 
 export default function ReviewReplyDialog({
@@ -64,6 +69,7 @@ export default function ReviewReplyDialog({
   onClose,
   preview,
   invalidateKeys = [],
+  onPublished,
 }: ReviewReplyDialogProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -117,6 +123,7 @@ export default function ReviewReplyDialog({
       // recalcul de la file avant d'invalider les vues qui la lisent.
       await refreshActionQueue(
         (key) => queryClient.invalidateQueries({ queryKey: key }), invalidateKeys);
+      onPublished?.();
       onClose();
     },
   });

@@ -1,11 +1,6 @@
-import React, { useState, useCallback } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  IconButton,
-  Tooltip,
-} from '@mui/material';
+import React, { useState, useCallback, useMemo } from 'react';
+import { cn } from '../../utils/cn';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import {
   Build,
   Description,
@@ -15,9 +10,9 @@ import {
   Email,
   DoneAll,
   DeleteOutline,
-  Circle,
   NotificationsNone,
   EventNote,
+  Settings as SettingsIcon,
 } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -28,6 +23,7 @@ import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
 import { useTabValueParam } from '../../components/tabKeyParam';
 import EmptyState from '../../components/EmptyState';
+import ShowcaseEmpty from '../../components/baitly/ShowcaseEmpty';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 import { parseApiDate } from '../../utils/formatUtils';
 import PagePagination from '../../components/PagePagination';
@@ -39,16 +35,22 @@ type TabFilter = 'all' | 'unread' | 'intervention' | 'service_request' | 'paymen
 // Valeurs d'onglet autorisees (= cles d'URL ?tab=<value>). 'all' est le defaut (URL propre).
 const NOTIFICATION_TAB_VALUES: TabFilter[] = ['all', 'unread', 'intervention', 'service_request', 'payment', 'reservation', 'system', 'contact', 'document', 'guest_messaging'];
 
-const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
-  intervention: <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Build size={18} strokeWidth={1.75} /></Box>,
-  service_request: <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Description size={18} strokeWidth={1.75} /></Box>,
-  payment: <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Payment size={18} strokeWidth={1.75} /></Box>,
-  system: <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><Info size={18} strokeWidth={1.75} /></Box>,
-  team: <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><Groups size={18} strokeWidth={1.75} /></Box>,
-  contact: <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Email size={18} strokeWidth={1.75} /></Box>,
-  document: <Box component="span" sx={{ display: 'inline-flex', color: 'warning.dark' }}><Description size={18} strokeWidth={1.75} /></Box>,
-  reservation: <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><EventNote size={18} strokeWidth={1.75} /></Box>,
-  guest_messaging: <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Email size={18} strokeWidth={1.75} /></Box>,
+/**
+ * Icone + teinte par categorie, selon la grille de la projection
+ * (BNotificationsSectionDemo) : un carre teinte par nature d'evenement —
+ * l'argent en succes, l'operationnel en info, ce qui attend une reaction en
+ * warning, la messagerie entrante en destructif, le systeme en neutre.
+ */
+const CATEGORY_STYLE: Record<Notification['category'], { icon: React.ReactNode; accent: string }> = {
+  reservation: { icon: <EventNote size={16} strokeWidth={1.75} />, accent: 'text-success bg-success-soft' },
+  payment: { icon: <Payment size={16} strokeWidth={1.75} />, accent: 'text-success bg-success-soft' },
+  intervention: { icon: <Build size={16} strokeWidth={1.75} />, accent: 'text-info bg-info-soft' },
+  team: { icon: <Groups size={16} strokeWidth={1.75} />, accent: 'text-info bg-info-soft' },
+  service_request: { icon: <Description size={16} strokeWidth={1.75} />, accent: 'text-warning bg-warning-soft' },
+  document: { icon: <Description size={16} strokeWidth={1.75} />, accent: 'text-warning bg-warning-soft' },
+  contact: { icon: <Email size={16} strokeWidth={1.75} />, accent: 'text-destructive bg-destructive/10' },
+  guest_messaging: { icon: <Email size={16} strokeWidth={1.75} />, accent: 'text-destructive bg-destructive/10' },
+  system: { icon: <Info size={16} strokeWidth={1.75} />, accent: 'text-muted-foreground bg-muted' },
 };
 
 function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string, lang = 'fr'): string {
@@ -66,13 +68,20 @@ function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown
   return parseApiDate(dateStr).toLocaleDateString(locale);
 }
 
+/** Minuit local du jour d'une notification — la cle de regroupement. */
+function startOfDay(dateStr: string): number {
+  const d = parseApiDate(dateStr);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
 // ─── Pagination ────────────────────────────────────────────────────────────
 
 // Pas de scroll : le nombre de lignes par page s'ADAPTE à la hauteur d'écran
 // disponible (mesure runtime, cf. measure() dans le composant). Ces constantes
 // ne sont que des bornes/replis.
 const MIN_PER_PAGE = 3;
-const ROW_HEIGHT_FALLBACK = 61; // px — utilisé tant qu'aucune ligne n'est peinte
+const ROW_HEIGHT_FALLBACK = 74; // px — carte p-3 de la projection, mesurée dès la 1re peinture
 const BOTTOM_RESERVE = 96; // px réservés sous la liste (pagination + mt + padding layout)
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -119,6 +128,33 @@ export default function NotificationsPage() {
     queryFn: () => notificationsApi.getUnreadCount(),
   });
   const unreadCount = unreadData?.count ?? 0;
+
+  // Regroupement par jour de la page courante (la projection groupe la liste
+  // sous des entetes « Aujourd'hui » / « Hier » / date). Le tri serveur est
+  // deja anteschronologique : les cles sortent dans le bon ordre.
+  const groups = useMemo(() => {
+    const parJour = new Map<number, Notification[]>();
+    for (const n of notifications) {
+      const cle = startOfDay(n.createdAt);
+      const liste = parJour.get(cle);
+      if (liste) liste.push(n);
+      else parJour.set(cle, [n]);
+    }
+    const aujourdHui = new Date();
+    aujourdHui.setHours(0, 0, 0, 0);
+    const unJour = 86_400_000;
+    const locale = currentLanguage === 'ar' ? 'ar-SA' : currentLanguage === 'en' ? 'en-US' : 'fr-FR';
+    return [...parJour.entries()].map(([jour, items]) => {
+      const ecart = aujourdHui.getTime() - jour;
+      const label =
+        ecart === 0
+          ? t('notifications.groups.today')
+          : ecart === unJour
+            ? t('notifications.groups.yesterday')
+            : new Date(jour).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' });
+      return { jour, label, items };
+    });
+  }, [notifications, currentLanguage, t]);
 
   // Mesure : combien de lignes tiennent entre le haut de la liste et le bas du
   // viewport (moins la marge réservée à la pagination). Recalcul au resize et
@@ -195,7 +231,7 @@ export default function NotificationsPage() {
   ];
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={t('notifications.title')}
         subtitle={
@@ -204,181 +240,181 @@ export default function NotificationsPage() {
             : t('notifications.allRead')
         }
         iconBadge={<NotificationsNone />}
-        backPath="/dashboard"
-        backLabel={t('common.back')}
+        showBackButton={false}
         actions={
-          unreadCount > 0 ? (
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<DoneAll size={18} strokeWidth={1.75} />}
-              onClick={handleMarkAllRead}
-              sx={{ fontSize: '0.8125rem', py: 0.5 }}
-              title={t('notifications.markAllRead')}
-            >
-              {t('notifications.markAllRead')}
-            </Button>
-          ) : undefined
+          <>
+            {unreadCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={handleMarkAllRead}>
+                <DoneAll size={18} strokeWidth={1.75} />
+                {t('notifications.markAllRead')}
+              </Button>
+            )}
+            {/* La ou se reglent canaux et frequences : la page en est le
+                debouche naturel, la projection lui donne un engrenage. */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t('notifications.preferences')}
+                  onClick={() => navigate('/settings?tab=notifications')}
+                >
+                  <SettingsIcon size={18} strokeWidth={1.75} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t('notifications.preferences')}</TooltipContent>
+            </Tooltip>
+          </>
         }
       />
 
-      {/* Pleine largeur comme les autres écrans : le padding vient du layout
-          (<main> p:{xs:1.5,md:2}). Pas de maxWidth ni mx:auto (anomalie retirée). */}
-      <Box>
-      {/* Filter Tabs */}
+      {/* Les onglets restent pleine largeur : la projection n'en montrait que
+          deux, l'ecran reel en a dix — contraints a la colonne ils se replient
+          sur deux lignes qui chevauchent le premier groupe. */}
       <PageTabs
-        options={tabs.map((tab) => ({ value: tab.value, label: tab.label }))}
-        value={activeTab}
-        onChange={(v) => setActiveTab(v as typeof activeTab)}
-        size="compact"
-        paper={false}
-        mb={1}
-      />
+          options={tabs.map((tab) => ({
+            value: tab.value,
+            label: tab.label,
+            // La pastille de la projection sur « Non lues » — meme primitive
+            // que la sidebar (NavCountBadge), masquee a zero.
+            badge: tab.value === 'unread' && unreadCount > 0 ? unreadCount : undefined,
+            badgeColor: 'primary' as const,
+          }))}
+          value={activeTab}
+          onChange={(v) => setActiveTab(v as typeof activeTab)}
+          size="compact"
+          paper={false}
+          mb={1}
+        />
 
-      {/* Content */}
-      <DataFetchWrapper
-        loading={isLoading}
-        error={error ? (error instanceof Error ? error.message : String(error)) : null}
-        onRetry={() => {
-          notificationsApi.resetAvailability();
-          refetch();
-        }}
-        isEmpty={notifications.length === 0}
-        emptyState={
-          <EmptyState
-            icon={<NotificationsNone />}
-            title={t('notifications.empty')}
-            description={
-              activeTab !== 'all'
-                ? t('notifications.emptyFilter')
-                : t('notifications.emptyAll')
-            }
-            variant="transparent"
-          />
-        }
-      >
-        <Box ref={listRef}>
-          {notifications.map((notification, index) => (
-            <Box
-              key={notification.id}
-              data-notif-row
-              onClick={() => handleClick(notification)}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-                px: 2,
-                py: 1.5,
-                cursor: 'pointer',
-                borderBottom: index < notifications.length - 1 ? '1px solid' : 'none',
-                borderColor: 'divider',
-                transition: 'background-color 0.15s',
-                bgcolor: notification.read ? 'transparent' : 'action.hover',
-                '&:hover': {
-                  bgcolor: 'action.selected',
-                },
-                '&:hover .delete-btn': {
-                  opacity: 1,
-                },
-                borderRadius: index === 0 ? '8px 8px 0 0' : index === notifications.length - 1 ? '0 0 8px 8px' : 0,
-              }}
-            >
-              {/* Icon */}
-              <Box
-                sx={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: 'action.hover',
-                  flexShrink: 0,
-                }}
-              >
-                {CATEGORY_ICONS[notification.category] ?? <Info size={18} strokeWidth={1.75} />}
-              </Box>
+      {/* Colonne etroite de la projection : une liste de notifications se lit,
+          elle n'a rien a gagner a s'etaler sur un ecran large. */}
+      <div className="flex max-w-xl flex-col gap-3">
+        {/* Content */}
+        <DataFetchWrapper
+          loading={isLoading}
+          error={error ? (error instanceof Error ? error.message : String(error)) : null}
+          onRetry={() => {
+            notificationsApi.resetAvailability();
+            refetch();
+          }}
+          isEmpty={notifications.length === 0}
+          emptyState={
+            activeTab === 'all' ? (
+              // Compte sans aucune notification : l'etat vide de la projection
+              // (ShowcaseEmpty), qui oriente vers le reglage des canaux plutot
+              // que de constater le vide.
+              <ShowcaseEmpty
+                eyebrow={{ icon: <NotificationsNone size={14} strokeWidth={1.75} />, label: t('notifications.title') }}
+                title={t('notifications.showcase.title')}
+                description={t('notifications.showcase.description')}
+                action={
+                  <Button onClick={() => navigate('/settings?tab=notifications')}>
+                    {t('notifications.showcase.action')}
+                  </Button>
+                }
+              />
+            ) : (
+              // Filtre sans resultat : l'etat vide leger suffit, le compte
+              // recoit bien des notifications par ailleurs.
+              <EmptyState
+                icon={<NotificationsNone />}
+                title={t('notifications.empty')}
+                description={t('notifications.emptyFilter')}
+                variant="transparent"
+              />
+            )
+          }
+        >
+          <div ref={listRef} className="flex flex-col gap-4">
+            {groups.map((group) => (
+              <div className="flex flex-col gap-2" key={group.jour}>
+                <h3 className="m-0 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  {group.label}
+                </h3>
+                {group.items.map((notification) => {
+                  const style = CATEGORY_STYLE[notification.category] ?? CATEGORY_STYLE.system;
+                  return (
+                    // div cliquable et non <button> comme la projection : la
+                    // ligne porte une corbeille, et un controle dans un
+                    // controle est invalide — en HTML comme dans l'arbre
+                    // d'accessibilite (verifie : role="button" sur la ligne y
+                    // exposait un bouton imbrique).
+                    <div
+                      key={notification.id}
+                      data-notif-row
+                      onClick={() => handleClick(notification)}
+                      className={cn(
+                        'group/notification flex cursor-pointer items-start gap-3 rounded-xl border border-solid p-3 text-start transition-colors outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50',
+                        !notification.read ? 'border-primary/25 bg-card' : 'border-border bg-card/60',
+                      )}
+                    >
+                      {/* Icone dans un carre teinte par nature d'evenement */}
+                      <span
+                        className={cn(
+                          'mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-lg',
+                          style.accent,
+                        )}
+                      >
+                        {style.icon}
+                      </span>
 
-              {/* Text */}
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                  {!notification.read && (
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', flexShrink: 0 }}><Circle size={7} strokeWidth={1.75} /></Box>
-                  )}
-                  <Typography
-                    variant="body2"
-                    fontWeight={notification.read ? 400 : 600}
-                    sx={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      fontSize: '0.84rem',
-                      color: notification.read ? 'text.secondary' : 'text.primary',
-                    }}
-                  >
-                    {notification.notificationKey
-                      ? t(`notifications.keys.${notification.notificationKey}`, { defaultValue: notification.title })
-                      : notification.title}
-                  </Typography>
-                </Box>
-                <Typography
-                  variant="body2"
-                  color="text.disabled"
-                  sx={{
-                    fontSize: '0.78rem',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    mt: 0.15,
-                  }}
-                >
-                  {notification.message}
-                </Typography>
-              </Box>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2">
+                          <span className="truncate text-sm font-semibold text-foreground">
+                            {notification.notificationKey
+                              ? t(`notifications.keys.${notification.notificationKey}`, { defaultValue: notification.title })
+                              : notification.title}
+                          </span>
+                          {!notification.read && (
+                            <span className="size-1.5 shrink-0 rounded-full bg-primary" />
+                          )}
+                        </span>
+                        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                          {notification.message}
+                        </span>
+                      </span>
 
-              {/* Time */}
-              <Typography
-                variant="caption"
-                color="text.disabled"
-                sx={{
-                  fontSize: '0.72rem',
-                  flexShrink: 0,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {timeAgo(notification.createdAt, t, currentLanguage)}
-              </Typography>
-
-              {/* Delete — visible on hover */}
-              <Tooltip title={t('common.delete')}>
-                <IconButton
-                  className="delete-btn"
-                  size="small"
-                  onClick={(e) => handleDelete(e, notification.id)}
-                  sx={{
-                    flexShrink: 0,
-                    opacity: 0,
-                    transition: 'opacity 0.15s',
-                    color: 'text.disabled',
-                    '&:hover': { color: 'error.main' },
-                  }}
-                >
-                  <DeleteOutline size={17} strokeWidth={1.75} />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          ))}
-        </Box>
-        {totalElements > perPage && (
-          <PagePagination
-            count={totalElements}
-            page={page}
-            onPageChange={(p) => setPage(p)}
-            rowsPerPage={perPage}
-          />
-        )}
-      </DataFetchWrapper>
-      </Box>
-    </Box>
+                      <span className="flex shrink-0 items-center gap-1">
+                        <span className="text-2xs text-faint whitespace-nowrap">
+                          {timeAgo(notification.createdAt, t, currentLanguage)}
+                        </span>
+                        {/* Corbeille revelee au survol de la ligne. span
+                            intermediaire : TooltipTrigger asChild pose une ref
+                            DOM sur son enfant. */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex opacity-0 transition-opacity duration-150 group-hover/notification:opacity-100">
+                              <Button
+                                variant="ghost"
+                                size="icon-xs"
+                                aria-label={t('common.delete')}
+                                onClick={(e) => handleDelete(e, notification.id)}
+                                className="text-[var(--faint)] hover:text-[var(--err)]"
+                              >
+                                <DeleteOutline size={15} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('common.delete')}</TooltipContent>
+                        </Tooltip>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+          {totalElements > perPage && (
+            <PagePagination
+              count={totalElements}
+              page={page}
+              onPageChange={(p) => setPage(p)}
+              rowsPerPage={perPage}
+            />
+          )}
+        </DataFetchWrapper>
+      </div>
+    </div>
   );
 }

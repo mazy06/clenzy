@@ -8,7 +8,7 @@
    1er item (en sautant les *Id techniques) et on rend une liste compacte.
    ============================================================ */
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { cn } from '../../../../utils/cn';
 import {
   SurfaceCard,
   Overline,
@@ -63,86 +63,57 @@ export const ListResult: React.FC<{ data: ListData }> = ({ data }) => {
   if (items.length === 0) {
     return (
       <SurfaceCard sx={{ textAlign: 'center' }}>
-        <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
+        <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
           Aucun résultat
           {data.from && data.to && ` du ${formatDateShort(data.from)} au ${formatDateShort(data.to)}`}.
-        </Typography>
+        </p>
       </SurfaceCard>
     );
   }
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5 }}>
+    <div className="mt-1.5 mb-2">
       {data.from && data.to && (
-        <Typography
-          sx={{ display: 'block', mb: 0.75, fontSize: '11.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}
-        >
+        <p className="cn-text-body1 block mb-1 text-[11.5px] text-[var(--muted)] tabular-nums">
           Période : {formatDateShort(data.from)} → {formatDateShort(data.to)}
-        </Typography>
+        </p>
       )}
 
-      <Box sx={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
+      <div className="rounded-[12px] overflow-hidden border border-[var(--line)] bg-[var(--card)]">
         {/* En-têtes */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
-            gap: 1,
-            px: 1.5,
-            py: 0.75,
-            bgcolor: 'var(--surface-2)',
-            borderBottom: '1px solid var(--line)',
-          }}
-        >
+        <div className="grid gap-1.5 px-[9px] py-[4.5px] bg-[var(--surface-2)]" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`, borderBottom: '1px solid var(--line)' }}>
           {columns.map((col) => (
             <Overline key={col} sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {humanizeKey(col)}
             </Overline>
           ))}
-        </Box>
+        </div>
 
         {/* Lignes */}
         {visible.map((item, idx) => (
-          <Box
+          <div
             key={String(item.id ?? idx)}
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
-              gap: 1,
-              px: 1.5,
-              py: 1,
-              alignItems: 'center',
-              borderTop: idx > 0 ? '1px solid var(--line)' : 'none',
-              transition: 'background .12s',
-              '&:hover': { bgcolor: 'var(--hover)' },
-              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            }}
+            className={cn(
+              'grid gap-1.5 px-[9px] py-1.5 items-center',
+              'transition-[background-color] duration-[120ms] hover:bg-[var(--hover)] motion-reduce:transition-none',
+              idx > 0 && 'border-t border-solid border-[var(--line)]',
+            )}
+            style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
           >
             {columns.map((col) => (
-              <Typography
-                key={col}
-                component="div"
-                sx={{
-                  fontSize: '12.5px',
-                  color: 'var(--body)',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  fontVariantNumeric: 'tabular-nums',
-                }}
-              >
+              <div className="text-[12.5px] text-[var(--body)] whitespace-nowrap overflow-hidden text-ellipsis tabular-nums" key={col}>
                 {renderCell(col, item[col], item.currency)}
-              </Typography>
+              </div>
             ))}
-          </Box>
+          </div>
         ))}
-      </Box>
+      </div>
 
       {hidden > 0 && (
-        <Typography sx={{ display: 'block', mt: 0.75, fontSize: '11.5px', color: 'var(--muted)', fontStyle: 'italic' }}>
+        <p className="cn-text-body1 block mt-1 text-[11.5px] text-[var(--muted)] italic">
           + {hidden} de plus
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
   );
 };

@@ -1,24 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert, Info } from 'lucide-react';
+import { Spinner, Button } from '../../../components/ui';
 import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  Button,
   Checkbox,
-  CircularProgress,
   Skeleton,
-  Alert,
   Tooltip,
-  Typography,
-  Grid,
-  TextField,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
+import { Field, FieldLabel, Input } from '../../../components/ui';
+import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import {
   Replay,
   InfoOutlined,
@@ -94,13 +87,13 @@ const renderStatusTooltip = (status: string) => {
   const help = STATUS_HELP[status];
   if (!help) return status;
   return (
-    <Box sx={{ p: 0.5, maxWidth: 300 }}>
-      <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, mb: 0.5 }}>{help.title}</Typography>
-      <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.4, mb: 0.5 }}>{help.what}</Typography>
-      <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.4, fontStyle: 'italic', color: 'var(--bg)', opacity: 0.85 }}>
+    <div className="p-0.5 max-w-[300px]">
+      <p className="cn-text-body1 text-[0.75rem] font-bold mb-0.5">{help.title}</p>
+      <p className="cn-text-body1 text-[0.6875rem] leading-[1.4] mb-0.5">{help.what}</p>
+      <p className="cn-text-body1 text-[0.6875rem] leading-[1.4] italic text-[var(--bg)] opacity-85">
         → {help.todo}
-      </Typography>
-    </Box>
+      </p>
+    </div>
   );
 };
 
@@ -109,22 +102,17 @@ const renderStatusTooltip = (status: string) => {
  * the column. Keeps the table header tidy while making the data self-explanatory.
  */
 const HeaderHint: React.FC<{ label: string; hint: string }> = ({ label, hint }) => (
-  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+  <div className="inline-flex items-center gap-0.5">
     <span>{label}</span>
-    <Tooltip arrow title={hint}>
-      <Box
-        component="span"
-        sx={{
-          display: 'inline-flex',
-          color: 'text.disabled',
-          cursor: 'help',
-          '&:hover': { color: 'text.secondary' },
-        }}
-      >
-        <InfoOutlined size={13} strokeWidth={1.75} />
-      </Box>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex text-[var(--faint)] cursor-help hover:text-[var(--muted)]">
+          <InfoOutlined size={13} strokeWidth={1.75} />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{hint}</TooltipContent>
     </Tooltip>
-  </Box>
+  </div>
 );
 
 type OutboxStatus = 'PENDING' | 'SENT' | 'FAILED';
@@ -136,13 +124,13 @@ const STATUS_OPTIONS: { value: OutboxStatus; label: string; color: string }[] = 
 ];
 
 // Statuts outbox → tokens sémantiques (chips -soft : texte couleur + fond -soft)
-const STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
-  PENDING: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-  SENT: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  FAILED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+const STATUS_TOKEN: Record<string, ToneTokens> = {
+  PENDING: { color: 'var(--info)', bg: 'var(--info-soft)' },
+  SENT: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
+  FAILED: { color: 'var(--err)', bg: 'var(--err-soft)' },
 };
 
-const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
+const NEUTRAL_TOKEN: ToneTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
 
 const OutboxTab: React.FC = () => {
   const [events, setEvents] = useState<OutboxEvent[]>([]);
@@ -245,7 +233,7 @@ const OutboxTab: React.FC = () => {
   // Register filters (Status + Topic) into the page header.
   useEffect(() => {
     setHeaderFilters(
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+      <div className="flex items-center gap-2 flex-wrap">
         <FilterChipRow
           options={STATUS_OPTIONS}
           value={statusFilter}
@@ -253,14 +241,16 @@ const OutboxTab: React.FC = () => {
           allLabel="Tous"
           size="compact"
         />
-        <TextField
-          size="small"
-          label="Topic"
-          value={topic}
-          onChange={(e) => { setTopic(e.target.value); setPage(0); }}
-          sx={{ width: 180 }}
-        />
-      </Box>,
+        <Field className="w-[180px]">
+          <FieldLabel htmlFor="outbox-filter-topic">Topic</FieldLabel>
+          <Input
+            id="outbox-filter-topic"
+            className="w-full"
+            value={topic}
+            onChange={(e) => { setTopic(e.target.value); setPage(0); }}
+          />
+        </Field>
+      </div>,
     );
     return () => setHeaderFilters(null);
   }, [setHeaderFilters, statusFilter, topic]);
@@ -268,40 +258,44 @@ const OutboxTab: React.FC = () => {
   // Register actions (Select All Failed + Retry Selected) into the page header.
   useEffect(() => {
     setHeaderActions(
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <div className="flex items-center gap-1.5">
         {OUTBOX_HELP}
-        <Tooltip
-          arrow
-          title="Coche toutes les lignes en statut FAILED sur la page courante. Utile pour relancer un lot d'événements après avoir corrigé la cause (topic créé, broker remonté, etc.)."
-        >
-          <span>
-            <Button size="small" variant="outlined" onClick={handleSelectAllFailed}>
-              Select All Failed
-            </Button>
-          </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button size="sm" variant="outline" onClick={handleSelectAllFailed}>
+                Select All Failed
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            Coche toutes les lignes en statut FAILED sur la page courante. Utile pour relancer un lot
+            d&apos;événements après avoir corrigé la cause (topic créé, broker remonté, etc.).
+          </TooltipContent>
         </Tooltip>
-        <Tooltip
-          arrow
-          title={
-            selectedIds.size === 0
-              ? "Sélectionne au moins un event FAILED pour pouvoir le relancer."
-              : "Remet les events sélectionnés en statut PENDING. Le relais Kafka va retenter l'envoi au prochain cycle (~4 s)."
-          }
-        >
-          <span>
-            <Button
-              size="small"
-              variant="contained"
-              color="warning"
-              startIcon={retrying ? <CircularProgress size={16} /> : <Replay />}
-              onClick={handleRetry}
-              disabled={selectedIds.size === 0 || retrying}
-            >
-              Retry Selected ({selectedIds.size})
-            </Button>
-          </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              {/* Teinte warn posee en classes : le kit n'a pas de variante « warning ». */}
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+                onClick={handleRetry}
+                disabled={selectedIds.size === 0 || retrying}
+              >
+                {retrying ? <Spinner className="size-4" /> : <Replay />}
+                Retry Selected ({selectedIds.size})
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            {selectedIds.size === 0
+              ? 'Sélectionne au moins un event FAILED pour pouvoir le relancer.'
+              : "Remet les events sélectionnés en statut PENDING. Le relais Kafka va retenter l'envoi au prochain cycle (~4 s)."}
+          </TooltipContent>
         </Tooltip>
-      </Box>,
+      </div>,
     );
     return () => setHeaderActions(null);
   }, [setHeaderActions, handleSelectAllFailed, handleRetry, retrying, selectedIds.size]);
@@ -318,129 +312,155 @@ const OutboxTab: React.FC = () => {
   };
 
   return (
-    <Box>
+    <div>
       {/* Stats — StatTile (carte plate hairline, valeur display tabular-nums) */}
       {stats && (
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={6} sm={3}>
-            <Tooltip arrow title="Events qui attendent d'être publiés vers Kafka. Le relais les traite par paquets toutes les quelques secondes.">
-              <Box>
-                <StatTile icon={<HourglassEmpty />} label="Pending" value={stats.pending} color="#7BA3C2" />
-              </Box>
+        <div className="grid grid-cols-12 gap-3 mb-[18px]">
+          <div className="col-span-6 min-[600px]:col-span-3">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <StatTile icon={<HourglassEmpty />} label="Pending" value={stats.pending} color="#7BA3C2" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                Events qui attendent d&apos;être publiés vers Kafka. Le relais les traite par paquets toutes les quelques secondes.
+              </TooltipContent>
             </Tooltip>
-          </Grid>
-          <Grid item xs={6} sm={3}>
-            <Tooltip arrow title="Events publiés avec succès dans Kafka. Aucune action requise.">
-              <Box>
-                <StatTile icon={<SendIcon />} label="Sent" value={stats.sent} color="#4A9B8E" />
-              </Box>
+          </div>
+          <div className="col-span-6 min-[600px]:col-span-3">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <StatTile icon={<SendIcon />} label="Sent" value={stats.sent} color="#4A9B8E" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Events publiés avec succès dans Kafka. Aucune action requise.</TooltipContent>
             </Tooltip>
-          </Grid>
-          <Grid item xs={6} sm={3}>
-            <Tooltip arrow title="Events dont la publication Kafka a échoué. Sélectionnez-les + bouton Retry après avoir corrigé la cause (voir colonne Error).">
-              <Box>
-                <StatTile icon={<ErrorOutline />} label="Failed" value={stats.failed} color="#C97A7A" />
-              </Box>
+          </div>
+          <div className="col-span-6 min-[600px]:col-span-3">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <StatTile icon={<ErrorOutline />} label="Failed" value={stats.failed} color="#C97A7A" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                Events dont la publication Kafka a échoué. Sélectionnez-les + bouton Retry après avoir corrigé la cause (voir colonne Error).
+              </TooltipContent>
             </Tooltip>
-          </Grid>
-          <Grid item xs={6} sm={3}>
-            <Tooltip arrow title="Total cumulé d'events écrits dans l'outbox depuis sa création.">
-              <Box>
-                <StatTile icon={<InfoOutlined />} label="Total" value={stats.total} color="#6B8A9A" />
-              </Box>
+          </div>
+          <div className="col-span-6 min-[600px]:col-span-3">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <StatTile icon={<InfoOutlined />} label="Total" value={stats.total} color="#6B8A9A" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Total cumulé d&apos;events écrits dans l&apos;outbox depuis sa création.</TooltipContent>
             </Tooltip>
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       )}
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {retryMessage && <Alert severity="info" sx={{ mb: 2 }}>{retryMessage}</Alert>}
+      {error && <Alert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
+      {retryMessage && <Alert variant="info" className="mb-3">
+        <Info />
+        <AlertDescription>{retryMessage}</AlertDescription>
+      </Alert>}
 
       {loading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+            <Skeleton key={i} className="h-9 w-full rounded-[9px]" />
           ))}
-        </Box>
+        </div>
       ) : (
         <>
-          <TableContainer
-            component={Paper}
-            variant="outlined"
-            sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}
-          >
-            <Table size="small">
-              <TableHead>
+          <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell padding="checkbox">
-                    <Tooltip arrow title="Une case n'apparaît que sur les lignes FAILED. Cochez puis cliquez 'Retry Selected'.">
-                      <Box component="span" sx={{ display: 'inline-flex', cursor: 'help' }}>
-                        <InfoOutlined size={14} strokeWidth={1.75} />
-                      </Box>
+                  {/* Gabarit MuiTableCell padding="checkbox" : 48px de large, 0 0 0 4px. */}
+                  <TableHead className="w-12 p-0 ps-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex cursor-help">
+                          <InfoOutlined size={14} strokeWidth={1.75} />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Une case n&apos;apparaît que sur les lignes FAILED. Cochez puis cliquez &apos;Retry Selected&apos;.
+                      </TooltipContent>
                     </Tooltip>
-                  </TableCell>
-                  <TableCell>
+                  </TableHead>
+                  <TableHead>
                     <HeaderHint label="ID" hint="Identifiant interne de l'event dans la table outbox." />
-                  </TableCell>
-                  <TableCell>
+                  </TableHead>
+                  <TableHead>
                     <HeaderHint
                       label="Aggregate"
                       hint="Entité métier source. Format type#id. Ex: USER#42 = changement de profil utilisateur 42."
                     />
-                  </TableCell>
-                  <TableCell>
+                  </TableHead>
+                  <TableHead>
                     <HeaderHint
                       label="Event Type"
                       hint="Nature de la mutation. Ex: USER_PROFILE_UPDATED, RESERVATION_CREATED, CALENDAR_BOOKED."
                     />
-                  </TableCell>
-                  <TableCell>
+                  </TableHead>
+                  <TableHead>
                     <HeaderHint
                       label="Topic"
                       hint="Topic Kafka cible. Si un topic n'existe pas côté broker, les envois finissent en FAILED."
                     />
-                  </TableCell>
-                  <TableCell>
+                  </TableHead>
+                  <TableHead>
                     <HeaderHint
                       label="Status"
                       hint="PENDING = en file, SENT = publié OK, FAILED = échec. Survolez le chip pour le détail + action recommandée."
                     />
-                  </TableCell>
-                  <TableCell>
+                  </TableHead>
+                  <TableHead>
                     <HeaderHint
                       label="Retry"
                       hint="Nombre de tentatives déjà effectuées. Incrémenté à chaque échec du relais."
                     />
-                  </TableCell>
-                  <TableCell>
+                  </TableHead>
+                  <TableHead>
                     <HeaderHint
                       label="Error"
                       hint="Message d'erreur de la dernière tentative. Survolez la ligne pour voir le message complet."
                     />
-                  </TableCell>
-                  <TableCell>
+                  </TableHead>
+                  <TableHead>
                     <HeaderHint label="Created At" hint="Moment où l'event a été persisté dans l'outbox (= moment de la mutation métier)." />
-                  </TableCell>
-                  <TableCell>
+                  </TableHead>
+                  <TableHead>
                     <HeaderHint label="Sent At" hint="Moment où l'event a été publié avec succès dans Kafka. Vide tant qu'il n'est pas SENT." />
-                  </TableCell>
+                  </TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {events.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} align="center" sx={{ color: 'var(--muted)', py: 3 }}>
+                    <TableCell colSpan={10} className="text-center text-[var(--muted)] py-[18px]">
                       Aucun event
                     </TableCell>
                   </TableRow>
                 ) : (
                   events.map((evt) => (
-                    <TableRow key={evt.id} selected={selectedIds.has(evt.id)}>
-                      <TableCell padding="checkbox">
+                    // data-state=selected est le pendant kit de la prop `selected` de MuiTableRow.
+                    <TableRow key={evt.id} data-state={selectedIds.has(evt.id) ? 'selected' : undefined}>
+                      <TableCell className="w-12 p-0 ps-1">
                         {evt.status === 'FAILED' && (
                           <Checkbox
                             checked={selectedIds.has(evt.id)}
-                            onChange={() => handleToggleSelect(evt.id)}
+                            onCheckedChange={() => handleToggleSelect(evt.id)}
+                            aria-label={`Sélectionner l'event ${evt.id}`}
                           />
                         )}
                       </TableCell>
@@ -449,37 +469,37 @@ const OutboxTab: React.FC = () => {
                       <TableCell>{evt.eventType}</TableCell>
                       <TableCell>{evt.topic}</TableCell>
                       <TableCell>
-                        <Tooltip arrow placement="right" title={renderStatusTooltip(evt.status)}>
-                          <Chip
-                            label={evt.status}
-                            size="small"
-                            sx={(() => {
-                              const tk = STATUS_TOKEN[evt.status] ?? NEUTRAL_TOKEN;
-                              return { color: tk.fg, backgroundColor: tk.bg, cursor: 'help' };
-                            })()}
-                          />
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            {/* Le span porte la ref que TooltipTrigger pose sur son enfant :
+                                StatusChip est une fonction et n'en transmet pas. */}
+                            <span className="inline-flex">
+                              <StatusChip
+                                tokens={STATUS_TOKEN[evt.status] ?? NEUTRAL_TOKEN}
+                                label={evt.status}
+                                className="cursor-help"
+                              />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="right">{renderStatusTooltip(evt.status)}</TooltipContent>
                         </Tooltip>
                       </TableCell>
                       <TableCell>
-                        <Tooltip
-                          arrow
-                          title={
-                            evt.retryCount === 0
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-help">{evt.retryCount}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {evt.retryCount === 0
                               ? "Aucune tentative supplémentaire — c'est encore le premier essai."
-                              : `${evt.retryCount} tentative(s) après échec(s) précédent(s).`
-                          }
-                        >
-                          <Box component="span" sx={{ cursor: 'help' }}>{evt.retryCount}</Box>
+                              : `${evt.retryCount} tentative(s) après échec(s) précédent(s).`}
+                          </TooltipContent>
                         </Tooltip>
                       </TableCell>
                       <TableCell>
-                        <Typography
-                          variant="body2"
-                          sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                          title={evt.errorMessage || undefined}
-                        >
+                        <p className="cn-text-body2 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title={evt.errorMessage || undefined}>
                           {evt.errorMessage || '—'}
-                        </Typography>
+                        </p>
                       </TableCell>
                       <TableCell>
                         {evt.createdAt ? new Date(evt.createdAt).toLocaleString() : '—'}
@@ -492,7 +512,7 @@ const OutboxTab: React.FC = () => {
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
           <PagePagination
             count={totalElements}
             page={page}
@@ -503,7 +523,7 @@ const OutboxTab: React.FC = () => {
           />
         </>
       )}
-    </Box>
+    </div>
   );
 };
 

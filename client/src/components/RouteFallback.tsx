@@ -1,4 +1,4 @@
-import { Box, CircularProgress } from '@mui/material';
+import { Spinner } from './ui';
 
 /**
  * Fallback affiché pendant le chargement d'un chunk de route (code-splitting via React.lazy).
@@ -6,12 +6,8 @@ import { Box, CircularProgress } from '@mui/material';
  */
 export default function RouteFallback() {
   return (
-    <Box
-      role="status"
-      aria-label="Chargement"
-      sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', width: '100%' }}
-    >
-      <CircularProgress size={32} sx={{ color: 'var(--accent, #6B8A9A)' }} />
-    </Box>
+    <div className="flex items-center justify-center min-h-[60vh] w-full" role="status" aria-label="Chargement">
+      <Spinner className="size-8" style={{ color: 'var(--accent, #6B8A9A)' }} />
+    </div>
   );
 }

@@ -335,7 +335,10 @@ const GROUP_PREVIEW = 3;
  * servir deux natures (« Assigner » pour une prestation et pour une
  * intervention) — c'est la rubrique qui lève l'ambiguïté.
  *
- * Les cartes des agents n'y figurent pas : elles vivent dans la constellation.
+ * Les cartes des agents FIGURENT ici (nature `AGENT_CARD`) : les deux files ont
+ * convergé — ce qui attend dans la constellation attend aussi dans « À traiter ».
+ * Seule la décision reste là-bas, où les écrans de contexte existent (simulation
+ * tarifaire, brouillon de réponse d'avis) ; la carte d'ici y renvoie.
  */
 function actionKinds(t: TranslateFn) {
   return [

@@ -97,9 +97,21 @@ public class ReservationMapper {
      * Ne modifie PAS id, organizationId, source, createdAt.
      */
     public void apply(ReservationDto dto, Reservation entity) {
-        if (dto.propertyId() != null && entity.getProperty() == null) {
+        // Assignation OU relogement : la garde historique « property == null » ignorait
+        // silencieusement tout changement de logement en update (le front affichait un
+        // succès, la réservation ne bougeait pas — bug relogement 2026-08).
+        if (dto.propertyId() != null
+                && (entity.getProperty() == null
+                    || !dto.propertyId().equals(entity.getProperty().getId()))) {
             Property property = propertyRepository.findById(dto.propertyId())
                     .orElseThrow(() -> new RuntimeException("Propriete introuvable: " + dto.propertyId()));
+            // findById contourne le filtre Hibernate (règle audit n°3) : en update,
+            // l'entité porte déjà son org — un logement d'une AUTRE organisation ne
+            // peut jamais être assigné, quel que soit l'appelant.
+            if (entity.getOrganizationId() != null
+                    && !entity.getOrganizationId().equals(property.getOrganizationId())) {
+                throw new RuntimeException("Acces refuse : logement hors de votre organisation");
+            }
             entity.setProperty(property);
         }
         if (dto.guestId() != null) {

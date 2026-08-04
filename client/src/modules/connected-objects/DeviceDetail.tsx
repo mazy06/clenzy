@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Button, Skeleton } from '@mui/material';
+import { Skeleton } from '../../components/ui';
+import { Button } from '../../components/ui';
 import { MonitorHeart, BatteryAlert, ChevronRight } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
@@ -37,24 +38,24 @@ export default function DeviceDetail() {
 
   if (loading && !device) {
     return (
-      <Box>
-        <Skeleton variant="rounded" height={64} sx={{ mb: 2, borderRadius: 'var(--radius-lg)' }} />
-        <Skeleton variant="rounded" height={360} sx={{ borderRadius: 'var(--radius-lg)' }} />
-      </Box>
+      <div>
+        <Skeleton className="h-16 w-full mb-3 rounded-[var(--radius-lg)]" />
+        <Skeleton className="h-[360px] w-full rounded-[var(--radius-lg)]" />
+      </div>
     );
   }
 
   if (!device) {
     return (
-      <Box>
+      <div>
         <PageHeader title="Objet introuvable" backPath={HUB_PATH} backLabel="Objets connectés" />
         <EmptyState
           icon={<ChevronRight />}
           title="Objet introuvable"
           description="Cet objet connecté n'existe plus ou n'est pas accessible."
-          action={<Button variant="outlined" onClick={() => navigate(HUB_PATH)}>Retour aux objets connectés</Button>}
+          action={<Button variant="outline" onClick={() => navigate(HUB_PATH)}>Retour aux objets connectés</Button>}
         />
-      </Box>
+      </div>
     );
   }
 
@@ -62,7 +63,7 @@ export default function DeviceDetail() {
   const subtitle = [device.propertyName, device.roomName, meta.singular].filter(Boolean).join(' · ');
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={device.name}
         subtitle={subtitle}
@@ -77,7 +78,7 @@ export default function DeviceDetail() {
           leur propre bandeau de lecture live (Niveau actuel / Moyenne / Pic) dans
           NoiseDetail — on évite ainsi une rangée générique « Connexion » orpheline. */}
       {device.kind !== 'noise' && (
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 1, mb: 2 }}>
+        <div className="grid grid-cols-[repeat(auto-fit,_minmax(140px,_1fr))] gap-1.5 mb-3">
           <StatTile
             icon={<MonitorHeart />}
             label="Connexion"
@@ -90,7 +91,7 @@ export default function DeviceDetail() {
           {device.primaryMetric && (
             <StatTile icon={meta.icon()} label={device.primaryMetric.label} value={device.primaryMetric.value} color={meta.color} />
           )}
-        </Box>
+        </div>
       )}
 
       {/* Corps spécifique au type */}
@@ -105,15 +106,15 @@ export default function DeviceDetail() {
           description="La gestion avancée de cet objet est en cours d'intégration dans cette vue."
           action={
             <Button
-              variant="outlined"
-              endIcon={<ChevronRight size={16} strokeWidth={1.75} />}
+              variant="outline"
               onClick={() => navigate(LEGACY_ROUTE[device.kind]!)}
             >
               Ouvrir la gestion
+              <ChevronRight size={16} strokeWidth={1.75} />
             </Button>
           }
         />
       )}
-    </Box>
+    </div>
   );
 }

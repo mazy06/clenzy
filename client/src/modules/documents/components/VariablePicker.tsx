@@ -1,15 +1,15 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Box,
-  Chip,
-  Divider,
-  InputAdornment,
-  Stack,
-  TextField,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  Separator,
   Tooltip,
-  Typography,
-} from '@mui/material';
+  TooltipTrigger,
+  TooltipContent,
+} from '../../../components/ui';
 import { Search } from '../../../icons';
+import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import type { TemplateVariable } from '../../../services/api/guestMessagingApi';
 
 /**
@@ -17,7 +17,7 @@ import type { TemplateVariable } from '../../../services/api/guestMessagingApi';
  *
  * <h3>Categorisation</h3>
  * Le groupement par categorie facilite la decouverte quand il y a beaucoup de
- * variables. Chaque categorie a son ton semantique (pattern TONES/chipSx) :
+ * variables. Chaque categorie a son ton semantique (tokens StatusChip) :
  * <ul>
  *   <li>IDENTITÉ → info</li>
  *   <li>PROPRIÉTÉ → ok</li>
@@ -33,7 +33,7 @@ import type { TemplateVariable } from '../../../services/api/guestMessagingApi';
  * serveur.</p>
  */
 
-// ─── Tons sémantiques (tokens Signature — pattern TONES/chipSx) ──────────────
+// ─── Tons sémantiques (tokens Signature) ────────────────────────────────────
 
 interface Tone { c: string; bg: string }
 
@@ -46,7 +46,8 @@ const TONES: Record<'ok' | 'accent' | 'warn' | 'err' | 'info' | 'muted', Tone> =
   muted:  { c: 'var(--muted)',  bg: 'var(--hover)' },
 };
 
-const chipSx = (tone: Tone) => ({ color: tone.c, bgcolor: tone.bg, '& .MuiChip-icon': { color: tone.c } });
+// Le picker parle son propre vocabulaire de tons {c,bg} ; la primitive attend {color,bg}.
+const toTokens = (tone: Tone): ToneTokens => ({ color: tone.c, bg: tone.bg });
 
 interface CategoryDef {
   id: string;
@@ -122,136 +123,131 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
   }, [variables, query]);
 
   return (
-    <Stack spacing={2}>
+    <div className="flex flex-col gap-3">
       {/* Search bar discrete */}
       {variables.length > 10 && (
-        <TextField
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Filtrer les variables…"
-          size="small"
-          fullWidth
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
-                  <Search size={14} strokeWidth={1.75} />
-                </Box>
-              </InputAdornment>
-            ),
-          }}
-          sx={{
-            '& .MuiOutlinedInput-root': { fontSize: '0.8125rem', bgcolor: 'var(--field)' },
-          }}
-        />
+        <InputGroup className="bg-[var(--field)]">
+          <InputGroupAddon align="inline-start">
+            <span className="inline-flex text-muted-foreground opacity-60">
+              <Search size={14} strokeWidth={1.75} />
+            </span>
+          </InputGroupAddon>
+          {/* Champ de recherche sans libelle visible : le placeholder ne suffit
+              pas a un lecteur d'ecran, d'ou l'aria-label. */}
+          <InputGroupInput
+            id="variable-picker-search"
+            aria-label="Filtrer les variables"
+            placeholder="Filtrer les variables…"
+            className="text-[0.8125rem]"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </InputGroup>
       )}
 
       {/* Variables systeme (HTML-safe, non insertables) */}
       {systemVariablesUsed.length > 0 && (
-        <Box>
+        <div>
           <SectionHeading label="VARIABLES SYSTÈME" tone={TONES.err} />
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+          <div className="flex flex-wrap gap-0.5">
             {systemVariablesUsed.map((key) => (
-              <Tooltip
-                key={key}
-                title="Contenu HTML généré automatiquement par le serveur. À ne pas supprimer."
-                arrow
-              >
-                <Chip
-                  label={`{${key}}`}
-                  size="small"
-                  sx={{
-                    ...chipSx(TONES.err),
-                    fontFamily: 'monospace',
-                    fontSize: '0.72rem',
-                    cursor: 'help',
-                  }}
-                />
+              <Tooltip key={key}>
+                <TooltipTrigger asChild>
+                  {/* Le span porte la ref que Radix pose : StatusChip n'en
+                      transmet pas (React 18). */}
+                  <span className="inline-flex">
+                    <StatusChip
+                      tokens={toTokens(TONES.err)}
+                      label={`{${key}}`}
+                      className="font-mono text-[0.72rem] cursor-help"
+                    />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Contenu HTML généré automatiquement par le serveur. À ne pas supprimer.
+                </TooltipContent>
               </Tooltip>
             ))}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* Groupes user-insertable, chacun avec sa couleur */}
       {groupedFiltered.length === 0 ? (
-        <Box sx={{ py: 3, textAlign: 'center', color: 'text.disabled' }}>
-          <Typography variant="caption">Aucune variable ne correspond à « {query} »</Typography>
-        </Box>
+        <div className="py-4 text-center text-muted-foreground opacity-60">
+          <span className="cn-text-caption">Aucune variable ne correspond à « {query} »</span>
+        </div>
       ) : (
         groupedFiltered.map((group) => (
-          <Box key={group.category}>
+          <div key={group.category}>
             <SectionHeading label={group.def.label} tone={group.def.tone} />
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+            <div className="flex flex-wrap gap-0.5">
               {group.items.map((v) => {
                 const isUsed = usedKeys.has(v.key);
                 return (
-                  <Tooltip
-                    key={v.key}
-                    title={
-                      <Box>
-                        <Box sx={{ fontWeight: 600, mb: 0.5 }}>{v.description}</Box>
-                        <Box sx={{ fontFamily: 'monospace', fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)' }}>
-                          ex. « {v.example} »
-                        </Box>
-                      </Box>
-                    }
-                    arrow
-                    placement="left"
-                  >
-                    <Chip
-                      label={`{${v.key}}`}
-                      size="small"
-                      onClick={() => onInsert(v.key)}
-                      sx={{
-                        ...chipSx(group.def.tone),
-                        fontFamily: 'monospace',
-                        fontSize: '0.72rem',
-                        cursor: 'pointer',
-                        opacity: isUsed ? 1 : 0.85,
-                        fontWeight: isUsed ? 700 : 500,
-                        outline: isUsed ? `1.5px solid ${group.def.tone.c}` : 'none',
-                        outlineOffset: isUsed ? '-1.5px' : 0,
-                        '&:hover': {
-                          opacity: 1,
-                        },
-                      }}
-                    />
+                  <Tooltip key={v.key}>
+                    <TooltipTrigger asChild>
+                      {/* Le span porte la ref que Radix pose : StatusChip n'en
+                          transmet pas (React 18). */}
+                      <span className="inline-flex">
+                        <StatusChip
+                          tokens={toTokens(group.def.tone)}
+                          label={`{${v.key}}`}
+                          onClick={() => onInsert(v.key)}
+                          className={[
+                            'font-mono text-[0.72rem]',
+                            isUsed
+                              ? 'opacity-100 hover:opacity-100 font-bold'
+                              : 'opacity-[0.85] hover:opacity-100 font-medium',
+                          ].join(' ')}
+                          // Le liseré de « déjà utilisée » est teinté par la catégorie :
+                          // couleur connue seulement a l'execution, donc style inline.
+                          sx={isUsed
+                            ? { outline: `1.5px solid ${group.def.tone.c}`, outlineOffset: '-1.5px' }
+                            : undefined}
+                        />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">
+                      <div className="font-semibold mb-0.5">{v.description}</div>
+                      <div className="font-mono text-[0.7rem] opacity-70">
+                        ex. « {v.example} »
+                      </div>
+                    </TooltipContent>
                   </Tooltip>
                 );
               })}
-            </Box>
-          </Box>
+            </div>
+          </div>
         ))
       )}
 
       {/* Detail des variables (optionnel — pattern MessageTemplateEditor) */}
       {showDetails && variables.length > 0 && (
-        <Box>
-          <Divider sx={{ mb: 1.5 }} />
-          <Typography variant="caption" fontWeight={600} display="block" gutterBottom>
+        <div>
+          <Separator className="mb-[9px]" />
+          <span className="cn-text-caption font-semibold block mb-[0.35em]">
             Détail des variables
-          </Typography>
-          <Box sx={{ maxHeight: 200, overflowY: 'auto' }}>
+          </span>
+          <div className="max-h-[200px] overflow-y-auto">
             {variables.map((v) => (
-              <Box key={v.key} sx={{ mb: 0.5 }}>
-                <Typography
-                  variant="caption"
-                  component="span"
-                  fontFamily="monospace"
-                  sx={{ color: CATEGORIES[CATEGORY_OF[v.key] ?? 'uncategorized'].tone.c, fontWeight: 600 }}
+              <div className="mb-0.5" key={v.key}>
+                {/* Teinte de la categorie connue seulement a l'execution : style inline. */}
+                <span
+                  className="cn-text-caption font-mono font-semibold"
+                  style={{ color: CATEGORIES[CATEGORY_OF[v.key] ?? 'uncategorized'].tone.c }}
                 >
                   {`{${v.key}}`}
-                </Typography>
-                <Typography variant="caption" component="span" color="text.secondary">
+                </span>
+                <span className="cn-text-caption text-muted-foreground">
                   {' — '}{v.description}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             ))}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
-    </Stack>
+    </div>
   );
 };
 
@@ -263,21 +259,12 @@ interface SectionHeadingProps {
 }
 
 const SectionHeading: React.FC<SectionHeadingProps> = ({ label, tone }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
-    <Box sx={{ width: 12, height: 2, bgcolor: tone.c, borderRadius: 1 }} />
-    <Typography
-      variant="caption"
-      component="div"
-      sx={{
-        fontSize: '0.65rem',
-        fontWeight: 600,
-        letterSpacing: '0.08em',
-        color: 'text.secondary',
-      }}
-    >
+  <div className="flex items-center gap-1 mb-1">
+    <div className="w-[12px] h-[2px] rounded-[8px]" style={{ backgroundColor: tone.c }} />
+    <div className="cn-text-caption text-[0.65rem] font-semibold tracking-[0.08em] text-muted-foreground">
       {label}
-    </Typography>
-  </Box>
+    </div>
+  </div>
 );
 
 export default VariablePicker;

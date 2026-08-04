@@ -1,26 +1,25 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { cn } from '../../../utils/cn';
+import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert, Info } from 'lucide-react';
+import { Spinner } from '../../../components/ui';
+import { Button, Field, FieldLabel, Input } from '../../../components/ui';
 import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  Button,
-  CircularProgress,
-  Skeleton,
-  Alert,
-  Typography,
-  Grid,
-  TextField,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-} from '@mui/material';
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Skeleton,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../../../components/ui';
 import {
   PlayArrow,
   CompareArrows,
@@ -46,14 +45,14 @@ const STATUS_OPTIONS: { value: ReconciliationStatus; label: string; color: strin
 ];
 
 // Statuts de run → tokens sémantiques (chips -soft : texte couleur + fond -soft)
-const STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
-  SUCCESS: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  FAILED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  DIVERGENCE: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  RUNNING: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+const STATUS_TOKEN: Record<string, ToneTokens> = {
+  SUCCESS: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
+  FAILED: { color: 'var(--err)', bg: 'var(--err-soft)' },
+  DIVERGENCE: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
+  RUNNING: { color: 'var(--info)', bg: 'var(--info-soft)' },
 };
 
-const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
+const NEUTRAL_TOKEN: ToneTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
 
 const formatDuration = (startedAt: string | null, completedAt: string | null): string => {
   if (!startedAt || !completedAt) return '—';
@@ -123,15 +122,16 @@ const ReconciliationTab: React.FC = () => {
   // Register Property ID + Status filters in the page header.
   useEffect(() => {
     setHeaderFilters(
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-        <TextField
-          size="small"
-          label="Property ID"
-          value={propertyIdFilter}
-          onChange={(e) => { setPropertyIdFilter(e.target.value); setPage(0); }}
-          type="number"
-          sx={{ width: 150 }}
-        />
+      <div className="flex items-end gap-2 flex-wrap">
+        <Field className="w-[150px]">
+          <FieldLabel htmlFor="reconciliation-property-filter">Property ID</FieldLabel>
+          <Input
+            id="reconciliation-property-filter"
+            value={propertyIdFilter}
+            onChange={(e) => { setPropertyIdFilter(e.target.value); setPage(0); }}
+            type="number"
+          />
+        </Field>
         <FilterChipRow
           options={STATUS_OPTIONS}
           value={statusFilter}
@@ -139,7 +139,7 @@ const ReconciliationTab: React.FC = () => {
           allLabel="Tous"
           size="compact"
         />
-      </Box>,
+      </div>,
     );
     return () => setHeaderFilters(null);
   }, [setHeaderFilters, propertyIdFilter, statusFilter]);
@@ -147,13 +147,8 @@ const ReconciliationTab: React.FC = () => {
   // Register Trigger Reconciliation button in the page header actions.
   useEffect(() => {
     setHeaderActions(
-      <Button
-        size="small"
-        variant="contained"
-        color="primary"
-        startIcon={<PlayArrow />}
-        onClick={() => setTriggerDialogOpen(true)}
-      >
+      <Button size="sm" onClick={() => setTriggerDialogOpen(true)}>
+        <PlayArrow />
         Trigger Reconciliation
       </Button>,
     );
@@ -191,117 +186,98 @@ const ReconciliationTab: React.FC = () => {
   };
 
   return (
-    <Box>
+    <div>
       {/* Stats — StatTile (carte plate hairline, valeur display tabular-nums) */}
       {stats && (
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={6} sm={2}>
+        <div className="grid grid-cols-12 gap-3 mb-[18px]">
+          <div className="col-span-6 min-[600px]:col-span-2">
             <StatTile icon={<CompareArrows />} label="Total Runs" value={stats.totalRuns} color="#6B8A9A" />
-          </Grid>
-          <Grid item xs={6} sm={2}>
+          </div>
+          <div className="col-span-6 min-[600px]:col-span-2">
             <StatTile icon={<CheckCircle />} label="Success" value={stats.successRuns} color="#4A9B8E" />
-          </Grid>
-          <Grid item xs={6} sm={2}>
+          </div>
+          <div className="col-span-6 min-[600px]:col-span-2">
             <StatTile icon={<ErrorOutline />} label="Failed" value={stats.failedRuns} color="#C97A7A" />
-          </Grid>
-          <Grid item xs={6} sm={2}>
+          </div>
+          <div className="col-span-6 min-[600px]:col-span-2">
             <StatTile icon={<WarningAmber />} label="Divergence" value={stats.divergenceRuns} color="#D4A574" />
-          </Grid>
-          <Grid item xs={6} sm={2}>
+          </div>
+          <div className="col-span-6 min-[600px]:col-span-2">
             <StatTile icon={<Tune />} label="Discrepancies" value={stats.totalDiscrepancies} color="#7BA3C2" />
-          </Grid>
-          <Grid item xs={6} sm={2}>
+          </div>
+          <div className="col-span-6 min-[600px]:col-span-2">
             <StatTile icon={<AutoFixHigh />} label="Fixes" value={stats.totalFixes} color="#4A9B8E" />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       )}
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {triggerMessage && <Alert severity="info" sx={{ mb: 2 }}>{triggerMessage}</Alert>}
+      {error && <Alert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
+      {triggerMessage && <Alert variant="info" className="mb-3">
+        <Info />
+        <AlertDescription>{triggerMessage}</AlertDescription>
+      </Alert>}
 
       {loading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+            <Skeleton key={i} className="h-[36px] w-full rounded-[9px]" />
           ))}
-        </Box>
+        </div>
       ) : (
         <>
-          <TableContainer
-            component={Paper}
-            variant="outlined"
-            sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}
-          >
-            <Table size="small">
-              <TableHead>
+          <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Channel</TableCell>
-                  <TableCell>Property</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>PMS Days</TableCell>
-                  <TableCell>Channel Days</TableCell>
-                  <TableCell>Discrepancies</TableCell>
-                  <TableCell>Fixed</TableCell>
-                  <TableCell>Divergence</TableCell>
-                  <TableCell>Duration</TableCell>
-                  <TableCell>Started At</TableCell>
-                  <TableCell>Error</TableCell>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Channel</TableHead>
+                  <TableHead>Property</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>PMS Days</TableHead>
+                  <TableHead>Channel Days</TableHead>
+                  <TableHead>Discrepancies</TableHead>
+                  <TableHead>Fixed</TableHead>
+                  <TableHead>Divergence</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Started At</TableHead>
+                  <TableHead>Error</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {runs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={12} align="center" sx={{ color: 'var(--muted)', py: 3 }}>
+                    <TableCell colSpan={12} className="text-center text-[var(--muted)] py-[18px]">
                       Aucune reconciliation
                     </TableCell>
                   </TableRow>
                 ) : (
                   runs.map((run) => (
                     <TableRow key={run.id}>
-                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.id}</TableCell>
+                      <TableCell className="tabular-nums">{run.id}</TableCell>
                       <TableCell>
-                        <Chip
-                          label={run.channel}
-                          size="small"
-                          sx={{ color: NEUTRAL_TOKEN.fg, backgroundColor: NEUTRAL_TOKEN.bg }}
-                        />
+                        <StatusChip tokens={NEUTRAL_TOKEN} label={run.channel} />
                       </TableCell>
-                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.propertyId}</TableCell>
+                      <TableCell className="tabular-nums">{run.propertyId}</TableCell>
                       <TableCell>
-                        <Chip
+                        <StatusChip
+                          tokens={STATUS_TOKEN[run.status] ?? NEUTRAL_TOKEN}
                           label={run.status}
-                          size="small"
-                          sx={(() => {
-                            const tk = STATUS_TOKEN[run.status] ?? NEUTRAL_TOKEN;
-                            return { color: tk.fg, backgroundColor: tk.bg };
-                          })()}
                         />
                       </TableCell>
-                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.pmsDaysChecked}</TableCell>
-                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{run.channelDaysChecked}</TableCell>
+                      <TableCell className="tabular-nums">{run.pmsDaysChecked}</TableCell>
+                      <TableCell className="tabular-nums">{run.channelDaysChecked}</TableCell>
                       <TableCell>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: run.discrepanciesFound > 0 ? 'var(--warn)' : 'var(--body)',
-                            fontWeight: run.discrepanciesFound > 0 ? 600 : 400,
-                            fontVariantNumeric: 'tabular-nums',
-                          }}
-                        >
+                        <p className={cn('cn-text-body2 tabular-nums', run.discrepanciesFound > 0 ? 'text-[var(--warn)]' : 'text-[var(--body)]', run.discrepanciesFound > 0 ? 'font-semibold' : 'font-normal')}>
                           {run.discrepanciesFound}
-                        </Typography>
+                        </p>
                       </TableCell>
                       <TableCell>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: run.discrepanciesFixed > 0 ? 'var(--ok)' : 'var(--body)',
-                            fontVariantNumeric: 'tabular-nums',
-                          }}
-                        >
+                        <p className={cn('cn-text-body2 tabular-nums', run.discrepanciesFixed > 0 ? 'text-[var(--ok)]' : 'text-[var(--body)]')}>
                           {run.discrepanciesFixed}
-                        </Typography>
+                        </p>
                       </TableCell>
                       <TableCell>
                         {run.divergencePct ? `${run.divergencePct}%` : '0%'}
@@ -311,20 +287,16 @@ const ReconciliationTab: React.FC = () => {
                         {run.startedAt ? new Date(run.startedAt).toLocaleString() : '—'}
                       </TableCell>
                       <TableCell>
-                        <Typography
-                          variant="body2"
-                          sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                          title={run.errorMessage || undefined}
-                        >
+                        <p className="cn-text-body2 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title={run.errorMessage || undefined}>
                           {run.errorMessage || '—'}
-                        </Typography>
+                        </p>
                       </TableCell>
                     </TableRow>
                   ))
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
           <PagePagination
             count={totalElements}
             page={page}
@@ -337,36 +309,40 @@ const ReconciliationTab: React.FC = () => {
       )}
 
       {/* Trigger Dialog */}
-      <Dialog open={triggerDialogOpen} onClose={() => setTriggerDialogOpen(false)}>
-        <DialogTitle>Trigger Reconciliation</DialogTitle>
+      <Dialog open={triggerDialogOpen} onOpenChange={(next) => { if (!next) setTriggerDialogOpen(false); }}>
         <DialogContent>
-          <Typography variant="body2" sx={{ mb: 2 }}>
+        <DialogHeader>
+          <DialogTitle>Trigger Reconciliation</DialogTitle>
+          <DialogDescription>
             Declencher une reconciliation manuelle pour une propriete.
             Tous les mappings actifs de cette propriete seront reconcilies.
-          </Typography>
-          <TextField
-            autoFocus
-            fullWidth
-            label="Property ID"
-            type="number"
-            value={triggerPropertyId}
-            onChange={(e) => setTriggerPropertyId(e.target.value)}
-            sx={{ mt: 1 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setTriggerDialogOpen(false)}>Annuler</Button>
+          </DialogDescription>
+        </DialogHeader>
+        <div>
+          <Field className="mt-1.5">
+            <FieldLabel htmlFor="reconciliation-trigger-property">Property ID</FieldLabel>
+            <Input
+              id="reconciliation-trigger-property"
+              autoFocus
+              type="number"
+              value={triggerPropertyId}
+              onChange={(e) => setTriggerPropertyId(e.target.value)}
+            />
+          </Field>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setTriggerDialogOpen(false)}>Annuler</Button>
           <Button
-            variant="contained"
             onClick={handleTrigger}
             disabled={!triggerPropertyId || triggerLoading}
-            startIcon={triggerLoading ? <CircularProgress size={16} /> : <PlayArrow />}
           >
+            {triggerLoading ? <Spinner className="size-4" /> : <PlayArrow />}
             Lancer
           </Button>
-        </DialogActions>
+        </DialogFooter>
+        </DialogContent>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

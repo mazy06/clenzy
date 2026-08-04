@@ -331,6 +331,9 @@ describe('PanelInterventionDetail', () => {
           interventions={[makeIntervention()]}
         />,
       );
+      // L'accordeon du kit demonte son contenu replie (Radix), la ou MUI le
+      // gardait a hauteur 0. Rien n'a change a l'ecran : il faut ouvrir.
+      fireEvent.click(screen.getByText('Photos (0)'));
       expect(screen.getByText('Aucune photo')).toBeInTheDocument();
     });
 
@@ -363,6 +366,7 @@ describe('PanelInterventionDetail', () => {
         />,
       );
       expect(screen.getByText('Notes')).toBeInTheDocument();
+      fireEvent.click(screen.getByText('Notes'));
       expect(screen.getByText('Attention au parquet')).toBeInTheDocument();
     });
 

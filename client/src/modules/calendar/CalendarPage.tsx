@@ -1,18 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import {
-  Box,
-  Skeleton,
-  Alert,
-  Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Button,
-  Paper,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Card, Button } from '../../components/ui';
+import { Skeleton, NativeSelect, NativeSelectOption } from '../../components/ui';
+import { useIsMobile } from '../../hooks/use-mobile';
 import { FilterAltOff as FilterAltOffIcon, CalendarMonth } from '../../icons';
 import EmptyState from '../../components/EmptyState';
 import './calendarSignature.css';
@@ -87,8 +78,8 @@ const mapToEvent = (intervention: Intervention): EventInput => {
 export default function CalendarPage() {
   const { user } = useAuth();
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  // Le palier `sm` de MUI vaut 600 px — useIsMobile prend le seuil en parametre.
+  const isMobile = useIsMobile(600);
 
   // Data state
   const [interventions, setInterventions] = useState<Intervention[]>([]);
@@ -200,77 +191,75 @@ export default function CalendarPage() {
   // Loading / error states
   // -----------------------------------------------------------------------
   if (!user) {
-    return <Skeleton variant="rounded" height={420} sx={{ borderRadius: 'var(--radius-lg)' }} />;
+    return <Skeleton className="h-[420px] rounded-[var(--radius-lg)]" />;
   }
 
   // Filtres : portés par le slot `filters` du PageHeader (pattern des écrans
   // finalisés — pas de Paper de filtres orphelin).
   const filterBar = (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', width: '100%' }}>
-      <FormControl size="small" sx={{ minWidth: 160 }}>
-        <InputLabel>Statut</InputLabel>
-        <Select
-          value={selectedStatus}
-          label="Statut"
-          onChange={(e) => setSelectedStatus(e.target.value)}
-        >
-          {statusOptions.map((opt) => (
-            <MenuItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+    <div className="flex flex-wrap gap-2 items-center w-full">
+      {/* Filtres sans libelle visible : chaque option porte deja son intitule
+          (« Tous les statuts », « Tous les types »…), l'aria-label reste la
+          seule etiquette accessible — pattern des barres de filtres du PMS. */}
+      <NativeSelect
+        size="sm"
+        className="min-w-[160px]"
+        aria-label="Statut"
+        value={selectedStatus}
+        onChange={(e) => setSelectedStatus(e.target.value)}
+      >
+        {statusOptions.map((opt) => (
+          <NativeSelectOption key={opt.value} value={opt.value}>
+            {opt.label}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
 
-      <FormControl size="small" sx={{ minWidth: 160 }}>
-        <InputLabel>Type</InputLabel>
-        <Select
-          value={selectedType}
-          label="Type"
-          onChange={(e) => setSelectedType(e.target.value)}
-        >
-          {typeOptions.map((opt) => (
-            <MenuItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      <NativeSelect
+        size="sm"
+        className="min-w-[160px]"
+        aria-label="Type"
+        value={selectedType}
+        onChange={(e) => setSelectedType(e.target.value)}
+      >
+        {typeOptions.map((opt) => (
+          <NativeSelectOption key={opt.value} value={opt.value}>
+            {opt.label}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
 
-      <FormControl size="small" sx={{ minWidth: 160 }}>
-        <InputLabel>Priorite</InputLabel>
-        <Select
-          value={selectedPriority}
-          label="Priorite"
-          onChange={(e) => setSelectedPriority(e.target.value)}
-        >
-          {priorityOptions.map((opt) => (
-            <MenuItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      <NativeSelect
+        size="sm"
+        className="min-w-[160px]"
+        aria-label="Priorite"
+        value={selectedPriority}
+        onChange={(e) => setSelectedPriority(e.target.value)}
+      >
+        {priorityOptions.map((opt) => (
+          <NativeSelectOption key={opt.value} value={opt.value}>
+            {opt.label}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
 
       {hasActiveFilters && (
-        <Button size="small" startIcon={<FilterAltOffIcon size={14} strokeWidth={1.75} />} onClick={clearFilters}>
+        <Button size="sm" variant="ghost" onClick={clearFilters}>
+          <FilterAltOffIcon size={14} strokeWidth={1.75} />
           Effacer les filtres
         </Button>
       )}
 
-      <Box sx={{ ml: 'auto' }}>
-        <Typography
-          variant="body2"
-          sx={{ color: 'var(--muted)', fontSize: '0.8125rem', fontVariantNumeric: 'tabular-nums' }}
-        >
+      <div className="ms-auto">
+        <p className="cn-text-body2 text-[var(--muted)] text-[0.8125rem] tabular-nums">
           {events.length} intervention{events.length > 1 ? 's' : ''}
-        </Typography>
-      </Box>
-    </Box>
+        </p>
+      </div>
+    </div>
   );
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title="Planning des interventions"
         subtitle="Vue calendrier de toutes les interventions planifiees"
@@ -281,14 +270,15 @@ export default function CalendarPage() {
       />
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
-          {error}
+        <Alert variant="destructive" className="mb-3 py-1.5">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Calendar */}
       {loading ? (
-        <Skeleton variant="rounded" height="calc(100vh - 320px)" sx={{ minHeight: 400, borderRadius: 'var(--radius-lg)' }} />
+        <Skeleton className="h-[calc(100vh-320px)] min-h-[400px] rounded-[var(--radius-lg)]" />
       ) : !error && interventions.length === 0 ? (
         <EmptyState
           icon={<CalendarMonth />}
@@ -296,10 +286,7 @@ export default function CalendarPage() {
           description="Les interventions planifiees (menage, maintenance, check-in/out) apparaitront ici dans une vue calendrier."
         />
       ) : (
-        <Paper
-          className="cal-signature"
-          sx={{ p: 2, border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)' }}
-        >
+        <Card className="gap-0 py-0 cal-signature p-3">
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
             initialView={isMobile ? 'listWeek' : 'dayGridMonth'}
@@ -336,7 +323,7 @@ export default function CalendarPage() {
               list: 'Liste',
             }}
           />
-        </Paper>
+        </Card>
       )}
 
       {/* Event detail dialog */}
@@ -348,6 +335,6 @@ export default function CalendarPage() {
         }}
         intervention={selectedIntervention}
       />
-    </Box>
+    </div>
   );
 }

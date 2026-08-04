@@ -1,6 +1,7 @@
-import { Box, Chip } from '@mui/material';
+
+import StatusChip from '../../../components/StatusChip';
 import type { CatalogService } from '../../../services/integrations/servicesCatalog';
-import ServiceGridCard, { buildStatusChipSx } from './ServiceGridCard';
+import ServiceGridCard from './ServiceGridCard';
 
 /**
  * Card du catalogue de services (Insurance, Cleaning, Smart Locks, Activités, Avis…).
@@ -32,27 +33,18 @@ export default function ServiceCatalogCard({ service, onClick }: ServiceCatalogC
       role="button"
       onClick={() => onClick(service)}
       logo={
-        <Box
-          sx={{
-            width: 40,
-            height: 40,
-            borderRadius: '8px',
-            backgroundColor: service.brandColor,
-            color: service.brandTextColor,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            fontSize: '0.85rem',
-            fontWeight: 700,
-            letterSpacing: '-0.02em',
-          }}
-          aria-hidden="true"
-        >
+        <div className="w-[40px] h-[40px] rounded-[8px] inline-flex items-center justify-center shrink-0 text-[0.85rem] font-bold tracking-[-0.02em]" style={{ backgroundColor: service.brandColor, color: service.brandTextColor }} aria-hidden="true">
           {getInitials(service.name)}
-        </Box>
+        </div>
       }
-      badge={<Chip label={chip.label} size="small" sx={buildStatusChipSx(chip.color)} />}
+      badge={
+        <StatusChip
+          tokens={{ color: chip.color, bg: `color-mix(in srgb, ${chip.color} 8%, transparent)` }}
+          label={chip.label}
+          className="border border-solid tracking-[0.01em]"
+          sx={{ borderColor: `color-mix(in srgb, ${chip.color} 20%, transparent)` }}
+        />
+      }
     />
   );
 }

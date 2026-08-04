@@ -1,5 +1,6 @@
-import React from 'react';
-import { Box, Typography, Tooltip, useTheme, alpha } from '@mui/material';
+import React, { type CSSProperties } from 'react';
+import { cn } from '../../utils/cn';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 
 /**
  * Carte d'option selectionnable — pattern moderne pour remplacer les chips
@@ -45,25 +46,28 @@ export default function OptionCard({
   accent,
   disabled = false,
 }: OptionCardProps) {
-  const theme = useTheme();
-  const accentColor = accent ?? theme.palette.primary.main;
+  const accentColor = accent ?? 'var(--mui-primary)';
 
   const hasTooltipContent = !!(description || hint);
   const tooltipTitle = hasTooltipContent ? (
-    <Box sx={{ py: 0.25 }}>
+    <div className="py-0.5">
       {description && (
-        <Typography variant="caption" sx={{ display: 'block', lineHeight: 1.4, fontSize: '0.75rem' }}>
+        <span className="cn-text-caption block leading-[1.4] text-[0.75rem]">
           {description}
-        </Typography>
+        </span>
       )}
       {hint && (
-        <Box sx={{ mt: description ? 0.5 : 0 }}>{hint}</Box>
+        <div className={cn(description ? 'mt-[3px]' : 'mt-0')}>{hint}</div>
       )}
-    </Box>
+    </div>
   ) : null;
 
   const card = (
-    <Box
+    // `accentColor` vient d'une prop ou du theme : valeur runtime, donc portee
+    // par la variable CSS `--option-accent` pour rester utilisable dans les
+    // classes de survol et de focus (une classe Tailwind ne peut pas naitre
+    // d'une variable). `pe-[30px]` reserve la place de l'indicateur radio.
+    <div
       role="button"
       aria-pressed={selected}
       aria-label={typeof label === 'string' ? label : undefined}
@@ -76,108 +80,58 @@ export default function OptionCard({
           onClick();
         }
       }}
-      sx={{
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1,
-        py: 1.5,
-        pl: 2,
-        pr: 5, // place pour l'indicateur radio
-        minHeight: 52,
-        borderRadius: 1.5,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.5 : 1,
-        border: '1.5px solid',
-        borderColor: selected ? accentColor : 'divider',
-        bgcolor: selected ? alpha(accentColor, 0.06) : 'transparent',
-        transition: 'border-color 150ms ease, background-color 150ms ease',
-        outline: 'none',
-        '&:hover': {
-          borderColor: selected ? accentColor : alpha(accentColor, 0.5),
-          bgcolor: selected ? alpha(accentColor, 0.08) : alpha(accentColor, 0.02),
-        },
-        '&:focus-visible': {
-          borderColor: accentColor,
-          boxShadow: `0 0 0 3px ${alpha(accentColor, 0.18)}`,
-        },
-      }}
+      style={{ '--option-accent': accentColor } as CSSProperties}
+      className={cn(
+        'relative flex items-center gap-1.5 py-[9px] ps-3 pe-[30px] min-h-[52px] rounded-[12px]',
+        'border-[1.5px] border-solid outline-none',
+        'transition-[border-color,background-color] duration-150 ease-[ease] motion-reduce:transition-none',
+        'focus-visible:border-[var(--option-accent)]',
+        'focus-visible:shadow-[0_0_0_3px_color-mix(in_srgb,var(--option-accent)_18%,transparent)]',
+        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100',
+        selected
+          ? cn(
+              'border-[var(--option-accent)] bg-[color-mix(in_srgb,var(--option-accent)_6%,transparent)]',
+              'hover:bg-[color-mix(in_srgb,var(--option-accent)_8%,transparent)]',
+            )
+          : cn(
+              'border-[var(--line)] bg-transparent',
+              'hover:border-[color-mix(in_srgb,var(--option-accent)_50%,transparent)]',
+              'hover:bg-[color-mix(in_srgb,var(--option-accent)_2%,transparent)]',
+            ),
+      )}
     >
-      <Typography
-        variant="body2"
-        sx={{
-          fontWeight: 600,
-          fontSize: '0.875rem',
-          lineHeight: 1.3,
-          color: 'text.primary',
-          flex: 1,
-          minWidth: 0,
-        }}
-      >
+      <p className="cn-text-body2 font-semibold text-[0.875rem] leading-[1.3] text-foreground flex-1 min-w-0">
         {label}
-      </Typography>
+      </p>
 
       {/* Indicateur radio en haut a droite */}
-      <Box
+      <div
         aria-hidden
-        sx={{
-          position: 'absolute',
-          top: '50%',
-          right: 14,
-          transform: 'translateY(-50%)',
-          width: 16,
-          height: 16,
-          borderRadius: '50%',
-          border: '1.5px solid',
-          borderColor: selected ? accentColor : 'divider',
-          bgcolor: 'background.paper',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+        className="absolute top-1/2 right-[14px] -translate-y-1/2 w-4 h-4 rounded-[50%] border-[1.5px] border-solid bg-[var(--card)] flex items-center justify-center"
+        style={{
+          // accentColor vient d'une prop / du theme : valeur runtime.
+          borderColor: selected ? accentColor : 'var(--line)',
           transition: 'border-color 150ms ease',
         }}
       >
         {selected && (
-          <Box
-            sx={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              bgcolor: accentColor,
-            }}
-          />
+          <div className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: accentColor }} />
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 
   if (!hasTooltipContent) return card;
 
   return (
-    <Tooltip
-      title={tooltipTitle}
-      arrow
-      enterDelay={300}
-      enterNextDelay={100}
-      placement="top"
-      slotProps={{
-        tooltip: {
-          sx: {
-            bgcolor: 'grey.900',
-            color: 'common.white',
-            fontSize: '0.75rem',
-            maxWidth: 240,
-            px: 1.5,
-            py: 1,
-            borderRadius: 1,
-          },
-        },
-        arrow: {
-          sx: { color: 'grey.900' },
-        },
-      }}
-    >
-      {card}
+    // Le `sx` de l'ancienne infobulle ne faisait que redire le gabarit du
+    // primitif (fond sombre, texte clair, petite graisse, rayon) : seule la
+    // largeur maximale de 240 px etait un vrai ajout.
+    <Tooltip delayDuration={300}>
+      <TooltipTrigger asChild>{card}</TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[240px]">
+        {tooltipTitle}
+      </TooltipContent>
     </Tooltip>
   );
 }

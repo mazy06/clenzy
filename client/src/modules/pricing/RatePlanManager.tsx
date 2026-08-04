@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
+import { cn } from '../../utils/cn';
 import {
-  Box,
-  Typography,
-  Paper,
+  Spinner,
   Button,
-  IconButton,
-  Chip,
   Switch,
+  Separator,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogContentText,
-  DialogActions,
-  CircularProgress,
-  Divider,
-} from '@mui/material';
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '../../components/ui';
+import StatusChip from '../../components/StatusChip';
 import { Add as AddIcon } from '../../icons';
 import { Edit as EditIcon } from '../../icons';
 import { Delete as DeleteIcon } from '../../icons';
@@ -24,14 +22,9 @@ import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPr
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
-const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: 1.5,
-} as const;
+/** Report en classes de l'ancienne surface `Paper` (p: 1.5 = 9px). */
+const CARD_CLASS =
+  'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] p-[9px]';
 
 const TYPE_COLORS: Record<string, string> = {
   BASE: '#5CB8AA',
@@ -86,119 +79,116 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
   };
 
   return (
-    <Paper sx={CARD_SX}>
+    <div className={CARD_CLASS}>
       {/* Header — overline de section (pattern pcard) */}
-      <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1 }}>
+      <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em] mb-1.5">
         {t('dynamicPricing.ratePlan.title')}
-      </Typography>
+      </p>
 
       {/* Loading */}
       {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-          <CircularProgress size={22} />
-        </Box>
+        <div className="flex justify-center py-3">
+          <Spinner className="size-[22px]" />
+        </div>
       )}
 
       {/* Empty state */}
       {!loading && ratePlans.length === 0 && (
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', py: 2, textAlign: 'center' }}>
+        <p className="cn-text-body2 text-muted-foreground text-[0.75rem] py-3 text-center">
           {t('dynamicPricing.ratePlan.empty')}
-        </Typography>
+        </p>
       )}
 
       {/* Plan list */}
       {!loading && ratePlans.map((plan, idx) => (
         <React.Fragment key={plan.id}>
-          {idx > 0 && <Divider sx={{ my: 0.75 }} />}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              py: 0.75,
-              opacity: plan.isActive ? 1 : 0.5,
-              transition: 'opacity 0.15s',
-            }}
-          >
+          {idx > 0 && <Separator className="my-[4.5px]" />}
+          <div className={cn('flex items-center gap-1.5 py-[4.5px]', plan.isActive ? 'opacity-100' : 'opacity-50')} style={{ transition: 'opacity 0.15s' }}>
             {/* Type badge */}
             {(() => { const c = TYPE_COLORS[plan.type] ?? '#8BA0B3'; return (
-            <Chip
+            <StatusChip
+              color={c}
               label={t(`dynamicPricing.ratePlan.types.${plan.type}`)}
-              size="small"
-              sx={{
-                backgroundColor: `${c}18`,
-                color: c,
-                border: `1px solid ${c}40`,
-                borderRadius: '6px',
-                fontWeight: 700,
-                fontSize: '0.625rem',
-                height: 22,
-                minWidth: 80,
-                '& .MuiChip-label': { px: 0.75 },
-              }}
+              className="border border-solid font-bold text-[0.625rem] min-w-20"
+              sx={{ borderColor: `${c}40` }}
             />
             ); })()}
 
             {/* Name + date range */}
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="body2" fontWeight={600} noWrap sx={{ fontSize: '0.8125rem' }}>
+            <div className="flex-1 min-w-0">
+              <p className="cn-text-body2 font-semibold truncate text-[0.8125rem]">
                 {plan.name}
-              </Typography>
+              </p>
               {formatDateRange(plan) && (
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
+                <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
                   {formatDateRange(plan)}
-                </Typography>
+                </span>
               )}
-            </Box>
+            </div>
 
             {/* Price — display tabular-nums */}
-            <Typography variant="body2" fontWeight={600} sx={{ minWidth: 60, textAlign: 'right', fontSize: '0.8125rem', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums', color: 'var(--ink)' }}>
+            <p className="cn-text-body2 font-semibold min-w-[60px] text-end text-[0.8125rem] font-[family-name:var(--font-display)] tabular-nums text-[var(--ink)]">
               <Money value={plan.nightlyPrice} from={plan.currency || 'EUR'} />
-            </Typography>
+            </p>
 
             {/* Active toggle */}
             <Switch
-              size="small"
+              size="sm"
+              aria-label={plan.name}
               checked={plan.isActive}
-              onChange={() => handleToggleActive(plan)}
+              onCheckedChange={() => handleToggleActive(plan)}
               disabled={updateLoading}
             />
 
             {/* Actions */}
-            <IconButton size="small" onClick={() => onEditPlan(plan)} sx={{ p: 0.5 }}>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('common.edit')}
+              onClick={() => onEditPlan(plan)}
+            >
               <EditIcon size={16} strokeWidth={1.75} />
-            </IconButton>
-            <IconButton size="small" onClick={() => setDeleteConfirmId(plan.id)} color="error" sx={{ p: 0.5 }}>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('common.delete')}
+              onClick={() => setDeleteConfirmId(plan.id)}
+              className="text-[var(--err)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+            >
               <DeleteIcon size={16} strokeWidth={1.75} />
-            </IconButton>
-          </Box>
+            </Button>
+          </div>
         </React.Fragment>
       ))}
 
       {/* Delete confirmation dialog */}
-      <Dialog open={deleteConfirmId !== null} onClose={() => setDeleteConfirmId(null)}>
-        <DialogTitle sx={{ fontSize: '0.9375rem' }}>{t('dynamicPricing.ratePlan.delete')}</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ fontSize: '0.8125rem' }}>{t('dynamicPricing.ratePlan.deleteConfirm')}</DialogContentText>
+      <Dialog
+        open={deleteConfirmId !== null}
+        onOpenChange={(next) => { if (!next) setDeleteConfirmId(null); }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[0.9375rem]">{t('dynamicPricing.ratePlan.delete')}</DialogTitle>
+            <DialogDescription className="text-[0.8125rem]">{t('dynamicPricing.ratePlan.deleteConfirm')}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(null)} disabled={deleteLoading}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDelete}
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? <Spinner className="size-3.5" /> : null}
+              {t('common.delete')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={() => setDeleteConfirmId(null)} disabled={deleteLoading} size="small" sx={{ textTransform: 'none' }}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            color="error"
-            variant="contained"
-            size="small"
-            onClick={handleDelete}
-            disabled={deleteLoading}
-            startIcon={deleteLoading ? <CircularProgress size={14} /> : undefined}
-            sx={{ textTransform: 'none' }}
-          >
-            {t('common.delete')}
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Paper>
+    </div>
   );
 };
 

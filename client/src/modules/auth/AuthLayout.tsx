@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { cn } from '../../utils/cn';
 import { useTranslation } from 'react-i18next';
-import { Box, Typography, useTheme, alpha, useMediaQuery, CssBaseline, ThemeProvider } from '@mui/material';
-import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
+import { useMediaQuery } from '../../hooks/use-media-query';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 
@@ -218,27 +218,39 @@ const ENABLE_PHOTO_HERO = true;
 // donne ~150KB pour un retina-friendly rendering sur ecran 1440px.
 const HERO_PHOTO_URL = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1600&q=80';
 
+/**
+ * Equivalent CSS de l'ancien helper `alpha()` de MUI. `color-mix` accepte aussi
+ * bien un hexadecimal qu'un `var(--…)`, la ou `alpha()` exigeait une couleur
+ * deja resolue en JS.
+ */
+const softColor = (color: string, percent: number) =>
+  `color-mix(in srgb, ${color} ${percent}%, transparent)`;
+
+/** Pont vers la primary MUI, seule teinte du theme utilisee par ce layout. */
+const PRIMARY = 'var(--mui-primary)';
+
+/** `theme.breakpoints.up('md')` de MUI : md vaut 900px, pas 768px. */
+const MD_UP_QUERY = '(min-width: 900px)';
+
 export default function AuthLayout({ children, maxFormWidth = 440 }: AuthLayoutProps) {
   // Geo-detected language : ces pages NE respectent PAS les preferences user.
   // Logique business : pays arabes -> ar, France/Maghreb -> fr, autres -> en.
   // Hook override l'i18n au mount + restore au unmount.
-  const { isRtl } = useGeoAuthLanguage();
-  const theme = useMemo(() => createBaitlyTheme({ isDark: false, isRtl }), [isRtl]);
+  useGeoAuthLanguage();
 
-  return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <AuthLayoutInner maxFormWidth={maxFormWidth}>{children}</AuthLayoutInner>
-    </ThemeProvider>
-  );
+  // Ces pages s'affichent TOUJOURS en clair, quelle que soit la preference de
+  // l'utilisateur : elles precedent la session. Un ThemeProvider local
+  // l'imposait auparavant ; `AuthLayoutInner` porte deja le `data-theme="light"`
+  // que lisent les jetons CSS, ainsi que le fond plein ecran — il n'y a donc
+  // rien a ajouter par-dessus.
+  return <AuthLayoutInner maxFormWidth={maxFormWidth}>{children}</AuthLayoutInner>;
 }
 
 function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
+  const isMdUp = useMediaQuery(MD_UP_QUERY);
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
-  const primary = theme.palette.primary.main;
+  const primary = PRIMARY;
 
   // ─── State du carrousel ──────────────────────────────────────────────
   const [slideIndex, setSlideIndex] = useState(0);
@@ -299,42 +311,29 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
   const current = SLIDES[slideIndex];
 
   return (
-    <Box
+    <div
       // Écrans auth = toujours CLAIRS + accent de marque indigo, quel que soit
       // le thème/teinte du device (résidu localStorage du dernier compte). On
       // force data-theme="light" (le device peut être en data-theme="dark") pour
       // que les vars CSS de surfaces/champs (--field, --card…) repassent en clair,
       // et className="brand-accent" fige l'accent indigo #5453D6 (cf. tokens.css).
-      className="brand-accent"
+      className="brand-accent min-h-screen flex flex-col min-[900px]:flex-row bg-[var(--card)]"
       data-theme="light"
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: { xs: 'column', md: 'row' },
-        bgcolor: 'background.paper',
-      }}
     >
       {/* ── PANNEAU BRAND (desktop) ─────────────────────────────────────── */}
       {isMdUp && (
-        <Box
-          sx={{
-            flex: '0 0 42%',
-            minWidth: 420,
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            p: 6,
+        <div
+          className="flex-[0_0_42%] min-w-[420px] relative flex flex-col justify-between p-9 overflow-hidden"
+          style={{
             // Photo mode : bg ratio composite (photo darkening overlay sous
             // le dot pattern translucide). Sober mode : bg primary alpha 0.04.
-            bgcolor: ENABLE_PHOTO_HERO ? '#0F1A22' : alpha(primary, 0.04),
+            backgroundColor: ENABLE_PHOTO_HERO ? '#0F1A22' : softColor(primary, 4),
             // Dot pattern visible dans les deux modes, alpha ajuste selon le bg
             backgroundImage: ENABLE_PHOTO_HERO
-              ? `radial-gradient(${alpha('#FFFFFF', 0.10)} 1px, transparent 1px)`
-              : `radial-gradient(${alpha(primary, 0.12)} 1px, transparent 1px)`,
+              ? `radial-gradient(${softColor('#FFFFFF', 10)} 1px, transparent 1px)`
+              : `radial-gradient(${softColor(primary, 12)} 1px, transparent 1px)`,
             backgroundSize: '24px 24px',
             backgroundPosition: '0 0',
-            overflow: 'hidden',
           }}
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
@@ -353,69 +352,33 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                  "spotlight" subtil sur le texte sans surcharger. */}
           {ENABLE_PHOTO_HERO && (
             <>
-              <Box
+              <div
                 aria-hidden
-                sx={{
-                  position: 'absolute',
-                  inset: 0,
+                className="absolute inset-0 bg-cover bg-center z-[0] pointer-events-none"
+                style={{
                   backgroundImage: `url(${HERO_PHOTO_URL})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
                   filter: 'saturate(0.6) brightness(0.55) blur(1.5px)',
                   // scale 1.05 evite que le blur 1.5px revele les bords
                   // transparents (artefact classique du filter:blur en CSS)
                   transform: 'scale(1.05)',
-                  zIndex: 0,
-                  pointerEvents: 'none',
                 }}
               />
-              <Box
-                aria-hidden
-                sx={{
-                  position: 'absolute',
-                  inset: 0,
-                  bgcolor: alpha('#0F1E28', 0.85),
-                  zIndex: 0,
-                  pointerEvents: 'none',
-                }}
-              />
-              <Box
-                aria-hidden
-                sx={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: `linear-gradient(to top right, ${alpha('#0F1E28', 0.55)} 0%, transparent 60%)`,
-                  zIndex: 0,
-                  pointerEvents: 'none',
-                }}
-              />
+              <div className="absolute inset-0 z-[0] pointer-events-none" style={{ backgroundColor: softColor('#0F1E28', 85) }} aria-hidden />
+              <div className="absolute inset-0 z-[0] pointer-events-none" style={{ background: `linear-gradient(to top right, ${softColor('#0F1E28', 55)} 0%, transparent 60%)` }} aria-hidden />
             </>
           )}
 
           {/* Accent decoratif top-right : cercle radial diffus.
               En photo mode : color brand-light pour rester visible sur fond fonce.
               En sober mode : color brand classic. */}
-          <Box
-            aria-hidden
-            sx={{
-              position: 'absolute',
-              top: -120,
-              right: -120,
-              width: 360,
-              height: 360,
-              borderRadius: '50%',
-              background: ENABLE_PHOTO_HERO
-                ? `radial-gradient(circle, ${alpha('#89B1C2', 0.22)}, transparent 70%)`
-                : `radial-gradient(circle, ${alpha(primary, 0.18)}, transparent 70%)`,
-              pointerEvents: 'none',
-              zIndex: 0,
-            }}
-          />
+          <div className="absolute w-[360px] h-[360px] rounded-[50%] pointer-events-none z-[0]" style={{ top: -120, right: -120, background: ENABLE_PHOTO_HERO
+                ? `radial-gradient(circle, ${softColor('#89B1C2', 22)}, transparent 70%)`
+                : `radial-gradient(circle, ${softColor(primary, 18)}, transparent 70%)` }} aria-hidden />
 
           {/* Header : logo. tone="dark" en photo mode (nodes blancs sur bg fonce). */}
-          <Box sx={{ position: 'relative', zIndex: 1 }}>
+          <div className="relative z-[1]">
             <BaitlyMarkLogo scale={0.95} tone={ENABLE_PHOTO_HERO ? 'dark' : 'auto'} />
-          </Box>
+          </div>
 
           {/* Centre : carrousel slide actuel + dots verticaux a droite.
               Layout : `justifyContent: 'space-between'` pousse le texte au
@@ -425,52 +388,36 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
               entre les deux s'adapte naturellement au viewport (plus large
               sur 1920px, plus serre sur 1280px). Les dots restent toujours
               dans la colonne brand. */}
-          <Box
-            sx={{
-              position: 'relative',
-              zIndex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 3,
-            }}
-          >
-            <Box sx={{ flex: '0 1 auto', maxWidth: { md: 440, lg: 520, xl: 580 }, minHeight: 360 }}>
+          <div className="relative z-[1] flex items-center justify-between gap-4">
+            <div className="flex-[0_1_auto] min-[900px]:max-w-[440px] min-[1200px]:max-w-[520px] min-[1536px]:max-w-[580px] min-h-[360px]">
               {/* key={slideIndex} force le remount a chaque slide => l'animation
                   CSS fade-in se rejoue automatiquement. Approche tres simple
                   vs framer-motion pour ce cas (1 element a la fois). */}
-              <Box
+              {/* `key` force le remontage a chaque slide, donc le rejeu de
+                  l'animation. `slide-in-from-bottom-2` vaut les 8px de l'ancien
+                  keyframe, a l'identique. */}
+              <div
                 key={slideIndex}
-                sx={{
-                  animation: prefersReducedMotion
-                    ? 'none'
-                    : 'auth-slide-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both',
-                  '@keyframes auth-slide-in': {
-                    from: { opacity: 0, transform: 'translateY(8px)' },
-                    to: { opacity: 1, transform: 'translateY(0)' },
-                  },
-                }}
+                className={cn(
+                  'animate-in fade-in slide-in-from-bottom-2 fill-mode-both',
+                  'duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                  prefersReducedMotion && 'animate-none',
+                )}
               >
                 {/* Titre — bumped from h4 (2.125rem) to ~2.375rem pour creer
                     une hierarchie plus marquee avec le subtitle (0.8125rem,
                     ratio ~3x). letterSpacing negatif pour un feel modern SaaS
                     (Linear, Vercel, Stripe Dashboard). Responsive : 2rem sur md,
                     2.375rem sur lg (au-dela de 1200px). */}
-                <Typography
-                  component="h2"
-                  sx={{
-                    fontSize: { md: '2rem', lg: '2.375rem' },
-                    fontWeight: 600,
-                    lineHeight: 1.15,
-                    letterSpacing: '-0.02em',
+                <h2
+                  className="cn-text-body1 min-[900px]:text-[2rem] min-[1200px]:text-[2.375rem] font-semibold leading-[1.15] tracking-[-0.02em] text-balance mb-[15px]"
+                  style={{
                     // Texte titre : blanc en photo mode (sur fond fonce),
                     // text.primary en sober mode (sur fond clair)
-                    color: ENABLE_PHOTO_HERO ? '#FFFFFF' : 'text.primary',
+                    color: ENABLE_PHOTO_HERO ? '#FFFFFF' : 'var(--ink)',
                     // text-shadow subtil en photo mode : renforce la lisibilite
                     // sur photo+overlay (sans tomber dans le "drop-shadow lourd")
                     textShadow: ENABLE_PHOTO_HERO ? '0 1px 12px rgba(0, 0, 0, 0.4)' : 'none',
-                    textWrap: 'balance',
-                    mb: 2.5,
                   }}
                 >
                   {current.tagline && (
@@ -486,39 +433,36 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                       pour contraste WCAG sur fond fonce. Primary classic en
                       sober. #A8C8D6 vs #89B1C2 = +20% luminosite => meilleure
                       lisibilite sur l'overlay+photo darkened. */}
-                  <Box component="span" sx={{ color: ENABLE_PHOTO_HERO ? '#A8C8D6' : primary }}>
+                  <span style={{ color: ENABLE_PHOTO_HERO ? '#A8C8D6' : primary }}>
                     {slideIndex === 0
                       ? t('auth.layout.taglineHighlight', current.highlight)
                       : current.highlight}
-                  </Box>
+                  </span>
                   {slideIndex === 0
                     ? t('auth.layout.taglineEnd', current.end)
                     : current.end}
-                </Typography>
+                </h2>
                 {/* Subtitle — reduit de 0.95rem a 0.8125rem (13px) pour
                     creer une hierarchie nette avec le titre. Lineheight 1.7
                     pour donner de l'air entre les lignes, color un peu plus
                     muted (0.75 au lieu de 0.92) pour que le titre domine. */}
-                <Typography
-                  component="p"
-                  sx={{
-                    color: ENABLE_PHOTO_HERO ? alpha('#FFFFFF', 0.78) : 'text.secondary',
+                <p
+                  className="cn-text-body1 text-[0.8125rem] font-normal leading-[1.7]"
+                  style={{
+                    color: ENABLE_PHOTO_HERO ? softColor('#FFFFFF', 78) : 'var(--muted)',
                     textShadow: ENABLE_PHOTO_HERO ? '0 1px 6px rgba(0, 0, 0, 0.25)' : 'none',
-                    lineHeight: 1.7,
-                    fontSize: '0.8125rem',
-                    fontWeight: 400,
                   }}
                 >
                   {slideIndex === 0
                     ? t('auth.layout.subtitle', current.subtitle)
                     : current.subtitle}
-                </Typography>
+                </p>
 
                 {/* Services chips — affichees uniquement si le slide a des
                     integrations specifiques (slides 5-11). Wrappe en flex
                     pour gerer les slides a 4+ services (slide 6 channels). */}
                 {current.services && current.services.length > 0 && (
-                  <Box sx={{ mt: 3, display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                  <div className="mt-4 flex flex-wrap gap-1">
                     {current.services.map((service) => (
                       <ServiceChip
                         key={`${slideIndex}-${service.name}`}
@@ -526,75 +470,67 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                         onDark={ENABLE_PHOTO_HERO}
                       />
                     ))}
-                  </Box>
+                  </div>
                 )}
-              </Box>
-            </Box>
+              </div>
+            </div>
 
             {/* Dots pagination en colonne verticale a droite du texte.
                 Click : reset le timer auto-cycle (l'effect se reabonne via
                 la dependance slideIndex/isPaused).
                 Dot active : pill verticale (height 24, width 8) au lieu
                 d'horizontale, conforme a l'orientation du tablist. */}
-            <Box
-              role="tablist"
-              aria-label="Slides marketing"
-              aria-orientation="vertical"
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 1,
-                alignItems: 'center',
-                flexShrink: 0,
-              }}
-            >
+            <div className="flex flex-col gap-1.5 items-center shrink-0" role="tablist" aria-label="Slides marketing" aria-orientation="vertical">
               {SLIDES.map((slide, i) => {
                 const isActive = i === slideIndex;
                 // Dots : white-translucent en photo mode pour contraster
                 // avec le bg fonce. Primary en sober mode.
                 const dotActiveBg = ENABLE_PHOTO_HERO ? '#FFFFFF' : primary;
                 const dotInactiveBg = ENABLE_PHOTO_HERO
-                  ? alpha('#FFFFFF', 0.35)
-                  : alpha(primary, 0.25);
+                  ? softColor('#FFFFFF', 35)
+                  : softColor(primary, 25);
                 const dotInactiveHoverBg = ENABLE_PHOTO_HERO
-                  ? alpha('#FFFFFF', 0.55)
-                  : alpha(primary, 0.45);
+                  ? softColor('#FFFFFF', 55)
+                  : softColor(primary, 45);
                 return (
-                  <Box
-                    key={slide.tagline}
-                    component="button"
+                  // Les 3 teintes du dot dependent du mode photo et du theme :
+                  // elles passent par des custom properties, les classes qui les
+                  // consomment (dont hover / focus-visible) restent statiques.
+                  <button
+                    // L'index, et non `slide.tagline` : deux slides ouvrent
+                    // directement sur leur phrase mise en exergue et ont donc
+                    // une accroche vide — leurs deux pastilles se retrouvaient
+                    // avec la meme cle `""`. `SLIDES` est une constante de
+                    // module, jamais reordonnee ni filtree : l'index y est
+                    // stable.
+                    key={i}
                     type="button"
                     role="tab"
                     aria-selected={isActive}
                     aria-label={`Slide ${i + 1} sur ${SLIDES.length}`}
                     onClick={() => setSlideIndex(i)}
-                    sx={{
-                      width: 8,
-                      height: isActive ? 24 : 8,
-                      borderRadius: 999,
-                      border: 'none',
-                      p: 0,
-                      cursor: 'pointer',
-                      bgcolor: isActive ? dotActiveBg : dotInactiveBg,
+                    className={cn(
+                      'w-[8px] rounded-full border-none p-0 cursor-pointer',
+                      'bg-[var(--dot-bg)] hover:bg-[var(--dot-bg-hover)]',
+                      'focus-visible:outline-2 focus-visible:outline-[var(--dot-ring)] focus-visible:outline-offset-2',
+                      isActive ? 'h-[24px]' : 'h-[8px]',
+                    )}
+                    style={{
+                      '--dot-bg': isActive ? dotActiveBg : dotInactiveBg,
+                      '--dot-bg-hover': isActive ? dotActiveBg : dotInactiveHoverBg,
+                      '--dot-ring': ENABLE_PHOTO_HERO ? '#FFFFFF' : primary,
                       transition: 'height 250ms cubic-bezier(0.4, 0, 0.2, 1), background-color 200ms',
-                      '&:hover': {
-                        bgcolor: isActive ? dotActiveBg : dotInactiveHoverBg,
-                      },
-                      '&:focus-visible': {
-                        outline: `2px solid ${ENABLE_PHOTO_HERO ? '#FFFFFF' : primary}`,
-                        outlineOffset: 2,
-                      },
-                    }}
+                    } as React.CSSProperties}
                   />
                 );
               })}
-            </Box>
-          </Box>
+            </div>
+          </div>
 
           {/* Footer : trust signals discrets. En photo mode, on passe en
               variantes white-translucent pour rester lisible sur fond fonce. */}
-          <Box sx={{ position: 'relative', zIndex: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+          <div className="relative z-[1]">
+            <div className="flex items-center gap-4 flex-wrap">
               <TrustItem
                 dot={ENABLE_PHOTO_HERO ? '#89B1C2' : primary}
                 label={t('auth.layout.trustEurope', 'Hébergé en Europe')}
@@ -610,59 +546,39 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                 label={t('auth.layout.trustSupport', 'Support 7j/7')}
                 onDark={ENABLE_PHOTO_HERO}
               />
-            </Box>
-          </Box>
-        </Box>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── ZONE FORM ───────────────────────────────────────────────────── */}
-      <Box
-        sx={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          p: { xs: 3, sm: 5, md: 6 },
-          bgcolor: 'background.paper',
-        }}
-      >
-        <Box
-          sx={{
-            width: '100%',
-            maxWidth: maxFormWidth,
-            display: 'flex',
-            flexDirection: 'column',
-            // Champs auth uniformisés sur l'accent indigo (bordure + remplissage
-            // soft au survol/focus), alignés sur le bouton primary — cohérent sur
-            // TOUTES les pages auth (Login, Inscription…). L'état erreur (.Mui-error,
-            // specificité supérieure) garde sa bordure rouge.
-            '& .MuiOutlinedInput-root': {
-              transition: 'background-color .14s',
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'var(--accent)',
-                transition: 'border-color .14s',
-              },
-              '&:hover': { backgroundColor: 'var(--accent-soft)' },
-              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--accent)' },
-              '&.Mui-focused': { backgroundColor: 'var(--accent-soft)' },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'var(--accent)',
-                borderWidth: '1px',
-              },
-            },
-          }}
+      <div className="flex-1 flex items-center justify-center p-[18px] min-[600px]:p-[30px] min-[900px]:p-9 bg-[var(--card)]">
+        {/* Champs auth uniformisés sur l'accent indigo (bordure + remplissage
+            soft au survol/focus), alignés sur le bouton primary — cohérent sur
+            TOUTES les pages auth (Login, Inscription…). Le sélecteur d'erreur
+            est plus spécifique que celui de repos : un champ invalide garde sa
+            bordure rouge. */}
+        <div
+          className={cn(
+            'w-full flex flex-col',
+            '[&_[data-slot=input]]:border-[var(--accent)] [&_[data-slot=input]]:transition-colors',
+            '[&_[data-slot=input]:hover]:bg-[var(--accent-soft)]',
+            '[&_[data-slot=input]:focus]:bg-[var(--accent-soft)]',
+            '[&_[data-slot=input][aria-invalid=true]]:border-[var(--err)]',
+          )}
+          style={{ maxWidth: maxFormWidth }}
         >
           {/* Logo compact en haut sur mobile (le panneau brand est cache) */}
           {!isMdUp && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+            <div className="flex justify-center mb-6">
               <BaitlyMarkLogo scale={0.85} />
-            </Box>
+            </div>
           )}
 
           {children}
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -695,27 +611,19 @@ function ServiceChip({
   const iconColor = onDark ? 'white' : '6B8A9A';
 
   return (
-    <Box
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 0.625,
-        px: 1.125,
-        py: 0.5,
-        borderRadius: 999,
-        bgcolor: onDark ? alpha('#FFFFFF', 0.08) : alpha('#000000', 0.04),
-        border: `1px solid ${
-          onDark ? alpha('#FFFFFF', 0.12) : alpha('#000000', 0.06)
-        }`,
+    // Les teintes dependent du mode photo : custom properties, la variante
+    // hover reste une classe statique.
+    <div
+      className="inline-flex items-center gap-[3.75px] px-[6.75px] py-[3px] rounded-full border border-solid border-[var(--chip-border)] bg-[var(--chip-bg)] hover:bg-[var(--chip-bg-hover)]"
+      style={{
+        '--chip-bg': onDark ? softColor('#FFFFFF', 8) : softColor('#000000', 4),
+        '--chip-bg-hover': onDark ? softColor('#FFFFFF', 14) : softColor('#000000', 6),
+        '--chip-border': onDark ? softColor('#FFFFFF', 12) : softColor('#000000', 6),
         transition: 'background-color 200ms ease-out',
-        '&:hover': {
-          bgcolor: onDark ? alpha('#FFFFFF', 0.14) : alpha('#000000', 0.06),
-        },
-      }}
+      } as React.CSSProperties}
     >
       {service.slug && (
-        <Box
-          component="img"
+        <img
           src={`https://cdn.simpleicons.org/${service.slug}/${iconColor}`}
           alt=""
           aria-hidden
@@ -724,29 +632,16 @@ function ServiceChip({
           onError={(event) => {
             (event.currentTarget as HTMLImageElement).style.display = 'none';
           }}
-          sx={{
-            width: 11,
-            height: 11,
-            opacity: onDark ? 0.88 : 0.75,
-            objectFit: 'contain',
-            flexShrink: 0,
-          }}
+          className={cn('w-[11px] h-[11px] object-contain shrink-0', onDark ? 'opacity-[0.88]' : 'opacity-75')}
         />
       )}
-      <Typography
-        component="span"
-        sx={{
-          color: onDark ? alpha('#FFFFFF', 0.88) : 'text.primary',
-          fontSize: '0.7rem',
-          fontWeight: 500,
-          letterSpacing: 0.2,
-          whiteSpace: 'nowrap',
-          lineHeight: 1.1,
-        }}
+      <span
+        className="cn-text-body1 text-[0.7rem] font-medium tracking-[0.2px] whitespace-nowrap leading-[1.1]"
+        style={{ color: onDark ? softColor('#FFFFFF', 88) : 'var(--ink)' }}
       >
         {service.name}
-      </Typography>
-    </Box>
+      </span>
+    </div>
   );
 }
 
@@ -755,26 +650,14 @@ function ServiceChip({
  *  Sinon, text.secondary du theme MUI. */
 function TrustItem({ dot, label, onDark = false }: { dot: string; label: string; onDark?: boolean }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-      <Box
-        sx={{
-          width: 5,
-          height: 5,
-          borderRadius: '50%',
-          bgcolor: dot,
-          opacity: onDark ? 0.85 : 0.6,
-        }}
-      />
-      <Typography
-        variant="caption"
-        sx={{
-          color: onDark ? alpha('#FFFFFF', 0.75) : 'text.secondary',
-          fontSize: '0.75rem',
-          fontWeight: 500,
-        }}
+    <div className="flex items-center gap-1">
+      <div className={cn('w-[5px] h-[5px] rounded-[50%]', onDark ? 'opacity-85' : 'opacity-60')} style={{ backgroundColor: dot }} />
+      <span
+        className="cn-text-caption text-[0.75rem] font-medium"
+        style={{ color: onDark ? softColor('#FFFFFF', 75) : 'var(--muted)' }}
       >
         {label}
-      </Typography>
-    </Box>
+      </span>
+    </div>
   );
 }

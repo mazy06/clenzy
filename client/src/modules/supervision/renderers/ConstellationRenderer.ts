@@ -11,7 +11,7 @@
    ============================================================ */
 
 import type { ComponentType, ReactNode } from 'react';
-import type { AgentId, AgentStatus, AutonomyLevel } from '../types';
+import type { AgentId, AgentStatus, AutonomyLevel, PendingAction } from '../types';
 
 export interface ConstellationAgentView {
   id: AgentId;
@@ -20,6 +20,10 @@ export interface ConstellationAgentView {
   task: string | null; // langage métier (tooltip)
   thinkingProgress?: number; // 0–100, halo « Réfléchit » (status === 'think')
   badge?: number; // portefeuille : nb de logements concernés
+  /** Nb d'actions de la file HITL portées par cet agent — libellé « N en
+   *  attente » sous le nœud (OrbitConstellation). Optionnel : les renderers
+   *  qui ne l'affichent pas l'ignorent. */
+  pendingCount?: number;
 }
 
 export interface ConstellationHud {
@@ -73,6 +77,20 @@ export interface ConstellationRendererProps {
    * carte arrondie (vues standalone / portefeuille).
    */
   flush?: boolean;
+  /**
+   * Annonce l'agent arrivé à l'emplacement de tête, une fois sa rotation
+   * TERMINÉE (`null` pendant la rotation, hors-ligne ou en pause). Le panneau
+   * s'en sert pour dessiner les attaches vers les cartes HITL de cet agent —
+   * mesurées quand les positions sont stables. Optionnel : les renderers sans
+   * emplacement de tête (FramerConstellation) l'ignorent.
+   */
+  onHeadAgentSettled?: (id: AgentId | null) => void;
+  /**
+   * File HITL brute — alimente l'infobulle RICHE des nœuds (aperçu borné des
+   * actions en attente de l'agent + échéances, cf. OrbitDiagram). Optionnel :
+   * sans elle, l'infobulle retombe sur la tâche en cours / le rôle.
+   */
+  pendingItems?: readonly PendingAction[];
 }
 
 export type ConstellationRenderer = ComponentType<ConstellationRendererProps>;

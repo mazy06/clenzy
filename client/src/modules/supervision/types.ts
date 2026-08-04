@@ -12,7 +12,18 @@
 
 // ─── Identités & énumérations ────────────────────────────────────────────────
 
-export type AgentId = 'com' | 'rev' | 'ops' | 'fin' | 'rep';
+export type AgentId =
+  | 'com' // Communication — messages voyageurs
+  | 'rev' // Revenue — yield & tarifs
+  | 'ops' // Opérations — interventions & équipes
+  | 'fin' // Finance — paiements & risques
+  | 'rep' // Réputation — avis
+  // Constellation métiers (PLAN-CONSTELLATION-METIERS.md, Phase 1) :
+  | 'sync' // Canaux & calendriers
+  | 'cmp' // Conformité & sécurité
+  | 'gst' // Expérience voyageur
+  | 'own' // Relation propriétaire
+  | 'gro'; // Distribution & croissance
 
 export type AgentStatus =
   | 'veille' // En veille
@@ -144,6 +155,13 @@ export interface FeedEntry {
    * couleur d'accent) au lieu de `AGENT_META[agentId]`.
    */
   orchestrator?: boolean;
+  /**
+   * Nature d'étiquette persistée serveur (constellation Phase 5) : GUARDRAIL (un
+   * plafond/enveloppe a retenu une action), LEARNED (règle d'automatisation
+   * suggérée), DEFERRED (réservé). Étiquettes MUETTES en couleur — seules
+   * « validation requise » et « incident » (dérivées) restent ambre.
+   */
+  tag?: 'GUARDRAIL' | 'LEARNED' | 'DEFERRED';
 }
 
 // ─── Métriques du jour (en-tête) ─────────────────────────────────────────────

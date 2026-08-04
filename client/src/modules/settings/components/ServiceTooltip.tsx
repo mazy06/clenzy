@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Tooltip, Typography, Link } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { OpenInNew as ExternalLinkIcon, Info as InfoIcon } from '../../../icons';
 import { SERVICE_TOOLTIPS, type ServiceTooltipData } from '../../../services/integrations/serviceTooltips';
 
@@ -13,9 +13,9 @@ import { SERVICE_TOOLTIPS, type ServiceTooltipData } from '../../../services/int
  * d'erreur, juste pas de tooltip).</p>
  *
  * <h2>Style</h2>
- * <p>Strictement aligne sur PlanningPropertyColumn (pattern rich-tooltip du PMS) :
- * background.paper en light, dark surface en dark mode. Bordure divider,
- * boxShadow theme-aware.</p>
+ * <p>Bulle du kit Baitly UI (encre inversee). Le contenu s'exprime en
+ * {@code currentColor} / {@code text-inherit} pour suivre la bulle quel que
+ * soit le theme.</p>
  */
 
 interface ServiceTooltipProps {
@@ -36,124 +36,52 @@ export default function ServiceTooltip({ providerId, data, name, children }: Ser
   const displayName = name ?? data?.name ?? providerId;
 
   return (
-    <Tooltip
-      arrow
-      placement="top"
-      enterDelay={300}
-      leaveDelay={100}
-      title={
-        <Box>
+    <Tooltip delayDuration={300}>
+      <TooltipTrigger asChild>
+        {/* Le span porte la ref que Radix pose sur son enfant : les children
+            recus ne la transmettent pas necessairement. */}
+        <span className="inline-flex">{children}</span>
+      </TooltipTrigger>
+      <TooltipContent side="top" sideOffset={6} className="max-w-[320px] p-2">
+        <div>
           {/* Header : nom + chip region */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mb: 0.5 }}>
-            <Typography component="span" sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'inherit' }}>
+          <div className="flex items-center gap-1 mb-0.5">
+            <span className="text-[0.75rem] font-bold text-inherit">
               {displayName}
-            </Typography>
+            </span>
             {tooltipData.region && (
-              <Box
-                component="span"
-                sx={{
-                  fontSize: '0.58rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.02em',
-                  px: 0.5,
-                  py: 0.125,
-                  borderRadius: '3px',
-                  border: '1px solid currentColor',
-                  opacity: 0.7,
-                }}
-              >
+              <span className="text-[0.58rem] font-bold tracking-[0.02em] px-0.5 py-0 rounded-[24px] border border-solid border-[currentColor] opacity-70">
                 {tooltipData.region}
-              </Box>
+              </span>
             )}
-          </Box>
+          </div>
 
           {/* Description longue */}
-          <Typography
-            component="span"
-            sx={{
-              display: 'block',
-              fontSize: '0.7rem',
-              color: 'inherit',
-              opacity: 0.92,
-              lineHeight: 1.45,
-              mb: 0.75,
-            }}
-          >
+          <span className="block text-[0.7rem] text-inherit opacity-92 leading-[1.45] mb-1">
             {tooltipData.description}
-          </Typography>
+          </span>
 
           {/* Modalites d'acces */}
-          <Typography
-            component="span"
-            sx={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 0.5,
-              fontSize: '0.68rem',
-              color: 'inherit',
-              opacity: 0.85,
-              lineHeight: 1.4,
-              mb: 0.5,
-            }}
-          >
+          <span className="flex items-start gap-0.5 text-[0.68rem] text-inherit opacity-85 leading-[1.4] mb-0.5">
             <InfoIcon size={11} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1, opacity: 0.7 }} />
             <span>
               <strong style={{ fontWeight: 700 }}>Modalités :</strong> {tooltipData.accessModality}
             </span>
-          </Typography>
+          </span>
 
           {/* Lien officiel */}
-          <Link
+          <a
             href={tooltipData.websiteUrl}
             target="_blank"
             rel="noreferrer noopener"
             onClick={(e) => e.stopPropagation()}
-            sx={{
-              fontSize: '0.68rem',
-              color: 'inherit',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              textDecoration: 'underline',
-              textDecorationStyle: 'dotted',
-              textUnderlineOffset: '2px',
-              opacity: 0.92,
-              '&:hover': { opacity: 1 },
-            }}
+            className="text-[0.68rem] text-inherit font-semibold inline-flex items-center gap-1 underline decoration-dotted underline-offset-2 opacity-92 hover:opacity-100"
           >
             {tooltipData.websiteUrl.replace(/^https?:\/\//, '').replace(/\/.*$/, '')}
             <ExternalLinkIcon size={10} strokeWidth={2} />
-          </Link>
-        </Box>
-      }
-      // Pattern PlanningPropertyColumn : background.paper + text.primary
-      // -> blanc en mode clair, dark surface en mode sombre.
-      slotProps={{
-        tooltip: {
-          sx: (theme) => ({
-            bgcolor: 'background.paper',
-            color: 'text.primary',
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 2,
-            maxWidth: 320,
-            p: 1.5,
-            fontSize: '0.75rem',
-            boxShadow: 'var(--shadow-pop)',
-            '& .MuiTooltip-arrow': {
-              color: theme.palette.background.paper,
-              '&::before': {
-                border: '1px solid',
-                borderColor: theme.palette.divider,
-                backgroundColor: theme.palette.background.paper,
-              },
-            },
-          }),
-        },
-      }}
-    >
-      {children}
+          </a>
+        </div>
+      </TooltipContent>
     </Tooltip>
   );
 }

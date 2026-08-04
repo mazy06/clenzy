@@ -1,13 +1,7 @@
 import React from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Chip,
-  Button,
-  IconButton,
-  Divider,
-} from '@mui/material';
+import StatusChip from '../../components/StatusChip';
+import { cn } from '../../utils/cn';
+import { Button, Card, Separator } from '../../components/ui';
 import {
   Add,
   Remove,
@@ -68,336 +62,129 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const displayedFeatures = product.features.filter((f) => !SAVINGS_FEATURE_RE.test(f));
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        overflow: 'hidden',
-        borderRadius: '14px',
-        border: '1px solid',
-        borderColor: 'var(--line)',
-        bgcolor: 'var(--card)',
-        boxShadow: 'none',
-        transition: 'border-color 0.18s cubic-bezier(.16,1,.3,1)',
-        '&:hover': {
-          borderColor: 'var(--line-2)',
-        },
-      }}
-    >
+    <Card className="gap-0 py-0 relative flex flex-col h-full overflow-hidden border-[var(--line)] bg-[var(--card)] transition-colors duration-200 hover:border-[var(--line-2)]">
       {/* Hero image */}
-      <Box sx={{ position: 'relative' }}>
+      <div className="relative">
         <ProductHero product={product} height={172} />
 
         {/* Badge floating top-right */}
         {product.badge && badgeStyle && (
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 10,
-              right: 10,
-              zIndex: 1,
-            }}
-          >
-            <Chip
-              label={t(`shop.badges.${product.badge}`)}
-              size="small"
-              sx={{
-                height: 22,
-                fontSize: '10.5px',
-                fontWeight: 700,
-                letterSpacing: '0.02em',
-                backgroundColor: badgeStyle.bg,
-                color: badgeStyle.color,
-                border: 'none',
-                '& .MuiChip-label': { px: 0.875 },
-              }}
-            />
-          </Box>
+          <div className="absolute top-[10px] end-[10px] z-[1]">
+            <StatusChip tokens={{ color: badgeStyle.color, bg: badgeStyle.bg }} label={t(`shop.badges.${product.badge}`)} className="text-[10.5px] tracking-[0.02em]" />
+          </div>
         )}
 
         {/* Savings badge floating top-left for promos */}
         {savingsPct !== null && (
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 10,
-              left: 10,
-              zIndex: 1,
-              px: 0.875,
-              py: 0.25,
-              borderRadius: '6px',
-              backgroundColor: 'var(--ok)',
-              color: 'var(--on-accent)',
-              fontSize: '0.6875rem',
-              fontWeight: 700,
-              letterSpacing: '0.02em',
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
+          <div className="absolute top-[10px] start-[10px] z-[1] px-1.5 py-0.5 rounded-[6px] bg-[var(--ok)] text-[var(--on-accent)] text-[0.6875rem] font-bold tracking-[0.02em] tabular-nums">
             -{savingsPct}%
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
 
       {/* Body */}
-      <Box sx={{ p: 2, pb: 1.5, display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <div className="p-3 pb-2 flex flex-col flex-1">
         {/* Title + SKU */}
-        <Typography
-          fontWeight={700}
-          sx={{
-            fontSize: '0.95rem',
-            lineHeight: 1.25,
-            color: 'text.primary',
-            textWrap: 'balance',
-          }}
-        >
+        <p className="cn-text-body1 font-bold text-[0.95rem] leading-[1.25] text-[var(--ink)] text-balance">
           {product.name}
-        </Typography>
-        <Typography
-          sx={{
-            color: 'text.disabled',
-            fontSize: '0.6875rem',
-            fontWeight: 500,
-            letterSpacing: '0.04em',
-            mt: 0.25,
-            mb: 1,
-            fontVariantNumeric: 'tabular-nums',
-            textTransform: 'uppercase',
-          }}
-        >
+        </p>
+        <p className="cn-text-body1 text-muted-foreground opacity-60 text-[0.6875rem] font-medium tracking-[0.04em] mt-0.5 mb-1.5 tabular-nums uppercase">
           {product.sku}
-        </Typography>
+        </p>
 
         {/* Description */}
-        <Typography
-          sx={{
-            fontSize: '0.78rem',
-            color: 'text.secondary',
-            lineHeight: 1.45,
-            mb: 1.25,
-          }}
-        >
+        <p className="cn-text-body1 text-[0.78rem] text-muted-foreground leading-[1.45] mb-2">
           {product.shortDescription}
-        </Typography>
+        </p>
 
         {/* Price row */}
-        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1.25 }}>
-          <Typography
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '1.15rem',
-              fontWeight: 600,
-              color: 'var(--ink)',
-              fontVariantNumeric: 'tabular-nums',
-              letterSpacing: '-0.01em',
-            }}
-          >
+        <div className="flex items-baseline gap-1.5 mb-2">
+          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.15rem] font-semibold text-[var(--ink)] tabular-nums tracking-[-0.01em]">
             {formatPrice(product.price)}
-          </Typography>
+          </p>
           {product.originalPrice && (
-            <Typography
-              sx={{
-                textDecoration: 'line-through',
-                color: 'var(--faint)',
-                fontSize: '0.8rem',
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
+            <p className="cn-text-body1 line-through text-[var(--faint)] text-[0.8rem] tabular-nums">
               {formatPrice(product.originalPrice)}
-            </Typography>
+            </p>
           )}
-        </Box>
+        </div>
 
         {/* Protocol chips */}
         {product.protocol && (
-          <Box sx={{ display: 'flex', gap: 0.5, mb: 1.25, flexWrap: 'wrap' }}>
+          <div className="flex gap-0.5 mb-2 flex-wrap">
             {(product.protocol === 'wifi' || product.protocol === 'both') && (
-              <Chip
-                icon={<Wifi size={11} strokeWidth={2} />}
-                label={t('shop.protocols.wifi')}
-                size="small"
-                sx={{
-                  height: 22,
-                  fontSize: '10.5px',
-                  fontWeight: 700,
-                  letterSpacing: '0.01em',
-                  backgroundColor: 'var(--info-soft)',
-                  color: 'var(--info)',
-                  border: 'none',
-                  px: 0.25,
-                  '& .MuiChip-icon': {
-                    color: 'var(--info) !important',
-                    ml: '6px',
-                    mr: '-2px',
-                  },
-                  '& .MuiChip-label': { px: 0.875 },
-                }}
-              />
+              <StatusChip tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={t('shop.protocols.wifi')} icon={<Wifi size={11} strokeWidth={2} />} className="text-[10.5px] tracking-[0.01em] px-0.5" />
             )}
             {(product.protocol === 'zigbee' || product.protocol === 'both') && (
-              <Chip
-                label={t('shop.protocols.zigbee')}
-                size="small"
-                sx={{
-                  height: 22,
-                  fontSize: '10.5px',
-                  fontWeight: 700,
-                  letterSpacing: '0.01em',
-                  backgroundColor: 'var(--field)',
-                  color: 'var(--muted)',
-                  border: 'none',
-                  '& .MuiChip-label': { px: 0.875 },
-                }}
-              />
+              <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--field)' }} label={t('shop.protocols.zigbee')} className="text-[10.5px] tracking-[0.01em]" />
             )}
-          </Box>
+          </div>
         )}
 
         {/* Features (kit contents grouped as features for kits) */}
-        <Box
-          sx={{
-            flex: 1,
-            mb: 1.25,
-            ...(isKit && {
-              p: 1,
-              borderRadius: '6px',
-              border: '1px dashed',
-              borderColor: `${tint}33`,
-              backgroundColor: `${tint}08`,
-            }),
-          }}
+        {/* La teinte du kit est calculee (tint) : bordure et fond passent par style inline */}
+        <div
+          className={cn('flex-1 mb-[7.5px]', isKit && 'p-[6px] rounded-[6px] border border-dashed')}
+          style={isKit ? { borderColor: `${tint}33`, backgroundColor: `${tint}08` } : undefined}
         >
           {isKit && (
-            <Typography
-              sx={{
-                fontSize: '0.65rem',
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: tint,
-                mb: 0.625,
-              }}
-            >
+            <p className="cn-text-body1 text-[0.65rem] font-bold tracking-[0.08em] uppercase mb-[3.75px]" style={{ color: tint }}>
               {t('shop.kitContents')}
-            </Typography>
+            </p>
           )}
           {displayedFeatures.slice(0, 5).map((feature) => (
-            <Box
-              key={feature}
-              sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, py: 0.2 }}
-            >
-              <Box
-                sx={{
-                  display: 'inline-flex',
-                  color: tint,
-                  flexShrink: 0,
-                  mt: '2px',
-                }}
-              >
+            <div className="flex items-start gap-1 py-0.5" key={feature}>
+              <div className="inline-flex shrink-0 mt-0.5" style={{ color: tint }}>
                 <CheckCircleOutline size={13} strokeWidth={1.75} />
-              </Box>
-              <Typography
-                sx={{
-                  fontSize: '0.74rem',
-                  color: 'text.secondary',
-                  lineHeight: 1.4,
-                }}
-              >
+              </div>
+              <p className="cn-text-body1 text-[0.74rem] text-muted-foreground leading-[1.4]">
                 {feature}
-              </Typography>
-            </Box>
+              </p>
+            </div>
           ))}
           {displayedFeatures.length > 5 && (
-            <Typography
-              sx={{
-                color: 'text.disabled',
-                fontSize: '0.6875rem',
-                pl: 2.25,
-                pt: 0.25,
-                fontStyle: 'italic',
-              }}
-            >
+            <p className="cn-text-body1 text-muted-foreground opacity-60 text-[0.6875rem] ps-3.5 pt-0.5 italic">
               +{displayedFeatures.length - 5} {t('shop.perUnit')}
-            </Typography>
+            </p>
           )}
-        </Box>
+        </div>
 
-        <Divider sx={{ mb: 1.25, borderColor: 'divider' }} />
+        <Separator className="mb-[7.5px]" />
 
         {/* Add to cart / quantity controls */}
         {quantity === 0 ? (
-          <Button
-            variant="contained"
-            fullWidth
-            startIcon={<ShoppingCartOutlined size={14} strokeWidth={2} />}
-            onClick={onAddToCart}
-          >
+          <Button className="w-full shrink" onClick={onAddToCart}>
+            <ShoppingCartOutlined size={14} strokeWidth={2} />
             {t('shop.addToCart')}
           </Button>
         ) : (
           /* Compteur — pattern .rm-count : conteneur --field r10 p3, boutons --card r8, valeur display */
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 0.5,
-              p: '3px',
-              borderRadius: '10px',
-              backgroundColor: 'var(--field)',
-              border: '1px solid var(--field-line)',
-            }}
-          >
-            <IconButton
-              size="small"
+          <div className="flex items-center justify-between gap-[3px] p-[3px] rounded-[10px] bg-[var(--field)] border border-solid border-[var(--field-line)]">
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onRemoveFromCart}
-              sx={{
-                width: 30,
-                height: 30,
-                bgcolor: 'var(--card)',
-                borderRadius: '8px',
-                color: 'var(--body)',
-                '&:hover': { bgcolor: 'var(--card)', color: 'var(--accent)' },
-              }}
+              className="size-[30px] rounded-lg bg-[var(--card)] text-[var(--body)] hover:bg-[var(--card)] hover:text-[var(--accent)]"
               aria-label="Diminuer la quantité"
             >
               <Remove size={14} strokeWidth={2} />
-            </IconButton>
-            <Typography
-              sx={{
-                fontFamily: 'var(--font-display)',
-                fontWeight: 600,
-                fontSize: '15px',
-                color: 'var(--ink)',
-                fontVariantNumeric: 'tabular-nums',
-                minWidth: 24,
-                textAlign: 'center',
-              }}
-            >
+            </Button>
+            <p className="cn-text-body1 font-[family-name:var(--font-display)] font-semibold text-[15px] text-[var(--ink)] tabular-nums min-w-[24px] text-center">
               {quantity}
-            </Typography>
-            <IconButton
-              size="small"
+            </p>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onAddToCart}
-              sx={{
-                width: 30,
-                height: 30,
-                bgcolor: 'var(--card)',
-                borderRadius: '8px',
-                color: 'var(--body)',
-                '&:hover': { bgcolor: 'var(--card)', color: 'var(--accent)' },
-              }}
+              className="size-[30px] rounded-lg bg-[var(--card)] text-[var(--body)] hover:bg-[var(--card)] hover:text-[var(--accent)]"
               aria-label="Augmenter la quantité"
             >
               <Add size={14} strokeWidth={2} />
-            </IconButton>
-          </Box>
+            </Button>
+          </div>
         )}
-      </Box>
-    </Paper>
+      </div>
+    </Card>
   );
 };
 

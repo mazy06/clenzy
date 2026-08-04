@@ -1,5 +1,4 @@
-import { Box } from '@mui/material';
-import type { SxProps, Theme } from '@mui/material';
+import type { CSSProperties } from 'react';
 import { SaudiRiyal, MoroccanDirham } from '../icons';
 import { useCurrency } from '../hooks/useCurrency';
 import { CURRENCY_OPTIONS } from '../utils/currencyUtils';
@@ -11,29 +10,43 @@ import { CURRENCY_OPTIONS } from '../utils/currencyUtils';
  */
 const ICON_CURRENCIES = new Set(['SAR', 'MAD']);
 
+/**
+ * Le `sx` historique n'a jamais servi qu'a detacher le glyphe du montant. On
+ * garde le nom de prop (des appelants hors de ce fichier le passent) mais on le
+ * ramene a un style React, en tolerant le raccourci MUI `ml` : recopie tel quel
+ * dans un `style`, `ml` serait ignore EN SILENCE et la marge disparaitrait.
+ */
+type SymbolStyle = CSSProperties & { ml?: string | number };
+
+function toStyle(sx?: SymbolStyle): CSSProperties {
+  if (!sx) return {};
+  const { ml, ...rest } = sx;
+  return ml == null ? rest : { marginInlineStart: ml, ...rest };
+}
+
 interface CurrencySymbolProps {
   /** Code ISO de la devise à symboliser. */
   code: string;
   /** Taille de l'icône en px (ignoré pour les symboles textuels). */
   size?: number;
-  sx?: SxProps<Theme>;
+  sx?: SymbolStyle;
 }
 
 /** Symbole d'une devise : icône pour SAR/MAD, texte (€…) sinon. */
 export function CurrencySymbol({ code, size = 13, sx }: CurrencySymbolProps) {
   if (code === 'SAR') {
     return (
-      <Box component="span" sx={{ display: 'inline-flex', verticalAlign: '-0.12em', ...sx }}>
+      <span style={{ display: 'inline-flex', verticalAlign: '-0.12em', ...toStyle(sx) }}>
         <SaudiRiyal size={size} strokeWidth={2.25} aria-label="Riyal saoudien" />
-      </Box>
+      </span>
     );
   }
   if (code === 'MAD') {
+    // Glyphe plus étroit que la moyenne → +2px pour un poids visuel équivalent.
     return (
-      <Box component="span" sx={{ display: 'inline-flex', verticalAlign: '-0.12em', ...sx }}>
-        {/* Glyphe plus étroit que la moyenne → +2px pour un poids visuel équivalent. */}
+      <span style={{ display: 'inline-flex', verticalAlign: '-0.12em', ...toStyle(sx) }}>
         <MoroccanDirham size={size + 2} aria-label="Dirham marocain" />
-      </Box>
+      </span>
     );
   }
   const meta = CURRENCY_OPTIONS.find((o) => o.code === code);
@@ -54,8 +67,8 @@ interface MoneyProps {
   decimals?: number;
   /** Taille de l'icône de symbole (SAR/MAD). */
   symbolSize?: number;
-  /** sx appliqué à l'icône de symbole. */
-  symbolSx?: SxProps<Theme>;
+  /** Style appliqué à l'icône de symbole. */
+  symbolSx?: SymbolStyle;
 }
 
 /**
@@ -78,7 +91,7 @@ export function Money({ value, from, compact, decimals, symbolSize = 13, symbolS
   if (ICON_CURRENCIES.has(currency)) {
     const i = s.lastIndexOf(currency);
     if (i >= 0) {
-      const head = s.slice(0, i).replace(/[\s ]+$/, '');
+      const head = s.slice(0, i).replace(/[\s ]+$/, '');
       return (
         <>
           {head}

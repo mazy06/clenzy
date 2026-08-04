@@ -1,30 +1,31 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { cn } from '../../../utils/cn';
+import StatusChip from '../../../components/StatusChip';
+import { Badge } from '../../../components/ui';
+import { Alert as UiAlert, AlertAction, AlertDescription } from '../../../components/ui';
+import { TriangleAlert, Info, CircleCheck, X } from 'lucide-react';
+import { Spinner, Button } from '../../../components/ui';
 import {
-  Box,
-  Typography,
-  Button,
-  Divider,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
-  CircularProgress,
-  Alert,
-  IconButton,
-  Snackbar,
-  List,
-  ListItem,
-  ListItemText,
   Checkbox,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  NativeSelectOptGroup,
+  NativeSelectOption,
+  Progress,
+  Separator,
   Switch,
-  FormControlLabel,
+  Textarea,
   Tooltip,
-  LinearProgress,
-  ListSubheader,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import {
   Handyman,
   BroomFill,
@@ -69,10 +70,11 @@ import { serviceRequestsApi } from '../../../services/api/serviceRequestsApi';
 import type { ServiceRequest } from '../../../services/api/serviceRequestsApi';
 import { useWorkflowSettings } from '../../../hooks/useWorkflowSettings';
 import { useAuth } from '../../../hooks/useAuth';
+import { useNotification } from '../../../hooks/useNotification';
 import { useNavigate } from 'react-router-dom';
 import CreateServiceRequestDialog from './CreateServiceRequestDialog';
 import MessagingAutomationStatus from './MessagingAutomationStatus';
-import { STATUS_TONES, toneTokensSx, type ToneTokens } from '../../../components/StatusChip';
+import { STATUS_TONES, type ToneTokens } from '../../../components/StatusChip';
 
 // ── Assignee option (user or team) ──────────────────────────────────────────
 interface AssigneeOption {
@@ -89,37 +91,6 @@ const WARN_TOKENS: SoftTokens = STATUS_TONES.warn;
 const ERR_TOKENS: SoftTokens = STATUS_TONES.err;
 const INFO_TOKENS: SoftTokens = STATUS_TONES.info;
 const NEUTRAL_TOKENS: SoftTokens = STATUS_TONES.neutral;
-
-const OVERLINE_SX = {
-  fontSize: '0.625rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.08em',
-  color: 'var(--faint)',
-};
-
-/** ✕ de modale — pattern validé (34px r10 hairline, hover --err). */
-const CLOSE_BTN_SX = {
-  width: 34,
-  height: 34,
-  borderRadius: '10px',
-  border: '1px solid var(--line-2)',
-  backgroundColor: 'var(--card)',
-  color: 'var(--muted)',
-  transition: 'color .14s, border-color .14s',
-  '&:hover': { color: 'var(--err)', borderColor: 'var(--err)', backgroundColor: 'var(--card)' },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-};
-
-/** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
-const chipSx = (bg: string, color: string) => ({
-  ...toneTokensSx({ color, bg }, 'sm'),
-  height: 20,
-  borderRadius: 'var(--radius-pill)',
-  '& .MuiChip-label': { px: 0.75 },
-  '& .MuiChip-icon': { color: 'inherit', ml: 0.5 },
-});
 
 const PRIORITY_OPTIONS: { value: 'normale' | 'haute' | 'urgente'; label: string; tokens: SoftTokens }[] = [
   { value: 'normale', label: 'Normale', tokens: NEUTRAL_TOKENS },
@@ -343,15 +314,13 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
   const [deleteSrTarget, setDeleteSrTarget] = useState<ServiceRequest | null>(null);
   const [deleteSrLoading, setDeleteSrLoading] = useState(false);
 
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
+  const { notify } = useNotification();
 
   // ── Helpers ────────────────────────────────────────────────────────────────
+  // Nom conserve : une quinzaine d'appels le referencent, et il porte toujours
+  // la meme intention (retour flottant apres une action).
   const showSnackbar = (message: string, severity: 'success' | 'error' = 'success') => {
-    setSnackbar({ open: true, message, severity });
+    notify[severity](message);
   };
 
   const canDeleteSr = (sr: ServiceRequest): boolean => {
@@ -811,257 +780,243 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
     };
 
     return (
-      <Box sx={{ mt: 1.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CalendarMonth size={18} strokeWidth={1.75} /></Box>
-          <Typography variant="body2" sx={{ fontWeight: 600, flex: 1, fontSize: '0.8125rem' }}>
+      <div className="mt-2">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <span className="inline-flex text-muted-foreground"><CalendarMonth size={18} strokeWidth={1.75} /></span>
+          <p className="cn-text-body2 font-semibold flex-1 text-[0.8125rem]">
             Dates & Horaires
-          </Typography>
+          </p>
           {!editing ? (
-            <IconButton size="small" onClick={() => setEditing(true)} sx={{ p: 0.25 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Edit size={14} strokeWidth={1.75} /></Box>
-            </IconButton>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label="Modifier les dates et horaires"
+              className="text-muted-foreground"
+              onClick={() => setEditing(true)}
+            >
+              <Edit size={14} strokeWidth={1.75} />
+            </Button>
           ) : (
-            <Box sx={{ display: 'flex', gap: 0.25 }}>
-              <IconButton
-                size="small"
+            <div className="flex gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label="Enregistrer les dates"
+                className="text-[var(--ok)] hover:text-[var(--ok)]"
                 onClick={handleSave}
                 disabled={!hasChanges || saving}
-                sx={{ p: 0.25, color: 'var(--ok)' }}
               >
-                {saving ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}
-              </IconButton>
-              <IconButton size="small" onClick={handleCancel} sx={{ p: 0.25, color: 'var(--err)' }}>
+                {saving ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label="Annuler la modification"
+                className="text-[var(--err)] hover:text-[var(--err)]"
+                onClick={handleCancel}
+              >
                 <Close size={16} strokeWidth={1.75} />
-              </IconButton>
-            </Box>
+              </Button>
+            </div>
           )}
-        </Box>
+        </div>
 
         {!editing ? (
           /* Display mode */
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Box>
-              <Typography variant="caption" color="text.secondary">Debut</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
+          <div className="flex justify-between items-center">
+            <div>
+              <span className="cn-text-caption text-muted-foreground">Debut</span>
+              <p className="cn-text-body2 font-semibold text-[0.8125rem]">
                 {intv.startDate}
-              </Typography>
+              </p>
               {intv.startTime && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={12} strokeWidth={1.75} /></Box>
-                  <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                <div className="flex items-center gap-0.5 mt-0.5">
+                  <span className="inline-flex text-muted-foreground"><Schedule size={12} strokeWidth={1.75} /></span>
+                  <span className="cn-text-caption font-medium">
                     {intv.startTime}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               )}
-            </Box>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><SwapHoriz  /></Box>
-            <Box sx={{ textAlign: 'right' }}>
-              <Typography variant="caption" color="text.secondary">Fin</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
+            </div>
+            <span className="inline-flex text-muted-foreground opacity-60"><SwapHoriz  /></span>
+            <div className="text-end">
+              <span className="cn-text-caption text-muted-foreground">Fin</span>
+              <p className="cn-text-body2 font-semibold text-[0.8125rem]">
                 {intv.endDate}
-              </Typography>
+              </p>
               {intv.endTime && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25, justifyContent: 'flex-end' }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={12} strokeWidth={1.75} /></Box>
-                  <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                <div className="flex items-center gap-0.5 mt-0.5 justify-end">
+                  <span className="inline-flex text-muted-foreground"><Schedule size={12} strokeWidth={1.75} /></span>
+                  <span className="cn-text-caption font-medium">
                     {intv.endTime}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               )}
-            </Box>
-          </Box>
+            </div>
+          </div>
         ) : (
           /* Edit mode */
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.25, display: 'block' }}>
+          <div className="flex flex-col gap-2">
+            <div>
+              <span className="cn-text-caption text-muted-foreground mb-0.5 block">
                 Debut
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <TextField
+              </span>
+              <div className="flex gap-1.5">
+                {/* Le libelle « Debut » couvre la paire date + heure : pas de
+                    FieldLabel, chaque champ porte son propre aria-label. */}
+                <Input
                   type="date"
-                  size="small"
+                  aria-label="Date de debut"
+                  className="flex-1 text-[0.75rem]"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  sx={{ flex: 1, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
-                  inputProps={{ style: { padding: '6px 8px' } }}
                 />
-                <TextField
+                <Input
                   type="time"
-                  size="small"
+                  aria-label="Heure de debut"
+                  placeholder="HH:mm"
+                  className="w-[100px] text-[0.75rem]"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  placeholder="HH:mm"
-                  sx={{ width: 100, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
-                  inputProps={{ style: { padding: '6px 8px' } }}
                 />
-              </Box>
-            </Box>
+              </div>
+            </div>
 
-            <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.25, display: 'block' }}>
+            <div>
+              <span className="cn-text-caption text-muted-foreground mb-0.5 block">
                 Fin
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <TextField
+              </span>
+              <div className="flex gap-1.5">
+                <Input
                   type="date"
-                  size="small"
+                  aria-label="Date de fin"
+                  className="flex-1 text-[0.75rem]"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  sx={{ flex: 1, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
-                  inputProps={{ style: { padding: '6px 8px' } }}
                 />
-                <TextField
+                <Input
                   type="time"
-                  size="small"
+                  aria-label="Heure de fin"
+                  placeholder="HH:mm"
+                  className="w-[100px] text-[0.75rem]"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
-                  placeholder="HH:mm"
-                  sx={{ width: 100, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
-                  inputProps={{ style: { padding: '6px 8px' } }}
                 />
-              </Box>
-            </Box>
+              </div>
+            </div>
 
             {validationError && (
-              <Alert
-                severity="error"
-                onClose={() => setValidationError(null)}
-                sx={{
-                  fontSize: '0.75rem',
-                  py: 0,
-                  '& .MuiAlert-message': { fontSize: '0.75rem' },
-                  '& .MuiAlert-icon': { fontSize: '1rem', py: 0.5 },
-                }}
-              >
-                {validationError}
-              </Alert>
+              <UiAlert variant="destructive" className="text-[0.75rem] py-0.5">
+                <TriangleAlert />
+                <AlertDescription>{validationError}</AlertDescription>
+                <AlertAction>
+                  <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setValidationError(null)}>
+                    <X />
+                  </Button>
+                </AlertAction>
+              </UiAlert>
             )}
 
             {hasChanges && intv.linkedReservationId && !validationError && (
-              <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'var(--warn)' }}>
+              <span className="cn-text-caption text-[0.625rem] text-[var(--warn)]">
                 L'intervention sera deliee de sa reservation si les dates sont modifiees.
-              </Typography>
+              </span>
             )}
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
     );
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div className="flex flex-col gap-3">
       {/* Intervention info (if clicking on an intervention) */}
       {intervention && (
-        <Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: intervention.type === 'cleaning' ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
+        <div>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="inline-flex" style={{ color: intervention.type === 'cleaning' ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
               {intervention.type === 'cleaning' ? (
                 <BroomFill size={20} />
               ) : (
                 <WrenchFill size={19} />
               )}
-            </Box>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            </span>
+            <h6 className="cn-text-subtitle2 font-bold">
               {intervention.title}
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+            </h6>
+          </div>
+          <div className="flex gap-1.5 mb-1.5 flex-wrap">
             {(() => {
               const t = INTERVENTION_STATUS_CONFIG[intervention.status]?.tokens
                 || (intervention.status === 'cancelled' ? ERR_TOKENS : WARN_TOKENS);
               return (
-                <Chip label={intervention.status} size="small" sx={chipSx(t.bg, t.color)} />
+                <StatusChip pill size="sm" tokens={{ color: t.color, bg: t.bg }} label={intervention.status} />
               );
             })()}
-            <Chip label={intervention.assigneeName} size="small" sx={chipSx('var(--hover)', 'var(--muted)')} />
+            <StatusChip pill size="sm" tokens={{ color: 'var(--muted)', bg: 'var(--hover)' }} label={intervention.assigneeName} />
             {intervention.estimatedDurationHours && (
-              <Chip label={`${intervention.estimatedDurationHours}h`} size="small" sx={{ ...chipSx(INFO_TOKENS.bg, INFO_TOKENS.color), fontVariantNumeric: 'tabular-nums' }} />
+              <StatusChip pill size="sm" tokens={{ color: INFO_TOKENS.color, bg: INFO_TOKENS.bg }} label={`${intervention.estimatedDurationHours}h`} className="tabular-nums" />
             )}
-          </Box>
+          </div>
           {intervention.notes && (
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', whiteSpace: 'pre-line' }}>
+            <p className="cn-text-body2 text-muted-foreground text-[0.75rem] whitespace-pre-line">
               {intervention.notes}
-            </Typography>
+            </p>
           )}
           {canEditIntervention && <EditableInterventionDatesSection />}
-          <Divider sx={{ my: 1 }} />
-        </Box>
+          <Separator className="my-1.5" />
+        </div>
       )}
 
       {/* ── Reservation view: Full operations lifecycle ─────────────────────── */}
       {isReservation && (
         <>
           {/* Service request creation buttons */}
-          <Box>
-            <Typography
-              component="span"
-              sx={{
-                display: 'block',
-                fontSize: '0.625rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                color: 'var(--faint)',
-                mb: 1,
-              }}
-            >
+          <div>
+            <span className="block text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)] mb-1.5">
               Demandes de service
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            </span>
+            <div className="flex flex-col gap-1">
+              {/* Trois raccourcis de meme poids : outline pour tous, aucun ne
+                  doit dominer les deux autres. */}
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<CleaningServices size={14} strokeWidth={1.75} />}
-                fullWidth
+                size="sm"
+                variant="outline"
                 onClick={handleCleaningRequestClick}
-                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+                className="w-full justify-start shrink"
               >
+                <CleaningServices size={14} strokeWidth={1.75} />
                 Demande de menage
               </Button>
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<Handyman size={14} strokeWidth={1.75} />}
-                fullWidth
+                size="sm"
+                variant="outline"
                 onClick={handleMaintenanceRequestClick}
-                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+                className="w-full justify-start shrink"
               >
+                <Handyman size={14} strokeWidth={1.75} />
                 Demande de maintenance
               </Button>
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<Add size={14} strokeWidth={1.75} />}
-                fullWidth
+                size="sm"
+                variant="outline"
                 onClick={handleNewServiceRequestClick}
-                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+                className="w-full justify-start shrink"
               >
+                <Add size={14} strokeWidth={1.75} />
                 Nouvelle demande de service
               </Button>
-            </Box>
-          </Box>
+            </div>
+          </div>
 
           {/* Linked service requests with full lifecycle */}
           {(serviceRequests && serviceRequests.length > 0) && (
             <>
-              <Divider />
-              <Box>
-                <Typography
-                  component="span"
-                  sx={{
-                    display: 'block',
-                    fontSize: '0.625rem',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    color: 'var(--faint)',
-                    mb: 0.75,
-                  }}
-                >
+              <Separator />
+              <div>
+                <span className="block text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)] mb-1">
                   Demandes liees · {serviceRequests.length}
-                </Typography>
+                </span>
                 {serviceRequests.map((sr) => {
                   const statusCfg = SR_STATUS_CONFIG[sr.status] || { label: sr.status, tokens: NEUTRAL_TOKENS };
                   const typeLabel = SERVICE_TYPE_LABELS[sr.serviceType] || sr.serviceType;
@@ -1074,244 +1029,181 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                     || (sr.assignedToUser ? `${sr.assignedToUser.firstName} ${sr.assignedToUser.lastName}` : null)
                     || sr.assignedToName;
                   return (
-                    <Box
+                    <div
                       key={sr.id}
-                      sx={{
-                        mb: 0.75,
-                        p: 1.25,
-                        borderRadius: 2,
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        transition: 'all 0.15s ease',
-                      }}
+                      className="mb-[4.5px] p-[7.5px] rounded-[16px] border border-solid border-[var(--line)] transition-all duration-150 ease-[ease]"
                     >
                       {/* Header: icône type + titre + assigné en sous-ligne + lien */}
-                      <Box
+                      {/* La fleche est convertie en meme temps que ce parent : un
+                          `opacity` reste en sx (Emotion, hors @layer) battrait la
+                          regle de survol Tailwind, qui elle est dans @layer utilities. */}
+                      <div
                         onClick={() => navigate(`/service-requests/${sr.id}`)}
-                        sx={{
-                          display: 'flex', alignItems: 'flex-start', gap: 0.875,
-                          cursor: 'pointer',
-                          '&:hover .sr-arrow': { opacity: 1, transform: 'translateX(2px)' },
-                        }}
+                        className="flex items-start gap-[5.25px] cursor-pointer hover:[&_.sr-arrow]:opacity-100 hover:[&_.sr-arrow]:translate-x-[2px]"
                       >
-                        <Box component="span" sx={{ display: 'inline-flex', mt: '2px', color: srTypeColor }}>
+                        <span className="inline-flex mt-0.5" style={{ color: srTypeColor }}>
                           {isCleaningSr ? <BroomFill size={14} /> : <WrenchFill size={13} />}
-                        </Box>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="cn-text-body1 text-[0.75rem] font-semibold text-[var(--ink)] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap">
                             {sr.title}
-                          </Typography>
+                          </p>
                           {assigneeName && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.125 }}>
-                              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}>
+                            <div className="flex items-center gap-0.5 mt-0">
+                              <span className="inline-flex text-[var(--muted)]">
                                 <Groups size={11} strokeWidth={1.75} />
-                              </Box>
-                              <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              </span>
+                              <p className="cn-text-body1 text-[0.625rem] font-medium text-[var(--muted)] overflow-hidden text-ellipsis whitespace-nowrap">
                                 {assigneeName}
-                              </Typography>
-                            </Box>
+                              </p>
+                            </div>
                           )}
-                        </Box>
-                        <Box
-                          component="span"
-                          className="sr-arrow"
-                          sx={{ display: 'inline-flex', mt: '2px', color: 'text.secondary', opacity: 0.4, transition: 'all 0.15s ease' }}
-                        >
+                        </div>
+                        <span className="sr-arrow inline-flex mt-[2px] text-[var(--muted)] opacity-40 transition-all duration-150 ease-[ease]">
                           <OpenInNew size={14} strokeWidth={1.75} />
-                        </Box>
-                      </Box>
+                        </span>
+                      </div>
                       {/* Méta : type + montant + statut (icône↔libellé espacés) */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.875, mb: 0.25, flexWrap: 'wrap' }}>
-                        <Chip
-                          icon={isCleaningSr ? <BroomFill size={11} /> : <WrenchFill size={11} />}
-                          label={typeLabel}
-                          size="small"
-                          sx={{
-                            fontSize: '0.5625rem', height: 21, fontWeight: 700,
-                            backgroundColor: `color-mix(in srgb, ${srTypeColor} 14%, transparent)`,
-                            color: srTypeColor,
-                            borderRadius: '6px',
-                            '& .MuiChip-icon': { fontSize: 11, ml: 0.5, mr: 0.125, color: srTypeColor },
-                            '& .MuiChip-label': { pl: 0.375, pr: 0.625 },
-                          }}
-                        />
+                      <div className="flex items-center gap-0.5 mt-1.5 mb-0.5 flex-wrap">
+                        <StatusChip tokens={{ color: srTypeColor, bg: `color-mix(in srgb, ${srTypeColor} 14%, transparent)` }} label={typeLabel} icon={isCleaningSr ? <BroomFill size={11} /> : <WrenchFill size={11} />} className="text-[0.5625rem] h-[21px]" />
                         {typeof sr.estimatedCost === 'number' && sr.estimatedCost > 0 && (
-                          <Chip
-                            label={<Money value={sr.estimatedCost} from="EUR" decimals={0} />}
-                            size="small"
-                            sx={{
-                              fontSize: '0.5625rem', height: 21, fontWeight: 700,
-                              backgroundColor: 'action.hover', color: 'text.primary',
-                              borderRadius: '6px', fontVariantNumeric: 'tabular-nums',
-                              '& .MuiChip-label': { px: 0.625 },
-                            }}
-                          />
+                          <Badge variant="secondary" className="text-[0.5625rem] h-[21px] font-bold bg-[var(--hover)] text-[var(--ink)] rounded-[6px] tabular-nums px-1">{<Money value={sr.estimatedCost} from="EUR" decimals={0} />}</Badge>
                         )}
-                        <Chip
-                          label={statusCfg.label}
-                          size="small"
-                          sx={{
-                            fontSize: '0.5625rem', height: 21, fontWeight: 700, letterSpacing: '0.01em',
-                            backgroundColor: statusCfg.tokens.bg, color: statusCfg.tokens.color,
-                            borderRadius: '6px',
-                            '& .MuiChip-label': { px: 0.625 },
-                          }}
-                        />
-                      </Box>
+                        <StatusChip tokens={{ color: statusCfg.tokens.color, bg: statusCfg.tokens.bg }} label={statusCfg.label} className="text-[0.5625rem] h-[21px] tracking-[0.01em]" />
+                      </div>
                       {/* Actions selon le statut */}
-                      <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                      <div className="flex gap-0.5 mt-0.5 flex-wrap">
                         {/* PENDING sans assigné: Bouton assignation manuelle (admin/manager) ou message d'attente */}
                         {isPending && !assigneeName && canEditIntervention && (
+                          /* Seule action attendue sur une demande non assignee :
+                             elle porte l'encre pleine dans sa ligne. */
                           <Button
-                            size="small"
-                            variant="contained"
-                            startIcon={<PersonAdd size={14} strokeWidth={1.75} />}
+                            size="xs"
                             disabled={isValidating}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenSrAssignDialog(sr);
                             }}
-                            sx={{
-                              fontSize: '0.6875rem', textTransform: 'none',
-                              py: 0.25, px: 1.5, borderRadius: 1,
-                            }}
                           >
+                            <PersonAdd size={14} strokeWidth={1.75} />
                             Assigner
                           </Button>
                         )}
                         {isPending && !assigneeName && !canEditIntervention && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <div className="flex items-center gap-0.5">
                             {sr.autoAssignStatus === 'searching' && (
                               <>
-                                <CircularProgress size={10} sx={{ color: 'text.secondary' }} />
-                                <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'text.secondary', fontStyle: 'italic' }}>
+                                <Spinner className="size-2.5 text-[var(--muted)]" />
+                                <span className="cn-text-caption text-[0.625rem] text-muted-foreground italic">
                                   Recherche en cours...
-                                </Typography>
+                                </span>
                               </>
                             )}
                             {sr.autoAssignStatus === 'exhausted' && (
-                              <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'var(--warn)', fontStyle: 'italic' }}>
+                              <span className="cn-text-caption text-[0.625rem] text-[var(--warn)] italic">
                                 Aucune equipe disponible — assignation manuelle requise
-                              </Typography>
+                              </span>
                             )}
                             {(!sr.autoAssignStatus || sr.autoAssignStatus === 'found') && (
-                              <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'text.secondary', fontStyle: 'italic' }}>
+                              <span className="cn-text-caption text-[0.625rem] text-muted-foreground italic">
                                 En attente d&apos;assignation
-                              </Typography>
+                              </span>
                             )}
-                          </Box>
+                          </div>
                         )}
                         {/* Admin indicator for auto-assign status */}
                         {isPending && !assigneeName && canEditIntervention && sr.autoAssignStatus === 'exhausted' && (
-                          <Alert severity="warning" sx={{ py: 0, px: 0.5, fontSize: '0.6rem', '& .MuiAlert-icon': { fontSize: '0.75rem', py: 0, mr: 0.5 }, '& .MuiAlert-message': { py: 0.25 } }}>
-                            Aucune equipe dispo — assignation manuelle requise
-                          </Alert>
+                          <UiAlert variant="warning" className="text-[0.6rem] px-[3px] py-0.5">
+                            <TriangleAlert />
+                            <AlertDescription>Aucune equipe dispo — assignation manuelle requise</AlertDescription>
+                          </UiAlert>
                         )}
                         {isPending && !assigneeName && canEditIntervention && sr.autoAssignStatus === 'searching' && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <CircularProgress size={10} sx={{ color: 'text.secondary' }} />
-                            <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary', fontStyle: 'italic' }}>
+                          <div className="flex items-center gap-0.5">
+                            <Spinner className="size-2.5 text-[var(--muted)]" />
+                            <span className="cn-text-caption text-[0.6rem] text-muted-foreground italic">
                               Recherche auto...
-                            </Typography>
-                          </Box>
+                            </span>
+                          </div>
                         )}
                         {/* PENDING avec assigné: bouton Reassigner (admin/manager) */}
                         {isPending && assigneeName && canEditIntervention && (
                           <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<PersonAdd size={14} strokeWidth={1.75} />}
+                            size="xs"
+                            variant="outline"
                             disabled={isValidating}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenSrAssignDialog(sr);
                             }}
-                            sx={{
-                              fontSize: '0.6875rem', textTransform: 'none',
-                              py: 0.25, px: 1.5, borderRadius: 1,
-                            }}
                           >
+                            <PersonAdd size={14} strokeWidth={1.75} />
                             Réassigner
                           </Button>
                         )}
                         {/* AWAITING_PAYMENT: bouton Reassigner (admin/manager) */}
                         {sr.status === 'AWAITING_PAYMENT' && canEditIntervention && (
                           <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<PersonAdd size={14} strokeWidth={1.75} />}
+                            size="xs"
+                            variant="outline"
                             disabled={isValidating}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenSrAssignDialog(sr);
                             }}
-                            sx={{
-                              fontSize: '0.6875rem', textTransform: 'none',
-                              py: 0.25, px: 1.5, borderRadius: 1,
-                            }}
                           >
+                            <PersonAdd size={14} strokeWidth={1.75} />
                             Réassigner
                           </Button>
                         )}
                         {/* Éditer la demande (admin/manager) — rouvre le modal pré-rempli */}
                         {canEditIntervention && sr.status !== 'COMPLETED' && sr.status !== 'PAID' && (
+                          /* Action tertiaire de la ligne, derriere « Reassigner » :
+                             ghost pour ne pas aligner trois contours identiques. */
                           <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<Edit size={14} strokeWidth={1.75} />}
+                            size="xs"
+                            variant="ghost"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleEditServiceRequest(sr.id);
                             }}
-                            sx={{
-                              fontSize: '0.6875rem', textTransform: 'none',
-                              py: 0.25, px: 1.5, borderRadius: 1,
-                            }}
                           >
+                            <Edit size={14} strokeWidth={1.75} />
                             Éditer
                           </Button>
                         )}
                         {/* Supprimer (PENDING, REJECTED, CANCELLED uniquement) */}
                         {canDeleteSr(sr) && (
-                          <IconButton
-                            size="small"
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            aria-label={`Supprimer la demande « ${sr.title} »`}
+                            className="ms-auto text-[var(--err)] hover:text-[var(--err)]"
                             onClick={(e) => {
                               e.stopPropagation();
                               setDeleteSrTarget(sr);
                               setDeleteSrDialogOpen(true);
                             }}
-                            sx={{ color: 'var(--err)', ml: 'auto', p: 0.5 }}
                           >
                             <DeleteOutline size={16} strokeWidth={1.75} />
-                          </IconButton>
+                          </Button>
                         )}
-                      </Box>
-                    </Box>
+                      </div>
+                    </div>
                   );
                 })}
-              </Box>
+              </div>
             </>
           )}
 
           {/* All interventions linked to this reservation (full lifecycle view) */}
           {linkedInterventions.length > 0 && (
             <>
-              <Divider />
-              <Box>
-                <Typography
-                  component="span"
-                  sx={{
-                    display: 'block',
-                    fontSize: '0.625rem',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    color: 'var(--faint)',
-                    mb: 0.75,
-                  }}
-                >
+              <Separator />
+              <div>
+                <span className="block text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)] mb-1">
                   Interventions · {linkedInterventions.length}
-                </Typography>
+                </span>
                 {linkedInterventions.map((li) => {
                   const isAssigned = !!li.assigneeName;
                   const cost = li.actualCost || li.estimatedCost || 0;
@@ -1331,148 +1223,118 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   const isInProgress = ['in_progress', 'awaiting_validation'].includes(li.status);
 
                   return (
-                    <Box
+                    <div
                       key={li.id}
-                      sx={{
-                        mb: 0.75,
-                        p: 1.25,
-                        borderRadius: 2,
-                        border: '1px solid',
-                        borderColor: isOnPlanning ? 'color-mix(in srgb, var(--ok) 22%, transparent)' : 'divider',
-                        backgroundColor: isOnPlanning ? 'color-mix(in srgb, var(--ok) 6%, transparent)' : 'transparent',
-                        transition: 'all 0.15s ease',
-                      }}
+                      className={cn(
+                        'mb-[4.5px] p-[7.5px] rounded-[16px] border border-solid transition-all duration-150 ease-[ease]',
+                        isOnPlanning
+                          ? 'border-[color-mix(in_srgb,var(--ok)_22%,transparent)] bg-[color-mix(in_srgb,var(--ok)_6%,transparent)]'
+                          : 'border-[var(--line)] bg-transparent',
+                      )}
                     >
                       {/* Header: icône type + titre + assigné en sous-ligne + flèche */}
-                      <Box
+                      <div
                         onClick={() => onNavigate?.({ type: 'intervention-detail', interventionId: li.id })}
-                        sx={{
-                          display: 'flex', alignItems: 'flex-start', gap: 0.875,
-                          cursor: onNavigate ? 'pointer' : 'default',
-                          '&:hover .drill-arrow': { opacity: 1, transform: 'translateX(2px)' },
-                        }}
+                        className={cn(
+                          'flex items-start gap-[5.25px]',
+                          'hover:[&_.drill-arrow]:opacity-100 hover:[&_.drill-arrow]:translate-x-[2px]',
+                          onNavigate ? 'cursor-pointer' : 'cursor-default',
+                        )}
                       >
-                        <Box component="span" sx={{ display: 'inline-flex', mt: '2px', color: li.type === 'cleaning' ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
+                        <span className="inline-flex mt-0.5" style={{ color: li.type === 'cleaning' ? INTERVENTION_TYPE_TOKEN_COLORS.cleaning : INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
                           {li.type === 'cleaning' ? <BroomFill size={15} /> : <WrenchFill size={14} />}
-                        </Box>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="cn-text-body1 text-[0.75rem] font-semibold text-[var(--ink)] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap">
                             {li.title}
-                          </Typography>
+                          </p>
                           {/* Assigné : sous-ligne discrète (libère la place, plus de chip vert) */}
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.125 }}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: isAssigned ? 'var(--muted)' : 'var(--warn)' }}>
+                          <div className="flex items-center gap-0.5 mt-0">
+                            <span className={cn('inline-flex', isAssigned ? 'text-[var(--muted)]' : 'text-[var(--warn)]')}>
                               {isAssigned ? <Groups size={11} strokeWidth={1.75} /> : <HourglassEmpty size={11} strokeWidth={1.75} />}
-                            </Box>
-                            <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: isAssigned ? 'var(--muted)' : 'var(--warn)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            </span>
+                            <p className={cn('cn-text-body1 text-[0.625rem] font-medium overflow-hidden text-ellipsis whitespace-nowrap', isAssigned ? 'text-[var(--muted)]' : 'text-[var(--warn)]')}>
                               {isAssigned ? li.assigneeName : 'Non assigné'}
-                            </Typography>
-                          </Box>
-                        </Box>
-                        <Box
-                          component="span"
-                          className="drill-arrow"
-                          sx={{ display: 'inline-flex', mt: '2px', color: 'text.secondary', opacity: 0.4, transition: 'all 0.15s ease' }}
-                        >
+                            </p>
+                          </div>
+                        </div>
+                        <span className="drill-arrow inline-flex mt-[2px] text-[var(--muted)] opacity-40 transition-all duration-150 ease-[ease]">
                           <ChevronRight size={16} strokeWidth={1.75} />
-                        </Box>
-                      </Box>
+                        </span>
+                      </div>
 
                       {/* Méta : statut + montant/paiement ; indicateur planning à droite */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.875, flexWrap: 'wrap' }}>
-                        <Chip
-                          label={statusCfg.label}
-                          size="small"
-                          sx={{
-                            fontSize: '0.5625rem', height: 21, fontWeight: 700, letterSpacing: '0.01em',
-                            backgroundColor: statusCfg.tokens.bg, color: statusCfg.tokens.color,
-                            borderRadius: '6px',
-                            '& .MuiChip-label': { px: 0.625 },
-                          }}
-                        />
+                      <div className="flex items-center gap-0.5 mt-1.5 flex-wrap">
+                        <StatusChip tokens={{ color: statusCfg.tokens.color, bg: statusCfg.tokens.bg }} label={statusCfg.label} className="text-[0.5625rem] h-[21px] tracking-[0.01em]" />
                         {/* Montant + paiement (montant mis en avant) */}
                         {cost > 0 && payStatusCfg && (
-                          <Chip
-                            icon={<Payment size={10} strokeWidth={1.75} />}
-                            label={
-                              <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.375 }}>
-                                <Box component="span" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}><Money value={cost} from="EUR" decimals={0} /></Box>
-                                <Box component="span" sx={{ opacity: 0.5 }}>·</Box>
+                          <StatusChip tokens={{ color: payStatusCfg.tokens.color, bg: payStatusCfg.tokens.bg }} label={<span className="inline-flex items-center gap-0.5">
+                                <span className="font-bold tabular-nums"><Money value={cost} from="EUR" decimals={0} /></span>
+                                <span className="opacity-50">·</span>
                                 <span>{payStatusCfg.label}</span>
-                              </Box>
-                            }
-                            size="small"
-                            sx={{
-                              fontSize: '0.5625rem', height: 21, fontWeight: 600,
-                              backgroundColor: payStatusCfg.tokens.bg, color: payStatusCfg.tokens.color,
-                              borderRadius: '6px',
-                              '& .MuiChip-icon': { fontSize: 10, ml: 0.5, mr: 0.125, color: payStatusCfg.tokens.color },
-                              '& .MuiChip-label': { pl: 0.375, pr: 0.625 },
-                            }}
-                          />
+                              </span>} icon={<Payment size={10} strokeWidth={1.75} />} className="text-[0.5625rem] h-[21px]" />
                         )}
                         {/* Visibilité planning : icône seule, poussée à droite */}
-                        <Tooltip title={isOnPlanning ? 'Visible sur le planning' : 'Non visible sur le planning (attribution et paiement requis)'}>
-                          <Box
-                            component="span"
-                            sx={{ ml: 'auto', display: 'inline-flex', alignItems: 'center', color: isOnPlanning ? 'var(--ok)' : 'var(--faint)' }}
-                          >
-                            {isOnPlanning ? <Visibility size={13} strokeWidth={1.75} /> : <VisibilityOff size={13} strokeWidth={1.75} />}
-                          </Box>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className={cn('ms-auto inline-flex items-center', isOnPlanning ? 'text-[var(--ok)]' : 'text-[var(--faint)]')}>
+                              {isOnPlanning ? <Visibility size={13} strokeWidth={1.75} /> : <VisibilityOff size={13} strokeWidth={1.75} />}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {isOnPlanning ? 'Visible sur le planning' : 'Non visible sur le planning (attribution et paiement requis)'}
+                          </TooltipContent>
                         </Tooltip>
-                      </Box>
+                      </div>
 
                       {/* Progress bar (if in progress) */}
                       {isInProgress && (
-                        <Box sx={{ mb: 0.5 }}>
-                          <LinearProgress
-                            variant="determinate"
+                        <div className="mb-0.5">
+                          {/* La teinte de la barre depend de l'avancement calcule :
+                              elle passe par une variable CSS, une classe Tailwind
+                              ne pouvant pas naitre d'une valeur d'execution. */}
+                          <Progress
                             value={progress}
-                            sx={{
-                              height: 4, borderRadius: 2, backgroundColor: 'var(--hover)',
-                              '& .MuiLinearProgress-bar': {
-                                borderRadius: 2,
-                                backgroundColor: progress === 100 ? 'var(--ok)' : 'var(--accent)',
-                              },
-                            }}
+                            className="[&>[data-slot=progress-indicator]]:bg-(--bar)"
+                            style={{ '--bar': progress === 100 ? 'var(--ok)' : 'var(--accent)' } as React.CSSProperties}
                           />
-                        </Box>
+                        </div>
                       )}
 
                       {/* Action: Assign button if not assigned */}
                       {!isAssigned && canEditIntervention && (
                         <Button
-                          size="small"
-                          variant="outlined"
-                          startIcon={<PersonAdd size={12} strokeWidth={1.75} />}
+                          size="xs"
+                          variant="outline"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleAssignFromCard(li);
                           }}
-                          sx={{
-                            fontSize: '0.6875rem', textTransform: 'none', mt: 0.5,
-                            py: 0.25, px: 1.5, borderRadius: 1,
-                          }}
+                          className="mt-0.5"
                         >
+                          <PersonAdd size={12} strokeWidth={1.75} />
                           Assigner un prestataire
                         </Button>
                       )}
-                    </Box>
+                    </div>
                   );
                 })}
-              </Box>
+              </div>
             </>
           )}
 
           {/* Empty state when no service requests and no interventions */}
           {(!serviceRequests || serviceRequests.length === 0) && linkedInterventions.length === 0 && (
-            <Alert severity="info" sx={{ fontSize: '0.75rem', '& .MuiAlert-message': { fontSize: '0.75rem' } }}>
-              Aucune demande de service ou intervention pour cette reservation. Utilisez les boutons ci-dessus pour creer une demande.
-            </Alert>
+            <UiAlert variant="info" className="text-[0.75rem]">
+              <Info />
+              <AlertDescription>
+                Aucune demande de service ou intervention pour cette reservation. Utilisez les boutons ci-dessus pour creer une demande.
+              </AlertDescription>
+            </UiAlert>
           )}
 
           {/* Messagerie automatique (maquette : section dédiée de l'onglet Opérations) */}
-          <Divider />
+          <Separator />
           <MessagingAutomationStatus
             guestEmail={reservation?.guestEmail}
             source={reservation?.source}
@@ -1483,50 +1345,47 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       {/* ── Intervention view: Actions (assign, priority, checklist, alerts) ── */}
       {!isReservation && intervention && (
         <>
-          <Divider />
+          <Separator />
 
           {/* Assignment */}
-          <Box>
-            <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 1 }}>
+          <div>
+            <p className="cn-text-body2 font-bold text-[0.8125rem] mb-1.5">
               Assignation
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            </p>
+            <div className="flex flex-col gap-1">
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<Groups size={14} strokeWidth={1.75} />}
-                fullWidth
+                size="sm"
+                variant="outline"
                 onClick={handleAssignClick}
-                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+                className="w-full justify-start shrink"
               >
+                <Groups size={14} strokeWidth={1.75} />
                 Assigner equipe / prestataire
               </Button>
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<PriorityHigh size={14} strokeWidth={1.75} />}
-                fullWidth
+                size="sm"
+                variant="outline"
                 onClick={handlePriorityClick}
-                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+                className="w-full justify-start shrink"
               >
+                <PriorityHigh size={14} strokeWidth={1.75} />
                 Definir priorite
               </Button>
-            </Box>
-          </Box>
+            </div>
+          </div>
 
-          <Divider />
+          <Separator />
 
           {/* Checklist & alerts */}
-          <Box>
-            <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 1 }}>
+          <div>
+            <p className="cn-text-body2 font-bold text-[0.8125rem] mb-1.5">
               Suivi
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            </p>
+            <div className="flex flex-col gap-1">
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<CheckCircleOutline size={14} strokeWidth={1.75} />}
-                fullWidth
+                size="sm"
+                variant="outline"
+                className="w-full justify-start shrink"
                 onClick={() => {
                   if (!targetIntervention) {
                     showSnackbar('Aucune intervention.', 'error');
@@ -1545,15 +1404,14 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   }
                   setChecklistOpen(true);
                 }}
-                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
               >
+                <CheckCircleOutline size={14} strokeWidth={1.75} />
                 Ajouter checklist operationnelle
               </Button>
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<NotificationsActive size={14} strokeWidth={1.75} />}
-                fullWidth
+                size="sm"
+                variant="outline"
+                className="w-full justify-start shrink"
                 onClick={() => {
                   if (!targetIntervention) {
                     showSnackbar('Aucune intervention.', 'error');
@@ -1564,12 +1422,12 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                   setAlertMessage('');
                   setAlertDialogOpen(true);
                 }}
-                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
               >
+                <NotificationsActive size={14} strokeWidth={1.75} />
                 Ajouter alerte / rappel
               </Button>
-            </Box>
-          </Box>
+            </div>
+          </div>
         </>
       )}
 
@@ -1596,555 +1454,425 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       />
 
       {/* Unified Assign Dialog (intervention & service request) */}
-      <Dialog
-        open={assignDialogOpen}
-        onClose={() => setAssignDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {assignMode === 'service_request'
-              ? <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><PersonAdd size={20} strokeWidth={1.75} /></Box>
-              : <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Groups size={20} strokeWidth={1.75} /></Box>}
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5 pe-8 text-[1rem] font-bold">
+              <span className="inline-flex text-[var(--accent)]">
+                {assignMode === 'service_request'
+                  ? <PersonAdd size={20} strokeWidth={1.75} />
+                  : <Groups size={20} strokeWidth={1.75} />}
+              </span>
               {assignMode === 'service_request' ? 'Assigner la demande' : 'Assigner intervention'}
-            </Typography>
-          </Box>
-          <IconButton size="small" onClick={() => setAssignDialogOpen(false)}>
-            <Close size={18} strokeWidth={1.75} />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
+            </DialogTitle>
+          </DialogHeader>
           {assignMode === 'intervention' && assignTarget && (
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', mb: 1.5, display: 'block' }}>
+            <span className="cn-text-caption text-muted-foreground text-[0.6875rem] mb-2 block">
               Intervention : <strong>{assignTarget.title}</strong>
-            </Typography>
+            </span>
           )}
           {assignMode === 'service_request' && assignSrTargetId && (
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', mb: 1.5, display: 'block' }}>
+            <span className="cn-text-caption text-muted-foreground text-[0.6875rem] mb-2 block">
               Demande de service #{assignSrTargetId}
               {assignSrDesiredDate && <> — Date souhaitée : <strong>{assignSrDesiredDate}</strong></>}
-            </Typography>
+            </span>
           )}
 
           {/* Auto-assign toggle (only visible if feature enabled in settings) */}
           {autoAssignEnabled && (
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                p: 1.5,
-                mb: 1.5,
-                borderRadius: 1.5,
-                border: '1px solid',
-                borderColor: assignAutoMode ? 'var(--accent)' : 'divider',
-                backgroundColor: assignAutoMode ? 'var(--accent-soft)' : 'transparent',
-                transition: 'all 0.2s ease',
-              }}
+            <div
+              className={cn(
+                'flex items-center justify-between p-[9px] mb-[9px] rounded-[12px] border border-solid transition-all duration-200 ease-[ease]',
+                assignAutoMode ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] bg-transparent',
+              )}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: assignAutoMode ? 'var(--accent)' : 'var(--muted)' }}><AutoFixHigh size={18} strokeWidth={1.75} /></Box>
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem', lineHeight: 1.2 }}>
+              <div className="flex items-center gap-1.5">
+                <span className={cn('inline-flex', assignAutoMode ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}><AutoFixHigh size={18} strokeWidth={1.75} /></span>
+                <div>
+                  <p className="cn-text-body2 font-semibold text-[0.8125rem] leading-[1.2]">
                     Assignation automatique
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
+                  </p>
+                  <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
                     Selectionne le membre le moins charge
-                  </Typography>
-                </Box>
-              </Box>
+                  </span>
+                </div>
+              </div>
               <Switch
-                size="small"
+                size="sm"
+                aria-label="Assignation automatique"
                 checked={assignAutoMode}
-                onChange={(e) => handleAutoAssignToggle(e.target.checked)}
+                onCheckedChange={handleAutoAssignToggle}
               />
-            </Box>
+            </div>
           )}
 
           {/* Auto-assign suggestion info */}
           {assignAutoMode && autoAssignSuggestion && (
-            <Alert
-              severity="info"
-              icon={<AutoFixHigh size={18} strokeWidth={1.75} />}
-              sx={{ fontSize: '0.75rem', mb: 1.5, '& .MuiAlert-message': { py: 0.25 } }}
-            >
-              <strong>{autoAssignSuggestion.name}</strong> — {autoAssignSuggestion.reason}
-            </Alert>
+            <UiAlert variant="info" className="text-[0.75rem] mb-[9px]">
+              <AutoFixHigh size={18} strokeWidth={1.75} />
+              <AlertDescription>
+                <strong>{autoAssignSuggestion.name}</strong> — {autoAssignSuggestion.reason}
+              </AlertDescription>
+            </UiAlert>
           )}
 
-          <TextField
-            select
-            label="Assigner à"
-            value={assignValue}
-            onChange={(e) => {
-              setAssignValue(e.target.value);
-              // If user manually changes, turn off auto mode
-              if (assignAutoMode && autoAssignSuggestion && e.target.value !== autoAssignSuggestion.key) {
-                setAssignAutoMode(false);
-              }
-            }}
-            size="small"
-            fullWidth
-            disabled={assignAutoMode}
-            sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}
-          >
-            {/* Operational users section */}
-            {(usersData as OperationalUser[] | undefined)?.length ? (
-              <ListSubheader sx={{ fontSize: '0.6875rem', lineHeight: '28px', color: 'text.secondary', fontWeight: 700 }}>
-                Intervenants
-              </ListSubheader>
-            ) : null}
-            {assigneeOptions
-              .flatMap((opt) => (opt.type === 'user' ? [(
-                <MenuItem key={assigneeKey(opt)} value={assigneeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={16} strokeWidth={1.75} /></Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.3 }}>
-                        {opt.label}
-                      </Typography>
-                      {opt.sublabel && (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
-                          {opt.sublabel}
-                        </Typography>
-                      )}
-                    </Box>
-                  </Box>
-                </MenuItem>
-              )] : []))}
-            {/* Teams section */}
-            {(teamsData as PortfolioTeam[] | undefined)?.length ? (
-              <ListSubheader sx={{ fontSize: '0.6875rem', lineHeight: '28px', color: 'text.secondary', fontWeight: 700 }}>
-                Équipes
-              </ListSubheader>
-            ) : null}
-            {assigneeOptions
-              .flatMap((opt) => (opt.type === 'team' ? [(
-                <MenuItem key={assigneeKey(opt)} value={assigneeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Groups size={16} strokeWidth={1.75} /></Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.3 }}>
-                        {opt.label}
-                      </Typography>
-                      {opt.sublabel && (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
-                          {opt.sublabel}
-                        </Typography>
-                      )}
-                    </Box>
-                  </Box>
-                </MenuItem>
-              )] : []))}
-            {assigneeOptions.length === 0 && (
-              <MenuItem disabled sx={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
-                Aucun intervenant ou équipe disponible
-              </MenuItem>
-            )}
-          </TextField>
+          <Field>
+            <FieldLabel htmlFor="assign-assignee">Assigner à</FieldLabel>
+            {/* Une option native ne porte que du texte : l'icone disparait, le
+                role/type passe en suffixe et l'appartenance user/equipe est
+                portee par le groupe. */}
+            <NativeSelect
+              id="assign-assignee"
+              className="w-full"
+              value={assignValue}
+              onChange={(e) => {
+                setAssignValue(e.target.value);
+                // If user manually changes, turn off auto mode
+                if (assignAutoMode && autoAssignSuggestion && e.target.value !== autoAssignSuggestion.key) {
+                  setAssignAutoMode(false);
+                }
+              }}
+              disabled={assignAutoMode}
+            >
+              {/* Option vide obligatoire : sans elle un select natif afficherait
+                  le premier intervenant alors que la valeur reste vide. */}
+              <NativeSelectOption value="" disabled>
+                {assigneeOptions.length === 0
+                  ? 'Aucun intervenant ou équipe disponible'
+                  : 'Sélectionner…'}
+              </NativeSelectOption>
+              {(usersData as OperationalUser[] | undefined)?.length ? (
+                <NativeSelectOptGroup label="Intervenants">
+                  {assigneeOptions
+                    .filter((opt) => opt.type === 'user')
+                    .map((opt) => (
+                      <NativeSelectOption key={assigneeKey(opt)} value={assigneeKey(opt)}>
+                        {opt.sublabel ? `${opt.label} — ${opt.sublabel}` : opt.label}
+                      </NativeSelectOption>
+                    ))}
+                </NativeSelectOptGroup>
+              ) : null}
+              {(teamsData as PortfolioTeam[] | undefined)?.length ? (
+                <NativeSelectOptGroup label="Équipes">
+                  {assigneeOptions
+                    .filter((opt) => opt.type === 'team')
+                    .map((opt) => (
+                      <NativeSelectOption key={assigneeKey(opt)} value={assigneeKey(opt)}>
+                        {opt.sublabel ? `${opt.label} — ${opt.sublabel}` : opt.label}
+                      </NativeSelectOption>
+                    ))}
+                </NativeSelectOptGroup>
+              ) : null}
+            </NativeSelect>
+          </Field>
 
           {/* ── Team member availability panel ────────────────────────── */}
           {assignValue.startsWith('team-') && (
-            <Box sx={{ mt: 2 }}>
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 700,
-                  fontSize: '0.6875rem',
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  mb: 0.75,
-                  display: 'block',
-                }}
-              >
+            <div className="mt-3">
+              <span className="cn-text-caption font-bold text-[0.6875rem] text-muted-foreground uppercase tracking-[0.04em] mb-1 block">
                 Membres de l'équipe
-              </Typography>
+              </span>
 
               {teamMembersLoading && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1 }}>
-                  <CircularProgress size={14} />
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                <div className="flex items-center gap-1.5 py-1.5">
+                  <Spinner className="size-3.5" />
+                  <span className="cn-text-caption text-muted-foreground text-[0.75rem]">
                     Vérification de la disponibilité...
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               )}
 
               {!teamMembersLoading && teamAvailabilityError && (
-                <Alert severity="error" sx={{ fontSize: '0.7rem', py: 0, '& .MuiAlert-message': { py: 0.5 } }}>
-                  {teamAvailabilityError}
-                </Alert>
+                <UiAlert variant="destructive" className="text-[0.7rem] py-0.5">
+                  <TriangleAlert />
+                  <AlertDescription>{teamAvailabilityError}</AlertDescription>
+                </UiAlert>
               )}
 
               {!teamMembersLoading && !teamAvailabilityError && teamMembers.length === 0 && teamAvailabilityInfo && (
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
+                <span className="cn-text-caption text-muted-foreground text-[0.75rem] italic">
                   Aucun membre dans cette équipe
-                </Typography>
+                </span>
               )}
 
               {!teamMembersLoading && teamMembers.length > 0 && (
                 <>
                   {teamAvailabilityInfo && (
-                    <Alert
-                      severity={teamAvailabilityInfo.allAvailable ? 'success' : 'warning'}
-                      sx={{ fontSize: '0.7rem', mb: 1, py: 0, '& .MuiAlert-message': { py: 0.5 } }}
+                    <UiAlert
+                      variant={teamAvailabilityInfo.allAvailable ? 'success' : 'warning'}
+                      className="text-[0.7rem] mb-1.5 py-0.5"
                     >
-                      {teamAvailabilityInfo.allAvailable
-                        ? 'Tous les membres sont disponibles'
-                        : 'Certains membres ont des interventions sur ce créneau'}
-                    </Alert>
+                      {teamAvailabilityInfo.allAvailable ? <CircleCheck /> : <TriangleAlert />}
+                      <AlertDescription>
+                        {teamAvailabilityInfo.allAvailable
+                          ? 'Tous les membres sont disponibles'
+                          : 'Certains membres ont des interventions sur ce créneau'}
+                      </AlertDescription>
+                    </UiAlert>
                   )}
-                  <Box
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 1.5,
-                      overflow: 'hidden',
-                    }}
-                  >
+                  <div className="border border-[var(--line)] rounded-[12px] overflow-hidden">
                     {teamMembers.map((member, idx) => (
-                      <Box
+                      <div
                         key={member.userId}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          px: 1.5,
-                          py: 0.75,
-                          borderBottom: idx < teamMembers.length - 1 ? '1px solid' : 'none',
-                          borderColor: 'divider',
-                          backgroundColor: member.available ? 'transparent' : 'var(--hover)',
-                        }}
+                        className={cn(
+                          'flex items-center justify-between px-[9px] py-[4.5px]',
+                          idx < teamMembers.length - 1 && 'border-b border-solid border-b-[var(--line)]',
+                          member.available ? 'bg-transparent' : 'bg-[var(--hover)]',
+                        )}
                       >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: member.available ? 'var(--ok)' : 'var(--faint)' }}><Person size={15} strokeWidth={1.75} /></Box>
-                          <Box>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                fontSize: '0.8rem',
-                                lineHeight: 1.3,
-                                fontWeight: 500,
-                                color: member.available ? 'text.primary' : 'text.secondary',
-                              }}
-                            >
+                        <div className="flex items-center gap-1.5">
+                          <span className={cn('inline-flex', member.available ? 'text-[var(--ok)]' : 'text-[var(--faint)]')}><Person size={15} strokeWidth={1.75} /></span>
+                          <div>
+                            <p className={cn('cn-text-body2 text-[0.8rem] leading-[1.3] font-medium', member.available ? 'text-[var(--ink)]' : 'text-[var(--muted)]')}>
                               {member.firstName} {member.lastName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
+                            </p>
+                            <span className="cn-text-caption text-muted-foreground text-[0.6rem]">
                               {member.role}
-                            </Typography>
-                          </Box>
-                        </Box>
-                        <Chip
-                          size="small"
+                            </span>
+                          </div>
+                        </div>
+                        <StatusChip
+                          size="sm"
+                          tokens={member.available ? OK_TOKENS : WARN_TOKENS}
                           label={
                             member.available
                               ? 'Disponible'
                               : `${member.conflictCount} intervention${member.conflictCount > 1 ? 's' : ''}`
                           }
+                          className="h-5 border border-solid font-semibold"
                           sx={{
-                            fontSize: '0.625rem',
-                            height: 20,
-                            fontWeight: 600,
-                            backgroundColor: member.available ? 'success.50' : 'warning.50',
-                            color: member.available ? 'success.dark' : 'warning.dark',
-                            border: '1px solid',
-                            borderColor: member.available ? 'success.200' : 'warning.200',
-                            '& .MuiChip-label': { px: 0.75 },
+                            borderColor: `color-mix(in srgb, ${member.available ? OK_TOKENS.color : WARN_TOKENS.color} 35%, transparent)`,
                           }}
                         />
-                      </Box>
+                      </div>
                     ))}
-                  </Box>
+                  </div>
                 </>
               )}
-            </Box>
+            </div>
           )}
 
           {assignError && (
-            <Alert severity="error" sx={{ fontSize: '0.75rem', mt: 1.5 }}>
-              {assignError}
-            </Alert>
+            <UiAlert variant="destructive" className="text-[0.75rem] mt-2">
+              <TriangleAlert />
+              <AlertDescription>{assignError}</AlertDescription>
+            </UiAlert>
           )}
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setAssignDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleAssignConfirm}
+              disabled={!assignValue || assignLoading}
+            >
+              {assignLoading ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
+              Confirmer
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button onClick={() => setAssignDialogOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
-            Annuler
-          </Button>
-          <Button
-            onClick={handleAssignConfirm}
-            variant="contained"
-            size="small"
-            disabled={!assignValue || assignLoading}
-            startIcon={assignLoading ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}
-          >
-            Confirmer
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Priority Dialog */}
-      <Dialog
-        open={priorityDialogOpen}
-        onClose={() => setPriorityDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><PriorityHigh size={20} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+      <Dialog open={priorityDialogOpen} onOpenChange={setPriorityDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5 pe-8 text-[1rem] font-bold">
+              <span className="inline-flex text-[var(--warn)]"><PriorityHigh size={20} strokeWidth={1.75} /></span>
               Definir la priorite
-            </Typography>
-          </Box>
-          <IconButton size="small" onClick={() => setPriorityDialogOpen(false)}>
-            <Close size={18} strokeWidth={1.75} />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
+            </DialogTitle>
+          </DialogHeader>
           {priorityTarget && (
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', mb: 2, display: 'block' }}>
+            <span className="cn-text-caption text-muted-foreground text-[0.6875rem] mb-3 block">
               Intervention : <strong>{priorityTarget.title}</strong>
-            </Typography>
+            </span>
           )}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
+          <div className="flex flex-col gap-1.5 mt-1.5">
             {PRIORITY_OPTIONS.map((opt) => (
+              /* Segmente de choix : la teinte vient de la donnee (STATUS_TONES),
+                 donc `style` — une classe Tailwind ne peut pas naitre d'une
+                 variable. Contour dans les deux etats, l'etat retenu se lit au
+                 fond soft et a la graisse. */
               <Button
                 key={opt.value}
-                variant={priorityValue === opt.value ? 'contained' : 'outlined'}
-                size="small"
-                fullWidth
+                variant="outline"
+                size="sm"
                 onClick={() => setPriorityValue(opt.value)}
-                sx={{
-                  fontSize: '0.8125rem',
-                  textTransform: 'none',
-                  justifyContent: 'flex-start',
+                aria-pressed={priorityValue === opt.value}
+                className={cn(
+                  'w-full justify-start',
+                  priorityValue === opt.value ? 'font-semibold' : 'font-medium',
+                )}
+                style={{
                   borderColor: opt.tokens.color,
                   color: opt.tokens.color,
                   backgroundColor: priorityValue === opt.value ? opt.tokens.bg : 'transparent',
-                  '&:hover': {
-                    backgroundColor: opt.tokens.bg,
-                    borderColor: opt.tokens.color,
-                  },
                 }}
               >
                 {opt.label}
               </Button>
             ))}
-          </Box>
+          </div>
           {priorityError && (
-            <Alert severity="error" sx={{ fontSize: '0.75rem', mt: 1.5 }}>
-              {priorityError}
-            </Alert>
+            <UiAlert variant="destructive" className="text-[0.75rem] mt-2">
+              <TriangleAlert />
+              <AlertDescription>{priorityError}</AlertDescription>
+            </UiAlert>
           )}
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setPriorityDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              size="sm"
+              onClick={handlePriorityConfirm}
+              disabled={priorityLoading}
+            >
+              {priorityLoading ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
+              Confirmer
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button onClick={() => setPriorityDialogOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
-            Annuler
-          </Button>
-          <Button
-            onClick={handlePriorityConfirm}
-            variant="contained"
-            size="small"
-            disabled={priorityLoading}
-            startIcon={priorityLoading ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}
-          >
-            Confirmer
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Checklist Dialog */}
-      <Dialog
-        open={checklistOpen}
-        onClose={() => setChecklistOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircleOutline size={20} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+      <Dialog open={checklistOpen} onOpenChange={setChecklistOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5 pe-8 text-[1rem] font-bold">
+              <span className="inline-flex text-[var(--ok)]"><CheckCircleOutline size={20} strokeWidth={1.75} /></span>
               Checklist operationnelle
-            </Typography>
-          </Box>
-          <IconButton size="small" onClick={() => setChecklistOpen(false)}>
-            <Close size={18} strokeWidth={1.75} />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 0, pb: 0 }}>
-          <List dense disablePadding>
+            </DialogTitle>
+          </DialogHeader>
+          <div>
             {checklistItems.map((item, index) => (
-              <ListItem
-                key={index}
-                disablePadding
-                sx={{ py: 0.25 }}
-                secondaryAction={
-                  <Checkbox
-                    edge="end"
-                    checked={item.checked}
-                    onChange={() => handleChecklistToggle(index)}
-                    size="small"
-                  />
-                }
-              >
-                <ListItemText
-                  primary={item.text}
-                  primaryTypographyProps={{
-                    fontSize: '0.8125rem',
-                    sx: {
-                      textDecoration: item.checked ? 'line-through' : 'none',
-                      color: item.checked ? 'text.disabled' : 'text.primary',
-                    },
-                  }}
+              <div key={index} className="flex items-center justify-between gap-3 py-[1.5px]">
+                <label
+                  htmlFor={`checklist-item-${index}`}
+                  className={cn(
+                    'cn-text-body2 flex-1 cursor-pointer text-[0.8125rem]',
+                    item.checked ? 'line-through text-[var(--faint)]' : 'text-[var(--ink)]',
+                  )}
+                >
+                  {item.text}
+                </label>
+                <Checkbox
+                  id={`checklist-item-${index}`}
+                  checked={item.checked}
+                  onCheckedChange={() => handleChecklistToggle(index)}
                 />
-              </ListItem>
+              </div>
             ))}
-          </List>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setChecklistOpen(false)}>
+              Fermer
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleChecklistSave}
+              disabled={checklistSaving}
+            >
+              {checklistSaving ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
+              Enregistrer
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button onClick={() => setChecklistOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
-            Fermer
-          </Button>
-          <Button
-            onClick={handleChecklistSave}
-            variant="contained"
-            size="small"
-            disabled={checklistSaving}
-            startIcon={checklistSaving ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}
-          >
-            Enregistrer
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Alert / Reminder Dialog */}
-      <Dialog
-        open={alertDialogOpen}
-        onClose={() => setAlertDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, pt: 2, px: 2.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><NotificationsActive size={20} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+      <Dialog open={alertDialogOpen} onOpenChange={setAlertDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5 pe-8 text-[1rem] font-bold">
+              <span className="inline-flex text-[var(--info)]"><NotificationsActive size={20} strokeWidth={1.75} /></span>
               Ajouter un rappel
-            </Typography>
-          </Box>
-          <IconButton size="small" onClick={() => setAlertDialogOpen(false)}>
-            <Close size={18} strokeWidth={1.75} />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
-          <Box sx={{ display: 'flex', gap: 1.5, mb: 2 }}>
-            <TextField
-              type="date"
-              label="Date du rappel"
-              value={alertDate}
-              onChange={(e) => setAlertDate(e.target.value)}
-              size="small"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex gap-2 mb-3">
+            <Field className="flex-1">
+              <FieldLabel htmlFor="alert-date">Date du rappel</FieldLabel>
+              <Input
+                id="alert-date"
+                type="date"
+                className="text-[0.8125rem]"
+                value={alertDate}
+                onChange={(e) => setAlertDate(e.target.value)}
+              />
+            </Field>
+            <Field className="flex-1">
+              <FieldLabel htmlFor="alert-time">Heure</FieldLabel>
+              <Input
+                id="alert-time"
+                type="time"
+                className="text-[0.8125rem]"
+                value={alertTime}
+                onChange={(e) => setAlertTime(e.target.value)}
+              />
+            </Field>
+          </div>
+          <Field>
+            <FieldLabel htmlFor="alert-message">Message du rappel</FieldLabel>
+            {/* `rows` est neutralise par le field-sizing du primitif : la hauteur
+                de deux lignes se garantit par min-h. */}
+            <Textarea
+              id="alert-message"
+              rows={2}
+              placeholder="Ex: Verifier la livraison du linge..."
+              className="text-[0.8125rem] min-h-[2lh]"
+              value={alertMessage}
+              onChange={(e) => setAlertMessage(e.target.value)}
             />
-            <TextField
-              type="time"
-              label="Heure"
-              value={alertTime}
-              onChange={(e) => setAlertTime(e.target.value)}
-              size="small"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}
-            />
-          </Box>
-          <TextField
-            label="Message du rappel"
-            value={alertMessage}
-            onChange={(e) => setAlertMessage(e.target.value)}
-            size="small"
-            fullWidth
-            multiline
-            rows={2}
-            placeholder="Ex: Verifier la livraison du linge..."
-            sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}
-          />
+          </Field>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setAlertDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleAlertSave}
+              disabled={!alertDate || !alertMessage.trim() || alertSaving}
+            >
+              {alertSaving ? <Spinner className="size-3.5" /> : <NotificationsActive size={16} strokeWidth={1.75} />}
+              Ajouter rappel
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
-          <Button onClick={() => setAlertDialogOpen(false)} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
-            Annuler
-          </Button>
-          <Button
-            onClick={handleAlertSave}
-            variant="contained"
-            size="small"
-            disabled={!alertDate || !alertMessage.trim() || alertSaving}
-            startIcon={alertSaving ? <CircularProgress size={14} /> : <NotificationsActive size={16} strokeWidth={1.75} />}
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}
-          >
-            Ajouter rappel
-          </Button>
-        </DialogActions>
       </Dialog>
 
-      {/* Snackbar for feedback */}
       {/* Delete service request confirmation dialog */}
       <Dialog
         open={deleteSrDialogOpen}
-        onClose={() => { setDeleteSrDialogOpen(false); setDeleteSrTarget(null); }}
-        maxWidth="xs"
-        fullWidth
+        onOpenChange={(open) => { if (!open) { setDeleteSrDialogOpen(false); setDeleteSrTarget(null); } }}
       >
-        <DialogTitle sx={{ pb: 1 }}>Supprimer la demande</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2">
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Supprimer la demande</DialogTitle>
+          </DialogHeader>
+          <p className="cn-text-body2">
             Êtes-vous sûr de vouloir supprimer la demande « {deleteSrTarget?.title} » ? Cette action est irréversible.
-          </Typography>
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setDeleteSrDialogOpen(false); setDeleteSrTarget(null); }}
+              disabled={deleteSrLoading}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteSr}
+              disabled={deleteSrLoading}
+            >
+              {deleteSrLoading ? <Spinner className="size-3.5" /> : <DeleteOutline size={16} strokeWidth={1.75} />}
+              Supprimer
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => { setDeleteSrDialogOpen(false); setDeleteSrTarget(null); }}
-            disabled={deleteSrLoading}
-          >
-            Annuler
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={handleDeleteSr}
-            disabled={deleteSrLoading}
-            startIcon={deleteSrLoading ? <CircularProgress size={14} /> : <DeleteOutline size={16} strokeWidth={1.75} />}
-          >
-            Supprimer
-          </Button>
-        </DialogActions>
       </Dialog>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          severity={snackbar.severity}
-          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-          sx={{ fontSize: '0.8125rem' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+    </div>
   );
 };
 

@@ -1,6 +1,7 @@
 import React from 'react';
-import { Box, Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { cn } from '../utils/cn';
 import { useTranslation } from '../hooks/useTranslation';
 import { useIconSize } from '../hooks/useResponsiveSize';
 import {
@@ -79,34 +80,17 @@ function sizedIcon(node: React.ReactNode, size: number): React.ReactNode {
     : node;
 }
 
-const SEG_CONTAINER_SX = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '2px',
-  p: '3px',
-  borderRadius: '11px',
-  bgcolor: 'var(--field)',
-  border: '1px solid var(--line-2)',
-  minWidth: 0,
-  overflowX: 'auto',
-  '&::-webkit-scrollbar': { display: 'none' },
-  scrollbarWidth: 'none',
-} as const;
+const SEG_CONTAINER_CLS =
+  'inline-flex items-center gap-[2px] p-[3px] rounded-[11px] bg-[var(--field)] ' +
+  'border border-solid border-[var(--line-2)] min-w-0 overflow-x-auto ' +
+  '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 
-const PILL_BASE_SX = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '6px',
-  flexShrink: 0,
-  border: 0,
-  fontFamily: 'inherit',
-  fontSize: '12.5px',
-  fontWeight: 600,
-  whiteSpace: 'nowrap',
-  px: '13px',
-  py: '6px',
-  borderRadius: '8px',
-} as const;
+const PILL_BASE_CLS =
+  'inline-flex items-center gap-[6px] shrink-0 border-0 [font-family:inherit] ' +
+  'text-[12.5px] font-semibold whitespace-nowrap px-[13px] py-[6px] rounded-[8px]';
+
+const PILL_ACTIVE_CLS =
+  'text-[var(--ink)] bg-[var(--card)] shadow-[0_1px_3px_color-mix(in_srgb,var(--ink)_12%,transparent)]';
 
 interface HubScreenSwitcherProps {
   identity: ScreenIdentity;
@@ -134,37 +118,24 @@ export default function HubScreenSwitcher({ identity }: HubScreenSwitcherProps) 
       : t(identity.translationKey, identity.fallbackLabel);
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-      <Tooltip title={badgeLabel} arrow placement="bottom-start">
-        <Box
-          aria-hidden
-          sx={{
-            width: 30, height: 30, borderRadius: '9px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            bgcolor: 'var(--accent-soft)', color: 'var(--accent)', flexShrink: 0,
-          }}
-        >
-          {sizedIcon(badgeIcon, badgeSize)}
-        </Box>
+    <div className="flex items-center gap-1.5 min-w-0">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="w-[30px] h-[30px] rounded-[9px] flex items-center justify-center bg-[var(--accent-soft)] text-[var(--accent)] shrink-0" aria-hidden>
+            {sizedIcon(badgeIcon, badgeSize)}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" align="start">{badgeLabel}</TooltipContent>
       </Tooltip>
 
       {identity.kind === 'single' ? (
-        <Box sx={SEG_CONTAINER_SX}>
-          <Box
-            component="span"
-            aria-current="page"
-            sx={{
-              ...PILL_BASE_SX,
-              color: 'var(--ink)',
-              bgcolor: 'var(--card)',
-              boxShadow: '0 1px 3px color-mix(in srgb, var(--ink) 12%, transparent)',
-            }}
-          >
+        <div className={SEG_CONTAINER_CLS}>
+          <span aria-current="page" className={cn(PILL_BASE_CLS, PILL_ACTIVE_CLS)}>
             {t(identity.translationKey, identity.fallbackLabel)}
-          </Box>
-        </Box>
+          </span>
+        </div>
       ) : (
-        <Box role="tablist" aria-label={badgeLabel} sx={SEG_CONTAINER_SX}>
+        <div role="tablist" aria-label={badgeLabel} className={SEG_CONTAINER_CLS}>
           {identity.tabs.map((tab) => {
             const active = tab.path === identity.activeTabPath;
             const handleClick = () => {
@@ -172,36 +143,29 @@ export default function HubScreenSwitcher({ identity }: HubScreenSwitcherProps) 
               if (!onSamePath) navigate(tab.path);
             };
             return (
-              <Box
+              <button
                 key={tab.path}
-                component="button"
                 type="button"
                 role="tab"
                 aria-selected={active}
                 onClick={handleClick}
-                sx={{
-                  ...PILL_BASE_SX,
-                  cursor: 'pointer',
-                  color: active ? 'var(--ink)' : 'var(--muted)',
-                  bgcolor: active ? 'var(--card)' : 'transparent',
-                  boxShadow: active ? '0 1px 3px color-mix(in srgb, var(--ink) 12%, transparent)' : 'none',
-                  transition: 'background .14s var(--ease-out), color .14s var(--ease-out)',
-                  '&:hover': { color: active ? 'var(--ink)' : 'var(--body)' },
-                  '&:active': { transform: 'scale(.97)' },
-                  '@media (prefers-reduced-motion: reduce)': {
-                    transition: 'none',
-                    '&:active': { transform: 'none' },
-                  },
-                  '& > svg': { color: active ? 'var(--accent)' : 'var(--faint)', flexShrink: 0 },
-                }}
+                className={cn(
+                  PILL_BASE_CLS,
+                  'cursor-pointer transition-[background,color] duration-[140ms] ease-[var(--ease-out)]',
+                  'active:scale-[.97] motion-reduce:transition-none motion-reduce:active:scale-100',
+                  '[&>svg]:shrink-0',
+                  active
+                    ? `${PILL_ACTIVE_CLS} [&>svg]:text-[var(--accent)]`
+                    : 'text-[var(--muted)] bg-transparent shadow-none hover:text-[var(--body)] [&>svg]:text-[var(--faint)]',
+                )}
               >
                 {sizedIcon(SCREEN_ICON[tab.path], 14)}
                 {t(tab.translationKey, tab.fallbackLabel)}
-              </Box>
+              </button>
             );
           })}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }

@@ -53,6 +53,26 @@
       "rep": {
         "name": "Reviews & Reputation",
         "role": "Reviews & rating"
+      },
+      "sync": {
+        "name": "Sync",
+        "role": "Channels and calendars"
+      },
+      "cmp": {
+        "name": "Compliance",
+        "role": "Compliance and security"
+      },
+      "gst": {
+        "name": "Guest",
+        "role": "Guest experience"
+      },
+      "own": {
+        "name": "Owner",
+        "role": "Owner relations"
+      },
+      "gro": {
+        "name": "Growth",
+        "role": "Distribution and growth"
       }
     },
     "status": {
@@ -187,7 +207,10 @@
       "SEND_GUIDE_FAILED": "Welcome guide delivery failed (automation)",
       "SEND_CHECKIN_LINK_FAILED": "Check-in link delivery failed (automation)",
       "SEND_NOISE_WARNING_FAILED": "Noise alert delivery failed (automation)",
-      "SEND_REVIEW_REQUEST_FAILED": "Review request delivery failed (automation)"
+      "SEND_REVIEW_REQUEST_FAILED": "Review request delivery failed (automation)",
+      "yield_guardrail": "Adjustment held back by the impact guardrail",
+      "auto_rule_suggested": "Automation suggested after repeated approvals",
+      "payment_dispute": "Bank dispute received"
     },
     "approval": {
       "title": "Approval required",
@@ -217,7 +240,10 @@
       "empty": "No recent agent actions",
       "emptyOnboarding": "The agents are watching your properties. Their actions and suggestions to approve will appear here — nothing runs without your consent.",
       "openMessage": "View the message sent",
-      "openInvoice": "View the invoice"
+      "openInvoice": "View the invoice",
+      "guardrail": "guardrail",
+      "learned": "learned rule",
+      "deferred": "deferred"
     },
     "messageModal": {
       "title": "Message sent",
@@ -308,6 +334,35 @@
     },
     "compact": {
       "hitl": "To review"
+    },
+    "verbs": {
+      "block": "Block",
+      "schedule": "Schedule",
+      "reassign": "Reassign",
+      "refund": "Refund",
+      "release": "Release",
+      "remind": "Remind",
+      "retry": "Retry",
+      "republish": "Republish",
+      "send": "Send",
+      "pay": "Pay out",
+      "declare": "File declaration",
+      "signSend": "Send for signature",
+      "restrict": "Restrict",
+      "deactivate": "Deactivate",
+      "withhold": "Withhold",
+      "approve": "Approve",
+      "translate": "Translate",
+      "resolve": "Resolve",
+      "takeover": "Take over",
+      "markFiled": "Mark as filed",
+      "propose": "Propose",
+      "markNoShow": "Mark no-show",
+      "submit": "Submit",
+      "order": "Order",
+      "accept": "Accept",
+      "erase": "Erase",
+      "publish": "Publish"
     }
   },
   "channexGuided": {
@@ -423,12 +478,7 @@
       "dialogTitle": "Commissions & my share"
     },
     "orgCommission": {
-      "title": "My commission (management)",
-      "note": "Your share of the remainder after the platform commission. The owner receives the balance.",
-      "platformInfo": "Platform commission (set by the platform)",
-      "upsell": "My share (upsells)",
-      "activity": "My share (activities)",
-      "saved": "Commission saved"
+      "movedToPayment": "Your upsell share is set in Settings › Payment, \"Services & activities\" tab."
     }
   },
   "welcomeGuide": {
@@ -756,7 +806,9 @@
     "expandMenu": "Expand menu",
     "collapseMenu": "Collapse menu",
     "ratesAt": "Rates as of",
-    "download": "Download"
+    "download": "Download",
+    "tabsMenu": "Tabs",
+    "tabsMenuCount": "{{count}} tabs"
   },
   "connectedObjects": {
     "previewBadge": "Preview",
@@ -2290,7 +2342,22 @@
     "invalidDate": "Invalid date",
     "notFound": "Service request not found",
     "team": "Team",
-    "approvedDateShort": "Approved on"
+    "approvedDateShort": "Approved on",
+    "unassigned": "Unassigned",
+    "kpi": {
+      "late": "Overdue",
+      "today": "Today",
+      "done7d": "Completed (7 d)",
+      "sinceDays_one": "for {{count}} day",
+      "sinceDays_other": "for {{count}} days",
+      "avgDuration": "average estimated duration"
+    },
+    "family": {
+      "all": "All types",
+      "cleaning": "Cleaning",
+      "maintenance": "Maintenance",
+      "other": "Other"
+    }
   },
   "interventions": {
     "due": {
@@ -3231,7 +3298,8 @@
       "projectionHint": "Projection on €100 collected, at constant split. This is not a payout statement.",
       "detailTitle": "Breakdown by channel",
       "tabChannels": "Distribution channels",
-      "tabServices": "Services & activities"
+      "tabServices": "Services & activities",
+      "contractOverride": "{{count}} property(ies) under a management contract do not follow this split: the owner receives the balance after their contract rate, and the commission is shared 25% platform / 75% concierge."
     },
     "commissions": {
       "title": "Channel Commissions",
@@ -3267,6 +3335,8 @@
       "daysOfMonthHelper": "Select the days of the month when payouts will be generated (1-28).",
       "gracePeriod": "Reminder delay (days)",
       "gracePeriodHelper": "Number of days after generation before sending an approval reminder.",
+      "reminderSentenceStart": "Send an approval reminder",
+      "reminderSentenceEnd": "days after generation.",
       "save": "Save schedule",
       "saved": "Payout schedule updated",
       "error": "Error updating schedule",
@@ -3986,6 +4056,8 @@
     "onCapLabel": "When capped",
     "onCapNotify": "Notify only (suggestions without execution)",
     "onCapPause": "Pause autonomy",
+    "capSentenceStart": "Cap at",
+    "capSentenceMiddle": "credits per month, then",
     "save": "Save",
     "noBehaviors": "No premium behavior wired yet — switches will appear here (e.g. proactive pricing optimization).",
     "trustTitle": "Trust Rules",
@@ -4022,7 +4094,14 @@
       "logoHelp": "Leave empty to show no logo",
       "primaryColor": "Accent color (#RRGGBB)",
       "saveError": "Could not save"
-    }
+    },
+    "showcase": {
+      "title": "Your owners follow their properties without calling you",
+      "description": "Occupancy, revenue, payouts and documents, in a dedicated space you open property by property.",
+      "action": "Invite an owner"
+    },
+    "propertiesCount_one": "{{count}} property",
+    "propertiesCount_other": "{{count}} properties"
   },
   "ownerConstellation": {
     "subtitle": "Owner area",
@@ -4584,6 +4663,13 @@
       "lastSync": "Last sync",
       "externalId": "External ID",
       "status": "Status"
+    },
+    "health": {
+      "ok": "Channel manager operational",
+      "errors_one": "{{count}} property with sync errors",
+      "errors_other": "{{count}} properties with sync errors",
+      "detail": "{{active}}/{{total}} active mappings · computed at {{time}}",
+      "journal": "Sync journal"
     }
   },
   "systemEmailTemplates": {
@@ -4730,7 +4816,9 @@
       "locked": "Locked",
       "countryChanged": "Compliance country updated successfully",
       "countryChangeError": "Error updating compliance country"
-    }
+    },
+    "failedBadge_one": "{{count}} failure",
+    "failedBadge_other": "{{count}} failures"
   },
   "messaging": {
     "whatsappStatus": {
@@ -4859,7 +4947,15 @@
       "draft": "Drafts",
       "issued": "Issued",
       "paid": "Paid",
-      "totalTtc": "Total incl. tax"
+      "totalTtc": "Total incl. tax",
+      "issuedTotal": "Issued",
+      "collected": "Collected",
+      "overdue": "Overdue",
+      "count_one": "{{count}} invoice",
+      "count_other": "{{count}} invoices",
+      "collectedShare": "{{rate}}% of issued amount",
+      "overdueCount_one": "{{count}} invoice",
+      "overdueCount_other": "{{count}} invoices"
     },
     "columns": {
       "number": "No.",
@@ -4881,7 +4977,8 @@
       "PAID": "Paid",
       "CANCELLED": "Cancelled",
       "CREDIT_NOTE": "Credit note"
-    }
+    },
+    "totalPeriod": "Period total"
   },
   "notifications": {
     "title": "Notifications",
@@ -4988,6 +5085,16 @@
       "NOISE_ALERT_RESOLVED": "Noise alert resolved",
       "CONTACT_MESSAGE_RECEIVED": "Message received",
       "CONTACT_FORM_RECEIVED": "Contact form received"
+    },
+    "groups": {
+      "today": "Today",
+      "yesterday": "Yesterday"
+    },
+    "preferences": "Notification preferences",
+    "showcase": {
+      "title": "Be told about what matters, not the rest",
+      "description": "New booking, cancellation, payment incident, noise alert: you choose the channel and the frequency.",
+      "action": "Set up my notifications"
     }
   },
   "fiscal": {
@@ -5942,6 +6049,10 @@
       }
     },
     "skip": "Skip",
+    "dock": {
+      "title": "Getting started guide",
+      "continue": "Continue"
+    },
     "completionMessage": "Complete the initial setup to access the full dashboard"
   },
   "tabHeaders": {
@@ -6152,7 +6263,7 @@
       "trustSupport": "Support 7 days a week"
     },
     "login": {
-      "title": "Welcome back",
+      "title": "Sign in",
       "subtitle": "Sign in to access your dashboard.",
       "inscriptionSuccess": "Your account was created successfully. Sign in to access your workspace.",
       "emailLabel": "Email or username",
@@ -6927,5 +7038,8 @@
   },
   "search": {
     "goToScreen": "Go to a screen…"
+  },
+  "messagingHub": {
+    "viewReservation": "View reservation"
   }
 }

@@ -1,5 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Box, Typography, Button, Alert, Tooltip, CircularProgress } from '@mui/material';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from './ui';
+import { TriangleAlert, X } from 'lucide-react';
+import { Spinner, Tooltip, TooltipContent, TooltipTrigger } from './ui';
+import { cn } from '../utils/cn';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { LocationOn, DirectionsWalk } from '../icons';
@@ -166,143 +169,114 @@ export function PropertyLocationPicker({
 
   if (!MAPBOX_TOKEN) {
     return (
-      <Alert severity="warning" sx={{ fontSize: '0.8125rem' }}>
-        Mapbox n'est pas configuré — impossible d'afficher la carte de sélection.
-      </Alert>
+      <BuiAlert variant="warning" className="text-[0.8125rem]">
+        <TriangleAlert />
+        <AlertDescription>Mapbox n'est pas configuré — impossible d'afficher la carte de sélection.</AlertDescription>
+      </BuiAlert>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+    <div className="flex flex-col gap-1.5">
       {/* Helper / status text */}
       {!hasCoords && (
-        <Alert
-          severity="warning"
-          icon={<LocationOn size={16} strokeWidth={2} />}
-          sx={{ fontSize: '0.8125rem', py: 0.5 }}
-        >
-          {helperText ||
-            "Aucune coordonnée GPS n'a été trouvée pour cette adresse. Cliquez sur la carte ou faites glisser le pin pour positionner manuellement le logement."}
-        </Alert>
+        <BuiAlert variant="warning" className="text-[0.8125rem] py-[3px]">
+          <LocationOn size={16} strokeWidth={2} />
+          <AlertDescription>
+            {helperText ||
+              "Aucune coordonnée GPS n'a été trouvée pour cette adresse. Cliquez sur la carte ou faites glisser le pin pour positionner manuellement le logement."}
+          </AlertDescription>
+        </BuiAlert>
       )}
 
       {/* Map container */}
-      <Box
-        sx={{
-          position: 'relative',
-          width: '100%',
-          height,
-          borderRadius: 2,
-          overflow: 'hidden',
-          border: '1px solid',
-          borderColor: hasCoords ? 'success.main' : 'warning.main',
-        }}
+      {/* `height` est une prop : elle reste en style inline. */}
+      <div
+        className={cn(
+          'relative w-full overflow-hidden rounded-[16px] border border-solid',
+          hasCoords ? 'border-[#4A9B8E]' : 'border-[#D4A574]',
+        )}
+        style={{ height }}
       >
-        <Box ref={mapContainerRef} sx={{ width: '100%', height: '100%' }} />
+        <div className="w-full h-full" ref={mapContainerRef} />
 
         {/* Floating coordinates badge */}
         {hasCoords && (
-          <Box
-            sx={{
-              position: 'absolute',
-              bottom: 8,
-              left: 8,
-              bgcolor: 'background.paper',
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 1.5,
-              px: 1,
-              py: 0.5,
-              fontFamily: 'monospace',
-              fontSize: '0.6875rem',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5,
-            }}
-          >
-            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}>
+          <div className="absolute bottom-[8px] start-[8px] flex items-center gap-[3px] rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)] px-1.5 py-[3px] text-[0.6875rem] [font-family:monospace] shadow-[0_2px_6px_rgba(0,0,0,0.12)]">
+            <span className="inline-flex text-[var(--bui-success-ink)]">
               <LocationOn size={11} strokeWidth={2} />
-            </Box>
-            <Typography sx={{ fontFamily: 'monospace', fontSize: '0.6875rem', color: 'text.primary' }}>
+            </span>
+            <p className="cn-text-body1 font-mono text-[0.6875rem] text-foreground">
               {Number(latitude).toFixed(5)}, {Number(longitude).toFixed(5)}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
 
         {/* Floating action buttons */}
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 8,
-            left: 8,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 0.5,
-          }}
-        >
-          <Tooltip title="Utiliser ma position actuelle" placement="right">
-            <Button
-              onClick={handleGeolocate}
-              disabled={geoLoading}
-              size="small"
-              variant="contained"
-              sx={{
-                minWidth: 0,
-                px: 1,
-                py: 0.75,
-                bgcolor: 'background.paper',
-                color: 'primary.main',
-                border: '1px solid',
-                borderColor: 'divider',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-                '&:hover': { bgcolor: 'action.hover' },
-              }}
-            >
-              {geoLoading ? (
-                <CircularProgress size={16} color="inherit" />
-              ) : (
-                <DirectionsWalk size={16} strokeWidth={1.75} />
-              )}
-            </Button>
+        <div className="absolute top-[8px] start-[8px] flex flex-col gap-0.5">
+          {/* Commandes flottantes de la carte : outline (cadre sur surface) plutot
+              que default — ce sont des outils, pas l'action de l'ecran. Le span
+              porte la ref que Tooltip pose sur son enfant (Button = fonction). */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <BuiButton
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label="Utiliser ma position actuelle"
+                  onClick={handleGeolocate}
+                  disabled={geoLoading}
+                  className="shadow-[0_2px_6px_rgba(0,0,0,0.12)]"
+                >
+                  {geoLoading ? (
+                    <Spinner className="size-4" />
+                  ) : (
+                    <DirectionsWalk size={16} strokeWidth={1.75} />
+                  )}
+                </BuiButton>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="right">Utiliser ma position actuelle</TooltipContent>
           </Tooltip>
           {hasCoords && (
-            <Tooltip title="Centrer sur le marqueur" placement="right">
-              <Button
-                onClick={handleRecenter}
-                size="small"
-                variant="contained"
-                sx={{
-                  minWidth: 0,
-                  px: 1,
-                  py: 0.75,
-                  bgcolor: 'background.paper',
-                  color: 'primary.main',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-                  '&:hover': { bgcolor: 'action.hover' },
-                }}
-              >
-                <LocationOn size={16} strokeWidth={1.75} />
-              </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <BuiButton
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label="Centrer sur le marqueur"
+                    onClick={handleRecenter}
+                    className="shadow-[0_2px_6px_rgba(0,0,0,0.12)]"
+                  >
+                    <LocationOn size={16} strokeWidth={1.75} />
+                  </BuiButton>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="right">Centrer sur le marqueur</TooltipContent>
             </Tooltip>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {geoError && (
-        <Alert severity="error" onClose={() => setGeoError(null)} sx={{ fontSize: '0.75rem', py: 0.5 }}>
-          {geoError}
-        </Alert>
+        <BuiAlert variant="destructive" className="text-[0.75rem] py-0.5">
+          <TriangleAlert />
+          <AlertDescription>{geoError}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setGeoError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {hasCoords && (
-        <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>
+        <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60">
           Astuce : clique sur la carte ou fais glisser le pin pour ajuster la position exacte.
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
   );
 }
 

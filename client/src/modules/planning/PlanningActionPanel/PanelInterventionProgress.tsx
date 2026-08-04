@@ -1,25 +1,14 @@
 import React, { useState, useCallback, useRef } from 'react';
-import {
-  Box,
-  Typography,
-  LinearProgress,
-  Stepper,
-  Step,
-  StepLabel,
-  StepContent,
-  Button,
-  Checkbox,
-  FormControlLabel,
-  Chip,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
+import { Button, Spinner } from '../../../components/ui';
+import { Checkbox, Field, FieldLabel, Progress } from '../../../components/ui';
+import { Stepper, Step, StepLabel } from '../../../components/ui';
 import {
   PlayArrow,
   CheckCircle,
   CameraAlt,
-  MeetingRoom,
-  Search as InspectIcon,
 } from '../../../icons';
 import type { PlanningEvent } from '../types';
 
@@ -46,6 +35,13 @@ const parseValidatedRooms = (rooms?: string): Set<number> => {
   if (!rooms) return new Set();
   return new Set(rooms.split(',').filter(Boolean).map(Number));
 };
+
+// Le <Step> du kit clone ses enfants pour leur injecter `index` : ce conteneur
+// l'absorbe, sinon l'attribut atterrirait tel quel sur le DOM. Il remplace le
+// StepContent de MUI, decale sous la pastille de l'etape.
+const StepBody: React.FC<{ index?: number; children: React.ReactNode }> = ({ children }) => (
+  <div className="ms-[30px] mb-1.5">{children}</div>
+);
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -97,8 +93,9 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
 
   if (!intervention) {
     return (
-      <Alert severity="info" sx={{ fontSize: '0.75rem' }}>
-        Aucune donnée d'intervention disponible
+      <Alert variant="info" className="text-[0.75rem]">
+        <Info />
+        <AlertDescription>Aucune donnée d'intervention disponible</AlertDescription>
       </Alert>
     );
   }
@@ -132,57 +129,48 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
   );
 
   return (
-    <Box>
+    <div>
       {/* Progress bar */}
-      <Box sx={{ mb: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }}>Progression</Typography>
+      <div className="mb-3">
+        <div className="flex justify-between items-center mb-0.5">
+          <p className="cn-text-body1 text-[0.75rem] font-bold">Progression</p>
           {(() => { const c = progress === 100 ? '#4A9B8E' : progress > 0 ? '#0288d1' : '#757575'; return (
-          <Chip
-            label={`${progress}%`}
-            size="small"
-            sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
-          />
+          <StatusChip size="sm" tokens={{ color: c, bg: `${c}18` }} label={`${progress}%`} className="h-[20px]" />
           ); })()}
-        </Box>
-        <LinearProgress
-          variant="determinate"
-          value={progress}
-          sx={{ height: 6, borderRadius: 3 }}
-        />
-      </Box>
+        </div>
+        <Progress value={progress} className="h-1.5 rounded-full" />
+      </div>
 
       {/* Start button */}
       {!isStarted && (
         <Button
-          variant="contained"
-          fullWidth
-          size="small"
-          startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <PlayArrow size={16} strokeWidth={1.75} />}
+          variant="default"
+          size="sm"
+          className="w-full mb-3 shrink"
           onClick={handleStart}
           disabled={loading || !onStartIntervention}
-          sx={{ mb: 2, textTransform: 'none', fontSize: '0.75rem' }}
         >
+          {loading ? <Spinner className="size-3.5" /> : <PlayArrow size={16} strokeWidth={1.75} />}
           Démarrer l'intervention
         </Button>
       )}
 
-      {error && <Alert severity="error" sx={{ fontSize: '0.6875rem', mb: 1.5 }}>{error}</Alert>}
+      {error && <Alert variant="destructive" className="text-[0.6875rem] mb-2">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       {/* Vertical stepper */}
-      <Stepper activeStep={activeStep} orientation="vertical" sx={{ '& .MuiStepLabel-label': { fontSize: '0.75rem' } }}>
+      {/* Les icones metier des etapes disparaissent : la pastille du kit porte
+          deja le numero, et la coche quand l'etape est franchie. */}
+      <Stepper activeStep={activeStep} orientation="vertical">
         {/* Step 1: Inspection */}
-        <Step completed={inspectionDone}>
-          <StepLabel
-            StepIconProps={{ sx: { fontSize: 20 } }}
-            icon={inspectionDone ? <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={20} strokeWidth={1.75} /></Box> : <InspectIcon size={20} strokeWidth={1.75} />}
-          >
-            Inspection
-          </StepLabel>
-          <StepContent>
-            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', mb: 1 }}>
+        <Step>
+          <StepLabel>Inspection</StepLabel>
+          <StepBody>
+            <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mb-1.5">
               Prenez les photos avant intervention et notez les observations.
-            </Typography>
+            </p>
             <input
               ref={beforeInputRef}
               type="file"
@@ -192,66 +180,53 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
               onChange={(e) => handleFileUpload(e, 'before')}
             />
             <Button
-              variant="outlined"
-              size="small"
-              startIcon={<CameraAlt size={14} strokeWidth={1.75} />}
+              variant="outline"
+              size="xs"
+              className="mb-[3px]"
               onClick={() => beforeInputRef.current?.click()}
               disabled={loading || !onUploadPhotos}
-              sx={{ textTransform: 'none', fontSize: '0.6875rem', mb: 0.5 }}
             >
+              <CameraAlt size={14} strokeWidth={1.75} />
               Photos avant
             </Button>
-          </StepContent>
+          </StepBody>
         </Step>
 
         {/* Step 2: Room validation */}
-        <Step completed={roomsDone}>
-          <StepLabel
-            icon={roomsDone ? <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={20} strokeWidth={1.75} /></Box> : <MeetingRoom size={20} strokeWidth={1.75} />}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Step>
+          <StepLabel>
+            <span className="inline-flex items-center gap-0.5">
               Validation pièces
               {(() => { const c = validatedRooms.size === totalRooms ? '#4A9B8E' : '#757575'; return (
-              <Chip
-                label={`${validatedRooms.size}/${totalRooms}`}
-                size="small"
-                sx={{ fontSize: '0.5625rem', height: 18, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
-              />
+              <StatusChip size="sm" tokens={{ color: c, bg: `${c}18` }} label={`${validatedRooms.size}/${totalRooms}`} className="text-[0.5625rem]" />
               ); })()}
-            </Box>
+            </span>
           </StepLabel>
-          <StepContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <StepBody>
+            <div className="flex flex-col gap-1">
               {roomNames.map((name, i) => (
-                <FormControlLabel
-                  key={i}
-                  control={
-                    <Checkbox
-                      checked={validatedRooms.has(i)}
-                      size="small"
-                      disabled={!isStarted}
-                      sx={{ p: 0.25 }}
-                    />
-                  }
-                  label={<Typography sx={{ fontSize: '0.6875rem' }}>{name}</Typography>}
-                  sx={{ ml: 0, mr: 0 }}
-                />
+                <Field key={i} orientation="horizontal" className="w-auto gap-2">
+                  <Checkbox
+                    id={`room-validated-${i}`}
+                    checked={validatedRooms.has(i)}
+                    disabled={!isStarted}
+                  />
+                  <FieldLabel htmlFor={`room-validated-${i}`} className="flex-none font-normal text-[0.6875rem]">
+                    {name}
+                  </FieldLabel>
+                </Field>
               ))}
-            </Box>
-          </StepContent>
+            </div>
+          </StepBody>
         </Step>
 
         {/* Step 3: After photos */}
-        <Step completed={photosDone}>
-          <StepLabel
-            icon={photosDone ? <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={20} strokeWidth={1.75} /></Box> : <CameraAlt size={20} strokeWidth={1.75} />}
-          >
-            Photos après & finalisation
-          </StepLabel>
-          <StepContent>
-            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', mb: 1 }}>
+        <Step>
+          <StepLabel>Photos après &amp; finalisation</StepLabel>
+          <StepBody>
+            <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mb-1.5">
               Prenez les photos après intervention, puis finalisez.
-            </Typography>
+            </p>
             <input
               ref={afterInputRef}
               type="file"
@@ -260,40 +235,41 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
               hidden
               onChange={(e) => handleFileUpload(e, 'after')}
             />
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <div className="flex gap-1.5">
               <Button
-                variant="outlined"
-                size="small"
-                startIcon={<CameraAlt size={14} strokeWidth={1.75} />}
+                variant="outline"
+                size="xs"
                 onClick={() => afterInputRef.current?.click()}
                 disabled={loading || !onUploadPhotos}
-                sx={{ textTransform: 'none', fontSize: '0.6875rem' }}
               >
+                <CameraAlt size={14} strokeWidth={1.75} />
                 Photos après
               </Button>
+              {/* Action qui cloture l'etape : elle garde l'encre pleine face au
+                  bouton photo qui l'accompagne. Le kit n'a pas de variante succes,
+                  la teinte verte de MUI n'est donc pas reportee. */}
               <Button
-                variant="contained"
-                size="small"
-                color="success"
-                startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <CheckCircle size={14} strokeWidth={1.75} />}
+                variant="default"
+                size="xs"
                 onClick={handleComplete}
                 disabled={loading || !onCompleteIntervention || isCompleted}
-                sx={{ textTransform: 'none', fontSize: '0.6875rem' }}
               >
+                {loading ? <Spinner className="size-3.5" /> : <CheckCircle size={14} strokeWidth={1.75} />}
                 Terminer
               </Button>
-            </Box>
-          </StepContent>
+            </div>
+          </StepBody>
         </Step>
       </Stepper>
 
       {/* Completed banner */}
       {isCompleted && (
-        <Alert severity="success" sx={{ mt: 2, fontSize: '0.6875rem' }}>
-          Intervention terminée — en attente de validation
+        <Alert variant="success" className="mt-3 text-[0.6875rem]">
+          <CircleCheck />
+          <AlertDescription>Intervention terminée — en attente de validation</AlertDescription>
         </Alert>
       )}
-    </Box>
+    </div>
   );
 };
 

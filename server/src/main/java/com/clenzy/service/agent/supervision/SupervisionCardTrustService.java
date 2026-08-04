@@ -51,6 +51,8 @@ public class SupervisionCardTrustService {
     private final SupervisionAutoRuleRepository autoRuleRepository;
     private final SupervisionSuggestionRepository suggestionRepository;
     private final NotificationService notificationService;
+    private final SupervisionActivityService activityService;
+    private final com.clenzy.repository.PropertyRepository propertyRepository;
     private final Clock clock;
     /** Nb d'approbations humaines consécutives requis pour suggérer (défaut 5). */
     private final int threshold;
@@ -59,12 +61,16 @@ public class SupervisionCardTrustService {
                                        SupervisionAutoRuleRepository autoRuleRepository,
                                        SupervisionSuggestionRepository suggestionRepository,
                                        NotificationService notificationService,
+                                       SupervisionActivityService activityService,
+                                       com.clenzy.repository.PropertyRepository propertyRepository,
                                        Clock clock,
                                        @Value("${clenzy.supervision.card-trust.threshold:5}") int threshold) {
         this.settingsRepository = settingsRepository;
         this.autoRuleRepository = autoRuleRepository;
         this.suggestionRepository = suggestionRepository;
         this.notificationService = notificationService;
+        this.activityService = activityService;
+        this.propertyRepository = propertyRepository;
         this.clock = clock;
         this.threshold = threshold;
     }
@@ -156,6 +162,17 @@ public class SupervisionCardTrustService {
                             + "constellation. Vous pouvez l'automatiser (sous enveloppe) depuis le "
                             + "menu Automatisation — ou ignorer la suggestion.",
                     "/automation-rules");
+            // Feed « règle apprise » (constellation Phase 5) : la répétition des
+            // approbations devient une proposition d'automatisation — nommée, pas colorée.
+            final Long anchor = propertyRepository.findFirstPropertyIdByOrg(orgId);
+            if (anchor != null) {
+                activityService.recordModuleActTagged(orgId, anchor, type.moduleKey(),
+                        "auto_rule_suggested",
+                        "Vous approuvez toujours « " + frenchLabel(type.actionType())
+                                + " » (" + streak + " fois de suite) : l'agent propose "
+                                + "l'auto-application, à activer dans Automatisation.",
+                        null, null, com.clenzy.model.SupervisionActivity.TAG_LEARNED);
+            }
         } catch (Exception e) {
             log.debug("[CARD-TRUST] notification non émise (org={}) : {}", orgId, e.getMessage());
         }
@@ -171,6 +188,7 @@ public class SupervisionCardTrustService {
             case SupervisionActionType.DEPOSIT_RELEASE -> "Libérer la caution après le départ";
             case SupervisionActionType.DEPOSIT_REFUND -> "Rembourser la caution après annulation";
             case SupervisionActionType.PAYMENT_REMINDER -> "Relancer le paiement échoué";
+            case SupervisionActionType.REASSIGN_CLEANING -> "Réaffecter le ménage sans prestataire";
             default -> actionType;
         };
     }

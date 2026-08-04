@@ -36,4 +36,20 @@ public interface ConversationMessageRepository extends JpaRepository<Conversatio
      */
     Optional<ConversationMessage> findByOrganizationIdAndChannelSourceAndExternalMessageId(
         Long organizationId, ConversationChannel channelSource, String externalMessageId);
+
+    /**
+     * Effacement RGPD (M9) : purge le CONTENU de tous les messages des fils du
+     * voyageur (les métadonnées de livraison restent — preuve d'échange sans PII) ;
+     * l'expéditeur n'est anonymisé que côté INBOUND (l'OUTBOUND est l'hôte).
+     */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE ConversationMessage m SET m.content = :placeholder, m.contentHtml = NULL, " +
+           "m.senderName = CASE WHEN m.direction = com.clenzy.model.MessageDirection.INBOUND " +
+           "THEN :anonymizedName ELSE m.senderName END, " +
+           "m.senderIdentifier = CASE WHEN m.direction = com.clenzy.model.MessageDirection.INBOUND " +
+           "THEN NULL ELSE m.senderIdentifier END " +
+           "WHERE m.conversation.id IN :conversationIds")
+    int purgeContentForConversations(@Param("conversationIds") java.util.List<Long> conversationIds,
+                                     @Param("placeholder") String placeholder,
+                                     @Param("anonymizedName") String anonymizedName);
 }

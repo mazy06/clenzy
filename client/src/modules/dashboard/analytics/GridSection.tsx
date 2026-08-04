@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { cn } from '../../../utils/cn';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -21,6 +21,10 @@ const SECTION_TITLE_SX = {
   lineHeight: 1.2,
 } as const;
 
+/** Report en classes de `SECTION_TITLE_SX`. */
+const SECTION_TITLE_CLASS =
+  'text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] leading-[1.2]';
+
 const SUBTITLE_SX = {
   fontSize: '0.625rem',
   color: 'var(--muted)',
@@ -28,21 +32,8 @@ const SUBTITLE_SX = {
   lineHeight: 1.2,
 } as const;
 
-const BADGE_SX = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minWidth: 18,
-  height: 18,
-  borderRadius: 'var(--radius-pill)',
-  bgcolor: 'var(--err)',
-  color: 'var(--on-accent)',
-  fontSize: '0.5625rem',
-  fontWeight: 700,
-  fontVariantNumeric: 'tabular-nums',
-  ml: 0.75,
-  px: 0.5,
-} as const;
+/** Report en classes de `SUBTITLE_SX`. */
+const SUBTITLE_CLASS = 'text-[0.625rem] text-[var(--muted)] mt-[1.5px] leading-[1.2]';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -52,23 +43,23 @@ const GridSection: React.FC<GridSectionProps> = React.memo(({
   badge,
   children,
 }) => (
-  <Box sx={{ mb: 2 }}>
+  <div className="mb-3">
     {/* Header */}
-    <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
-      <Typography sx={SECTION_TITLE_SX}>{title}</Typography>
+    <div className="flex items-center mb-1">
+      <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{title}</p>
       {badge !== undefined && badge > 0 && (
-        <Box sx={BADGE_SX}>{badge}</Box>
+        <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-[var(--radius-pill)] bg-[var(--err)] text-[var(--on-accent)] text-[9px] font-bold tabular-nums ml-[4.5px] px-[3px]">{badge}</span>
       )}
-    </Box>
+    </div>
     {subtitle && (
-      <Typography sx={SUBTITLE_SX}>{subtitle}</Typography>
+      <p className={cn(SUBTITLE_CLASS, 'cn-text-body1')}>{subtitle}</p>
     )}
 
     {/* Grid content (children handle their own Grid layout) */}
-    <Box sx={{ mt: 0.75 }}>
+    <div className="mt-1">
       {children}
-    </Box>
-  </Box>
+    </div>
+  </div>
 ));
 
 GridSection.displayName = 'GridSection';

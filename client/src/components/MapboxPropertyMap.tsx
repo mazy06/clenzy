@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { Box, Typography } from '@mui/material';
 import { MapIcon } from '../icons';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -164,35 +163,24 @@ export function MapboxPropertyMap({
 
   if (!MAPBOX_TOKEN) {
     return (
-      <Box
-        sx={{
-          height,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: 'grey.100',
-          borderRadius: 1,
-          gap: 1,
-        }}
+      // `height` vient des props (valeur d'execution) : elle reste en style inline.
+      <div
+        className="flex flex-col items-center justify-center gap-1.5 rounded-lg bg-[var(--hover)]"
+        style={{ height }}
       >
-        <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><MapIcon size={48} strokeWidth={1.5} /></Box>
-        <Typography variant="body2" color="text.secondary">
+        <span className="inline-flex text-muted-foreground opacity-60"><MapIcon size={48} strokeWidth={1.5} /></span>
+        <p className="cn-text-body2 text-muted-foreground">
           Carte indisponible : token Mapbox non configure (VITE_MAPBOX_TOKEN)
-        </Typography>
-      </Box>
+        </p>
+      </div>
     );
   }
 
   return (
-    <Box
+    <div
       ref={mapContainerRef}
-      sx={{
-        height,
-        width: '100%',
-        borderRadius: 1,
-        overflow: 'hidden',
-      }}
+      className="w-full rounded-lg overflow-hidden"
+      style={{ height }}
     />
   );
 }

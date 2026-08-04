@@ -1,12 +1,11 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
-  Box,
-  Typography,
-  LinearProgress,
-  IconButton,
-  Tooltip,
   Button,
-} from '@mui/material';
+  Progress,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import {
   CheckCircle,
   RadioButtonUnchecked,
@@ -36,6 +35,20 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useOnboarding } from '../../hooks/useOnboarding';
 import type { OnboardingStepWithStatus } from '../../hooks/useOnboarding';
 import ICalImportModal from './ICalImportModal';
+import { cn } from '../../utils/cn';
+
+// Le @keyframes du halo vivait dans le `sx` MUI, qui l'injectait lui-meme dans
+// le document. Sans MUI il faut une vraie feuille : posee une seule fois au
+// chargement du module (idempotent).
+const ONBOARDING_KEYFRAMES_ID = 'onboarding-checklist-keyframes';
+if (typeof document !== 'undefined' && !document.getElementById(ONBOARDING_KEYFRAMES_ID)) {
+  const styleEl = document.createElement('style');
+  styleEl.id = ONBOARDING_KEYFRAMES_ID;
+  styleEl.textContent =
+    '@keyframes onboarding-shadow-pulse{0%,100%{box-shadow:none}'
+    + '50%{box-shadow:0 6px 28px color-mix(in srgb, var(--accent) 25%, transparent), 0 0 0 1.5px color-mix(in srgb, var(--accent) 20%, transparent)}}';
+  document.head.appendChild(styleEl);
+}
 
 // ─── Step icon & CTA style mapping ─────────────────────────────────────────
 
@@ -224,26 +237,21 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
   // Show a mini "re-show" button when dismissed and not all completed
   if (isDismissed && !isAllCompleted) {
     return (
-      <Tooltip title={t('dashboard.onboarding.reshow')} arrow>
-        <IconButton
-          size="small"
-          onClick={handleReshow}
-          sx={{
-            color: 'text.disabled',
-            border: '1px dashed',
-            borderColor: 'var(--line-2)',
-            borderRadius: 'var(--radius-md)',
-            px: 1.5,
-            py: 0.25,
-            fontSize: '0.65rem',
-            '&:hover': { color: 'var(--accent)', borderColor: 'var(--accent)' },
-          }}
-        >
-          <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><Replay size={12} strokeWidth={1.75} /></Box>
-          <Typography component="span" sx={{ fontSize: '0.65rem', fontWeight: 600 }}>
-            {t('dashboard.onboarding.reshowShort')}
-          </Typography>
-        </IconButton>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleReshow}
+            className="h-auto px-[9px] py-[1.5px] text-[0.65rem] rounded-[var(--radius-md)] border border-dashed border-[var(--line-2)] text-[var(--faint)] hover:bg-transparent hover:text-[var(--accent)] hover:border-[var(--accent)]"
+          >
+            <span className="inline-flex me-0.5"><Replay size={12} strokeWidth={1.75} /></span>
+            <span className="text-[0.65rem] font-semibold">
+              {t('dashboard.onboarding.reshowShort')}
+            </span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{t('dashboard.onboarding.reshow')}</TooltipContent>
       </Tooltip>
     );
   }
@@ -255,177 +263,92 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
 
   return (
     <>
-      <Box
-        sx={{
-          bgcolor: 'var(--card)',
-          border: '1px solid var(--line)',
-          borderRadius: 'var(--radius-lg)',
-          px: 2,
-          py: 1.25,
-          height: '100%',
-          '@keyframes shadowPulse': {
-            '0%': {
-              boxShadow: 'none',
-            },
-            '50%': {
-              boxShadow: '0 6px 28px color-mix(in srgb, var(--accent) 25%, transparent), 0 0 0 1.5px color-mix(in srgb, var(--accent) 20%, transparent)',
-            },
-            '100%': {
-              boxShadow: 'none',
-            },
-          },
-          animation: 'shadowPulse 3s ease-in-out infinite',
-          '@media (prefers-reduced-motion: reduce)': {
-            animation: 'none',
-          },
-        }}
+      {/* px: 2 = 12 px, py: 1.25 = 7,5 px (theme.spacing vaut 6 dans ce projet). */}
+      <div
+        className={cn(
+          'bg-[var(--card)] border border-solid border-[var(--line)] rounded-[var(--radius-lg)] px-3 py-[7.5px] h-full',
+          'animate-[onboarding-shadow-pulse_3s_ease-in-out_infinite] motion-reduce:animate-none',
+        )}
       >
         {/* ── Header row: title + progress + bar + dismiss ────────── */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-          <Typography
-            sx={{
-              fontSize: '10.5px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              color: 'var(--faint)',
-              lineHeight: 1,
-              whiteSpace: 'nowrap',
-            }}
-          >
+        <div className="flex items-center gap-2 mb-1.5">
+          <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] leading-[1] whitespace-nowrap">
             {t('dashboard.onboarding.title')}
-          </Typography>
-          <Typography
-            variant="caption"
-            sx={{
-              fontSize: '0.625rem',
-              color: 'text.disabled',
-              fontWeight: 600,
-              fontVariantNumeric: 'tabular-nums',
-              whiteSpace: 'nowrap',
-            }}
-          >
+          </p>
+          <span className="cn-text-caption text-[0.625rem] text-muted-foreground opacity-60 font-semibold tabular-nums whitespace-nowrap">
             {t('dashboard.onboarding.progress', { completed: completedCount, total: totalCount })}
-          </Typography>
-          <LinearProgress
-            variant="determinate"
+          </span>
+          <Progress
             value={progressPercent}
-            sx={{
-              flex: 1,
-              height: 4,
-              borderRadius: 2,
-              minWidth: 40,
-              bgcolor: 'var(--field)',
-              '& .MuiLinearProgress-bar': {
-                borderRadius: 2,
-                background: 'var(--accent)',
-              },
-            }}
+            className="flex-1 min-w-[40px] h-[4px] rounded-full bg-[var(--field)] [&_[data-slot=progress-indicator]]:bg-[var(--accent)] [&_[data-slot=progress-indicator]]:rounded-full"
           />
-          <IconButton
-            size="small"
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label={t('dashboard.onboarding.dismiss', 'Masquer')}
             onClick={handleDismiss}
-            sx={{ color: 'text.disabled', p: 0.25, '&:hover': { color: 'text.secondary' } }}
+            className="text-[var(--faint)] hover:bg-transparent hover:text-[var(--muted)]"
           >
             <Close size={14} strokeWidth={1.75} />
-          </IconButton>
-        </Box>
+          </Button>
+        </div>
 
         {/* ── Steps: horizontal row with wrapping ─────────────────── */}
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+        <div className="flex gap-1.5 flex-wrap">
           {steps.map((step) => {
             const isActive = step === activeStep;
             const visual = STEP_VISUALS[step.key] ?? DEFAULT_VISUAL;
 
             return (
-              <Box
+              <div
                 key={step.key}
                 onClick={() => handleStepClick(step)}
-                sx={{
-                  flex: '1 1 auto',
-                  minWidth: { xs: 'calc(50% - 4px)', sm: 'auto' },
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  px: 1.25,
-                  py: 0.75,
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid',
-                  borderColor: step.completed
-                    ? 'color-mix(in srgb, var(--ok) 25%, transparent)'
+                // sm MUI = 600px (breakpoints par defaut), pas le sm=640 de Tailwind.
+                className={cn(
+                  'flex-auto min-w-[calc(50%_-_4px)] min-[600px]:min-w-[auto] flex items-center gap-1.5',
+                  'px-[7.5px] py-[4.5px] rounded-[var(--radius-md)] border border-solid',
+                  '[transition:all_0.15s_ease] motion-reduce:[transition:none]',
+                  step.completed
+                    ? 'border-[color-mix(in_srgb,var(--ok)_25%,transparent)] bg-[color-mix(in_srgb,var(--ok)_5%,transparent)]'
                     : isActive
-                      ? 'var(--accent)'
-                      : 'var(--line)',
-                  bgcolor: step.completed
-                    ? 'color-mix(in srgb, var(--ok) 5%, transparent)'
-                    : isActive
-                      ? 'var(--accent-soft)'
-                      : 'transparent',
-                  cursor: step.locked ? 'default' : 'pointer',
-                  opacity: step.locked ? 0.45 : 1,
-                  transition: 'all 0.15s ease',
-                  ...(!step.locked && {
-                    '&:hover': {
-                      borderColor: 'var(--accent)',
-                      transform: 'translateY(-1px)',
-                      boxShadow: 'var(--shadow-card)',
-                    },
-                  }),
-                  '@media (prefers-reduced-motion: reduce)': {
-                    transition: 'none',
-                    '&:hover': { transform: 'none' },
-                  },
-                }}
+                      ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                      : 'border-[var(--line)] bg-transparent',
+                  step.locked
+                    ? 'cursor-default opacity-45'
+                    : 'cursor-pointer hover:border-[var(--accent)] hover:-translate-y-px hover:shadow-[var(--shadow-card)] motion-reduce:hover:translate-y-0',
+                )}
               >
                 {/* Icon */}
-                <Box
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 'var(--radius-sm)',
-                    bgcolor: step.completed
-                      ? 'var(--ok-soft)'
+                <div
+                  className={cn(
+                    'w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center shrink-0',
+                    step.completed
+                      ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
                       : isActive
-                        ? 'var(--accent-soft)'
-                        : 'var(--hover)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    color: step.completed ? 'var(--ok)' : isActive ? 'var(--accent)' : 'text.secondary',
-                  }}
+                        ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+                        : 'bg-[var(--hover)] text-[var(--muted)]',
+                  )}
                 >
                   {visual.icon}
-                </Box>
+                </div>
 
                 {/* Label */}
-                <Typography
-                  sx={{
-                    fontSize: '0.75rem',
-                    fontWeight: isActive ? 700 : 600,
-                    lineHeight: 1.3,
-                    flex: 1,
-                    minWidth: 0,
-                    color: step.completed ? 'text.disabled' : isActive ? 'text.primary' : 'text.secondary',
-                    textDecoration: step.completed ? 'line-through' : 'none',
-                  }}
-                  noWrap
-                >
+                <p className={cn('cn-text-body1 text-[0.75rem] leading-[1.3] flex-1 min-w-0 truncate', isActive ? 'font-bold' : 'font-semibold', step.completed ? 'text-[var(--faint)]' : isActive ? 'text-[var(--ink)]' : 'text-[var(--muted)]', step.completed ? 'decoration-[line-through]' : 'decoration-[none]')}>
                   {t(step.labelKey)}
-                </Typography>
+                </p>
 
                 {/* Status */}
                 {step.completed ? (
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)', flexShrink: 0 }}><CheckCircle size={14} strokeWidth={1.75} /></Box>
+                  <span className="inline-flex text-[var(--ok)] shrink-0"><CheckCircle size={14} strokeWidth={1.75} /></span>
                 ) : step.locked ? (
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', flexShrink: 0 }}><Lock size={12} strokeWidth={1.75} /></Box>
+                  <span className="inline-flex text-muted-foreground opacity-60 shrink-0"><Lock size={12} strokeWidth={1.75} /></span>
                 ) : (
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', flexShrink: 0 }}><RadioButtonUnchecked size={14} strokeWidth={1.75} /></Box>
+                  <span className="inline-flex text-muted-foreground opacity-60 shrink-0"><RadioButtonUnchecked size={14} strokeWidth={1.75} /></span>
                 )}
-              </Box>
+              </div>
             );
           })}
-        </Box>
+        </div>
 
         {/* ── CTA: always show for the current active step ─────────── */}
         {activeStep && activeVisual && (
@@ -443,7 +366,7 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
             skipLabel={t('onboarding.skip')}
           />
         )}
-      </Box>
+      </div>
 
       {/* iCal Import Modal */}
       <ICalImportModal
@@ -487,86 +410,31 @@ const CtaSection: React.FC<CtaSectionProps> = ({
   onSkip,
   skipLabel,
 }) => (
-  <Box
-    sx={{
-      mt: 1.5,
-      pt: 1.5,
-      borderTop: '1px solid',
-      borderTopColor: 'divider',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 2,
-    }}
-  >
-    <Box
-      sx={{
-        width: 36,
-        height: 36,
-        borderRadius: 'var(--radius-md)',
-        background: gradient,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-        boxShadow: `0 2px 8px color-mix(in srgb, ${accentColor} 20%, transparent)`,
-      }}
-    >
+  <div className="mt-[9px] pt-[9px] border-t border-solid border-t-[var(--line)] flex items-center gap-3">
+    <div className="w-[36px] h-[36px] rounded-[var(--radius-md)] flex items-center justify-center shrink-0" style={{ background: gradient, boxShadow: `0 2px 8px color-mix(in srgb, ${accentColor} 20%, transparent)` }}>
       {icon}
-    </Box>
-    <Box sx={{ flex: 1, minWidth: 0 }}>
-      <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'text.primary', lineHeight: 1.3 }}>
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="cn-text-body1 text-[0.85rem] font-bold text-foreground leading-[1.3]">
         {title}
-      </Typography>
-      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.5, mt: 0.25 }}>
+      </p>
+      <p className="cn-text-body1 text-[0.75rem] text-muted-foreground leading-[1.5] mt-0.5">
         {description}
-      </Typography>
-    </Box>
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+      </p>
+    </div>
+    <div className="flex items-center gap-1.5 shrink-0">
       {skippable && onSkip && (
-        <Button
-          variant="text"
-          size="small"
-          onClick={onSkip}
-          sx={{
-            fontWeight: 600,
-            fontSize: '0.75rem',
-            textTransform: 'none',
-            color: 'text.secondary',
-            whiteSpace: 'nowrap',
-            '&:hover': {
-              color: 'text.primary',
-              bgcolor: 'var(--hover)',
-            },
-          }}
-        >
+        <Button variant="ghost" size="sm" onClick={onSkip}>
           {skipLabel || 'Skip'}
         </Button>
       )}
-      <Button
-        variant="contained"
-        size="small"
-        startIcon={actionIcon}
-        onClick={onAction}
-        sx={{
-          background: gradient,
-          color: 'var(--on-accent)',
-          fontWeight: 600,
-          fontSize: '0.75rem',
-          textTransform: 'none',
-          borderRadius: 'var(--radius-md)',
-          px: 2,
-          py: 0.5,
-          whiteSpace: 'nowrap',
-          flexShrink: 0,
-          boxShadow: `0 2px 8px color-mix(in srgb, ${accentColor} 25%, transparent)`,
-          '&:hover': {
-            filter: 'brightness(0.9)',
-            boxShadow: `0 4px 12px color-mix(in srgb, ${accentColor} 33%, transparent)`,
-          },
-        }}
-      >
+      {/* Le CTA portait un aplat par etape (var(--accent)/--ok/--warn) : c'est
+          deja la pastille d'icone a gauche qui porte ce signal. Le bouton reprend
+          l'encre pleine du kit, une seule action principale par zone. */}
+      <Button size="sm" onClick={onAction}>
+        {actionIcon}
         {actionLabel}
       </Button>
-    </Box>
-  </Box>
+    </div>
+  </div>
 );

@@ -35,6 +35,8 @@ class OwnerStatementSchedulerTest {
     @Mock private AutomationRuleRepository automationRuleRepository;
     @Mock private PropertyRepository propertyRepository;
     @Mock private AutomationEngine automationEngine;
+    @Mock private com.clenzy.repository.OrganizationRepository organizationRepository;
+    @Mock private com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService;
 
     @InjectMocks
     private OwnerStatementScheduler scheduler;

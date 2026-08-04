@@ -2,6 +2,7 @@ package com.clenzy.service.automation;
 
 import com.clenzy.model.AutomationAction;
 import com.clenzy.service.messaging.GuestMessagingService;
+import com.clenzy.service.messaging.QuietHoursService;
 import org.springframework.stereotype.Service;
 
 /**
@@ -11,8 +12,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class SendMessageExecutor extends AbstractGuestMessageExecutor {
 
-    public SendMessageExecutor(GuestMessagingService messagingService) {
-        super(messagingService);
+    public SendMessageExecutor(GuestMessagingService messagingService,
+                               QuietHoursService quietHoursService) {
+        super(messagingService, quietHoursService);
     }
 
     @Override

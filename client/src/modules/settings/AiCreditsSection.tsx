@@ -1,19 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  Paper,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-  useTheme,
-} from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Badge, Button } from '../../components/ui';
+import { Alert, AlertDescription } from '../../components/ui';
+import { CircleCheck, Info, TriangleAlert } from 'lucide-react';
+import { Card, Skeleton } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Coins, History } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -34,7 +25,6 @@ import AgentRunReplayDialog from './AgentRunReplayDialog';
  */
 export default function AiCreditsSection() {
   const { t } = useTranslation();
-  const theme = useTheme();
   const [searchParams] = useSearchParams();
 
   const [balance, setBalance] = useState<CreditBalance | null>(null);
@@ -82,120 +72,122 @@ export default function AiCreditsSection() {
 
   const totalCredits = balance ? balance.totalMillicredits / 1000 : 0;
   const gaugeColor = useMemo(() => {
-    if (totalCredits <= 0) return theme.palette.error.main;
+    if (totalCredits <= 0) return 'var(--err)';
     if (totalCredits < 50) return '#D4A574';
     return '#4A9B8E';
-  }, [totalCredits, theme.palette.error.main]);
+  }, [totalCredits]);
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
-        <Skeleton variant="rounded" height={96} />
-        <Skeleton variant="rounded" height={72} />
-      </Box>
+      <div className="flex flex-col gap-2 mb-3">
+        <Skeleton className="h-24 rounded-[11px]" />
+        <Skeleton className="h-[72px] rounded-[11px]" />
+      </div>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
+    <div className="flex flex-col gap-2 mb-3">
       {topupOutcome === 'success' && (
-        <Alert severity="success">
-          {t('aiCredits.topupSuccess', 'Paiement confirmé — vos crédits seront visibles dans quelques instants.')}
+        <Alert variant="success">
+          <CircleCheck />
+          <AlertDescription>{t('aiCredits.topupSuccess', 'Paiement confirmé — vos crédits seront visibles dans quelques instants.')}</AlertDescription>
         </Alert>
       )}
       {topupOutcome === 'cancelled' && (
-        <Alert severity="info">{t('aiCredits.topupCancelled', 'Rechargement annulé.')}</Alert>
+        <Alert variant="info">
+          <Info />
+          <AlertDescription>{t('aiCredits.topupCancelled', 'Rechargement annulé.')}</AlertDescription>
+        </Alert>
       )}
-      {error && <Alert severity="warning">{error}</Alert>}
+      {error && <Alert variant="warning">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       {/* Solde + poches */}
-      <Paper variant="outlined" sx={{ p: 1.75 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-            <Coins size={20} color={gaugeColor} aria-hidden />
-            <Box>
-              <Typography variant="body2" color="text.secondary">
+      <Card className="gap-0 py-0 p-2.5">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            {/* `var(--err)` remplace le hex fige du theme MUI : lucide le porte
+                par currentColor plutot qu'en attribut de presentation. */}
+            <span className="inline-flex" style={{ color: gaugeColor }}>
+              <Coins size={20} aria-hidden />
+            </span>
+            <div>
+              <p className="cn-text-body2 text-muted-foreground">
                 {t('aiCredits.balanceTitle', 'Crédits IA disponibles')}
-              </Typography>
-              <Typography
-                variant="h5"
-                sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: gaugeColor, lineHeight: 1.2 }}
-              >
+              </p>
+              <h5 className="cn-text-h5 tabular-nums font-semibold leading-[1.2]" style={{ color: gaugeColor }}>
                 {balance ? toCredits(balance.totalMillicredits) : '0'}
-              </Typography>
-            </Box>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+              </h5>
+            </div>
+          </div>
+          <div className="flex gap-1 flex-wrap">
             {(balance?.pockets ?? []).map((pocket, idx) => (
-              <Chip
-                key={`${pocket.source}-${idx}`}
-                size="small"
-                variant="outlined"
-                label={t(`aiCredits.pocket.${pocket.source}`, pocket.source) + ' · '
+              <Badge variant="outline" className="tabular-nums" key={`${pocket.source}-${idx}`}>{t(`aiCredits.pocket.${pocket.source}`, pocket.source) + ' · '
                   + toCredits(pocket.remainingMillicredits) + ' · '
                   + t('aiCredits.expires', 'expire le') + ' '
-                  + new Date(pocket.expiresAt).toLocaleDateString()}
-                sx={{ fontVariantNumeric: 'tabular-nums' }}
-              />
+                  + new Date(pocket.expiresAt).toLocaleDateString()}</Badge>
             ))}
             {(balance?.pockets ?? []).length === 0 && (
-              <Typography variant="caption" color="text.secondary">
+              <span className="cn-text-caption text-muted-foreground">
                 {t('aiCredits.noPockets', 'Aucune poche active — rechargez ou attendez votre prochaine dotation mensuelle.')}
-              </Typography>
+              </span>
             )}
-          </Box>
-        </Box>
-      </Paper>
+          </div>
+        </div>
+      </Card>
 
       {/* Packs de recharge */}
-      <Paper variant="outlined" sx={{ p: 1.75 }}>
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>
+      <Card className="gap-0 py-0 p-2.5">
+        <h6 className="cn-text-subtitle2 mb-1.5">
           {t('aiCredits.topupTitle', 'Recharger (crédits valables 12 mois)')}
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+        </h6>
+        <div className="flex gap-1.5 flex-wrap">
           {packs.map((pack) => (
+            // Tous les packs se valent : aucun ne prend l'encre pleine.
             <Button
               key={pack.key}
-              variant="outlined"
-              size="small"
+              variant="outline"
+              size="sm"
+              className="tabular-nums"
               disabled={buying !== null}
               onClick={() => handleBuy(pack.key)}
-              sx={{ fontVariantNumeric: 'tabular-nums', textTransform: 'none' }}
             >
               {toCredits(pack.millicredits)} {t('aiCredits.credits', 'crédits')} —{' '}
               {(pack.priceCents / 100).toLocaleString(undefined, { style: 'currency', currency: 'EUR' })}
             </Button>
           ))}
-        </Box>
-      </Paper>
+        </div>
+      </Card>
 
       {/* Historique ledger */}
       {ledger.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 1.75 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+        <Card className="gap-0 py-0 p-2.5">
+          <h6 className="cn-text-subtitle2 mb-1.5">
             {t('aiCredits.ledgerTitle', 'Derniers mouvements')}
-          </Typography>
-          <Table size="small">
-            <TableHead>
+          </h6>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('aiCredits.ledger.date', 'Date')}</TableCell>
-                <TableCell>{t('aiCredits.ledger.type', 'Type')}</TableCell>
-                <TableCell>{t('aiCredits.ledger.agent', 'Agent')}</TableCell>
-                <TableCell align="right">{t('aiCredits.ledger.amount', 'Crédits')}</TableCell>
+                <TableHead>{t('aiCredits.ledger.date', 'Date')}</TableHead>
+                <TableHead>{t('aiCredits.ledger.type', 'Type')}</TableHead>
+                <TableHead>{t('aiCredits.ledger.agent', 'Agent')}</TableHead>
+                <TableHead className="text-end">{t('aiCredits.ledger.amount', 'Crédits')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {ledger.slice(0, 10).map((line, idx) => {
                 const replayable = Boolean(line.runId);
                 return (
                   <TableRow
                     key={idx}
-                    hover
                     onClick={replayable ? () => setReplayRunId(line.runId) : undefined}
-                    sx={{ cursor: replayable ? 'pointer' : 'default' }}
+                    className={replayable ? 'cursor-pointer' : 'cursor-default'}
                     title={replayable ? t('aiCredits.ledger.replayHint', 'Voir le replay du run') : undefined}
                   >
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                    <TableCell className="whitespace-nowrap">
                       {new Date(line.createdAt).toLocaleString()}
                     </TableCell>
                     <TableCell>{t(`aiCredits.entry.${line.entryType}`, line.entryType)}</TableCell>
@@ -206,11 +198,11 @@ export default function AiCreditsSection() {
                       )}
                     </TableCell>
                     <TableCell
-                      align="right"
-                      sx={{
-                        fontVariantNumeric: 'tabular-nums',
-                        color: line.millicredits >= 0 ? '#4A9B8E' : 'text.primary',
-                      }}
+                      className={
+                        line.millicredits >= 0
+                          ? 'text-end tabular-nums text-[#4A9B8E]'
+                          : 'text-end tabular-nums text-[var(--ink)]'
+                      }
                     >
                       {line.millicredits >= 0 ? '+' : ''}{toCredits(line.millicredits)}
                     </TableCell>
@@ -219,7 +211,7 @@ export default function AiCreditsSection() {
               })}
             </TableBody>
           </Table>
-        </Paper>
+        </Card>
       )}
 
       {/* Grand Livre d'Autonomie (X3) : replay du run d'une ligne du ledger. */}
@@ -228,6 +220,6 @@ export default function AiCreditsSection() {
         open={replayRunId !== null}
         onClose={() => setReplayRunId(null)}
       />
-    </Box>
+    </div>
   );
 }

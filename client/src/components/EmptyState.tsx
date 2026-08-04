@@ -1,5 +1,4 @@
 import React from 'react';
-import { Paper, Box, Typography } from '@mui/material';
 import { Lightbulb } from '../icons';
 import { useIconSize } from '../hooks/useResponsiveSize';
 
@@ -61,72 +60,52 @@ export default function EmptyState({
   const heroSize = useIconSize('hero');
 
   return (
-    <Paper
-      variant={variant === 'transparent' ? 'elevation' : 'outlined'}
-      elevation={0}
-      sx={{
-        py: 4,
-        px: 3,
-        textAlign: 'center',
-        borderStyle: variant === 'dashed' ? 'dashed' : 'solid',
-        borderRadius: 'var(--radius-lg)',
-        bgcolor: variant === 'transparent' ? 'transparent' : 'var(--card)',
-        borderColor: variant === 'transparent' ? 'transparent' : 'var(--line)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 0.5,
+    <div
+      className={`flex flex-col items-center justify-center text-center gap-[3px] py-6 px-[18px] rounded-[var(--radius-lg)] ${
+        variant === 'transparent'
+          ? ''
+          : variant === 'dashed'
+            ? 'border border-dashed border-[var(--line)] bg-[var(--card)]'
+            : 'border border-solid border-[var(--line)] bg-[var(--card)]'
+      }`}
+      // minHeight vient des props (runtime) : style inline, pas de classe Tailwind.
+      style={{
         animation: 'clz-fade-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both',
-        ...(minHeight && { minHeight }),
+        ...(minHeight ? { minHeight } : {}),
       }}
     >
-      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', mb: 0.5 }}>
+      <span className="inline-flex text-[var(--faint)] mb-0.5">
         {React.isValidElement(icon)
           ? React.cloneElement(icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
               size: heroSize,
               strokeWidth: 1.5,
             })
           : icon}
-      </Box>
-      <Typography variant="h6" sx={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>
+      </span>
+      <h6 className="cn-text-h6 font-[family-name:var(--font-display)] text-[var(--ink)]">
         {title}
-      </Typography>
+      </h6>
       {description && (
-        <Typography variant="body2" sx={{ color: 'var(--muted)', maxWidth: 480 }}>
+        <p className="cn-text-body2 text-[var(--muted)] max-w-[480px]">
           {description}
-        </Typography>
+        </p>
       )}
       {(action || secondaryAction) && (
-        <Box sx={{ mt: 1.5, display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div className="mt-2 flex gap-1.5 items-center flex-wrap justify-center">
           {action}
           {secondaryAction}
-        </Box>
+        </div>
       )}
       {tip && (
-        <Box
-          sx={{
-            mt: 2,
-            px: 1.25,
-            py: 0.75,
-            borderRadius: 'var(--radius-sm)',
-            bgcolor: 'var(--warn-soft)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 0.75,
-            maxWidth: 480,
-            border: '1px solid',
-            borderColor: 'color-mix(in srgb, var(--warn) 30%, transparent)',
-          }}
-        >
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)', flexShrink: 0 }}>
+        <div className="mt-3 px-[7.5px] py-[4.5px] rounded-[var(--radius-sm)] bg-[var(--warn-soft)] inline-flex items-center gap-[4.5px] max-w-[480px] border border-solid border-[color-mix(in_srgb,_var(--warn)_30%,_transparent)]">
+          <span className="inline-flex text-[var(--warn)] shrink-0">
             <Lightbulb size={12} strokeWidth={2} />
-          </Box>
-          <Typography variant="caption" sx={{ color: 'var(--warn)', textAlign: 'left', lineHeight: 1.35 }}>
+          </span>
+          <span className="cn-text-caption text-[var(--warn)] text-start leading-[1.35]">
             {tip}
-          </Typography>
-        </Box>
+          </span>
+        </div>
       )}
-    </Paper>
+    </div>
   );
 }

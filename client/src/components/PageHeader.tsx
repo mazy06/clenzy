@@ -1,10 +1,12 @@
 import React from 'react';
-import { useTheme, useMediaQuery } from '@mui/material';
+import { useMediaQuery } from '../hooks/use-media-query';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon } from 'lucide-react';
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from './ui';
 import { screenIconFor, sizedIcon } from '../config/navigationIcons';
 import PageBreadcrumb from './PageBreadcrumb';
+import { useScreenChrome } from './ScreenChrome';
+import { SidebarTrigger } from './ui/sidebar';
 import GlobalSearchField from './GlobalSearchField';
 import PageHeaderActions from './PageHeaderActions';
 import { cn } from '../utils/cn';
@@ -72,8 +74,10 @@ export default function PageHeader({
 }: PageHeaderProps) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const theme = useTheme();
-  const isCompact = useMediaQuery(theme.breakpoints.down('md'));
+  const { setTabsSlot } = useScreenChrome();
+  // `md` de Tailwind (768 px) : les actions se replient dans le menu ⋯ au meme
+  // seuil que le reste des bascules responsive de la barre.
+  const isCompact = useMediaQuery('(max-width: 767.98px)');
 
   const handleBack = () => {
     if (onBack) {
@@ -97,10 +101,23 @@ export default function PageHeader({
   const showBack = (showBackButton || showBackButtonWithActions) && (onBack || backPath);
 
   return (
-    <header className={cn('mb-3 flex flex-col gap-1.5', className)}>
-      <PageBreadcrumb currentLabel={title} />
+    <header className={cn('mb-1.5 flex flex-col gap-1.5 lg:mb-3', className)}>
+      {/* Sous 1024px, le fil d'Ariane coute une ligne pour une information que
+          le titre et l'onglet actif portent deja. Masque en CSS et non par un
+          media query JS : pas de second rendu, donc pas de saut au chargement. */}
+      <div className="hidden lg:block">
+        <PageBreadcrumb currentLabel={title} />
+      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
+        {/* Le bouton de la sidebar occupait une bande de 48 px a lui seul sous
+            1024 px. Il rejoint la ligne du titre : le seuil du kit sidebar
+            (SIDEBAR_SHEET_BREAKPOINT) vaut deja lg, les deux coincident. */}
+        <SidebarTrigger className="-ml-1 shrink-0 lg:hidden" />
+
+        {/* Sous lg, le titre ne prend que sa largeur : garder `flex-1` lui donnait
+            la moitie de la barre et repoussait les onglets contre les actions,
+            ce qui se lisait comme deux blocs plutot qu'une ligne continue. */}
         <div className="flex min-w-0 flex-1 items-center gap-2.5">
           {icon && (
             <span
@@ -126,12 +143,21 @@ export default function PageHeader({
               {titleAdornment && <span className="flex shrink-0 items-center">{titleAdornment}</span>}
             </div>
             {subtitle && (
-              <p className="m-0 mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>
+              <p className="m-0 mt-0.5 hidden truncate text-xs text-muted-foreground lg:block">
+                {subtitle}
+              </p>
             )}
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex min-w-0 shrink items-center justify-end gap-2">
+          {/* Les onglets viennent se poser ici sous 1024 px, sous forme de menu,
+              range avec les autres commandes de la barre : la navigation de
+              l'ecran est une commande, pas une extension du titre. `min-w-0`
+              laisse le libelle de l'onglet actif se tronquer plutot que pousser
+              les icones hors de l'ecran. */}
+          <div ref={setTabsSlot} className="flex min-w-0 items-center lg:hidden" />
+
           <GlobalSearchField />
 
           <PageHeaderActions filters={filters} actions={actions} narrow={isCompact} />

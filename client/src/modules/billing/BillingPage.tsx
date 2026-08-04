@@ -1,9 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  ToggleButtonGroup,
-  ToggleButton,
-} from '@mui/material';
+import { ToggleGroup, ToggleGroupItem } from '../../components/ui';
 import {
   Payment,
   Receipt,
@@ -41,26 +37,30 @@ const ReportsExportsTab: React.FC = () => {
   const [view, setView] = useState<'fiscal' | 'exports'>('fiscal');
 
   return (
-    <Box>
-      {/* Segmented (bascule de vue) — stylé par le thème global MuiToggleButtonGroup */}
-      <ToggleButtonGroup
+    <div>
+      {/* Segmented (bascule de vue). `type="single"` + garde sur la valeur vide :
+          Radix renvoie "" quand on re-clique l'item actif, ce que l'ancien
+          `exclusive` de MUI traduisait par null — on refuse dans les deux cas. */}
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        size="sm"
+        spacing={0}
         value={view}
-        exclusive
-        onChange={(_e, v) => v && setView(v)}
-        size="small"
-        sx={{ mb: 2 }}
+        onValueChange={(v) => { if (v) setView(v as 'fiscal' | 'exports'); }}
+        className="mb-3"
       >
-        <ToggleButton value="fiscal">
+        <ToggleGroupItem value="fiscal">
           {t('billing.tabs.fiscalReport', 'Rapport fiscal')}
-        </ToggleButton>
-        <ToggleButton value="exports">
+        </ToggleGroupItem>
+        <ToggleGroupItem value="exports">
           {t('billing.tabs.exports', 'Exports comptables')}
-        </ToggleButton>
-      </ToggleButtonGroup>
+        </ToggleGroupItem>
+      </ToggleGroup>
 
       {view === 'fiscal' && <FiscalReportSection />}
       {view === 'exports' && <ExportsTab />}
-    </Box>
+    </div>
   );
 };
 
@@ -130,7 +130,7 @@ const BillingPage: React.FC = () => {
 
   return (
     <PageHeaderActionsProvider slot={headerActionsSlot}>
-      <Box>
+      <div>
         <PageHeader
           title={title}
           subtitle={subtitle}
@@ -153,7 +153,7 @@ const BillingPage: React.FC = () => {
         {activeKey === 'expenses' && canViewAccounting && <ExpensesTab />}
         {activeKey === 'housekeeper-payouts' && canViewAccounting && <HousekeeperPayoutsTab />}
         {activeKey === 'reports' && canViewAccounting && <ReportsExportsTab />}
-      </Box>
+      </div>
     </PageHeaderActionsProvider>
   );
 };

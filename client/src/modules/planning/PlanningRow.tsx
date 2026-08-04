@@ -1,5 +1,4 @@
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
-import { Box, Typography } from '@mui/material';
 import PlanningBar from './PlanningBar';
 import PlanningBlockedBand from './PlanningBlockedBand';
 import type { BarLayout, PlanningEvent, PlanningProperty, DensityMode, ZoomLevel, QuickCreateData, RowDragState } from './types';
@@ -8,6 +7,7 @@ import { isWeekend, isToday, toDateStr, getHourOffsetPx } from './utils/dateUtil
 import { resolveAttachedReservationId, type AttachmentCandidate } from './utils/interventionAttachment';
 import type { PricingMap } from './hooks/usePlanningPricing';
 import type { MinNightsMap } from './hooks/usePlanningMinNights';
+import { cn } from '../../utils/cn';
 import { Money } from '../../components/Money';
 import { NightsStay } from '../../icons';
 
@@ -465,45 +465,18 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   }, [quickCreateOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <Box
-      onMouseDown={handleMouseDown}
-      sx={{
-        position: 'relative',
-        height: effectiveRowHeight,
-        width: totalGridWidth,
-        borderBottom: '1px solid var(--line)',
-        // Fond plat (pas de zebra). Les hairlines verticales entre jours ne sont
-        // PLUS peintes ici : le fond OPAQUE des cellules week-end (posé en overlay
-        // absolu) masquait le séparateur dessous → bordures week-end invisibles.
-        // Elles sont désormais dans une couche dédiée AU-DESSUS des fonds
-        // week-end/today (voir « .pl-gridlines » plus bas).
-        backgroundColor: 'transparent',
-      }}
-    >
+    <div className="relative bg-[transparent]" style={{ height: effectiveRowHeight, width: totalGridWidth, borderBottom: '1px solid var(--line)' }} onMouseDown={handleMouseDown}>
       {/* Day column backgrounds (weekends + today) */}
       {days.map((day, idx) => {
         const weekend = isWeekend(day);
         const today = isToday(day);
         if (!weekend && !today) return null;
         return (
-          <Box
-            key={day.getTime()}
-            sx={{
-              position: 'absolute',
-              left: idx * dayWidth,
-              top: 0,
-              width: dayWidth,
-              height: effectiveRowHeight,
-              // Aujourd'hui : colonne légèrement teintée accent (maquette).
-              // Week-end : spec .pl-cell.we (constante locale --pl-cell-we).
-              backgroundColor: today
+          <div className="absolute top-0 pointer-events-none" style={{ left: idx * dayWidth, width: dayWidth, height: effectiveRowHeight, backgroundColor: today
                 ? 'color-mix(in srgb, var(--accent) 6%, transparent)'
                 : weekend
                   ? WEEKEND_CELL_BG
-                  : 'transparent',
-              pointerEvents: 'none',
-            }}
-          />
+                  : 'transparent' }} key={day.getTime()} />
         );
       })}
 
@@ -512,12 +485,10 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
           visibles sur les colonnes teintées. Clip 1px avant le bord droit
           (dernier jour sans séparateur). pointer-events:none → n'intercepte
           pas les clics ; sous les briques (rendues après dans le DOM). */}
-      <Box
+      <div
         aria-hidden
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
+        className="absolute inset-0 pointer-events-none"
+        style={{
           backgroundImage: `repeating-linear-gradient(to right, transparent 0 ${dayWidth - 1}px, var(--line) ${dayWidth - 1}px ${dayWidth}px)`,
           backgroundSize: `${totalGridWidth - 1}px 100%`,
           backgroundRepeat: 'no-repeat',
@@ -525,17 +496,9 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
       />
 
       {/* Cursor zone for empty areas (pointer-events off — parent handles mouseDown) */}
-      <Box
-        sx={{
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          width: totalGridWidth,
-          height: activeRowHeight,
-          cursor: 'cell',
-          zIndex: 1,
-          pointerEvents: 'none',
-        }}
+      <div
+        className="absolute left-0 top-0 cursor-cell z-[1] pointer-events-none"
+        style={{ width: totalGridWidth, height: activeRowHeight }}
       />
 
       {/* Selection highlight overlay (drag-to-select) — styled like reservation bars */}
@@ -547,9 +510,19 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
         const leftPx = selectionRange.start * dayWidth + offsetPx;
         const widthPx = nightCount * dayWidth - offsetPx;
         return (
-          <Box
-            sx={{
-              position: 'absolute',
+          // Le clignotement d'erreur passait par des @keyframes emises par MUI.
+          // Ici l'utilitaire `animate-pulse` (meme courbe 1 -> .5 -> 1) recadre
+          // sur la duree et le nombre de repetitions d'origine.
+          <div
+            className={cn(
+              'absolute z-[4] flex items-center px-1.5 pointer-events-none',
+              isError && [
+                'transition-opacity duration-300 ease-out',
+                'animate-pulse [animation-duration:0.4s] [animation-iteration-count:2]',
+                'motion-reduce:animate-none motion-reduce:transition-none',
+              ],
+            )}
+            style={{
               left: leftPx,
               top: config.barPadding,
               width: Math.max(widthPx, 4), // Minimum 4px so the bar is always visible
@@ -557,35 +530,18 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
               backgroundColor: `color-mix(in srgb, ${selColor} 25%, transparent)`,
               border: `1.5px solid color-mix(in srgb, ${selColor} 60%, transparent)`,
               borderRadius: `${BAR_BORDER_RADIUS}px`,
-              zIndex: 4,
-              pointerEvents: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              px: 1,
               boxShadow: `0 2px 8px color-mix(in srgb, ${selColor} 25%, transparent)`,
-              transition: isError ? 'opacity 0.3s ease' : undefined,
-              animation: isError ? 'pulseError 0.4s ease-in-out 2' : undefined,
-              '@keyframes pulseError': {
-                '0%, 100%': { opacity: 1 },
-                '50%': { opacity: 0.5 },
-              },
-              '@media (prefers-reduced-motion: reduce)': { animation: 'none', transition: 'none' },
             }}
           >
-            <Typography
-              sx={{
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                color: selColor,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                lineHeight: 1.2,
-              }}
+            {/* `selColor` est calcule au rendu : une classe Tailwind ne pouvant
+                pas naitre d'une variable, la couleur passe en style inline. */}
+            <p
+              className="cn-text-body1 text-[0.6875rem] font-semibold truncate leading-[1.2]"
+              style={{ color: selColor }}
             >
               {isError ? 'Pas de place' : `${nightCount}${nightCount === 1 ? ' nuit' : ' nuits'}`}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         );
       })()}
 
@@ -640,75 +596,29 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
         if (dayWidth < 30) return null;
 
         return (
-          <Box
-            key={`cell-info-${dateStr}`}
-            sx={{
-              position: 'absolute',
-              left: idx * dayWidth,
-              top: 0,
-              width: dayWidth,
-              height: activeRowHeight,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              pointerEvents: 'none',
-              // z-index 0 : passe DERRIERE les bars (reservation z=3, intervention z=2)
-              zIndex: 0,
-              px: 0.25,
-              overflow: 'hidden',
-            }}
-          >
+          <div className="absolute top-0 flex items-center justify-center pointer-events-none z-[0] px-[1.5px] overflow-hidden" style={{ left: idx * dayWidth, width: dayWidth, height: activeRowHeight }} key={`cell-info-${dateStr}`}>
             {price != null && (
-              <Box
-                component="span"
-                sx={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: dayWidth < 60 ? '0.625rem' : '0.6875rem',
-                  fontWeight: 500,
-                  color: 'var(--muted)',
-                  opacity: 0.8,
-                  lineHeight: 1,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  maxWidth: '100%',
-                  fontVariantNumeric: 'tabular-nums',
-                }}
+              <span
+                className={cn(
+                  'font-[family-name:var(--font-display)] font-medium text-[var(--muted)] opacity-80 leading-none whitespace-nowrap overflow-hidden text-ellipsis max-w-full tabular-nums',
+                  dayWidth < 60 ? 'text-[0.625rem]' : 'text-[0.6875rem]',
+                )}
               >
                 <Money value={price} from={property.currency ?? 'EUR'} compact symbolSize={dayWidth < 60 ? 9 : 10} />
-              </Box>
+              </span>
             )}
             {minNights != null && dayWidth >= 38 && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  bottom: 2,
-                  right: 3,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.125,
-                  color: 'var(--faint)',
-                  opacity: 0.85,
-                }}
-              >
+              <div className="absolute bottom-[2px] end-[3px] flex items-center gap-0 text-[var(--faint)] opacity-85">
                 <NightsStay size={8} strokeWidth={1.75} />
-                <Box
-                  component="span"
-                  sx={{
-                    fontSize: '0.5rem',
-                    fontWeight: 600,
-                    lineHeight: 1,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                >
+                <span className="text-[0.5rem] font-semibold leading-[1] tabular-nums">
                   {minNights}
-                </Box>
-              </Box>
+                </span>
+              </div>
             )}
-          </Box>
+          </div>
         );
       })}
-    </Box>
+    </div>
   );
 });
 

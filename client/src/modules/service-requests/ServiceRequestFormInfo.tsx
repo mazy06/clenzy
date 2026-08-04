@@ -1,12 +1,8 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import {
-  Box,
-  Typography,
-  InputBase,
-  Chip,
-  FormHelperText,
-  IconButton,
-} from '@mui/material';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { SELECT_CHIP_CLASS } from './serviceRequestsListConstants';
+import { Button, FieldError } from '../../components/ui';
 import {
   AutoAwesome,
   Build,
@@ -341,38 +337,29 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
       const catFg = activeCat?.fg || 'var(--accent)';
       const catBg = activeCat?.bg || 'var(--accent-soft)';
       return (
-        <Chip
+        <StatusChip
           key={wp.interventionType}
+          outlined
+          selected={isSelected}
+          pressed={isSelected}
+          tokens={{ color: catFg, bg: catBg }}
           icon={<Build size={14} strokeWidth={1.75} />}
           label={
-            <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+            <span className="inline-flex items-center gap-0.5">
               <span>{wp.label}</span>
               {wp.basePrice > 0 && (
-                <Box component="span" sx={{ fontSize: '10px', fontWeight: 600, color: isSelected ? catFg : 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                <span
+                  className="text-[10px] font-semibold tabular-nums"
+                  style={{ color: isSelected ? catFg : 'var(--muted)' }}
+                >
                   {wp.basePrice} €
-                </Box>
+                </span>
               )}
-            </Box>
+            </span>
           }
           onClick={disabled ? undefined : () => handleWorkPrestationClick(wp)}
           disabled={disabled}
-          size="small"
-          aria-pressed={isSelected}
-          sx={{
-            height: 30,
-            fontSize: '11.5px',
-            fontWeight: isSelected ? 600 : 500,
-            border: '1px solid',
-            borderColor: isSelected ? catFg : 'var(--line-2)',
-            bgcolor: isSelected ? catBg : 'var(--card)',
-            color: isSelected ? catFg : 'var(--body)',
-            '& .MuiChip-icon': { fontSize: 14, ml: 0.5, color: isSelected ? catFg : 'var(--muted)' },
-            '& .MuiChip-label': { px: 0.75 },
-            '&:hover': disabled ? {} : { bgcolor: isSelected ? catBg : 'var(--hover)', borderColor: catFg },
-            cursor: disabled ? 'default' : 'pointer',
-            opacity: disabled ? 0.45 : 1,
-            transition: 'background-color .15s, border-color .15s, color .15s',
-          }}
+          className={cn(SELECT_CHIP_CLASS, disabled && 'opacity-45')}
         />
       );
     };
@@ -382,84 +369,68 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
       // relié (séparateur entre la sélection du type et le détail dessous). Le
       // cadre n'est posé qu'avec un slot chiffrage (modale) pour éviter le
       // « card-in-card » du formulaire pleine page (déjà dans un Paper).
-      <Box sx={{ display: 'flex', flexDirection: 'column', ...((framed || pricingSlot) ? { border: '1px solid var(--line)', borderRadius: '14px', p: 2 } : {}) }}>
+      <div
+        className={cn(
+          'flex flex-col',
+          (framed || pricingSlot) && 'border border-solid border-[var(--line)] rounded-[14px] p-3',
+        )}
+      >
         {/* Chiffrage — positionné après « Service type » via l'ordre flex (order: 2). */}
         {pricingSlot && (
-          <Box sx={{ order: 2, mt: 2 }}>
+          <div className="order-[2px] mt-3">
             {pricingSlot}
-          </Box>
+          </div>
         )}
 
         {/* Type de service — Catégories principales */}
-        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1 }}>
+        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1.5">
           {t('serviceRequests.fields.serviceType')} *
-        </Typography>
+        </p>
 
         <Controller
           name="serviceType"
           control={control}
           render={({ fieldState }) => (
-            <Box>
+            <div>
               {/* 3 catégories — chips sélecteurs : actif = texte couleur + fond -soft */}
-              <Box sx={{ display: 'flex', gap: 1, mb: 1.5, flexWrap: 'wrap' }}>
+              <div className="flex gap-1.5 mb-2 flex-wrap">
                 {CATEGORIES.map((cat) => {
                   const isActive = activeCategory === cat.key;
                   return (
-                    <Chip
+                    <StatusChip
                       key={cat.key}
+                      outlined
+                      selected={isActive}
+                      pressed={isActive}
+                      tokens={{ color: cat.fg, bg: cat.bg }}
                       icon={cat.icon}
                       label={cat.label}
                       onClick={disabled ? undefined : () => handleCategoryClick(cat)}
                       disabled={disabled}
-                      aria-pressed={isActive}
-                      sx={{
-                        height: 30,
-                        fontSize: '11.5px',
-                        fontWeight: 600,
-                        border: '1px solid',
-                        borderColor: isActive ? cat.fg : 'var(--line-2)',
-                        bgcolor: isActive ? cat.bg : 'var(--card)',
-                        color: isActive ? cat.fg : 'var(--body)',
-                        '& .MuiChip-icon': {
-                          fontSize: 16,
-                          color: isActive ? cat.fg : 'var(--muted)',
-                        },
-                        '&:hover': disabled ? {} : {
-                          bgcolor: isActive ? cat.bg : 'var(--hover)',
-                          borderColor: cat.fg,
-                        },
-                        cursor: disabled ? 'default' : 'pointer',
-                        opacity: disabled ? 0.45 : 1,
-                        transition: 'background-color .15s, border-color .15s, color .15s',
-                      }}
+                      className={cn('h-[30px] text-[11.5px] font-semibold', disabled && 'opacity-45')}
                     />
                   );
                 })}
-              </Box>
+              </div>
 
               {/* Catalogue maintenance chiffré, regroupé par domaine */}
               {useWorkCatalogue && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                <div className="flex flex-col gap-2">
                   {workDomainGroups.map(([domain, items]) => (
-                    <Box key={domain}>
-                      <Typography
-                        sx={{
-                          fontSize: '10px', fontWeight: 700, color: 'var(--faint)',
-                          textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.625,
-                        }}
-                      >
+                    <div key={domain}>
+                      <p className="cn-text-body1 text-[10px] font-bold text-[var(--faint)] uppercase tracking-[0.06em] mb-1">
                         {domain}
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                      </p>
+                      <div className="flex gap-1 flex-wrap">
                         {items.map((wp) => renderWorkChip(wp))}
-                      </Box>
-                    </Box>
+                      </div>
+                    </div>
                   ))}
-                </Box>
+                </div>
               )}
 
               {/* Sous-types (sélecteur, non-maintenance) + types personnalisés */}
-              <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+              <div className="flex gap-1 flex-wrap">
                 {!useWorkCatalogue && subTypes.map((option) => {
                   const isSelected = watchedServiceType === option.value;
                   const activeCat = CATEGORIES.find(c => c.key === activeCategory);
@@ -468,36 +439,17 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                   const IconComponent = option.icon;
 
                   return (
-                    <Chip
+                    <StatusChip
                       key={option.value}
+                      outlined
+                      selected={isSelected}
+                      pressed={isSelected}
+                      tokens={{ color: catFg, bg: catBg }}
                       icon={<IconComponent size={14} strokeWidth={1.75} />}
                       label={option.label}
                       onClick={disabled ? undefined : () => handleSubTypeClick(option)}
                       disabled={disabled}
-                      size="small"
-                      aria-pressed={isSelected}
-                      sx={{
-                        height: 30,
-                        fontSize: '11.5px',
-                        fontWeight: isSelected ? 600 : 500,
-                        border: '1px solid',
-                        borderColor: isSelected ? catFg : 'var(--line-2)',
-                        bgcolor: isSelected ? catBg : 'var(--card)',
-                        color: isSelected ? catFg : 'var(--body)',
-                        '& .MuiChip-icon': {
-                          fontSize: 14,
-                          ml: 0.5,
-                          color: isSelected ? catFg : 'var(--muted)',
-                        },
-                        '& .MuiChip-label': { px: 0.75 },
-                        '&:hover': disabled ? {} : {
-                          bgcolor: isSelected ? catBg : 'var(--hover)',
-                          borderColor: catFg,
-                        },
-                        cursor: disabled ? 'default' : 'pointer',
-                        opacity: disabled ? 0.45 : 1,
-                        transition: 'background-color .15s, border-color .15s, color .15s',
-                      }}
+                      className={cn(SELECT_CHIP_CLASS, disabled && 'opacity-45')}
                     />
                   );
                 })}
@@ -512,49 +464,27 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                       {customTypes.map((ct) => {
                         const selected = isCustom && customLabel === ct.label;
                         return (
-                          <Chip
+                          <StatusChip
                             key={ct.id}
+                            outlined
+                            selected={selected}
+                            pressed={selected}
+                            tokens={{ color: catFg, bg: catBg }}
                             icon={<MoreHoriz size={14} strokeWidth={1.75} />}
                             label={ct.label}
                             onClick={disabled ? undefined : () => selectCustomType(activeCategory, ct.label)}
                             disabled={disabled}
-                            size="small"
-                            aria-pressed={selected}
-                            sx={{
-                              height: 30,
-                              fontSize: '11.5px',
-                              fontWeight: selected ? 600 : 500,
-                              border: '1px solid',
-                              borderColor: selected ? catFg : 'var(--line-2)',
-                              bgcolor: selected ? catBg : 'var(--card)',
-                              color: selected ? catFg : 'var(--body)',
-                              '& .MuiChip-icon': { fontSize: 14, ml: 0.5, color: selected ? catFg : 'var(--muted)' },
-                              '& .MuiChip-label': { px: 0.75 },
-                              '&:hover': disabled ? {} : { bgcolor: selected ? catBg : 'var(--hover)', borderColor: catFg },
-                              cursor: disabled ? 'default' : 'pointer',
-                              opacity: disabled ? 0.45 : 1,
-                              transition: 'background-color .15s, border-color .15s, color .15s',
-                            }}
+                            className={cn(SELECT_CHIP_CLASS, disabled && 'opacity-45')}
                           />
                         );
                       })}
                       {/* « Autre » : la saisie se fait DANS le chip, validée par Entrée */}
                       {isAddingCustom ? (
-                        <Box
-                          sx={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 0.25,
-                            height: 30,
-                            pl: 1,
-                            pr: 0.25,
-                            borderRadius: '15px',
-                            border: `1px solid ${catFg}`,
-                            bgcolor: catBg,
-                          }}
-                        >
-                          <Box component="span" sx={{ display: 'inline-flex', color: catFg, flexShrink: 0 }}><MoreHoriz size={14} strokeWidth={1.75} /></Box>
-                          <InputBase
+                        <div className="inline-flex items-center gap-[1.5px] h-[30px] ps-1.5 pe-[1.5px] rounded-[15px]" style={{ border: `1px solid ${catFg}`, backgroundColor: catBg }}>
+                          <span className="inline-flex shrink-0" style={{ color: catFg }}><MoreHoriz size={14} strokeWidth={1.75} /></span>
+                          {/* Champ nu (ancien InputBase) : il vit DANS la puce,
+                              le gabarit du primitif Input casserait la pilule. */}
+                          <input
                             autoFocus
                             value={newCustomText}
                             onChange={(e) => setNewCustomText(e.target.value)}
@@ -564,64 +494,57 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                             }}
                             onBlur={() => { if (!newCustomText.trim()) cancelAddCustom(); }}
                             placeholder="Nouveau type…"
-                            sx={{ fontSize: '11.5px', color: catFg, width: 150, '& input': { p: 0 }, '& input::placeholder': { color: 'var(--faint)', opacity: 1 } }}
+                            className="w-[150px] p-0 border-none bg-transparent outline-none text-[11.5px] placeholder:text-[var(--faint)] placeholder:opacity-100"
+                            style={{ color: catFg }}
                           />
-                          <IconButton
-                            size="small"
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={confirmAddCustom}
                             aria-label="Enregistrer le type de service"
-                            sx={{ p: 0.25, color: catFg }}
+                            className="size-[22px] hover:bg-transparent"
+                            style={{ color: catFg }}
                           >
                             <EnterKey size={14} strokeWidth={1.75} />
-                          </IconButton>
-                        </Box>
+                          </Button>
+                        </div>
                       ) : (
-                        <Chip
+                        <StatusChip
+                          outlined
+                          tokens={{ color: catFg, bg: catBg }}
                           icon={<Add size={14} strokeWidth={1.75} />}
                           label="Autre"
                           onClick={disabled ? undefined : openAddCustom}
                           disabled={disabled}
-                          size="small"
-                          sx={{
-                            height: 30,
-                            fontSize: '11.5px',
-                            fontWeight: 500,
-                            border: '1px dashed var(--line-2)',
-                            bgcolor: 'var(--card)',
-                            color: 'var(--muted)',
-                            '& .MuiChip-icon': { fontSize: 14, ml: 0.5, color: 'var(--muted)' },
-                            '& .MuiChip-label': { px: 0.75 },
-                            '&:hover': disabled ? {} : { borderColor: catFg, color: catFg, bgcolor: 'var(--hover)' },
-                            cursor: disabled ? 'default' : 'pointer',
-                            opacity: disabled ? 0.45 : 1,
-                            transition: 'background-color .15s, border-color .15s, color .15s',
-                          }}
+                          // Tiret : cette puce n'est pas un choix parmi d'autres,
+                          // elle en OUVRE un nouveau.
+                          className={cn(SELECT_CHIP_CLASS, 'border-dashed', disabled && 'opacity-45')}
                         />
                       )}
                     </>
                   );
                 })()}
-              </Box>
+              </div>
 
               {/* Erreur de validation */}
               {fieldState.error && (
-                <FormHelperText error sx={{ mt: 0.5 }}>
+                <FieldError className="mt-[3px]">
                   {fieldState.error.message}
-                </FormHelperText>
+                </FieldError>
               )}
-            </Box>
+            </div>
           )}
         />
 
         {/* ─── Prestations à la carte (ménage uniquement) ─── */}
         {isCleaning && availablePrestations.length > 0 && (
-          <Box sx={{ mt: 2 }}>
-            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1 }}>
+          <div className="mt-3">
+            <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1.5">
               Prestations à la carte
-            </Typography>
+            </p>
 
-            <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+            <div className="flex gap-1 flex-wrap">
               {availablePrestations.map((p) => {
                 const isActive = activePrestations.has(p.key);
                 const isIncluded = includedPrestationsSet.has(p.key);
@@ -637,59 +560,43 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                   : `+${p.extraMins} min`;
 
                 return (
-                  <Chip
+                  <StatusChip
                     key={p.key}
+                    outlined
+                    selected={isActive}
+                    pressed={isActive}
+                    tone="accent"
                     icon={p.icon}
                     label={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <span className="inline-flex items-center gap-0.5">
                         <span>{chipLabel}</span>
                         {isIncluded ? (
-                          <Typography component="span" sx={{ fontSize: '9.5px', color: 'var(--ok)', fontWeight: 700, bgcolor: 'var(--ok-soft)', px: 0.5, py: 0.1, borderRadius: '4px' }}>
+                          <span className="rounded-[4px] bg-[var(--ok-soft)] px-0.5 text-[9.5px] font-bold text-[var(--ok)]">
                             Inclus
-                          </Typography>
+                          </span>
                         ) : (
-                          <Typography component="span" sx={{ fontSize: '10px', color: isActive ? 'var(--accent)' : 'var(--faint)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
+                          <span
+                            className="text-[10px] font-medium tabular-nums"
+                            style={{ color: isActive ? 'var(--accent)' : 'var(--faint)' }}
+                          >
                             {extraLabel}
-                          </Typography>
+                          </span>
                         )}
-                      </Box>
+                      </span>
                     }
                     onClick={disabled ? undefined : () => handleTogglePrestation(p.key)}
                     disabled={disabled}
-                    size="small"
-                    aria-pressed={isActive}
-                    sx={{
-                      height: 30,
-                      fontSize: '11.5px',
-                      fontWeight: isActive ? 600 : 500,
-                      border: '1px solid',
-                      borderColor: isActive ? 'var(--accent)' : 'var(--line-2)',
-                      bgcolor: isActive ? 'var(--accent-soft)' : 'var(--card)',
-                      color: isActive ? 'var(--accent)' : 'var(--body)',
-                      '& .MuiChip-icon': {
-                        fontSize: 14,
-                        ml: 0.5,
-                        color: isActive ? 'var(--accent)' : 'var(--muted)',
-                      },
-                      '& .MuiChip-label': { px: 0.75 },
-                      '&:hover': disabled ? {} : {
-                        bgcolor: isActive ? 'var(--accent-soft)' : 'var(--hover)',
-                        borderColor: 'var(--accent)',
-                      },
-                      cursor: disabled ? 'default' : 'pointer',
-                      opacity: disabled ? 0.45 : 1,
-                      transition: 'background-color .15s, border-color .15s, color .15s',
-                    }}
+                    className={cn(SELECT_CHIP_CLASS, disabled && 'opacity-45')}
                   />
                 );
               })}
-            </Box>
-          </Box>
+            </div>
+          </div>
         )}
 
         {/* Séparateur reliant la sélection du type au chiffrage (modale). */}
-        {pricingSlot && <Box sx={{ order: 1, borderTop: '1px solid var(--line)', mt: 2 }} />}
-      </Box>
+        {pricingSlot && <div className="order-[1px] mt-3" style={{ borderTop: '1px solid var(--line)' }} />}
+      </div>
     );
   }
 );

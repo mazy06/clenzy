@@ -48,7 +48,40 @@ export function srStatusChipSx(status: string) {
   return toneChipSx(SR_STATUS_TONE[status?.toLowerCase()] ?? 'neutral');
 }
 
+/** Tokens de statut d'une demande, pour la primitive StatusChip. */
+export function srStatusTokens(status: string) {
+  return STATUS_TONES[SR_STATUS_TONE[status?.toLowerCase()] ?? 'neutral'];
+}
+
+/** Tokens de priorité d'une demande, pour la primitive StatusChip. */
+export function srPriorityTokens(priority: string) {
+  return STATUS_TONES[SR_PRIORITY_TONE[priority?.toLowerCase()] ?? 'neutral'];
+}
+
 /** Sx d'un chip de priorité de demande (texte couleur + fond -soft). */
 export function srPriorityChipSx(priority: string) {
   return toneChipSx(SR_PRIORITY_TONE[priority?.toLowerCase()] ?? 'neutral');
 }
+
+/**
+ * Gabarit des puces de SÉLECTION du formulaire de demande : plus haut et plus
+ * lisible qu'une puce de statut, parce qu'on clique dessus.
+ *
+ * Partagé entre le choix du type de service (`ServiceRequestFormInfo`) et celui
+ * du mode d'affectation (`ServiceRequestFormAssignment`) : les deux rangées se
+ * suivent dans le même formulaire et doivent faire la même hauteur au pixel.
+ */
+export const SELECT_CHIP_CLASS = 'h-[30px] text-[11.5px]';
+
+/**
+ * Puce « champ » : caractéristiques figées d'un logement (surface, chambres,
+ * équipements). Elles ne se cliquent pas — d'où le fond de champ et le liseré,
+ * qui les distinguent des puces de sélection voisines, de même hauteur.
+ *
+ * `border-solid` est indispensable : le gabarit du kit pose `border-none`
+ * (border-STYLE), que tailwind-merge ne considère pas en conflit avec `border`
+ * (border-WIDTH) — sans lui, le liseré reste invisible.
+ */
+export const FORM_TAG_TOKENS = { color: 'var(--body)', bg: 'var(--field)' } as const;
+export const FORM_TAG_CLASS =
+  'h-[30px] text-[11.5px] font-medium border border-solid border-[var(--field-line)] [&>svg]:text-[var(--accent)]';

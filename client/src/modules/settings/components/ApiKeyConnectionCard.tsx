@@ -1,19 +1,17 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
+import { Alert as UiAlert, AlertAction, AlertDescription } from '../../../components/ui';
+import { Info, TriangleAlert, CircleCheck, X } from 'lucide-react';
+import { Spinner } from '../../../components/ui';
+import { Button, Card, Field, FieldLabel, Input } from '../../../components/ui';
 import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
   Dialog,
-  DialogActions,
   DialogContent,
-  DialogContentText,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  Paper,
-  TextField,
-  Typography,
-} from '@mui/material';
+} from '../../../components/ui';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -58,22 +56,8 @@ import ProviderLogo, { type ProviderId } from './ProviderLogos';
  */
 
 const ACCENT = 'var(--ok)';
-const DANGER = 'var(--err)';
 const NEUTRAL = 'var(--muted)';
 
-const statusChipSx = (color: string) => ({
-  height: 22,
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  letterSpacing: '0.01em',
-  borderRadius: '6px',
-  px: 0.25,
-  backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
-  color,
-  border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-  '& .MuiChip-icon': { color: `${color} !important`, ml: '6px', mr: '-2px' },
-  '& .MuiChip-label': { px: 0.875 },
-});
 
 // ─── Contrats partages (Strategy) ──────────────────────────────────────────
 
@@ -139,6 +123,10 @@ export default function ApiKeyConnectionCard<P extends string>({
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [disconnectOpen, setDisconnectOpen] = useState(false);
+
+  // Prefixe d'id unique : cette card est generique et plusieurs instances
+  // (signature / tarification / conformite) coexistent sur le meme ecran.
+  const fieldId = useId();
 
   // Pattern "latest callback ref" — evite la boucle de render quand le
   // parent passe une arrow function inline (sinon nouvelle ref a chaque
@@ -206,114 +194,68 @@ export default function ApiKeyConnectionCard<P extends string>({
     `L'intégration ${meta.label} est en cours de scaffolding. La connexion permet de valider et stocker vos credentials ; les appels API métier seront ajoutés prochainement.`;
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        borderRadius: '12px',
-        border: '1px solid',
-        borderColor: 'divider',
-        boxShadow: 'none',
-        overflow: 'hidden',
-      }}
-    >
+    <Card className="gap-0 py-0 border-border overflow-hidden">
       {/* Header */}
-      <Box
-        sx={{
-          px: 2,
-          py: 1.75,
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 1.5,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
+      <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[var(--line)]">
         <ProviderLogo provider={logoId} size={40} />
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-            <Typography sx={{ fontSize: '0.92rem', fontWeight: 600 }}>{meta.label}</Typography>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1 flex-wrap">
+            <p className="cn-text-body1 text-[0.92rem] font-semibold">{meta.label}</p>
             {headerChip}
-          </Box>
-          <Typography sx={{ fontSize: '0.74rem', color: 'text.secondary', mt: 0.5 }}>
+          </div>
+          <p className="cn-text-body1 text-[0.74rem] text-muted-foreground mt-0.5">
             {meta.description}
-          </Typography>
-        </Box>
-        <Box sx={{ flexShrink: 0 }}>
+          </p>
+        </div>
+        <div className="shrink-0">
           {loading ? (
-            <CircularProgress size={18} />
+            <Spinner className="size-[18px]" />
           ) : connected ? (
-            <Chip
-              icon={<CheckCircleIcon size={11} strokeWidth={2} />}
-              label="Connecté"
-              size="small"
-              sx={statusChipSx(ACCENT)}
-            />
+            <StatusChip color={ACCENT} label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
           ) : (
-            <Chip
-              icon={<ErrorOutline size={11} strokeWidth={2} />}
-              label="Non connecté"
-              size="small"
-              sx={statusChipSx(NEUTRAL)}
-            />
+            <StatusChip color={NEUTRAL} label="Non connecté" icon={<ErrorOutline size={11} strokeWidth={2} />} />
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Body */}
-      <Box sx={{ p: 2 }}>
-        {bodyAlert && <Box sx={{ mb: 1.5 }}>{bodyAlert}</Box>}
+      <div className="p-3">
+        {bodyAlert && <div className="mb-2">{bodyAlert}</div>}
 
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-            <CircularProgress size={24} />
-          </Box>
+          <div className="flex justify-center py-3">
+            <Spinner className="size-6" />
+          </div>
         ) : connected ? (
-          <Box>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.25, mb: 1.5 }}>
-              <Box>
-                <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Serveur</Typography>
-                <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>{status?.serverUrl}</Typography>
-              </Box>
+          <div>
+            <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-[7.5px] mb-[9px]">
+              <div>
+                <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Serveur</p>
+                <p className="cn-text-body1 text-[0.82rem] font-medium">{status?.serverUrl}</p>
+              </div>
               {status?.accountIdentifier && (
-                <Box>
-                  <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+                <div>
+                  <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">
                     {meta.accountIdentifierLabel ?? 'Identifiant'}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>{status.accountIdentifier}</Typography>
-                </Box>
+                  </p>
+                  <p className="cn-text-body1 text-[0.82rem] font-medium">{status.accountIdentifier}</p>
+                </div>
               )}
-              <Box>
-                <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Statut</Typography>
-                <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>{status?.status}</Typography>
-              </Box>
-            </Box>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<LinkOffIcon size={14} strokeWidth={2} />}
-              onClick={() => setDisconnectOpen(true)}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: '0.78rem',
-                borderRadius: '8px',
-                py: 0.625,
-                px: 1.5,
-                borderColor: 'divider',
-                color: 'text.primary',
-                '&:hover': { borderColor: 'color-mix(in srgb, var(--err) 40%, transparent)', backgroundColor: 'var(--err-soft)', color: DANGER },
-              }}
-            >
+              <div>
+                <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Statut</p>
+                <p className="cn-text-body1 text-[0.82rem] font-medium">{status?.status}</p>
+              </div>
+            </div>
+            {/* `outline` et non `destructive` : ce bouton n'efface rien, il ouvre la
+                confirmation — c'est le bouton du dialog qui porte le poids destructif. */}
+            <Button variant="outline" size="sm" onClick={() => setDisconnectOpen(true)}>
+              <LinkOffIcon size={14} strokeWidth={2} />
               Déconnecter {meta.label}
             </Button>
-          </Box>
+          </div>
         ) : (
-          <Box
-            component="form"
-            onSubmit={(e) => { e.preventDefault(); handleConnect(); }}
-            sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}
-          >
-            <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
+          <form className="flex flex-col gap-2" onSubmit={(e) => { e.preventDefault(); handleConnect(); }}>
+            <p className="cn-text-body1 text-[0.78rem] text-muted-foreground">
               Pour obtenir vos credentials : voir la doc{' '}
               {meta.apiKeyHelpUrl ? (
                 <a href={meta.apiKeyHelpUrl} target="_blank" rel="noreferrer noopener" style={{ color: 'inherit' }}>
@@ -323,81 +265,82 @@ export default function ApiKeyConnectionCard<P extends string>({
                 meta.label
               )}
               . L'API key est chiffrée avant stockage (AES-256-GCM).
-            </Typography>
-            <TextField
-              label="URL serveur"
-              placeholder={meta.serverUrlPlaceholder}
-              size="small"
-              fullWidth
-              required
-              value={form.serverUrl}
-              onChange={(e) => setForm({ ...form, serverUrl: e.target.value })}
-            />
-            {meta.accountIdentifierLabel && (
-              <TextField
-                label={meta.accountIdentifierLabel}
-                size="small"
-                fullWidth
-                value={form.accountIdentifier}
-                onChange={(e) => setForm({ ...form, accountIdentifier: e.target.value })}
+            </p>
+            <Field>
+              <FieldLabel htmlFor={`${fieldId}-server-url`}>URL serveur</FieldLabel>
+              <Input
+                id={`${fieldId}-server-url`}
+                placeholder={meta.serverUrlPlaceholder}
+                required
+                value={form.serverUrl}
+                onChange={(e) => setForm({ ...form, serverUrl: e.target.value })}
               />
+            </Field>
+            {meta.accountIdentifierLabel && (
+              <Field>
+                <FieldLabel htmlFor={`${fieldId}-account-identifier`}>{meta.accountIdentifierLabel}</FieldLabel>
+                <Input
+                  id={`${fieldId}-account-identifier`}
+                  value={form.accountIdentifier}
+                  onChange={(e) => setForm({ ...form, accountIdentifier: e.target.value })}
+                />
+              </Field>
             )}
-            <TextField
-              label="API key"
-              type="password"
-              size="small"
-              fullWidth
-              required
-              value={form.apiKey}
-              onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
-              inputProps={{ minLength: 8 }}
-            />
-            <Box>
-              <Button
-                type="submit"
-                variant="contained"
-                size="small"
-                disabled={submitting}
-                startIcon={submitting ? <CircularProgress size={12} color="inherit" /> : <LinkIcon size={14} strokeWidth={2} />}
-                sx={{ textTransform: 'none', fontWeight: 600 }}
-              >
+            <Field>
+              <FieldLabel htmlFor={`${fieldId}-api-key`}>API key</FieldLabel>
+              <Input
+                id={`${fieldId}-api-key`}
+                type="password"
+                required
+                value={form.apiKey}
+                onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
+                minLength={8}
+              />
+            </Field>
+            <div>
+              <Button type="submit" size="sm" disabled={submitting}>
+                {submitting ? <Spinner className="size-3" /> : <LinkIcon size={14} strokeWidth={2} />}
                 {submitting ? 'Connexion...' : `Connecter ${meta.label}`}
               </Button>
-            </Box>
-            <Alert
-              severity="info"
-              variant="outlined"
-              sx={{ mt: 0.5, borderRadius: '8px', fontSize: '0.76rem' }}
-            >
-              {scaffoldingNote ?? defaultScaffoldingNote}
-            </Alert>
-          </Box>
+            </div>
+            <UiAlert variant="info" className="mt-0.5 text-[0.76rem]">
+              <Info />
+              <AlertDescription>{scaffoldingNote ?? defaultScaffoldingNote}</AlertDescription>
+            </UiAlert>
+          </form>
         )}
 
         {message && (
-          <Alert
-            severity={message.type}
-            onClose={() => setMessage(null)}
-            sx={{ mt: 1.5, borderRadius: '8px' }}
+          <UiAlert
+            variant={message.type === 'success' ? 'success' : 'destructive'}
+            className="mt-1.5"
           >
-            {message.text}
-          </Alert>
+            {message.type === 'success' ? <CircleCheck /> : <TriangleAlert />}
+            <AlertDescription>{message.text}</AlertDescription>
+            <AlertAction>
+              <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setMessage(null)}>
+                <X />
+              </Button>
+            </AlertAction>
+          </UiAlert>
         )}
-      </Box>
+      </div>
 
       {/* Disconnect confirmation */}
-      <Dialog open={disconnectOpen} onClose={() => setDisconnectOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Déconnecter {meta.label} ?</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ fontSize: '0.85rem' }}>
-            Cette action supprime les credentials {meta.label} enregistrés. Vous devrez ressaisir l'API key pour vous reconnecter.
-          </DialogContentText>
+      <Dialog open={disconnectOpen} onOpenChange={(next) => { if (!next) setDisconnectOpen(false); }}>
+        <DialogContent className="max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>Déconnecter {meta.label} ?</DialogTitle>
+            <DialogDescription>
+              Cette action supprime les credentials {meta.label} enregistrés. Vous devrez ressaisir l'API key pour vous reconnecter.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDisconnectOpen(false)}>Annuler</Button>
+            <Button variant="destructive" onClick={handleDisconnect}>Déconnecter</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDisconnectOpen(false)}>Annuler</Button>
-          <Button onClick={handleDisconnect} color="error" variant="contained">Déconnecter</Button>
-        </DialogActions>
       </Dialog>
-    </Paper>
+    </Card>
   );
 }

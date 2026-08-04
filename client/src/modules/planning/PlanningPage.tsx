@@ -1,13 +1,29 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Spinner,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { Box, CircularProgress, Alert, Typography, Button, Tooltip, IconButton, useMediaQuery, useTheme } from '@mui/material';
-import { CalendarMonth, Add, CloudDownload, Fullscreen, FullscreenExit } from '../../icons';
+import { useMediaQuery } from '../../hooks/use-media-query';
+import { cn } from '../../utils/cn';
+import { CalendarMonth, Add, CloudDownload, Fullscreen, FilterList, MoreVert } from '../../icons';
 import EmptyState from '../../components/EmptyState';
 import PageHeader from '../../components/PageHeader';
 import HeaderSearchField from '../../components/HeaderSearchField';
-import PlanningToolbar from './PlanningToolbar';
+import PlanningToolbar, { PlanningDateNav } from './PlanningToolbar';
 import PlanningFilterButton from './PlanningFilterButton';
 import PlanningTimeline from './PlanningTimeline';
+import { computeDayOccupancy } from './PlanningOccupancyRow';
 import PlanningActionPanel from './PlanningActionPanel';
 import ReservationDialog from '../../components/reservations/ReservationDialog';
 import PlanningPaginationBar from './PlanningPaginationBar';
@@ -46,6 +62,7 @@ import {
   useCanSuperviseAgents,
   useSupervisionConfig,
   useSupervisionPendingCounts,
+  SUPERVISION_ASK_EVENT,
   type SupervisionScope,
 } from '../supervision';
 
@@ -224,16 +241,40 @@ const PlanningPage: React.FC = () => {
     });
   }, [filteredEvents, activeChannels, activeStatuses]);
 
+  // Rangée « Occupation » (projection) : calculée AVANT le filtrage par légende
+  // et sur toutes les propriétés filtrées — masquer un canal change l'affichage
+  // des briques, pas l'occupation réelle du portefeuille.
+  const dayOccupancy = useMemo(
+    () => computeDayOccupancy(timeline.days, filteredEvents, filteredProperties.length),
+    [timeline.days, filteredEvents, filteredProperties.length],
+  );
+
   // Superviseur : à l'ouverture d'un accordéon, on remonte le logement déployé
   // en 1ʳᵉ position ; la pagination (firstItemAlone) l'isole alors sur sa propre
   // page (panneau plein écran) et fait glisser les autres logements en pages 2+.
   const supervisorExpanded = canSupervise && expandedPropertyId != null;
 
+  // Menu « ⋯ » du header : les actions du planning regroupées sous une seule
+  // icône. Le popover de filtres s'ancre sur ce même bouton (anchorEl).
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const moreAnchorRef = useRef<HTMLSpanElement | null>(null);
+
+  // Constellation ouverte : le champ UNIQUE du header devient l'entrée
+  // opérateur → agents (Entrée = envoi). Le filtre de logements n'a pas de
+  // sens ici — la grille est masquée par l'accordéon.
+  const [agentAsk, setAgentAsk] = useState('');
+  const sendAgentAsk = useCallback((text: string) => {
+    if (!text.trim()) return;
+    window.dispatchEvent(new CustomEvent(SUPERVISION_ASK_EVENT, { detail: { text } }));
+    setAgentAsk('');
+  }, []);
+
   // La rangée de chips légende (canaux/statuts/interventions) migre dans la
   // modale de filtres quand la toolbar ne peut pas l'afficher : viewport
   // compact OU constellation d'agents déployée. Source unique, jamais dupliquée.
-  const theme = useTheme();
-  const isCompactViewport = useMediaQuery(theme.breakpoints.down('lg'));
+  // `theme.breakpoints.down('lg')` de MUI, ecrit en clair : lg vaut 1200 chez
+  // MUI (et non 1024 comme le `lg:` de Tailwind), d'ou la requete litterale.
+  const isCompactViewport = useMediaQuery('(max-width: 1199.95px)');
   const legendInModal = isCompactViewport || supervisorExpanded;
   const orderedProperties = useMemo(() => {
     if (!supervisorExpanded) return filteredProperties;
@@ -601,29 +642,20 @@ const PlanningPage: React.FC = () => {
   const headerSubtitle = `Réservations & interventions · ${visibleMonthLabel.charAt(0).toUpperCase()}${visibleMonthLabel.slice(1)}`;
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        // Compenser le padding du MainLayoutFull <main> pour coller aux bords
-        m: { xs: -1.5, md: -2 },
-        height: nav.isFullscreen ? '100vh' : { xs: 'calc(100vh - 48px)', md: '100vh' },
-        ...(nav.isFullscreen && {
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          m: 0,
-          zIndex: 1300,
-          backgroundColor: 'var(--bg)',
-        }),
-      }}
+    // Marges negatives : compensent le padding du MainLayoutFull <main> pour
+    // coller aux bords. Rupture MUI md = 900px (breakpoints non configures).
+    <div
+      className={cn(
+        'flex flex-col',
+        nav.isFullscreen
+          ? 'fixed inset-0 m-0 z-[1300] h-screen bg-[var(--bg)]'
+          : 'm-[-9px] min-[900px]:m-[-12px] h-[calc(100vh_-_48px)] min-[900px]:h-screen',
+      )}
     >
       {/* Page header — masqué en plein écran (le fullscreen masque déjà le
           chrome ; la toolbar garde les actions critiques) */}
       {!nav.isFullscreen && (
-        <Box sx={{ flexShrink: 0, px: { xs: 1.5, md: 2 }, pt: { xs: 1.5, md: 2 } }}>
+        <div className="shrink-0 px-[9px] min-[900px]:px-3 pt-[9px] min-[900px]:pt-3">
           <PageHeader
             title="Planning"
             subtitle={headerSubtitle}
@@ -633,73 +665,116 @@ const PlanningPage: React.FC = () => {
                 {canSupervise && (
                   <ScopeSwitch value={supervisionScope} onChange={setSupervisionScope} />
                 )}
-                {!isOverview && (
-                  <HeaderSearchField
-                    value={filters.searchQuery}
-                    onChange={setSearchQuery}
-                    placeholder="Rechercher..."
+                {/* Constellation déployée : la navigation de dates + zoom
+                    REMONTE ici — la toolbar disparaît et rend sa hauteur à
+                    l'accordéon. */}
+                {!isOverview && supervisorExpanded && (
+                  <PlanningDateNav
+                    currentDate={visibleMonthDate}
+                    zoom={nav.zoom}
+                    onGoPrev={nav.goPrev}
+                    onGoToday={handleGoToday}
+                    onGoNext={nav.goNext}
+                    onZoomChange={nav.setZoom}
                   />
+                )}
+                {!isOverview && (
+                  supervisorExpanded ? (
+                    <HeaderSearchField
+                      value={agentAsk}
+                      onChange={setAgentAsk}
+                      placeholder="Demandez quelque chose aux agents…"
+                      onSubmit={sendAgentAsk}
+                    />
+                  ) : (
+                    <HeaderSearchField
+                      value={filters.searchQuery}
+                      onChange={setSearchQuery}
+                      placeholder="Rechercher..."
+                    />
+                  )
                 )}
               </>
             }
             actions={
               isOverview ? undefined : (
-              <>
-                <PlanningFilterButton
-                  filters={filters}
-                  density={nav.density}
-                  hasActiveFilters={hasActiveFilters}
-                  onDensityChange={nav.setDensity}
-                  onShowInterventionsChange={setShowInterventions}
-                  onShowPricesChange={setShowPrices}
-                  onClearFilters={handleClearFilters}
-                  urgencyAnimation={urgencyAnimation}
-                  onUrgencyAnimationChange={setUrgencyAnimation}
-                  showLegendChips={legendInModal}
-                  activeChannels={activeChannels}
-                  onToggleChannel={toggleChannel}
-                  presentChannels={presentChannels}
-                  activeStatuses={activeStatuses}
-                  onToggleStatus={toggleStatus}
-                />
-                <Tooltip title={nav.isFullscreen ? 'Quitter le plein écran' : 'Plein écran'} arrow>
-                  <IconButton
-                    aria-label={nav.isFullscreen ? 'Quitter le plein écran' : 'Plein écran'}
-                    onClick={nav.toggleFullscreen}
-                  >
-                    {nav.isFullscreen ? <FullscreenExit size={18} strokeWidth={1.75} /> : <Fullscreen size={18} strokeWidth={1.75} />}
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Importer des réservations (iCal) ou connecter vos canaux (Channel Manager)" arrow>
-                  <IconButton
-                    aria-label="Importer des réservations ou connecter vos canaux"
-                    onClick={() => setImportChooserOpen(true)}
-                  >
-                    <CloudDownload size={18} strokeWidth={1.85} />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Nouvelle réservation" arrow>
-                  <span>
-                    <IconButton
-                      aria-label="Nouvelle réservation"
-                      onClick={handleCreateReservation}
-                      disabled={properties.length === 0}
-                      sx={{ color: 'var(--accent)' }}
-                    >
-                      <Add size={18} strokeWidth={1.85} />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-              </>
+                <>
+                  {/* Les actions du planning tiennent sous UNE icône : filtres,
+                      plein écran, import, création. Le span porte l'ancre du
+                      popover de filtres (rendu à part, contrôlé). */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <span ref={moreAnchorRef} className="inline-flex">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Actions du planning"
+                          className="relative"
+                        >
+                          <MoreVert size={18} strokeWidth={1.85} />
+                          {/* Des filtres sont actifs : le point le dit même menu fermé. */}
+                          {hasActiveFilters && (
+                            <span className="absolute top-1 end-1 size-1.5 rounded-full bg-[var(--accent)]" aria-hidden />
+                          )}
+                        </Button>
+                      </span>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={() => setFilterMenuOpen(true)}>
+                        <FilterList size={15} strokeWidth={1.75} />
+                        Filtres & affichage
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={nav.toggleFullscreen}>
+                        <Fullscreen size={15} strokeWidth={1.75} />
+                        Plein écran
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setImportChooserOpen(true)}>
+                        <CloudDownload size={15} strokeWidth={1.75} />
+                        Importer / connecter des canaux
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        disabled={properties.length === 0}
+                        onSelect={handleCreateReservation}
+                      >
+                        <Add size={15} strokeWidth={1.75} />
+                        Nouvelle réservation
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <PlanningFilterButton
+                    filters={filters}
+                    density={nav.density}
+                    hasActiveFilters={hasActiveFilters}
+                    onDensityChange={nav.setDensity}
+                    onShowInterventionsChange={setShowInterventions}
+                    onShowPricesChange={setShowPrices}
+                    onClearFilters={handleClearFilters}
+                    urgencyAnimation={urgencyAnimation}
+                    onUrgencyAnimationChange={setUrgencyAnimation}
+                    showLegendChips={legendInModal}
+                    activeChannels={activeChannels}
+                    onToggleChannel={toggleChannel}
+                    presentChannels={presentChannels}
+                    activeStatuses={activeStatuses}
+                    onToggleStatus={toggleStatus}
+                    open={filterMenuOpen}
+                    onOpenChange={setFilterMenuOpen}
+                    anchorEl={moreAnchorRef.current}
+                  />
+                </>
               )
             }
           />
-        </Box>
+        </div>
       )}
 
-      {/* Toolbar — navigation/zoom/légendes du planning : masqué en Vue d'ensemble */}
-      {!isOverview && (
-        <Box sx={{ flexShrink: 0, mb: 1 }}>
+      {/* Toolbar — navigation/zoom/légendes du planning : masquée en Vue
+          d'ensemble, et quand la constellation est déployée (la navigation vit
+          alors dans le PageHeader) — SAUF en plein écran, où le header n'existe
+          pas : la toolbar reste la seule porteuse de la navigation. */}
+      {!isOverview && (!supervisorExpanded || nav.isFullscreen) && (
+        <div className="shrink-0 mb-1.5">
           <PlanningToolbar
             currentDate={visibleMonthDate}
             zoom={nav.zoom}
@@ -718,50 +793,40 @@ const PlanningPage: React.FC = () => {
             activeStatuses={activeStatuses}
             onToggleStatus={toggleStatus}
           />
-        </Box>
+        </div>
       )}
 
       {/* Error */}
       {error && (
-        <Alert severity="error" sx={{ mx: 1.5, mb: 1, flexShrink: 0 }}>
-          {error}
+        <Alert variant="destructive" className="mx-[9px] mb-1.5 shrink-0">
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Vue d'ensemble (portefeuille) — plein largeur, masque la grille */}
       {isOverview ? (
-        <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto', px: 1.5 }}>
+        <div className="flex-1 min-h-0 min-w-0 overflow-auto px-2">
           <PortfolioPanel createProvider={createPortfolioProvider} deps={['portfolio']} />
-        </Box>
+        </div>
       ) : loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, gap: 1.5 }}>
-          <CircularProgress size={28} />
-          <Typography variant="body2" color="text.secondary">
+        <div className="flex justify-center items-center flex-1 gap-2">
+          <Spinner className="size-7" />
+          <p className="cn-text-body2 text-muted-foreground">
             Chargement du planning...
-          </Typography>
-        </Box>
+          </p>
+        </div>
       ) : filteredProperties.length === 0 ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, px: 2 }}>
+        <div className="flex justify-center items-center flex-1 px-3">
           <EmptyState
             icon={<CalendarMonth />}
             title="Aucun logement trouvé"
             description="Vérifiez vos filtres ou ajoutez des propriétés pour les voir apparaître dans le planning."
             variant="transparent"
           />
-        </Box>
+        </div>
       ) : (
         /* Main content area */
-        <Box
-          sx={{
-            flex: 1,
-            minHeight: 0,
-            minWidth: 0,
-            overflow: 'hidden',
-            px: 1.5,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
+        <div className="flex-1 min-h-0 min-w-0 overflow-hidden px-2 flex flex-col">
           <PlanningTimeline
             properties={pagination.paginatedProperties}
             days={timeline.days}
@@ -789,13 +854,14 @@ const PlanningPage: React.FC = () => {
             channelSyncMap={channelSyncMap}
             pendingCountByProperty={canSupervise ? pendingCountByProperty : undefined}
             pageSize={pagination.pageSize}
+            dayOccupancy={dayOccupancy}
             expandedPropertyId={canSupervise ? expandedPropertyId : null}
             onToggleExpanded={canSupervise ? handleToggleExpanded : undefined}
             renderExpanded={canSupervise ? renderExpandedPanel : undefined}
           />
 
           {/* Pagination — pinned to bottom, full width (compensate parent px) */}
-          <Box sx={{ flexShrink: 0, mt: 1, mx: -1.5 }}>
+          <div className="shrink-0 mt-1.5 mx-[-9px]">
             <PlanningPaginationBar
               currentPage={pagination.currentPage}
               totalPages={pagination.totalPages}
@@ -805,8 +871,8 @@ const PlanningPage: React.FC = () => {
               onPrevPage={pagination.goPrevPage}
               onNextPage={pagination.goNextPage}
             />
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* Action Panel */}
@@ -890,7 +956,7 @@ const PlanningPage: React.FC = () => {
 
       {/* Channel Manager : même modale guidée Channex que le bouton du Dashboard */}
       <ChannexMappingDialog open={channelManagerOpen} guided onClose={() => setChannelManagerOpen(false)} />
-    </Box>
+    </div>
   );
 };
 

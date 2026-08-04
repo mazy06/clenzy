@@ -3596,3 +3596,129 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  - changeSet:
+      id: "0378-supervision-suggestion-pricing-to-rev"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0378__supervision_suggestion_pricing_to_rev.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0379-supervision-activity-tag"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0379__supervision_activity_tag.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0380-create-property-licenses"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0380__create_property_licenses.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0381-create-tax-filings"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0381__create_tax_filings.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0382-create-listing-quality-scores"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0382__create_listing_quality_scores.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0383-reservations-no-show"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0383__reservations_no_show.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0384-create-payment-disputes"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0384__create_payment_disputes.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0385-create-service-quotes"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0385__create_service_quotes.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0386-create-property-stock-items"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0386__create_property_stock_items.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0387-create-message-intents"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0387__create_message_intents.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0388-create-privacy-requests"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0388__create_privacy_requests.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0389-messaging-quiet-hours"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0389__messaging_quiet_hours.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0390-create-stay-transfers"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0390__create_stay_transfers.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0391-create-stay-modifications"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0391__create_stay_modifications.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0392-supervision-full-autonomy-consent"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0392__supervision_full_autonomy_consent.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0393-supervision-suggestion-org-level"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0393__supervision_suggestion_org_level.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0394-management-contract-declarative-mandate"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0394__management_contract_declarative_mandate.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0395-tax-filings-per-property"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0395__tax_filings_per_property.sql
+        relativeToChangelogFile: true

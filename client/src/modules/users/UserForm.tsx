@@ -1,23 +1,25 @@
 import React, { useState, useEffect } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
+import { Spinner, Button } from '../../components/ui';
 import {
-  Box,
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '../../components/ui';
+import {
   Card,
   CardContent,
-  Typography,
-  TextField,
-  Button,
-  Grid,
-  FormControl,
-  InputLabel,
   Select,
-  MenuItem,
-  FormHelperText,
-  Chip,
-  IconButton,
-  Alert,
-  CircularProgress,
-  Box as MuiBox,
-} from '@mui/material';
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui';
 import {
   Save,
   Cancel,
@@ -42,6 +44,7 @@ import { organizationsApi, type OrganizationDto } from '../../services/api/organ
 import { UserStatus, USER_STATUS_OPTIONS } from '../../types/statusEnums';
 import { userSchema } from '../../schemas/userSchema';
 import PageHeader from '../../components/PageHeader';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 
 // Keep exported interface for backward compatibility
 export interface UserFormData {
@@ -85,6 +88,21 @@ const userStatuses = USER_STATUS_OPTIONS.map(option => ({
   label: option.label,
   color: option.color
 }));
+
+// La couleur portee par USER_STATUS_OPTIONS reste une cle de palette MUI ;
+// on la lit comme un ton de la primitive.
+// Radix Select interdit la chaine vide comme valeur d'item (elle est reservee a
+// « aucune selection ») : on route l'option « Aucune » par un sentinel, tout en
+// gardant '' dans le formulaire.
+const NONE_OPTION = '__none__';
+
+const STATUS_TONE: Record<string, StatusTone> = {
+  success: 'ok',
+  warning: 'warn',
+  error: 'err',
+  info: 'info',
+  primary: 'accent',
+};
 
 const UserForm: React.FC = () => {
   const navigate = useNavigate();
@@ -146,22 +164,34 @@ const UserForm: React.FC = () => {
   const watchedPassword = watch('password');
   const watchedConfirmPassword = watch('confirmPassword');
   const watchedOrganizationId = watch('organizationId');
+  // Mismatch verifie a la volee : le resolver zod ne rejoue pas tant que
+  // l'utilisateur n'a pas quitte le second champ.
+  const passwordsMismatch = watchedPassword !== watchedConfirmPassword && watchedConfirmPassword !== '';
+
+  // Le champ du kit est une fonction sans forwardRef : sous React 18 la `ref`
+  // de react-hook-form ne s'attacherait pas et declencherait un warning a
+  // chaque rendu. On ne transmet donc que name/onChange/onBlur — la valeur
+  // remonte par onChange, ce dont le resolver zod se contente.
+  const registerField = (field: keyof UserFormData) => {
+    const { name, onChange, onBlur } = register(field);
+    return { name, onChange, onBlur };
+  };
 
   // Vérifier les permissions - accès uniquement aux utilisateurs avec la permission users:manage
   if (!canManageUsers) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="info" sx={{ p: 2, py: 1 }}>
-          <Typography variant="subtitle1" gutterBottom sx={{ mb: 1 }}>
+      <div className="p-3">
+        <Alert variant="info" className="p-3 py-1.5">
+          <Info />
+          <AlertDescription><h6 className="cn-text-subtitle1 mb-1.5">
             Accès non autorisé
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+          </h6><p className="cn-text-body2 text-[0.85rem]">
             Vous n'avez pas les permissions nécessaires pour créer des utilisateurs.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
-          </Typography>
+          </p></AlertDescription>
         </Alert>
-      </Box>
+      </div>
     );
   }
 
@@ -196,7 +226,7 @@ const UserForm: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 2 }}>
+    <div className="p-3">
       <PageHeader
         title="Nouvel utilisateur"
         subtitle="Créez un nouveau compte utilisateur pour la gestion des utilisateurs"
@@ -205,25 +235,23 @@ const UserForm: React.FC = () => {
         actions={
           <>
             <Button
-              variant="outlined"
-              size="small"
+              variant="outline"
+              size="sm"
+              className="me-1.5"
               onClick={() => navigate('/users')}
-              startIcon={<Cancel size={16} strokeWidth={1.75} />}
               disabled={saving}
-              sx={{ mr: 1, fontSize: '0.8125rem' }}
               title="Annuler"
             >
+              <Cancel size={16} strokeWidth={1.75} />
               Annuler
             </Button>
             <Button
-              variant="contained"
-              size="small"
+              size="sm"
               onClick={handleSubmit(onSubmit)}
-              startIcon={saving ? <CircularProgress size={16} /> : <Save size={16} strokeWidth={1.75} />}
               disabled={saving}
-              sx={{ fontSize: '0.8125rem' }}
               title="Créer l'utilisateur"
             >
+              {saving ? <Spinner className="size-4" /> : <Save size={16} strokeWidth={1.75} />}
               {saving ? 'Création...' : 'Créer l\'utilisateur'}
             </Button>
           </>
@@ -232,216 +260,242 @@ const UserForm: React.FC = () => {
 
       {/* Messages d'erreur/succès */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
-          {error}
+        <Alert variant="destructive" className="mb-3 py-1.5">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 2, py: 1 }}>
-          Utilisateur créé avec succès ! Redirection en cours...
+        <Alert variant="success" className="mb-3 py-1.5">
+          <CircleCheck />
+          <AlertDescription>Utilisateur créé avec succès ! Redirection en cours...</AlertDescription>
         </Alert>
       )}
 
       {/* Formulaire */}
-      <Card>
-        <CardContent sx={{ p: 2 }}>
+      <Card className="gap-0 py-0">
+        <CardContent className="p-3">
           <form onSubmit={handleSubmit(onSubmit)}>
             {/* Informations personnelles */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'var(--accent)', fontWeight: 600 }}>
+            <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
               Informations personnelles
-            </Typography>
+            </h6>
 
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Prénom *"
-                  {...register('firstName')}
-                  error={!!errors.firstName}
-                  helperText={errors.firstName?.message}
-                  placeholder="Ex: Jean"
-                  InputProps={{
-                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Person size={18} strokeWidth={1.75} /></Box>,
-                  }}
-                />
-              </Grid>
+            <div className="grid grid-cols-12 gap-3 mb-3">
+              <div className="col-span-12 min-[900px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="user-first-name">Prénom *</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <span className="inline-flex text-muted-foreground"><Person size={18} strokeWidth={1.75} /></span>
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="user-first-name"
+                      {...registerField('firstName')}
+                      aria-invalid={!!errors.firstName}
+                      placeholder="Ex: Jean"
+                    />
+                  </InputGroup>
+                  {errors.firstName?.message && <FieldError>{errors.firstName.message}</FieldError>}
+                </Field>
+              </div>
 
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Nom *"
-                  {...register('lastName')}
-                  error={!!errors.lastName}
-                  helperText={errors.lastName?.message}
-                  placeholder="Ex: Dupont"
-                  InputProps={{
-                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Person size={18} strokeWidth={1.75} /></Box>,
-                  }}
-                />
-              </Grid>
-            </Grid>
+              <div className="col-span-12 min-[900px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="user-last-name">Nom *</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <span className="inline-flex text-muted-foreground"><Person size={18} strokeWidth={1.75} /></span>
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="user-last-name"
+                      {...registerField('lastName')}
+                      aria-invalid={!!errors.lastName}
+                      placeholder="Ex: Dupont"
+                    />
+                  </InputGroup>
+                  {errors.lastName?.message && <FieldError>{errors.lastName.message}</FieldError>}
+                </Field>
+              </div>
+            </div>
 
             {/* Informations de contact */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'var(--accent)', fontWeight: 600 }}>
+            <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
               Informations de contact
-            </Typography>
+            </h6>
 
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={8}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Email *"
-                  type="email"
-                  {...register('email')}
-                  error={!!errors.email}
-                  helperText={errors.email?.message}
-                  placeholder="Ex: jean.dupont@clenzy.fr"
-                  InputProps={{
-                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Email size={18} strokeWidth={1.75} /></Box>,
-                  }}
-                />
-              </Grid>
+            <div className="grid grid-cols-12 gap-3 mb-3">
+              <div className="col-span-12 min-[900px]:col-span-8">
+                <Field>
+                  <FieldLabel htmlFor="user-email">Email *</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <span className="inline-flex text-muted-foreground"><Email size={18} strokeWidth={1.75} /></span>
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="user-email"
+                      type="email"
+                      {...registerField('email')}
+                      aria-invalid={!!errors.email}
+                      placeholder="Ex: jean.dupont@baitly.fr"
+                    />
+                  </InputGroup>
+                  {errors.email?.message && <FieldError>{errors.email.message}</FieldError>}
+                </Field>
+              </div>
 
-              <Grid item xs={12} md={4}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Téléphone"
-                  {...register('phoneNumber')}
-                  error={!!errors.phoneNumber}
-                  helperText={errors.phoneNumber?.message}
-                  placeholder="Ex: +33 6 12 34 56 78"
-                  InputProps={{
-                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Phone size={18} strokeWidth={1.75} /></Box>,
-                  }}
-                />
-              </Grid>
-            </Grid>
+              <div className="col-span-12 min-[900px]:col-span-4">
+                <Field>
+                  <FieldLabel htmlFor="user-phone-number">Téléphone</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <span className="inline-flex text-muted-foreground"><Phone size={18} strokeWidth={1.75} /></span>
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="user-phone-number"
+                      {...registerField('phoneNumber')}
+                      aria-invalid={!!errors.phoneNumber}
+                      placeholder="Ex: +33 6 12 34 56 78"
+                    />
+                  </InputGroup>
+                  {errors.phoneNumber?.message && <FieldError>{errors.phoneNumber.message}</FieldError>}
+                </Field>
+              </div>
+            </div>
 
             {/* Sécurité */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'var(--accent)', fontWeight: 600 }}>
+            <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
               Sécurité
-            </Typography>
+            </h6>
 
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Mot de passe *"
-                  type="password"
-                  {...register('password')}
-                  error={!!errors.password}
-                  placeholder="Minimum 8 caractères"
-                  InputProps={{
-                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Lock size={18} strokeWidth={1.75} /></Box>,
-                  }}
-                  FormHelperTextProps={{ sx: { fontSize: '0.7rem' } }}
-                  helperText={errors.password?.message || 'Le mot de passe doit contenir au moins 8 caractères'}
-                />
-              </Grid>
+            <div className="grid grid-cols-12 gap-3 mb-3">
+              <div className="col-span-12 min-[900px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="user-password">Mot de passe *</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <span className="inline-flex text-muted-foreground"><Lock size={18} strokeWidth={1.75} /></span>
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="user-password"
+                      type="password"
+                      {...registerField('password')}
+                      aria-invalid={!!errors.password}
+                      placeholder="Minimum 8 caractères"
+                    />
+                  </InputGroup>
+                  {errors.password?.message ? (
+                    <FieldError>{errors.password.message}</FieldError>
+                  ) : (
+                    <FieldDescription>Le mot de passe doit contenir au moins 8 caractères</FieldDescription>
+                  )}
+                </Field>
+              </div>
 
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Confirmer le mot de passe *"
-                  type="password"
-                  {...register('confirmPassword')}
-                  error={!!errors.confirmPassword || (watchedPassword !== watchedConfirmPassword && watchedConfirmPassword !== '')}
-                  placeholder="Retapez le mot de passe"
-                  InputProps={{
-                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Lock size={18} strokeWidth={1.75} /></Box>,
-                  }}
-                  FormHelperTextProps={{ sx: { fontSize: '0.7rem' } }}
-                  helperText={
-                    errors.confirmPassword?.message
-                      ? errors.confirmPassword.message
-                      : watchedPassword !== watchedConfirmPassword && watchedConfirmPassword !== ''
-                        ? 'Les mots de passe ne correspondent pas'
-                        : ''
-                  }
-                />
-              </Grid>
-            </Grid>
+              <div className="col-span-12 min-[900px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="user-confirm-password">Confirmer le mot de passe *</FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <span className="inline-flex text-muted-foreground"><Lock size={18} strokeWidth={1.75} /></span>
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="user-confirm-password"
+                      type="password"
+                      {...registerField('confirmPassword')}
+                      aria-invalid={!!errors.confirmPassword || passwordsMismatch}
+                      placeholder="Retapez le mot de passe"
+                    />
+                  </InputGroup>
+                  {(errors.confirmPassword?.message || passwordsMismatch) && (
+                    <FieldError>
+                      {errors.confirmPassword?.message ?? 'Les mots de passe ne correspondent pas'}
+                    </FieldError>
+                  )}
+                </Field>
+              </div>
+            </div>
 
             {/* Rôle et statut */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'var(--accent)', fontWeight: 600 }}>
+            <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
               Rôle et statut
-            </Typography>
+            </h6>
 
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth required size="small" error={!!errors.role}>
-                  <InputLabel>Rôle *</InputLabel>
+            <div className="grid grid-cols-12 gap-3 mb-3">
+              <div className="col-span-12 min-[900px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="user-role">Rôle *</FieldLabel>
                   <Controller
                     name="role"
                     control={control}
                     render={({ field }) => (
-                      <Select
-                        {...field}
-                        label="Rôle *"
-                      >
-                        {userRoles.map((role) => (
-                          <MenuItem key={role.value} value={role.value}>
-                            <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Box sx={{ fontSize: 18 }}>{role.icon}</Box>
-                              <Typography variant="body2">{role.label}</Typography>
-                            </MuiBox>
-                          </MenuItem>
-                        ))}
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger id="user-role" className="w-full" aria-invalid={!!errors.role}>
+                          <SelectValue placeholder="Rôle" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {userRoles.map((role) => (
+                            <SelectItem key={role.value} value={role.value}>
+                              <span className="flex items-center gap-1.5">
+                                <span className="inline-flex text-[18px]">{role.icon}</span>
+                                {role.label}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
                     )}
                   />
-                  <FormHelperText sx={{ fontSize: '0.7rem' }}>
-                    {errors.role?.message || "Le rôle détermine les permissions de l'utilisateur"}
-                  </FormHelperText>
-                </FormControl>
-              </Grid>
+                  {errors.role?.message ? (
+                    <FieldError className="text-[0.7rem]">{errors.role.message}</FieldError>
+                  ) : (
+                    <FieldDescription className="text-[0.7rem]">
+                      Le rôle détermine les permissions de l'utilisateur
+                    </FieldDescription>
+                  )}
+                </Field>
+              </div>
 
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth required size="small" error={!!errors.status}>
-                  <InputLabel>Statut *</InputLabel>
+              <div className="col-span-12 min-[900px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="user-status">Statut *</FieldLabel>
                   <Controller
                     name="status"
                     control={control}
                     render={({ field }) => (
-                      <Select
-                        {...field}
-                        label="Statut *"
-                      >
-                        {userStatuses.map((status) => (
-                          <MenuItem key={status.value} value={status.value}>
-                              <Chip
-                                label={status.label}
-                                size="small"
-                                color={status.color}
-                                variant="outlined"
-                              sx={{ height: 22, fontSize: '0.7rem' }}
-                              />
-                          </MenuItem>
-                        ))}
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger id="user-status" className="w-full" aria-invalid={!!errors.status}>
+                          <SelectValue placeholder="Statut" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {userStatuses.map((status) => (
+                            <SelectItem key={status.value} value={status.value}>
+                              <StatusChip tone={STATUS_TONE[status.color] ?? 'neutral'} label={status.label} />
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
                     )}
                   />
-                  <FormHelperText sx={{ fontSize: '0.7rem' }}>
-                    {errors.status?.message || "Le statut détermine si l'utilisateur peut se connecter"}
-                  </FormHelperText>
-                </FormControl>
-              </Grid>
-            </Grid>
+                  {errors.status?.message ? (
+                    <FieldError className="text-[0.7rem]">{errors.status.message}</FieldError>
+                  ) : (
+                    <FieldDescription className="text-[0.7rem]">
+                      Le statut détermine si l'utilisateur peut se connecter
+                    </FieldDescription>
+                  )}
+                </Field>
+              </div>
+            </div>
 
             {/* Aperçu du rôle sélectionné */}
             {watchedRole && (
-              <Box sx={{ mb: 2, p: 1.5, bgcolor: 'var(--field)', border: '1px solid var(--field-line)', borderRadius: '8px' }}>
-                <Typography variant="caption" color="primary" sx={{ mb: 0.75, fontWeight: 600, fontSize: '0.75rem' }}>
+              <div className="mb-3 p-2 bg-[var(--field)] border border-[var(--field-line)] rounded-[8px]">
+                <span className="cn-text-caption text-primary mb-1 font-semibold text-[0.75rem]">
                   📋 Rôle sélectionné : {userRoles.find(r => r.value === watchedRole)?.label}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                </span>
+                <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
                   {watchedRole === 'SUPER_ADMIN' && 'Super administrateur avec accès complet multi-organisations'}
                   {watchedRole === 'SUPER_MANAGER' && 'Super manager avec gestion étendue multi-équipes'}
                   {watchedRole === 'SUPERVISOR' && 'Supervision des interventions et du personnel'}
@@ -450,92 +504,105 @@ const UserForm: React.FC = () => {
                   {watchedRole === 'HOST' && 'Gestion de ses propres propriétés'}
                   {watchedRole === 'LAUNDRY' && 'Gestion du linge et de la blanchisserie'}
                   {watchedRole === 'EXTERIOR_TECH' && 'Entretien des espaces extérieurs'}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             )}
 
             {/* Organisation */}
-            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'var(--accent)', fontWeight: 600 }}>
+            <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
               Organisation
-            </Typography>
+            </h6>
 
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth size="small" error={!!errors.organizationId}>
-                  <InputLabel>Organisation</InputLabel>
+            <div className="grid grid-cols-12 gap-3 mb-3">
+              <div className="col-span-12 min-[900px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="user-organization">Organisation</FieldLabel>
                   <Controller
                     name="organizationId"
                     control={control}
                     render={({ field }) => (
                       <Select
-                        {...field}
-                        label="Organisation"
+                        value={field.value || NONE_OPTION}
+                        onValueChange={(value) => field.onChange(value === NONE_OPTION ? '' : value)}
                       >
-                        <MenuItem value="">
-                          <Typography variant="body2" color="text.secondary">Aucune</Typography>
-                        </MenuItem>
-                        {organizations.map((org) => (
-                          <MenuItem key={org.id} value={String(org.id)}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Business size={18} strokeWidth={1.75} /></Box>
-                              <Typography variant="body2">{org.name}</Typography>
-                            </Box>
-                          </MenuItem>
-                        ))}
+                        <SelectTrigger id="user-organization" className="w-full" aria-invalid={!!errors.organizationId}>
+                          <SelectValue placeholder="Aucune" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NONE_OPTION}>
+                            <span className="text-muted-foreground">Aucune</span>
+                          </SelectItem>
+                          {organizations.map((org) => (
+                            <SelectItem key={org.id} value={String(org.id)}>
+                              <span className="flex items-center gap-1.5">
+                                <span className="inline-flex text-muted-foreground"><Business size={18} strokeWidth={1.75} /></span>
+                                {org.name}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
                     )}
                   />
-                  <FormHelperText sx={{ fontSize: '0.7rem' }}>
-                    {errors.organizationId?.message || "Optionnel — rattacher l'utilisateur à une organisation"}
-                  </FormHelperText>
-                </FormControl>
-              </Grid>
+                  {errors.organizationId?.message ? (
+                    <FieldError className="text-[0.7rem]">{errors.organizationId.message}</FieldError>
+                  ) : (
+                    <FieldDescription className="text-[0.7rem]">
+                      Optionnel — rattacher l'utilisateur à une organisation
+                    </FieldDescription>
+                  )}
+                </Field>
+              </div>
 
-              <Grid item xs={12} md={6}>
-                <FormControl
-                  fullWidth
-                  size="small"
-                  required={!!watchedOrganizationId && watchedOrganizationId !== ''}
-                  error={!!errors.orgRole}
-                  disabled={!watchedOrganizationId || watchedOrganizationId === ''}
-                >
-                  <InputLabel>
+              <div className="col-span-12 min-[900px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="user-org-role">
                     Rôle dans l'organisation {watchedOrganizationId && watchedOrganizationId !== '' ? '*' : ''}
-                  </InputLabel>
+                  </FieldLabel>
                   <Controller
                     name="orgRole"
                     control={control}
                     render={({ field }) => (
                       <Select
-                        {...field}
-                        label={`Rôle dans l'organisation ${watchedOrganizationId && watchedOrganizationId !== '' ? '*' : ''}`}
+                        value={field.value || NONE_OPTION}
+                        onValueChange={(value) => field.onChange(value === NONE_OPTION ? '' : value)}
+                        disabled={!watchedOrganizationId || watchedOrganizationId === ''}
                       >
-                        <MenuItem value="">
-                          <Typography variant="body2" color="text.secondary">Aucun</Typography>
-                        </MenuItem>
-                        {orgMemberRoles.map((role) => (
-                          <MenuItem key={role.value} value={role.value}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Group size={18} strokeWidth={1.75} /></Box>
-                              <Typography variant="body2">{role.label}</Typography>
-                            </Box>
-                          </MenuItem>
-                        ))}
+                        <SelectTrigger id="user-org-role" className="w-full" aria-invalid={!!errors.orgRole}>
+                          <SelectValue placeholder="Aucun" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NONE_OPTION}>
+                            <span className="text-muted-foreground">Aucun</span>
+                          </SelectItem>
+                          {orgMemberRoles.map((role) => (
+                            <SelectItem key={role.value} value={role.value}>
+                              <span className="flex items-center gap-1.5">
+                                <span className="inline-flex text-muted-foreground"><Group size={18} strokeWidth={1.75} /></span>
+                                {role.label}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
                     )}
                   />
-                  <FormHelperText sx={{ fontSize: '0.7rem' }}>
-                    {errors.orgRole?.message || (watchedOrganizationId && watchedOrganizationId !== ''
-                      ? "Requis — rôle de l'utilisateur dans l'organisation"
-                      : "Sélectionnez d'abord une organisation")}
-                  </FormHelperText>
-                </FormControl>
-              </Grid>
-            </Grid>
+                  {errors.orgRole?.message ? (
+                    <FieldError className="text-[0.7rem]">{errors.orgRole.message}</FieldError>
+                  ) : (
+                    <FieldDescription className="text-[0.7rem]">
+                      {watchedOrganizationId && watchedOrganizationId !== ''
+                        ? "Requis — rôle de l'utilisateur dans l'organisation"
+                        : "Sélectionnez d'abord une organisation"}
+                    </FieldDescription>
+                  )}
+                </Field>
+              </div>
+            </div>
           </form>
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

@@ -1,34 +1,30 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Box, Paper, Typography, Button, Chip, CircularProgress, Snackbar, Alert } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+import { Spinner } from '../../../components/ui';
+import { Card } from '../../../components/ui';
+import { Button } from '../../../components/ui';
+import { useNotification } from '../../../hooks/useNotification';
 import { Refresh } from '../../../icons';
 import { environmentSensorsApi, type EnvironmentSensorDto } from '../../../services/api/environmentSensorsApi';
 import { STATUS_TOKENS } from '../deviceRegistry';
 import BatteryIndicator from '../components/BatteryIndicator';
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import type { ConnectedDevice, DeviceStatusLevel } from '../types';
 
 // Pilule statut : texte couleur + fond `-soft` (tokens sémantiques Signature,
 // mêmes niveaux que StatusPill — remplace l'ancien helper hex softChipSx).
-const statusPillSx = (level: DeviceStatusLevel) => {
+/** Tokens de la primitive pour un niveau de statut d'appareil. */
+const statusTokens = (level: DeviceStatusLevel) => {
   const { color, soft } = STATUS_TOKENS[level];
-  return {
-    height: 22,
-    fontSize: '0.6875rem',
-    fontWeight: 600,
-    backgroundColor: soft,
-    color,
-    border: 'none',
-    borderRadius: 'var(--radius-pill)',
-    '& .MuiChip-label': { px: 1 },
-  } as const;
+  return { color, bg: soft };
 };
 
 function InfoRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, py: 0.625 }}>
-      <Typography variant="caption" sx={{ color: 'text.secondary' }}>{label}</Typography>
-      <Box sx={{ fontWeight: 600, color: 'text.primary', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{value}</Box>
-    </Box>
+    <div className="flex justify-between items-center gap-3 py-1">
+      <span className="cn-text-caption text-muted-foreground">{label}</span>
+      <div className="font-semibold text-foreground text-end tabular-nums">{value}</div>
+    </div>
   );
 }
 
@@ -46,34 +42,34 @@ function fmt(dt: string | null): string {
 export default function SensorDetail({ device }: { device: ConnectedDevice }) {
   const qc = useQueryClient();
   const sensor = device.raw as EnvironmentSensorDto;
-  const [snack, setSnack] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
+  const { notify } = useNotification();
 
   const refresh = useMutation({
     mutationFn: () => environmentSensorsApi.refresh(device.id),
     onSuccess: () => {
-      setSnack({ msg: 'État rafraîchi', severity: 'success' });
+      notify.success('État rafraîchi');
       void qc.invalidateQueries({ queryKey: ['connected-objects'] });
     },
-    onError: (e: unknown) => setSnack({ msg: e instanceof Error ? e.message : 'Échec du rafraîchissement', severity: 'error' }),
+    onError: (e: unknown) => notify.error(e instanceof Error ? e.message : 'Échec du rafraîchissement'),
   });
 
   // État principal typé (chip colorée — le seul endroit où la couleur porte un sens).
   const primary = (() => {
     switch (sensor.sensorType) {
       case 'CONTACT': {
-        if (sensor.contactOpen == null) return { label: 'État', node: <Chip size="small" label="Inconnu" sx={statusPillSx('unknown')} /> };
+        if (sensor.contactOpen == null) return { label: 'État', node: <StatusChip pill tokens={statusTokens('unknown')} label="Inconnu" /> };
         const open = sensor.contactOpen === true;
-        return { label: 'État', node: <Chip size="small" label={open ? 'Ouvert' : 'Fermé'} sx={statusPillSx(open ? 'warning' : 'ok')} /> };
+        return { label: 'État', node: <StatusChip pill tokens={statusTokens(open ? 'warning' : 'ok')} label={open ? 'Ouvert' : 'Fermé'} /> };
       }
       case 'MOTION': {
-        if (sensor.motionDetected == null) return { label: 'Mouvement', node: <Chip size="small" label="Inconnu" sx={statusPillSx('unknown')} /> };
+        if (sensor.motionDetected == null) return { label: 'Mouvement', node: <StatusChip pill tokens={statusTokens('unknown')} label="Inconnu" /> };
         const m = sensor.motionDetected === true;
-        return { label: 'Mouvement', node: <Chip size="small" label={m ? 'Détecté' : 'Aucun'} sx={statusPillSx(m ? 'warning' : 'ok')} /> };
+        return { label: 'Mouvement', node: <StatusChip pill tokens={statusTokens(m ? 'warning' : 'ok')} label={m ? 'Détecté' : 'Aucun'} /> };
       }
       case 'SMOKE': {
-        if (sensor.smokeDetected == null) return { label: 'Fumée / vape', node: <Chip size="small" label="Inconnu" sx={statusPillSx('unknown')} /> };
+        if (sensor.smokeDetected == null) return { label: 'Fumée / vape', node: <StatusChip pill tokens={statusTokens('unknown')} label="Inconnu" /> };
         const s = sensor.smokeDetected === true;
-        return { label: 'Fumée / vape', node: <Chip size="small" label={s ? 'Détectée' : 'Aucune'} sx={statusPillSx(s ? 'critical' : 'ok')} /> };
+        return { label: 'Fumée / vape', node: <StatusChip pill tokens={statusTokens(s ? 'critical' : 'ok')} label={s ? 'Détectée' : 'Aucune'} /> };
       }
       default:
         return null; // climate : pas de chip binaire, on montre les mesures
@@ -81,20 +77,20 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
   })();
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>État du capteur</Typography>
+    <div className="flex flex-col gap-3">
+      <Card className="gap-0 py-0 p-3">
+        <div className="flex justify-between items-center mb-1.5">
+          <h6 className="cn-text-subtitle2 font-bold">État du capteur</h6>
           <Button
-            size="small"
-            variant="outlined"
-            startIcon={refresh.isPending ? <CircularProgress size={13} color="inherit" /> : <Refresh size={15} strokeWidth={1.75} />}
+            size="sm"
+            variant="outline"
             onClick={() => refresh.mutate()}
             disabled={refresh.isPending}
           >
+            {refresh.isPending ? <Spinner className="size-[13px]" /> : <Refresh size={15} strokeWidth={1.75} />}
             Rafraîchir
           </Button>
-        </Box>
+        </div>
 
         {primary && <InfoRow label={primary.label} value={primary.node} />}
         {sensor.sensorType === 'TEMP_HUMIDITY' && (
@@ -116,25 +112,21 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
         {(sensor.sensorType === 'SMOKE' || sensor.sensorType === 'MOTION' || sensor.sensorType === 'CONTACT') && (
           <InfoRow label="Dernière détection" value={fmt(sensor.lastEventAt)} />
         )}
-      </Paper>
+      </Card>
 
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)' }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Identité</Typography>
+      <Card className="gap-0 py-0 p-3">
+        <h6 className="cn-text-subtitle2 font-bold mb-1.5">Identité</h6>
         <InfoRow label="Pièce" value={device.roomName || '—'} />
         <InfoRow label="Fournisseur" value={sensor.brand || '—'} />
         <InfoRow label="Logement" value={device.propertyName} />
-      </Paper>
+      </Card>
 
       {(sensor.sensorType === 'SMOKE' || sensor.sensorType === 'MOTION') && (
-        <Typography variant="caption" sx={{ color: 'text.secondary', px: 0.5 }}>
+        <span className="cn-text-caption text-muted-foreground px-0.5">
           Une notification est envoyée aux administrateurs et managers de l'organisation à chaque détection
           {sensor.sensorType === 'SMOKE' ? ' de fumée ou de vape' : ' de mouvement'} (avec anti-spam).
-        </Typography>
+        </span>
       )}
-
-      <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        {snack ? <Alert severity={snack.severity} variant="filled" onClose={() => setSnack(null)} sx={{ width: '100%' }}>{snack.msg}</Alert> : undefined}
-      </Snackbar>
-    </Box>
+    </div>
   );
 }

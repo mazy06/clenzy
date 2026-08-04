@@ -1,17 +1,19 @@
 import React from 'react';
 import {
-  Box,
-  Grid,
-  Typography,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
   Card,
   CardContent,
-} from '@mui/material';
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
+} from '../../components/ui';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
 import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
@@ -69,194 +71,234 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
     const { t } = useTranslation();
 
     return (
-      <Grid item xs={12} md={8}>
-        <Card>
-          <CardContent sx={{ p: 2 }}>
-            <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
+      <div className="col-span-12 min-[900px]:col-span-8">
+        <Card size="sm">
+          <CardContent>
+            <h6 className="cn-text-subtitle1 font-semibold mb-2">
               {t('interventions.sections.mainInfo')}
-            </Typography>
+            </h6>
 
-            <Grid container spacing={1.5}>
-              <Grid item xs={12}>
+            <div className="grid grid-cols-12 gap-[9px]">
+              <div className="col-span-12">
                 <Controller
                   name="title"
                   control={control}
                   render={({ field, fieldState }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label={t('interventions.fields.title')}
-                      required
-                      error={!!fieldState.error}
-                      helperText={fieldState.error?.message}
-                      size="small"
-                    />
+                    // field.ref n'est pas transmis : les primitives du kit sont des
+                    // composants fonction sans forwardRef (React 18).
+                    <Field>
+                      <FieldLabel htmlFor="intervention-title">{t('interventions.fields.title')}</FieldLabel>
+                      <Input
+                        id="intervention-title"
+                        name={field.name}
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        required
+                        aria-invalid={!!fieldState.error}
+                      />
+                      {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                    </Field>
                   )}
                 />
-              </Grid>
+              </div>
 
-              <Grid item xs={12}>
+              <div className="col-span-12">
                 <Controller
                   name="description"
                   control={control}
                   render={({ field, fieldState }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label={t('interventions.fields.description')}
-                      multiline
-                      rows={3}
-                      required
-                      error={!!fieldState.error}
-                      helperText={fieldState.error?.message}
-                      size="small"
-                    />
+                    <Field>
+                      <FieldLabel htmlFor="intervention-description">
+                        {t('interventions.fields.description')}
+                      </FieldLabel>
+                      <Textarea
+                        id="intervention-description"
+                        rows={3}
+                        name={field.name}
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        required
+                        aria-invalid={!!fieldState.error}
+                      />
+                      {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                    </Field>
                   )}
                 />
-              </Grid>
+              </div>
 
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <Controller
                   name="type"
                   control={control}
                   render={({ field, fieldState }) => (
-                    <FormControl fullWidth required error={!!fieldState.error}>
-                      <InputLabel>{t('interventions.fields.interventionType')}</InputLabel>
-                      <Select
-                        {...field}
-                        label={t('interventions.fields.interventionType')}
-                        size="small"
-                      >
-                        {interventionTypes.map((type) => {
-                          const typeOption = INTERVENTION_TYPE_OPTIONS.find(option => option.value === type.value);
-                          const IconComponent = typeOption?.icon;
+                    <Field>
+                      <FieldLabel htmlFor="intervention-type">
+                        {t('interventions.fields.interventionType')}
+                      </FieldLabel>
+                      <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                        <SelectTrigger
+                          id="intervention-type"
+                          size="sm"
+                          className="w-full"
+                          aria-invalid={!!fieldState.error}
+                        >
+                          <SelectValue placeholder={t('interventions.fields.interventionType')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {interventionTypes.map((type) => {
+                            const typeOption = INTERVENTION_TYPE_OPTIONS.find(option => option.value === type.value);
+                            const IconComponent = typeOption?.icon;
 
-                          return (
-                            <MenuItem key={type.value} value={type.value}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                {IconComponent && <IconComponent size={18} strokeWidth={1.75} />}
-                                <Typography variant="body2">{type.label}</Typography>
-                              </Box>
-                            </MenuItem>
-                          );
-                        })}
+                            return (
+                              <SelectItem key={type.value} value={type.value}>
+                                <span className="flex items-center gap-1">
+                                  {IconComponent && <IconComponent size={18} strokeWidth={1.75} />}
+                                  {type.label}
+                                </span>
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
                       </Select>
-                      {fieldState.error && (
-                        <FormHelperText>{fieldState.error.message}</FormHelperText>
-                      )}
-                    </FormControl>
+                      {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                    </Field>
                   )}
                 />
-              </Grid>
+              </div>
 
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <Controller
                   name="status"
                   control={control}
                   render={({ field, fieldState }) => (
-                    <FormControl fullWidth required error={!!fieldState.error}>
-                      <InputLabel>{t('interventions.fields.status')}</InputLabel>
-                      <Select
-                        {...field}
-                        label={t('interventions.fields.status')}
-                        size="small"
-                      >
-                        {statuses.map((status) => (
-                          <MenuItem key={status.value} value={status.value}>
-                            {status.label}
-                          </MenuItem>
-                        ))}
+                    <Field>
+                      <FieldLabel htmlFor="intervention-status">
+                        {t('interventions.fields.status')}
+                      </FieldLabel>
+                      <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                        <SelectTrigger
+                          id="intervention-status"
+                          size="sm"
+                          className="w-full"
+                          aria-invalid={!!fieldState.error}
+                        >
+                          <SelectValue placeholder={t('interventions.fields.status')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statuses.map((status) => (
+                            <SelectItem key={status.value} value={status.value}>
+                              {status.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
-                      {fieldState.error && (
-                        <FormHelperText>{fieldState.error.message}</FormHelperText>
-                      )}
-                    </FormControl>
+                      {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                    </Field>
                   )}
                 />
-              </Grid>
+              </div>
 
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <Controller
                   name="priority"
                   control={control}
                   render={({ field, fieldState }) => (
-                    <FormControl fullWidth required error={!!fieldState.error}>
-                      <InputLabel>{t('interventions.fields.priority')}</InputLabel>
-                      <Select
-                        {...field}
-                        label={t('interventions.fields.priority')}
-                        size="small"
-                      >
-                        {priorities.map((priority) => (
-                          <MenuItem key={priority.value} value={priority.value}>
-                            {priority.label}
-                          </MenuItem>
-                        ))}
+                    <Field>
+                      <FieldLabel htmlFor="intervention-priority">
+                        {t('interventions.fields.priority')}
+                      </FieldLabel>
+                      <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                        <SelectTrigger
+                          id="intervention-priority"
+                          size="sm"
+                          className="w-full"
+                          aria-invalid={!!fieldState.error}
+                        >
+                          <SelectValue placeholder={t('interventions.fields.priority')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {priorities.map((priority) => (
+                            <SelectItem key={priority.value} value={priority.value}>
+                              {priority.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
-                      {fieldState.error && (
-                        <FormHelperText>{fieldState.error.message}</FormHelperText>
-                      )}
-                    </FormControl>
+                      {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                    </Field>
                   )}
                 />
-              </Grid>
+              </div>
 
               {/* Date planifiee (date seule) */}
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label={t('interventions.fields.scheduledDate')}
-                  type="date"
-                  required
-                  value={scheduledDatePart}
-                  onChange={(e) => setScheduledDatePart(e.target.value)}
-                  size="small"
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
+              <div className="col-span-12 min-[600px]:col-span-4">
+                <Field>
+                  <FieldLabel htmlFor="intervention-scheduled-date">
+                    {t('interventions.fields.scheduledDate')}
+                  </FieldLabel>
+                  <Input
+                    id="intervention-scheduled-date"
+                    type="date"
+                    required
+                    value={scheduledDatePart}
+                    onChange={(e) => setScheduledDatePart(e.target.value)}
+                  />
+                </Field>
+              </div>
 
               {/* Heure de debut */}
-              <Grid item xs={6} sm={4}>
-                <TextField
-                  fullWidth
-                  label="Heure"
-                  type="time"
-                  required
-                  value={scheduledTimePart}
-                  onChange={(e) => setScheduledTimePart(e.target.value)}
-                  size="small"
-                  InputLabelProps={{ shrink: true }}
-                  inputProps={{ step: 900 }}
-                  helperText={
-                    (() => {
-                      const sel = properties.find(p => p.id === watchedPropertyId);
-                      return sel?.defaultCheckOutTime ? `Défaut : ${sel.defaultCheckOutTime}` : undefined;
-                    })()
-                  }
-                />
-              </Grid>
+              <div className="col-span-6 min-[600px]:col-span-4">
+                <Field>
+                  <FieldLabel htmlFor="intervention-scheduled-time">Heure</FieldLabel>
+                  <Input
+                    id="intervention-scheduled-time"
+                    type="time"
+                    required
+                    value={scheduledTimePart}
+                    onChange={(e) => setScheduledTimePart(e.target.value)}
+                    step={900}
+                  />
+                  {(() => {
+                    const sel = properties.find(p => p.id === watchedPropertyId);
+                    return sel?.defaultCheckOutTime
+                      ? <FieldDescription>{`Défaut : ${sel.defaultCheckOutTime}`}</FieldDescription>
+                      : null;
+                  })()}
+                </Field>
+              </div>
 
               {/* Duree estimee (fractionnaire) */}
-              <Grid item xs={6} sm={4}>
+              <div className="col-span-6 min-[600px]:col-span-4">
                 <Controller
                   name="estimatedDurationHours"
                   control={control}
                   render={({ field, fieldState }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label={t('interventions.fields.estimatedDuration')}
-                      type="number"
-                      required
-                      error={!!fieldState.error}
-                      helperText={fieldState.error?.message || 'En heures (ex: 1.5 = 1h30)'}
-                      inputProps={{ min: 0.5, max: 24, step: 0.5 }}
-                      size="small"
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                    />
+                    <Field>
+                      <FieldLabel htmlFor="intervention-estimated-duration">
+                        {t('interventions.fields.estimatedDuration')}
+                      </FieldLabel>
+                      <Input
+                        id="intervention-estimated-duration"
+                        type="number"
+                        required
+                        name={field.name}
+                        value={field.value ?? ''}
+                        onBlur={field.onBlur}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        aria-invalid={!!fieldState.error}
+                        min={0.5}
+                        max={24}
+                        step={0.5}
+                      />
+                      {fieldState.error
+                        ? <FieldError>{fieldState.error.message}</FieldError>
+                        : <FieldDescription>En heures (ex: 1.5 = 1h30)</FieldDescription>}
+                    </Field>
                   )}
                 />
-              </Grid>
+              </div>
 
               {/* Hidden field for react-hook-form scheduledDate */}
               <Controller
@@ -267,29 +309,35 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
                 )}
               />
 
-              <Grid item xs={12} sm={6}>
+              <div className="col-span-12 min-[600px]:col-span-6">
                 <Controller
                   name="progressPercentage"
                   control={control}
                   render={({ field, fieldState }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label={t('interventions.fields.initialProgress')}
-                      type="number"
-                      error={!!fieldState.error}
-                      helperText={fieldState.error?.message}
-                      inputProps={{ min: 0, max: 100 }}
-                      size="small"
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                    />
+                    <Field>
+                      <FieldLabel htmlFor="intervention-progress">
+                        {t('interventions.fields.initialProgress')}
+                      </FieldLabel>
+                      <Input
+                        id="intervention-progress"
+                        type="number"
+                        name={field.name}
+                        value={field.value ?? ''}
+                        onBlur={field.onBlur}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        aria-invalid={!!fieldState.error}
+                        min={0}
+                        max={100}
+                      />
+                      {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                    </Field>
                   )}
                 />
-              </Grid>
-            </Grid>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      </Grid>
+      </div>
     );
   }
 );

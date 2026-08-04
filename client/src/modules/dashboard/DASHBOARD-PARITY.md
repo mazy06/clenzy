@@ -388,6 +388,28 @@ qui sont précisément ce qui attend une décision humaine.
   succès » fabriqué côté serveur aurait été du français en dur dans une
   interface qui parle aussi anglais et arabe.
 
+### Mise à jour 2026-08 — convergence des deux files
+
+Ce qui précède décrivait un état intermédiaire, resté faux un temps : les cartes
+d'agents avaient ensuite été **retirées** de « À traiter » (elles vivaient dans
+la seule constellation), et le plafond était passé de 3 à 10 par nature.
+
+Les deux files ont depuis convergé pour de bon, par le chemin normal des sources
+(`SupervisionSuggestionActionSource`, nature `AGENT_CARD`) :
+
+- « À traiter » liste les cartes ACTIONNABLES des agents ; les cartes purement
+  informatives restent dans la constellation, une file d'actions n'a pas à
+  porter ce qui n'appelle aucune décision.
+- Le litige bancaire en est exclu : `PAYMENT_INCIDENT` le porte déjà, l'exposer
+  deux fois ferait deux lignes pour un seul litige.
+- La **décision** reste dans la constellation : c'est là que vivent les écrans de
+  contexte (simulation tarifaire, brouillon de réponse d'avis). La carte du
+  tableau de bord y renvoie.
+- Deux asymétries subsistent, assumées : une carte d'agent **expire à 7 jours**
+  (TTL des suggestions) là où une ligne `action_item` reste ouverte
+  indéfiniment ; et les cartes org-level (RGPD, site, taxe) restent réservées
+  aux profils non restreints au périmètre propriétaire.
+
 ### Couverture finale
 
 **§1 à §8 de la projection sont rendus**, en Baitly UI, sur la disposition

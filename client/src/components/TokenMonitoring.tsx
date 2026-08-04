@@ -1,18 +1,19 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { cn } from '../utils/cn';
+import StatusChip from './StatusChip';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from './ui';
+import { TriangleAlert, X } from 'lucide-react';
+import { Spinner } from './ui';
+import { Card } from '../components/ui';
 import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Chip,
-  Alert,
-  IconButton,
-  Tooltip,
-  Stack,
-  LinearProgress,
-  CircularProgress,
   Avatar,
-} from '@mui/material';
+  AvatarFallback,
+  AvatarImage,
+  Progress,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from './ui';
 import {
   Refresh,
   Delete,
@@ -43,6 +44,14 @@ import { userAvatarSrc } from '../services/api/usersApi';
 import { parseApiDate } from '../utils/formatUtils';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+// Anneau de decompte. Le kit n'a pas de jauge circulaire DETERMINEE (Spinner est
+// indetermine), et deux cercles SVG suffisent : le trace est plus court que le
+// `CircularProgress` MUI qu'il remplace, sans en dependre.
+const RING_SIZE = 96;
+const RING_THICKNESS = 3;
+const RING_RADIUS = (RING_SIZE - RING_THICKNESS) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 function formatDuration(seconds: number): string {
   if (seconds <= 0) return 'Expiré';
@@ -136,35 +145,32 @@ const TokenMonitoring: React.FC = () => {
   // Register page-header actions (refresh + cleanup) for this tab.
   useEffect(() => {
     setHeaderActions(
-      <Stack direction="row" spacing={1}>
-        <Button
-          variant="outlined"
-          size="small"
+      <div className="flex flex-row gap-1.5">
+        <BuiButton
+          variant="outline"
+          size="sm"
           onClick={loadTokenStats}
           disabled={isLoading}
-          startIcon={
-            isLoading ? (
-              <CircularProgress size={14} color="inherit" />
-            ) : (
-              <Refresh size={16} strokeWidth={1.75} />
-            )
-          }
-          sx={{ textTransform: 'none', fontWeight: 600 }}
         >
+          {isLoading ? (
+            <Spinner className="size-3.5" />
+          ) : (
+            <Refresh size={16} strokeWidth={1.75} />
+          )}
           Actualiser
-        </Button>
-        <Button
-          variant="outlined"
-          color="warning"
-          size="small"
+        </BuiButton>
+        {/* color="warning" n'a pas de variante dediee : outline + teinte --warn. */}
+        <BuiButton
+          variant="outline"
+          size="sm"
           onClick={cleanupTokens}
           disabled={isLoading}
-          startIcon={<Delete size={16} strokeWidth={1.75} />}
-          sx={{ textTransform: 'none', fontWeight: 600 }}
+          className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
         >
+          <Delete size={16} strokeWidth={1.75} />
           Nettoyer expirés
-        </Button>
-      </Stack>,
+        </BuiButton>
+      </div>,
     );
     return () => setHeaderActions(null);
   }, [setHeaderActions, isLoading, loadTokenStats, cleanupTokens]);
@@ -211,228 +217,171 @@ const TokenMonitoring: React.FC = () => {
   }, [tokenStats]);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+    <div className="flex flex-col gap-3.5">
       {error && (
-        <Alert severity="error" onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <BuiAlert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ─── Hero card : current token ─────────────────────────────── */}
-      <Paper
-        variant="outlined"
-        sx={{
-          p: 3,
-          borderRadius: '14px',
-          bgcolor: 'var(--card)',
-          borderColor: 'var(--line)',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
+      <Card className="gap-0 py-0 p-4 bg-[var(--card)] border-[var(--line)] relative overflow-hidden">
         {currentToken.isAuthenticated ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+          <div className="flex items-center gap-4 flex-wrap">
             {/* Countdown ring + avatar */}
-            <Box sx={{ position: 'relative', width: 96, height: 96, flexShrink: 0 }}>
-              <CircularProgress
-                variant="determinate"
-                value={100}
-                size={96}
-                thickness={3}
-                sx={{ color: 'var(--hover)', position: 'absolute', top: 0, left: 0 }}
-              />
-              <CircularProgress
-                variant="determinate"
-                value={remainingPct}
-                size={96}
-                thickness={3}
-                sx={{
-                  color: tokenStatus.fg,
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  transition: 'color 300ms',
-                }}
-              />
-              <Avatar
-                src={userAvatarSrc(user)}
-                alt={currentToken.username || currentToken.email || 'avatar'}
-                sx={{
-                  position: 'absolute',
-                  inset: 8,
-                  width: 'auto',
-                  height: 'auto',
-                  bgcolor: 'var(--accent)',
-                  color: 'var(--on-accent)',
-                  fontFamily: 'var(--font-display)',
-                  fontWeight: 600,
-                  fontSize: '1.5rem',
-                  letterSpacing: '0.05em',
-                }}
+            <div className="relative w-[96px] h-[96px] shrink-0">
+              {/* `-rotate-90` + `origin-center` : le remplissage demarre a midi et
+                  tourne dans le sens horaire, comme le faisait MUI. */}
+              <svg
+                className="absolute top-0 left-0 -rotate-90 origin-center"
+                width={RING_SIZE}
+                height={RING_SIZE}
+                viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
+                aria-hidden
               >
-                {getInitials(currentToken.username || currentToken.email)}
+                <circle
+                  cx={RING_SIZE / 2}
+                  cy={RING_SIZE / 2}
+                  r={RING_RADIUS}
+                  fill="none"
+                  stroke="var(--hover)"
+                  strokeWidth={RING_THICKNESS}
+                />
+                <circle
+                  cx={RING_SIZE / 2}
+                  cy={RING_SIZE / 2}
+                  r={RING_RADIUS}
+                  fill="none"
+                  stroke={tokenStatus.fg}
+                  strokeWidth={RING_THICKNESS}
+                  strokeLinecap="round"
+                  strokeDasharray={RING_CIRCUMFERENCE}
+                  strokeDashoffset={RING_CIRCUMFERENCE * (1 - Math.min(100, Math.max(0, remainingPct)) / 100)}
+                  className="transition-[stroke,stroke-dashoffset] duration-300 motion-reduce:transition-none"
+                />
+              </svg>
+              <Avatar className="absolute inset-2 size-auto">
+                <AvatarImage
+                  src={userAvatarSrc(user)}
+                  alt={currentToken.username || currentToken.email || 'avatar'}
+                />
+                <AvatarFallback className="bg-[var(--accent)] text-[var(--on-accent)] font-[family-name:var(--font-display)] font-semibold text-[1.5rem] tracking-[0.05em]">
+                  {getInitials(currentToken.username || currentToken.email)}
+                </AvatarFallback>
               </Avatar>
-            </Box>
+            </div>
 
             {/* User info */}
-            <Box sx={{ flex: 1, minWidth: 220 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
-                <Typography sx={{ fontSize: '1.125rem', fontWeight: 700 }}>
+            <div className="flex-1 min-w-[220px]">
+              <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                <p className="cn-text-body1 text-[1.125rem] font-bold">
                   {currentToken.username || 'admin'}
-                </Typography>
-                <Chip
-                  size="small"
-                  icon={
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'inherit', ml: 0.5 }}>
-                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: tokenStatus.fg }} />
-                    </Box>
-                  }
-                  label={tokenStatus.label}
-                  sx={{
-                    height: 22,
-                    fontSize: '0.6875rem',
-                    fontWeight: 600,
-                    bgcolor: tokenStatus.soft,
-                    color: tokenStatus.fg,
-                    '& .MuiChip-icon': { mr: -0.25 },
-                    '& .MuiChip-label': { px: 0.75 },
-                  }}
-                />
-              </Box>
-              <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', rowGap: 0.5, mb: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+                </p>
+                <StatusChip tokens={{ color: tokenStatus.fg, bg: tokenStatus.soft }} label={tokenStatus.label} icon={<span className="inline-flex text-inherit ms-0.5">
+                      <div className="w-[6px] h-[6px] rounded-[50%]" style={{ backgroundColor: tokenStatus.fg }} />
+                    </span>} />
+              </div>
+              <div className="flex flex-row flex-wrap gap-x-3 gap-y-[3px] mb-1.5">
+                <div className="flex items-center gap-0.5">
+                  <span className="inline-flex text-muted-foreground opacity-60">
                     <Email size={13} strokeWidth={1.75} />
-                  </Box>
-                  <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
+                  </span>
+                  <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground">
                     {currentToken.email || 'N/A'}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+                  </p>
+                </div>
+                <div className="flex items-center gap-0.5">
+                  <span className="inline-flex text-muted-foreground opacity-60">
                     <Person size={13} strokeWidth={1.75} />
-                  </Box>
-                  <Typography
-                    sx={{ fontSize: '0.75rem', color: 'text.disabled', fontFamily: 'monospace' }}
-                  >
+                  </span>
+                  <p className="cn-text-body1 text-[0.75rem] text-muted-foreground opacity-60 font-mono">
                     {currentToken.userId?.slice(0, 8) ?? '—'}
-                  </Typography>
+                  </p>
                   {currentToken.userId && (
-                    <Tooltip title={copied ? 'Copié !' : 'Copier l\'ID complet'}>
-                      <IconButton size="small" onClick={copyUserId} sx={{ p: 0.25 }}>
-                        {copied ? (
-                          <CheckCircle size={12} strokeWidth={2} color="var(--ok)" />
-                        ) : (
-                          <ContentCopy size={12} strokeWidth={1.75} />
-                        )}
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <BuiButton
+                          variant="ghost"
+                          size="icon-xs"
+                          aria-label="Copier l'ID complet"
+                          onClick={copyUserId}
+                        >
+                          {copied ? (
+                            <CheckCircle size={12} strokeWidth={2} color="var(--ok)" />
+                          ) : (
+                            <ContentCopy size={12} strokeWidth={1.75} />
+                          )}
+                        </BuiButton>
+                      </TooltipTrigger>
+                      <TooltipContent>{copied ? 'Copié !' : "Copier l'ID complet"}</TooltipContent>
                     </Tooltip>
                   )}
-                </Box>
-              </Stack>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-0.5">
                 {currentToken.roles?.length ? (
                   currentToken.roles.map((role) => (
-                    <Chip
+                    <StatusChip
                       key={role}
+                      tone="accent"
+                      size="sm"
                       label={role}
-                      size="small"
-                      sx={{
-                        height: 20,
-                        fontSize: '0.625rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: 0.3,
-                        backgroundColor: 'var(--accent-soft)',
-                        color: 'var(--accent)',
-                        '& .MuiChip-label': { px: 0.75 },
-                      }}
+                      className="h-[20px] uppercase tracking-[0.3px]"
                     />
                   ))
                 ) : (
-                  <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', fontStyle: 'italic' }}>
+                  <p className="cn-text-body1 text-[0.75rem] text-muted-foreground opacity-60 italic">
                     Aucun rôle assigné
-                  </Typography>
+                  </p>
                 )}
-              </Box>
-            </Box>
+              </div>
+            </div>
 
             {/* Countdown */}
-            <Box
-              sx={{
-                minWidth: 200,
-                pl: 3,
-                borderLeft: { md: '1px solid' },
-                borderLeftColor: { md: 'divider' },
-              }}
-            >
-              <Typography
-                sx={{
-                  fontSize: '0.625rem',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.6,
-                  color: 'text.secondary',
-                  mb: 0.5,
-                }}
-              >
+            {/* Le filet gauche n'apparait qu'a partir du breakpoint MUI md (900px). */}
+            <div className="min-w-[200px] pl-[18px] min-[900px]:border-l min-[900px]:border-solid min-[900px]:border-l-[var(--line)]">
+              <p className="cn-text-body1 text-[0.625rem] font-bold uppercase tracking-[0.6px] text-[var(--muted)] mb-[3px]">
                 <AccessTime size={11} strokeWidth={1.75} style={{ verticalAlign: 'middle', marginRight: 4 }} />
                 Temps avant expiration
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: '1.5rem',
-                  fontWeight: 600,
-                  color: tokenStatus.fg,
-                  fontFamily: 'var(--font-display)',
-                  fontVariantNumeric: 'tabular-nums',
-                  letterSpacing: '-0.02em',
-                  lineHeight: 1.1,
-                }}
-              >
+              </p>
+              <p className="cn-text-body1 text-[1.5rem] font-semibold tabular-nums tracking-[-0.02em] leading-[1.1]" style={{ color: tokenStatus.fg, fontFamily: 'var(--font-display)' }}>
                 {formatDuration(timeUntilExpiry)}
-              </Typography>
+              </p>
               {currentToken.expiresAt && (
-                <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled', mt: 0.25 }}>
+                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60 mt-0.5">
                   {new Date(currentToken.expiresAt).toLocaleString('fr-FR', {
                     day: '2-digit',
                     month: 'short',
                     hour: '2-digit',
                     minute: '2-digit',
                   })}
-                </Typography>
+                </p>
               )}
-              <LinearProgress
-                variant="determinate"
+              {/* La teinte de la barre est une valeur d'execution : elle passe par
+                  une variable CSS posee inline, lue par la classe du remplissage. */}
+              <Progress
                 value={remainingPct}
-                sx={{
-                  mt: 1,
-                  height: 4,
-                  borderRadius: 2,
-                  bgcolor: 'var(--hover)',
-                  '& .MuiLinearProgress-bar': {
-                    bgcolor: tokenStatus.fg,
-                    borderRadius: 2,
-                  },
-                }}
+                style={{ '--bar': tokenStatus.fg } as React.CSSProperties}
+                className="mt-1.5 h-1 rounded-full bg-[var(--hover)] [&_[data-slot=progress-indicator]]:bg-[var(--bar)] [&_[data-slot=progress-indicator]]:rounded-full"
               />
-            </Box>
-          </Box>
+            </div>
+          </div>
         ) : (
-          <Alert severity="warning" sx={{ borderRadius: 1.5 }}>
-            Aucun token actif détecté. Veuillez vous authentifier.
-          </Alert>
+          <BuiAlert variant="warning">
+            <TriangleAlert />
+            <AlertDescription>Aucun token actif détecté. Veuillez vous authentifier.</AlertDescription>
+          </BuiAlert>
         )}
-      </Paper>
+      </Card>
 
       {/* ─── KPI grid ──────────────────────────────────────────────── */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
-          gap: 1.5,
-        }}
-      >
+      <div className="grid grid-cols-[1fr_1fr] min-[900px]:grid-cols-[repeat(4,_1fr)] gap-[9px]">
         <StatTile
           icon={<Storage />}
           label="Total des tokens"
@@ -471,40 +420,31 @@ const TokenMonitoring: React.FC = () => {
           color="#7B68A8"
           loading={isLoading && !tokenStats}
         />
-      </Box>
+      </div>
 
       {/* ─── Visualisation + métriques ─────────────────────────────── */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1.4fr' }, gap: 2 }}>
+      <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[1fr_1.4fr] gap-3">
         {/* Donut */}
-        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: '14px', bgcolor: 'var(--card)', borderColor: 'var(--line)' }}>
-          <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, mb: 0.25 }}>
+        <Card className="gap-0 py-0 p-3.5 bg-[var(--card)] border-[var(--line)]">
+          <p className="cn-text-body1 text-[0.875rem] font-bold mb-0.5">
             Distribution des tokens
-          </Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mb: 2 }}>
+          </p>
+          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mb-3">
             Répartition entre tokens actifs et expirés
-          </Typography>
+          </p>
 
           {donutData.length === 0 ? (
-            <Box
-              sx={{
-                height: 180,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'text.disabled',
-              }}
-            >
-              <Box component="span" sx={{ display: 'inline-flex', mb: 1 }}>
+            <div className="h-[180px] flex flex-col items-center justify-center text-muted-foreground opacity-60">
+              <span className="inline-flex mb-1.5">
                 <HourglassEmpty size={32} strokeWidth={1.5} />
-              </Box>
-              <Typography sx={{ fontSize: '0.75rem' }}>
+              </span>
+              <p className="cn-text-body1 text-[0.75rem]">
                 En attente de données
-              </Typography>
-            </Box>
+              </p>
+            </div>
           ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Box sx={{ width: 160, height: 160, position: 'relative' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-[160px] h-[160px] relative">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -530,77 +470,63 @@ const TokenMonitoring: React.FC = () => {
                     />
                   </PieChart>
                 </ResponsiveContainer>
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    pointerEvents: 'none',
-                  }}
-                >
-                  <Typography sx={{ fontSize: '1.5rem', fontWeight: 700, lineHeight: 1 }}>
+                <div className="absolute inset-[0px] flex flex-col items-center justify-center pointer-events-none">
+                  <p className="cn-text-body1 text-[1.5rem] font-bold leading-[1]">
                     {tokenStats?.totalTokens ?? 0}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', mt: 0.25 }}>
+                  </p>
+                  <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mt-0.5">
                     Total
-                  </Typography>
-                </Box>
-              </Box>
-              <Stack spacing={1.25} sx={{ flex: 1 }}>
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-[7.5px] flex-1">
                 {donutData.map((entry) => (
-                  <Box key={entry.name} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: entry.color }} />
-                    <Typography sx={{ fontSize: '0.8125rem', flex: 1 }}>{entry.name}</Typography>
-                    <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700 }}>
+                  <div className="flex items-center gap-1.5" key={entry.name}>
+                    <div className="w-[10px] h-[10px] rounded-[50%]" style={{ backgroundColor: entry.color }} />
+                    <p className="cn-text-body1 text-[0.8125rem] flex-1">{entry.name}</p>
+                    <p className="cn-text-body1 text-[0.8125rem] font-bold">
                       {entry.value}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                 ))}
-              </Stack>
-            </Box>
+              </div>
+            </div>
           )}
-        </Paper>
+        </Card>
 
         {/* Refresh metrics */}
-        <Paper variant="outlined" sx={{ p: 2.5, borderRadius: '14px', bgcolor: 'var(--card)', borderColor: 'var(--line)' }}>
-          <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, mb: 0.25 }}>
+        <Card className="gap-0 py-0 p-3.5 bg-[var(--card)] border-[var(--line)]">
+          <p className="cn-text-body1 text-[0.875rem] font-bold mb-0.5">
             Métriques de rafraîchissement
-          </Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mb: 2 }}>
+          </p>
+          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mb-3">
             Indicateurs de performance du service de tokens
-          </Typography>
+          </p>
 
           {/* Success rate bar */}
           {successRateNum !== null && (
-            <Box sx={{ mb: 2.5 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+            <div className="mb-3.5">
+              <div className="flex justify-between items-center mb-0.5">
+                <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] font-semibold uppercase tracking-[0.4px]">
                   Fiabilité globale
-                </Typography>
-                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: successRateNum >= 95 ? 'var(--ok)' : 'var(--warn)' }}>
+                </p>
+                <p className={cn('cn-text-body1 text-[0.8125rem] font-bold', successRateNum >= 95 ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
                   {successRateNum.toFixed(1)}%
-                </Typography>
-              </Box>
-              <LinearProgress
-                variant="determinate"
+                </p>
+              </div>
+              <Progress
                 value={successRateNum}
-                sx={{
-                  height: 6,
-                  borderRadius: 3,
-                  bgcolor: 'var(--hover)',
-                  '& .MuiLinearProgress-bar': {
-                    bgcolor: successRateNum >= 95 ? 'var(--ok)' : 'var(--warn)',
-                    borderRadius: 3,
-                  },
-                }}
+                className={cn(
+                  'h-1.5 rounded-full bg-[var(--hover)] [&_[data-slot=progress-indicator]]:rounded-full',
+                  successRateNum >= 95
+                    ? '[&_[data-slot=progress-indicator]]:bg-[var(--ok)]'
+                    : '[&_[data-slot=progress-indicator]]:bg-[var(--warn)]',
+                )}
               />
-            </Box>
+            </div>
           )}
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+          <div className="grid grid-cols-2 gap-3">
             <MetricRow
               icon={<Refresh size={14} strokeWidth={1.75} />}
               label="Rafraîchissements"
@@ -629,25 +555,20 @@ const TokenMonitoring: React.FC = () => {
               fg="var(--warn)"
               bg="var(--warn-soft)"
             />
-          </Box>
-        </Paper>
-      </Box>
+          </div>
+        </Card>
+      </div>
 
       {/* ─── Architecture note ─────────────────────────────────────── */}
-      <Alert
-        severity="info"
-        icon={<Bolt size={16} strokeWidth={2} />}
-        sx={{
-          borderRadius: 1.5,
-          '& .MuiAlert-icon': { alignItems: 'center' },
-          '& .MuiAlert-message': { fontSize: '0.8125rem' },
-        }}
-      >
-        <strong>Architecture réactive</strong> — TokenService utilise le pattern Observer pour une
-        propagation événementielle des changements de session (renouvellement, expiration, échec
-        d'authentification).
-      </Alert>
-    </Box>
+      <BuiAlert variant="info">
+        <Bolt size={16} strokeWidth={2} />
+        <AlertDescription className="text-[0.8125rem]">
+          <strong>Architecture réactive</strong> — TokenService utilise le pattern Observer pour une
+          propagation événementielle des changements de session (renouvellement, expiration, échec
+          d&apos;authentification).
+        </AlertDescription>
+      </BuiAlert>
+    </div>
   );
 };
 
@@ -667,31 +588,19 @@ function MetricRow({
   bg: string;
 }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-      <Box
-        sx={{
-          width: 28,
-          height: 28,
-          borderRadius: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: fg,
-          bgcolor: bg,
-          flexShrink: 0,
-        }}
-      >
+    <div className="flex items-center gap-2">
+      <div className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center shrink-0" style={{ color: fg, backgroundColor: bg }}>
         {icon}
-      </Box>
-      <Box sx={{ minWidth: 0 }}>
-        <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4, lineHeight: 1.2 }}>
+      </div>
+      <div className="min-w-0">
+        <p className="cn-text-body1 text-[0.625rem] text-[var(--muted)] font-semibold uppercase tracking-[0.4px] leading-[1.2]">
           {label}
-        </Typography>
-        <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, lineHeight: 1.2, mt: 0.25, fontVariantNumeric: 'tabular-nums' }}>
+        </p>
+        <p className="cn-text-body1 text-[0.875rem] font-bold leading-[1.2] mt-0.5 tabular-nums">
           {value}
-        </Typography>
-      </Box>
-    </Box>
+        </p>
+      </div>
+    </div>
   );
 }
 

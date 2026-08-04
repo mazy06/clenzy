@@ -24,7 +24,7 @@ export function CardSmall() {
         </p>
       </CardContent>
       <CardFooter>
-        <Button variant="outline" size="sm" className="w-full">
+        <Button variant="outline" size="sm" className="w-full shrink">
           Action
         </Button>
       </CardFooter>

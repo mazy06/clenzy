@@ -1,30 +1,24 @@
 import React, { useState, useEffect, useCallback } from "react";
+import StatusChip from '../../components/StatusChip';
+import { Spinner } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import {
-  Box,
-  Typography,
-  Chip,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  TextField,
   Button,
-  InputAdornment,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Tooltip,
-  Tabs,
-  Tab,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-} from "@mui/material";
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  Input,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import PageTabs from '../../components/PageTabs';
+import { useNotification } from '../../hooks/useNotification';
 import {
   Save,
   Payment,
@@ -33,7 +27,22 @@ import {
   CreditCard,
   Public,
 } from "../../icons";
+import { Info, TriangleAlert } from "lucide-react";
+import {
+  Alert as UiAlert,
+  AlertDescription as UiAlertDescription,
+} from "../../components/ui";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../../components/ui";
+import { useQuery } from "@tanstack/react-query";
 import { channelLogo } from "../../components/channelLogos";
+import { managementContractsApi } from "../../services/api/managementContractsApi";
 import { paymentConfigApi } from "../../services/api/paymentConfigApi";
 import { splitConfigApi } from "../../services/api/splitConfigApi";
 import { monetizationConfigApi } from "../../services/api/monetizationConfigApi";
@@ -179,13 +188,9 @@ const isProviderConfigured = (
 
 export default function PaymentSettings() {
   const { t } = useTranslation();
+  const { showNotification } = useNotification();
   const [configs, setConfigs] = useState<PaymentMethodConfig[]>([]);
   const [loading, setLoading] = useState(true);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success" as "success" | "error",
-  });
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [configDialogProvider, setConfigDialogProvider] =
     useState<PaymentProviderType | null>(null);
@@ -209,6 +214,20 @@ export default function PaymentSettings() {
   const [splitTab, setSplitTab] = useState(0);
 
   const { data: overviewRows = [] } = useCommissionOverview();
+
+  // Combien de logements echappent a la repartition ci-dessus : sous contrat de
+  // gestion, SplitPaymentService lit le taux du contrat et non split_configurations.
+  // L'afficher evite de lire cet ecran comme la regle unique, ce qu'il n'est pas.
+  const { data: activeContracts = [] } = useQuery({
+    queryKey: ["management-contracts", "ACTIVE"],
+    queryFn: () => managementContractsApi.getAll({ status: "ACTIVE" }),
+    staleTime: 300_000,
+  });
+  const contractedCount = new Set(
+    activeContracts
+      .filter((c) => c.commissionRate != null && c.commissionRate > 0)
+      .map((c) => c.propertyId),
+  ).size;
 
   // Le canal le plus utilise ouvre la simulation (le backend trie par volume).
   const activeChannel = simulatedChannel ?? overviewRows[0]?.channel ?? null;
@@ -314,19 +333,12 @@ export default function PaymentSettings() {
             : c
         )
       );
-      setSnackbar({
-        open: true,
-        message: `${PAYMENT_PROVIDER_LABELS[providerType]} ${
-          !currentEnabled ? "activé" : "désactivé"
-        }`,
-        severity: "success",
-      });
+      showNotification(
+        `${PAYMENT_PROVIDER_LABELS[providerType]} ${!currentEnabled ? "activé" : "désactivé"}`,
+        "success",
+      );
     } catch (error) {
-      setSnackbar({
-        open: true,
-        message: "Erreur lors de la mise à jour",
-        severity: "error",
-      });
+      showNotification("Erreur lors de la mise à jour", "error");
     }
   };
 
@@ -353,11 +365,7 @@ export default function PaymentSettings() {
           )
         : [...prev, updated];
     });
-    setSnackbar({
-      open: true,
-      message: `${PAYMENT_PROVIDER_LABELS[configDialogProvider]} configuré`,
-      severity: "success",
-    });
+    showNotification(`${PAYMENT_PROVIDER_LABELS[configDialogProvider]} configuré`, "success");
   };
 
   const splitTotal = useCallback(() => {
@@ -408,28 +416,16 @@ export default function PaymentSettings() {
    */
   const handleSaveAll = async () => {
     if (splitBlocksSave) {
-      setSnackbar({
-        open: true,
-        message: t("settings.split.totalError"),
-        severity: "error",
-      });
+      showNotification(t("settings.split.totalError"), "error");
       return;
     }
     setSaving(true);
     try {
       if (isSplitDirty) await saveSplit();
       if (monetization.isDirty) await monetization.save();
-      setSnackbar({
-        open: true,
-        message: t("settings.split.saved"),
-        severity: "success",
-      });
+      showNotification(t("settings.split.saved"), "success");
     } catch {
-      setSnackbar({
-        open: true,
-        message: t("settings.split.error"),
-        severity: "error",
-      });
+      showNotification(t("settings.split.error"), "error");
     } finally {
       setSaving(false);
     }
@@ -437,28 +433,12 @@ export default function PaymentSettings() {
 
   const headerActions = useSettingsHeaderActions(
     <>
-      <Button
-        variant="outlined"
-        size="small"
-        startIcon={<CreditCard size={14} strokeWidth={1.75} />}
-        onClick={() => setProvidersOpen(true)}
-      >
+      <Button variant="outline" size="sm" onClick={() => setProvidersOpen(true)}>
+        <CreditCard size={14} strokeWidth={1.75} />
         {t("settings.providers.open", "Fournisseurs")}
       </Button>
-      <Button
-        variant="contained"
-        disableElevation
-        size="small"
-        startIcon={
-          saving ? (
-            <CircularProgress size={14} color="inherit" />
-          ) : (
-            <Save size={14} strokeWidth={1.75} />
-          )
-        }
-        disabled={!canSave}
-        onClick={handleSaveAll}
-      >
+      <Button size="sm" disabled={!canSave} onClick={handleSaveAll}>
+        {saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
         {saving
           ? t("settings.split.saving", "Sauvegarde...")
           : t("settings.split.save")}
@@ -473,9 +453,9 @@ export default function PaymentSettings() {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" p={4}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center p-6">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
@@ -483,60 +463,33 @@ export default function PaymentSettings() {
   const isValidTotal = total === 100;
 
   return (
-    <Box>
+    <div>
       {headerActions}
       {/* Fournisseurs de paiement — dans une modale : c'est une configuration
           qu'on ouvre pour brancher un PSP, pas une lecture du quotidien. */}
-      <Dialog
-        open={providersOpen}
-        onClose={() => setProvidersOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        aria-labelledby="payment-providers-title"
-      >
-        <DialogTitle
-          id="payment-providers-title"
-          sx={{ display: "flex", alignItems: "center", gap: 1.25, pb: 1 }}
-        >
-          <Box
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: "8px",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              bgcolor: "color-mix(in srgb, var(--accent) 8%, transparent)",
-              color: "var(--accent)",
-              border:
-                "1px solid color-mix(in srgb, var(--accent) 20%, transparent)",
-              flexShrink: 0,
-            }}
+      <Dialog open={providersOpen} onOpenChange={setProvidersOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader className="flex-row items-center gap-[7.5px] pb-1 space-y-0">
+          <div
+            className="w-8 h-8 rounded-[8px] inline-flex items-center justify-center shrink-0 text-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] border border-solid border-[color-mix(in_srgb,var(--accent)_20%,transparent)]"
             aria-hidden="true"
           >
             <Payment size={16} strokeWidth={1.75} />
-          </Box>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography
-              sx={{ fontSize: "0.95rem", fontWeight: 600, lineHeight: 1.25 }}
-            >
+          </div>
+          <div className="min-w-0">
+            <DialogTitle className="text-[0.95rem] font-semibold leading-[1.25]">
               {t("settings.providers.title", "Fournisseurs de paiement")}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: "0.72rem",
-                color: "text.secondary",
-                lineHeight: 1.35,
-              }}
-            >
+            </DialogTitle>
+            <DialogDescription className="text-[0.72rem] leading-[1.35]">
               {t(
                 "settings.providers.subtitle",
                 "Activez ou désactivez les fournisseurs pour votre organisation."
               )}
-            </Typography>
-          </Box>
-        </DialogTitle>
-        <DialogContent dividers>
+            </DialogDescription>
+          </div>
+        </DialogHeader>
+        {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+        <div className="border-y border-solid border-[var(--line)] py-3 max-h-[60vh] overflow-y-auto">
           {allProviders.map((type, index) => {
             const config = getConfig(type);
             const enabled = config?.enabled ?? false;
@@ -548,32 +501,16 @@ export default function PaymentSettings() {
             const statusChips = (
               <>
                 {isStub && (
-                  <Chip
-                    label="Bientôt"
-                    size="small"
-                    sx={buildStatusChipSx("var(--muted)")}
-                  />
+                  <StatusChip color={"var(--muted)"} label="Bientôt" />
                 )}
                 {isConfigurable && !isConfigured && (
-                  <Chip
-                    label="À configurer"
-                    size="small"
-                    sx={buildStatusChipSx("var(--warn)")}
-                  />
+                  <StatusChip color={"var(--warn)"} label="À configurer" />
                 )}
                 {enabled && !isStub && (
-                  <Chip
-                    label="Actif"
-                    size="small"
-                    sx={buildStatusChipSx("var(--ok)")}
-                  />
+                  <StatusChip color={"var(--ok)"} label="Actif" />
                 )}
                 {config?.sandboxMode && isConfigured && (
-                  <Chip
-                    label="Sandbox"
-                    size="small"
-                    sx={buildStatusChipSx("var(--warn)")}
-                  />
+                  <StatusChip color={"var(--warn)"} label="Sandbox" />
                 )}
               </>
             );
@@ -584,58 +521,41 @@ export default function PaymentSettings() {
             // n'expose pas ce slot. On va plutot wrapper la ligne dans un
             // Box avec un IconButton positionne en absolu.
             const configureButton = isConfigurable ? (
-              <Tooltip
-                title={
-                  isConfigured ? "Reconfigurer" : "Configurer les credentials"
-                }
-                arrow
-              >
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openConfigDialog(type);
-                  }}
-                  sx={{
-                    ml: 0.5,
-                    color: isConfigured ? "text.secondary" : "var(--warn)",
-                    "&:hover": {
-                      color: "var(--accent)",
-                      backgroundColor: "var(--accent-soft)",
-                    },
-                  }}
-                >
-                  <SettingsIcon size={16} strokeWidth={1.75} />
-                </IconButton>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openConfigDialog(type);
+                    }}
+                    className={cn(
+                      'ms-[3px] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]',
+                      isConfigured ? 'text-[var(--muted)]' : 'text-[var(--warn)]',
+                    )}
+                  >
+                    <SettingsIcon size={16} strokeWidth={1.75} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isConfigured ? "Reconfigurer" : "Configurer les credentials"}
+                </TooltipContent>
               </Tooltip>
             ) : null;
 
             return (
-              <Box key={type} sx={{ position: "relative" }}>
+              <div className="relative" key={type}>
                 <SettingsToggleRow
                   icon={CreditCard}
                   iconColor={brandColor}
                   title={
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 0.625,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <Typography
-                        component="span"
-                        sx={{
-                          fontSize: "0.8125rem",
-                          fontWeight: 600,
-                          color: "inherit",
-                        }}
-                      >
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <span className="text-[0.8125rem] font-semibold text-inherit">
                         {PAYMENT_PROVIDER_LABELS[type]}
-                      </Typography>
+                      </span>
                       {statusChips}
-                    </Box>
+                    </div>
                   }
                   description={PROVIDER_REGIONS[type]}
                   checked={enabled}
@@ -644,30 +564,24 @@ export default function PaymentSettings() {
                   divider={index < allProviders.length - 1}
                 />
                 {configureButton && (
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      top: "50%",
-                      right: 56, // a gauche du Switch (qui fait ~36px + margin)
-                      transform: "translateY(-50%)",
-                      pointerEvents: "auto",
-                    }}
-                  >
+                  // right-[56px] : a gauche du Switch (qui fait ~36px + margin)
+                  <div className="absolute top-1/2 right-[56px] -translate-y-1/2 pointer-events-auto">
                     {configureButton}
-                  </Box>
+                  </div>
                 )}
-              </Box>
+              </div>
             );
           })}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setProvidersOpen(false)} size="small">
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" size="sm" onClick={() => setProvidersOpen(false)}>
             {t("common.close", "Fermer")}
           </Button>
-        </DialogActions>
+        </DialogFooter>
+        </DialogContent>
       </Dialog>
 
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <div className="flex flex-col gap-3">
         {/* ─── Revenue Split ─── */}
         <SettingsSection
           title={t("settings.split.title")}
@@ -675,32 +589,18 @@ export default function PaymentSettings() {
           accent="warm"
           help={t("settings.split.subtitle")}
         >
-          <Tabs
+          {/* Rangee interne a la section, pas le niveau de navigation de la
+              page : `trail={false}` l'empeche de polluer le fil d'Ariane. */}
+          <PageTabs
+            className="mb-[10.5px]"
+            trail={false}
             value={splitTab}
-            onChange={(_, v) => setSplitTab(v)}
-            variant="scrollable"
-            scrollButtons={false}
-            sx={{
-              minHeight: 34,
-              mb: 1.75,
-              borderBottom: "1px solid",
-              borderColor: "divider",
-              "& .MuiTab-root": {
-                minHeight: 34,
-                py: 0,
-                px: 1.25,
-                fontSize: "0.78rem",
-                fontWeight: 600,
-                textTransform: "none",
-                color: "text.secondary",
-                "&.Mui-selected": { color: "var(--accent)" },
-              },
-              "& .MuiTabs-indicator": { backgroundColor: "var(--accent)", height: 2 },
-            }}
-          >
-            <Tab label={t("settings.split.tabChannels", "Canaux de distribution")} />
-            <Tab label={t("settings.split.tabServices", "Services & activités")} />
-          </Tabs>
+            onChange={setSplitTab}
+            options={[
+              { value: 0, label: t("settings.split.tabChannels", "Canaux de distribution") },
+              { value: 1, label: t("settings.split.tabServices", "Services & activités") },
+            ]}
+          />
 
           {splitTab === 0 ? (
             <RevenueSplitPanel
@@ -726,11 +626,26 @@ export default function PaymentSettings() {
               ]}
               footer={<BookingEngineRateRow row={overviewRows.find((r) => r.editable)} />}
               notice={
-                !splitConfig ? (
-                  <Alert severity="info" sx={{ mt: 2, borderRadius: "8px" }}>
-                    {t("settings.split.defaults")}
-                  </Alert>
-                ) : null
+                <>
+                  {contractedCount > 0 && (
+                    <UiAlert variant="warning" className="mt-3">
+                      <TriangleAlert />
+                      <UiAlertDescription>
+                      {t(
+                        "settings.split.contractOverride",
+                        "{{count}} logement(s) sous contrat de gestion ne suivent pas cette répartition : le propriétaire y reçoit le solde après le taux de son contrat, et la commission se partage 25 % plateforme / 75 % conciergerie.",
+                        { count: contractedCount },
+                      )}
+                      </UiAlertDescription>
+                    </UiAlert>
+                  )}
+                  {!splitConfig && (
+                    <UiAlert variant="info" className="mt-3">
+                      <Info />
+                      <UiAlertDescription>{t("settings.split.defaults")}</UiAlertDescription>
+                    </UiAlert>
+                  )}
+                </>
               }
             />
           ) : (
@@ -752,7 +667,7 @@ export default function PaymentSettings() {
           )}
         </SettingsSection>
 
-      </Box>
+      </div>
 
       <PaymentProviderConfigDialog
         open={configDialogOpen}
@@ -764,20 +679,7 @@ export default function PaymentSettings() {
         onSave={handleSaveProviderConfig}
       />
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-      >
-        <Alert
-          severity={snackbar.severity}
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          sx={{ borderRadius: "8px" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+    </div>
   );
 }
 
@@ -796,25 +698,27 @@ const ShareInput: React.FC<ShareInputProps> = ({
   onChange,
   color,
 }) => (
-  <TextField
-    label={label}
-    type="number"
-    size="small"
-    value={value}
-    onChange={(e) => onChange(e.target.value)}
-    InputProps={{
-      endAdornment: <InputAdornment position="end">%</InputAdornment>,
-      inputProps: { min: 0, max: 100, step: 0.01 },
-      sx: {
-        "& input": {
-          fontVariantNumeric: "tabular-nums",
-          fontWeight: 600,
-          color,
-        },
-      },
-    }}
-    fullWidth
-  />
+  <Field className="w-full">
+    <FieldLabel htmlFor={`share-${label}`}>{label}</FieldLabel>
+    <div className="relative">
+      <Input
+        id={`share-${label}`}
+        type="number"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        min={0}
+        max={100}
+        step={0.01}
+        className="tabular-nums font-semibold pe-6"
+        // La teinte vient d'une valeur d'execution : une classe arbitraire ne
+        // peut pas naitre a la compilation.
+        style={{ color }}
+      />
+      <span className="pointer-events-none absolute inset-y-0 end-2.5 flex items-center text-[0.8125rem] text-[var(--muted)]">
+        %
+      </span>
+    </div>
+  </Field>
 );
 
 // ─── Projection des reversements par canal ──────────────────────────────────
@@ -884,22 +788,22 @@ function ProvenanceChip({ row }: { row: ChannelCommissionOverview }) {
   const { label, color, soft } = meta[provenance];
 
   return (
-    <Tooltip title={tooltip[provenance]}>
-      <Chip
-        label={label}
-        size="small"
-        sx={{
-          height: 20,
-          fontSize: "0.65rem",
-          fontWeight: 600,
-          letterSpacing: "0.01em",
-          backgroundColor: soft,
-          color,
-          border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-          borderRadius: "6px",
-          "& .MuiChip-label": { px: 0.75 },
-        }}
-      />
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {/* L'infobulle pose une ref sur son enfant, que StatusChip ne transmet
+            pas (React 18, composant fonction) : sans ce span, elle ne s'ancre pas. */}
+        <span className="inline-flex">
+        <StatusChip
+          tokens={{ color, bg: soft }}
+          label={label}
+          // La teinte de bordure est calculee : elle passe en style inline, la ou
+          // une classe arbitraire ne peut pas naitre d'une valeur d'execution.
+          sx={{ borderColor: `color-mix(in srgb, ${color} 20%, transparent)` }}
+          className="h-[20px] border border-solid text-[0.65rem] tracking-[0.01em]"
+          />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{tooltip[provenance]}</TooltipContent>
     </Tooltip>
   );
 }
@@ -907,45 +811,18 @@ function ProvenanceChip({ row }: { row: ChannelCommissionOverview }) {
 function ChannelCell({ row }: { row: ChannelCommissionOverview }) {
   const logo = channelLogo(row.channel);
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-      <Box
-        sx={{
-          width: 24,
-          height: 24,
-          borderRadius: "50%",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-          border: "1px solid",
-          borderColor: "divider",
-          bgcolor: "background.paper",
-          overflow: "hidden",
-        }}
-      >
+    <div className="flex items-center gap-1.5">
+      <div className="w-[24px] h-[24px] rounded-[50%] inline-flex items-center justify-center shrink-0 border border-[var(--line)] bg-[var(--card)] overflow-hidden">
         {logo ? (
-          <Box
-            component="img"
-            src={logo}
-            alt=""
-            aria-hidden
-            sx={{ width: 14, height: 14, objectFit: "contain" }}
-          />
+          <img className="w-[14px] h-[14px] object-contain" src={logo} alt="" aria-hidden />
         ) : (
           <Public size={12} strokeWidth={1.75} color="var(--muted)" />
         )}
-      </Box>
-      <Typography
-        sx={{
-          fontSize: "0.8125rem",
-          fontWeight: 600,
-          color: "text.primary",
-          whiteSpace: "nowrap",
-        }}
-      >
+      </div>
+      <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground whitespace-nowrap">
         {row.label}
-      </Typography>
-    </Box>
+      </p>
+    </div>
   );
 }
 
@@ -978,6 +855,9 @@ interface ChannelProjectionTableProps {
  * « 80 % proprietaire » se lit comme 80 € sur 100 € verses par le voyageur,
  * alors qu'il en reste 67,60 € apres la commission d'un canal a 15,5 %.</p>
  */
+/** Montants projetes du tableau : meme taille et chiffres tabulaires partout. */
+const PROJECTION_NUMBER_CLASS = "cn-text-body1 text-[0.78rem] tabular-nums";
+
 function ChannelProjectionTable({
   rows,
   shares,
@@ -985,132 +865,125 @@ function ChannelProjectionTable({
 }: ChannelProjectionTableProps) {
   const { t } = useTranslation();
 
-  const headCellSx = {
-    fontWeight: 700,
-    fontSize: "0.62rem",
-    letterSpacing: "0.06em",
-    textTransform: "uppercase" as const,
-    color: "text.secondary",
-    whiteSpace: "nowrap" as const,
-  };
+  // Seuls les ecarts au gabarit du kit sont poses ici : la graisse 700 et la
+  // capitale sont deja portees par `.cn-table-head`.
+  const headCellClass =
+    "text-[0.62rem] tracking-[0.06em] text-[var(--muted)] whitespace-nowrap";
 
   if (rows.length === 0) {
     return (
-      <Alert severity="error" sx={{ borderRadius: "8px" }}>
-        {t(
-          "settings.commissions.error",
-          "Erreur lors du chargement des commissions"
-        )}
-      </Alert>
+      <UiAlert variant="destructive">
+        <TriangleAlert />
+        <UiAlertDescription>
+          {t(
+            "settings.commissions.error",
+            "Erreur lors du chargement des commissions"
+          )}
+        </UiAlertDescription>
+      </UiAlert>
     );
   }
 
   return (
-    <TableContainer sx={{ overflowX: "auto" }}>
-      <Table size="small" sx={{ minWidth: 560 }}>
-        <TableHead>
-          <TableRow>
-            <TableCell sx={headCellSx}>
-              {t("settings.commissions.channel", "Canal")}
-            </TableCell>
-            <TableCell align="right" sx={headCellSx}>
-              {t("settings.commissions.fee", "Commission")}
-            </TableCell>
-            <TableCell align="right" sx={headCellSx}>
-              {t("settings.commissions.net", "Net")}
-            </TableCell>
-            {shares.map((share) => (
-              <TableCell key={share.key} align="right" sx={headCellSx}>
-                {share.label}
+    <Table className="min-w-[560px]">
+      <TableHeader>
+        <TableRow>
+          <TableHead className={headCellClass}>
+            {t("settings.commissions.channel", "Canal")}
+          </TableHead>
+          <TableHead className={cn(headCellClass, "text-end")}>
+            {t("settings.commissions.fee", "Commission")}
+          </TableHead>
+          <TableHead className={cn(headCellClass, "text-end")}>
+            {t("settings.commissions.net", "Net")}
+          </TableHead>
+          {shares.map((share) => (
+            <TableHead key={share.key} className={cn(headCellClass, "text-end")}>
+              {share.label}
+            </TableHead>
+          ))}
+          <TableHead className={headCellClass}>
+            {t("settings.commissions.source", "Source")}
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((row) => {
+          const rate = effectiveRate(row);
+          const fee = (PROJECTION_BASE * rate) / 100;
+          const net = PROJECTION_BASE - fee;
+          const drifts =
+            row.observedRate !== null &&
+            Math.abs(row.observedRate - row.referenceRate) >=
+              RATE_DRIFT_THRESHOLD;
+          return (
+            <TableRow
+              key={row.channel}
+              className={
+                row.channel === activeChannel
+                  ? "bg-[color-mix(in_srgb,var(--accent)_6%,transparent)]"
+                  : undefined
+              }
+            >
+              <TableCell>
+                <ChannelCell row={row} />
               </TableCell>
-            ))}
-            <TableCell sx={headCellSx}>
-              {t("settings.commissions.source", "Source")}
-            </TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows.map((row) => {
-            const rate = effectiveRate(row);
-            const fee = (PROJECTION_BASE * rate) / 100;
-            const net = PROJECTION_BASE - fee;
-            const drifts =
-              row.observedRate !== null &&
-              Math.abs(row.observedRate - row.referenceRate) >=
-                RATE_DRIFT_THRESHOLD;
-            const numberSx = {
-              fontSize: "0.78rem",
-              fontVariantNumeric: "tabular-nums" as const,
-            };
-            return (
-              <TableRow
-                key={row.channel}
-                hover
-                sx={
-                  row.channel === activeChannel
-                    ? {
-                        bgcolor:
-                          "color-mix(in srgb, var(--accent) 6%, transparent)",
-                      }
-                    : undefined
-                }
-              >
-                <TableCell>
-                  <ChannelCell row={row} />
-                </TableCell>
-                <TableCell align="right">
-                  <Tooltip
-                    title={
+              <TableCell className="text-end">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                  <span
+                    className={cn(
+                      PROJECTION_NUMBER_CLASS,
+                      fee > 0 ? "text-[var(--err)]" : "text-[var(--faint)]",
+                      // Propriete arbitraire plutot que border-b + border-dotted :
+                      // sans preflight, border-dotted poserait un style pointille
+                      // sur les quatre cotes, a la largeur `medium` par defaut.
                       drifts
-                        ? t(
-                            "settings.commissions.driftHint",
-                            "Écart avec le taux appliqué : les marges calculées sur les séjours sans commission remontée sont décalées d’autant."
-                          )
-                        : ""
-                    }
+                        ? "[border-bottom:1px_dotted_var(--warn)] cursor-help"
+                        : "cursor-default",
+                    )}
                   >
-                    <Typography
-                      component="span"
-                      sx={{
-                        ...numberSx,
-                        color: fee > 0 ? "var(--err)" : "text.disabled",
-                        borderBottom: drifts
-                          ? "1px dotted var(--warn)"
-                          : "none",
-                        cursor: drifts ? "help" : "default",
-                      }}
-                    >
-                      {fee > 0 ? `−${formatMoney(fee)}` : formatMoney(0)}
-                    </Typography>
-                  </Tooltip>
+                    {fee > 0 ? `−${formatMoney(fee)}` : formatMoney(0)}
+                  </span>
+                  </TooltipTrigger>
+                  {/* Pas d'infobulle quand il n'y a pas d'ecart : elle serait vide. */}
+                  {drifts && (
+                    <TooltipContent>
+                      {t(
+                        "settings.commissions.driftHint",
+                        "Écart avec le taux appliqué : les marges calculées sur les séjours sans commission remontée sont décalées d’autant."
+                      )}
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TableCell>
+              <TableCell className="text-end">
+                <p className={cn(PROJECTION_NUMBER_CLASS, "text-[var(--muted)]")}>
+                  {formatMoney(net)}
+                </p>
+              </TableCell>
+              {shares.map((share) => (
+                <TableCell key={share.key} className="text-end">
+                  <p
+                    className={cn(
+                      PROJECTION_NUMBER_CLASS,
+                      share.primary
+                        ? "font-bold text-[var(--ink)]"
+                        : "font-normal text-[var(--muted)]",
+                    )}
+                  >
+                    {formatMoney((net * share.pct) / 100)}
+                  </p>
                 </TableCell>
-                <TableCell align="right">
-                  <Typography sx={{ ...numberSx, color: "text.secondary" }}>
-                    {formatMoney(net)}
-                  </Typography>
-                </TableCell>
-                {shares.map((share) => (
-                  <TableCell key={share.key} align="right">
-                    <Typography
-                      sx={{
-                        ...numberSx,
-                        fontWeight: share.primary ? 700 : 400,
-                        color: share.primary ? "text.primary" : "text.secondary",
-                      }}
-                    >
-                      {formatMoney((net * share.pct) / 100)}
-                    </Typography>
-                  </TableCell>
-                ))}
-                <TableCell>
-                  <ProvenanceChip row={row} />
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </TableContainer>
+              ))}
+              <TableCell>
+                <ProvenanceChip row={row} />
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -1175,69 +1048,34 @@ function RevenueSplitPanel({
   return (
     <>
           {/* Etage 1 — ce que le canal preleve avant tout partage. */}
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 0.75,
-              flexWrap: "wrap",
-              mb: 1.25,
-            }}
-          >
-            <Typography
-              sx={{
-                fontSize: "0.72rem",
-                color: "text.secondary",
-                fontWeight: 500,
-                mr: 0.25,
-              }}
-            >
+          <div className="flex items-center gap-1 flex-wrap mb-2">
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground font-medium me-0.5">
               {t("settings.split.simulateOn", "Simuler sur")}
-            </Typography>
+            </p>
             {rows.map((row) => (
-              <Box
+              // `font: inherit` du sx est rendu par famille + interlignage herites,
+              // la taille et la graisse etant de toute facon redefinies juste apres.
+              <button
                 key={row.channel}
-                component="button"
                 type="button"
                 onClick={() => onSelectChannel(row.channel)}
                 aria-pressed={activeChannel === row.channel}
-                sx={{
-                  font: "inherit",
-                  fontSize: "0.72rem",
-                  fontWeight: activeChannel === row.channel ? 600 : 500,
-                  px: 1,
-                  py: 0.375,
-                  borderRadius: "7px",
-                  cursor: "pointer",
-                  border: "1px solid",
-                  borderColor:
-                    activeChannel === row.channel
-                      ? "color-mix(in srgb, var(--accent) 45%, transparent)"
-                      : "divider",
-                  bgcolor:
-                    activeChannel === row.channel
-                      ? "var(--accent-soft)"
-                      : "transparent",
-                  color:
-                    activeChannel === row.channel
-                      ? "var(--accent)"
-                      : "text.secondary",
-                  transition:
-                    "border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)",
-                  "&:hover": { color: "var(--accent)" },
-                  "&:focus-visible": {
-                    outline: "2px solid var(--accent)",
-                    outlineOffset: 2,
-                  },
-                }}
+                className={cn(
+                  "[font-family:inherit] leading-[inherit] text-[0.72rem] px-1.5 py-[2.25px] rounded-[7px] cursor-pointer border border-solid",
+                  "transition-[border-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                  "hover:text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2",
+                  activeChannel === row.channel
+                    ? "font-semibold border-[color-mix(in_srgb,var(--accent)_45%,transparent)] bg-[var(--accent-soft)] text-[var(--accent)]"
+                    : "font-medium border-[var(--line)] bg-transparent text-[var(--muted)]",
+                )}
               >
                 {row.label}
-              </Box>
+              </button>
             ))}
-          </Box>
+          </div>
 
           {/* Etage 2 — partage du net, ajustable a la souris. */}
-          <Box sx={{ mb: 2 }}>
+          <div className="mb-3">
             <SplitBarEditor
               segments={segments}
               onChange={onSegmentsChange}
@@ -1251,14 +1089,10 @@ function RevenueSplitPanel({
                   : undefined
               }
             />
-          </Box>
+          </div>
 
           {/* Champs de saisie — memes reglages que la barre, valeur exacte. */}
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={1.25}
-            sx={{ mb: 1.5 }}
-          >
+          <div className="flex flex-col min-[600px]:flex-row gap-[7.5px] mb-[9px]">
             {inputs.map((input) => (
               <ShareInput
                 key={input.key}
@@ -1268,87 +1102,43 @@ function RevenueSplitPanel({
                 color={input.color}
               />
             ))}
-          </Stack>
+          </div>
 
           {/* Total — l'enregistrement vit dans le header de la page. */}
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 0.875,
-              flexWrap: "wrap",
-            }}
-          >
-            <Typography
-              sx={{
-                fontSize: "0.78rem",
-                color: "text.secondary",
-                fontWeight: 500,
-              }}
-            >
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="cn-text-body1 text-[0.78rem] text-muted-foreground font-medium">
               Total
-            </Typography>
-            <Chip
-              label={`${total}%`}
-              size="small"
-              sx={buildStatusChipSx(isValidTotal ? "var(--ok)" : "var(--err)")}
-            />
+            </p>
+            <StatusChip color={isValidTotal ? "var(--ok)" : "var(--err)"} label={`${total}%`} />
             {!isValidTotal && (
-              <Typography
-                sx={{
-                  fontSize: "0.72rem",
-                  color: "var(--err)",
-                  fontWeight: 500,
-                }}
-              >
+              <p className="cn-text-body1 text-[0.72rem] text-[var(--err)] font-medium">
                 {t("settings.split.totalError")}
-              </Typography>
+              </p>
             )}
-          </Box>
+          </div>
 
           {notice}
 
           {/* Detail par canal — toujours visible : c'est ce tableau qui relie
               la commission du canal au reversement reel, l'information que les
               deux sections separees masquaient. */}
-          <Box
-            sx={{
-              mt: 1.75,
-              borderTop: "1px solid",
-              borderColor: "divider",
-              pt: 1.25,
-            }}
-          >
-            <Typography
-              sx={{
-                fontSize: "0.75rem",
-                fontWeight: 600,
-                color: "text.secondary",
-              }}
-            >
+          <div className="mt-2.5 border-t border-[var(--line)] pt-2">
+            <p className="cn-text-body1 text-[0.75rem] font-semibold text-muted-foreground">
               {t("settings.split.detailTitle", "Détail par canal")}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: "0.72rem",
-                color: "text.secondary",
-                mt: 0.5,
-                mb: 0.5,
-                lineHeight: 1.5,
-              }}
-            >
+            </p>
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-0.5 mb-0.5 leading-[1.5]">
               {t(
                 "settings.split.projectionHint",
                 "Projection sur 100 € encaissés, à répartition constante. Ce n’est pas un relevé de reversements."
               )}
-            </Typography>
+            </p>
             <ChannelProjectionTable
               rows={rows}
               shares={shares}
               activeChannel={activeChannel}
             />
             {footer}
-          </Box>
+          </div>
     </>
   );
 }
@@ -1383,87 +1173,50 @@ function BookingEngineRateRow({
   };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: 1,
-        mt: 1.25,
-        pt: 1.25,
-        borderTop: "1px dashed",
-        borderColor: "divider",
-        flexWrap: "wrap",
-      }}
-    >
-      <Typography
-        sx={{ fontSize: "0.75rem", color: "text.secondary", fontWeight: 500 }}
-      >
+    <div className="flex items-center gap-1.5 mt-[7.5px] pt-[7.5px] border-t border-dashed border-[var(--line)] flex-wrap">
+      <p className="cn-text-body1 text-[0.75rem] text-muted-foreground font-medium">
         {t("settings.commissions.bookingEngineRate", "Taux du booking engine")}
-      </Typography>
-      <TextField
-        type="number"
-        size="small"
-        value={value}
-        onChange={(e) => setRate(e.target.value)}
-        inputProps={{
-          min: 0,
-          max: 100,
-          step: 0.5,
-          "aria-label": t(
+      </p>
+      <div className="relative inline-block w-[110px]">
+        <Input
+          type="number"
+          value={value}
+          onChange={(e) => setRate(e.target.value)}
+          min={0}
+          max={100}
+          step={0.5}
+          aria-label={t(
             "settings.commissions.bookingEngineRate",
             "Taux du booking engine"
-          ),
-          style: {
-            textAlign: "center",
-            fontVariantNumeric: "tabular-nums",
-            fontWeight: 600,
-          },
-        }}
-        InputProps={{
-          endAdornment: <InputAdornment position="end">%</InputAdornment>,
-          sx: { fontSize: "0.8125rem" },
-        }}
-        sx={{ width: 110 }}
-      />
-      {saved ? (
-        <Chip
-          label={t("common.saved", "Sauvegardé")}
-          size="small"
-          sx={buildStatusChipSx("var(--ok)")}
+          )}
+          className="text-center text-[0.8125rem] font-semibold tabular-nums pe-6"
         />
+        <span className="pointer-events-none absolute inset-y-0 end-2.5 flex items-center text-[0.8125rem] text-[var(--muted)]">
+          %
+        </span>
+      </div>
+      {saved ? (
+        <StatusChip color={"var(--ok)"} label={t("common.saved", "Sauvegardé")} />
       ) : (
-        <Tooltip title={t("common.save", "Enregistrer")}>
-          <IconButton
-            size="small"
-            onClick={handleSave}
-            disabled={saveMutation.isPending}
-            aria-label={t("common.save", "Enregistrer")}
-            sx={{
-              width: 28,
-              height: 28,
-              borderRadius: "7px",
-              color: "text.secondary",
-              border: "1px solid",
-              borderColor: "divider",
-              transition:
-                "border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)",
-              "&:hover": {
-                color: "var(--accent)",
-                borderColor:
-                  "color-mix(in srgb, var(--accent) 40%, transparent)",
-                backgroundColor: "var(--accent-soft)",
-              },
-              "&:focus-visible": {
-                outline: "2px solid var(--accent)",
-                outlineOffset: 2,
-              },
-            }}
-          >
-            <Save size={13} strokeWidth={1.75} />
-          </IconButton>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleSave}
+                disabled={saveMutation.isPending}
+                aria-label={t("common.save", "Enregistrer")}
+                className="h-[28px] w-[28px] rounded-[7px] border border-solid border-[var(--line)] text-[var(--muted)] transition-[border-color,background-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[var(--accent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] hover:bg-[var(--accent-soft)]"
+              >
+                <Save size={13} strokeWidth={1.75} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t("common.save", "Enregistrer")}</TooltipContent>
         </Tooltip>
       )}
-    </Box>
+    </div>
   );
 }
 

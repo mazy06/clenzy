@@ -1,13 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Box,
-  Typography,
-  IconButton,
+  Button,
   Popover,
-  Divider,
-  Badge,
+  PopoverAnchor,
+  PopoverTrigger,
+  PopoverContent,
+  Separator,
   Tooltip,
-} from '@mui/material';
+  TooltipTrigger,
+  TooltipContent,
+} from '../../components/ui';
+import { cn } from '../../utils/cn';
 import {
   AttachMoney,
   ViewCompact,
@@ -21,7 +24,6 @@ import {
   ChannelLegendChips,
   StatusLegendChips,
   InterventionLegendChip,
-  sigButtonSx,
   STATUS_OPTIONS,
   CHANNEL_LEGEND,
 } from './LegendChips';
@@ -47,6 +49,13 @@ interface PlanningFilterButtonProps {
   presentChannels?: ReadonlySet<PlanningChannelKey>;
   activeStatuses: ReadonlySet<ReservationStatus>;
   onToggleStatus: (status: ReservationStatus) => void;
+  // ── Contrôle externe (menu « ⋯ » regroupé du header) ──────────────────────
+  // Quand `anchorEl` est fourni, le composant ne rend PAS son entonnoir : le
+  // popover s'ancre sur cet élément (le bouton du menu) et l'ouverture est
+  // pilotée par `open`/`onOpenChange`. Absents = trigger interne historique.
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  anchorEl?: HTMLElement | null;
 }
 
 // Variantes d'animation d'urgence des briques (galerie Signature 09b).
@@ -68,6 +77,15 @@ const OVERLINE_SX = {
   display: 'block',
 };
 
+/** Report en classes de `OVERLINE_SX`. */
+const OVERLINE_CLASS = 'text-[0.5625rem] font-bold text-[var(--faint)] tracking-[0.08em] mb-[4.5px] block';
+
+/** Equivalent en classes de `sigButtonSx` (= sigChipSx + BUTTON_RESET de
+ *  LegendChips), hors couleurs. `chipClsFor` n'est pas exporte la-bas, d'ou la
+ *  transcription ici. gap: 0.75 = 4.5px (theme.spacing vaut 6, pas 8). */
+const MODAL_CHIP_CLS =
+  'inline-flex items-center gap-[4.5px] min-h-[27px] px-2.5 py-[5px] rounded-[8px] border border-solid text-[0.71875rem] font-semibold leading-none font-[inherit] appearance-none box-border cursor-pointer select-none whitespace-nowrap transition-[border-color,background-color,color] duration-[160ms] ease-[cubic-bezier(.16,1,.3,1)] motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]';
+
 /** Chip pilule togglable de la modale (langage Signature .pl-chip, même style
  *  que les chips Statuts) : icône optionnelle + libellé, actif = accent-soft. */
 const ModalToggleChip: React.FC<{
@@ -76,14 +94,24 @@ const ModalToggleChip: React.FC<{
   icon?: React.ReactNode;
   onClick: () => void;
 }> = ({ active, label, icon, onClick }) => (
-  <Box component="button" type="button" aria-pressed={active} onClick={onClick} sx={sigButtonSx(active)}>
+  <button
+    type="button"
+    aria-pressed={active}
+    onClick={onClick}
+    className={cn(
+      MODAL_CHIP_CLS,
+      active
+        ? 'text-[var(--accent)] bg-[var(--accent-soft)] border-[var(--accent)]'
+        : 'text-[var(--body)] bg-[var(--card)] border-[var(--line-2)] hover:border-[var(--faint)]',
+    )}
+  >
     {icon && (
-      <Box component="span" sx={{ display: 'inline-flex', color: 'inherit' }}>
+      <span className="inline-flex text-inherit">
         {icon}
-      </Box>
+      </span>
     )}
     {label}
-  </Box>
+  </button>
 );
 
 /**
@@ -108,9 +136,17 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
   presentChannels,
   activeStatuses,
   onToggleStatus,
+  open,
+  onOpenChange,
+  anchorEl,
 }) => {
-  const [filterAnchor, setFilterAnchor] = useState<HTMLElement | null>(null);
-  const filterOpen = Boolean(filterAnchor);
+  // Le popover du kit s'ancre sur son trigger : un booleen suffit, l'element
+  // anchor n'a plus a etre porte par l'etat. En mode contrôlé (menu regroupé),
+  // l'état vit chez le parent.
+  const [internalOpen, setInternalOpen] = useState(false);
+  const filterOpen = open ?? internalOpen;
+  const setFilterOpen = (next: boolean) =>
+    onOpenChange ? onOpenChange(next) : setInternalOpen(next);
 
   // Badge de l'entonnoir : nombre de filtres actifs (toutes catégories).
   // Un canal/statut désélectionné = un filtre actif, où qu'il soit affiché.
@@ -133,105 +169,109 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
   const isCompactDensity = density === 'compact';
 
   return (
-    <>
-      <Tooltip title="Filtres" arrow>
-        <IconButton
-          aria-label="Filtres"
-          onClick={(e) => setFilterAnchor(e.currentTarget)}
-          sx={{ color: filterOpen || activeFilterCount > 0 ? 'var(--accent)' : undefined }}
-        >
-          <Badge
-            badgeContent={activeFilterCount}
-            sx={{
-              '& .MuiBadge-badge': {
-                fontSize: '0.5rem',
-                height: 12,
-                minWidth: 12,
-                backgroundColor: 'var(--accent)',
-                color: 'var(--on-accent)',
-              },
-            }}
-          >
-            <FilterListIcon size={18} strokeWidth={1.85} />
-          </Badge>
-        </IconButton>
-      </Tooltip>
+    <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+      {anchorEl ? (
+        // Mode contrôlé : le popover s'ancre sur le bouton du menu regroupé,
+        // aucun trigger propre.
+        <PopoverAnchor virtualRef={{ current: anchorEl }} />
+      ) : (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              {/* Le kit ne transmet pas de ref (React 18) : le span porte celle
+                  que Radix pose pour l'ancrage et le declencheur d'infobulle. */}
+              <span className="inline-flex">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Filtres"
+                  className={cn(
+                    'relative',
+                    (filterOpen || activeFilterCount > 0) && 'text-[var(--accent)]',
+                  )}
+                >
+                  <FilterListIcon size={18} strokeWidth={1.85} />
+                  {activeFilterCount > 0 && (
+                    <span className="absolute top-1 end-1 inline-flex items-center justify-center min-w-3 h-3 px-[3px] rounded-full bg-[var(--accent)] text-[var(--on-accent)] text-[0.5rem] font-semibold leading-none tabular-nums">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </Button>
+              </span>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent>Filtres</TooltipContent>
+        </Tooltip>
+      )}
 
       {/* Filter popover */}
-      <Popover
-        open={filterOpen}
-        anchorEl={filterAnchor}
-        onClose={() => setFilterAnchor(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        slotProps={{
-          paper: {
-            sx: {
-              mt: 1,
-              p: 2,
-              minWidth: 300,
-              maxWidth: 360,
-              borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--line-2)',
-              backgroundColor: 'var(--card)',
-              boxShadow: 'var(--shadow-pop)',
-            },
-          },
-        }}
+      <PopoverContent
+        align="end"
+        sideOffset={6}
+        className="w-auto min-w-[300px] max-w-[360px] p-3 rounded-[var(--radius-lg)] border border-solid border-[var(--line-2)] bg-[var(--card)] shadow-[var(--shadow-pop)]"
       >
+        {/* Un seul enfant : le `gap` en colonne du primitif ne s'applique alors
+            a rien, et les marges d'origine des sections restent la reference. */}
+        <div>
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Typography variant="subtitle2" sx={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.8125rem', color: 'var(--ink)' }}>
+        <div className="flex items-center justify-between mb-3">
+          <h6 className="cn-text-subtitle2 font-[family-name:var(--font-display)] font-semibold text-[0.8125rem] text-[var(--ink)]">
             Filtres
-          </Typography>
-          <IconButton size="small" onClick={() => setFilterAnchor(null)} sx={{ p: 0.25, color: 'var(--faint)', '&:hover': { color: 'var(--ink)', backgroundColor: 'var(--hover)' } }}>
+          </h6>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Fermer"
+            onClick={() => setFilterOpen(false)}
+            className="text-[var(--faint)] hover:text-[var(--ink)] hover:bg-[var(--hover)]"
+          >
             <CloseIcon size={16} strokeWidth={1.75} />
-          </IconButton>
-        </Box>
+          </Button>
+        </div>
 
         {/* Chips légende (canaux + statuts) — uniquement quand la toolbar ne les
             affiche pas (compact / constellation déployée), pour éviter le doublon. */}
         {showLegendChips && (
           <>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="overline" sx={OVERLINE_SX}>
+            <div className="mb-3">
+              <span className={cn(OVERLINE_CLASS, 'cn-text-overline')}>
                 Canaux
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+              </span>
+              <div className="flex gap-0.5 flex-wrap">
                 <ChannelLegendChips
                   activeChannels={activeChannels}
                   onToggleChannel={onToggleChannel}
                   presentChannels={presentChannels}
                   variant="toggle"
                 />
-              </Box>
-            </Box>
+              </div>
+            </div>
 
-            <Divider sx={{ mb: 2, borderColor: 'var(--line)' }} />
+            <Separator className="mb-3 bg-[var(--line)]" />
 
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="overline" sx={OVERLINE_SX}>
+            <div className="mb-3">
+              <span className={cn(OVERLINE_CLASS, 'cn-text-overline')}>
                 Statuts
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+              </span>
+              <div className="flex gap-0.5 flex-wrap">
                 <StatusLegendChips
                   activeStatuses={activeStatuses}
                   onToggleStatus={onToggleStatus}
                   variant="toggle"
                 />
-              </Box>
-            </Box>
+              </div>
+            </div>
 
-            <Divider sx={{ mb: 2, borderColor: 'var(--line)' }} />
+            <Separator className="mb-3 bg-[var(--line)]" />
           </>
         )}
 
         {/* Affichage */}
-        <Box sx={{ mb: 1 }}>
-          <Typography variant="overline" sx={OVERLINE_SX}>
+        <div className="mb-1.5">
+          <span className={cn(OVERLINE_CLASS, 'cn-text-overline')}>
             Affichage
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+          </span>
+          <div className="flex gap-0.5 flex-wrap">
             {/* Interventions : chip légende (grille) — hébergée ici seulement
                 quand la toolbar ne l'affiche pas. */}
             {showLegendChips && (
@@ -257,13 +297,13 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
               icon={<ViewCompact size={13} strokeWidth={1.75} />}
               onClick={() => onDensityChange(isCompactDensity ? 'normal' : 'compact')}
             />
-          </Box>
+          </div>
 
           {/* Animation d'urgence (briques paiement en attente / info manquante) */}
-          <Typography variant="overline" sx={{ ...OVERLINE_SX, mt: 1.5 }}>
+          <span className={cn(OVERLINE_CLASS, 'cn-text-overline mt-[9px]')}>
             Animation d'urgence
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+          </span>
+          <div className="flex gap-0.5 flex-wrap">
             {URGENCY_ANIMATION_OPTIONS.map((opt) => (
               <ModalToggleChip
                 key={opt.value}
@@ -272,32 +312,23 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
                 onClick={() => onUrgencyAnimationChange(opt.value)}
               />
             ))}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* Clear all filters */}
         {(hasActiveFilters || activeFilterCount > 0) && (
-          <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid var(--line)' }}>
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'var(--err)',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.75rem',
-                '&:hover': { textDecoration: 'underline' },
-              }}
-              onClick={() => {
+          <div className="mt-2 pt-2 border-t border-[var(--line)]">
+            <span className="cn-text-caption text-[var(--err)] cursor-pointer font-semibold text-[0.75rem] hover:decoration-[underline]" onClick={() => {
                 onClearFilters();
-                setFilterAnchor(null);
-              }}
-            >
+                setFilterOpen(false);
+              }}>
               Effacer tous les filtres
-            </Typography>
-          </Box>
+            </span>
+          </div>
         )}
-      </Popover>
-    </>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 };
 

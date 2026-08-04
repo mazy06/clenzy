@@ -1,23 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Box,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Button,
-  Typography,
-  Snackbar,
-  Alert,
-  CircularProgress,
-  Skeleton,
-  Tooltip,
-  Chip,
-} from '@mui/material';
+import { Badge } from '../../components/ui';
+import { Spinner } from '../../components/ui';
+import { Card } from '../../components/ui';
+import { Button } from '../../components/ui';
+import { Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Download,
   Delete,
@@ -26,6 +13,7 @@ import {
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
+import { useNotification } from '../../hooks/useNotification';
 import { databaseAdminApi, BackupInfo } from '../../services/api/databaseAdminApi';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -62,17 +50,13 @@ const DatabaseAdminPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [deletingFile, setDeletingFile] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error' | 'info';
-  }>({ open: false, message: '', severity: 'info' });
+  const { notify } = useNotification();
 
   const showMessage = useCallback(
     (message: string, severity: 'success' | 'error' | 'info' = 'info') => {
-      setSnackbar({ open: true, message, severity });
+      notify[severity](message);
     },
-    [],
+    [notify],
   );
 
   const fetchBackups = useCallback(async () => {
@@ -121,7 +105,7 @@ const DatabaseAdminPage: React.FC = () => {
   };
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title="Base de donnees"
         subtitle="Gestion des backups PostgreSQL"
@@ -129,36 +113,35 @@ const DatabaseAdminPage: React.FC = () => {
         backPath="/admin"
         showBackButton={false}
         actions={
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <div className="flex gap-1.5">
             <Button
-              variant="outlined"
-              size="small"
-              startIcon={<Refresh />}
+              variant="outline"
+              size="sm"
               onClick={fetchBackups}
               disabled={loading}
             >
+              <Refresh />
               Actualiser
             </Button>
             <Button
-              variant="contained"
-              size="small"
-              startIcon={creating ? <CircularProgress size={16} color="inherit" /> : <Storage />}
+              size="sm"
               onClick={handleCreate}
               disabled={creating}
             >
+              {creating ? <Spinner className="size-4" /> : <Storage />}
               {creating ? 'Creation en cours...' : 'Creer un dump'}
             </Button>
-          </Box>
+          </div>
         }
       />
 
-      <Paper variant="outlined" sx={{ mt: 3, borderRadius: '14px', borderColor: 'var(--line)', overflow: 'hidden' }}>
+      <Card className="gap-0 py-0 mt-4 border-[var(--line)] overflow-hidden">
         {loading ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 2 }}>
+          <div className="flex flex-col gap-1.5 p-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+              <Skeleton key={i} className="h-[36px] rounded-[9px]" />
             ))}
-          </Box>
+          </div>
         ) : backups.length === 0 ? (
           <EmptyState
             icon={<Storage />}
@@ -167,85 +150,86 @@ const DatabaseAdminPage: React.FC = () => {
             variant="transparent"
           />
         ) : (
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>Fichier</TableCell>
-                  <TableCell>Taille</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableHead>Fichier</TableHead>
+                  <TableHead>Taille</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead className="text-end">Actions</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {backups.map((backup) => (
-                  <TableRow key={backup.filename} hover>
+                  <TableRow key={backup.filename}>
                     <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Storage fontSize="small" color="action" />
-                        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                      <div className="flex items-center gap-1.5">
+                        {/* `color="action"` etait un jeton MUI, pas une couleur CSS. */}
+                        <span className="inline-flex text-muted-foreground">
+                          <Storage size={18} strokeWidth={1.75} />
+                        </span>
+                        <p className="cn-text-body2 font-mono text-[0.8rem]">
                           {backup.filename}
-                        </Typography>
+                        </p>
                         {backup.filename.endsWith('.gz') && (
-                          <Chip
-                            label="gzip"
-                            size="small"
-                            sx={{ color: 'var(--muted)', backgroundColor: 'var(--hover)' }}
-                          />
+                          <Badge variant="secondary" className="text-[var(--muted)] bg-[var(--hover)]">gzip</Badge>
                         )}
-                      </Box>
+                      </div>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">{formatFileSize(backup.sizeBytes)}</Typography>
+                      <p className="cn-text-body2">{formatFileSize(backup.sizeBytes)}</p>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">{formatDate(backup.createdAt)}</Typography>
+                      <p className="cn-text-body2">{formatDate(backup.createdAt)}</p>
                     </TableCell>
-                    <TableCell align="right">
-                      <Tooltip title="Telecharger">
-                        <IconButton size="small" onClick={() => handleDownload(backup.filename)} color="primary">
-                          <Download fontSize="small" />
-                        </IconButton>
+                    <TableCell className="text-end">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Telecharger"
+                            onClick={() => handleDownload(backup.filename)}
+                            className="text-[var(--mui-primary)]"
+                          >
+                            <Download size={18} strokeWidth={1.75} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Telecharger</TooltipContent>
                       </Tooltip>
-                      <Tooltip title="Supprimer">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDelete(backup.filename)}
-                          color="error"
-                          disabled={deletingFile === backup.filename}
-                        >
-                          {deletingFile === backup.filename ? (
-                            <CircularProgress size={16} />
-                          ) : (
-                            <Delete fontSize="small" />
-                          )}
-                        </IconButton>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* Le span porte le declencheur : un bouton desactive
+                              n'emet plus d'evenement de survol. */}
+                          <span className="inline-flex">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label="Supprimer"
+                              onClick={() => handleDelete(backup.filename)}
+                              disabled={deletingFile === backup.filename}
+                              className="text-[var(--err)]"
+                            >
+                              {deletingFile === backup.filename ? (
+                                <Spinner className="size-4" />
+                              ) : (
+                                <Delete size={18} strokeWidth={1.75} />
+                              )}
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Supprimer</TooltipContent>
                       </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
         )}
-      </Paper>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={5000}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+      </Card>
+    </div>
   );
 };
 

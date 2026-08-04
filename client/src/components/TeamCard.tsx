@@ -1,16 +1,14 @@
 import React from 'react';
+import StatusChip from './StatusChip';
 import {
-  Box,
+  Avatar,
+  AvatarFallback,
+  AvatarGroup,
+  AvatarGroupCount,
+  Button,
   Card,
   CardContent,
-  CardActions,
-  Typography,
-  Chip,
-  IconButton,
-  Avatar,
-  AvatarGroup,
-  Button,
-} from '@mui/material';
+} from './ui';
 import {
   MoreVert,
   Visibility,
@@ -114,6 +112,9 @@ const getStatusLabel = (status: string): string => {
 
 const INTERVENTION_BLUE = '#6B8A9A';
 
+/** Pastilles d'avatars affichees au maximum, compteur de surplus inclus. */
+const MAX_AVATARS = 4;
+
 const TeamCard: React.FC<TeamCardProps> = React.memo(({
   team,
   onMenuOpen,
@@ -127,6 +128,10 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
   const typeOption = INTERVENTION_TYPE_OPTIONS.find(t => t.value === team.interventionType);
   const typeLabel = typeOption?.label || team.interventionType;
   const members = team.members ?? [];
+  // Le groupe d'avatars du kit ne tronque pas : on reproduit le `max={4}` de MUI
+  // (4 pastilles au total, la derniere devenant le compteur de surplus).
+  const shownMembers = members.slice(0, members.length > MAX_AVATARS ? MAX_AVATARS - 1 : MAX_AVATARS);
+  const surplusMembers = members.length - shownMembers.length;
   const accent = getAccentColor(team.interventionType);
   const TypeIcon = getTypeIconComponent(team.interventionType);
 
@@ -141,256 +146,140 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
       : INTERVENTION_BLUE;
 
   return (
+    // La bordure de survol derive de l'accent de categorie, connu a l'execution :
+    // Tailwind ne peut pas en emettre la classe, on la fait transiter par une
+    // custom property posee en style, que la classe de survol consomme.
     <Card
       onClick={handleViewDetails}
-      sx={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        cursor: 'pointer',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--line)',
-        bgcolor: 'var(--card)',
-        boxShadow: 'none',
-        overflow: 'hidden',
-        transition: 'border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1), transform 200ms cubic-bezier(0.22, 1, 0.36, 1)',
-        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-        '&:hover': {
-          borderColor: `${accent}66`,
-          boxShadow: 'var(--shadow-card)',
-          transform: 'translateY(-1px)',
-        },
-      }}
+      style={{ '--team-accent': `${accent}66` } as React.CSSProperties}
+      className="h-full cursor-pointer overflow-hidden rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)] ring-0 shadow-none [--card-spacing:0px] transition-[border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none hover:border-[var(--team-accent)] hover:shadow-[var(--shadow-card)] hover:-translate-y-px"
     >
-      <CardContent sx={{ flexGrow: 1, p: 1.75, pb: 1.25 }}>
+      <CardContent className="grow p-[10.5px] pb-[7.5px]">
         {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.25, gap: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flex: 1, minWidth: 0 }}>
-            <Box
-              sx={{
-                width: 38,
-                height: 38,
-                borderRadius: '8px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: `${accent}1F`,
-                color: accent,
-                flexShrink: 0,
-              }}
-            >
+        <div className="flex justify-between items-start mb-2 gap-1.5">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="w-[38px] h-[38px] rounded-[8px] inline-flex items-center justify-center shrink-0" style={{ backgroundColor: `${accent}1F`, color: accent }}>
               <TypeIcon size={18} strokeWidth={1.75} />
-            </Box>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography
-                fontWeight={600}
-                sx={{
-                  fontSize: '0.9rem',
-                  lineHeight: 1.25,
-                  color: 'text.primary',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-                title={team.name}
-              >
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="cn-text-body1 font-semibold text-[0.9rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={team.name}>
                 {team.name}
-              </Typography>
-              <Typography
-                color="text.secondary"
-                sx={{
-                  fontSize: '0.7rem',
-                  lineHeight: 1.3,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  display: 'block',
-                }}
-                title={team.description || 'Aucune description'}
-              >
+              </p>
+              <p className="cn-text-body1 text-muted-foreground text-[0.7rem] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap block" title={team.description || 'Aucune description'}>
                 {team.description || 'Aucune description'}
-              </Typography>
-            </Box>
-          </Box>
-          <IconButton
-            size="small"
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={(e) => { e.stopPropagation(); onMenuOpen(e, team); }}
-            sx={{ p: 0.5, ml: 0.25, color: 'text.secondary' }}
+            className="ms-[1.5px] text-[var(--muted)]"
             aria-label="Options"
           >
             <MoreVert size={16} strokeWidth={1.75} />
-          </IconButton>
-        </Box>
+          </Button>
+        </div>
 
         {/* Type, statut, charge */}
-        <Box sx={{ display: 'flex', gap: 0.5, mb: 1.25, flexWrap: 'wrap' }}>
-          <Chip
-            icon={<TypeIcon size={11} strokeWidth={2} />}
-            label={typeLabel}
-            size="small"
-            sx={{
-              backgroundColor: `${accent}18`,
-              color: accent,
-              '& .MuiChip-icon': { color: accent, ml: '6px', mr: '-2px' },
-            }}
-          />
-          <Chip
-            label={getStatusLabel(status)}
-            size="small"
-            sx={{
-              backgroundColor: `${statusHex}18`,
-              color: statusHex,
-            }}
-          />
+        <div className="flex gap-0.5 mb-2 flex-wrap">
+          <StatusChip tokens={{ color: accent, bg: `${accent}18` }} label={typeLabel} icon={<TypeIcon size={11} strokeWidth={2} />} />
+          <StatusChip tokens={{ color: statusHex, bg: `${statusHex}18` }} label={getStatusLabel(status)} />
           {activeInterventionsCount > 0 && (
-            <Chip
-              icon={<Assignment size={11} strokeWidth={2} />}
-              label={`${activeInterventionsCount} active${activeInterventionsCount > 1 ? 's' : ''}`}
-              size="small"
-              sx={{
-                backgroundColor: `${workloadColor}18`,
-                color: workloadColor,
-                fontVariantNumeric: 'tabular-nums',
-                '& .MuiChip-icon': { color: workloadColor, ml: '6px', mr: '-2px' },
-              }}
-            />
+            <StatusChip tokens={{ color: workloadColor, bg: `${workloadColor}18` }} label={`${activeInterventionsCount} active${activeInterventionsCount > 1 ? 's' : ''}`} icon={<Assignment size={11} strokeWidth={2} />} className="tabular-nums" />
           )}
-        </Box>
+        </div>
 
         {/* Membres + interventions totales */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
+        <div className="flex items-center justify-between gap-1.5 mb-1">
           {members.length > 0 ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-              <AvatarGroup
-                max={4}
-                sx={{
-                  '& .MuiAvatar-root': {
-                    width: 24,
-                    height: 24,
-                    fontSize: '0.625rem',
-                    fontFamily: 'var(--font-display)',
-                    fontWeight: 600,
-                    border: '2px solid var(--card)',
-                    bgcolor: `${accent}1F`,
-                    color: accent,
-                  },
-                }}
-              >
-                {members.map((member) => (
-                  <Avatar key={member.id}>
-                    {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
+            <div className="flex items-center gap-1">
+              <AvatarGroup className="*:data-[slot=avatar]:ring-[var(--card)]">
+                {shownMembers.map((member) => (
+                  <Avatar key={member.id} size="sm">
+                    <AvatarFallback
+                      className="text-[0.625rem] font-[family-name:var(--font-display)] font-semibold"
+                      style={{ backgroundColor: `${accent}1F`, color: accent }}
+                    >
+                      {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
+                    </AvatarFallback>
                   </Avatar>
                 ))}
+                {surplusMembers > 0 && (
+                  <AvatarGroupCount
+                    className="text-[0.625rem] font-[family-name:var(--font-display)] font-semibold ring-[var(--card)] tabular-nums"
+                    style={{ backgroundColor: `${accent}1F`, color: accent }}
+                  >
+                    +{surplusMembers}
+                  </AvatarGroupCount>
+                )}
               </AvatarGroup>
-              <Typography
-                sx={{
-                  fontSize: '0.7rem',
-                  color: 'text.secondary',
-                  fontVariantNumeric: 'tabular-nums',
-                  ml: 0.25,
-                }}
-              >
+              <p className="cn-text-body1 text-[0.7rem] text-muted-foreground tabular-nums ms-0.5">
                 {members.length} {members.length > 1 ? 'membres' : 'membre'}
-              </Typography>
-            </Box>
+              </p>
+            </div>
           ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-              <Box sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+            <div className="flex items-center gap-1">
+              <div className="inline-flex text-muted-foreground opacity-60">
                 <PersonIcon size={13} strokeWidth={1.75} />
-              </Box>
-              <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>
+              </div>
+              <p className="cn-text-body1 text-[0.7rem] text-muted-foreground opacity-60">
                 Aucun membre
-              </Typography>
-            </Box>
+              </p>
+            </div>
           )}
 
           {(team.totalInterventions ?? 0) > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-              <Box sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+            <div className="flex items-center gap-0.5 shrink-0">
+              <div className="inline-flex text-muted-foreground">
                 <Build size={12} strokeWidth={1.75} />
-              </Box>
-              <Typography
-                sx={{
-                  fontSize: '0.7rem',
-                  color: 'text.secondary',
-                  fontVariantNumeric: 'tabular-nums',
-                }}
-              >
+              </div>
+              <p className="cn-text-body1 text-[0.7rem] text-muted-foreground tabular-nums">
                 {team.totalInterventions}
-              </Typography>
-            </Box>
+              </p>
+            </div>
           )}
-        </Box>
+        </div>
 
         {team.createdAt && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}>
+          <div className="flex items-center gap-1.5">
+            <div className="inline-flex text-muted-foreground shrink-0">
               <GroupIcon size={13} strokeWidth={1.75} />
-            </Box>
-            <Typography
-              sx={{
-                fontSize: '0.7rem',
-                color: 'text.secondary',
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
+            </div>
+            <p className="cn-text-body1 text-[0.7rem] text-muted-foreground tabular-nums">
               Créée le {formatShortDate(team.createdAt)}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
       </CardContent>
 
-      {/* Actions */}
-      <CardActions sx={{ pt: 0, px: 1.75, pb: 1.5, gap: 0.75 }}>
+      {/* Actions — pied de carte : deux actions de meme rang, la carte entiere
+          etant deja cliquable. Le survol teinte a l'accent de categorie
+          disparait au profit du survol du kit — il dependait d'une valeur
+          calculee. `shrink` neutralise le `shrink-0` du Button, sans quoi deux
+          boutons `w-full` freres deborderaient. */}
+      <div className="flex items-center gap-[4.5px] px-[10.5px] pt-0 pb-[9px]">
         <Button
-          fullWidth
-          size="small"
-          startIcon={<Visibility size={14} strokeWidth={1.75} />}
+          variant="outline"
+          size="sm"
+          className="w-full shrink"
           onClick={(e) => { e.stopPropagation(); handleViewDetails(); }}
-          variant="outlined"
-          sx={{
-            fontSize: '0.72rem',
-            fontWeight: 600,
-            letterSpacing: '0.01em',
-            borderRadius: '6px',
-            borderColor: 'var(--line-2)',
-            color: 'var(--body)',
-            textTransform: 'none',
-            py: 0.625,
-            '&:hover': {
-              borderColor: `${accent}80`,
-              backgroundColor: `${accent}10`,
-            },
-          }}
         >
+          <Visibility strokeWidth={1.75} />
           Détails
         </Button>
         {canEdit && (
           <Button
-            fullWidth
-            size="small"
-            startIcon={<Edit size={14} strokeWidth={1.75} />}
+            variant="outline"
+            size="sm"
+            className="w-full shrink"
             onClick={(e) => { e.stopPropagation(); navigate(`/teams/${team.id}/edit`); }}
-            variant="outlined"
-            sx={{
-              fontSize: '0.72rem',
-              fontWeight: 600,
-              letterSpacing: '0.01em',
-              borderRadius: '6px',
-              borderColor: 'var(--line-2)',
-              color: 'var(--body)',
-              textTransform: 'none',
-              py: 0.625,
-              '&:hover': {
-                borderColor: `${accent}80`,
-                backgroundColor: `${accent}10`,
-              },
-            }}
           >
+            <Edit strokeWidth={1.75} />
             Modifier
           </Button>
         )}
-      </CardActions>
+      </div>
     </Card>
   );
 });

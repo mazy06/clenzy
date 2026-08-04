@@ -1,12 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  Alert,
-  Box,
-  Chip,
-  IconButton,
-  TextField,
-  CircularProgress,
-} from '@mui/material';
+import { cn } from '../../../utils/cn';
+import StatusChip from '../../../components/StatusChip';
+import { Spinner, Field, FieldLabel, Input } from '../../../components/ui';
+import { Alert, AlertAction, AlertDescription, Button } from '../../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -31,6 +28,7 @@ import { toDate } from '../utils/dateUtils';
 import { toneTokensSx } from '../../../components/StatusChip';
 import GuestAvatar from '../../../components/GuestAvatar';
 import PanelReservationCompliance from './PanelReservationCompliance';
+import ReservationLifecycle from './ReservationLifecycle';
 
 // ─── Onglet Infos (maquette Signature) ───────────────────────────────────────
 //
@@ -44,13 +42,7 @@ import PanelReservationCompliance from './PanelReservationCompliance';
 
 type ActionResult = { success: boolean; error: string | null };
 
-const OVERLINE_SX = {
-  fontSize: '0.625rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.08em',
-  color: 'var(--faint)',
-};
+const OVERLINE_CLASS = 'text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)]';
 
 /** Couleur + fond doux par statut (tokens — violet « Départ » = constante documentée). */
 const STATUS_SOFT: Record<string, string> = {
@@ -141,25 +133,21 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
     setEditingName(false);
   };
 
-  const chipSx = (bg: string, color: string) => ({
-    ...toneTokensSx({ color, bg }),
-    borderRadius: 'var(--radius-pill)',
-  });
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.25 }}>
+    <div className="flex flex-col gap-3.5">
       {/* ─── Identité : avatar 56 + nom (display) + canal · statut ────── */}
-      <Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      <div>
+        <div className="flex items-center gap-2">
           <GuestAvatar
             name={reservation.guestName}
             photoUrl={reservation.guestAvatarUrl}
             size={56}
             sx={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)', fontFamily: 'var(--font-display)', fontSize: '1.125rem' }}
           />
-          <Box sx={{ minWidth: 0, flex: 1 }}>
+          <div className="min-w-0 flex-1">
             {editingName ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <div className="flex items-center gap-0.5">
                 <input
                   ref={nameInputRef}
                   aria-label="Nom du client"
@@ -173,10 +161,10 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
                   disabled={nameSaving}
                   style={NAME_EDIT_INPUT_STYLE}
                 />
-                {nameSaving && <CircularProgress size={14} />}
-              </Box>
+                {nameSaving && <Spinner className="size-3.5" />}
+              </div>
             ) : (
-              <Box
+              <div
                 onClick={() => {
                   if (onUpdateGuestInfo) {
                     setNameValue(reservation.guestName);
@@ -184,73 +172,48 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
                     setTimeout(() => nameInputRef.current?.focus(), 0);
                   }
                 }}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  cursor: onUpdateGuestInfo ? 'pointer' : 'default',
-                  borderRadius: '6px',
-                  px: 0.5,
-                  mx: -0.5,
-                  '&:hover': onUpdateGuestInfo ? {
-                    backgroundColor: 'var(--hover)',
-                    '& .edit-icon': { opacity: 1 },
-                  } : {},
-                }}
-              >
-                <Box
-                  component="span"
-                  sx={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: '1.0625rem',
-                    fontWeight: 700,
-                    color: 'var(--ink)',
-                    lineHeight: 1.25,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {reservation.guestName}
-                </Box>
-                {onUpdateGuestInfo && (
-                  <Box component="span" className="edit-icon" sx={{ display: 'inline-flex', color: 'var(--faint)', opacity: 0, transition: 'opacity var(--duration-fast) var(--ease-out)' }}>
-                    <Edit size={14} strokeWidth={1.75} />
-                  </Box>
+                className={cn(
+                  'flex items-center gap-[3px] rounded-[6px] px-[3px] mx-[-3px]',
+                  onUpdateGuestInfo
+                    ? 'cursor-pointer hover:bg-[var(--hover)] [&:hover_.edit-icon]:opacity-100'
+                    : 'cursor-default',
                 )}
-              </Box>
+              >
+                <span className="font-[family-name:var(--font-display)] text-[1.0625rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
+                  {reservation.guestName}
+                </span>
+                {onUpdateGuestInfo && (
+                  <span className="edit-icon inline-flex text-[var(--faint)] opacity-0" style={{ transition: 'opacity var(--duration-fast) var(--ease-out)' }}>
+                    <Edit size={14} strokeWidth={1.75} />
+                  </span>
+                )}
+              </div>
             )}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mt: '3px' }}>
+            <div className="flex items-center gap-[3.75px] mt-[3px]">
               {sourceLogo && (
-                <Box
-                  component="img"
-                  src={sourceLogo}
-                  alt=""
-                  sx={{ width: 13, height: 13, objectFit: 'contain', display: 'block' }}
-                />
+                <img className="w-[13px] h-[13px] object-contain block" src={sourceLogo} alt="" />
               )}
-              <Box component="span" sx={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+              <span className="text-[0.75rem] text-[var(--muted)]">
                 {channelLabel}
-              </Box>
-              <Box component="span" sx={{ fontSize: '0.75rem', color: 'var(--faint)' }}>·</Box>
-              <Box component="span" sx={{ fontSize: '0.75rem', fontWeight: 600, color: statusColor }}>
+              </span>
+              <span className="text-[0.75rem] text-[var(--faint)]">·</span>
+              <span className="text-[0.75rem] font-semibold" style={{ color: statusColor }}>
                 {statusLabel}
-              </Box>
-            </Box>
-          </Box>
-        </Box>
+              </span>
+            </div>
+          </div>
+        </div>
 
         {/* Rangée de chips : statut / canal / voyageurs */}
-        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mt: 1.5 }}>
-          <Chip label={statusLabel} size="small" sx={chipSx(statusSoft, statusColor)} />
-          <Chip label={channelLabel} size="small" sx={chipSx(channelTokens.bg, channelTokens.color)} />
-          <Chip
-            label={`${reservation.guestCount} voyageur${reservation.guestCount > 1 ? 's' : ''}`}
-            size="small"
-            sx={chipSx('var(--field)', 'var(--body)')}
-          />
-        </Box>
-      </Box>
+        <div className="flex gap-1 flex-wrap mt-2">
+          <StatusChip pill tokens={{ color: statusColor, bg: statusSoft }} label={statusLabel} />
+          <StatusChip pill tokens={{ color: channelTokens.color, bg: channelTokens.bg }} label={channelLabel} />
+          <StatusChip pill tokens={{ color: 'var(--body)', bg: 'var(--field)' }} label={`${reservation.guestCount} voyageur${reservation.guestCount > 1 ? 's' : ''}`} />
+        </div>
+      </div>
+
+      {/* ─── Cycle de vie du séjour (stepper de la projection) ─────────── */}
+      <ReservationLifecycle reservation={reservation} />
 
       {/* ─── DATES & HORAIRES ──────────────────────────────────────────── */}
       <EditableDatesSection reservation={reservation} onUpdate={onUpdateReservation} />
@@ -260,7 +223,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({
 
       {/* ─── FICHE DE POLICE / CONFORMITÉ (rendu seulement si ≥1 déclaration) ─── */}
       <PanelReservationCompliance reservationId={reservation.id} />
-    </Box>
+    </div>
   );
 };
 
@@ -333,152 +296,167 @@ const EditableDatesSection: React.FC<EditableDatesSectionProps> = ({ reservation
   };
 
   const DateColumn = ({ label, date, time, align }: { label: string; date: string; time?: string; align: 'left' | 'right' }) => (
-    <Box sx={{ textAlign: align, minWidth: 0 }}>
-      <Box component="span" sx={{ ...OVERLINE_SX, display: 'block', mb: 0.375 }}>{label}</Box>
-      <Box
-        component="span"
-        sx={{
-          display: 'block',
-          fontFamily: 'var(--font-display)',
-          fontSize: '1.25rem',
-          fontWeight: 700,
-          color: 'var(--ink)',
-          lineHeight: 1.15,
-          fontVariantNumeric: 'tabular-nums',
-          whiteSpace: 'nowrap',
-        }}
-      >
+    // `align` pilote deja la rangee d'heure en logique (justify-start/end) : on garde
+    // text-start/text-end pour que les deux restent coherents en RTL.
+    <div className={cn('min-w-0', align === 'right' ? 'text-end' : 'text-start')}>
+      <span className={cn(OVERLINE_CLASS, 'block mb-[2.25px]')}>{label}</span>
+      <span className="block font-[family-name:var(--font-display)] text-[1.25rem] font-bold text-[var(--ink)] leading-[1.15] tabular-nums whitespace-nowrap">
         {fmtBigDate(date)}
-      </Box>
+      </span>
       {time && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.375, justifyContent: align === 'right' ? 'flex-end' : 'flex-start' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Schedule size={12} strokeWidth={1.75} /></Box>
-          <Box component="span" sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+        <div className={cn('flex items-center gap-[3px] mt-[2.25px]', align === 'right' ? 'justify-end' : 'justify-start')}>
+          <span className="inline-flex text-[var(--muted)]"><Schedule size={12} strokeWidth={1.75} /></span>
+          <span className="text-[0.75rem] font-semibold text-[var(--muted)] tabular-nums">
             {time}
-          </Box>
-        </Box>
+          </span>
+        </div>
       )}
-    </Box>
+    </div>
   );
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}>
+    <div>
+      <div className="flex items-center gap-1 mb-1.5">
+        <span className="inline-flex text-[var(--faint)]">
           <CalendarMonth size={13} strokeWidth={1.75} />
-        </Box>
-        <Box component="span" sx={{ ...OVERLINE_SX, flex: 1 }}>Dates & horaires</Box>
+        </span>
+        <span className={cn(OVERLINE_CLASS, 'flex-1')}>Dates &amp; horaires</span>
         {!editing ? (
           onUpdate && (
-            <IconButton
-              size="small"
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={() => setEditing(true)}
               aria-label="Modifier les dates"
-              sx={{ p: 0.375, color: 'var(--muted)', '&:hover': { color: 'var(--ink)', backgroundColor: 'var(--hover)' } }}
+              className="text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--hover)]"
             >
               <Edit size={13} strokeWidth={1.75} />
-            </IconButton>
+            </Button>
           )
         ) : (
-          <Box sx={{ display: 'flex', gap: 0.25 }}>
-            <IconButton
-              size="small"
+          <div className="flex gap-0.5">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
               onClick={handleSave}
               disabled={!hasChanges}
-              sx={{ p: 0.375, color: 'var(--ok)', '&.Mui-disabled': { color: 'var(--faint)' } }}
+              aria-label="Enregistrer les dates"
+              className="text-[var(--ok)] hover:text-[var(--ok)] hover:bg-[var(--ok-soft)]"
             >
               <Check size={15} strokeWidth={1.75} />
-            </IconButton>
-            <IconButton size="small" onClick={handleCancel} sx={{ p: 0.375, color: 'var(--err)' }}>
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={handleCancel}
+              aria-label="Annuler la modification des dates"
+              className="text-[var(--err)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+            >
               <Close size={15} strokeWidth={1.75} />
-            </IconButton>
-          </Box>
+            </Button>
+          </div>
         )}
-      </Box>
+      </div>
 
       {!editing ? (
         /* Mode lecture : 2 colonnes + flèche centrale */
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+        <div className="flex justify-between items-center gap-1.5">
           <DateColumn label="Check-in" date={reservation.checkIn} time={reservation.checkInTime} align="left" />
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', flexShrink: 0 }}>
+          <span className="inline-flex text-[var(--faint)] shrink-0">
             <ArrowForward size={16} strokeWidth={1.75} />
-          </Box>
+          </span>
           <DateColumn label="Check-out" date={reservation.checkOut} time={reservation.checkOutTime} align="right" />
-        </Box>
+        </div>
       ) : (
         /* Mode édition (flow historique conservé) */
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <div className="flex flex-col gap-2">
           {/* Check-in */}
-          <Box>
-            <Box component="span" sx={{ ...OVERLINE_SX, display: 'block', mb: 0.375 }}>Check-in</Box>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <TextField
-                type="date"
-                size="small"
-                value={checkIn}
-                onChange={(e) => setCheckIn(e.target.value)}
-                sx={{ flex: 1, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
-                inputProps={{ style: { padding: '6px 8px' } }}
-              />
-              <TextField
-                type="time"
-                size="small"
-                value={checkInTime}
-                onChange={(e) => setCheckInTime(e.target.value)}
-                placeholder="HH:mm"
-                sx={{ width: 100, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
-                inputProps={{ style: { padding: '6px 8px' } }}
-              />
-            </Box>
-          </Box>
+          <div>
+            <span className={cn(OVERLINE_CLASS, 'block mb-[2.25px]')}>Check-in</span>
+            {/* L'overline coiffe la PAIRE date + heure : il ne peut pas servir de
+                libellé à un champ unique, d'où un FieldLabel sr-only par champ. */}
+            <div className="flex gap-1.5">
+              <Field className="flex-1">
+                <FieldLabel className="sr-only" htmlFor="panel-check-in-date">Date de check-in</FieldLabel>
+                <Input
+                  id="panel-check-in-date"
+                  type="date"
+                  className="text-xs"
+                  value={checkIn}
+                  onChange={(e) => setCheckIn(e.target.value)}
+                />
+              </Field>
+              <Field className="w-[100px]">
+                <FieldLabel className="sr-only" htmlFor="panel-check-in-time">Heure de check-in</FieldLabel>
+                <Input
+                  id="panel-check-in-time"
+                  type="time"
+                  className="text-xs"
+                  value={checkInTime}
+                  onChange={(e) => setCheckInTime(e.target.value)}
+                  placeholder="HH:mm"
+                />
+              </Field>
+            </div>
+          </div>
 
           {/* Check-out */}
-          <Box>
-            <Box component="span" sx={{ ...OVERLINE_SX, display: 'block', mb: 0.375 }}>Check-out</Box>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <TextField
-                type="date"
-                size="small"
-                value={checkOut}
-                onChange={(e) => setCheckOut(e.target.value)}
-                sx={{ flex: 1, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
-                inputProps={{ style: { padding: '6px 8px' } }}
-              />
-              <TextField
-                type="time"
-                size="small"
-                value={checkOutTime}
-                onChange={(e) => setCheckOutTime(e.target.value)}
-                placeholder="HH:mm"
-                sx={{ width: 100, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
-                inputProps={{ style: { padding: '6px 8px' } }}
-              />
-            </Box>
-          </Box>
+          <div>
+            <span className={cn(OVERLINE_CLASS, 'block mb-[2.25px]')}>Check-out</span>
+            <div className="flex gap-1.5">
+              <Field className="flex-1">
+                <FieldLabel className="sr-only" htmlFor="panel-check-out-date">Date de check-out</FieldLabel>
+                <Input
+                  id="panel-check-out-date"
+                  type="date"
+                  className="text-xs"
+                  value={checkOut}
+                  onChange={(e) => setCheckOut(e.target.value)}
+                />
+              </Field>
+              <Field className="w-[100px]">
+                <FieldLabel className="sr-only" htmlFor="panel-check-out-time">Heure de check-out</FieldLabel>
+                <Input
+                  id="panel-check-out-time"
+                  type="time"
+                  className="text-xs"
+                  value={checkOutTime}
+                  onChange={(e) => setCheckOutTime(e.target.value)}
+                  placeholder="HH:mm"
+                />
+              </Field>
+            </div>
+          </div>
 
           {validationError && (
-            <Alert
-              severity="error"
-              onClose={() => setValidationError(null)}
-              sx={{
-                fontSize: '0.75rem',
-                py: 0,
-                '& .MuiAlert-message': { fontSize: '0.75rem' },
-                '& .MuiAlert-icon': { fontSize: '1rem', py: 0.5 },
-              }}
-            >
-              {validationError}
+            <Alert variant="destructive" className="text-[0.75rem] py-1">
+              <TriangleAlert />
+              <AlertDescription>{validationError}</AlertDescription>
+              <AlertAction>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label="Fermer"
+                  onClick={() => setValidationError(null)}
+                >
+                  <X />
+                </Button>
+              </AlertAction>
             </Alert>
           )}
 
           {hasChanges && !validationError && (
-            <Box component="span" sx={{ fontSize: '0.625rem', color: 'var(--warn)' }}>
+            <span className="text-[0.625rem] text-[var(--warn)]">
               Les interventions liees (menage) seront automatiquement decalees.
-            </Box>
+            </span>
           )}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 
@@ -607,57 +585,43 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
   };
 
   return (
-    <Box>
+    <div>
       {/* Header overline */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
-        <Box component="span" sx={{ ...OVERLINE_SX, flex: 1 }}>
+      <div className="flex items-center gap-1 mb-1.5">
+        <span className={cn(OVERLINE_CLASS, 'flex-1')}>
           Notes{items.length > 0 ? ` · ${items.length}` : ''}
-        </Box>
-        {saving && <CircularProgress size={12} />}
-        {saved && <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><Check size={14} strokeWidth={1.75} /></Box>}
-      </Box>
+        </span>
+        {saving && <Spinner className="size-3" />}
+        {saved && <span className="inline-flex text-[var(--ok)]"><Check size={14} strokeWidth={1.75} /></span>}
+      </div>
 
       {/* Bloc référence : téléphone (donnée existante, omis sinon) */}
       {reservation.guestPhone && (
-        <Box sx={{ backgroundColor: 'var(--field)', borderRadius: '10px', px: 1.5, py: 1, mb: 1 }}>
-          <Box component="span" sx={{ ...OVERLINE_SX, display: 'block', mb: 0.25 }}>Téléphone</Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Phone size={12} strokeWidth={1.75} /></Box>
-            <Box component="span" sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+        <div className="bg-[var(--field)] rounded-[10px] px-2 py-1.5 mb-1.5">
+          <span className={cn(OVERLINE_CLASS, 'block mb-[1.5px]')}>Téléphone</span>
+          <div className="flex items-center gap-1">
+            <span className="inline-flex text-[var(--muted)]"><Phone size={12} strokeWidth={1.75} /></span>
+            <span className="text-[0.8125rem] font-semibold text-[var(--ink)] tabular-nums">
               {reservation.guestPhone}
-            </Box>
-          </Box>
-        </Box>
+            </span>
+          </div>
+        </div>
       )}
 
       {/* Bloc notes éditables (bullets, auto-save) */}
-      <Box
-        sx={{
-          backgroundColor: 'var(--field)',
-          borderRadius: '10px',
-          maxHeight: 260,
-          overflowY: 'auto',
-        }}
-      >
+      <div className="bg-[var(--field)] rounded-[10px] max-h-[260px] overflow-y-auto">
         {items.map((item, idx) => (
-          <Box
+          <div
             key={idx}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.75,
-              px: 1.5,
-              py: 0.5,
-              minHeight: 32,
-              borderBottom: idx < items.length - 1 ? '1px solid var(--field-line)' : 'none',
-              '&:hover': { backgroundColor: 'var(--hover)' },
-              '&:hover .note-delete-btn': { opacity: 1 },
-              cursor: 'pointer',
-            }}
+            className={cn(
+              'flex items-center gap-[4.5px] px-[9px] py-[3px] min-h-[32px] cursor-pointer',
+              'hover:bg-[var(--hover)] [&:hover_.note-delete-btn]:opacity-100',
+              idx < items.length - 1 && 'border-b border-solid border-b-[var(--field-line)]',
+            )}
             onClick={() => { if (editingIdx !== idx) startEditing(idx); }}
           >
             {/* Bullet dot */}
-            <Box sx={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--accent)', flexShrink: 0 }} />
+            <div className="w-[6px] h-[6px] rounded-[50%] bg-[var(--accent)] shrink-0" />
 
             {/* Text or inline edit */}
             {editingIdx === idx ? (
@@ -671,43 +635,29 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
                 style={NOTE_EDIT_INPUT_STYLE}
               />
             ) : (
-              <Box
-                component="span"
-                sx={{
-                  flex: 1,
-                  fontSize: '0.8125rem',
-                  color: 'var(--body)',
-                  lineHeight: 1.5,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  userSelect: 'none',
-                }}
-              >
+              <span className="flex-1 text-[0.8125rem] text-[var(--body)] leading-[1.5] overflow-hidden text-ellipsis select-none">
                 {item}
-              </Box>
+              </span>
             )}
 
             {/* Delete button — visible on hover */}
-            <IconButton
-              className="note-delete-btn"
-              size="small"
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              aria-label="Supprimer la note"
+              className="note-delete-btn opacity-0 text-[var(--faint)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+              style={{ transition: 'opacity var(--duration-fast) var(--ease-out)' }}
               onClick={(e) => { e.stopPropagation(); deleteItem(idx); }}
-              sx={{
-                opacity: 0,
-                transition: 'opacity var(--duration-fast) var(--ease-out)',
-                p: 0.25,
-                color: 'var(--faint)',
-                '&:hover': { color: 'var(--err)', backgroundColor: 'var(--err-soft)' },
-              }}
             >
               <Close size={14} strokeWidth={1.75} />
-            </IconButton>
-          </Box>
+            </Button>
+          </div>
         ))}
 
         {/* New item input — always visible at the bottom */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 1.5, py: 0.5, minHeight: 34 }}>
-          <Box sx={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--line-2)', flexShrink: 0 }} />
+        <div className="flex items-center gap-1 px-2 py-0.5 min-h-[34px]">
+          <div className="w-[6px] h-[6px] rounded-[50%] bg-[var(--line-2)] shrink-0" />
           <input
             ref={newInputRef}
             aria-label="Ajouter une note"
@@ -718,15 +668,15 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
             placeholder={items.length === 0 ? 'Ajouter une note...' : 'Ajouter...'}
             style={NOTE_NEW_INPUT_STYLE}
           />
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {error && (
-        <Box component="span" sx={{ display: 'block', fontSize: '0.625rem', color: 'var(--err)', mt: 0.25 }}>
+        <span className="block text-[0.625rem] text-[var(--err)] mt-0.5">
           {error}
-        </Box>
+        </span>
       )}
-    </Box>
+    </div>
   );
 };
 

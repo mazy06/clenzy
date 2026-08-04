@@ -1,21 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Card } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box,
-  Paper,
-  Typography,
-  Chip,
-  Button,
-  Grid,
-  CircularProgress,
-  Alert,
-  Divider,
-  TextField,
-  IconButton,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Separator,
   Tooltip,
-  Menu,
-  MenuItem,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+  buttonVariants,
+} from '../../components/ui';
+import { cn } from '../../utils/cn';
+import { Field, FieldLabel, Input, Textarea } from '../../components/ui';
+import StatusChip from '../../components/StatusChip';
 import {
   ArrowBack,
   Edit,
@@ -62,11 +65,9 @@ const TemplateDetails: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   // Kebab menu (regroupe les actions secondaires du header pour reduire l'encombrement)
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
-  const handleMenuOpen = (e: React.MouseEvent<HTMLElement>) => setMenuAnchor(e.currentTarget);
-  const handleMenuClose = () => setMenuAnchor(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const runFromMenu = (fn: () => void | Promise<void>) => () => {
-    handleMenuClose();
+    setMenuOpen(false);
     void fn();
   };
 
@@ -244,33 +245,34 @@ const TemplateDetails: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center p-6">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
   if (fetchError || !template) {
     return (
-      <Box>
-        <Alert severity="error">Template introuvable</Alert>
-        <Button startIcon={<ArrowBack />} onClick={() => navigate('/documents')} size="small" sx={{ mt: 2 }}>
+      <div>
+        <BuiAlert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>Template introuvable</AlertDescription>
+        </BuiAlert>
+        <BuiButton variant="ghost" size="sm" className="mt-3" onClick={() => navigate('/documents')}>
+          <ArrowBack />
           Retour
-        </Button>
-      </Box>
+        </BuiButton>
+      </div>
     );
   }
 
   const error = actionError;
 
-  const statusTone = template.active
-    ? { color: 'var(--ok)', bgcolor: 'var(--ok-soft)' }
-    : { color: 'var(--muted)', bgcolor: 'var(--hover)' };
   const replacePending = replaceFileMutation.isPending;
   const reparsePending = reparseMutation.isPending;
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={template.name}
         subtitle={`Modèle de document · v${template.version}`}
@@ -278,66 +280,99 @@ const TemplateDetails: React.FC = () => {
         backPath="/documents"
         backLabel="Documents"
         titleAdornment={
-          <Chip
+          <StatusChip
+            tone={template.active ? 'ok' : 'neutral'}
             label={template.active ? 'Actif' : 'Inactif'}
-            size="small"
-            sx={statusTone}
           />
         }
         actions={
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <div className="flex gap-1.5 items-center">
+            {/* « Activer » etait un contained success : pas de variante dediee au
+                succes dans le kit, on pose la teinte --ok sur un outline. Cela
+                laisse aussi l'unique `default` de la zone a « Sauvegarder ». */}
             {!template.active && (
-              <Button
-                variant="contained"
-                color="success"
-                startIcon={<CheckCircle size={14} strokeWidth={1.75} />}
+              <BuiButton
+                variant="outline"
+                size="sm"
+                className="text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]"
                 onClick={handleActivate}
-                size="small"
               >
+                <CheckCircle size={14} strokeWidth={1.75} />
                 Activer
-              </Button>
+              </BuiButton>
             )}
             {editing ? (
               <>
-                <Button startIcon={<Save size={14} strokeWidth={1.75} />} variant="contained" onClick={handleSave} size="small">
+                <BuiButton size="sm" onClick={handleSave}>
+                  <Save size={14} strokeWidth={1.75} />
                   Sauvegarder
-                </Button>
-                <Button startIcon={<Cancel size={14} strokeWidth={1.75} />} variant="outlined" onClick={() => setEditing(false)} size="small">
+                </BuiButton>
+                <BuiButton variant="outline" size="sm" onClick={() => setEditing(false)}>
+                  <Cancel size={14} strokeWidth={1.75} />
                   Annuler
-                </Button>
+                </BuiButton>
               </>
             ) : (
-              <Button
-                startIcon={<Edit size={14} strokeWidth={1.75} />}
-                variant="outlined"
-                onClick={() => setEditing(true)}
-                size="small"
-              >
+              <BuiButton variant="outline" size="sm" onClick={() => setEditing(true)}>
+                <Edit size={14} strokeWidth={1.75} />
                 Modifier
-              </Button>
+              </BuiButton>
             )}
-            <Tooltip title="Plus d'actions" arrow>
-              <IconButton
-                size="small"
-                onClick={handleMenuOpen}
-                aria-label="Plus d'actions"
-                aria-haspopup="menu"
-                aria-expanded={Boolean(menuAnchor)}
-                sx={{
-                  width: 30,
-                  height: 30,
-                  border: '1px solid var(--line-2)',
-                  borderRadius: '9px',
-                  cursor: 'pointer',
-                  '&:hover': {
-                    borderColor: 'var(--faint)',
-                    backgroundColor: 'var(--hover)',
-                  },
-                }}
-              >
-                <MoreVert size={16} strokeWidth={1.75} />
-              </IconButton>
-            </Tooltip>
+            {/* Le declencheur est le bouton Radix lui-meme (pas `asChild` sur
+                un primitif du kit, qui ne transmet pas de ref) : il conserve
+                aria-haspopup / aria-expanded natifs. */}
+            <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger
+                    aria-label="Plus d'actions"
+                    className={cn(
+                      buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
+                      'size-[30px] cursor-pointer rounded-[9px] border border-solid border-[var(--line-2)] hover:border-[var(--faint)] hover:bg-[var(--hover)]',
+                    )}
+                  >
+                    <MoreVert size={16} strokeWidth={1.75} />
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Plus d'actions</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end" className="w-60 text-[0.85rem]">
+                <DropdownMenuItem onSelect={runFromMenu(handleDownloadOriginal)}>
+                  <span className="inline-flex text-muted-foreground">
+                    <Download size={18} strokeWidth={1.75} />
+                  </span>
+                  Télécharger le fichier source (.odt)
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={runFromMenu(handleDownloadPreview)}>
+                  <span className="inline-flex text-muted-foreground">
+                    <Visibility size={18} strokeWidth={1.75} />
+                  </span>
+                  Télécharger l'aperçu PDF
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={runFromMenu(handleReplaceFileClick)} disabled={replacePending}>
+                  <span className="inline-flex text-muted-foreground">
+                    {replacePending ? <Spinner className="size-4" /> : <Upload size={18} strokeWidth={1.75} />}
+                  </span>
+                  {replacePending ? 'Remplacement…' : 'Remplacer le fichier (.odt)'}
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={runFromMenu(handleReparse)} disabled={reparsePending}>
+                  <span className="inline-flex text-muted-foreground">
+                    {reparsePending ? <Spinner className="size-4" /> : <Refresh size={18} strokeWidth={1.75} />}
+                  </span>
+                  Re-scanner les tags
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant="destructive"
+                  onSelect={runFromMenu(handleDelete)}
+                  disabled={deleteMutation.isPending}
+                >
+                  <Delete size={18} strokeWidth={1.75} />
+                  Supprimer
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <input
               ref={fileInputRef}
               type="file"
@@ -345,32 +380,52 @@ const TemplateDetails: React.FC = () => {
               style={{ display: 'none' }}
               onChange={handleReplaceFileChange}
             />
-          </Box>
+          </div>
         }
       />
 
-      {error && <Alert severity="error" sx={{ mt: 2, mb: 2 }} onClose={() => setActionError(null)}>{error}</Alert>}
+      {error && <BuiAlert variant="destructive" className="mt-3 mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+        <AlertAction>
+          <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setActionError(null)}>
+            <X />
+          </BuiButton>
+        </AlertAction>
+      </BuiAlert>}
 
-      <Grid container spacing={3} alignItems="flex-start">
+      <div className="grid grid-cols-12 gap-[18px] items-start">
         {/* Colonne gauche : Informations + Apercu PDF empiles */}
-        <Grid item xs={12} md={6}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <div className="flex flex-col gap-4">
             {/* Informations */}
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}>
-              <Typography sx={{ mb: 2, fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}>
+            <Card className="gap-0 py-0 p-3 border-[var(--line)]">
+              <p className="cn-text-body1 mb-3 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
                 Informations
-              </Typography>
+              </p>
 
               {editing ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <TextField label="Nom" value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} fullWidth size="small" />
-                  <TextField label="Description" value={editData.description} onChange={(e) => setEditData({ ...editData, description: e.target.value })} fullWidth size="small" multiline rows={2} />
-                  <Divider />
-                  <TextField label="Objet email" value={editData.emailSubject} onChange={(e) => setEditData({ ...editData, emailSubject: e.target.value })} fullWidth size="small" />
-                  <TextField label="Corps email" value={editData.emailBody} onChange={(e) => setEditData({ ...editData, emailBody: e.target.value })} fullWidth size="small" multiline rows={3} />
-                </Box>
+                <div className="flex flex-col gap-3">
+                  <Field>
+                    <FieldLabel htmlFor="template-name">Nom</FieldLabel>
+                    <Input id="template-name" value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="template-description">Description</FieldLabel>
+                    <Textarea id="template-description" rows={2} value={editData.description} onChange={(e) => setEditData({ ...editData, description: e.target.value })} />
+                  </Field>
+                  <Separator />
+                  <Field>
+                    <FieldLabel htmlFor="template-email-subject">Objet email</FieldLabel>
+                    <Input id="template-email-subject" value={editData.emailSubject} onChange={(e) => setEditData({ ...editData, emailSubject: e.target.value })} />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="template-email-body">Corps email</FieldLabel>
+                    <Textarea id="template-email-body" rows={3} value={editData.emailBody} onChange={(e) => setEditData({ ...editData, emailBody: e.target.value })} />
+                  </Field>
+                </div>
               ) : (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <div className="flex flex-col gap-2">
                   <InfoRow label="Type de document" value={template.documentType} />
                   <InfoRow label="Fichier original" value={template.originalFilename} />
                   <InfoRow label="Version" value={`v${template.version}`} />
@@ -378,88 +433,84 @@ const TemplateDetails: React.FC = () => {
                   <InfoRow label="Créé le" value={template.createdAt ? new Date(template.createdAt).toLocaleDateString('fr-FR') : '—'} />
                   {template.emailSubject && (
                     <>
-                      <Divider sx={{ my: 1 }} />
+                      <Separator className="my-1.5" />
                       <InfoRow label="Objet email" value={template.emailSubject} />
                     </>
                   )}
-                </Box>
+                </div>
               )}
-            </Paper>
+            </Card>
 
             {/* Apercu PDF — affiche systematiquement sous les Informations */}
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-                <Box>
-                  <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}>
+            <Card className="gap-0 py-0 p-3 border-[var(--line)]">
+              <div className="flex justify-between items-center mb-3 flex-wrap gap-1.5">
+                <div>
+                  <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
                     Aperçu
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  </p>
+                  <span className="cn-text-caption text-muted-foreground">
                     Prévisualisation générée avec des données factices.
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', gap: 0.5 }}>
-                  <Tooltip title="Regénérer l'aperçu">
-                    <span>
-                      <IconButton onClick={loadPreview} disabled={previewLoading} size="small">
-                        <Refresh />
-                      </IconButton>
-                    </span>
+                  </span>
+                </div>
+                <div className="flex gap-0.5">
+                  {/* Le span reste indispensable : `TooltipTrigger asChild` pose
+                      une ref, et il garde l'infobulle vivante bouton desactive. */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <BuiButton variant="ghost" size="icon-sm" aria-label="Regénérer l'aperçu" onClick={loadPreview} disabled={previewLoading}>
+                          <Refresh />
+                        </BuiButton>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Regénérer l'aperçu</TooltipContent>
                   </Tooltip>
-                  <Tooltip title="Ouvrir dans un nouvel onglet">
-                    <span>
-                      <IconButton onClick={handleOpenPreviewInNewTab} disabled={!previewUrl || previewLoading} size="small">
-                        <Visibility />
-                      </IconButton>
-                    </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <BuiButton variant="ghost" size="icon-sm" aria-label="Ouvrir dans un nouvel onglet" onClick={handleOpenPreviewInNewTab} disabled={!previewUrl || previewLoading}>
+                          <Visibility />
+                        </BuiButton>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Ouvrir dans un nouvel onglet</TooltipContent>
                   </Tooltip>
-                  <Tooltip title="Télécharger en PDF">
-                    <span>
-                      <IconButton onClick={handleDownloadPreview} disabled={previewLoading} size="small">
-                        <Download />
-                      </IconButton>
-                    </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <BuiButton variant="ghost" size="icon-sm" aria-label="Télécharger en PDF" onClick={handleDownloadPreview} disabled={previewLoading}>
+                          <Download />
+                        </BuiButton>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Télécharger en PDF</TooltipContent>
                   </Tooltip>
-                </Box>
-              </Box>
+                </div>
+              </div>
 
               {previewError && (
-                <Alert severity="error" sx={{ mb: 2 }} onClose={() => setPreviewError(null)}>
-                  {previewError}
-                </Alert>
+                <BuiAlert variant="destructive" className="mb-3">
+                  <TriangleAlert />
+                  <AlertDescription>{previewError}</AlertDescription>
+                  <AlertAction>
+                    <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setPreviewError(null)}>
+                      <X />
+                    </BuiButton>
+                  </AlertAction>
+                </BuiAlert>
               )}
 
               {/* Hauteur calee sur le ratio A4 portrait : la largeur du panneau
                   est ~50vw sur desktop md+, donc 1.4x cette largeur donne un
                   rendu equilibre. Min/max evitent les extremes. */}
-              <Box
-                sx={{
-                  position: 'relative',
-                  width: '100%',
-                  height: { xs: 520, sm: 640, md: 780, lg: 880 },
-                  backgroundColor: 'var(--field)',
-                  border: '1px solid',
-                  borderColor: 'var(--line)',
-                  borderRadius: '12px',
-                  overflow: 'hidden',
-                }}
-              >
+              <div className="relative w-full h-[520px] min-[600px]:h-[640px] min-[900px]:h-[780px] min-[1200px]:h-[880px] bg-[var(--field)] border border-solid border-[var(--line)] rounded-[12px] overflow-hidden">
                 {previewLoading && (
-                  <Box sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 1.5,
-                    backgroundColor: 'color-mix(in srgb, var(--card) 60%, transparent)',
-                    zIndex: 1,
-                  }}>
-                    <CircularProgress size={28} />
-                    <Typography variant="caption" color="text.secondary">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-[9px] bg-[color-mix(in_srgb,_var(--card)_60%,_transparent)] z-[1]">
+                    <Spinner className="size-7" />
+                    <span className="cn-text-caption text-muted-foreground">
                       Génération de l'aperçu en cours...
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 )}
                 {previewUrl ? (
                   <iframe
@@ -469,86 +520,25 @@ const TemplateDetails: React.FC = () => {
                     style={{ width: '100%', height: '100%', border: 0 }}
                   />
                 ) : !previewLoading && (
-                  <Box sx={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Typography variant="body2" color="text.secondary">
+                  <div className="absolute inset-[0px] flex items-center justify-center">
+                    <p className="cn-text-body2 text-muted-foreground">
                       Aperçu non disponible.
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                 )}
-              </Box>
-            </Paper>
-          </Box>
-        </Grid>
+              </div>
+            </Card>
+          </div>
+        </div>
 
         {/* Colonne droite : Tags detectes (sticky sur grand ecran pour rester
             visible quand on scrolle l'apercu). */}
-        <Grid item xs={12} md={6}>
-          <Box sx={{ position: { md: 'sticky' }, top: { md: 16 } }}>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <div className="min-[900px]:sticky min-[900px]:top-[16px]">
             <TemplateTagsViewer tags={template.tags || []} />
-          </Box>
-        </Grid>
-      </Grid>
-
-      {/* ── Menu kebab : actions secondaires du header ─────────────── */}
-      <Menu
-        anchorEl={menuAnchor}
-        open={Boolean(menuAnchor)}
-        onClose={handleMenuClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        slotProps={{ paper: { sx: { minWidth: 240, mt: 0.5 } } }}
-      >
-        <MenuItem onClick={runFromMenu(handleDownloadOriginal)} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'text.secondary' }}>
-            <Download size={18} strokeWidth={1.75} />
-          </Box>
-          Télécharger le fichier source (.odt)
-        </MenuItem>
-        <MenuItem onClick={runFromMenu(handleDownloadPreview)} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'text.secondary' }}>
-            <Visibility size={18} strokeWidth={1.75} />
-          </Box>
-          Télécharger l'aperçu PDF
-        </MenuItem>
-        <Divider sx={{ my: 0.5 }} />
-        <MenuItem
-          onClick={runFromMenu(handleReplaceFileClick)}
-          disabled={replacePending}
-          sx={{ fontSize: '0.85rem', py: 0.75 }}
-        >
-          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'text.secondary' }}>
-            {replacePending ? <CircularProgress size={16} /> : <Upload size={18} strokeWidth={1.75} />}
-          </Box>
-          {replacePending ? 'Remplacement…' : 'Remplacer le fichier (.odt)'}
-        </MenuItem>
-        <MenuItem
-          onClick={runFromMenu(handleReparse)}
-          disabled={reparsePending}
-          sx={{ fontSize: '0.85rem', py: 0.75 }}
-        >
-          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'text.secondary' }}>
-            {reparsePending ? <CircularProgress size={16} /> : <Refresh size={18} strokeWidth={1.75} />}
-          </Box>
-          Re-scanner les tags
-        </MenuItem>
-        <Divider sx={{ my: 0.5 }} />
-        <MenuItem
-          onClick={runFromMenu(handleDelete)}
-          disabled={deleteMutation.isPending}
-          sx={{ fontSize: '0.85rem', py: 0.75, color: 'var(--err)' }}
-        >
-          <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'var(--err)' }}>
-            <Delete size={18} strokeWidth={1.75} />
-          </Box>
-          Supprimer
-        </MenuItem>
-      </Menu>
+          </div>
+        </div>
+      </div>
 
       {/* ── Modal de confirmation du remplacement de fichier ─────────── */}
       <ConfirmationModal
@@ -584,15 +574,15 @@ const TemplateDetails: React.FC = () => {
         icon={<Delete size={22} strokeWidth={1.75} />}
         confirmIcon={<Delete size={18} strokeWidth={1.75} />}
       />
-    </Box>
+    </div>
   );
 };
 
 const InfoRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-    <Typography variant="body2" color="text.secondary">{label}</Typography>
-    <Typography variant="body2" fontWeight={500}>{value}</Typography>
-  </Box>
+  <div className="flex justify-between">
+    <p className="cn-text-body2 text-muted-foreground">{label}</p>
+    <p className="cn-text-body2 font-medium">{value}</p>
+  </div>
 );
 
 export default TemplateDetails;

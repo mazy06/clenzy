@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Button, Paper, useMediaQuery, useTheme } from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Card, Button } from '../../components/ui';
+import { useIsMobile } from '../../hooks/use-mobile';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Edit as EditIcon, Forum as ForumIcon, Message as MessageIcon } from '../../icons';
 import PageHeader from '../../components/PageHeader';
@@ -41,8 +43,9 @@ export default function MessagingHubPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  // Palier 900 : c'est le `md` de MUI (et non le 768 de Tailwind), donc le meme
+  // seuil que les classes `min-[900px]:` qui basculent la mise en page en dessous.
+  const isMobile = useIsMobile(900);
 
   const isAdminOrManager =
     user?.roles?.some((r) => ['SUPER_ADMIN', 'SUPER_MANAGER'].includes(r)) ?? false;
@@ -165,7 +168,7 @@ export default function MessagingHubPage() {
   };
 
   return (
-    <Box sx={{ width: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="w-full flex-1 min-h-0 flex flex-col overflow-hidden">
       <PageHeader
         title={t('messagingHub.title', 'Messagerie')}
         subtitle={t('messagingHub.subtitle', 'Email · SMS · WhatsApp · Formulaires')}
@@ -173,30 +176,16 @@ export default function MessagingHubPage() {
         backPath="/dashboard"
         showBackButton={false}
         actions={
-          // Réf .s-btn--p : contour accent (signatureTheme containedPrimary).
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<EditIcon size={15} strokeWidth={1.75} />}
-            onClick={() => navigate('/contact/create')}
-          >
+          // Action principale de l'ecran : encre pleine du kit.
+          <Button onClick={() => navigate('/contact/create')}>
+            <EditIcon size={15} strokeWidth={1.75} />
             {t('messagingHub.newMessage', 'Nouveau message')}
           </Button>
         }
       />
-      <Paper sx={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden', height: '100%' }}>
+      <Card className="gap-0 py-0 flex-1 flex min-h-[0px] overflow-hidden h-full">
         {/* ── Liste agrégée (340px, plein écran en mobile) ─────────────────── */}
-        <Box
-          sx={{
-            width: { xs: '100%', md: 340 },
-            flexShrink: 0,
-            display: { xs: selected ? 'none' : 'flex', md: 'flex' },
-            flexDirection: 'column',
-            minHeight: 0,
-            borderRight: { md: '1px solid var(--line)' },
-            bgcolor: 'var(--card)',
-          }}
-        >
+        <div className={cn('w-full min-[900px]:w-[340px] shrink-0 min-[900px]:flex flex-col min-h-0 min-[900px]:border-e-[1px_solid_var(--line)] bg-[var(--card)]', selected ? 'hidden' : 'flex')}>
           <ConversationList
             items={source.items}
             isLoading={source.isLoading}
@@ -209,18 +198,10 @@ export default function MessagingHubPage() {
             onArchive={handleArchive}
             onRestore={handleRestore}
           />
-        </Box>
+        </div>
 
         {/* ── Volet droit adaptatif : fil + compose ou détail formulaire ──── */}
-        <Box
-          sx={{
-            flex: 1,
-            minWidth: 0,
-            minHeight: 0,
-            display: { xs: selected ? 'flex' : 'none', md: 'flex' },
-            flexDirection: 'column',
-          }}
-        >
+        <div className={cn('flex-1 min-w-0 min-h-0 min-[900px]:flex flex-col', selected ? 'flex' : 'hidden')}>
           {selected?.kind === 'channel' && selected.conv ? (
             <ChannelThread
               conv={selected.conv}
@@ -245,7 +226,7 @@ export default function MessagingHubPage() {
               onBack={() => setSelectedKey(null)}
             />
           ) : (
-            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3, bgcolor: 'var(--bg)' }}>
+            <div className="flex-1 flex items-center justify-center p-4 bg-[var(--bg)]">
               <EmptyState
                 variant="transparent"
                 icon={<ForumIcon />}
@@ -255,10 +236,10 @@ export default function MessagingHubPage() {
                   'Choisissez une conversation ou un formulaire à gauche pour afficher le détail.',
                 )}
               />
-            </Box>
+            </div>
           )}
-        </Box>
-      </Paper>
-    </Box>
+        </div>
+      </Card>
+    </div>
   );
 }

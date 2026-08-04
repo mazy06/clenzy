@@ -1,24 +1,43 @@
 import React from 'react';
-import { Box, Switch, Typography } from '@mui/material';
 import type { LucideIcon } from 'lucide-react';
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+  Switch,
+} from '../../../components/ui';
+import { cn } from '../../../utils/cn';
 
 interface SettingsToggleRowProps {
   icon?: LucideIcon;
   iconColor?: string;
-  /** Title text or a custom node (e.g. label + inline status chips) */
+  /** Libelle, ou noeud libre (label + pastilles de statut inline). */
   title: React.ReactNode;
-  /** Description text or a custom node */
+  /** Texte d'aide, ou noeud libre. */
   description?: React.ReactNode;
-  /** Right-hand control: Switch (default), TextField, or any node */
+  /** Controle a droite : Switch par defaut, ou tout autre noeud. */
   control?: React.ReactNode;
-  /** Convenience for switches — when set, builds a Switch with these props */
+  /** Raccourci interrupteur : construit un Switch a partir de ces props. */
   checked?: boolean;
   onChange?: (checked: boolean) => void;
-  /** Render a divider underneath (defaults to true; pass false for the last row) */
+  /** Filet de separation sous la ligne (false pour la derniere). */
   divider?: boolean;
   disabled?: boolean;
 }
 
+/**
+ * Ligne de reglage des Parametres (kit Baitly UI, primitive `Item`).
+ *
+ * La ligne entiere porte le `<label>` quand le controle est un interrupteur :
+ * le titre et la description deviennent alors des cibles de clic, ce qui fait
+ * passer la zone active de 34 x 20 px (la pastille seule) a toute la largeur
+ * de la carte. Quand le controle est libre (un champ, un bouton), la ligne
+ * redevient une simple `div` — un label engloberait un champ de saisie et
+ * chaque clic sur le titre volerait le focus.
+ */
 const SettingsToggleRow: React.FC<SettingsToggleRowProps> = ({
   icon: Icon,
   iconColor = 'var(--muted)',
@@ -30,99 +49,66 @@ const SettingsToggleRow: React.FC<SettingsToggleRowProps> = ({
   divider = true,
   disabled,
 }) => {
+  const isSwitch = control === undefined && typeof checked === 'boolean';
   const renderedControl =
     control ??
-    (typeof checked === 'boolean' ? (
-      <Switch
-        size="small"
-        checked={checked}
-        onChange={(e) => onChange?.(e.target.checked)}
-        disabled={disabled}
-      />
+    (isSwitch ? (
+      <Switch checked={checked} onCheckedChange={(value) => onChange?.(value)} disabled={disabled} />
     ) : null);
 
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1.5,
-        py: 1.25,
-        ...(divider && {
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }),
-        '&:last-of-type': {
-          borderBottom: 'none',
-        },
-      }}
-    >
+  const body = (
+    <>
       {Icon && (
-        <Box
-          sx={{
-            width: 30,
-            height: 30,
-            borderRadius: '7px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+        <ItemMedia
+          aria-hidden
+          className="size-[30px] shrink-0 rounded-[7px] border"
+          style={{
             color: iconColor,
             backgroundColor: `color-mix(in srgb, ${iconColor} 7%, transparent)`,
-            border: `1px solid color-mix(in srgb, ${iconColor} 15%, transparent)`,
-            flexShrink: 0,
+            borderColor: `color-mix(in srgb, ${iconColor} 15%, transparent)`,
           }}
-          aria-hidden="true"
         >
           <Icon size={14} strokeWidth={1.75} />
-        </Box>
+        </ItemMedia>
       )}
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        {typeof title === 'string' ? (
-          <Typography
-            fontWeight={600}
-            sx={{
-              fontSize: '0.8125rem',
-              lineHeight: 1.3,
-              color: disabled ? 'text.disabled' : 'text.primary',
-            }}
-          >
-            {title}
-          </Typography>
-        ) : (
-          <Box
-            sx={{
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              lineHeight: 1.3,
-              color: disabled ? 'text.disabled' : 'text.primary',
-            }}
-          >
-            {title}
-          </Box>
-        )}
+
+      <ItemContent className="min-w-0 gap-0.5">
+        <ItemTitle
+          className={cn(
+            'text-[0.8125rem] font-semibold leading-[1.3]',
+            disabled ? 'text-muted-foreground' : 'text-foreground',
+          )}
+        >
+          {title}
+        </ItemTitle>
         {description && (
-          typeof description === 'string' ? (
-            <Typography
-              sx={{
-                fontSize: '0.72rem',
-                lineHeight: 1.4,
-                color: 'text.secondary',
-                mt: 0.125,
-              }}
-            >
-              {description}
-            </Typography>
-          ) : (
-            <Box sx={{ fontSize: '0.72rem', lineHeight: 1.4, color: 'text.secondary', mt: 0.125 }}>
-              {description}
-            </Box>
-          )
+          <ItemDescription className="text-[0.72rem] leading-[1.4] text-muted-foreground">
+            {description}
+          </ItemDescription>
         )}
-      </Box>
-      {renderedControl && (
-        <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>{renderedControl}</Box>
-      )}
-    </Box>
+      </ItemContent>
+
+      {renderedControl && <ItemActions className="shrink-0">{renderedControl}</ItemActions>}
+    </>
+  );
+
+  const className = cn(
+    'items-center gap-3 rounded-none border-0 px-0 py-2.5',
+    divider && 'border-b border-border last-of-type:border-b-0',
+    isSwitch && !disabled && 'cursor-pointer hover:bg-accent/40',
+    disabled && 'opacity-60',
+  );
+
+  // `asChild` demande un element hote : le <label> le fournit quand la ligne
+  // pilote un interrupteur ; sinon `Item` rend sa propre div.
+  return isSwitch ? (
+    <Item asChild size="sm" className={className}>
+      <label>{body}</label>
+    </Item>
+  ) : (
+    <Item size="sm" className={className}>
+      {body}
+    </Item>
   );
 };
 

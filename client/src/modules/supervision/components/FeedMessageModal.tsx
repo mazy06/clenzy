@@ -10,16 +10,15 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Box,
   Button,
-  CircularProgress,
+  Spinner,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  Typography,
-  useTheme,
-} from '@mui/material';
+} from '../../../components/ui';
+import { useThemeMode } from '../../../hooks/useThemeMode';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { guestMessagingApi } from '../../../services/api/guestMessagingApi';
 import { renderServerEmailPreview } from '../../../utils/emailMarkdown';
@@ -32,7 +31,7 @@ interface FeedMessageModalProps {
 
 export function FeedMessageModal({ logId, onClose }: FeedMessageModalProps) {
   const { t } = useTranslation();
-  const isDark = useTheme().palette.mode === 'dark';
+  const { isDark } = useThemeMode();
   const [loading, setLoading] = useState(false);
   const [subject, setSubject] = useState<string>('');
   const [html, setHtml] = useState<string | null>(null);
@@ -74,38 +73,46 @@ export function FeedMessageModal({ logId, onClose }: FeedMessageModalProps) {
     : '';
 
   return (
-    <Dialog open={logId != null} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{t('supervision.messageModal.title', { defaultValue: 'Message envoyé' })}</DialogTitle>
-      <DialogContent dividers>
+    <Dialog open={logId != null} onOpenChange={(next) => { if (!next) onClose(); }}>
+      {/* Pas de DialogDescription ici : le corps est une iframe. On coupe donc
+          explicitement aria-describedby pour ne pas pointer un noeud absent. */}
+      <DialogContent className="sm:max-w-xl" aria-describedby={undefined}>
+        <DialogHeader>
+          <DialogTitle>{t('supervision.messageModal.title', { defaultValue: 'Message envoyé' })}</DialogTitle>
+        </DialogHeader>
+        {/* Pendant du `dividers` de l'ancienne DialogContent MUI. */}
+        <div className="-mx-4 px-4 py-3 border-y border-solid border-[var(--line)]">
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress size={24} />
-          </Box>
+          <div className="flex justify-center py-6">
+            <Spinner className="size-6" />
+          </div>
         ) : html ? (
           <>
             {subject && (
-              <Typography variant="body2" sx={{ mb: 1 }}>
+              <p className="cn-text-body2 mb-1.5">
                 <strong>{t('supervision.messageModal.subject', { defaultValue: 'Sujet' })} :</strong> {subject}
-              </Typography>
+              </p>
             )}
-            <Box sx={{ borderRadius: 1, border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+            <div className="rounded-[8px] border border-[var(--line)] overflow-hidden">
               <iframe
                 sandbox=""
                 srcDoc={srcDoc}
                 title={t('supervision.messageModal.title', { defaultValue: 'Message envoyé' })}
                 style={{ width: '100%', height: 340, border: 'none' }}
               />
-            </Box>
+            </div>
           </>
         ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', py: 2 }}>
+          <p className="cn-text-body2 text-muted-foreground italic py-3">
             {t('supervision.messageModal.unavailable', { defaultValue: 'Aperçu du message indisponible.' })}
-          </Typography>
+          </p>
         )}
+        </div>
+        <DialogFooter>
+          {/* Modale de simple lecture : la fermeture reste une action tertiaire. */}
+          <Button variant="ghost" onClick={onClose}>{t('supervision.messageModal.close', { defaultValue: 'Fermer' })}</Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>{t('supervision.messageModal.close', { defaultValue: 'Fermer' })}</Button>
-      </DialogActions>
     </Dialog>
   );
 }

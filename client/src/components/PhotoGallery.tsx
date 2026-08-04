@@ -1,13 +1,6 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Typography,
-  ImageList,
-  ImageListItem,
-  ImageListItemBar,
-  IconButton,
-  CircularProgress,
-} from '@mui/material';
+import { Button, Spinner } from './ui';
+import { cn } from '../utils/cn';
 import {
   PhotoCamera as PhotoCameraIcon,
   Download as DownloadIcon,
@@ -66,21 +59,12 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   // État vide
   if (photos.length === 0) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          py: 4,
-          color: 'text.secondary',
-        }}
-      >
-        <Box component="span" sx={{ display: 'inline-flex', mb: 1, opacity: 0.5 }}><PhotoCameraIcon size={48} strokeWidth={1.5} /></Box>
-        <Typography variant="body2" color="text.secondary">
+      <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
+        <span className="inline-flex mb-1.5 opacity-50"><PhotoCameraIcon size={48} strokeWidth={1.5} /></span>
+        <p className="cn-text-body2 text-muted-foreground">
           {emptyMessage}
-        </Typography>
-      </Box>
+        </p>
+      </div>
     );
   }
 
@@ -92,117 +76,87 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   const canDelete = onDelete && photoIds && photoIds.length === photos.length;
 
   return (
-    <Box>
-      <ImageList cols={columns} gap={8} sx={{ width: '100%', height: 'auto' }}>
+    <div>
+      {/* Le nombre de colonnes vient des props : valeur d'execution, donc un
+          style inline — Tailwind n'emet ses classes qu'a la compilation. */}
+      <div
+        className="grid w-full gap-2"
+        style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+      >
         {displayPhotos.map((photoUrl, index) => {
           const isLastWithOverflow = hasOverflow && index === displayPhotos.length - 1;
           const photoId = photoIds?.[index];
           const isDeleting = deletingPhotoId != null && photoId === deletingPhotoId;
 
           return (
-            <ImageListItem
+            <div
               key={`gallery-${photoId ?? index}`}
-              sx={{
-                cursor: 'pointer',
-                overflow: 'hidden',
-                borderRadius: 1,
-                position: 'relative',
-                '&:hover img': {
-                  transform: 'scale(1.05)',
-                },
-                '&:hover .photo-actions': {
-                  opacity: 1,
-                },
-                ...(isDeleting && { opacity: 0.5, pointerEvents: 'none' }),
-              }}
+              className={cn(
+                'group relative cursor-pointer overflow-hidden rounded-[8px]',
+                isDeleting && 'opacity-50 pointer-events-none',
+              )}
               onClick={() => handlePhotoClick(index)}
             >
               <img
                 src={photoUrl}
                 alt={`Aperçu ${index + 1}`}
                 loading="lazy"
-                style={{
-                  width: '100%',
-                  height: 120,
-                  objectFit: 'cover',
-                  transition: 'transform 0.2s ease',
-                }}
+                className="h-[120px] w-full object-cover transition-transform duration-200 ease-out group-hover:scale-105"
               />
 
               {/* Loading overlay when deleting */}
               {isDeleting && (
-                <Box sx={{
-                  position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  bgcolor: 'rgba(255,255,255,0.6)',
-                }}>
-                  <CircularProgress size={24} />
-                </Box>
+                <div className="absolute top-[0px] start-[0px] end-[0px] bottom-[0px] flex items-center justify-center bg-[rgba(255,255,255,0.6)]">
+                  <Spinner className="size-6" />
+                </div>
               )}
 
               {/* Overlay "+N more" sur la dernière photo */}
               {isLastWithOverflow && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    bgcolor: 'rgba(0, 0, 0, 0.6)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Typography variant="h6" sx={{ color: 'white', fontWeight: 700 }}>
+                <div className="absolute top-0 start-0 end-0 bottom-0 bg-[rgba(0,_0,_0,_0.6)] flex items-center justify-center">
+                  <h6 className="cn-text-h6 text-[white] font-bold">
                     +{overflowCount}
-                  </Typography>
-                </Box>
+                  </h6>
+                </div>
               )}
 
               {/* Action bar (delete + download) */}
               {!isLastWithOverflow && (canDelete || showDownload) && (
-                <ImageListItemBar
-                  className="photo-actions"
-                  sx={{
-                    background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%)',
-                    opacity: 0,
-                    transition: 'opacity 0.2s ease',
-                  }}
-                  position="top"
-                  actionPosition="right"
-                  actionIcon={
-                    <Box sx={{ display: 'flex', gap: 0.25 }}>
-                      {canDelete && photoId != null && (
-                        <IconButton
-                          size="small"
-                          sx={{ color: 'white', '&:hover': { color: 'error.light' } }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(photoId);
-                          }}
-                        >
-                          <DeleteIcon size={20} strokeWidth={1.75} />
-                        </IconButton>
-                      )}
-                      {showDownload && (
-                        <IconButton
-                          size="small"
-                          sx={{ color: 'white' }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownload(photoUrl, index);
-                          }}
-                        >
-                          <DownloadIcon size={20} strokeWidth={1.75} />
-                        </IconButton>
-                      )}
-                    </Box>
-                  }
-                />
+                <div className="absolute inset-x-0 top-0 z-[3] flex justify-end gap-0.5 p-1 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.5)_0%,rgba(0,0,0,0)_100%)]">
+                  {canDelete && photoId != null && (
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Supprimer la photo ${index + 1}`}
+                      className="text-[#FFFFFF] hover:text-[var(--err)] hover:bg-[rgba(255,255,255,0.15)]"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(photoId);
+                      }}
+                    >
+                      <DeleteIcon size={20} strokeWidth={1.75} />
+                    </Button>
+                  )}
+                  {showDownload && (
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Télécharger la photo ${index + 1}`}
+                      className="text-[#FFFFFF] hover:bg-[rgba(255,255,255,0.15)]"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(photoUrl, index);
+                      }}
+                    >
+                      <DownloadIcon size={20} strokeWidth={1.75} />
+                    </Button>
+                  )}
+                </div>
               )}
-            </ImageListItem>
+            </div>
           );
         })}
-      </ImageList>
+      </div>
 
       {/* Lightbox */}
       <PhotoLightbox
@@ -211,7 +165,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
         initialIndex={lightboxIndex}
         onClose={() => setLightboxOpen(false)}
       />
-    </Box>
+    </div>
   );
 };
 

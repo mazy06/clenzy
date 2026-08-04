@@ -1,13 +1,25 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Box, Button, Tooltip, Typography } from '@mui/material';
+import { cn } from '../../../utils/cn';
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  Button,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import {
   Archive as ArchiveIcon,
   AutoAwesome as SparklesIcon,
   Description as TemplateIcon,
+  EventNote as ReservationIcon,
   Link as LinkIcon,
   Person as PersonIcon,
   Send as SendIcon,
 } from '../../../icons';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
   useConversationMessages,
@@ -22,8 +34,12 @@ import type { ConversationDto } from '../../../services/api/conversationApi';
 import AttachReservationDialog from '../../channels/AttachReservationDialog';
 import SendWhatsAppTemplateDialog from '../../channels/SendWhatsAppTemplateDialog';
 import GuestProfileDialog from '../../channels/GuestProfileDialog';
-import ThreadView, { composeToolSx, type ThreadAction } from './ThreadView';
+import ThreadView, { type ThreadAction } from './ThreadView';
 import { type ThreadMessage, getChannelBadge } from './unified';
+
+/** Equivalent classes de `composeToolSx` (meme transcription que InternalThread). */
+const COMPOSE_TOOL_CLASS =
+  'w-[30px] h-[30px] rounded-[8px] border-0 bg-transparent text-[var(--muted)] flex items-center justify-center cursor-pointer p-0 shrink-0 transition-[background,color] duration-[140ms] hover:bg-[var(--bg)] hover:text-[var(--accent)] disabled:opacity-[0.45] disabled:cursor-default';
 
 interface ChannelThreadProps {
   conv: ConversationDto;
@@ -40,6 +56,7 @@ interface ChannelThreadProps {
  */
 export default function ChannelThread({ conv, onArchived, showBack, onBack }: ChannelThreadProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [draft, setDraft] = useState('');
   const [attachOpen, setAttachOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
@@ -140,6 +157,14 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
       onClick: () => setAttachOpen(true),
     });
   } else {
+    // « Voir la réservation » de la projection : le fil connait son sejour,
+    // l'entete y mene (surlignage deep-link de la liste des reservations).
+    actions.push({
+      key: 'reservation',
+      title: t('messagingHub.viewReservation', 'Voir la réservation'),
+      icon: <ReservationIcon size={16} strokeWidth={1.75} />,
+      onClick: () => navigate(`/reservations?highlight=${conv.reservationId}`),
+    });
     actions.push({
       key: 'template',
       title: t('messagingHub.sendTemplate', 'Envoyer un template WhatsApp'),
@@ -173,9 +198,9 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
         title={conv.guestName || badge.label}
         subtitle={
           <>
-            <Box component="span" sx={{ display: 'inline-flex', color: badge.color }}>
+            <span className="inline-flex" style={{ color: badge.color }}>
               <badge.Icon size={13} strokeWidth={2} />
-            </Box>
+            </span>
             {badge.label}
             {conv.propertyName ? ` · ${conv.propertyName}` : ''}
           </>
@@ -207,70 +232,58 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
             <>
               {/* Concierge IA : brouillon à valider (C1) — jamais envoyé sans l'opérateur. */}
               {aiDraft && (
-                <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderBottom: '1px solid', borderColor: 'divider' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75, color: 'primary.main' }}>
+                <div className="p-2 bg-[var(--hover)] border-b border-[var(--line)]">
+                  <div className="flex items-center gap-1 mb-1 text-primary">
                     <SparklesIcon size={16} strokeWidth={1.75} />
-                    <Typography
-                      variant="caption"
-                      sx={{ fontWeight: 700, color: 'primary.main', textTransform: 'uppercase', letterSpacing: 0.4 }}
-                    >
+                    <span className="cn-text-caption font-bold text-[var(--mui-primary)] uppercase tracking-[0.4px]">
                       {t('concierge.draftTitle', 'Brouillon Concierge IA')}
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" sx={{ mb: 1, whiteSpace: 'pre-wrap', color: 'text.primary' }}>
+                    </span>
+                  </div>
+                  <p className="cn-text-body2 mb-1.5 whitespace-pre-wrap text-foreground">
                     {aiDraft}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
+                  </p>
+                  <div className="flex gap-1.5">
+                    {/* Le brouillon n'a qu'un but : etre envoye. Editer et rejeter
+                        sont des sorties de secours -> tertiaires. */}
                     <Button
-                      size="small"
-                      variant="contained"
-                      startIcon={<SendIcon size={14} strokeWidth={1.75} />}
+                      size="sm"
                       onClick={handleSendDraft}
                       disabled={sendAiDraftMutation.isPending || whatsappWindowExpired}
-                      sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5 }}
                     >
+                      <SendIcon size={14} strokeWidth={1.75} />
                       {t('common.send', 'Envoyer')}
                     </Button>
-                    <Button
-                      size="small"
-                      variant="text"
-                      onClick={handleEditDraft}
-                      sx={{ textTransform: 'none', fontWeight: 600 }}
-                    >
+                    <Button variant="ghost" size="sm" onClick={handleEditDraft}>
                       {t('common.edit', 'Éditer')}
                     </Button>
                     <Button
-                      size="small"
-                      variant="text"
+                      variant="ghost"
+                      size="sm"
                       onClick={handleDismissDraft}
                       disabled={dismissAiDraftMutation.isPending}
-                      sx={{ textTransform: 'none', fontWeight: 600, color: 'text.secondary' }}
+                      className="text-[var(--muted)]"
                     >
                       {t('common.reject', 'Rejeter')}
                     </Button>
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               )}
               {whatsappWindowExpired && (
-                <Alert
-                  severity="warning"
-                  sx={{ borderRadius: 0, fontSize: '0.72rem', py: 0.25, alignItems: 'center' }}
-                  action={
-                    conv.reservationId ? (
-                      <Button
-                        color="inherit"
-                        size="small"
-                        onClick={() => setTemplateOpen(true)}
-                        sx={{ textTransform: 'none', fontWeight: 600 }}
-                      >
+                <Alert variant="warning" className="rounded-none items-center text-[0.72rem] py-[1.5px]">
+                  <TriangleAlert />
+                  <AlertDescription>
+                    {t(
+                      'messagingHub.whatsappWindowExpired',
+                      'Fenêtre de 24h dépassée — un template est requis pour relancer ce voyageur.',
+                    )}
+                  </AlertDescription>
+                  {conv.reservationId && (
+                    <AlertAction>
+                      {/* Aucune couleur posee : le ghost herite de la teinte de l'alerte hote. */}
+                      <Button variant="ghost" size="sm" onClick={() => setTemplateOpen(true)}>
                         {t('messagingHub.sendTemplateShort', 'Envoyer un template')}
                       </Button>
-                    ) : undefined
-                  }
-                >
-                  {t(
-                    'messagingHub.whatsappWindowExpired',
-                    'Fenêtre de 24h dépassée — un template est requis pour relancer ce voyageur.',
+                    </AlertAction>
                   )}
                 </Alert>
               )}
@@ -279,23 +292,22 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
         }
         composeTools={
           lastInbound && !whatsappWindowExpired ? (
-            <Tooltip
-              title={
-                aiSuggestMutation.isError
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleAiSuggest}
+                  disabled={aiSuggestMutation.isPending}
+                  aria-label={t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')}
+                  className={COMPOSE_TOOL_CLASS}
+                >
+                  <SparklesIcon size={15} strokeWidth={1.75} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {aiSuggestMutation.isError
                   ? t('messagingHub.aiUnavailable', 'Suggestion IA indisponible')
-                  : t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')
-              }
-              arrow
-            >
-              <Box
-                component="button"
-                onClick={handleAiSuggest}
-                disabled={aiSuggestMutation.isPending}
-                aria-label={t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')}
-                sx={composeToolSx}
-              >
-                <SparklesIcon size={15} strokeWidth={1.75} />
-              </Box>
+                  : t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')}
+              </TooltipContent>
             </Tooltip>
           ) : undefined
         }

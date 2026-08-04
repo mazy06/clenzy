@@ -1,22 +1,26 @@
-import React, { useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import React from 'react';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
 import {
-  Box,
-  Typography,
-  Paper,
+  Avatar,
+  AvatarFallback,
+  Badge,
   Button,
-  Grid,
   Card,
   CardContent,
-  Avatar,
-  Chip,
-  CircularProgress,
-  IconButton,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Spinner,
   Tooltip,
-  Divider,
-  Menu,
-  MenuItem,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+  Card as BuiCard,
+} from '../../components/ui';
+import { createPortal } from 'react-dom';
 import {
   Business as BusinessIcon,
   People as PeopleIcon,
@@ -58,7 +62,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`portfolios-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 2.5 }}>{children}</Box>}
+      {value === index && <div className="p-3.5">{children}</div>}
     </div>
   );
 }
@@ -77,6 +81,16 @@ const SEM_CHIP_TOKEN: Record<string, { fg: string; bg: string }> = {
 };
 const semChip = (c: string) => SEM_CHIP_TOKEN[c] ?? SEM_CHIP_TOKEN.default;
 
+// Le contour de la Card du kit est un `ring`, pas un `border` : le survol se joue
+// donc sur la couleur de l'anneau, et la transition porte sur box-shadow.
+const ROW_CARD_CLASS =
+  'gap-0 py-[9px] rounded-[16px] ring-[var(--line)] transition-[box-shadow] duration-200 '
+  + 'hover:ring-[var(--line-2)] motion-reduce:transition-none';
+
+const NESTED_ROW_CARD_CLASS =
+  'gap-0 py-[7.5px] rounded-[12px] ring-[var(--line)] transition-[box-shadow] duration-200 '
+  + 'hover:ring-[var(--line-2)] motion-reduce:transition-none';
+
 interface SectionHeaderProps {
   icon: React.ReactNode;
   title: string;
@@ -86,17 +100,14 @@ interface SectionHeaderProps {
 
 function SectionHeader({ icon, title, count, color = 'var(--accent)' }: SectionHeaderProps) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-      <Box sx={{ color, display: 'flex', alignItems: 'center' }}>{icon}</Box>
-      <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
+    <div className="flex items-center gap-1.5 mb-2">
+      {/* `color` est une prop : aucune classe Tailwind ne peut en naitre. */}
+      <span className="flex items-center" style={{ color }}>{icon}</span>
+      <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem]">
         {title}
-      </Typography>
-      <Chip
-        label={count}
-        size="small"
-        sx={{ height: 22, fontSize: '0.7rem', fontWeight: 600, color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', fontVariantNumeric: 'tabular-nums' }}
-      />
-    </Box>
+      </h6>
+      <Badge variant="secondary" className="h-[22px] text-[0.7rem] font-semibold text-[var(--accent)] bg-[var(--accent-soft)] tabular-nums">{count}</Badge>
+    </div>
   );
 }
 
@@ -110,26 +121,13 @@ interface EmptyStateProps {
 
 function EmptyState({ icon, message, action }: EmptyStateProps) {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        py: 5,
-        textAlign: 'center',
-        border: '1px dashed var(--line-2)',
-        bgcolor: 'var(--field)',
-        borderRadius: '12px',
-        flex: 1,
-      }}
-    >
-      <Box sx={{ color: 'text.disabled', mb: 1 }}>{icon}</Box>
-      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', mb: action ? 2 : 0 }}>
+    <div className="flex flex-col items-center justify-center py-[30px] text-center border border-dashed border-[var(--line-2)] bg-[var(--field)] rounded-[12px] flex-1">
+      <div className="text-muted-foreground opacity-60 mb-1.5">{icon}</div>
+      <p className={cn('cn-text-body2 text-[var(--muted)] text-[0.85rem]', action ? 'mb-3' : 'mb-0')}>
         {message}
-      </Typography>
+      </p>
       {action}
-    </Box>
+    </div>
   );
 }
 
@@ -175,51 +173,45 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
     getRoleLabel,
   } = usePortfoliosPage();
 
-  // ── Team menu state (for assigning team to property) ────────────────────
-  const [teamMenuAnchor, setTeamMenuAnchor] = useState<null | HTMLElement>(null);
-  // Propriete cible du menu equipe : lue uniquement dans les handlers du menu
-  // (l'ouverture est pilotee par teamMenuAnchor) : ref, pas de re-render.
-  const teamMenuPropertyIdRef = useRef<number | null>(null);
-
   if (!canView) {
     return null;
   }
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress size={32} />
-      </Box>
+      <div className="flex justify-center items-center h-[50vh]">
+        <Spinner className="size-8" />
+      </div>
     );
   }
 
   const actionButtons = (
-    <Box display="flex" gap={1}>
+    <div className="flex gap-1.5">
+      {/* Deux associations de meme poids dans l'en-tete : outline des deux
+          cotes, aucune n'est l'action attendue par defaut. */}
       <Button
-        variant="outlined"
-        size="small"
-        startIcon={<AssignmentIcon size={16} strokeWidth={1.75} />}
+        variant="outline"
+        size="sm"
         onClick={handleClientAssignment}
-        sx={{ fontSize: '0.8rem' }}
         title={t('portfolios.associateClientsProperties')}
       >
+        <AssignmentIcon strokeWidth={1.75} />
         {t('portfolios.associateClientsProperties')}
       </Button>
       <Button
-        variant="outlined"
-        size="small"
-        startIcon={<PeopleIcon size={16} strokeWidth={1.75} />}
+        variant="outline"
+        size="sm"
         onClick={handleTeamAssignment}
-        sx={{ fontSize: '0.8rem' }}
         title={t('portfolios.associateTeamsUsers')}
       >
+        <PeopleIcon strokeWidth={1.75} />
         {t('portfolios.associateTeamsUsers')}
       </Button>
-    </Box>
+    </div>
   );
 
   return (
-    <Box>
+    <div>
       {/* Portal actions into parent's PageHeader when embedded */}
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
 
@@ -234,8 +226,8 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
         />
       )}
 
-      <Paper sx={{ width: '100%', mt: 2, borderRadius: 2, overflow: 'hidden' }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+      <BuiCard className="gap-0 py-0 w-full mt-3 overflow-hidden">
+        <div className="border-b border-solid border-[var(--line)]">
           <PageTabs
             options={[
               {
@@ -250,123 +242,118 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
             ariaLabel="portfolios tabs"
             mb={0}
           />
-        </Box>
+        </div>
 
         {/* ─── Tab 0: My Portfolios ─────────────────────────────────────── */}
         <TabPanel value={tabValue} index={0}>
           {error ? (
-            <Typography color="error" sx={{ textAlign: 'center', py: 4, fontSize: '0.85rem' }}>
+            <p className="cn-text-body1 text-destructive text-center py-6 text-[0.85rem]">
               {error}
-            </Typography>
+            </p>
           ) : (
-            <Grid container spacing={3}>
+            <div className="grid grid-cols-12 gap-[18px]">
               {/* Clients */}
-              <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="col-span-12 min-[900px]:col-span-6 flex flex-col">
                 <SectionHeader
                   icon={<Person size={20} strokeWidth={1.75} />}
                   title={t('portfolios.sections.clients')}
                   count={clients.length}
                 />
                 {clients.length > 0 ? (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <div className="flex flex-col gap-2">
                     {clients.map((client) => (
                       <Card
                         key={client.id}
-                        variant="outlined"
-                        sx={{
-                          borderRadius: 2,
-                          transition: 'border-color 0.2s ease',
-                          '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                          '&:hover': { borderColor: 'var(--line-2)' },
-                        }}
+                        className={ROW_CARD_CLASS}
                       >
-                        <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-                          <Box display="flex" alignItems="center">
-                            <Avatar
-                              sx={{
-                                bgcolor: 'var(--accent)',
-                                color: 'var(--on-accent)',
-                                fontFamily: 'var(--font-display)',
-                                borderRadius: '10px',
-                                width: 32,
-                                height: 32,
-                                fontSize: '0.7rem',
-                                fontWeight: 600,
-                                mr: 1.5,
-                              }}
-                            >
-                              {client.firstName.charAt(0)}{client.lastName.charAt(0)}
+                        <CardContent className="py-[9px] px-3">
+                          <div className="flex items-center">
+                            <Avatar className="size-8 rounded-[10px] after:rounded-[10px] me-1.5">
+                              <AvatarFallback className="rounded-[10px] bg-[var(--accent)] text-[var(--on-accent)] [font-family:var(--font-display)] text-[0.7rem] font-semibold">
+                                {client.firstName.charAt(0)}{client.lastName.charAt(0)}
+                              </AvatarFallback>
                             </Avatar>
-                            <Box flex={1} minWidth={0}>
-                              <Typography variant="subtitle2" sx={{ fontSize: '0.85rem', fontWeight: 600 }} noWrap>
+                            <div className="flex-1 min-w-0">
+                              <h6 className="cn-text-subtitle2 text-[0.85rem] font-semibold truncate">
                                 {client.firstName} {client.lastName}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }} noWrap>
+                              </h6>
+                              <span className="cn-text-caption text-muted-foreground text-[0.72rem] truncate">
                                 {client.email}
-                              </Typography>
-                            </Box>
-                            <Box display="flex" alignItems="center" gap={0.5} ml={1}>
-                              <Chip
-                                label={getRoleLabel(client.role)}
-                                size="small"
-                                sx={{ height: 22, fontSize: '0.65rem', fontWeight: 600, color: semChip(getRoleColor(client.role)).fg, backgroundColor: semChip(getRoleColor(client.role)).bg }}
-                              />
-                              <Tooltip title={t('portfolios.fields.reassignClient')}>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => setEditingClient(client)}
-                                  sx={{ color: 'var(--accent)', p: 0.5 }}
-                                >
-                                  <EditIcon size={16} strokeWidth={1.75} />
-                                </IconButton>
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-[3px] ms-1.5">
+                              <StatusChip tokens={{ color: semChip(getRoleColor(client.role)).fg, bg: semChip(getRoleColor(client.role)).bg }} label={getRoleLabel(client.role)} className="text-[0.65rem]" />
+                              <Tooltip>
+                                {/* Radix pose sa ref d'ancrage sur l'enfant : un <span> hote,
+                                    le Button du kit ne transmettant pas de ref (React 18). */}
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon-xs"
+                                      onClick={() => setEditingClient(client)}
+                                      aria-label={t('portfolios.fields.reassignClient')}
+                                      className="text-[var(--accent)]"
+                                    >
+                                      <EditIcon size={16} strokeWidth={1.75} />
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>{t('portfolios.fields.reassignClient')}</TooltipContent>
                               </Tooltip>
-                              <Tooltip title={t('portfolios.fields.unassignClient')}>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleUnassignClient(client.id)}
-                                  sx={{ color: 'var(--err)', p: 0.5 }}
-                                >
-                                  <DeleteIcon size={16} strokeWidth={1.75} />
-                                </IconButton>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon-xs"
+                                      onClick={() => handleUnassignClient(client.id)}
+                                      aria-label={t('portfolios.fields.unassignClient')}
+                                      className="text-[var(--err)]"
+                                    >
+                                      <DeleteIcon size={16} strokeWidth={1.75} />
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>{t('portfolios.fields.unassignClient')}</TooltipContent>
                               </Tooltip>
-                            </Box>
-                          </Box>
+                            </div>
+                          </div>
                           {client.phoneNumber && (
-                            <Box display="flex" alignItems="center" mt={0.75} ml={5.5}>
-                              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><Phone size={14} strokeWidth={1.75} /></Box>
-                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                            <div className="flex items-center mt-[4.5px] ms-[33px]">
+                              <span className="inline-flex text-muted-foreground me-0.5"><Phone size={14} strokeWidth={1.75} /></span>
+                              <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
                                 {client.phoneNumber}
-                              </Typography>
-                            </Box>
+                              </span>
+                            </div>
                           )}
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, ml: 5.5, fontSize: '0.65rem' }}>
+                          <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-8 text-[0.65rem]">
                             {t('portfolios.fields.associatedOn')} {formatDate(client.associatedAt)}
-                          </Typography>
+                          </span>
                         </CardContent>
                       </Card>
                     ))}
-                  </Box>
+                  </div>
                 ) : (
                   <EmptyState
                     icon={<Person size={40} strokeWidth={1.75} />}
                     message={t('portfolios.fields.noClientAssociated')}
                     action={
                       <Button
-                        variant="outlined"
-                        size="small"
-                        startIcon={<AssignmentIcon size={14} strokeWidth={1.75} />}
+                        variant="outline"
+                        size="sm"
                         onClick={handleClientAssignment}
-                        sx={{ fontSize: '0.78rem' }}
                       >
+                        <AssignmentIcon strokeWidth={1.75} />
                         {t('portfolios.associateClientsProperties')}
                       </Button>
                     }
                   />
                 )}
-              </Grid>
+              </div>
 
               {/* Properties grouped by client */}
-              <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="col-span-12 min-[900px]:col-span-6 flex flex-col">
                 <SectionHeader
                   icon={<Home size={20} strokeWidth={1.75} />}
                   title={t('portfolios.sections.propertiesByClient')}
@@ -374,169 +361,154 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                   color="#7B68A8"
                 />
                 {clients.length > 0 ? (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div className="flex flex-col gap-3">
                     {clients.map((client) => {
                       const clientProperties = properties.filter(prop => prop.ownerId === client.id);
                       return (
-                        <Box key={client.id}>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              mb: 0.75,
-                              cursor: 'pointer',
-                              '&:hover': { opacity: 0.8 },
-                            }}
-                            onClick={() => toggleClientExpansion(client.id)}
-                          >
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                              <Avatar
-                                sx={{
-                                  width: 24,
-                                  height: 24,
-                                  fontSize: '0.55rem',
-                                  fontFamily: 'var(--font-display)',
-                                  fontWeight: 600,
-                                  bgcolor: 'var(--accent)',
-                                  color: 'var(--on-accent)',
-                                  borderRadius: '8px',
-                                }}
-                              >
-                                {client.firstName.charAt(0)}{client.lastName.charAt(0)}
+                        <div key={client.id}>
+                          <div className="flex items-center justify-between mb-[4.5px] cursor-pointer hover:opacity-80" onClick={() => toggleClientExpansion(client.id)}>
+                            <div className="flex items-center gap-1">
+                              <Avatar className="size-6 rounded-[8px] after:rounded-[8px]">
+                                <AvatarFallback className="rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)] [font-family:var(--font-display)] text-[0.55rem] font-semibold">
+                                  {client.firstName.charAt(0)}{client.lastName.charAt(0)}
+                                </AvatarFallback>
                               </Avatar>
-                              <Typography variant="subtitle2" color="primary" sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                              <h6 className="cn-text-subtitle2 text-primary text-[0.82rem] font-semibold">
                                 {client.firstName} {client.lastName}
-                              </Typography>
-                              <Chip
-                                label={`${clientProperties.length} ${t('portfolios.fields.properties')}`}
-                                size="small"
-                                sx={{ height: 20, fontSize: '0.65rem', color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', fontVariantNumeric: 'tabular-nums' }}
-                              />
-                            </Box>
-                            <IconButton size="small" sx={{ color: 'var(--accent)', p: 0.25 }}>
+                              </h6>
+                              <Badge variant="secondary" className="h-[20px] text-[0.65rem] text-[var(--accent)] bg-[var(--accent-soft)] tabular-nums">{`${clientProperties.length} ${t('portfolios.fields.properties')}`}</Badge>
+                            </div>
+                            {/* Chevron purement indicatif : le clic est porte par la rangee entiere.
+                                Un <span> evite d'imbriquer un bouton dans une zone deja cliquable. */}
+                            <span className="inline-flex p-0.5 text-[var(--accent)]" aria-hidden>
                               {expandedClients.has(client.id) ? (
                                 <ExpandLessIcon size={18} strokeWidth={1.75} />
                               ) : (
                                 <ExpandMoreIcon size={18} strokeWidth={1.75} />
                               )}
-                            </IconButton>
-                          </Box>
+                            </span>
+                          </div>
 
                           {clientProperties.length > 0 ? (
                             expandedClients.has(client.id) ? (
-                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, ml: 1 }}>
+                              <div className="flex flex-col gap-1.5 ms-1.5">
                                 {clientProperties.map((property) => (
                                   <Card
                                     key={property.id}
-                                    variant="outlined"
-                                    sx={{
-                                      borderRadius: 1.5,
-                                      transition: 'border-color 0.2s',
-                                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                                      '&:hover': { borderColor: 'var(--line-2)' },
-                                    }}
+                                    className={NESTED_ROW_CARD_CLASS}
                                   >
-                                    <CardContent sx={{ py: 1.25, px: 1.5, '&:last-child': { pb: 1.25 } }}>
-                                      <Box display="flex" alignItems="flex-start">
-                                        <Avatar
-                                          sx={{
-                                            bgcolor: '#7B68A818',
-                                            color: '#7B68A8',
-                                            borderRadius: '8px',
-                                            width: 28,
-                                            height: 28,
-                                            mr: 1.25,
-                                          }}
-                                        >
-                                          <Home size={14} strokeWidth={1.75} />
+                                    <CardContent className="py-[7.5px] px-[9px]">
+                                      <div className="flex items-start">
+                                        <Avatar className="size-7 rounded-[8px] after:rounded-[8px] me-[7.5px]">
+                                          <AvatarFallback className="rounded-[8px] bg-[#7B68A818] text-[#7B68A8]">
+                                            <Home size={14} strokeWidth={1.75} />
+                                          </AvatarFallback>
                                         </Avatar>
-                                        <Box flex={1} minWidth={0}>
-                                          <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', fontWeight: 600 }} noWrap>
+                                        <div className="flex-1 min-w-0">
+                                          <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold truncate">
                                             {property.name}
-                                          </Typography>
-                                          <Box display="flex" alignItems="center">
-                                            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
-                                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }} noWrap>
+                                          </h6>
+                                          <div className="flex items-center">
+                                            <span className="inline-flex text-muted-foreground me-0.5"><LocationOn size={13} strokeWidth={1.75} /></span>
+                                            <span className="cn-text-caption text-muted-foreground text-[0.7rem] truncate">
                                               {property.address}, {property.city}
-                                            </Typography>
-                                          </Box>
-                                        </Box>
-                                        <Box display="flex" alignItems="center" gap={0.5} ml={0.5} flexWrap="wrap">
-                                          <Chip
-                                            label={property.type}
-                                            size="small"
-                                            sx={{ height: 20, fontSize: '0.6rem' }}
-                                          />
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-[3px] ms-[3px] flex-wrap">
+                                          <Badge variant="secondary" className="h-[20px] text-[0.6rem]">{property.type}</Badge>
                                           {propertyTeamMap.get(property.id) ? (
-                                            <Chip
+                                            <StatusChip
+                                              tone="ok"
                                               icon={<Group size={13} strokeWidth={1.75} />}
                                               label={propertyTeamMap.get(property.id)!.teamName}
-                                              size="small"
                                               onDelete={() => handleRemoveTeamFromProperty(property.id)}
-                                              sx={{ height: 20, fontSize: '0.6rem', color: 'var(--ok)', backgroundColor: 'var(--ok-soft)', '& .MuiChip-icon': { color: 'var(--ok)' }, '& .MuiChip-deleteIcon': { color: 'var(--ok)' } }}
+                                              deleteLabel={t('portfolios.confirmations.unassignTeamTitle')}
+                                              className="h-[20px] text-[0.6rem]"
                                             />
                                           ) : (
-                                            <Chip
-                                              icon={<Group size={13} strokeWidth={1.75} />}
-                                              label={t('portfolios.fields.assignTeam')}
-                                              size="small"
-                                              variant="outlined"
-                                              onClick={(e) => {
-                                                setTeamMenuAnchor(e.currentTarget);
-                                                teamMenuPropertyIdRef.current = property.id;
-                                              }}
-                                              sx={{ height: 20, fontSize: '0.6rem', cursor: 'pointer' }}
-                                            />
+                                            <DropdownMenu>
+                                              {/* Le menu vit avec sa pastille : chaque bien porte son propre
+                                                  declencheur, ce qui remplace l'ancien couple anchorEl + ref. */}
+                                              <DropdownMenuTrigger asChild>
+                                                <span className="inline-flex">
+                                                  <Badge variant="outline" className="h-[20px] text-[0.6rem] cursor-pointer"><Group size={13} strokeWidth={1.75} />{t('portfolios.fields.assignTeam')}</Badge>
+                                                </span>
+                                              </DropdownMenuTrigger>
+                                              <DropdownMenuContent align="end" className="w-auto min-w-[200px]">
+                                                <DropdownMenuLabel>{t('portfolios.fields.assignTeam')}</DropdownMenuLabel>
+                                                <DropdownMenuSeparator />
+                                                {teams.length > 0 ? teams.map((team) => (
+                                                  <DropdownMenuItem
+                                                    key={team.id}
+                                                    onSelect={() => handleAssignTeamToProperty(property.id, team.id)}
+                                                  >
+                                                    <span className="inline-flex text-[var(--ok)] me-1.5"><Group size={16} strokeWidth={1.75} /></span>
+                                                    {team.name}
+                                                  </DropdownMenuItem>
+                                                )) : (
+                                                  <DropdownMenuItem disabled>
+                                                    {t('portfolios.fields.noTeamAssigned')}
+                                                  </DropdownMenuItem>
+                                                )}
+                                              </DropdownMenuContent>
+                                            </DropdownMenu>
                                           )}
-                                          <Tooltip title={t('portfolios.fields.unassignProperty')}>
-                                            <IconButton
-                                              size="small"
-                                              onClick={() => handleUnassignProperty(property.id)}
-                                              sx={{ color: 'var(--err)', p: 0.25 }}
-                                            >
-                                              <DeleteIcon size={14} strokeWidth={1.75} />
-                                            </IconButton>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <span className="inline-flex">
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon-xs"
+                                                  onClick={() => handleUnassignProperty(property.id)}
+                                                  aria-label={t('portfolios.fields.unassignProperty')}
+                                                  className="text-[var(--err)]"
+                                                >
+                                                  <DeleteIcon size={14} strokeWidth={1.75} />
+                                                </Button>
+                                              </span>
+                                            </TooltipTrigger>
+                                            <TooltipContent>{t('portfolios.fields.unassignProperty')}</TooltipContent>
                                           </Tooltip>
-                                        </Box>
-                                      </Box>
-                                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, ml: 4.5, fontSize: '0.62rem' }}>
+                                        </div>
+                                      </div>
+                                      <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-7 text-[0.62rem]">
                                         {t('portfolios.fields.createdOn')} {formatDate(property.createdAt)}
-                                      </Typography>
+                                      </span>
                                     </CardContent>
                                   </Card>
                                 ))}
-                              </Box>
+                              </div>
                             ) : (
-                              <Typography variant="caption" color="text.secondary" sx={{ ml: 4, fontStyle: 'italic', fontSize: '0.72rem' }}>
+                              <span className="cn-text-caption text-muted-foreground ms-6 italic text-[0.72rem]">
                                 {t('portfolios.fields.clickArrowToSee', { count: clientProperties.length })}
-                              </Typography>
+                              </span>
                             )
                           ) : (
-                            <Typography variant="caption" color="text.secondary" sx={{ ml: 4, fontStyle: 'italic', fontSize: '0.72rem' }}>
+                            <span className="cn-text-caption text-muted-foreground ms-6 italic text-[0.72rem]">
                               {t('portfolios.fields.noClientAssociated')}
-                            </Typography>
+                            </span>
                           )}
-                        </Box>
+                        </div>
                       );
                     })}
-                  </Box>
+                  </div>
                 ) : (
                   <EmptyState
                     icon={<Home size={40} strokeWidth={1.75} />}
                     message={t('portfolios.fields.noClientAssociated')}
                   />
                 )}
-              </Grid>
-            </Grid>
+              </div>
+            </div>
           )}
         </TabPanel>
 
         {/* ─── Tab 1: Teams & Users ─────────────────────────────────────── */}
         <TabPanel value={tabValue} index={1}>
-          <Grid container spacing={3}>
+          <div className="grid grid-cols-12 gap-[18px]">
             {/* Teams */}
-            <Grid item xs={12} md={6}>
+            <div className="col-span-12 min-[900px]:col-span-6">
               <SectionHeader
                 icon={<Group size={20} strokeWidth={1.75} />}
                 title={t('teams.title')}
@@ -544,83 +516,76 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                 color="var(--ok)"
               />
               {teams.length > 0 ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <div className="flex flex-col gap-2">
                   {teams.map((team) => (
                     <Card
                       key={team.id}
-                      variant="outlined"
-                      sx={{
-                        borderRadius: 2,
-                        transition: 'border-color 0.2s ease',
-                        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                        '&:hover': { borderColor: 'var(--line-2)' },
-                      }}
+                      className={ROW_CARD_CLASS}
                     >
-                      <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-                        <Box display="flex" alignItems="center">
-                          <Avatar
-                            sx={{
-                              bgcolor: 'var(--ok-soft)',
-                              color: 'var(--ok)',
-                              borderRadius: '10px',
-                              width: 32,
-                              height: 32,
-                              mr: 1.5,
-                            }}
-                          >
-                            <Group size={16} strokeWidth={1.75} />
+                      <CardContent className="py-[9px] px-3">
+                        <div className="flex items-center">
+                          <Avatar className="size-8 rounded-[10px] after:rounded-[10px] me-1.5">
+                            <AvatarFallback className="rounded-[10px] bg-[var(--ok-soft)] text-[var(--ok)]">
+                              <Group size={16} strokeWidth={1.75} />
+                            </AvatarFallback>
                           </Avatar>
-                          <Box flex={1} minWidth={0}>
-                            <Typography variant="subtitle2" sx={{ fontSize: '0.85rem', fontWeight: 600 }} noWrap>
+                          <div className="flex-1 min-w-0">
+                            <h6 className="cn-text-subtitle2 text-[0.85rem] font-semibold truncate">
                               {team.name}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+                            </h6>
+                            <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
                               {team.memberCount} {t('portfolios.fields.members')}
-                            </Typography>
-                          </Box>
-                          <Tooltip title={t('portfolios.confirmations.unassignTeamTitle')}>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleUnassignTeam(team.id)}
-                              sx={{ color: 'var(--err)', p: 0.5 }}
-                            >
-                              <DeleteIcon size={16} strokeWidth={1.75} />
-                            </IconButton>
+                            </span>
+                          </div>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-xs"
+                                  onClick={() => handleUnassignTeam(team.id)}
+                                  aria-label={t('portfolios.confirmations.unassignTeamTitle')}
+                                  className="text-[var(--err)]"
+                                >
+                                  <DeleteIcon size={16} strokeWidth={1.75} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>{t('portfolios.confirmations.unassignTeamTitle')}</TooltipContent>
                           </Tooltip>
-                        </Box>
+                        </div>
                         {team.description && (
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, ml: 5.5, fontSize: '0.72rem' }}>
+                          <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-8 text-[0.72rem]">
                             {team.description}
-                          </Typography>
+                          </span>
                         )}
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, ml: 5.5, fontSize: '0.62rem' }}>
+                        <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-8 text-[0.62rem]">
                           {t('portfolios.fields.createdOn')} {formatDate(team.assignedAt)}
-                        </Typography>
+                        </span>
                       </CardContent>
                     </Card>
                   ))}
-                </Box>
+                </div>
               ) : (
                 <EmptyState
                   icon={<Group size={40} strokeWidth={1.75} />}
                   message={t('portfolios.fields.noClientAssociated')}
                   action={
                     <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<PeopleIcon size={14} strokeWidth={1.75} />}
+                      variant="outline"
+                      size="sm"
                       onClick={handleTeamAssignment}
-                      sx={{ fontSize: '0.78rem' }}
                     >
+                      <PeopleIcon strokeWidth={1.75} />
                       {t('portfolios.associateTeamsUsers')}
                     </Button>
                   }
                 />
               )}
-            </Grid>
+            </div>
 
             {/* Users */}
-            <Grid item xs={12} md={6}>
+            <div className="col-span-12 min-[900px]:col-span-6">
               <SectionHeader
                 icon={<Person size={20} strokeWidth={1.75} />}
                 title={t('users.title')}
@@ -628,129 +593,79 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                 color="var(--warn)"
               />
               {users.length > 0 ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <div className="flex flex-col gap-2">
                   {users.map((portfolioUser) => (
                     <Card
                       key={portfolioUser.id}
-                      variant="outlined"
-                      sx={{
-                        borderRadius: 2,
-                        transition: 'border-color 0.2s ease',
-                        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                        '&:hover': { borderColor: 'var(--line-2)' },
-                      }}
+                      className={ROW_CARD_CLASS}
                     >
-                      <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-                        <Box display="flex" alignItems="center">
-                          <Avatar
-                            sx={{
-                              bgcolor: 'var(--warn-soft)',
-                              color: 'var(--warn)',
-                              fontFamily: 'var(--font-display)',
-                              borderRadius: '10px',
-                              width: 32,
-                              height: 32,
-                              fontSize: '0.7rem',
-                              fontWeight: 600,
-                              mr: 1.5,
-                            }}
-                          >
-                            {portfolioUser.firstName.charAt(0)}{portfolioUser.lastName.charAt(0)}
+                      <CardContent className="py-[9px] px-3">
+                        <div className="flex items-center">
+                          <Avatar className="size-8 rounded-[10px] after:rounded-[10px] me-1.5">
+                            <AvatarFallback className="rounded-[10px] bg-[var(--warn-soft)] text-[var(--warn)] [font-family:var(--font-display)] text-[0.7rem] font-semibold">
+                              {portfolioUser.firstName.charAt(0)}{portfolioUser.lastName.charAt(0)}
+                            </AvatarFallback>
                           </Avatar>
-                          <Box flex={1} minWidth={0}>
-                            <Typography variant="subtitle2" sx={{ fontSize: '0.85rem', fontWeight: 600 }} noWrap>
+                          <div className="flex-1 min-w-0">
+                            <h6 className="cn-text-subtitle2 text-[0.85rem] font-semibold truncate">
                               {portfolioUser.firstName} {portfolioUser.lastName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }} noWrap>
+                            </h6>
+                            <span className="cn-text-caption text-muted-foreground text-[0.72rem] truncate">
                               {portfolioUser.email}
-                            </Typography>
-                          </Box>
-                          <Box display="flex" alignItems="center" gap={0.5} ml={1}>
-                            <Chip
-                              label={getRoleLabel(portfolioUser.role)}
-                              size="small"
-                              sx={{ height: 22, fontSize: '0.65rem', fontWeight: 600, color: semChip(getRoleColor(portfolioUser.role)).fg, backgroundColor: semChip(getRoleColor(portfolioUser.role)).bg }}
-                            />
-                            <Tooltip title={t('portfolios.confirmations.unassignUserTitle')}>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleUnassignUser(portfolioUser.id)}
-                                sx={{ color: 'var(--err)', p: 0.5 }}
-                              >
-                                <DeleteIcon size={16} strokeWidth={1.75} />
-                              </IconButton>
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-[3px] ms-1.5">
+                            <StatusChip tokens={{ color: semChip(getRoleColor(portfolioUser.role)).fg, bg: semChip(getRoleColor(portfolioUser.role)).bg }} label={getRoleLabel(portfolioUser.role)} className="text-[0.65rem]" />
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    onClick={() => handleUnassignUser(portfolioUser.id)}
+                                    aria-label={t('portfolios.confirmations.unassignUserTitle')}
+                                    className="text-[var(--err)]"
+                                  >
+                                    <DeleteIcon size={16} strokeWidth={1.75} />
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>{t('portfolios.confirmations.unassignUserTitle')}</TooltipContent>
                             </Tooltip>
-                          </Box>
-                        </Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, ml: 5.5, fontSize: '0.62rem' }}>
+                          </div>
+                        </div>
+                        <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-8 text-[0.62rem]">
                           {t('portfolios.fields.associatedOn')} {formatDate(portfolioUser.assignedAt)}
-                        </Typography>
+                        </span>
                       </CardContent>
                     </Card>
                   ))}
-                </Box>
+                </div>
               ) : (
                 <EmptyState
                   icon={<Person size={40} strokeWidth={1.75} />}
                   message={t('portfolios.fields.noClientAssociated')}
                   action={
                     <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<PeopleIcon size={14} strokeWidth={1.75} />}
+                      variant="outline"
+                      size="sm"
                       onClick={handleTeamAssignment}
-                      sx={{ fontSize: '0.78rem' }}
                     >
+                      <PeopleIcon strokeWidth={1.75} />
                       {t('portfolios.associateTeamsUsers')}
                     </Button>
                   }
                 />
               )}
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </TabPanel>
 
         {/* ─── Tab 2: Statistics ─────────────────────────────────────────── */}
         <TabPanel value={tabValue} index={2}>
           <PortfolioStatsTab />
         </TabPanel>
-      </Paper>
-
-      {/* Team selection menu for property assignment */}
-      <Menu
-        anchorEl={teamMenuAnchor}
-        open={Boolean(teamMenuAnchor)}
-        onClose={() => { setTeamMenuAnchor(null); teamMenuPropertyIdRef.current = null; }}
-        slotProps={{
-          paper: { sx: { borderRadius: 2, minWidth: 200 } },
-        }}
-      >
-        <Typography variant="caption" sx={{ px: 2, py: 0.5, fontWeight: 600, fontSize: '0.72rem', color: 'text.secondary', display: 'block' }}>
-          {t('portfolios.fields.assignTeam')}
-        </Typography>
-        <Divider sx={{ mb: 0.5 }} />
-        {teams.length > 0 ? teams.map((team) => (
-          <MenuItem
-            key={team.id}
-            onClick={() => {
-              const targetPropertyId = teamMenuPropertyIdRef.current;
-              if (targetPropertyId) {
-                handleAssignTeamToProperty(targetPropertyId, team.id);
-              }
-              setTeamMenuAnchor(null);
-              teamMenuPropertyIdRef.current = null;
-            }}
-            sx={{ fontSize: '0.82rem', py: 0.75 }}
-          >
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)', mr: 1 }}><Group size={16} strokeWidth={1.75} /></Box>
-            {team.name}
-          </MenuItem>
-        )) : (
-          <MenuItem disabled sx={{ fontSize: '0.82rem' }}>
-            {t('portfolios.fields.noTeamAssigned')}
-          </MenuItem>
-        )}
-      </Menu>
+      </BuiCard>
 
       {/* Reassignment dialog */}
       <ReassignmentDialog
@@ -773,7 +688,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
         confirmText={t('portfolios.fields.unassignClient')}
         cancelText={t('common.cancel')}
       />
-    </Box>
+    </div>
   );
 };
 

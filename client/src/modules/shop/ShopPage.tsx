@@ -1,13 +1,8 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import {
-  Box,
-  Typography,
-  IconButton,
-  Badge,
-  Alert,
-  Snackbar,
-} from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Button } from '../../components/ui';
 import { ShoppingCartOutlined, Memory, CheckCircleOutline } from '../../icons';
+import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
 import apiClient from '../../services/apiClient';
 import { SHOP_PRODUCTS, CATEGORIES } from './shopProducts';
@@ -28,11 +23,11 @@ const categoryTranslationKeys: Record<string, string> = {
 
 const ShopPage: React.FC = () => {
   const { t } = useTranslation();
+  const { notify } = useNotification();
 
   const [selectedCategory, setSelectedCategory] = useState<'all' | ProductCategory>('all');
   const [cart, setCart] = useState<Map<string, number>>(new Map());
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   const cartCount = useMemo(
     () => Array.from(cart.values()).reduce((sum, qty) => sum + qty, 0),
@@ -105,9 +100,9 @@ const ShopPage: React.FC = () => {
       // backend not ready yet
     }
 
-    setSnackbarOpen(true);
+    notify.success(t('common.processing'));
     setDrawerOpen(false);
-  }, [cart]);
+  }, [cart, notify, t]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {
@@ -124,7 +119,7 @@ const ShopPage: React.FC = () => {
   }, []);
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={t('shop.title')}
         subtitle={t('shop.subtitle')}
@@ -133,88 +128,48 @@ const ShopPage: React.FC = () => {
         backPath="/dashboard"
         showBackButton={false}
         actions={(
-          <IconButton
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setDrawerOpen(true)}
             aria-label={t('shop.cart')}
-            sx={{
-              border: '1px solid',
-              borderColor: 'var(--line-2)',
-              borderRadius: '10px',
-              p: 1,
-              transition: 'border-color 0.18s cubic-bezier(.16,1,.3,1), background-color 0.18s cubic-bezier(.16,1,.3,1)',
-              '&:hover': {
-                borderColor: 'var(--faint)',
-                backgroundColor: 'var(--hover)',
-              },
-            }}
+            className="relative rounded-[10px] border border-solid border-[var(--line-2)] transition-[border-color,background-color] duration-[180ms] ease-[cubic-bezier(.16,1,.3,1)] hover:border-[var(--faint)] hover:bg-[var(--hover)]"
           >
-            <Badge
-              badgeContent={cartCount}
-              color="primary"
-              sx={{
-                '& .MuiBadge-badge': {
-                  fontSize: '0.625rem',
-                  height: 16,
-                  minWidth: 16,
-                  fontWeight: 700,
-                  bgcolor: 'var(--accent)',
-                  color: 'var(--on-accent)',
-                  border: '2px solid var(--card)',
-                  padding: 0,
-                },
-              }}
-            >
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ink)' }}>
-                <ShoppingCartOutlined size={20} strokeWidth={1.75} />
-              </Box>
-            </Badge>
-          </IconButton>
+            <span className="inline-flex text-[var(--ink)]">
+              <ShoppingCartOutlined size={20} strokeWidth={1.75} />
+            </span>
+            {/* Pastille de compteur : le `Badge` du kit est une puce en flux, pas
+                une pastille en surimpression — d'ou le positionnement explicite. */}
+            {cartCount > 0 && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -top-1 -end-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-solid border-[var(--card)] bg-[var(--accent)] px-[3px] text-[0.625rem] font-bold leading-none tabular-nums text-[var(--on-accent)]"
+              >
+                {cartCount > 99 ? '99+' : cartCount}
+              </span>
+            )}
+          </Button>
         )}
       />
 
       {/* Info banner — alerte -soft tokenisée */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 1.25,
-          p: 1.5,
-          mb: 2.5,
-          borderRadius: '10px',
-          border: '1px solid',
-          borderColor: 'color-mix(in srgb, var(--info) 30%, transparent)',
-          backgroundColor: 'var(--info-soft)',
-        }}
-      >
-        <Box sx={{ color: 'var(--info)', display: 'inline-flex', mt: '1px', flexShrink: 0 }}>
+      <div className="flex items-start gap-[7.5px] p-[9px] mb-[15px] rounded-[10px] border border-solid border-[color-mix(in_srgb,_var(--info)_30%,_transparent)] bg-[var(--info-soft)]">
+        <div className="text-[var(--info)] inline-flex mt-px shrink-0">
           <CheckCircleOutline size={16} strokeWidth={1.75} />
-        </Box>
-        <Typography
-          sx={{
-            fontSize: '0.8rem',
-            color: 'var(--body)',
-            lineHeight: 1.5,
-          }}
-        >
+        </div>
+        <p className="cn-text-body1 text-[0.8rem] text-[var(--body)] leading-[1.5]">
           {t('shop.infoBanner')}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       {/* Category filter — pill row */}
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 0.625,
-          mb: 2.5,
-          flexWrap: 'wrap',
-        }}
-        role="tablist"
-      >
+      <div className="flex gap-1 mb-3.5 flex-wrap" role="tablist">
         {CATEGORIES.map((cat) => {
           const active = selectedCategory === cat.id;
           const count = categoryCounts[cat.id] ?? 0;
           return (
-            <Box
+            // gap 0.75 = 4.5px, px 1.25 = 7.5px, py 0.625 = 3.75px (theme.spacing = 6)
+            <div
               key={cat.id}
               role="tab"
               aria-selected={active}
@@ -226,71 +181,26 @@ const ShopPage: React.FC = () => {
                   setSelectedCategory(cat.id as 'all' | ProductCategory);
                 }
               }}
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 0.75,
-                px: 1.25,
-                py: 0.625,
-                cursor: 'pointer',
-                userSelect: 'none',
-                borderRadius: '8px',
-                border: '1px solid',
-                borderColor: active ? 'var(--accent)' : 'var(--line-2)',
-                backgroundColor: active ? 'var(--accent-soft)' : 'var(--card)',
-                color: active ? 'var(--accent)' : 'var(--body)',
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                letterSpacing: '0.01em',
-                transition:
-                  'border-color 0.18s cubic-bezier(.16,1,.3,1), background-color 0.18s cubic-bezier(.16,1,.3,1), color 0.18s cubic-bezier(.16,1,.3,1)',
-                '&:hover': {
-                  borderColor: active ? 'var(--accent)' : 'var(--faint)',
-                  backgroundColor: active ? 'var(--accent-soft)' : 'var(--hover)',
-                },
-                '&:focus-visible': {
-                  outline: '2px solid var(--accent)',
-                  outlineOffset: 2,
-                },
-              }}
+              className={cn(
+                'inline-flex items-center gap-[4.5px] px-[7.5px] py-[3.75px] cursor-pointer select-none rounded-[8px] border border-solid text-[0.78rem] font-semibold tracking-[0.01em]',
+                'transition-[border-color,background-color,color] duration-[180ms] ease-[cubic-bezier(.16,1,.3,1)]',
+                'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+                active
+                  ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)] hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]'
+                  : 'border-[var(--line-2)] bg-[var(--card)] text-[var(--body)] hover:border-[var(--faint)] hover:bg-[var(--hover)]',
+              )}
             >
               {t(categoryTranslationKeys[cat.id]) || cat.label}
-              <Box
-                component="span"
-                sx={{
-                  fontSize: '0.6875rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.02em',
-                  px: 0.625,
-                  py: 0.125,
-                  borderRadius: '5px',
-                  backgroundColor: active ? 'var(--accent)' : 'var(--field)',
-                  color: active ? 'var(--on-accent)' : 'var(--muted)',
-                  fontVariantNumeric: 'tabular-nums',
-                  minWidth: 16,
-                  textAlign: 'center',
-                }}
-              >
+              <span className={cn('text-[0.6875rem] font-bold tracking-[0.02em] px-[3.75px] py-[0.75px] rounded-[5px] tabular-nums min-w-[16px] text-center', active ? 'bg-[var(--accent)]' : 'bg-[var(--field)]', active ? 'text-[var(--on-accent)]' : 'text-[var(--muted)]')}>
                 {count}
-              </Box>
-            </Box>
+              </span>
+            </div>
           );
         })}
-      </Box>
+      </div>
 
       {/* Product grid */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, 1fr)',
-            md: 'repeat(3, 1fr)',
-            xl: 'repeat(4, 1fr)',
-          },
-          gap: 2,
-        }}
-      >
+      <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(3,_1fr)] min-[1536px]:grid-cols-[repeat(4,_1fr)] gap-3">
         {filteredProducts.map((product) => (
           <ProductCard
             key={product.id}
@@ -300,7 +210,7 @@ const ShopPage: React.FC = () => {
             onRemoveFromCart={() => handleRemoveFromCart(product.id)}
           />
         ))}
-      </Box>
+      </div>
 
       <CartDrawer
         open={drawerOpen}
@@ -310,22 +220,7 @@ const ShopPage: React.FC = () => {
         onRemoveItem={handleRemoveItem}
         onCheckout={handleCheckout}
       />
-
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={4000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setSnackbarOpen(false)}
-          severity="success"
-          sx={{ width: '100%', borderRadius: '8px' }}
-        >
-          {t('common.processing')}
-        </Alert>
-      </Snackbar>
-    </Box>
+    </div>
   );
 };
 

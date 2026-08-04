@@ -1,14 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  Paper,
-  Alert,
-  CircularProgress,
-  Chip,
-} from '@mui/material';
+import StatusChip from '../components/StatusChip';
+import { Alert, AlertDescription } from '../components/ui';
+import { TriangleAlert, CircleCheck } from 'lucide-react';
+import { Spinner } from '../components/ui';
+import { Card } from '../components/ui';
+import { Field, FieldLabel, Input } from '../components/ui';
+import { Button } from '../components/ui';
 import {
   VpnKey,
   CheckCircle,
@@ -97,185 +94,170 @@ const PublicKeyVerification: React.FC = () => {
 
   if (!token) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#f5f5f5' }}>
-        <Alert severity="error">Lien de vérification invalide</Alert>
-      </Box>
+      <div className="flex justify-center items-center min-h-[100vh] bg-[#f5f5f5]">
+        <Alert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>Lien de vérification invalide</AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        bgcolor: '#f5f5f5',
-        p: 2,
-      }}
-    >
-      <Paper
-        elevation={2}
-        sx={{
-          maxWidth: 420,
-          width: '100%',
-          p: 3,
-          borderRadius: 2,
-        }}
-      >
+    <div className="flex justify-center items-center min-h-[100vh] bg-[#f5f5f5] p-3">
+      <Card className="gap-0 py-0 max-w-[420px] w-full p-4">
         {/* Header */}
-        <Box sx={{ textAlign: 'center', mb: 3 }}>
-          <Box component="span" sx={{ display: 'inline-flex', mb: 1 }}><VpnKey size={40} strokeWidth={1.75} color='#6B8A9A' /></Box>
-          <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1.1rem' }}>
+        <div className="text-center mb-4">
+          <span className="inline-flex mb-1.5"><VpnKey size={40} strokeWidth={1.75} color='#6B8A9A' /></span>
+          <h6 className="cn-text-h6 font-bold text-[1.1rem]">
             Vérification de code
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+          </h6>
+          <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
             Entrez le code présenté par le voyageur
-          </Typography>
-        </Box>
+          </p>
+        </div>
 
         {/* Code input */}
         {!confirmed && (
-          <Box sx={{ mb: 2 }}>
-            <TextField
-              fullWidth
-              size="medium"
-              label="Code à 6 chiffres"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              inputProps={{
-                maxLength: 10,
-                style: { textAlign: 'center', fontSize: '1.5rem', fontFamily: 'monospace', letterSpacing: '0.2em' },
-              }}
-              onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
-            />
+          <div className="mb-3">
+            <Field>
+              <FieldLabel htmlFor="key-verification-code">Code à 6 chiffres</FieldLabel>
+              {/* Styles inline repris tels quels de inputProps.style ; la hauteur
+                  s'y ajoute car le champ compact du kit (h32) ne contient pas
+                  un corps de 1.5rem. */}
+              <Input
+                id="key-verification-code"
+                className="w-full"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                maxLength={10}
+                style={{
+                  textAlign: 'center',
+                  fontSize: '1.5rem',
+                  fontFamily: 'monospace',
+                  letterSpacing: '0.2em',
+                  height: '3rem',
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
+              />
+            </Field>
+            {/* mt: 1.5 = 9 px (le spacing MUI de ce projet vaut 6). */}
             <Button
-              variant="contained"
-              fullWidth
               onClick={handleVerify}
               disabled={loading || code.trim().length < 4}
-              startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
-              sx={{ mt: 1.5, textTransform: 'none', fontWeight: 600 }}
+              className="mt-[9px] w-full shrink"
             >
+              {loading && <Spinner className="size-4" />}
               Vérifier
             </Button>
-          </Box>
+          </div>
         )}
 
         {/* Error */}
         {error && (
-          <Alert severity="error" sx={{ fontSize: '0.8125rem', mb: 2 }}>{error}</Alert>
+          <Alert variant="destructive" className="text-[0.8125rem] mb-3">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
         {/* Verify result */}
         {verifyResult && !confirmed && (
-          <Box sx={{ mt: 2 }}>
+          <div className="mt-3">
             {verifyResult.valid ? (
               <>
-                <Alert severity="success" sx={{ fontSize: '0.8125rem', mb: 2 }}>
-                  Code valide
+                <Alert variant="success" className="text-[0.8125rem] mb-3">
+                  <CircleCheck />
+                  <AlertDescription>Code valide</AlertDescription>
                 </Alert>
 
-                <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1.5, mb: 2 }}>
+                <div className="p-3 border border-[var(--line)] rounded-[12px] mb-3">
                   {verifyResult.guestName && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><PersonOutline size={18} strokeWidth={1.75} /></Box>
-                      <Typography sx={{ fontSize: '0.875rem' }}>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className="inline-flex text-muted-foreground"><PersonOutline size={18} strokeWidth={1.75} /></span>
+                      <p className="cn-text-body1 text-[0.875rem]">
                         <strong>Voyageur :</strong> {verifyResult.guestName}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                   )}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><StoreIcon size={18} strokeWidth={1.75} /></Box>
-                    <Typography sx={{ fontSize: '0.875rem' }}>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <span className="inline-flex text-muted-foreground"><StoreIcon size={18} strokeWidth={1.75} /></span>
+                    <p className="cn-text-body1 text-[0.875rem]">
                       <strong>Point :</strong> {verifyResult.storeName}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    </p>
+                  </div>
+                  <div className="flex gap-1.5">
                     {(() => { const c = verifyResult.codeType === 'COLLECTION' ? '#0288d1' : '#4A9B8E'; return (
-                      <Chip
-                        label={verifyResult.codeType === 'COLLECTION' ? 'Collecte' : 'Dépôt'}
-                        size="small"
-                        sx={{
-                          fontSize: '0.6875rem', height: 22, fontWeight: 600,
-                          backgroundColor: `${c}18`, color: c,
-                          border: `1px solid ${c}40`, borderRadius: '6px',
-                          '& .MuiChip-label': { px: 0.75 },
-                        }}
-                      />
+                      <StatusChip tokens={{ color: c, bg: `${c}18` }} label={verifyResult.codeType === 'COLLECTION' ? 'Collecte' : 'Dépôt'} />
                     ); })()}
                     {verifyResult.validUntil && (
-                      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', alignSelf: 'center' }}>
+                      <p className="cn-text-body1 text-[0.75rem] text-muted-foreground self-center">
                         Valide jusqu'au {new Date(verifyResult.validUntil).toLocaleDateString('fr-FR')}
-                      </Typography>
+                      </p>
                     )}
-                  </Box>
-                </Box>
+                  </div>
+                </div>
 
                 {/* Action buttons */}
-                <Box sx={{ display: 'flex', gap: 1 }}>
+                <div className="flex gap-1.5">
                   <Button
-                    variant="contained"
-                    fullWidth
-                    color="primary"
                     onClick={() => handleConfirm('collected')}
                     disabled={loading}
-                    sx={{ textTransform: 'none', fontWeight: 600 }}
+                    className="w-full"
                   >
                     Clé remise au voyageur
                   </Button>
                   <Button
-                    variant="outlined"
-                    fullWidth
+                    variant="outline"
                     onClick={() => handleConfirm('returned')}
                     disabled={loading}
-                    sx={{ textTransform: 'none', fontWeight: 600 }}
+                    className="w-full"
                   >
                     Clé récupérée
                   </Button>
-                </Box>
+                </div>
               </>
             ) : (
-              <Alert severity="warning" sx={{ fontSize: '0.8125rem' }}>
-                Code invalide ou expiré. Statut : {verifyResult.status}
+              <Alert variant="warning" className="text-[0.8125rem]">
+                <TriangleAlert />
+                <AlertDescription>Code invalide ou expiré. Statut : {verifyResult.status}</AlertDescription>
               </Alert>
             )}
-          </Box>
+          </div>
         )}
 
         {/* Confirmation */}
         {confirmed && (
-          <Box sx={{ textAlign: 'center', py: 2 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main', mb: 1 }}><CheckCircle size={48} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1rem', mb: 1 }}>
+          <div className="text-center py-3">
+            <span className="inline-flex text-[var(--bui-success-ink)] mb-1.5"><CheckCircle size={48} strokeWidth={1.75} /></span>
+            <h6 className="cn-text-h6 font-bold text-[1rem] mb-1.5">
               Mouvement confirmé
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem', mb: 2 }}>
+            </h6>
+            <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] mb-3">
               Le mouvement de clé a été enregistré avec succès.
-            </Typography>
+            </p>
             <Button
-              variant="outlined"
+              variant="outline"
               onClick={() => {
                 setCode('');
                 setVerifyResult(null);
                 setConfirmed(false);
                 setError(null);
               }}
-              sx={{ textTransform: 'none' }}
             >
               Vérifier un autre code
             </Button>
-          </Box>
+          </div>
         )}
 
         {/* Footer */}
-        <Box sx={{ textAlign: 'center', mt: 3, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-          <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>
+        <div className="text-center mt-4 pt-3 border-t border-[var(--line)]">
+          <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60">
             Propulsé par Baitly — Gestion immobilière
-          </Typography>
-        </Box>
-      </Paper>
-    </Box>
+          </p>
+        </div>
+      </Card>
+    </div>
   );
 };
 

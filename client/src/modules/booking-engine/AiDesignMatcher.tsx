@@ -1,14 +1,9 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  TextField,
-  Button,
-  LinearProgress,
-  Alert,
-  Typography,
-  Chip,
-  Stack,
-} from '@mui/material';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { Alert, AlertAction, AlertDescription, AlertTitle, Button, Spinner } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Field, FieldLabel, FieldDescription, Input } from '../../components/ui';
 import { AutoFixHighRounded } from '../../icons';
 import { CheckCircleOutlineRounded } from '../../icons';
 import { SettingsRounded } from '../../icons';
@@ -97,130 +92,117 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
   const isLoading = analyzeMutation.isPending;
 
   return (
-    <Box sx={{ mb: 3 }}>
+    <div className="mb-4">
       {/* URL input + button */}
-      <Stack direction="row" spacing={1.5} alignItems="flex-start">
-        <TextField
-          label={t('bookingEngine.ai.websiteUrl')}
-          placeholder="https://www.example.com"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          size="small"
-          fullWidth
-          disabled={isDisabled || isLoading}
-          helperText={isDisabled ? t('bookingEngine.ai.saveFirst') : undefined}
-          inputProps={{ type: 'url' }}
-        />
+      <div className="flex flex-row items-start gap-[9px]">
+        <Field className="flex-1">
+          <FieldLabel htmlFor="ai-design-website-url">{t('bookingEngine.ai.websiteUrl')}</FieldLabel>
+          <Input
+            id="ai-design-website-url"
+            type="url"
+            placeholder="https://www.example.com"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            disabled={isDisabled || isLoading}
+          />
+          {isDisabled && (
+            <FieldDescription>{t('bookingEngine.ai.saveFirst')}</FieldDescription>
+          )}
+        </Field>
         <Button
-          variant="contained"
-          startIcon={<AutoFixHighRounded />}
+          size="lg"
+          className="whitespace-nowrap min-w-[180px]"
           onClick={handleAnalyze}
           disabled={isDisabled || isLoading || !url.trim()}
-          sx={{ whiteSpace: 'nowrap', minWidth: 180, height: 40 }}
         >
+          <AutoFixHighRounded />
           {t('bookingEngine.ai.analyzeDesign')}
         </Button>
-      </Stack>
+      </div>
 
       {/* Loading state */}
+      {/* Le kit n'a pas de barre indeterminee : le Spinner porte la meme
+          information (analyse en cours, duree inconnue). */}
       {isLoading && (
-        <Box sx={{ mt: 2 }}>
-          <LinearProgress />
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+        <div className="mt-3 flex items-center gap-1.5">
+          <Spinner className="size-4 text-[var(--muted)]" />
+          <p className="cn-text-body2 text-muted-foreground">
             {t('bookingEngine.ai.analyzing')}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
 
       {/* Success state */}
       {success && !isLoading && (
-        <Alert
-          severity="success"
-          icon={<CheckCircleOutlineRounded />}
-          sx={{ mt: 2 }}
-        >
-          <Typography variant="body2" fontWeight={600} sx={{ mb: extractedColors.length > 0 ? 1 : 0 }}>
+        <Alert variant="success" className="mt-3">
+          <CheckCircleOutlineRounded />
+          <AlertTitle className={cn('cn-text-body2 font-semibold', extractedColors.length > 0 ? 'mb-1.5' : 'mb-0')}>
             {t('bookingEngine.ai.analyzeSuccess')}
-          </Typography>
+          </AlertTitle>
           {extractedColors.length > 0 && (
-            <Stack direction="row" spacing={0.5} flexWrap="wrap">
+            <AlertDescription className="flex flex-row flex-wrap gap-0.5">
               {extractedColors.map((color, idx) => (
-                <Chip
-                  key={idx}
-                  size="small"
-                  label={color}
-                  sx={{
-                    backgroundColor: color,
-                    color: isLightColor(color) ? '#000' : '#fff',
-                    fontFamily: 'monospace',
-                    fontSize: '0.75rem',
-                  }}
-                />
+                <StatusChip tokens={{ color: isLightColor(color) ? '#000' : '#fff', bg: color }} label={color} className="font-mono text-[0.75rem]" key={idx} />
               ))}
-            </Stack>
+            </AlertDescription>
           )}
         </Alert>
       )}
 
       {/* AI not configured — actionable message */}
       {aiNotConfigured && !isLoading && (
-        <Alert
-          severity="warning"
-          icon={<SettingsRounded />}
-          sx={{ mt: 2 }}
-          action={
+        <Alert variant="warning" className="mt-3">
+          <SettingsRounded />
+          <AlertTitle className="cn-text-body2 font-semibold">
+            {t('bookingEngine.ai.aiNotConfiguredTitle')}
+          </AlertTitle>
+          <AlertDescription className="cn-text-body2">
+            {t('bookingEngine.ai.aiNotConfiguredMessage', { provider: aiNotConfigured })}
+          </AlertDescription>
+          <AlertAction>
             <Button
-              color="warning"
-              size="small"
+              variant="outline"
+              size="sm"
+              className="whitespace-nowrap text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
               onClick={() => navigate('/settings?tab=ai')}
-              sx={{ whiteSpace: 'nowrap', fontWeight: 600 }}
             >
               {t('bookingEngine.ai.goToSettings')}
             </Button>
-          }
-        >
-          <Typography variant="body2" fontWeight={600}>
-            {t('bookingEngine.ai.aiNotConfiguredTitle')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {t('bookingEngine.ai.aiNotConfiguredMessage', { provider: aiNotConfigured })}
-          </Typography>
+          </AlertAction>
         </Alert>
       )}
 
       {/* Budget exceeded — actionable message */}
       {budgetExceeded && !isLoading && (
-        <Alert
-          severity="warning"
-          icon={<SettingsRounded />}
-          sx={{ mt: 2 }}
-          action={
+        <Alert variant="warning" className="mt-3">
+          <SettingsRounded />
+          <AlertTitle className="cn-text-body2 font-semibold">
+            {t('bookingEngine.ai.budgetExceededTitle')}
+          </AlertTitle>
+          <AlertDescription className="cn-text-body2">
+            {t('bookingEngine.ai.budgetExceededMessage')}
+          </AlertDescription>
+          <AlertAction>
             <Button
-              color="warning"
-              size="small"
+              variant="outline"
+              size="sm"
+              className="whitespace-nowrap text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
               onClick={() => navigate('/settings?tab=ai')}
-              sx={{ whiteSpace: 'nowrap', fontWeight: 600 }}
             >
               {t('bookingEngine.ai.goToSettings')}
             </Button>
-          }
-        >
-          <Typography variant="body2" fontWeight={600}>
-            {t('bookingEngine.ai.budgetExceededTitle')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {t('bookingEngine.ai.budgetExceededMessage')}
-          </Typography>
+          </AlertAction>
         </Alert>
       )}
 
       {/* Generic error state */}
       {analyzeMutation.isError && !isLoading && !aiNotConfigured && !budgetExceeded && (
-        <Alert severity="error" sx={{ mt: 2 }}>
-          {t('bookingEngine.ai.analyzeError')}
+        <Alert variant="destructive" className="mt-3">
+          <TriangleAlert />
+          <AlertDescription>{t('bookingEngine.ai.analyzeError')}</AlertDescription>
         </Alert>
       )}
-    </Box>
+    </div>
   );
 }
 

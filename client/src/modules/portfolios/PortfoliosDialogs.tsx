@@ -1,21 +1,19 @@
 import React, { useState } from 'react';
+import { Button, Spinner, Field, FieldLabel, Textarea } from '../../components/ui';
 import {
-  Box,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Typography,
   Avatar,
-  IconButton,
-  CircularProgress,
-} from '@mui/material';
+  AvatarFallback,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui';
 import {
   SwapHoriz as SwapHorizIcon,
   Close as CloseIcon,
@@ -60,129 +58,110 @@ export const ReassignmentDialog: React.FC<ReassignmentDialogProps> = ({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: '18px',
-        },
-      }}
-    >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          pb: 1,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Box display="flex" alignItems="center" gap={1}>
-          <SwapHorizIcon color="primary" size={22} strokeWidth={1.75} />
-          <Typography variant="h6" component="div" sx={{ fontSize: '1rem', fontWeight: 600 }}>
-            {t('portfolios.fields.reassignClient')}
-          </Typography>
-        </Box>
-        <IconButton onClick={handleClose} size="small" sx={{ color: 'text.secondary' }}>
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent className="sm:max-w-[600px] rounded-[18px]" showCloseButton={false}>
+        <DialogHeader className="border-b border-solid border-[var(--line)] pb-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex text-[var(--mui-primary)]">
+                <SwapHorizIcon size={22} strokeWidth={1.75} />
+              </span>
+              <DialogTitle className="text-[1rem] font-semibold">
+                {t('portfolios.fields.reassignClient')}
+              </DialogTitle>
+            </div>
+            <Button variant="ghost" size="icon-sm" aria-label={t('common.close', 'Fermer')} onClick={handleClose}>
+              <CloseIcon size={16} strokeWidth={2} />
+            </Button>
+          </div>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 2.5, pb: 2 }}>
-        {/* Client info */}
-        {client && (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-              mb: 2.5,
-              p: 1.5,
-              bgcolor: 'var(--field)',
-              borderRadius: 2,
-            }}
+        <div className="pt-3 pb-2">
+          {client && (
+            <div className="flex items-center gap-2 mb-3.5 p-2 bg-[var(--field)] rounded-[16px]">
+              <Avatar className="size-8 rounded-[10px]">
+                <AvatarFallback className="rounded-[10px] bg-[var(--accent)] text-[var(--on-accent)] font-[family-name:var(--font-display)] font-semibold text-[0.78rem]">
+                  {client.firstName?.[0]}{client.lastName?.[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h6 className="cn-text-subtitle2 text-[0.85rem] font-semibold">
+                  {client.firstName} {client.lastName}
+                </h6>
+                <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
+                  {client.email}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Liste riche (icone + nom + email) : le Select du kit, pas le select
+              natif qui ne sait rendre que du texte. */}
+          <Field className="mb-3">
+            <FieldLabel htmlFor="reassign-manager">{t('portfolios.fields.newManager')}</FieldLabel>
+            {/* Chaine vide et non `undefined` en valeur : `undefined` ferait
+                basculer le Select en NON controle, et la remise a zero a la
+                fermeture n'effacerait plus la selection affichee. */}
+            <Select
+              value={selectedManagerId ? String(selectedManagerId) : ''}
+              onValueChange={(value) => setSelectedManagerId(Number(value))}
+            >
+              <SelectTrigger id="reassign-manager" className="w-full text-[0.85rem]">
+                <SelectValue placeholder={t('portfolios.fields.newManager')} />
+              </SelectTrigger>
+              <SelectContent>
+                {managers.map((manager) => (
+                  <SelectItem key={manager.id} value={String(manager.id)}>
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-flex text-muted-foreground"><Person size={16} strokeWidth={1.75} /></span>
+                      <span className="text-[0.85rem]">
+                        {manager.firstName} {manager.lastName}
+                      </span>
+                      <span className="text-muted-foreground text-[0.72rem]">
+                        {manager.email}
+                      </span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          {/* Notes */}
+          <Field>
+            <FieldLabel htmlFor="reassign-notes">{t('portfolios.dialogs.notesOptional')}</FieldLabel>
+            <Textarea
+              id="reassign-notes"
+              rows={3}
+              className="text-[0.85rem]"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder={t('portfolios.dialogs.notesPlaceholder')}
+            />
+          </Field>
+        </div>
+
+        <DialogFooter>
+          <Button
+            onClick={handleClose}
+            variant="outline"
+            size="sm"
+            disabled={loading}
+            className="min-w-[90px]"
           >
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-display)', fontWeight: 600, borderRadius: '10px', fontSize: '0.78rem' }}>
-              {client.firstName?.[0]}{client.lastName?.[0]}
-            </Avatar>
-            <Box>
-              <Typography variant="subtitle2" sx={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                {client.firstName} {client.lastName}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
-                {client.email}
-              </Typography>
-            </Box>
-          </Box>
-        )}
-
-        {/* Manager select */}
-        <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-          <InputLabel sx={{ fontSize: '0.85rem' }}>
-            {t('portfolios.fields.newManager')}
-          </InputLabel>
-          <Select
-            value={selectedManagerId}
-            onChange={(e) => setSelectedManagerId(Number(e.target.value))}
-            label={t('portfolios.fields.newManager')}
-            sx={{ fontSize: '0.85rem' }}
+            {t('common.cancel')}
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            size="sm"
+            disabled={!selectedManagerId || loading}
+            className="min-w-[120px]"
           >
-            {managers.map((manager) => (
-              <MenuItem key={manager.id} value={manager.id}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={16} strokeWidth={1.75} /></Box>
-                  <Typography sx={{ fontSize: '0.85rem' }}>
-                    {manager.firstName} {manager.lastName}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
-                    {manager.email}
-                  </Typography>
-                </Box>
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        {/* Notes */}
-        <TextField
-          fullWidth
-          size="small"
-          label={t('portfolios.dialogs.notesOptional')}
-          multiline
-          rows={3}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder={t('portfolios.dialogs.notesPlaceholder')}
-          InputProps={{ sx: { fontSize: '0.85rem' } }}
-          InputLabelProps={{ sx: { fontSize: '0.85rem' } }}
-        />
+            {loading ? <Spinner className="size-3.5" /> : <SwapHorizIcon size={16} strokeWidth={1.75} />}
+            {loading ? t('portfolios.dialogs.reassigning') : t('portfolios.dialogs.reassign')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-
-      <DialogActions sx={{ px: 3, pb: 2.5, gap: 1, justifyContent: 'flex-end' }}>
-        <Button
-          onClick={handleClose}
-          variant="outlined"
-          size="small"
-          disabled={loading}
-          sx={{ minWidth: 90, fontSize: '0.82rem' }}
-        >
-          {t('common.cancel')}
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          size="small"
-          disabled={!selectedManagerId || loading}
-          startIcon={loading ? <CircularProgress size={14} /> : <SwapHorizIcon size={16} strokeWidth={1.75} />}
-          sx={{ minWidth: 120, fontSize: '0.82rem' }}
-        >
-          {loading ? t('portfolios.dialogs.reassigning') : t('portfolios.dialogs.reassign')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };

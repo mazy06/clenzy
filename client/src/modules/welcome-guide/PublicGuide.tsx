@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Spinner } from '../../components/ui';
 import { useParams } from 'react-router-dom';
-import { Box, CircularProgress, Dialog, DialogContent, DialogTitle } from '@mui/material';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { Send, X, Star, Sparkles, ArrowUp, Info, Heart } from 'lucide-react';
@@ -429,9 +431,9 @@ const PublicGuide: React.FC = () => {
 
   if (status === 'loading') {
     return (
-      <Box sx={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', bgcolor: '#F2E9D9' }}>
-        <CircularProgress sx={{ color: '#BC5B36' }} />
-      </Box>
+      <div className="flex h-[100vh] items-center justify-center bg-[#F2E9D9]">
+        <Spinner className="size-10 text-[#BC5B36]" />
+      </div>
     );
   }
 
@@ -445,7 +447,7 @@ const PublicGuide: React.FC = () => {
     const swatch = WELCOME_BOOK_THEMES.find((t) => t.id === theme)?.swatch;
     const message = guide.unavailableReason === 'EXPIRED' ? L.unavailableExpired : L.unavailableNoReservation;
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', bgcolor: swatch?.bg || '#F2E9D9' }}>
+      <div className="min-h-[100vh] flex justify-center" style={{ backgroundColor: swatch?.bg || '#F2E9D9' }}>
         <div className="wb" data-theme={theme} style={{ width: '100%', maxWidth: 480, minHeight: '100vh', display: 'flex' }}>
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
             <div className="wb-card" style={{ maxWidth: 420, textAlign: 'center', padding: 28, background: 'var(--raised)' }}>
@@ -460,7 +462,7 @@ const PublicGuide: React.FC = () => {
             </div>
           </div>
         </div>
-      </Box>
+      </div>
     );
   }
 
@@ -503,15 +505,9 @@ const PublicGuide: React.FC = () => {
       return result.complete;
     };
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', bgcolor: swatch?.bg || '#F2E9D9' }}>
-        <Box
-          sx={{
-            width: '100%',
-            maxWidth: 480,
-            minHeight: '100vh',
-            boxShadow: { xs: 'none', sm: '0 0 80px -20px rgba(35,24,14,0.45)' },
-          }}
-        >
+      <div className="min-h-[100vh] flex justify-center" style={{ backgroundColor: swatch?.bg || '#F2E9D9' }}>
+        {/* sm MUI = 600px, pas le sm=640 de Tailwind */}
+        <div className="w-full max-w-[480px] min-h-[100vh] shadow-none min-[600px]:shadow-[0_0_80px_-20px_rgba(35,24,14,0.45)]">
           <GuideDeclarationForm
             lang={lang}
             labels={L}
@@ -519,8 +515,8 @@ const PublicGuide: React.FC = () => {
             missingFields={dc.missingFields}
             onSubmit={handleDeclarationSubmit}
           />
-        </Box>
-      </Box>
+        </div>
+      </div>
     );
   }
 
@@ -615,17 +611,8 @@ const PublicGuide: React.FC = () => {
 
   return (
     <>
-      <Box sx={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', bgcolor: swatch?.bg || '#F2E9D9' }}>
-        <Box
-          sx={{
-            position: 'relative',
-            width: '100%',
-            maxWidth: 480,
-            height: '100vh',
-            overflow: 'hidden',
-            boxShadow: { xs: 'none', sm: '0 0 80px -20px rgba(35,24,14,0.45)' },
-          }}
-        >
+      <div className="min-h-[100vh] flex justify-center" style={{ backgroundColor: swatch?.bg || '#F2E9D9' }}>
+        <div className="relative w-full max-w-[480px] h-[100vh] overflow-hidden shadow-none min-[600px]:shadow-[0_0_80px_-20px_rgba(35,24,14,0.45)]">
           <WelcomeBookView
             model={model}
             theme={theme}
@@ -708,7 +695,7 @@ const PublicGuide: React.FC = () => {
                         ) : null}
                         {chatSending ? (
                           <div style={{ alignSelf: 'flex-start', padding: '8px 12px' }}>
-                            <CircularProgress size={16} sx={{ color: 'var(--terra)' }} />
+                            <Spinner className="size-4 text-[var(--terra)]" />
                           </div>
                         ) : null}
                       </div>
@@ -737,29 +724,40 @@ const PublicGuide: React.FC = () => {
               </>
             ) : null}
           </WelcomeBookView>
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Paiement d'un service additionnel (upsell) — Stripe embedded */}
-      <Dialog open={!!payingUpsell} onClose={closePay} maxWidth="sm" fullWidth>
-        <DialogTitle>{payingUpsell?.title}</DialogTitle>
-        <DialogContent dividers sx={{ p: payClientSecret && !paySuccess && !payError ? 0 : 3 }}>
+      <Dialog open={!!payingUpsell} onOpenChange={(next) => { if (!next) closePay(); }}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{payingUpsell?.title}</DialogTitle>
+          </DialogHeader>
+          {/* Filets haut/bas = le `dividers` de la modale MUI. Le tunnel Stripe
+              embarque son propre padding, d'ou le p-0 dans ce seul cas. */}
+          <div
+            className={cn(
+              'border-y border-solid border-[var(--line)]',
+              payClientSecret && !paySuccess && !payError ? 'p-0' : 'p-[18px]',
+            )}
+          >
           {paySuccess ? (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Box sx={{ color: '#BC5B36', fontWeight: 700, mb: 1.5, fontSize: 16 }}>{L.paySuccess}</Box>
+            <div className="text-center py-6">
+              <div className="text-[#BC5B36] font-bold mb-2 text-[16px]">{L.paySuccess}</div>
               <button type="button" onClick={closePay} style={{ ...solidBtn }}>OK</button>
-            </Box>
+            </div>
           ) : payError ? (
-            <Box sx={{ color: '#C44E32', py: 1 }}>{L.payError}</Box>
+            <div className="text-[#C44E32] py-1.5">{L.payError}</div>
           ) : payClientSecret && stripePromise ? (
             <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret: payClientSecret, onComplete: onPayComplete }}>
               <EmbeddedCheckout />
             </EmbeddedCheckoutProvider>
           ) : (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress sx={{ color: '#BC5B36' }} />
-            </Box>
+            <div className="flex justify-center py-6">
+              <Spinner className="size-10 text-[#BC5B36]" />
+            </div>
           )}
+          </div>
         </DialogContent>
       </Dialog>
     </>

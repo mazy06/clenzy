@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X, CircleCheck, Info } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import {
+  Card,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  MenuItem,
-  Typography,
-  Alert,
-  CircularProgress,
-  Box,
-  Paper,
-  Divider,
-} from '@mui/material';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  NativeSelect,
+  NativeSelectOption,
+  Separator,
+} from '../../components/ui';
 import { Send } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -93,102 +94,126 @@ export default function SendMessageDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{t('messaging.send.title')}</DialogTitle>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="max-w-[600px] max-h-[85vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>{t('messaging.send.title')}</DialogTitle>
+      </DialogHeader>
+      <div>
         {guestName && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <p className="cn-text-body2 text-muted-foreground mb-3">
             {t('messaging.send.sendTo')}: <strong>{guestName}</strong>
-          </Typography>
+          </p>
         )}
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-            {error}
-          </Alert>
+          <BuiAlert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+            <AlertAction>
+              <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+                <X />
+              </BuiButton>
+            </AlertAction>
+          </BuiAlert>
         )}
 
         {success && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            {t('messaging.send.success')}
-          </Alert>
+          <BuiAlert variant="success" className="mb-3">
+            <CircleCheck />
+            <AlertDescription>{t('messaging.send.success')}</AlertDescription>
+          </BuiAlert>
         )}
 
         {loading ? (
-          <Box display="flex" justifyContent="center" py={4}>
-            <CircularProgress size={32} />
-          </Box>
+          <div className="flex justify-center py-6">
+            <Spinner className="size-8" />
+          </div>
         ) : (
           <>
-            <TextField
-              select
-              fullWidth
-              label={t('messaging.send.channel', 'Canal')}
-              value={channel}
-              onChange={(e) => setChannel(e.target.value as MessageChannel)}
-              size="small"
-              sx={{ mb: 2 }}
-            >
-              <MenuItem value="EMAIL">{t('messaging.send.channelEmail', 'Email')}</MenuItem>
-              <MenuItem value="WHATSAPP">{t('messaging.send.channelWhatsapp', 'WhatsApp')}</MenuItem>
-            </TextField>
+            <Field className="mb-3">
+              <FieldLabel htmlFor="send-message-channel">
+                {t('messaging.send.channel', 'Canal')}
+              </FieldLabel>
+              <NativeSelect
+                id="send-message-channel"
+                className="w-full"
+                value={channel}
+                onChange={(e) => setChannel(e.target.value as MessageChannel)}
+              >
+                <NativeSelectOption value="EMAIL">
+                  {t('messaging.send.channelEmail', 'Email')}
+                </NativeSelectOption>
+                <NativeSelectOption value="WHATSAPP">
+                  {t('messaging.send.channelWhatsapp', 'WhatsApp')}
+                </NativeSelectOption>
+              </NativeSelect>
+            </Field>
 
             {channel === 'WHATSAPP' && (
-              <Alert severity="info" sx={{ mb: 2 }}>
-                {t(
+              <BuiAlert variant="info" className="mb-3">
+                <Info />
+                <AlertDescription>{t(
                   'messaging.send.whatsappHint',
                   "WhatsApp en texte libre : le message n'est délivré que si le voyageur a écrit au numéro Baitly dans les dernières 24h (fenêtre Meta). Sinon, privilégiez l'email.",
-                )}
-              </Alert>
+                )}</AlertDescription>
+              </BuiAlert>
             )}
 
-            <TextField
-              select
-              fullWidth
-              label={t('messaging.send.selectTemplate')}
-              value={selectedTemplateId}
-              onChange={(e) => setSelectedTemplateId(Number(e.target.value))}
-              size="small"
-              sx={{ mb: 2 }}
-            >
-              {templates.map((tpl) => (
-                <MenuItem key={tpl.id} value={tpl.id}>
-                  {tpl.name} ({tpl.type})
-                </MenuItem>
-              ))}
-            </TextField>
+            <Field className="mb-3">
+              <FieldLabel htmlFor="send-message-template">
+                {t('messaging.send.selectTemplate')}
+              </FieldLabel>
+              <NativeSelect
+                id="send-message-template"
+                className="w-full"
+                value={selectedTemplateId}
+                onChange={(e) => setSelectedTemplateId(Number(e.target.value))}
+              >
+                {/* Option vide obligatoire : sans elle un select natif afficherait
+                    le premier modele alors qu'aucun n'est encore choisi. */}
+                <NativeSelectOption value="" disabled>
+                  {t('messaging.send.selectTemplate')}
+                </NativeSelectOption>
+                {templates.map((tpl) => (
+                  <NativeSelectOption key={tpl.id} value={tpl.id}>
+                    {tpl.name} ({tpl.type})
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
 
             {selectedTemplate && (
-              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'action.hover' }}>
-                <Typography variant="caption" color="text.secondary">
+              <Card className="gap-0 py-0 p-3 bg-[var(--hover)]">
+                <span className="cn-text-caption text-muted-foreground">
                   {t('messaging.send.preview')}
-                </Typography>
-                <Typography variant="subtitle2" gutterBottom>
+                </span>
+                <h6 className="cn-text-subtitle2 mb-[0.35em]">
                   {selectedTemplate.subject}
-                </Typography>
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                </h6>
+                <Separator className="my-1.5" />
+                <p className="cn-text-body2 whitespace-pre-wrap">
                   {selectedTemplate.body.length > 300
                     ? selectedTemplate.body.substring(0, 300) + '...'
                     : selectedTemplate.body}
-                </Typography>
-              </Paper>
+                </p>
+              </Card>
             )}
           </>
         )}
-      </DialogContent>
+      </div>
 
-      <DialogActions sx={{ px: 3, py: 1.5 }}>
-        <Button onClick={onClose}>{t('common.cancel')}</Button>
-        <Button
-          variant="contained"
-          startIcon={sending ? <CircularProgress size={16} color="inherit" /> : <Send />}
+      <DialogFooter>
+        <BuiButton variant="outline" onClick={onClose}>{t('common.cancel')}</BuiButton>
+        <BuiButton
           onClick={handleSend}
           disabled={sending || !selectedTemplateId || success}
         >
+          {sending ? <Spinner className="size-4" /> : <Send />}
           {sending ? t('common.processing') : t('messaging.send.send')}
-        </Button>
-      </DialogActions>
+        </BuiButton>
+      </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

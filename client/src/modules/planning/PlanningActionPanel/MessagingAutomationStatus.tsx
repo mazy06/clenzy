@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, IconButton, Tooltip } from '@mui/material';
+import { cn } from '../../../utils/cn';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Bolt, CheckCircle, Close, Settings, Warning, AccessTime } from '../../../icons';
@@ -17,14 +18,6 @@ const CHECK_OUT_TRIGGERS: AutomationTrigger[] = ['CHECK_OUT_DAY', 'CHECK_OUT_PAS
 // ✓ var(--ok) (ou ✕ var(--faint)) + libellé + détail à droite. Reprend tel
 // quel l'état config (check-in / check-out / destinataire) historiquement
 // affiché dans l'onglet Infos — déplacé ici, aucune logique nouvelle.
-
-const OVERLINE_SX = {
-  fontSize: '0.625rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.08em',
-  color: 'var(--faint)',
-};
 
 interface MessagingAutomationStatusProps {
   guestEmail?: string | null;
@@ -53,53 +46,50 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
     r.enabled && CHECK_OUT_TRIGGERS.includes(r.triggerType) && isMessagingAction(r.actionType)));
 
   const Row = ({ ok, label, detail }: { ok: boolean; label: string; detail: string }) => (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: '5px' }}>
-      <Box component="span" sx={{ display: 'inline-flex', color: ok ? 'var(--ok)' : 'var(--faint)', flexShrink: 0 }}>
+    <div className="flex items-center gap-[4.5px] py-[5px]">
+      <span className={cn('inline-flex shrink-0', ok ? 'text-[var(--ok)]' : 'text-[var(--faint)]')}>
         {ok ? <CheckCircle size={13} strokeWidth={2} /> : <Close size={13} strokeWidth={2} />}
-      </Box>
-      <Box component="span" sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ink)', flexShrink: 0 }}>
+      </span>
+      <span className="text-[0.75rem] font-semibold text-[var(--ink)] shrink-0">
         {label}
-      </Box>
-      <Box
-        component="span"
-        sx={{
-          ml: 'auto',
-          fontSize: '0.6875rem',
-          color: 'var(--muted)',
-          textAlign: 'right',
-          minWidth: 0,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
+      </span>
+      <span className="ms-auto text-[0.6875rem] text-[var(--muted)] text-end min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
         {detail}
-      </Box>
-    </Box>
+      </span>
+    </div>
   );
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}>
+    <div>
+      <div className="flex items-center gap-1 mb-0.5">
+        <span className="inline-flex text-[var(--faint)]">
           <Bolt size={13} strokeWidth={1.75} />
-        </Box>
-        <Box component="span" sx={{ ...OVERLINE_SX, flex: 1 }}>Messagerie automatique</Box>
-        <Tooltip title="Configurer dans Automatisations">
-          <IconButton
-            size="small"
-            onClick={() => navigate('/automation-rules')}
-            sx={{ p: 0.375, color: 'var(--muted)', '&:hover': { color: 'var(--ink)', backgroundColor: 'var(--hover)' } }}
-          >
-            <Settings size={13} strokeWidth={1.75} />
-          </IconButton>
+        </span>
+        <span className="flex-1 text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)]">Messagerie automatique</span>
+        <Tooltip>
+          {/* Le trigger enveloppe un <span> (element hote) : Radix y pose sa ref
+              d'ancrage, ce qu'un composant fonction React 18 ne peut pas recevoir. */}
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label="Configurer dans Automatisations"
+                onClick={() => navigate('/automation-rules')}
+                className="text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--hover)]"
+              >
+                <Settings size={13} strokeWidth={1.75} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Configurer dans Automatisations</TooltipContent>
         </Tooltip>
-      </Box>
+      </div>
 
       {isLoading ? (
-        <Box sx={{ fontSize: '0.6875rem', color: 'var(--faint)' }}>Chargement…</Box>
+        <div className="text-[0.6875rem] text-[var(--faint)]">Chargement…</div>
       ) : (
-        <Box>
+        <div>
           <Row
             ok={checkInOk}
             label="Check-in"
@@ -116,42 +106,42 @@ const MessagingAutomationStatus: React.FC<MessagingAutomationStatusProps> = ({ g
           />
 
           {/* Destinataire */}
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, mt: 0.75, pt: 0.75, borderTop: '1px dashed var(--line)' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: hasEmail ? 'var(--ok)' : 'var(--warn)', mt: '1px' }}>
+          <div className="flex items-start gap-[4.5px] mt-[4.5px] pt-[4.5px]" style={{ borderTop: '1px dashed var(--line)' }}>
+            <span className={cn('inline-flex mt-px', hasEmail ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
               {hasEmail
                 ? <CheckCircle size={13} strokeWidth={2} />
                 : <Warning size={13} strokeWidth={2} />}
-            </Box>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Box component="span" sx={{ display: 'block', fontSize: '0.6875rem', fontWeight: 600, color: hasEmail ? 'var(--ok)' : 'var(--warn)' }}>
+            </span>
+            <div className="flex-1 min-w-0">
+              <span className={cn('block text-[0.6875rem] font-semibold', hasEmail ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
                 {hasEmail ? `Email guest disponible (${guestEmail})` : 'Pas d\'email guest'}
-              </Box>
+              </span>
               {!hasEmail && (
-                <Box component="span" sx={{ display: 'block', fontSize: '0.625rem', color: 'var(--muted)', mt: 0.25, lineHeight: 1.35 }}>
+                <span className="block text-[0.625rem] text-[var(--muted)] mt-0.5 leading-[1.35]">
                   {isAnonymizedIcal
                     ? `Réservation importée via iCal (${source}) — l'email du voyageur n'est pas exposé par le canal. Renseigne-le manuellement dans la fiche client pour activer les envois.`
                     : 'Aucun message automatique ne pourra être envoyé tant que l\'email n\'est pas renseigné.'}
-                </Box>
+                </span>
               )}
               {hasEmail && !checkInOk && !checkOutOk && (
-                <Box component="span" sx={{ display: 'block', fontSize: '0.625rem', color: 'var(--muted)', mt: 0.25, lineHeight: 1.35 }}>
+                <span className="block text-[0.625rem] text-[var(--muted)] mt-0.5 leading-[1.35]">
                   Active une règle de messagerie dans Automatisations pour que les emails partent sans intervention.
-                </Box>
+                </span>
               )}
-            </Box>
-          </Box>
+            </div>
+          </div>
 
           {(checkInOk || checkOutOk) && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.75, color: 'var(--faint)' }}>
+            <div className="flex items-center gap-0.5 mt-1 text-[var(--faint)]">
               <AccessTime size={10} strokeWidth={1.75} />
-              <Box component="span" sx={{ fontSize: '0.625rem', fontStyle: 'italic' }}>
+              <span className="text-[0.625rem] italic">
                 Scheduler : déclenchement horaire
-              </Box>
-            </Box>
+              </span>
+            </div>
           )}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

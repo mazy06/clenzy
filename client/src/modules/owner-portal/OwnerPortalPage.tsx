@@ -1,11 +1,28 @@
 import React, { useState, useMemo } from 'react';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/baitly/StatusChip';
+import StatTile from '../../components/baitly/StatTile';
+import ShowcaseEmpty from '../../components/baitly/ShowcaseEmpty';
+import EmptyState from '../../components/EmptyState';
+import { Badge, Button } from '../../components/ui';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Field, FieldLabel, FieldDescription, Input } from '../../components/ui';
 import {
-  Box, Paper, Typography, Button, Chip, CircularProgress, Alert,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  TextField, FormControl, InputLabel, Select, MenuItem,
-  Card, CardContent, Grid,
-  Dialog, DialogTitle, DialogContent, DialogActions,
-} from '@mui/material';
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
 import {
   Home as HomeIcon,
   EventAvailable as ReservationIcon,
@@ -13,11 +30,14 @@ import {
   Hotel as OccupancyIcon,
   Star as RatingIcon,
   Receipt as StatementIcon,
-  Download as DownloadIcon,
+  Business as BuildingIcon,
+  Payments as PayoutIcon,
+  Percent as PercentIcon,
 } from '../../icons';
+import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
-import { SPACING } from '../../theme/spacing';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property } from '../../services/api/propertiesApi';
 import { useOwnerDashboard, useOwnerStatement } from '../../hooks/useOwnerPortal';
@@ -29,26 +49,23 @@ import PageTabs from '../../components/PageTabs';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'divider',
-  boxShadow: 'none',
-  borderRadius: 1.5,
-} as const;
+// Surface plate hairline r12 : l'ancien Paper `CARD_SX` (bordure `divider`, pas
+// d'ombre, borderRadius 1.5 = 12px) transcrit en classes.
+const PANEL_CLASS = 'rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]';
 
 const fmtCurrency = (n: number, currency = 'EUR') => <Money value={n} from={currency} />;
 
-const CELL_SX = { fontSize: '0.8125rem', py: 1.25 } as const;
-const HEAD_CELL_SX = { fontSize: '0.75rem', fontWeight: 700, py: 1, color: 'text.secondary' } as const;
-const KPI_CARD_SX = {
-  ...CARD_SX,
-  textAlign: 'center',
-  p: 2,
-} as const;
+/** Configuration du graphique de la projection : une seule serie, chart-2. */
+const OWNER_REVENUE_CONFIG = {
+  net: { label: 'Net propriétaire', color: 'var(--bui-chart-2)' },
+} satisfies ChartConfig;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const fmtPercent = (n: number) => `${(n * 100).toFixed(1)}%`;
+// Le serveur renvoie DEJA un pourcentage (bookedDays / daysInPeriod * 100,
+// cf. OwnerPortalService:123) : multiplier encore par 100 affichait 470 %
+// pour 4,7 % — defaut present depuis l'origine de l'ecran, vu au rendu.
+const fmtPercent = (n: number) => `${n.toFixed(1)}%`;
 
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('fr-FR') : '—';
@@ -57,6 +74,7 @@ const fmtDate = (d: string | null) =>
 
 const OwnerPortalPage: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
   const [selectedOwnerId, setSelectedOwnerId] = useState<number | ''>('');
 
@@ -80,65 +98,97 @@ const OwnerPortalPage: React.FC = () => {
   }, [properties]);
 
   const ownerId = selectedOwnerId === '' ? undefined : selectedOwnerId;
+  const selectedOwner = owners.find((o) => o.id === ownerId);
+  // Nombre de biens du proprietaire selectionne — le sous-titre de la
+  // projection (« Villa Palmeraie · M. Alaoui ») devient « nom · N proprietes ».
+  const ownedCount = useMemo(
+    () => (ownerId === undefined ? 0 : properties.filter((p: Property) => p.ownerId === ownerId).length),
+    [properties, ownerId],
+  );
 
+  // SPACING.PAGE_PADDING = 2 unites MUI et theme.spacing = 6 => 12px de padding
+  // (le commentaire « 16px » de theme/spacing.ts date d'un theme a 8px).
   return (
-    <Box sx={{ p: SPACING.PAGE_PADDING }}>
+    <div className="p-3 flex flex-col gap-3">
       <PageHeader
         title={t('ownerPortal.title', 'Portail Proprietaire')}
-        subtitle={t('ownerPortal.subtitle', 'Dashboard et releves proprietaires')}
+        subtitle={
+          selectedOwner
+            ? `${selectedOwner.name} · ${t('ownerPortal.propertiesCount', { count: ownedCount })}`
+            : t('ownerPortal.subtitle', 'Dashboard et releves proprietaires')
+        }
+        iconBadge={<BuildingIcon />}
         showBackButton={false}
-        backPath="/dashboard"
+        actions={
+          <>
+            {ownerId !== undefined && <ConstellationLinkButton ownerId={ownerId} />}
+            <BrandingButton />
+          </>
+        }
       />
 
       {/* ── Owner selector ── */}
-      <Paper sx={{ ...CARD_SX, p: 2, mb: 1.5, display: 'flex', gap: 2, alignItems: 'center' }}>
-        <FormControl size="small" sx={{ minWidth: 240 }}>
-          <InputLabel sx={{ fontSize: '0.8125rem' }}>
+      <div className={cn(PANEL_CLASS, 'p-3 flex gap-3 items-center')}>
+        <Field className="w-[240px] shrink-0">
+          <FieldLabel htmlFor="owner-portal-owner" className="text-[0.8125rem]">
             {t('ownerPortal.selectOwner', 'Selectionner un proprietaire')}
-          </InputLabel>
-          <Select
+          </FieldLabel>
+          <NativeSelect
+            id="owner-portal-owner"
+            size="sm"
+            className="w-full text-[0.8125rem]"
             value={selectedOwnerId}
-            onChange={(e) => setSelectedOwnerId(e.target.value as number | '')}
-            label={t('ownerPortal.selectOwner', 'Selectionner un proprietaire')}
-            sx={{ fontSize: '0.8125rem' }}
+            onChange={(e) => setSelectedOwnerId(e.target.value === '' ? '' : Number(e.target.value))}
           >
+            <NativeSelectOption value="">—</NativeSelectOption>
             {owners.map((owner) => (
-              <MenuItem key={owner.id} value={owner.id} sx={{ fontSize: '0.8125rem' }}>
+              <NativeSelectOption key={owner.id} value={owner.id}>
                 {owner.name}
-              </MenuItem>
+              </NativeSelectOption>
             ))}
-          </Select>
-        </FormControl>
-        {ownerId !== undefined && <ConstellationLinkButton ownerId={ownerId} />}
-        <BrandingButton />
-      </Paper>
+          </NativeSelect>
+        </Field>
+      </div>
 
-      <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
-        <PageTabs
-          options={[
-            { label: t('ownerPortal.tabs.dashboard', 'Dashboard') },
-            { label: t('ownerPortal.tabs.statement', 'Releve') },
-          ]}
-          value={activeTab}
-          onChange={setActiveTab}
-          mb={0}
+      {/* Rangee d'onglets nue, comme partout : le panneau qui l'entourait la
+          coupait du reste de la page. */}
+      <PageTabs
+        options={[
+          { label: t('ownerPortal.tabs.dashboard', 'Dashboard') },
+          { label: t('ownerPortal.tabs.statement', 'Releve') },
+        ]}
+        value={activeTab}
+        onChange={setActiveTab}
+        mb={0}
+      />
+
+      {owners.length === 0 ? (
+        // Aucun proprietaire dans l'organisation : l'etat vide riche de la
+        // projection, qui explique la feature au lieu de constater le vide.
+        <ShowcaseEmpty
+          eyebrow={{ icon: <BuildingIcon size={14} strokeWidth={1.75} />, label: t('ownerPortal.title', 'Portail Proprietaire') }}
+          title={t('ownerPortal.showcase.title', 'Vos propriétaires suivent leurs biens sans vous appeler')}
+          description={t('ownerPortal.showcase.description', 'Occupation, revenus, reversements et documents, dans un espace dédié que vous ouvrez bien par bien.')}
+          action={
+            <Button onClick={() => navigate('/directory')}>
+              {t('ownerPortal.showcase.action', 'Inviter un propriétaire')}
+            </Button>
+          }
         />
-      </Paper>
-
-      {!ownerId ? (
-        <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><HomeIcon size={48} strokeWidth={1.75} /></Box>
-          <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
-            {t('ownerPortal.selectOwnerHint', 'Selectionnez un proprietaire pour afficher les donnees')}
-          </Typography>
-        </Paper>
+      ) : !ownerId ? (
+        <EmptyState
+          icon={<BuildingIcon />}
+          title={t('ownerPortal.selectOwner', 'Selectionner un proprietaire')}
+          description={t('ownerPortal.selectOwnerHint', 'Selectionnez un proprietaire pour afficher les donnees')}
+          variant="transparent"
+        />
       ) : (
         <>
           {activeTab === 0 && <DashboardTab ownerId={ownerId} />}
           {activeTab === 1 && <StatementTab ownerId={ownerId} />}
         </>
       )}
-    </Box>
+    </div>
   );
 };
 
@@ -166,11 +216,11 @@ const ConstellationLinkButton: React.FC<{ ownerId: number }> = ({ ownerId }) => 
 
   return (
     <Button
-      variant="outlined"
-      size="small"
+      variant="outline"
+      size="sm"
       onClick={handleShare}
       disabled={status === 'busy'}
-      sx={{ textTransform: 'none', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}
+      className="whitespace-nowrap"
     >
       {status === 'copied'
         ? t('ownerPortal.constellationLinkCopied', 'Lien copié !')
@@ -223,49 +273,66 @@ const BrandingButton: React.FC = () => {
   return (
     <>
       <Button
-        variant="text"
-        size="small"
+        variant="ghost"
+        size="sm"
         onClick={handleOpen}
-        sx={{ textTransform: 'none', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}
+        className="whitespace-nowrap"
       >
         {t('ownerPortal.branding.open', 'Personnaliser la page propriétaire')}
       </Button>
-      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontSize: '1rem' }}>
-          {t('ownerPortal.branding.title', 'Page propriétaire — votre marque')}
-        </DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
-          <Typography variant="body2" color="text.secondary">
+      <Dialog open={open} onOpenChange={(next) => { if (!next) setOpen(false); }}>
+        <DialogContent className="max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle className="text-[1rem]">
+              {t('ownerPortal.branding.title', 'Page propriétaire — votre marque')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+          <p className="cn-text-body2 text-muted-foreground">
             {t('ownerPortal.branding.subtitle',
               'Logo et couleur affichés sur les liens de suivi partagés à vos propriétaires. Aucune mention de la plateforme.')}
-          </Typography>
-          {error && <Alert severity="warning">{error}</Alert>}
-          <TextField
-            label={t('ownerPortal.branding.logoUrl', 'URL du logo (HTTPS)')}
-            size="small"
-            fullWidth
-            value={logoUrl}
-            onChange={(e) => setLogoUrl(e.target.value)}
-            placeholder="https://…/logo.png"
-            helperText={t('ownerPortal.branding.logoHelp', 'Laisser vide pour ne pas afficher de logo')}
-          />
-          <TextField
-            label={t('ownerPortal.branding.primaryColor', "Couleur d'accent (#RRGGBB)")}
-            size="small"
-            fullWidth
-            value={primaryColor}
-            onChange={(e) => setPrimaryColor(e.target.value)}
-            placeholder="#4A9B8E"
-          />
+          </p>
+          {error && <Alert variant="warning">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>}
+          <Field>
+            <FieldLabel htmlFor="owner-branding-logo-url">
+              {t('ownerPortal.branding.logoUrl', 'URL du logo (HTTPS)')}
+            </FieldLabel>
+            <Input
+              id="owner-branding-logo-url"
+              className="w-full"
+              value={logoUrl}
+              onChange={(e) => setLogoUrl(e.target.value)}
+              placeholder="https://…/logo.png"
+            />
+            <FieldDescription>
+              {t('ownerPortal.branding.logoHelp', 'Laisser vide pour ne pas afficher de logo')}
+            </FieldDescription>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="owner-branding-primary-color">
+              {t('ownerPortal.branding.primaryColor', "Couleur d'accent (#RRGGBB)")}
+            </FieldLabel>
+            <Input
+              id="owner-branding-primary-color"
+              className="w-full"
+              value={primaryColor}
+              onChange={(e) => setPrimaryColor(e.target.value)}
+              placeholder="#4A9B8E"
+            />
+          </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              {t('common.cancel', 'Annuler')}
+            </Button>
+            <Button variant="default" onClick={handleSave} disabled={saving}>
+              {t('common.save', 'Enregistrer')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)} sx={{ textTransform: 'none' }}>
-            {t('common.cancel', 'Annuler')}
-          </Button>
-          <Button onClick={handleSave} disabled={saving} variant="contained" sx={{ textTransform: 'none' }}>
-            {t('common.save', 'Enregistrer')}
-          </Button>
-        </DialogActions>
       </Dialog>
     </>
   );
@@ -281,123 +348,115 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-        <CircularProgress size={32} />
-      </Box>
+      <div className="flex justify-center py-6">
+        <Spinner className="size-8" />
+      </div>
     );
   }
 
   if (isError || !dashboard) {
     return (
-      <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
-        {t('ownerPortal.dashboardError', 'Erreur lors du chargement du dashboard')}
+      <Alert variant="destructive" className="text-[0.8125rem]">
+        <TriangleAlert />
+        <AlertDescription>{t('ownerPortal.dashboardError', 'Erreur lors du chargement du dashboard')}</AlertDescription>
       </Alert>
     );
   }
 
+  // Les tuiles de la projection (StatTile) remplacent les cartes aux
+  // couleurs codees en dur : la teinte ne porte plus que sur l'icone, et
+  // seulement la ou elle dit quelque chose (l'argent en succes, la note en
+  // warning) — le reste en encre par defaut.
   const kpis = [
-    { icon: <HomeIcon />, label: t('ownerPortal.kpi.properties', 'Proprietes'), value: dashboard.totalProperties, color: '#1976d2' },
-    { icon: <ReservationIcon />, label: t('ownerPortal.kpi.reservations', 'Reservations actives'), value: dashboard.activeReservations, color: '#4A9B8E' },
-    { icon: <RevenueIcon />, label: t('ownerPortal.kpi.netRevenue', 'Revenu net'), value: fmtCurrency(dashboard.netRevenue), color: '#2e7d32' },
-    { icon: <OccupancyIcon />, label: t('ownerPortal.kpi.occupancy', 'Occupation moy.'), value: fmtPercent(dashboard.averageOccupancy), color: '#D4A574' },
-    { icon: <RatingIcon />, label: t('ownerPortal.kpi.rating', 'Note moyenne'), value: dashboard.averageRating.toFixed(1), color: '#f9a825' },
+    { icon: <HomeIcon />, label: t('ownerPortal.kpi.properties', 'Proprietes'), value: dashboard.totalProperties },
+    { icon: <ReservationIcon />, label: t('ownerPortal.kpi.reservations', 'Reservations actives'), value: dashboard.activeReservations },
+    { icon: <RevenueIcon />, label: t('ownerPortal.kpi.netRevenue', 'Revenu net'), value: fmtCurrency(dashboard.netRevenue), iconClassName: 'text-success' },
+    { icon: <OccupancyIcon />, label: t('ownerPortal.kpi.occupancy', 'Occupation moy.'), value: fmtPercent(dashboard.averageOccupancy) },
+    { icon: <RatingIcon />, label: t('ownerPortal.kpi.rating', 'Note moyenne'), value: dashboard.averageRating.toFixed(1), unit: '/5', iconClassName: 'text-warning' },
   ];
+
+  // Le graphique de la projection : une aire lissee, mois abreges en X.
+  const revenueSeries = Object.entries(dashboard.revenueByMonth ?? {})
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, net]) => ({
+      // Cles « YYYY-MM » → libelle de mois localise (« juil. »).
+      month: new Date(`${month}-01T00:00:00`).toLocaleDateString('fr-FR', { month: 'short' }),
+      net,
+    }));
 
   return (
     <>
-      {/* ── KPI Cards ── */}
-      <Grid container spacing={1.5} sx={{ mb: 2 }}>
+      {/* ── KPI ── */}
+      <div className="grid grid-cols-2 gap-3 mb-3 min-[900px]:grid-cols-5">
         {kpis.map((kpi) => (
-          <Grid item xs={6} sm={4} md key={kpi.label}>
-            <Card sx={KPI_CARD_SX}>
-              <CardContent sx={{ p: '12px !important', '&:last-child': { pb: '12px !important' } }}>
-                <Box sx={{ color: kpi.color, mb: 0.5 }}>
-                  {React.cloneElement(kpi.icon, { sx: { fontSize: '1.5rem' } })}
-                </Box>
-                <Typography sx={{ fontSize: '1.25rem', fontWeight: 700, color: kpi.color }}>
-                  {kpi.value}
-                </Typography>
-                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', mt: 0.25 }}>
-                  {kpi.label}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
+          <StatTile
+            key={kpi.label}
+            icon={kpi.icon}
+            label={kpi.label}
+            value={kpi.value}
+            unit={kpi.unit}
+            iconClassName={kpi.iconClassName}
+          />
         ))}
-      </Grid>
+      </div>
 
-      {/* ── Revenue by Month ── */}
-      {dashboard.revenueByMonth && Object.keys(dashboard.revenueByMonth).length > 0 && (
-        <Paper sx={{ ...CARD_SX, p: 2, mb: 2 }}>
-          <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, mb: 1.5 }}>
+      {/* ── Revenu net par mois — l'aire de la projection ── */}
+      {revenueSeries.length > 0 && (
+        <div className="rounded-xl border border-solid border-border bg-card p-4 mb-3">
+          <h3 className="m-0 mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             {t('ownerPortal.revenueByMonth', 'Revenu par mois')}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'flex-end', height: 120 }}>
-            {Object.entries(dashboard.revenueByMonth).map(([month, revenue]) => {
-              const maxRevenue = Math.max(...Object.values(dashboard.revenueByMonth));
-              const barHeight = maxRevenue > 0 ? (revenue / maxRevenue) * 100 : 0;
-              return (
-                <Box key={month} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary', mb: 0.25 }}>
-                    {fmtCurrency(revenue)}
-                  </Typography>
-                  <Box
-                    sx={{
-                      width: '100%',
-                      height: `${barHeight}%`,
-                      minHeight: 4,
-                      backgroundColor: '#4A9B8E',
-                      borderRadius: '4px 4px 0 0',
-                    }}
-                  />
-                  <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary', mt: 0.25 }}>
-                    {month.slice(-2)}
-                  </Typography>
-                </Box>
-              );
-            })}
-          </Box>
-        </Paper>
+          </h3>
+          <ChartContainer config={OWNER_REVENUE_CONFIG} className="h-44 w-full">
+            <AreaChart accessibilityLayer data={revenueSeries} margin={{ left: 12, right: 12 }}>
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="month"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+              <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
+              <Area dataKey="net" type="natural" fill="var(--color-net)" fillOpacity={0.4} stroke="var(--color-net)" />
+            </AreaChart>
+          </ChartContainer>
+        </div>
       )}
 
       {/* ── Properties Table ── */}
       {dashboard.properties && dashboard.properties.length > 0 && (
-        <TableContainer component={Paper} sx={CARD_SX}>
-          <Table size="small">
-            <TableHead>
+        <div className="overflow-x-auto rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell sx={HEAD_CELL_SX}>{t('ownerPortal.col.property', 'Propriete')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('ownerPortal.col.revenue', 'Revenu')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="center">{t('ownerPortal.col.occupancy', 'Occupation')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="center">{t('ownerPortal.col.reservations', 'Reservations')}</TableCell>
+                <TableHead>{t('ownerPortal.col.property', 'Propriete')}</TableHead>
+                <TableHead className="text-end">{t('ownerPortal.col.revenue', 'Revenu')}</TableHead>
+                <TableHead className="text-center">{t('ownerPortal.col.occupancy', 'Occupation')}</TableHead>
+                <TableHead className="text-center">{t('ownerPortal.col.reservations', 'Reservations')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {dashboard.properties.map((prop) => (
-                <TableRow key={prop.propertyId} hover>
-                  <TableCell sx={CELL_SX}>{prop.propertyName}</TableCell>
-                  <TableCell sx={{ ...CELL_SX, fontWeight: 600 }} align="right">
+                <TableRow key={prop.propertyId}>
+                  <TableCell>{prop.propertyName}</TableCell>
+                  <TableCell className="text-end font-semibold">
                     {fmtCurrency(prop.revenue)}
                   </TableCell>
-                  <TableCell sx={CELL_SX} align="center">
-                    <Chip
+                  <TableCell className="text-center">
+                    <StatusChip
+                      size="sm"
+                      dot
+                      // Echelle 0-100 (cf. fmtPercent) : les anciens seuils
+                      // 0.7 / 0.4 rendaient toute occupation « ok ».
+                      tone={prop.occupancyRate > 70 ? 'ok' : prop.occupancyRate > 40 ? 'warn' : 'err'}
                       label={fmtPercent(prop.occupancyRate)}
-                      size="small"
-                      sx={{
-                        fontSize: '0.625rem',
-                        height: 20,
-                        fontWeight: 600,
-                        backgroundColor: prop.occupancyRate > 0.7 ? '#4A9B8E' : prop.occupancyRate > 0.4 ? '#D4A574' : '#ef5350',
-                        color: '#fff',
-                      }}
                     />
                   </TableCell>
-                  <TableCell sx={CELL_SX} align="center">{prop.reservationCount}</TableCell>
+                  <TableCell className="text-center">{prop.reservationCount}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
     </>
   );
@@ -430,150 +489,143 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
   return (
     <>
       {/* ── Filters ── */}
-      <Paper sx={{ ...CARD_SX, p: 2, mb: 1.5, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-        <TextField
-          label={t('ownerPortal.form.ownerName', 'Nom proprietaire')}
-          size="small"
-          value={ownerName}
-          onChange={(e) => { setOwnerName(e.target.value); setShouldFetch(false); }}
-          InputProps={{ sx: { fontSize: '0.8125rem' } }}
-          InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-          sx={{ minWidth: 200 }}
-        />
-        <TextField
-          label={t('ownerPortal.form.from', 'Du')}
-          type="date"
-          size="small"
-          value={from}
-          onChange={(e) => { setFrom(e.target.value); setShouldFetch(false); }}
-          InputLabelProps={{ shrink: true, sx: { fontSize: '0.8125rem' } }}
-          InputProps={{ sx: { fontSize: '0.8125rem' } }}
-        />
-        <TextField
-          label={t('ownerPortal.form.to', 'Au')}
-          type="date"
-          size="small"
-          value={to}
-          onChange={(e) => { setTo(e.target.value); setShouldFetch(false); }}
-          InputLabelProps={{ shrink: true, sx: { fontSize: '0.8125rem' } }}
-          InputProps={{ sx: { fontSize: '0.8125rem' } }}
-        />
+      <div className={cn(PANEL_CLASS, 'p-3 mb-[9px] flex gap-3 items-center flex-wrap')}>
+        <Field className="w-[200px]">
+          <FieldLabel htmlFor="owner-statement-name" className="text-[0.8125rem]">
+            {t('ownerPortal.form.ownerName', 'Nom proprietaire')}
+          </FieldLabel>
+          <Input
+            id="owner-statement-name"
+            className="text-[0.8125rem]"
+            value={ownerName}
+            onChange={(e) => { setOwnerName(e.target.value); setShouldFetch(false); }}
+          />
+        </Field>
+        <Field className="w-[170px]">
+          <FieldLabel htmlFor="owner-statement-from" className="text-[0.8125rem]">
+            {t('ownerPortal.form.from', 'Du')}
+          </FieldLabel>
+          <Input
+            id="owner-statement-from"
+            type="date"
+            className="text-[0.8125rem]"
+            value={from}
+            onChange={(e) => { setFrom(e.target.value); setShouldFetch(false); }}
+          />
+        </Field>
+        <Field className="w-[170px]">
+          <FieldLabel htmlFor="owner-statement-to" className="text-[0.8125rem]">
+            {t('ownerPortal.form.to', 'Au')}
+          </FieldLabel>
+          <Input
+            id="owner-statement-to"
+            type="date"
+            className="text-[0.8125rem]"
+            value={to}
+            onChange={(e) => { setTo(e.target.value); setShouldFetch(false); }}
+          />
+        </Field>
         <Button
-          size="small"
-          variant="contained"
+          size="sm"
+          variant="default"
           onClick={handleGenerate}
           disabled={!from || !to || isLoading}
-          startIcon={isLoading ? <CircularProgress size={14} /> : <StatementIcon />}
-          sx={{ textTransform: 'none', fontSize: '0.75rem' }}
         >
+          {isLoading ? <Spinner className="size-3.5" /> : <StatementIcon />}
           {t('ownerPortal.generate', 'Generer le releve')}
         </Button>
-      </Paper>
+      </div>
 
       {/* ── Statement ── */}
       {isError && (
-        <Alert severity="error" sx={{ fontSize: '0.8125rem', mb: 1.5 }}>
-          {t('ownerPortal.statementError', 'Erreur lors de la generation du releve')}
+        <Alert variant="destructive" className="text-[0.8125rem] mb-2">
+          <TriangleAlert />
+          <AlertDescription>{t('ownerPortal.statementError', 'Erreur lors de la generation du releve')}</AlertDescription>
         </Alert>
       )}
 
       {statement && (
         <>
-          {/* ── Header totals ── */}
-          <Paper sx={{ ...CARD_SX, p: 2, mb: 1.5 }}>
-            <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, mb: 1 }}>
+          {/* ── Totaux du releve — les tuiles de la projection, teintes
+                semantiques sur l'icone seule au lieu des hex en dur. ── */}
+          <div className="mb-[9px]">
+            <p className="cn-text-body1 text-[0.875rem] font-bold mb-1.5">
               {statement.ownerName} — {fmtDate(statement.periodStart)} → {fmtDate(statement.periodEnd)}
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={6} sm={3}>
-                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
-                  {t('ownerPortal.totalRevenue', 'Revenu total')}
-                </Typography>
-                <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#1976d2' }}>
-                  {fmtCurrency(statement.totalRevenue)}
-                </Typography>
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
-                  {t('ownerPortal.totalCommissions', 'Commissions')}
-                </Typography>
-                <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#D4A574' }}>
-                  {fmtCurrency(statement.totalCommissions)}
-                </Typography>
-              </Grid>
+            </p>
+            <div className="grid grid-cols-2 gap-3 min-[900px]:grid-cols-4">
+              <StatTile
+                icon={<RevenueIcon />}
+                label={t('ownerPortal.totalRevenue', 'Revenu total')}
+                value={fmtCurrency(statement.totalRevenue)}
+              />
+              <StatTile
+                icon={<PercentIcon />}
+                label={t('ownerPortal.totalCommissions', 'Commissions')}
+                value={fmtCurrency(statement.totalCommissions)}
+              />
               {/* Frais OTA : affiches seulement quand le proprietaire les supporte.
                   A la charge de la conciergerie, ils ne sortent pas de son releve. */}
               {statement.totalOtaFees > 0 && (
-                <Grid item xs={6} sm={3}>
-                  <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
-                    {t('ownerPortal.totalOtaFees', 'Frais OTA')}
-                  </Typography>
-                  <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#ef5350' }}>
-                    {fmtCurrency(statement.totalOtaFees)}
-                  </Typography>
-                </Grid>
+                <StatTile
+                  icon={<StatementIcon />}
+                  label={t('ownerPortal.totalOtaFees', 'Frais OTA')}
+                  value={fmtCurrency(statement.totalOtaFees)}
+                  iconClassName="text-warning"
+                />
               )}
-              <Grid item xs={6} sm={3}>
-                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
-                  {t('ownerPortal.totalExpenses', 'Depenses')}
-                </Typography>
-                <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#ef5350' }}>
-                  {fmtCurrency(statement.totalExpenses)}
-                </Typography>
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
-                  {t('ownerPortal.netAmount', 'Montant net')}
-                </Typography>
-                <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#2e7d32' }}>
-                  {fmtCurrency(statement.netAmount)}
-                </Typography>
-              </Grid>
-            </Grid>
-          </Paper>
+              <StatTile
+                icon={<StatementIcon />}
+                label={t('ownerPortal.totalExpenses', 'Depenses')}
+                value={fmtCurrency(statement.totalExpenses)}
+                iconClassName="text-warning"
+              />
+              <StatTile
+                icon={<PayoutIcon />}
+                label={t('ownerPortal.netAmount', 'Montant net')}
+                value={fmtCurrency(statement.netAmount)}
+                iconClassName="text-success"
+              />
+            </div>
+          </div>
 
           {/* ── Statement lines ── */}
           {statement.lines && statement.lines.length > 0 && (
-            <TableContainer component={Paper} sx={CARD_SX}>
-              <Table size="small">
-                <TableHead>
+            <div className="overflow-x-auto rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell sx={HEAD_CELL_SX}>{t('ownerPortal.col.date', 'Date')}</TableCell>
-                    <TableCell sx={HEAD_CELL_SX}>{t('ownerPortal.col.description', 'Description')}</TableCell>
-                    <TableCell sx={HEAD_CELL_SX}>{t('ownerPortal.col.property', 'Propriete')}</TableCell>
-                    <TableCell sx={HEAD_CELL_SX}>{t('ownerPortal.col.type', 'Type')}</TableCell>
-                    <TableCell sx={HEAD_CELL_SX} align="right">{t('ownerPortal.col.amount', 'Montant')}</TableCell>
+                    <TableHead>{t('ownerPortal.col.date', 'Date')}</TableHead>
+                    <TableHead>{t('ownerPortal.col.description', 'Description')}</TableHead>
+                    <TableHead>{t('ownerPortal.col.property', 'Propriete')}</TableHead>
+                    <TableHead>{t('ownerPortal.col.type', 'Type')}</TableHead>
+                    <TableHead className="text-end">{t('ownerPortal.col.amount', 'Montant')}</TableHead>
                     {statement.totalOtaFees > 0 && (
-                      <TableCell sx={HEAD_CELL_SX} align="right">{t('ownerPortal.col.otaFee', 'Frais OTA')}</TableCell>
+                      <TableHead className="text-end">{t('ownerPortal.col.otaFee', 'Frais OTA')}</TableHead>
                     )}
-                    <TableCell sx={HEAD_CELL_SX} align="right">{t('ownerPortal.col.commission', 'Commission')}</TableCell>
-                    <TableCell sx={HEAD_CELL_SX} align="right">{t('ownerPortal.col.net', 'Net')}</TableCell>
+                    <TableHead className="text-end">{t('ownerPortal.col.commission', 'Commission')}</TableHead>
+                    <TableHead className="text-end">{t('ownerPortal.col.net', 'Net')}</TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {statement.lines.map((line, idx) => (
-                    <TableRow key={idx} hover>
-                      <TableCell sx={{ ...CELL_SX, fontSize: '0.75rem' }}>{fmtDate(line.date)}</TableCell>
-                      <TableCell sx={CELL_SX}>{line.description}</TableCell>
-                      <TableCell sx={CELL_SX}>{line.propertyName}</TableCell>
-                      <TableCell sx={CELL_SX}>
-                        <Chip
-                          label={line.type}
-                          size="small"
-                          sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600 }}
-                        />
+                    <TableRow key={idx}>
+                      <TableCell className="text-xs">{fmtDate(line.date)}</TableCell>
+                      <TableCell>{line.description}</TableCell>
+                      <TableCell>{line.propertyName}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="text-[0.625rem] h-[20px] font-semibold">{line.type}</Badge>
                       </TableCell>
-                      <TableCell sx={CELL_SX} align="right">{fmtCurrency(line.amount)}</TableCell>
+                      <TableCell className="text-end tabular-nums">{fmtCurrency(line.amount)}</TableCell>
                       {statement.totalOtaFees > 0 && (
-                        <TableCell sx={CELL_SX} align="right">{fmtCurrency(line.otaFee)}</TableCell>
+                        <TableCell className="text-end text-muted-foreground tabular-nums">−{fmtCurrency(line.otaFee)}</TableCell>
                       )}
-                      <TableCell sx={CELL_SX} align="right">{fmtCurrency(line.commission)}</TableCell>
-                      <TableCell sx={{ ...CELL_SX, fontWeight: 700 }} align="right">{fmtCurrency(line.net)}</TableCell>
+                      <TableCell className="text-end text-muted-foreground tabular-nums">−{fmtCurrency(line.commission)}</TableCell>
+                      <TableCell className="text-end font-semibold tabular-nums">{fmtCurrency(line.net)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </div>
           )}
         </>
       )}

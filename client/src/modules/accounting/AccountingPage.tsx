@@ -1,11 +1,23 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X, CircleCheck } from 'lucide-react';
+import { Spinner, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Field, FieldLabel, Input, NativeSelect, Textarea } from '../../components/ui';
 import {
-  Box, Paper, Typography, Button, Chip, IconButton, Tooltip,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField,
-  MenuItem, Select, FormControl, InputLabel, CircularProgress, Alert, Skeleton,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Tabs, Tab, Card, CardContent, Grid,
-} from '@mui/material';
+  Card,
+  CardContent,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Skeleton,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '../../components/ui';
 import {
   Add as AddIcon,
   CheckCircle as ApproveIcon,
@@ -76,50 +88,22 @@ const PAYOUT_STATUS_VALUES: (PayoutStatus | '')[] = [
 ];
 
 // Carte/panneau : hairline --line, r14 (baseline §2 Cartes), aucune ombre.
-const CARD_SX = {
-  border: '1px solid var(--line)',
-  boxShadow: 'none',
-  borderRadius: 'var(--radius-lg)',
-  bgcolor: 'var(--card)',
-} as const;
+const PANEL_CLASS = 'rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]';
 
-// Tableaux : entêtes overline / lignes hairline via le thème global Signature.
-const CELL_SX = { fontSize: '12.5px', py: 1.25, fontVariantNumeric: 'tabular-nums' } as const;
-const HEAD_CELL_SX = { py: 1 } as const;
+// Tableaux : la typo / le padding / le filet viennent des primitifs du kit ;
+// il ne reste ici que ce que les cellules ajoutent EN PLUS.
+const CELL_CLASS = 'tabular-nums';
+// Tableau de detail (modale SEPA) : mise en page cle/valeur, donc plus serree et sans filet.
+const DETAIL_CELL_CLASS = 'py-[4.5px] border-b-0 tabular-nums';
+const DETAIL_LABEL_CLASS = `${DETAIL_CELL_CLASS} font-semibold text-[var(--muted)]`;
+// Conteneurs de tableau : meme surface que `PANEL_CLASS`, plus le defilement.
+const CARD_CLASS = `overflow-x-auto ${PANEL_CLASS}`;
 
-const TAB_SX = { textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, minHeight: 40 } as const;
+/** Label overline des tuiles KPI (pattern StatTile). */
+const KPI_LABEL_CLASS = 'block text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-[3px]';
 
-// Label overline des tuiles KPI (pattern StatTile).
-const KPI_LABEL_SX = {
-  display: 'block',
-  fontSize: '10.5px',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  color: 'var(--faint)',
-  mb: 0.5,
-} as const;
-
-// Valeur KPI : display tabular-nums (pattern StatTile).
-const KPI_VALUE_SX = {
-  fontFamily: 'var(--font-display)',
-  fontSize: '1.125rem',
-  fontWeight: 600,
-  letterSpacing: '-0.025em',
-  fontVariantNumeric: 'tabular-nums',
-  color: 'var(--ink)',
-} as const;
-
-/** Chip statut — pattern baseline §2 : pilule r999, 10.5px fw700 h22, texte couleur + fond soft (hex ou var(--…)). */
-const softChipSx = (color: string) => ({
-  backgroundColor: `color-mix(in srgb, ${color} 9%, transparent)`,
-  color,
-  borderRadius: 999,
-  fontWeight: 700,
-  fontSize: '10.5px',
-  height: 22,
-  '& .MuiChip-label': { px: 1.25 },
-});
+/** Valeur KPI : display tabular-nums (pattern StatTile). */
+const KPI_VALUE_CLASS = 'cn-text-body1 [font-family:var(--font-display)] text-[1.125rem] font-semibold tracking-[-0.025em] tabular-nums text-[var(--ink)]';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -250,27 +234,27 @@ export const PayoutsTab: React.FC = () => {
       {helpAction}
 
       {/* ── Filters + Actions ── */}
-      <Paper sx={{ ...CARD_SX, p: 2, mb: 1.5, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-        <FormControl size="small" sx={{ minWidth: 180 }}>
-          <InputLabel sx={{ fontSize: '0.8125rem' }}>
+      <div className={cn(PANEL_CLASS, 'p-3 mb-[9px] flex gap-3 items-center flex-wrap')}>
+        <Field className="w-auto min-w-[180px]">
+          <FieldLabel className="text-[0.8125rem]" htmlFor="accounting-filter-owner">
             {t('accounting.filterOwner', 'Proprietaire')}
-          </InputLabel>
-          <Select
-            value={filterOwnerId}
-            onChange={(e) => setFilterOwnerId(e.target.value as number | '')}
-            label={t('accounting.filterOwner', 'Proprietaire')}
-            sx={{ fontSize: '0.8125rem' }}
+          </FieldLabel>
+          {/* Le select natif ne transporte que des chaines : conversion explicite
+              vers l'id numerique (ou '' pour « tous »). */}
+          <NativeSelect
+            id="accounting-filter-owner"
+            className="w-full"
+            value={filterOwnerId === '' ? '' : String(filterOwnerId)}
+            onChange={(e) => setFilterOwnerId(e.target.value === '' ? '' : Number(e.target.value))}
           >
-            <MenuItem value="">
-              <em>{t('common.all', 'Tous')}</em>
-            </MenuItem>
+            <option value="">{t('common.all', 'Tous')}</option>
             {ownerOptions.map((owner) => (
-              <MenuItem key={owner.id} value={owner.id} sx={{ fontSize: '0.8125rem' }}>
+              <option key={owner.id} value={owner.id}>
                 {owner.name ?? `${t('accounting.owner', 'Proprietaire')} #${owner.id}`}
-              </MenuItem>
+              </option>
             ))}
-          </Select>
-        </FormControl>
+          </NativeSelect>
+        </Field>
 
         <FilterChipRow
           options={PAYOUT_STATUS_VALUES
@@ -287,73 +271,119 @@ export const PayoutsTab: React.FC = () => {
         />
 
         {sepaError && (
-          <Alert severity="error" sx={{ fontSize: '0.8125rem' }} onClose={() => setSepaError(null)}>
-            {sepaError}
-          </Alert>
+          <BuiAlert variant="destructive" className="text-[0.8125rem]">
+            <TriangleAlert />
+            <AlertDescription>{sepaError}</AlertDescription>
+            <AlertAction>
+              <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setSepaError(null)}>
+                <X />
+              </BuiButton>
+            </AlertAction>
+          </BuiAlert>
         )}
 
-        <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+        <div className="ms-auto flex gap-1.5">
           {processingSepaPayouts.length > 0 && (
             <SepaTransferProcedureTooltip placement="bottom">
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={sepaDownloading ? <CircularProgress size={14} /> : <DownloadIcon />}
-                onClick={() => handleDownloadSepaXml(processingSepaPayouts.map((p) => p.id))}
-                disabled={sepaDownloading}
-                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-              >
-                {t('accounting.downloadSepaXml', 'SEPA XML')} ({processingSepaPayouts.length})
-              </Button>
+              {/* Le Tooltip MUI pose une ref sur son enfant : le Button du kit
+                  ne la transmet pas, d'ou le span intermediaire. */}
+              <span className="inline-flex">
+                <BuiButton
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleDownloadSepaXml(processingSepaPayouts.map((p) => p.id))}
+                  disabled={sepaDownloading}
+                >
+                  {sepaDownloading ? <Spinner className="size-3.5" /> : <DownloadIcon />}
+                  {t('accounting.downloadSepaXml', 'SEPA XML')} ({processingSepaPayouts.length})
+                </BuiButton>
+              </span>
             </SepaTransferProcedureTooltip>
           )}
-        </Box>
-      </Paper>
+        </div>
+      </div>
 
       {/* ── Alerts ── */}
       {approveMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => approveMutation.reset()}>
-          {t('accounting.approveSuccess', 'Payout approuve')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.approveSuccess', 'Payout approuve')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => approveMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {executeMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => executeMutation.reset()}>
-          {t('accounting.executeSuccess', 'Virement execute avec succes')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.executeSuccess', 'Virement execute avec succes')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => executeMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {executeMutation.isError && (
-        <Alert severity="error" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => executeMutation.reset()}>
-          {(executeMutation.error as { message?: string })?.message
-            || t('accounting.executeError', 'Erreur lors de l\'execution du virement')}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-2 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{(executeMutation.error as { message?: string })?.message
+            || t('accounting.executeError', 'Erreur lors de l\'execution du virement')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => executeMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {retryMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => retryMutation.reset()}>
-          {t('accounting.retrySuccess', 'Relance effectuee avec succes')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.retrySuccess', 'Relance effectuee avec succes')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => retryMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {retryMutation.isError && (
-        <Alert severity="error" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => retryMutation.reset()}>
-          {t('accounting.retryError', 'Erreur lors de la relance du virement')}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-2 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{t('accounting.retryError', 'Erreur lors de la relance du virement')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => retryMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {markPaidMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => markPaidMutation.reset()}>
-          {t('accounting.paidSuccess', 'Payout marque comme paye')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.paidSuccess', 'Payout marque comme paye')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => markPaidMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ── Table ── */}
       {isLoading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} variant="rounded" height={44} sx={{ borderRadius: 'var(--radius-sm)' }} />
+            <Skeleton key={i} className="h-11 rounded-[var(--radius-sm)]" />
           ))}
-        </Box>
+        </div>
       ) : isError ? (
-        <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
-          {t('accounting.error', 'Erreur lors du chargement des payouts')}
-        </Alert>
+        <BuiAlert variant="destructive" className="text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{t('accounting.error', 'Erreur lors du chargement des payouts')}</AlertDescription>
+        </BuiAlert>
       ) : payouts.length === 0 ? (
         <EmptyState
           icon={<AccountIcon />}
@@ -366,297 +396,326 @@ export const PayoutsTab: React.FC = () => {
           variant="plain"
         />
       ) : (
-        <TableContainer component={Paper} sx={CARD_SX}>
-          <Table size="small">
-            <TableHead>
+        <div className={CARD_CLASS}>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell sx={HEAD_CELL_SX}>{t('accounting.col.owner', 'Proprietaire')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>{t('accounting.col.period', 'Periode')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('accounting.col.gross', 'Revenu brut')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('accounting.col.commission', 'Commission')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('accounting.col.expenses', 'Depenses')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('accounting.col.net', 'Net')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="center">{t('accounting.col.status', 'Status')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('common.actions', 'Actions')}</TableCell>
+                <TableHead>{t('accounting.col.owner', 'Proprietaire')}</TableHead>
+                <TableHead>{t('accounting.col.period', 'Periode')}</TableHead>
+                <TableHead className="text-end">{t('accounting.col.gross', 'Revenu brut')}</TableHead>
+                <TableHead className="text-end">{t('accounting.col.commission', 'Commission')}</TableHead>
+                <TableHead className="text-end">{t('accounting.col.expenses', 'Depenses')}</TableHead>
+                <TableHead className="text-end">{t('accounting.col.net', 'Net')}</TableHead>
+                <TableHead className="text-center">{t('accounting.col.status', 'Status')}</TableHead>
+                <TableHead className="text-end">{t('common.actions', 'Actions')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {payouts.map((payout) => (
-                <TableRow key={payout.id} data-highlight-id={String(payout.id)} hover>
-                  <TableCell sx={CELL_SX}>
+                <TableRow key={payout.id} data-highlight-id={String(payout.id)}>
+                  <TableCell className={CELL_CLASS}>
                     {payout.ownerName ?? `${t('accounting.owner', 'Proprietaire')} #${payout.ownerId}`}
                   </TableCell>
-                  <TableCell sx={{ ...CELL_SX, fontSize: '0.75rem' }}>
+                  <TableCell className={`${CELL_CLASS} text-xs`}>
                     {fmtDate(payout.periodStart)} → {fmtDate(payout.periodEnd)}
                   </TableCell>
-                  <TableCell sx={CELL_SX} align="right">{fmtCurrency(payout.grossRevenue)}</TableCell>
-                  <TableCell sx={CELL_SX} align="right">
+                  <TableCell className={`${CELL_CLASS} text-end`}>{fmtCurrency(payout.grossRevenue)}</TableCell>
+                  <TableCell className={`${CELL_CLASS} text-end`}>
                     {fmtCurrency(payout.commissionAmount)}{' '}
-                    <Typography component="span" sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                    <span className="text-[0.6875rem] text-muted-foreground">
                       ({fmtPercent(payout.commissionRate)})
-                    </Typography>
+                    </span>
                   </TableCell>
-                  <TableCell sx={CELL_SX} align="right">{fmtCurrency(payout.expenses)}</TableCell>
-                  <TableCell sx={{ ...CELL_SX, fontWeight: 700 }} align="right">
+                  <TableCell className={`${CELL_CLASS} text-end`}>{fmtCurrency(payout.expenses)}</TableCell>
+                  <TableCell className={`${CELL_CLASS} text-end font-bold`}>
                     {fmtCurrency(payout.netAmount)}
                   </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={t(`accounting.payoutStatuses.${payout.status}`, payout.status)}
-                      size="small"
-                      sx={softChipSx(PAYOUT_STATUS_COLORS[payout.status] ?? 'var(--muted)')}
-                    />
+                  <TableCell className="text-center">
+                    <StatusChip color={PAYOUT_STATUS_COLORS[payout.status] ?? 'var(--muted)'} label={t(`accounting.payoutStatuses.${payout.status}`, payout.status)} />
                   </TableCell>
-                  <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.25 }}>
+                  <TableCell className="text-end whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-0.5">
                     {payout.status === 'PENDING' && (
-                      <Tooltip title={t('accounting.approve', 'Approuver')}>
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => handleApprove(payout.id)}
-                          disabled={approveMutation.isPending}
-                        >
-                          <ApproveIcon size={'1rem'} strokeWidth={1.75} />
-                        </IconButton>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <BuiButton
+                              variant="ghost"
+                              size="icon-sm"
+                              className="text-[var(--mui-primary)]"
+                              aria-label={t('accounting.approve', 'Approuver')}
+                              onClick={() => handleApprove(payout.id)}
+                              disabled={approveMutation.isPending}
+                            >
+                              <ApproveIcon size={'1rem'} strokeWidth={1.75} />
+                            </BuiButton>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('accounting.approve', 'Approuver')}</TooltipContent>
                       </Tooltip>
                     )}
                     {payout.status === 'APPROVED' && (
                       <>
-                        <Tooltip title={t('accounting.executePayout', 'Executer le virement')}>
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => executeMutation.mutate(payout.id)}
-                            disabled={executeMutation.isPending}
-                          >
-                            {executeMutation.isPending ? (
-                              <CircularProgress size={14} />
-                            ) : (
-                              <AccountIcon size={'1rem'} strokeWidth={1.75} />
-                            )}
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <BuiButton
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-[var(--mui-primary)]"
+                                aria-label={t('accounting.executePayout', 'Executer le virement')}
+                                onClick={() => executeMutation.mutate(payout.id)}
+                                disabled={executeMutation.isPending}
+                              >
+                                {executeMutation.isPending ? (
+                                  <Spinner className="size-3.5" />
+                                ) : (
+                                  <AccountIcon size={'1rem'} strokeWidth={1.75} />
+                                )}
+                              </BuiButton>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('accounting.executePayout', 'Executer le virement')}</TooltipContent>
                         </Tooltip>
-                        <Tooltip title={t('accounting.markPaid', 'Marquer paye')}>
-                          <IconButton
-                            size="small"
-                            color="success"
-                            onClick={() => openPayDialog(payout)}
-                            disabled={markPaidMutation.isPending}
-                          >
-                            <PaidIcon size={'1rem'} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <BuiButton
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-[var(--ok)]"
+                                aria-label={t('accounting.markPaid', 'Marquer paye')}
+                                onClick={() => openPayDialog(payout)}
+                                disabled={markPaidMutation.isPending}
+                              >
+                                <PaidIcon size={'1rem'} strokeWidth={1.75} />
+                              </BuiButton>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('accounting.markPaid', 'Marquer paye')}</TooltipContent>
                         </Tooltip>
                       </>
                     )}
                     {payout.status === 'PROCESSING' && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Tooltip title={t('accounting.markAsPaid', 'Marquer comme payé')}>
-                          <IconButton
-                            size="small"
-                            color="success"
-                            onClick={() => openPayDialog(payout)}
-                            disabled={markPaidMutation.isPending}
-                          >
-                            <PaidIcon size={'1rem'} strokeWidth={1.75} />
-                          </IconButton>
+                      <div className="flex items-center gap-0.5">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <BuiButton
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-[var(--ok)]"
+                                aria-label={t('accounting.markAsPaid', 'Marquer comme payé')}
+                                onClick={() => openPayDialog(payout)}
+                                disabled={markPaidMutation.isPending}
+                              >
+                                <PaidIcon size={'1rem'} strokeWidth={1.75} />
+                              </BuiButton>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('accounting.markAsPaid', 'Marquer comme payé')}</TooltipContent>
                         </Tooltip>
                         {payout.payoutMethod === 'SEPA_TRANSFER' && (
                           <SepaTransferProcedureTooltip placement="left">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDownloadSepaXml([payout.id])}
-                              disabled={sepaDownloading}
-                            >
-                              <DownloadIcon size={'1rem'} strokeWidth={1.75} />
-                            </IconButton>
+                            {/* Le Tooltip MUI pose une ref sur son enfant : le
+                                Button du kit ne la transmet pas. */}
+                            <span className="inline-flex">
+                              <BuiButton
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t('accounting.downloadSepaXml', 'SEPA XML')}
+                                onClick={() => handleDownloadSepaXml([payout.id])}
+                                disabled={sepaDownloading}
+                              >
+                                <DownloadIcon size={'1rem'} strokeWidth={1.75} />
+                              </BuiButton>
+                            </span>
                           </SepaTransferProcedureTooltip>
                         )}
-                      </Box>
+                      </div>
                     )}
                     {payout.status === 'FAILED' && (
-                      <Tooltip title={payout.failureReason ?? t('accounting.failedPayout', 'Echec du reversement')}>
-                        <IconButton
-                          size="small"
-                          color="warning"
-                          onClick={() => retryMutation.mutate(payout.id)}
-                          disabled={retryMutation.isPending || payout.retryCount >= 3}
-                        >
-                          {retryMutation.isPending ? (
-                            <CircularProgress size={14} />
-                          ) : (
-                            <BuildIcon size={'1rem'} strokeWidth={1.75} />
-                          )}
-                        </IconButton>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <BuiButton
+                              variant="ghost"
+                              size="icon-sm"
+                              className="text-[var(--warn)]"
+                              aria-label={payout.failureReason ?? t('accounting.failedPayout', 'Echec du reversement')}
+                              onClick={() => retryMutation.mutate(payout.id)}
+                              disabled={retryMutation.isPending || payout.retryCount >= 3}
+                            >
+                              {retryMutation.isPending ? (
+                                <Spinner className="size-3.5" />
+                              ) : (
+                                <BuildIcon size={'1rem'} strokeWidth={1.75} />
+                              )}
+                            </BuiButton>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{payout.failureReason ?? t('accounting.failedPayout', 'Echec du reversement')}</TooltipContent>
                       </Tooltip>
                     )}
                     {payout.status === 'PAID' && payout.paymentReference && (
-                      <Tooltip title={`Ref: ${payout.paymentReference}`}>
-                        <Typography
-                          component="span"
-                          sx={{ fontSize: '0.6875rem', color: 'text.secondary', cursor: 'help' }}
-                        >
-                          {payout.paymentReference}
-                        </Typography>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] cursor-help">
+                            {payout.paymentReference}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{`Ref: ${payout.paymentReference}`}</TooltipContent>
                       </Tooltip>
                     )}
                     {/* Detail button — all statuses except PENDING */}
                     {payout.status !== 'PENDING' && (
-                      <Tooltip title={t('accounting.viewDetail', 'Voir le détail')}>
-                        <IconButton
-                          size="small"
-                          onClick={() => { setDetailPayout(payout); setDetailOpen(true); }}
-                        >
-                          <VisibilityIcon size={'1rem'} strokeWidth={1.75} />
-                        </IconButton>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <BuiButton
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={t('accounting.viewDetail', 'Voir le détail')}
+                            onClick={() => { setDetailPayout(payout); setDetailOpen(true); }}
+                          >
+                            <VisibilityIcon size={'1rem'} strokeWidth={1.75} />
+                          </BuiButton>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('accounting.viewDetail', 'Voir le détail')}</TooltipContent>
                       </Tooltip>
                     )}
-                    </Box>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
           Mark as Paid Dialog
           ═══════════════════════════════════════════════════════════════════════ */}
-      <Dialog
-        open={payOpen}
-        onClose={() => setPayOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>
-          {t('accounting.payTitle', 'Marquer comme paye')}
-        </DialogTitle>
-        <DialogContent sx={{ pt: '16px !important' }}>
+      <Dialog open={payOpen} onOpenChange={setPayOpen}>
+        <DialogContent aria-describedby={undefined} className="sm:max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>
+              {t('accounting.payTitle', 'Marquer comme paye')}
+            </DialogTitle>
+          </DialogHeader>
           {payTarget && (
-            <Typography sx={{ fontSize: '0.8125rem', mb: 2, color: 'text.secondary' }}>
+            <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground">
               {t('accounting.paySubtitle', 'Payout')} #{payTarget.id} — {fmtCurrency(payTarget.netAmount)}
-            </Typography>
+            </p>
           )}
-          <TextField
-            label={t('accounting.form.payRef', 'Reference de paiement')}
-            size="small"
-            fullWidth
-            value={payRef}
-            onChange={(e) => setPayRef(e.target.value)}
-            placeholder="VIR-2024-001, CB-xxx..."
-            InputProps={{ sx: { fontSize: '0.8125rem' } }}
-            InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-          />
+          <Field>
+            <FieldLabel className="text-[0.8125rem]" htmlFor="payout-payment-ref">
+              {t('accounting.form.payRef', 'Reference de paiement')}
+            </FieldLabel>
+            <Input
+              id="payout-payment-ref"
+              className="w-full text-[0.8125rem]"
+              value={payRef}
+              onChange={(e) => setPayRef(e.target.value)}
+              placeholder="VIR-2024-001, CB-xxx..."
+            />
+          </Field>
+          <DialogFooter>
+            <BuiButton variant="ghost" size="sm" onClick={() => setPayOpen(false)}>
+              {t('common.cancel', 'Annuler')}
+            </BuiButton>
+            {/* `color="success"` d'origine restait decoratif : c'est l'action
+                principale de la modale, donc `default` et non une teinte --ok. */}
+            <BuiButton
+              size="sm"
+              onClick={handleMarkPaid}
+              disabled={markPaidMutation.isPending || !payRef.trim()}
+            >
+              {markPaidMutation.isPending ? <Spinner className="size-4" /> : t('accounting.confirmPaid', 'Confirmer paiement')}
+            </BuiButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setPayOpen(false)} size="small" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
-            {t('common.cancel', 'Annuler')}
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            color="success"
-            onClick={handleMarkPaid}
-            disabled={markPaidMutation.isPending || !payRef.trim()}
-            sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
-          >
-            {markPaidMutation.isPending ? <CircularProgress size={16} /> : t('accounting.confirmPaid', 'Confirmer paiement')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* ═══════════════════════════════════════════════════════════════════════
           Detail SEPA Modal
           ═══════════════════════════════════════════════════════════════════════ */}
-      <Dialog
-        open={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><AccountIcon size={'1.25rem'} strokeWidth={1.75} /></Box>
-          {t('accounting.payoutDetail', 'Détail du reversement')}
-        </DialogTitle>
-        {detailPayout && (() => {
-          const config = configByOwnerId.get(detailPayout.ownerId);
-          return (
-            <DialogContent sx={{ pt: '8px !important' }}>
-              <Table size="small" sx={{ '& td, & th': { fontSize: '12.5px', py: 0.75, border: 'none', fontVariantNumeric: 'tabular-nums' } }}>
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent aria-describedby={undefined} className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex flex-row items-center gap-1.5">
+              <span className="inline-flex text-[var(--accent)]"><AccountIcon size={'1.25rem'} strokeWidth={1.75} /></span>
+              {t('accounting.payoutDetail', 'Détail du reversement')}
+            </DialogTitle>
+          </DialogHeader>
+          {detailPayout && (() => {
+            const config = configByOwnerId.get(detailPayout.ownerId);
+            return (
+              <Table>
                 <TableBody>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary', width: 160 }}>Bénéficiaire</TableCell>
-                    <TableCell>{config?.bankAccountHolder || detailPayout.ownerName || '—'}</TableCell>
+                    <TableCell className={`${DETAIL_LABEL_CLASS} w-[160px]`}>Bénéficiaire</TableCell>
+                    <TableCell className={DETAIL_CELL_CLASS}>{config?.bankAccountHolder || detailPayout.ownerName || '—'}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>IBAN</TableCell>
-                    <TableCell sx={{ fontFamily: 'monospace', letterSpacing: 1 }}>{config?.maskedIban || '—'}</TableCell>
+                    <TableCell className={DETAIL_LABEL_CLASS}>IBAN</TableCell>
+                    <TableCell className={`${DETAIL_CELL_CLASS} font-mono tracking-[1px]`}>{config?.maskedIban || '—'}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>BIC</TableCell>
-                    <TableCell sx={{ fontFamily: 'monospace' }}>{config?.bic || '—'}</TableCell>
+                    <TableCell className={DETAIL_LABEL_CLASS}>BIC</TableCell>
+                    <TableCell className={`${DETAIL_CELL_CLASS} font-mono`}>{config?.bic || '—'}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Méthode</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={detailPayout.payoutMethod === 'SEPA_TRANSFER' ? 'Virement SEPA' : detailPayout.payoutMethod === 'STRIPE_CONNECT' ? 'Stripe Connect' : 'Manuel'}
-                        size="small"
-                        sx={softChipSx('var(--info)')}
-                      />
+                    <TableCell className={DETAIL_LABEL_CLASS}>Méthode</TableCell>
+                    <TableCell className={DETAIL_CELL_CLASS}>
+                      <StatusChip color={'var(--info)'} label={detailPayout.payoutMethod === 'SEPA_TRANSFER' ? 'Virement SEPA' : detailPayout.payoutMethod === 'STRIPE_CONNECT' ? 'Stripe Connect' : 'Manuel'} />
                     </TableCell>
                   </TableRow>
-                  <TableRow><TableCell colSpan={2} sx={{ pt: '12px !important' }}><Box sx={{ borderBottom: '1px solid', borderColor: 'var(--line)' }} /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={2} className={`${DETAIL_CELL_CLASS} pt-[12px]`}><div className="border-b border-[var(--line)]" /></TableCell></TableRow>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Période</TableCell>
-                    <TableCell>{detailPayout.periodStart} → {detailPayout.periodEnd}</TableCell>
+                    <TableCell className={DETAIL_LABEL_CLASS}>Période</TableCell>
+                    <TableCell className={DETAIL_CELL_CLASS}>{detailPayout.periodStart} → {detailPayout.periodEnd}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Revenu brut</TableCell>
-                    <TableCell>{fmtCurrency(detailPayout.grossRevenue)}</TableCell>
+                    <TableCell className={DETAIL_LABEL_CLASS}>Revenu brut</TableCell>
+                    <TableCell className={DETAIL_CELL_CLASS}>{fmtCurrency(detailPayout.grossRevenue)}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Commission ({(detailPayout.commissionRate * 100).toFixed(1)}%)</TableCell>
-                    <TableCell sx={{ color: 'var(--err)' }}>- {fmtCurrency(detailPayout.commissionAmount)}</TableCell>
+                    <TableCell className={DETAIL_LABEL_CLASS}>Commission ({(detailPayout.commissionRate * 100).toFixed(1)}%)</TableCell>
+                    <TableCell className={`${DETAIL_CELL_CLASS} text-[var(--err)]`}>- {fmtCurrency(detailPayout.commissionAmount)}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Dépenses</TableCell>
-                    <TableCell sx={{ color: detailPayout.expenses > 0 ? 'var(--err)' : 'var(--muted)' }}>
+                    <TableCell className={DETAIL_LABEL_CLASS}>Dépenses</TableCell>
+                    <TableCell className={detailPayout.expenses > 0 ? `${DETAIL_CELL_CLASS} text-[var(--err)]` : `${DETAIL_CELL_CLASS} text-[var(--muted)]`}>
                       {detailPayout.expenses > 0 ? `- ${fmtCurrency(detailPayout.expenses)}` : fmtCurrency(0)}
                     </TableCell>
                   </TableRow>
-                  <TableRow><TableCell colSpan={2}><Box sx={{ borderBottom: '1px solid', borderColor: 'var(--line)' }} /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={2} className={DETAIL_CELL_CLASS}><div className="border-b border-[var(--line)]" /></TableCell></TableRow>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700, fontSize: '0.875rem' }}>Net à virer</TableCell>
-                    <TableCell sx={{ fontWeight: 600, fontSize: '0.875rem', fontFamily: 'var(--font-display)', color: 'var(--ok)' }}>{fmtCurrency(detailPayout.netAmount)}</TableCell>
+                    <TableCell className={`${DETAIL_CELL_CLASS} font-bold text-sm`}>Net à virer</TableCell>
+                    <TableCell className={`${DETAIL_CELL_CLASS} font-[family-name:var(--font-display)] font-semibold text-sm text-[var(--ok)]`}>{fmtCurrency(detailPayout.netAmount)}</TableCell>
                   </TableRow>
                   {detailPayout.paymentReference && (
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Réf. paiement</TableCell>
-                      <TableCell sx={{ fontFamily: 'monospace' }}>{detailPayout.paymentReference}</TableCell>
+                      <TableCell className={DETAIL_LABEL_CLASS}>Réf. paiement</TableCell>
+                      <TableCell className={`${DETAIL_CELL_CLASS} font-mono`}>{detailPayout.paymentReference}</TableCell>
                     </TableRow>
                   )}
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Statut</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={detailPayout.status}
-                        size="small"
-                        sx={softChipSx(PAYOUT_STATUS_COLORS[detailPayout.status] ?? 'var(--muted)')}
-                      />
+                    <TableCell className={DETAIL_LABEL_CLASS}>Statut</TableCell>
+                    <TableCell className={DETAIL_CELL_CLASS}>
+                      <StatusChip color={PAYOUT_STATUS_COLORS[detailPayout.status] ?? 'var(--muted)'} label={detailPayout.status} />
                     </TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
-            </DialogContent>
-          );
-        })()}
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setDetailOpen(false)} size="small" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
-            {t('common.close', 'Fermer')}
-          </Button>
-        </DialogActions>
+            );
+          })()}
+          <DialogFooter>
+            <BuiButton variant="ghost" size="sm" onClick={() => setDetailOpen(false)}>
+              {t('common.close', 'Fermer')}
+            </BuiButton>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </>
   );
@@ -846,35 +905,37 @@ export const ExpensesTab: React.FC = () => {
       />
 
       {/* ── Stats — pattern StatTile : label overline + valeur display tabular-nums ── */}
-      <Box sx={{ display: 'flex', gap: 1.5, mb: 1.5 }}>
-        <Paper sx={{ ...CARD_SX, p: 1.5, flex: 1 }}>
-          <Typography sx={KPI_LABEL_SX}>
+      <div className="flex gap-2 mb-2">
+        <div className={cn(PANEL_CLASS, 'p-[9px] flex-1')}>
+          <p className={cn(KPI_LABEL_CLASS, 'cn-text-body1')}>
             {t('accounting.expenses.totalExpenses', 'Total depenses')}
-          </Typography>
-          <Typography sx={KPI_VALUE_SX}>
+          </p>
+          <p className={KPI_VALUE_CLASS}>
             {fmtCurrency(stats.total)}
-          </Typography>
-        </Paper>
-        <Paper sx={{ ...CARD_SX, p: 1.5, flex: 1 }}>
-          <Typography sx={KPI_LABEL_SX}>
+          </p>
+        </div>
+        <div className={cn(PANEL_CLASS, 'p-[9px] flex-1')}>
+          <p className={cn(KPI_LABEL_CLASS, 'cn-text-body1')}>
             {t('accounting.expenses.pendingCount', 'En attente')}
-          </Typography>
-          <Typography sx={{ ...KPI_VALUE_SX, color: EXPENSE_STATUS_COLORS.DRAFT }}>
+          </p>
+          {/* Couleur issue d'une map importee (valeurs hex) : resolue a l'execution,
+              donc en style inline — une classe Tailwind ne peut pas en naitre. */}
+          <p className={KPI_VALUE_CLASS} style={{ color: EXPENSE_STATUS_COLORS.DRAFT }}>
             {stats.pending}
-          </Typography>
-        </Paper>
-        <Paper sx={{ ...CARD_SX, p: 1.5, flex: 1 }}>
-          <Typography sx={KPI_LABEL_SX}>
+          </p>
+        </div>
+        <div className={cn(PANEL_CLASS, 'p-[9px] flex-1')}>
+          <p className={cn(KPI_LABEL_CLASS, 'cn-text-body1')}>
             {t('accounting.expenses.approvedCount', 'Approuvees')}
-          </Typography>
-          <Typography sx={{ ...KPI_VALUE_SX, color: EXPENSE_STATUS_COLORS.APPROVED }}>
+          </p>
+          <p className={KPI_VALUE_CLASS} style={{ color: EXPENSE_STATUS_COLORS.APPROVED }}>
             {stats.approved}
-          </Typography>
-        </Paper>
-      </Box>
+          </p>
+        </div>
+      </div>
 
       {/* ── Filters + Actions ── */}
-      <Paper sx={{ ...CARD_SX, p: 2, mb: 1.5, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className={cn(PANEL_CLASS, 'p-3 mb-[9px] flex gap-3 items-center flex-wrap')}>
         <FilterChipRow
           options={EXPENSE_STATUS_OPTIONS
             .filter((opt) => opt.value !== '')
@@ -889,62 +950,94 @@ export const ExpensesTab: React.FC = () => {
           size="compact"
         />
 
-        <Box sx={{ ml: 'auto' }}>
-          <Button
-            size="small"
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setCreateOpen(true)}
-            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-          >
+        <div className="ms-auto">
+          <BuiButton size="sm" onClick={() => setCreateOpen(true)}>
+            <AddIcon />
             {t('accounting.expenses.create', 'Nouvelle depense')}
-          </Button>
-        </Box>
-      </Paper>
+          </BuiButton>
+        </div>
+      </div>
 
       {/* ── Alerts ── */}
       {createMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => createMutation.reset()}>
-          {t('accounting.expenses.createSuccess', 'Depense creee avec succes')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.expenses.createSuccess', 'Depense creee avec succes')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => createMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {approveMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => approveMutation.reset()}>
-          {t('accounting.expenses.approveSuccess', 'Depense approuvee')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.expenses.approveSuccess', 'Depense approuvee')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => approveMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {cancelMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => cancelMutation.reset()}>
-          {t('accounting.expenses.cancelSuccess', 'Depense annulee')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.expenses.cancelSuccess', 'Depense annulee')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => cancelMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {payMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => payMutation.reset()}>
-          {t('accounting.expenses.paidSuccess', 'Depense marquee comme payee')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.expenses.paidSuccess', 'Depense marquee comme payee')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => payMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {uploadReceiptMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => uploadReceiptMutation.reset()}>
-          {t('accounting.expenses.receiptUploaded', 'Justificatif ajoute')}
-        </Alert>
+        <BuiAlert variant="success" className="mb-2 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('accounting.expenses.receiptUploaded', 'Justificatif ajoute')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => uploadReceiptMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {uploadReceiptMutation.isError && (
-        <Alert severity="error" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => uploadReceiptMutation.reset()}>
-          {t('accounting.expenses.receiptUploadError', 'Erreur lors de l\'upload du justificatif')}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-2 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{t('accounting.expenses.receiptUploadError', 'Erreur lors de l\'upload du justificatif')}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => uploadReceiptMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ── Table ── */}
       {isLoading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} variant="rounded" height={44} sx={{ borderRadius: 'var(--radius-sm)' }} />
+            <Skeleton key={i} className="h-11 rounded-[var(--radius-sm)]" />
           ))}
-        </Box>
+        </div>
       ) : isError ? (
-        <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
-          {t('accounting.expenses.error', 'Erreur lors du chargement des depenses')}
-        </Alert>
+        <BuiAlert variant="destructive" className="text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{t('accounting.expenses.error', 'Erreur lors du chargement des depenses')}</AlertDescription>
+        </BuiAlert>
       ) : expenses.length === 0 ? (
         <EmptyState
           icon={<AccountIcon />}
@@ -952,331 +1045,387 @@ export const ExpensesTab: React.FC = () => {
           variant="plain"
         />
       ) : (
-        <TableContainer component={Paper} sx={CARD_SX}>
-          <Table size="small">
-            <TableHead>
+        <div className={CARD_CLASS}>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell sx={HEAD_CELL_SX}>{t('accounting.expenses.date', 'Date')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>{t('accounting.expenses.provider', 'Prestataire')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>{t('accounting.expenses.property', 'Logement')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>{t('accounting.expenses.description', 'Description')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="center">{t('accounting.expenses.category', 'Categorie')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('accounting.expenses.amountTtc', 'Montant TTC')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="center">{t('accounting.expenses.status', 'Statut')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('common.actions', 'Actions')}</TableCell>
+                <TableHead>{t('accounting.expenses.date', 'Date')}</TableHead>
+                <TableHead>{t('accounting.expenses.provider', 'Prestataire')}</TableHead>
+                <TableHead>{t('accounting.expenses.property', 'Logement')}</TableHead>
+                <TableHead>{t('accounting.expenses.description', 'Description')}</TableHead>
+                <TableHead className="text-center">{t('accounting.expenses.category', 'Categorie')}</TableHead>
+                <TableHead className="text-end">{t('accounting.expenses.amountTtc', 'Montant TTC')}</TableHead>
+                <TableHead className="text-center">{t('accounting.expenses.status', 'Statut')}</TableHead>
+                <TableHead className="text-end">{t('common.actions', 'Actions')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {expenses.map((expense) => (
-                <TableRow key={expense.id} hover>
-                  <TableCell sx={{ ...CELL_SX, fontSize: '0.75rem' }}>
+                <TableRow key={expense.id}>
+                  <TableCell className={`${CELL_CLASS} text-xs`}>
                     {fmtDate(expense.expenseDate)}
                   </TableCell>
-                  <TableCell sx={CELL_SX}>{expense.providerName ?? '—'}</TableCell>
-                  <TableCell sx={CELL_SX}>{expense.propertyName ?? '—'}</TableCell>
-                  <TableCell sx={{ ...CELL_SX, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <TableCell className={CELL_CLASS}>{expense.providerName ?? '—'}</TableCell>
+                  <TableCell className={CELL_CLASS}>{expense.propertyName ?? '—'}</TableCell>
+                  <TableCell className={`${CELL_CLASS} max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap`}>
                     {expense.description}
                   </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={t(`accounting.expenses.categories.${expense.category}`, expense.category)}
-                      size="small"
-                      sx={softChipSx(EXPENSE_CATEGORY_COLORS[expense.category] ?? '#666')}
-                    />
+                  <TableCell className="text-center">
+                    <StatusChip color={EXPENSE_CATEGORY_COLORS[expense.category] ?? '#666'} label={t(`accounting.expenses.categories.${expense.category}`, expense.category)} />
                   </TableCell>
-                  <TableCell sx={{ ...CELL_SX, fontWeight: 700 }} align="right">
+                  <TableCell className={`${CELL_CLASS} text-end font-bold`}>
                     {fmtCurrency(expense.amountTtc, expense.currency)}
                   </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={t(`accounting.expenses.statuses.${expense.status}`, expense.status)}
-                      size="small"
-                      sx={softChipSx(EXPENSE_STATUS_COLORS[expense.status] ?? 'var(--muted)')}
-                    />
+                  <TableCell className="text-center">
+                    <StatusChip color={EXPENSE_STATUS_COLORS[expense.status] ?? 'var(--muted)'} label={t(`accounting.expenses.statuses.${expense.status}`, expense.status)} />
                   </TableCell>
-                  <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                  <TableCell className="text-end whitespace-nowrap">
                     {expense.status === 'DRAFT' && (
                       <>
-                        <Tooltip title={t('accounting.expenses.approve', 'Approuver')}>
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => approveMutation.mutate(expense.id)}
-                            disabled={approveMutation.isPending}
-                          >
-                            <ApproveIcon size={'1rem'} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <BuiButton
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-[var(--mui-primary)]"
+                                aria-label={t('accounting.expenses.approve', 'Approuver')}
+                                onClick={() => approveMutation.mutate(expense.id)}
+                                disabled={approveMutation.isPending}
+                              >
+                                <ApproveIcon size={'1rem'} strokeWidth={1.75} />
+                              </BuiButton>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('accounting.expenses.approve', 'Approuver')}</TooltipContent>
                         </Tooltip>
-                        <Tooltip title={t('accounting.expenses.cancel', 'Annuler')}>
-                          <IconButton
-                            size="small"
-                            color="default"
-                            onClick={() => cancelMutation.mutate(expense.id)}
-                            disabled={cancelMutation.isPending}
-                          >
-                            <CancelIcon size={'1rem'} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <BuiButton
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t('accounting.expenses.cancel', 'Annuler')}
+                                onClick={() => cancelMutation.mutate(expense.id)}
+                                disabled={cancelMutation.isPending}
+                              >
+                                <CancelIcon size={'1rem'} strokeWidth={1.75} />
+                              </BuiButton>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('accounting.expenses.cancel', 'Annuler')}</TooltipContent>
                         </Tooltip>
                       </>
                     )}
                     {(expense.status === 'APPROVED' || expense.status === 'INCLUDED') && (
-                      <Tooltip title={t('accounting.expenses.markPaid', 'Marquer paye')}>
-                        <IconButton
-                          size="small"
-                          color="success"
-                          onClick={() => openPayDialog(expense)}
-                          disabled={payMutation.isPending}
-                        >
-                          <PaidIcon size={'1rem'} strokeWidth={1.75} />
-                        </IconButton>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <BuiButton
+                              variant="ghost"
+                              size="icon-sm"
+                              className="text-[var(--ok)]"
+                              aria-label={t('accounting.expenses.markPaid', 'Marquer paye')}
+                              onClick={() => openPayDialog(expense)}
+                              disabled={payMutation.isPending}
+                            >
+                              <PaidIcon size={'1rem'} strokeWidth={1.75} />
+                            </BuiButton>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('accounting.expenses.markPaid', 'Marquer paye')}</TooltipContent>
                       </Tooltip>
                     )}
                     {expense.receiptPath ? (
                       <>
-                        <Tooltip title={t('accounting.expenses.viewReceipt', 'Voir justificatif')}>
-                          <IconButton
-                            size="small"
-                            color="success"
-                            component="a"
-                            href={providerExpensesApi.getReceiptDownloadUrl(expense.id)}
-                            target="_blank"
-                          >
-                            <ReceiptIcon size={'1rem'} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            {/* `asChild` : le lien porte lui-meme le gabarit du
+                                bouton (l'IconButton MUI faisait `component="a"`). */}
+                            <BuiButton
+                              asChild
+                              variant="ghost"
+                              size="icon-sm"
+                              className="text-[var(--ok)]"
+                            >
+                              <a
+                                href={providerExpensesApi.getReceiptDownloadUrl(expense.id)}
+                                target="_blank"
+                                rel="noreferrer"
+                                aria-label={t('accounting.expenses.viewReceipt', 'Voir justificatif')}
+                              >
+                                <ReceiptIcon size={'1rem'} strokeWidth={1.75} />
+                              </a>
+                            </BuiButton>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('accounting.expenses.viewReceipt', 'Voir justificatif')}</TooltipContent>
                         </Tooltip>
-                        <Tooltip title={t('accounting.expenses.deleteReceipt', 'Supprimer justificatif')}>
-                          <IconButton
-                            size="small"
-                            color="default"
-                            onClick={() => deleteReceiptMutation.mutate(expense.id)}
-                            disabled={deleteReceiptMutation.isPending}
-                          >
-                            <DeleteReceiptIcon size={'1rem'} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <BuiButton
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t('accounting.expenses.deleteReceipt', 'Supprimer justificatif')}
+                                onClick={() => deleteReceiptMutation.mutate(expense.id)}
+                                disabled={deleteReceiptMutation.isPending}
+                              >
+                                <DeleteReceiptIcon size={'1rem'} strokeWidth={1.75} />
+                              </BuiButton>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('accounting.expenses.deleteReceipt', 'Supprimer justificatif')}</TooltipContent>
                         </Tooltip>
                       </>
                     ) : (
-                      <Tooltip title={t('accounting.expenses.uploadReceipt', 'Joindre justificatif')}>
-                        <IconButton
-                          size="small"
-                          color="default"
-                          onClick={() => handleReceiptUpload(expense.id)}
-                          disabled={uploadReceiptMutation.isPending}
-                        >
-                          <AttachFileIcon size={'1rem'} strokeWidth={1.75} />
-                        </IconButton>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <BuiButton
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={t('accounting.expenses.uploadReceipt', 'Joindre justificatif')}
+                              onClick={() => handleReceiptUpload(expense.id)}
+                              disabled={uploadReceiptMutation.isPending}
+                            >
+                              <AttachFileIcon size={'1rem'} strokeWidth={1.75} />
+                            </BuiButton>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('accounting.expenses.uploadReceipt', 'Joindre justificatif')}</TooltipContent>
                       </Tooltip>
                     )}
-                    <Tooltip title={t('accounting.expenses.generatePo', 'Bon de commande')}>
-                      <IconButton
-                        size="small"
-                        color="default"
-                        onClick={() => handleGeneratePo(expense)}
-                      >
-                        <PoIcon size={'1rem'} strokeWidth={1.75} />
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <BuiButton
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={t('accounting.expenses.generatePo', 'Bon de commande')}
+                          onClick={() => handleGeneratePo(expense)}
+                        >
+                          <PoIcon size={'1rem'} strokeWidth={1.75} />
+                        </BuiButton>
+                      </TooltipTrigger>
+                      <TooltipContent>{t('accounting.expenses.generatePo', 'Bon de commande')}</TooltipContent>
                     </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
           Create Expense Dialog
           ═══════════════════════════════════════════════════════════════════════ */}
-      <Dialog
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          {t('accounting.expenses.create', 'Nouvelle depense')}
-        </DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
-            <FormControl size="small" fullWidth>
-              <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('accounting.expenses.provider', 'Prestataire')}</InputLabel>
-              <Select
-                value={form.providerId ?? ''}
-                onChange={(e) => setForm((prev) => ({ ...prev, providerId: e.target.value as number }))}
-                label={t('accounting.expenses.provider', 'Prestataire')}
-                sx={{ fontSize: '0.8125rem' }}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent
+          aria-describedby={undefined}
+          className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto"
+        >
+          <DialogHeader>
+            <DialogTitle>
+              {t('accounting.expenses.create', 'Nouvelle depense')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex gap-2">
+            <Field className="flex-1">
+              <FieldLabel className="text-[0.8125rem]" htmlFor="expense-provider">
+                {t('accounting.expenses.provider', 'Prestataire')}
+              </FieldLabel>
+              {/* Option vide = etat « rien de choisi » du Select MUI : sans elle
+                  le select natif afficherait le premier prestataire alors que
+                  l'etat vaut encore undefined. */}
+              <NativeSelect
+                id="expense-provider"
+                className="w-full"
+                value={form.providerId != null ? String(form.providerId) : ''}
+                onChange={(e) => setForm((prev) => ({ ...prev, providerId: e.target.value === '' ? undefined : Number(e.target.value) }))}
               >
+                <option value="" />
                 {providers.map((p) => (
-                  <MenuItem key={p.id} value={p.id} sx={{ fontSize: '0.8125rem' }}>
+                  <option key={p.id} value={p.id}>
                     {p.firstName} {p.lastName}
-                  </MenuItem>
+                  </option>
                 ))}
-              </Select>
-            </FormControl>
-            <FormControl size="small" fullWidth>
-              <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('accounting.expenses.property', 'Logement')}</InputLabel>
-              <Select
-                value={form.propertyId ?? ''}
-                onChange={(e) => setForm((prev) => ({ ...prev, propertyId: e.target.value as number }))}
-                label={t('accounting.expenses.property', 'Logement')}
-                sx={{ fontSize: '0.8125rem' }}
+              </NativeSelect>
+            </Field>
+            <Field className="flex-1">
+              <FieldLabel className="text-[0.8125rem]" htmlFor="expense-property">
+                {t('accounting.expenses.property', 'Logement')}
+              </FieldLabel>
+              <NativeSelect
+                id="expense-property"
+                className="w-full"
+                value={form.propertyId != null ? String(form.propertyId) : ''}
+                onChange={(e) => setForm((prev) => ({ ...prev, propertyId: e.target.value === '' ? undefined : Number(e.target.value) }))}
               >
+                <option value="" />
                 {properties.map((p: Property) => (
-                  <MenuItem key={p.id} value={p.id} sx={{ fontSize: '0.8125rem' }}>
+                  <option key={p.id} value={p.id}>
                     {p.name}
-                  </MenuItem>
+                  </option>
                 ))}
-              </Select>
-            </FormControl>
-          </Box>
+              </NativeSelect>
+            </Field>
+          </div>
 
-          <TextField
-            label={t('accounting.expenses.description', 'Description')}
-            size="small"
-            fullWidth
-            value={form.description ?? ''}
-            onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-            InputProps={{ sx: { fontSize: '0.8125rem' } }}
-            InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-          />
+          <Field>
+            <FieldLabel className="text-[0.8125rem]" htmlFor="expense-description">
+              {t('accounting.expenses.description', 'Description')}
+            </FieldLabel>
+            <Input
+              id="expense-description"
+              className="w-full text-[0.8125rem]"
+              value={form.description ?? ''}
+              onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+            />
+          </Field>
 
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
-            <TextField
-              label={t('accounting.expenses.amountHt', 'Montant HT')}
-              type="number"
-              size="small"
-              fullWidth
-              value={form.amountHt ?? ''}
-              onChange={(e) => setForm((prev) => ({ ...prev, amountHt: parseFloat(e.target.value) || 0 }))}
-              InputProps={{ sx: { fontSize: '0.8125rem' } }}
-              InputLabelProps={{ shrink: true, sx: { fontSize: '0.8125rem' } }}
-            />
-            <TextField
-              label={t('accounting.expenses.taxRate', 'TVA %')}
-              type="number"
-              size="small"
-              sx={{ width: 120 }}
-              value={form.taxRate != null ? (form.taxRate * 100).toFixed(0) : ''}
-              onChange={(e) => setForm((prev) => ({ ...prev, taxRate: (parseFloat(e.target.value) || 0) / 100 }))}
-              inputProps={{ min: 0, max: 100, step: 1 }}
-              InputProps={{ sx: { fontSize: '0.8125rem' } }}
-              InputLabelProps={{ shrink: true, sx: { fontSize: '0.8125rem' } }}
-            />
-            <Typography sx={{ alignSelf: 'center', fontSize: '0.8125rem', fontWeight: 600, minWidth: 100 }}>
+          <div className="flex gap-2">
+            <Field className="flex-1">
+              <FieldLabel className="text-[0.8125rem]" htmlFor="expense-amount-ht">
+                {t('accounting.expenses.amountHt', 'Montant HT')}
+              </FieldLabel>
+              <Input
+                id="expense-amount-ht"
+                type="number"
+                className="w-full text-[0.8125rem]"
+                value={form.amountHt ?? ''}
+                onChange={(e) => setForm((prev) => ({ ...prev, amountHt: parseFloat(e.target.value) || 0 }))}
+              />
+            </Field>
+            <Field className="w-[120px] shrink-0">
+              <FieldLabel className="text-[0.8125rem]" htmlFor="expense-tax-rate">
+                {t('accounting.expenses.taxRate', 'TVA %')}
+              </FieldLabel>
+              <Input
+                id="expense-tax-rate"
+                type="number"
+                min={0}
+                max={100}
+                step={1}
+                className="w-full text-[0.8125rem]"
+                value={form.taxRate != null ? (form.taxRate * 100).toFixed(0) : ''}
+                onChange={(e) => setForm((prev) => ({ ...prev, taxRate: (parseFloat(e.target.value) || 0) / 100 }))}
+              />
+            </Field>
+            <p className="cn-text-body1 self-center text-[0.8125rem] font-semibold min-w-[100px]">
               TTC: {fmtCurrency((form.amountHt ?? 0) * (1 + (form.taxRate ?? 0)))}
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
-            <FormControl size="small" fullWidth>
-              <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('accounting.expenses.category', 'Categorie')}</InputLabel>
-              <Select
+          <div className="flex gap-2">
+            <Field className="flex-1">
+              <FieldLabel className="text-[0.8125rem]" htmlFor="expense-category">
+                {t('accounting.expenses.category', 'Categorie')}
+              </FieldLabel>
+              <NativeSelect
+                id="expense-category"
+                className="w-full"
                 value={form.category ?? ''}
                 onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value as ExpenseCategory }))}
-                label={t('accounting.expenses.category', 'Categorie')}
-                sx={{ fontSize: '0.8125rem' }}
               >
+                <option value="" />
                 {CATEGORY_OPTIONS.map((cat) => (
-                  <MenuItem key={cat} value={cat} sx={{ fontSize: '0.8125rem' }}>
+                  <option key={cat} value={cat}>
                     {t(`accounting.expenses.categories.${cat}`, cat)}
-                  </MenuItem>
+                  </option>
                 ))}
-              </Select>
-            </FormControl>
-            <TextField
-              label={t('accounting.expenses.date', 'Date')}
-              type="date"
-              size="small"
-              fullWidth
-              value={form.expenseDate ?? ''}
-              onChange={(e) => setForm((prev) => ({ ...prev, expenseDate: e.target.value }))}
-              InputLabelProps={{ shrink: true, sx: { fontSize: '0.8125rem' } }}
-              InputProps={{ sx: { fontSize: '0.8125rem' } }}
+              </NativeSelect>
+            </Field>
+            <Field className="flex-1">
+              <FieldLabel className="text-[0.8125rem]" htmlFor="expense-date">
+                {t('accounting.expenses.date', 'Date')}
+              </FieldLabel>
+              <Input
+                id="expense-date"
+                type="date"
+                className="w-full text-[0.8125rem]"
+                value={form.expenseDate ?? ''}
+                onChange={(e) => setForm((prev) => ({ ...prev, expenseDate: e.target.value }))}
+              />
+            </Field>
+          </div>
+
+          <Field>
+            <FieldLabel className="text-[0.8125rem]" htmlFor="expense-invoice-ref">
+              {t('accounting.expenses.invoiceRef', 'Ref. facture')}
+            </FieldLabel>
+            <Input
+              id="expense-invoice-ref"
+              className="w-full text-[0.8125rem]"
+              value={form.invoiceReference ?? ''}
+              onChange={(e) => setForm((prev) => ({ ...prev, invoiceReference: e.target.value }))}
             />
-          </Box>
+          </Field>
 
-          <TextField
-            label={t('accounting.expenses.invoiceRef', 'Ref. facture')}
-            size="small"
-            fullWidth
-            value={form.invoiceReference ?? ''}
-            onChange={(e) => setForm((prev) => ({ ...prev, invoiceReference: e.target.value }))}
-            InputProps={{ sx: { fontSize: '0.8125rem' } }}
-            InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-          />
-
-          <TextField
-            label={t('accounting.expenses.notes', 'Notes')}
-            size="small"
-            fullWidth
-            multiline
-            rows={2}
-            value={form.notes ?? ''}
-            onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
-            InputProps={{ sx: { fontSize: '0.8125rem' } }}
-            InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-          />
+          <Field>
+            <FieldLabel className="text-[0.8125rem]" htmlFor="expense-notes">
+              {t('accounting.expenses.notes', 'Notes')}
+            </FieldLabel>
+            <Textarea
+              id="expense-notes"
+              rows={2}
+              className="w-full text-[0.8125rem]"
+              value={form.notes ?? ''}
+              onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+            />
+          </Field>
+          <DialogFooter>
+            <BuiButton variant="ghost" size="sm" onClick={() => setCreateOpen(false)}>
+              {t('common.cancel', 'Annuler')}
+            </BuiButton>
+            <BuiButton
+              size="sm"
+              onClick={handleCreate}
+              disabled={createMutation.isPending || !form.providerId || !form.propertyId || !form.description || !form.amountHt}
+            >
+              {createMutation.isPending ? <Spinner className="size-4" /> : t('common.save', 'Enregistrer')}
+            </BuiButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setCreateOpen(false)} size="small" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
-            {t('common.cancel', 'Annuler')}
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            onClick={handleCreate}
-            disabled={createMutation.isPending || !form.providerId || !form.propertyId || !form.description || !form.amountHt}
-            sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
-          >
-            {createMutation.isPending ? <CircularProgress size={16} /> : t('common.save', 'Enregistrer')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* ═══════════════════════════════════════════════════════════════════════
           Mark as Paid Dialog
           ═══════════════════════════════════════════════════════════════════════ */}
-      <Dialog
-        open={payOpen}
-        onClose={() => setPayOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>
-          {t('accounting.expenses.markPaid', 'Marquer comme paye')}
-        </DialogTitle>
-        <DialogContent sx={{ pt: '16px !important' }}>
+      <Dialog open={payOpen} onOpenChange={setPayOpen}>
+        <DialogContent aria-describedby={undefined} className="sm:max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>
+              {t('accounting.expenses.markPaid', 'Marquer comme paye')}
+            </DialogTitle>
+          </DialogHeader>
           {payTarget && (
-            <Typography sx={{ fontSize: '0.8125rem', mb: 2, color: 'text.secondary' }}>
+            <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground">
               {payTarget.description} — {fmtCurrency(payTarget.amountTtc, payTarget.currency)}
-            </Typography>
+            </p>
           )}
-          <TextField
-            label={t('accounting.expenses.paymentRef', 'Reference de paiement')}
-            size="small"
-            fullWidth
-            value={payRef}
-            onChange={(e) => setPayRef(e.target.value)}
-            placeholder="VIR-2024-001, CB-xxx..."
-            InputProps={{ sx: { fontSize: '0.8125rem' } }}
-            InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-          />
+          <Field>
+            <FieldLabel className="text-[0.8125rem]" htmlFor="expense-payment-ref">
+              {t('accounting.expenses.paymentRef', 'Reference de paiement')}
+            </FieldLabel>
+            <Input
+              id="expense-payment-ref"
+              className="w-full text-[0.8125rem]"
+              value={payRef}
+              onChange={(e) => setPayRef(e.target.value)}
+              placeholder="VIR-2024-001, CB-xxx..."
+            />
+          </Field>
+          <DialogFooter>
+            <BuiButton variant="ghost" size="sm" onClick={() => setPayOpen(false)}>
+              {t('common.cancel', 'Annuler')}
+            </BuiButton>
+            {/* Idem : action principale de la modale, la teinte succes d'origine
+                n'apportait rien de plus que l'emphase. */}
+            <BuiButton size="sm" onClick={handleMarkPaid} disabled={payMutation.isPending}>
+              {payMutation.isPending ? <Spinner className="size-4" /> : t('accounting.expenses.markPaid', 'Confirmer paiement')}
+            </BuiButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setPayOpen(false)} size="small" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
-            {t('common.cancel', 'Annuler')}
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            color="success"
-            onClick={handleMarkPaid}
-            disabled={payMutation.isPending}
-            sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
-          >
-            {payMutation.isPending ? <CircularProgress size={16} /> : t('accounting.expenses.markPaid', 'Confirmer paiement')}
-          </Button>
-        </DialogActions>
       </Dialog>
     </>
   );
@@ -1301,7 +1450,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'fec',
     titleKey: 'accounting.exports.fec',
     descKey: 'accounting.exports.fecDesc',
-    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><AccountIcon size={32} strokeWidth={1.75} /></Box>,
+    icon: <span className="inline-flex text-[var(--accent)]"><AccountIcon size={32} strokeWidth={1.75} /></span>,
     format: 'txt',
     download: (from, to) => accountingExportApi.downloadFec(from, to),
     preview: (from, to) => accountingExportApi.previewFec(from, to),
@@ -1310,7 +1459,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'reservations',
     titleKey: 'accounting.exports.reservationsCsv',
     descKey: 'accounting.exports.reservationsCsvDesc',
-    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><ListAltIcon size={32} strokeWidth={1.75} /></Box>,
+    icon: <span className="inline-flex text-[var(--ok)]"><ListAltIcon size={32} strokeWidth={1.75} /></span>,
     format: 'csv',
     download: (from, to) => accountingExportApi.downloadReservationsCsv(from, to),
     preview: (from, to) => accountingExportApi.previewReservationsCsv(from, to),
@@ -1319,7 +1468,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'payouts',
     titleKey: 'accounting.exports.payoutsCsv',
     descKey: 'accounting.exports.payoutsCsvDesc',
-    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><AttachMoneyIcon size={32} strokeWidth={1.75} /></Box>,
+    icon: <span className="inline-flex text-[var(--info)]"><AttachMoneyIcon size={32} strokeWidth={1.75} /></span>,
     format: 'csv',
     download: (from, to) => accountingExportApi.downloadPayoutsCsv(from, to),
     preview: (from, to) => accountingExportApi.previewPayoutsCsv(from, to),
@@ -1328,7 +1477,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'expenses',
     titleKey: 'accounting.exports.expensesCsv',
     descKey: 'accounting.exports.expensesCsvDesc',
-    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><BuildIcon size={32} strokeWidth={1.75} /></Box>,
+    icon: <span className="inline-flex text-[var(--warn)]"><BuildIcon size={32} strokeWidth={1.75} /></span>,
     format: 'csv',
     download: (from, to) => accountingExportApi.downloadExpensesCsv(from, to),
     preview: (from, to) => accountingExportApi.previewExpensesCsv(from, to),
@@ -1337,7 +1486,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'invoices',
     titleKey: 'accounting.exports.invoicesCsv',
     descKey: 'accounting.exports.invoicesCsvDesc',
-    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><ArticleIcon size={32} strokeWidth={1.75} /></Box>,
+    icon: <span className="inline-flex text-[var(--muted)]"><ArticleIcon size={32} strokeWidth={1.75} /></span>,
     format: 'csv',
     download: (from, to) => accountingExportApi.downloadInvoicesCsv(from, to),
     preview: (from, to) => accountingExportApi.previewInvoicesCsv(from, to),
@@ -1410,86 +1559,96 @@ export const ExportsTab: React.FC = () => {
   );
 
   return (
-    <Box>
+    <div>
       {helpAction}
 
       {/* Period selector */}
-      <Paper sx={{ ...CARD_SX, p: 2, mb: 2 }}>
-        <Typography sx={{ mb: 1.5, fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--faint)' }}>
+      <div className={cn(PANEL_CLASS, 'p-3 mb-3')}>
+        <p className="cn-text-body1 mb-2 text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)]">
           {t('accounting.exports.period', 'Periode d\'export')}
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-          <TextField
-            type="date"
-            label={t('accounting.exports.from', 'Du')}
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            size="small"
-            InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 160 }}
-          />
-          <TextField
-            type="date"
-            label={t('accounting.exports.to', 'Au')}
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            size="small"
-            InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 160 }}
-          />
-        </Box>
-      </Paper>
+        </p>
+        <div className="flex gap-3 flex-wrap items-center">
+          <Field className="w-auto min-w-[160px]">
+            <FieldLabel htmlFor="export-period-from">{t('accounting.exports.from', 'Du')}</FieldLabel>
+            <Input
+              id="export-period-from"
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+            />
+          </Field>
+          <Field className="w-auto min-w-[160px]">
+            <FieldLabel htmlFor="export-period-to">{t('accounting.exports.to', 'Au')}</FieldLabel>
+            <Input
+              id="export-period-to"
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+            />
+          </Field>
+        </div>
+      </div>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* Export cards */}
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {EXPORT_CARDS.map((card) => (
-          <Grid item xs={12} sm={6} md={4} key={card.key}>
-            <Card sx={{ ...CARD_SX, height: '100%' }}>
-              <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+          <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4" key={card.key}>
+            {/* Le sx d'origine ne faisait que redire le gabarit de la carte du
+                kit (surface, hairline, rayon) : supprime. */}
+            <Card className="h-full gap-0 py-0">
+              <CardContent className="flex flex-col h-full p-3">
+                <div className="flex items-center gap-2 mb-2">
                   {card.icon}
-                  <Typography sx={{ fontWeight: 600, fontSize: '13.5px', color: 'var(--ink)' }}>
+                  <p className="cn-text-body1 font-semibold text-[13.5px] text-[var(--ink)]">
                     {t(card.titleKey)}
-                  </Typography>
-                </Box>
-                <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', mb: 2, flex: 1 }}>
+                  </p>
+                </div>
+                <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mb-3 flex-1">
                   {t(card.descKey)}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<VisibilityIcon />}
+                </p>
+                <div className="flex gap-1.5">
+                  {/* Paire d'actions a poids egal (previsualiser / telecharger) :
+                      outline des deux cotes, aucune ne domine la carte. */}
+                  <BuiButton
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
                     disabled={!from || !to || loadingKey !== null}
                     onClick={() => handlePreview(card)}
-                    sx={{ flex: 1 }}
                   >
+                    <VisibilityIcon />
                     {t('common.view')}
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={loadingKey === card.key ? <CircularProgress size={14} /> : <DownloadIcon />}
+                  </BuiButton>
+                  <BuiButton
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
                     disabled={!from || !to || loadingKey !== null}
                     onClick={() => handleDownload(card)}
-                    sx={{ flex: 1 }}
                   >
+                    {loadingKey === card.key ? <Spinner className="size-3.5" /> : <DownloadIcon />}
                     {loadingKey === card.key
                       ? t('accounting.exports.downloading', 'Telechargement...')
                       : t('accounting.exports.download', 'Telecharger')}
-                  </Button>
-                </Box>
+                  </BuiButton>
+                </div>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
         ))}
-      </Grid>
+      </div>
 
       <ExportPreviewDialog
         open={previewOpen}
@@ -1500,6 +1659,6 @@ export const ExportsTab: React.FC = () => {
         format={previewFormat}
         error={previewError}
       />
-    </Box>
+    </div>
   );
 };

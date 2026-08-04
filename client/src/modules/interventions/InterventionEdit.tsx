@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { Spinner } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Box, CircularProgress } from '@mui/material';
+import { Button } from '../../components/ui';
 import { Cancel, Save } from "../../icons";
 import InterventionForm from './InterventionForm';
 import PageHeader from '../../components/PageHeader';
@@ -13,7 +14,7 @@ const InterventionEdit: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   return (
-    <Box sx={{ p: 3 }}>
+    <div className="p-4">
       <PageHeader
         title={t('interventions.editTitle')}
         subtitle={t('interventions.subtitle')}
@@ -21,33 +22,32 @@ const InterventionEdit: React.FC = () => {
         backLabel="Retour aux détails"
         showBackButton={true}
         actions={
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <div className="flex gap-1.5">
             <Button
-              variant="outlined"
-              size="small"
+              variant="outline"
+              size="sm"
               onClick={() => navigate(`/interventions/${id}`)}
-              startIcon={<Cancel size={18} strokeWidth={1.75} />}
               disabled={loading}
               title={t('common.cancel')}
             >
+              <Cancel size={18} strokeWidth={1.75} />
               {t('common.cancel')}
             </Button>
             <Button
-              variant="contained"
-              size="small"
+              size="sm"
               onClick={() => {
                 const submitButton = document.querySelector('[data-submit-intervention]') as HTMLButtonElement;
                 if (submitButton) {
                   submitButton.click();
                 }
               }}
-              startIcon={loading ? <CircularProgress size={16} /> : <Save size={18} strokeWidth={1.75} />}
               disabled={loading}
               title={t('common.save')}
             >
+              {loading ? <Spinner className="size-4" /> : <Save size={18} strokeWidth={1.75} />}
               {loading ? t('common.loading') : t('common.save')}
             </Button>
-          </Box>
+          </div>
         }
       />
 
@@ -57,7 +57,7 @@ const InterventionEdit: React.FC = () => {
         setLoading={setLoading}
         loading={loading}
       />
-    </Box>
+    </div>
   );
 };
 

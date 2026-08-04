@@ -1,12 +1,13 @@
 import React from 'react';
+import { cn } from '../../../utils/cn';
 import {
-  Box,
   Card,
   CardContent,
-  Typography,
   Skeleton,
   Tooltip,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import {
   TrendingUp,
   TrendingDown,
@@ -35,20 +36,6 @@ interface AnalyticsWidgetCardProps {
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
-const CARD_SX = {
-  width: '100%',
-  transition: 'border-color 0.15s ease',
-  '&:hover': { borderColor: 'var(--line-2)' },
-} as const;
-
-const CARD_CONTENT_SX = {
-  p: 1.25,
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  '&:last-child': { pb: 1.25 },
-} as const;
-
 const VALUE_SX = {
   fontFamily: 'var(--font-display)',
   fontWeight: 600,
@@ -65,18 +52,26 @@ const VALUE_SX = {
   maxWidth: '100%',
 } as const;
 
+/** Report en classes de `VALUE_SX`. */
+const VALUE_CLASS =
+  'cn-text-h6 [font-family:var(--font-display)] font-semibold leading-[1.15] tracking-[-0.025em] text-[var(--ink)] tabular-nums mt-[1.5px] truncate max-w-full';
+
 /**
  * Taille du chiffre adaptée à sa longueur (responsive) — un montant comme
  * « 120.00 € » doit tenir sur une ligne dans une carte étroite, alors qu'un
  * « 1 » ou « 46.7% » peut être affiché en grand.
+ *
+ * Les classes sont ecrites en toutes lettres : Tailwind ne peut pas les
+ * fabriquer depuis une valeur calculee a l'execution. Le palier `md` du theme
+ * vaut 900 px (breakpoints MUI par defaut), pas le `md` de Tailwind.
  */
-function valueFontSize(value?: string): { xs: string; md: string } {
-  if (value == null) return { xs: '1.05rem', md: '1.2rem' }; // nœud sans hint → taille moyenne sûre
+function valueFontSizeClass(value?: string): string {
+  if (value == null) return 'text-[1.05rem] min-[900px]:text-[1.2rem]'; // nœud sans hint → taille moyenne sûre
   const len = value.length;
-  if (len <= 5) return { xs: '1.5rem', md: '1.75rem' };
-  if (len <= 8) return { xs: '1.25rem', md: '1.45rem' };
-  if (len <= 12) return { xs: '1.05rem', md: '1.2rem' };
-  return { xs: '0.9rem', md: '1rem' };
+  if (len <= 5) return 'text-[1.5rem] min-[900px]:text-[1.75rem]';
+  if (len <= 8) return 'text-[1.25rem] min-[900px]:text-[1.45rem]';
+  if (len <= 12) return 'text-[1.05rem] min-[900px]:text-[1.2rem]';
+  return 'text-[0.9rem] min-[900px]:text-[1rem]';
 }
 
 const TITLE_SX = {
@@ -91,12 +86,19 @@ const TITLE_SX = {
   whiteSpace: 'nowrap',
 } as const;
 
+/** Report en classes de `TITLE_SX` (la couleur du `sx` bat le prop `color`). */
+const TITLE_CLASS =
+  'cn-text-body2 text-[10.5px] font-bold leading-[1.2] tracking-[0.05em] uppercase text-[var(--faint)] truncate';
+
 const GROWTH_SX = {
   fontSize: '0.5625rem',
   fontWeight: 600,
   fontVariantNumeric: 'tabular-nums',
   letterSpacing: '0.01em',
 } as const;
+
+/** Report en classes de `GROWTH_SX`. */
+const GROWTH_CLASS = 'text-[0.5625rem] font-semibold tabular-nums tracking-[0.01em]';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -121,57 +123,46 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
   const sizingText = typeof value === 'string' ? value : valueText;
 
   const cardContent = (
+    // `--card-spacing` porte le p:1.25 d'origine : la Card du kit applique deja
+    // le padding vertical, CardContent l'horizontal — inutile de le reposer.
     <Card
-      sx={{
-        ...CARD_SX,
-        minWidth,
-        height: height || '100%',
-        cursor: onClick ? 'pointer' : 'default',
-      }}
+      className="w-full transition-[box-shadow] duration-150 hover:ring-[var(--line-2)] [--card-spacing:7.5px]"
+      style={{ minWidth, height: height || '100%', cursor: onClick ? 'pointer' : 'default' }}
       onClick={onClick}
     >
-      <CardContent sx={CARD_CONTENT_SX}>
+      <CardContent className="h-full flex flex-col min-h-0">
         {loading ? (
-          <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
-              <Skeleton variant="rectangular" width={28} height={28} sx={{ borderRadius: 1 }} />
-              <Box sx={{ flex: 1 }}>
-                <Skeleton variant="text" width="60%" height={14} />
-                <Skeleton variant="text" width="40%" height={20} />
-              </Box>
-            </Box>
-            <Skeleton variant="text" width="50%" height={10} />
-          </Box>
+          <div>
+            <div className="flex items-center gap-1 mb-0.5">
+              <Skeleton className="w-[28px] h-[28px] rounded-lg" />
+              <div className="flex-1">
+                <Skeleton className="w-[60%] h-[14px]" />
+                <Skeleton className="w-[40%] h-[20px] mt-0.5" />
+              </div>
+            </div>
+            <Skeleton className="w-[50%] h-[10px] mt-0.5" />
+          </div>
         ) : (
           <>
             {/* Header row with icon + title */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
+            <div className="flex items-center gap-1 mb-0.5">
               {icon && (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    minWidth: 28,
-                    height: 28,
-                    borderRadius: 'var(--radius-sm)',
-                    bgcolor: 'var(--accent-soft)',
-                    '& .MuiSvgIcon-root': { fontSize: 16 },
-                  }}
-                >
+                <div className="flex items-center justify-center min-w-[28px] h-[28px] rounded-[var(--radius-sm)] bg-[var(--accent-soft)] [&_.MuiSvgIcon-root]:text-[16px]">
                   {icon}
-                </Box>
+                </div>
               )}
-              <Typography variant="body2" color="text.secondary" sx={TITLE_SX}>
+              <p className={TITLE_CLASS}>
                 {title}
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
-            {/* Value */}
+            {/* Value — la taille passe AVANT VALUE_CLASS : tailwind-merge
+                considere qu'une classe `text-[taille]` porte aussi la hauteur
+                de ligne et supprimerait un `leading-*` qui la precede. */}
             {value != null && value !== '' && (
-              <Typography variant="h6" component="div" sx={{ ...VALUE_SX, fontSize: valueFontSize(sizingText) }} title={sizingText}>
+              <div className={cn(valueFontSizeClass(sizingText), VALUE_CLASS)} title={sizingText}>
                 {value}
-              </Typography>
+              </div>
             )}
 
             {/* La description (subtitle) n'est plus affichée dans la carte :
@@ -180,36 +171,26 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
 
             {/* Trend */}
             {trend && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, mt: 0.25 }}>
+              <div className="flex items-center gap-0.5 mt-0.5">
                 {trend.value > 0 ? (
                   <TrendingUp color="success" size={11} strokeWidth={1.75} />
                 ) : trend.value < 0 ? (
                   <TrendingDown color="error" size={11} strokeWidth={1.75} />
                 ) : (
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><Remove size={11} strokeWidth={1.75} /></Box>
+                  <span className="inline-flex text-muted-foreground opacity-60"><Remove size={11} strokeWidth={1.75} /></span>
                 )}
-                <Typography
-                  variant="caption"
-                  sx={{
-                    ...GROWTH_SX,
-                    color: trend.value > 0
-                      ? 'success.main'
-                      : trend.value < 0
-                      ? 'error.main'
-                      : 'text.disabled',
-                  }}
-                >
+                <span className={cn(GROWTH_CLASS, 'cn-text-caption', trend.value > 0 ? 'text-[var(--ok)]' : trend.value < 0 ? 'text-[var(--err)]' : 'text-[var(--faint)]')}>
                   {trend.value > 0 ? '+' : ''}{trend.value}%
                   {trend.label ? ` ${trend.label}` : ''}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             )}
 
             {/* Custom content (charts, etc.) */}
             {children && (
-              <Box sx={{ flex: 1, minHeight: 0, mt: 0.5 }}>
+              <div className="flex-1 min-h-0 mt-0.5">
                 {children}
-              </Box>
+              </div>
             )}
           </>
         )}
@@ -219,8 +200,13 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
 
   if (resolvedTooltip) {
     return (
-      <Tooltip title={resolvedTooltip} arrow placement="top">
-        {cardContent}
+      <Tooltip>
+        {/* Le <div> intermediaire porte la ref exigee par `asChild` : la Card du
+            kit est une fonction simple et ne la transmet pas. */}
+        <TooltipTrigger asChild>
+          <div className="w-full h-full">{cardContent}</div>
+        </TooltipTrigger>
+        <TooltipContent side="top">{resolvedTooltip}</TooltipContent>
       </Tooltip>
     );
   }

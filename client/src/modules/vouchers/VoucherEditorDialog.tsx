@@ -1,28 +1,36 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { Button } from '../../components/ui';
 import {
-  Alert,
-  Box,
-  Button,
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  FormControl,
-  Grid,
-  InputAdornment,
-  InputLabel,
-  MenuItem,
-  Select,
-  Stack,
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  NativeSelect,
   Switch,
-  TextField,
-  Typography,
-  Autocomplete,
-  Chip,
-  FormHelperText,
-} from '@mui/material';
+  Textarea,
+  useComboboxAnchor,
+} from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
-import { usePropertiesList } from '../../hooks/usePropertiesList';
+import { usePropertiesList, type PropertyListItem } from '../../hooks/usePropertiesList';
 import {
   useCreateBookingVoucher,
   useUpdateBookingVoucher,
@@ -64,6 +72,9 @@ interface FormState {
   applyToAllProperties: boolean;
 }
 
+/** Libelle affiche d'un logement dans le multi-select (repli sur l'id si sans nom). */
+const propertyLabel = (p: PropertyListItem) => p.name ?? `Property #${p.id}`;
+
 function initFromVoucher(v: BookingVoucher | null): FormState {
   return {
     name: v?.name ?? '',
@@ -95,11 +106,14 @@ function initFromVoucher(v: BookingVoucher | null): FormState {
  *
  * <p>`applyToAllProperties` est un toggle UX qui se mappe sur le scope :
  * true → propertyIds vide (= toutes les properties de l'org), false →
- * Autocomplete multi-select obligatoire.</p>
+ * multi-select de logements obligatoire.</p>
  */
 export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }: Props) {
   const { t } = useTranslation();
   const isEdit = voucher !== null;
+  // Appele inconditionnellement : le multi-select n'est rendu que si le toggle
+  // « toutes les proprietes » est off, mais un hook ne peut pas etre conditionnel.
+  const propertiesAnchor = useComboboxAnchor();
   const [form, setForm] = useState<FormState>(() => initFromVoucher(voucher));
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // Guard synchrone contre le double-submit (clic rapide avant que React
@@ -190,262 +204,323 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
   };
 
   const selectedPropertyIdSet = new Set(form.propertyIds);
+  const selectedProperties = properties.filter((p) => selectedPropertyIdSet.has(Number(p.id)));
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        {isEdit ? t('vouchers.editor.editTitle') : t('vouchers.editor.createTitle')}
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      {/* `maxWidth="md"` MUI = 900 px (breakpoints non configures). */}
+      <DialogContent className="sm:max-w-[900px]">
+        <DialogHeader>
+          <DialogTitle>
+            {isEdit ? t('vouchers.editor.editTitle') : t('vouchers.editor.createTitle')}
+          </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent dividers>
-        {errorMsg && <Alert severity="error" sx={{ mb: 2 }}>{errorMsg}</Alert>}
+        {/* Le defilement porte sur le corps du formulaire, pas sur DialogContent :
+            titre et pied restent visibles, comme le `dividers` du Dialog MUI. */}
+        <div className="max-h-[65vh] overflow-y-auto border-y border-solid border-[var(--line)] py-3">
+        {errorMsg && <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{errorMsg}</AlertDescription>
+        </Alert>}
 
-        <Grid container spacing={2}>
+        <div className="grid grid-cols-12 gap-3">
           {/* Identite */}
-          <Grid item xs={12} md={8}>
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.name')}
-              value={form.name}
-              onChange={(e) => update('name', e.target.value)}
-              required
-              helperText={t('vouchers.editor.nameHelper')}
-            />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth>
-              <InputLabel>{t('vouchers.editor.status')}</InputLabel>
-              <Select
+          <div className="col-span-12 min-[900px]:col-span-8">
+            <Field>
+              <FieldLabel htmlFor="voucher-name">{t('vouchers.editor.name')}</FieldLabel>
+              <Input
+                id="voucher-name"
+                className="w-full"
+                value={form.name}
+                onChange={(e) => update('name', e.target.value)}
+                required
+              />
+              <FieldDescription>{t('vouchers.editor.nameHelper')}</FieldDescription>
+            </Field>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-4">
+            <Field>
+              <FieldLabel htmlFor="voucher-status">{t('vouchers.editor.status')}</FieldLabel>
+              <NativeSelect
+                id="voucher-status"
+                className="w-full"
                 value={form.status}
-                label={t('vouchers.editor.status')}
                 onChange={(e) => update('status', e.target.value as VoucherStatus)}
               >
-                <MenuItem value="DRAFT">{t('vouchers.status.DRAFT')}</MenuItem>
-                <MenuItem value="ACTIVE">{t('vouchers.status.ACTIVE')}</MenuItem>
-                <MenuItem value="PAUSED">{t('vouchers.status.PAUSED')}</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+                <option value="DRAFT">{t('vouchers.status.DRAFT')}</option>
+                <option value="ACTIVE">{t('vouchers.status.ACTIVE')}</option>
+                <option value="PAUSED">{t('vouchers.status.PAUSED')}</option>
+              </NativeSelect>
+            </Field>
+          </div>
 
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.description')}
-              value={form.description}
-              onChange={(e) => update('description', e.target.value)}
-              multiline
-              rows={2}
-            />
-          </Grid>
+          <div className="col-span-12">
+            <Field>
+              <FieldLabel htmlFor="voucher-description">{t('vouchers.editor.description')}</FieldLabel>
+              <Textarea
+                id="voucher-description"
+                className="w-full"
+                rows={2}
+                value={form.description}
+                onChange={(e) => update('description', e.target.value)}
+              />
+            </Field>
+          </div>
 
           {/* Type + Code */}
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>{t('vouchers.editor.type')}</InputLabel>
-              <Select
+          <div className="col-span-12 min-[900px]:col-span-6">
+            <Field>
+              <FieldLabel htmlFor="voucher-type">{t('vouchers.editor.type')}</FieldLabel>
+              <NativeSelect
+                id="voucher-type"
+                className="w-full"
                 value={form.type}
-                label={t('vouchers.editor.type')}
                 onChange={(e) => update('type', e.target.value as VoucherType)}
                 disabled={isEdit}
               >
-                <MenuItem value="MANUAL_CODE">{t('vouchers.typeManual')}</MenuItem>
-                <MenuItem value="AUTO_CAMPAIGN">{t('vouchers.typeAuto')}</MenuItem>
-              </Select>
-              <FormHelperText>
+                <option value="MANUAL_CODE">{t('vouchers.typeManual')}</option>
+                <option value="AUTO_CAMPAIGN">{t('vouchers.typeAuto')}</option>
+              </NativeSelect>
+              <FieldDescription>
                 {isAuto ? t('vouchers.editor.typeAutoHelper') : t('vouchers.editor.typeManualHelper')}
-              </FormHelperText>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={6}>
+              </FieldDescription>
+            </Field>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-6">
             {!isAuto && (
-              <TextField
-                fullWidth
-                label={t('vouchers.editor.code')}
-                value={form.code}
-                onChange={(e) => update('code', e.target.value.toUpperCase())}
-                required
-                placeholder="WELCOME20"
-                inputProps={{ style: { fontFamily: 'monospace', letterSpacing: 1 } }}
-                helperText={t('vouchers.editor.codeHelper')}
-              />
+              <Field>
+                <FieldLabel htmlFor="voucher-code">{t('vouchers.editor.code')}</FieldLabel>
+                <Input
+                  id="voucher-code"
+                  className="w-full font-mono tracking-[1px]"
+                  value={form.code}
+                  onChange={(e) => update('code', e.target.value.toUpperCase())}
+                  required
+                  placeholder="WELCOME20"
+                />
+                <FieldDescription>{t('vouchers.editor.codeHelper')}</FieldDescription>
+              </Field>
             )}
-          </Grid>
+          </div>
 
           {/* Discount */}
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth>
-              <InputLabel>{t('vouchers.editor.discountType')}</InputLabel>
-              <Select
+          <div className="col-span-12 min-[900px]:col-span-4">
+            <Field>
+              <FieldLabel htmlFor="voucher-discount-type">{t('vouchers.editor.discountType')}</FieldLabel>
+              <NativeSelect
+                id="voucher-discount-type"
+                className="w-full"
                 value={form.discountType}
-                label={t('vouchers.editor.discountType')}
                 onChange={(e) => update('discountType', e.target.value as VoucherDiscountType)}
               >
-                <MenuItem value="PERCENTAGE">{t('vouchers.editor.discountPercentage')}</MenuItem>
-                <MenuItem value="FIXED_AMOUNT">{t('vouchers.editor.discountFixed')}</MenuItem>
-                <MenuItem value="FREE_NIGHTS" disabled>
+                <option value="PERCENTAGE">{t('vouchers.editor.discountPercentage')}</option>
+                <option value="FIXED_AMOUNT">{t('vouchers.editor.discountFixed')}</option>
+                <option value="FREE_NIGHTS" disabled>
                   {t('vouchers.editor.discountFreeNights')} ({t('vouchers.editor.comingSoon')})
-                </MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.discountValue')}
-              type="number"
-              value={form.discountValue}
-              onChange={(e) => update('discountValue', e.target.value)}
-              InputProps={{
-                endAdornment: <InputAdornment position="end">{discountUnit}</InputAdornment>,
-              }}
-              required
-            />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth>
-              <InputLabel>{t('vouchers.editor.channelScope')}</InputLabel>
-              <Select
+                </option>
+              </NativeSelect>
+            </Field>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-4">
+            <Field>
+              <FieldLabel htmlFor="voucher-discount-value">{t('vouchers.editor.discountValue')}</FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="voucher-discount-value"
+                  type="number"
+                  value={form.discountValue}
+                  onChange={(e) => update('discountValue', e.target.value)}
+                  required
+                />
+                <InputGroupAddon align="inline-end">{discountUnit}</InputGroupAddon>
+              </InputGroup>
+            </Field>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-4">
+            <Field>
+              <FieldLabel htmlFor="voucher-channel-scope">{t('vouchers.editor.channelScope')}</FieldLabel>
+              <NativeSelect
+                id="voucher-channel-scope"
+                className="w-full"
                 value={form.channelScope}
-                label={t('vouchers.editor.channelScope')}
                 onChange={(e) => update('channelScope', e.target.value as VoucherChannelScope)}
               >
-                <MenuItem value="ALL">{t('vouchers.editor.channelAll')}</MenuItem>
-                <MenuItem value="BOOKING_ENGINE">{t('vouchers.editor.channelBookingEngine')}</MenuItem>
-                <MenuItem value="DIRECT_LINK">{t('vouchers.editor.channelDirectLink')}</MenuItem>
-                <MenuItem value="WHATSAPP">WhatsApp</MenuItem>
-                <MenuItem value="EMAIL">Email</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+                <option value="ALL">{t('vouchers.editor.channelAll')}</option>
+                <option value="BOOKING_ENGINE">{t('vouchers.editor.channelBookingEngine')}</option>
+                <option value="DIRECT_LINK">{t('vouchers.editor.channelDirectLink')}</option>
+                <option value="WHATSAPP">WhatsApp</option>
+                <option value="EMAIL">Email</option>
+              </NativeSelect>
+            </Field>
+          </div>
 
           {/* Validite */}
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.validFrom')}
-              type="datetime-local"
-              value={form.validFrom}
-              onChange={(e) => update('validFrom', e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              helperText={t('vouchers.editor.validFromHelper')}
-            />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.validUntil')}
-              type="datetime-local"
-              value={form.validUntil}
-              onChange={(e) => update('validUntil', e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              helperText={t('vouchers.editor.validUntilHelper')}
-            />
-          </Grid>
+          <div className="col-span-12 min-[900px]:col-span-6">
+            <Field>
+              <FieldLabel htmlFor="voucher-valid-from">{t('vouchers.editor.validFrom')}</FieldLabel>
+              <Input
+                id="voucher-valid-from"
+                className="w-full"
+                type="datetime-local"
+                value={form.validFrom}
+                onChange={(e) => update('validFrom', e.target.value)}
+              />
+              <FieldDescription>{t('vouchers.editor.validFromHelper')}</FieldDescription>
+            </Field>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-6">
+            <Field>
+              <FieldLabel htmlFor="voucher-valid-until">{t('vouchers.editor.validUntil')}</FieldLabel>
+              <Input
+                id="voucher-valid-until"
+                className="w-full"
+                type="datetime-local"
+                value={form.validUntil}
+                onChange={(e) => update('validUntil', e.target.value)}
+              />
+              <FieldDescription>{t('vouchers.editor.validUntilHelper')}</FieldDescription>
+            </Field>
+          </div>
 
           {/* Limites usage */}
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.maxUsesTotal')}
-              type="number"
-              value={form.maxUsesTotal}
-              onChange={(e) => update('maxUsesTotal', e.target.value)}
-              helperText={t('vouchers.editor.maxUsesTotalHelper')}
-            />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.maxUsesPerGuest')}
-              type="number"
-              value={form.maxUsesPerGuest}
-              onChange={(e) => update('maxUsesPerGuest', e.target.value)}
-              helperText={t('vouchers.editor.maxUsesPerGuestHelper')}
-            />
-          </Grid>
+          <div className="col-span-12 min-[900px]:col-span-6">
+            <Field>
+              <FieldLabel htmlFor="voucher-max-uses-total">{t('vouchers.editor.maxUsesTotal')}</FieldLabel>
+              <Input
+                id="voucher-max-uses-total"
+                className="w-full"
+                type="number"
+                value={form.maxUsesTotal}
+                onChange={(e) => update('maxUsesTotal', e.target.value)}
+              />
+              <FieldDescription>{t('vouchers.editor.maxUsesTotalHelper')}</FieldDescription>
+            </Field>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-6">
+            <Field>
+              <FieldLabel htmlFor="voucher-max-uses-per-guest">{t('vouchers.editor.maxUsesPerGuest')}</FieldLabel>
+              <Input
+                id="voucher-max-uses-per-guest"
+                className="w-full"
+                type="number"
+                value={form.maxUsesPerGuest}
+                onChange={(e) => update('maxUsesPerGuest', e.target.value)}
+              />
+              <FieldDescription>{t('vouchers.editor.maxUsesPerGuestHelper')}</FieldDescription>
+            </Field>
+          </div>
 
           {/* Contraintes sejour */}
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.minStayNights')}
-              type="number"
-              value={form.minStayNights}
-              onChange={(e) => update('minStayNights', e.target.value)}
-            />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.maxStayNights')}
-              type="number"
-              value={form.maxStayNights}
-              onChange={(e) => update('maxStayNights', e.target.value)}
-            />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              label={t('vouchers.editor.minTotalAmount')}
-              type="number"
-              value={form.minTotalAmount}
-              onChange={(e) => update('minTotalAmount', e.target.value)}
-              InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
-            />
-          </Grid>
+          <div className="col-span-12 min-[900px]:col-span-4">
+            <Field>
+              <FieldLabel htmlFor="voucher-min-stay-nights">{t('vouchers.editor.minStayNights')}</FieldLabel>
+              <Input
+                id="voucher-min-stay-nights"
+                className="w-full"
+                type="number"
+                value={form.minStayNights}
+                onChange={(e) => update('minStayNights', e.target.value)}
+              />
+            </Field>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-4">
+            <Field>
+              <FieldLabel htmlFor="voucher-max-stay-nights">{t('vouchers.editor.maxStayNights')}</FieldLabel>
+              <Input
+                id="voucher-max-stay-nights"
+                className="w-full"
+                type="number"
+                value={form.maxStayNights}
+                onChange={(e) => update('maxStayNights', e.target.value)}
+              />
+            </Field>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-4">
+            <Field>
+              <FieldLabel htmlFor="voucher-min-total-amount">{t('vouchers.editor.minTotalAmount')}</FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="voucher-min-total-amount"
+                  type="number"
+                  value={form.minTotalAmount}
+                  onChange={(e) => update('minTotalAmount', e.target.value)}
+                />
+                <InputGroupAddon align="inline-end">€</InputGroupAddon>
+              </InputGroup>
+            </Field>
+          </div>
 
           {/* Scope properties */}
-          <Grid item xs={12}>
-            <Stack direction="row" spacing={1} alignItems="center">
+          <div className="col-span-12">
+            <div className="flex flex-row items-center gap-1.5">
               <Switch
+                id="voucher-apply-to-all"
                 checked={form.applyToAllProperties}
-                onChange={(e) => update('applyToAllProperties', e.target.checked)}
+                onCheckedChange={(checked) => update('applyToAllProperties', checked)}
               />
-              <Typography variant="body2">
+              <FieldLabel htmlFor="voucher-apply-to-all" className="cn-text-body2 font-normal">
                 {t('vouchers.editor.applyToAll')}
-              </Typography>
-            </Stack>
+              </FieldLabel>
+            </div>
             {!form.applyToAllProperties && (
-              <Autocomplete
-                multiple
-                options={properties}
-                getOptionLabel={(p) => p.name ?? `Property #${p.id}`}
-                value={properties.filter((p) => selectedPropertyIdSet.has(Number(p.id)))}
-                onChange={(_, sel) => update('propertyIds', sel.map((p) => Number(p.id)))}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => {
-                    const { key, ...tagProps } = getTagProps({ index });
-                    return (
-                      <Chip
-                        key={key}
-                        variant="outlined"
-                        label={option.name}
-                        size="small"
-                        {...tagProps}
-                      />
-                    );
-                  })
-                }
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label={t('vouchers.editor.targetProperties')}
-                    placeholder={t('vouchers.editor.targetPropertiesPlaceholder')}
-                  />
-                )}
-                sx={{ mt: 1 }}
-              />
+              <Field className="mt-1.5">
+                <FieldLabel htmlFor="voucher-target-properties">
+                  {t('vouchers.editor.targetProperties')}
+                </FieldLabel>
+                <Combobox
+                  multiple
+                  items={properties}
+                  itemToStringLabel={propertyLabel}
+                  itemToStringValue={propertyLabel}
+                  isItemEqualToValue={(a: PropertyListItem, b: PropertyListItem) => a.id === b.id}
+                  value={selectedProperties}
+                  onValueChange={(sel: PropertyListItem[]) =>
+                    update('propertyIds', sel.map((p) => Number(p.id)))
+                  }
+                >
+                  <ComboboxChips ref={propertiesAnchor} className="w-full">
+                    <ComboboxValue>
+                      {(values: PropertyListItem[]) => (
+                        <React.Fragment>
+                          {values.map((p) => (
+                            <ComboboxChip key={p.id}>{propertyLabel(p)}</ComboboxChip>
+                          ))}
+                          <ComboboxChipsInput
+                            id="voucher-target-properties"
+                            placeholder={t('vouchers.editor.targetPropertiesPlaceholder')}
+                          />
+                        </React.Fragment>
+                      )}
+                    </ComboboxValue>
+                  </ComboboxChips>
+                  {/* Le popup est porte hors du DialogContent, ou Radix coupe les
+                      pointer-events du reste du document : sans `pointer-events-auto`
+                      les options ne seraient pas cliquables. */}
+                  <ComboboxContent anchor={propertiesAnchor} className="pointer-events-auto">
+                    <ComboboxEmpty>{t('vouchers.editor.targetPropertiesPlaceholder')}</ComboboxEmpty>
+                    <ComboboxList>
+                      {(p: PropertyListItem) => (
+                        <ComboboxItem key={p.id} value={p}>
+                          {propertyLabel(p)}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+              </Field>
             )}
-          </Grid>
-        </Grid>
-      </DialogContent>
+          </div>
+        </div>
+        </div>
 
-      <DialogActions>
-        <Button onClick={onClose} disabled={saving}>{t('common.cancel')}</Button>
-        <Button onClick={handleSubmit} variant="contained" disabled={saving}>
-          {saving ? t('common.saving') : isEdit ? t('common.save') : t('common.create')}
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={saving}>{t('common.cancel')}</Button>
+          <Button variant="default" onClick={handleSubmit} disabled={saving}>
+            {saving ? t('common.saving') : isEdit ? t('common.save') : t('common.create')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

@@ -9,19 +9,22 @@
    Pas de comète ici (le planning est masqué en pleine largeur).
    ============================================================ */
 
-import { useCallback, useMemo, useState } from 'react';
-import { Box, Typography } from '@mui/material';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { cn } from '../../../utils/cn';
+
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSupervision } from '../core/useSupervision';
 import { useResolutionToasts } from '../core/useResolutionToasts';
 import { ConstellationSkeleton } from './ConstellationSkeleton';
 import { AgentConstellation } from './AgentConstellation';
+import { OrbitConstellation } from '../renderers/OrbitConstellation';
 import { PendingQueue } from './PendingQueue';
 import { ActivityFeed } from './ActivityFeed';
 import { SupervisionReportStrip } from './SupervisionReportStrip';
 import { ResolutionToasts } from './ResolutionToasts';
 import { AgentDrawer, type AgentDetail } from './AgentDrawer';
 import { PriceAdjustmentModal } from './PriceAdjustmentModal';
+import { SupervisionTethers } from './SupervisionTethers';
 import type { SupervisionProvider } from '../provider/SupervisionProvider';
 import type { AgentId, PendingAction, PortfolioPendingAction, PortfolioSnapshot } from '../types';
 
@@ -31,18 +34,19 @@ export interface PortfolioPanelProps {
   onEditAction?: (actionId: string) => void;
 }
 
-const cardSx = {
-  border: '1px solid var(--line, #e6e8ef)',
-  borderRadius: '14px',
-  bgcolor: 'var(--card, #fff)',
-  overflow: 'hidden',
-};
+// Litteral complet (pas de concatenation) : Tailwind scanne les sources et
+// n'emet une classe que si elle y apparait telle quelle.
+const CARD_CLASS =
+  'border border-solid border-[var(--line,_#e6e8ef)] rounded-[14px] bg-[var(--card,_#fff)] overflow-hidden';
 
 export function PortfolioPanel({ createProvider, deps, onEditAction }: PortfolioPanelProps) {
   const { t } = useTranslation();
   const { toasts, markInFlight, onResolved } = useResolutionToasts();
   const { status, snapshot, actions } = useSupervision(createProvider, deps, { onResolved });
   const [selected, setSelected] = useState<AgentId | null>(null);
+  // Agent stabilisé en tête (OrbitConstellation) → attaches vers ses cartes.
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const [headAgent, setHeadAgent] = useState<AgentId | null>(null);
 
   const handleValidate = useCallback(
     (id: string) => {
@@ -77,116 +81,84 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
   const portfolio: PortfolioSnapshot = snapshot;
 
   return (
-    <Box sx={{ position: 'relative' }}>
-      <Box sx={{ display: 'flex', gap: 2, alignItems: 'stretch', flexWrap: { xs: 'wrap', md: 'nowrap' } }}>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <AgentConstellation snapshot={portfolio} online={status === 'live'} onSelectAgent={setSelected} />
-        </Box>
+    <div className="relative" ref={rootRef}>
+      {/* Attaches agent de tête → cartes de la file (grammaire projection). */}
+      <SupervisionTethers rootRef={rootRef} headAgent={headAgent} revision={portfolio.pending} />
+      <div className="flex gap-3 items-stretch flex-wrap min-[900px]:flex-nowrap">
+        <div className="flex-1 min-w-0">
+          <AgentConstellation
+            snapshot={portfolio}
+            renderer={OrbitConstellation}
+            online={status === 'live'}
+            onSelectAgent={setSelected}
+            onHeadAgentSettled={setHeadAgent}
+          />
+        </div>
 
-        <Box sx={{ width: { xs: '100%', md: 330 }, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="w-full min-[900px]:w-[330px] shrink-0 flex flex-col gap-3">
           <SupervisionReportStrip />
 
           {(portfolio.orgAlerts?.length ?? 0) > 0 && (
-            <Box sx={cardSx}>
-              <Typography sx={{ p: '14px 16px 8px', fontWeight: 800, fontSize: 13.5, color: 'var(--ink, #1b2240)' }}>
+            <div className={CARD_CLASS}>
+              <p className="cn-text-body1 p-[14px 16px 8px] font-extrabold text-[13.5px] text-[var(--ink,_#1b2240)]">
                 {t('supervision.orgAlerts.title', 'Alertes portefeuille')}
-              </Typography>
-              <Box sx={{ px: 1.5, pb: 1.5, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+              </p>
+              <div className="px-2 pb-2 flex flex-col gap-2">
                 {portfolio.orgAlerts!.map((a, i) => (
-                  <Box key={i} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                    <Box
-                      sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        mt: '5px',
-                        flexShrink: 0,
-                        bgcolor:
-                          a.severity === 'critical'
-                            ? 'var(--err, #c0392b)'
-                            : a.severity === 'warning'
-                              ? 'var(--warn, #d4a017)'
-                              : 'var(--info, #4a90a4)',
-                      }}
-                    />
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink, #1b2240)', lineHeight: 1.3 }}>
+                  <div className="flex gap-1.5 items-start" key={i}>
+                    <div className={cn('w-[8px] h-[8px] rounded-[50%] mt-[5px] shrink-0', a.severity === 'critical' ? 'bg-[var(--err,_#c0392b)]' : a.severity === 'warning' ? 'bg-[var(--warn,_#d4a017)]' : 'bg-[var(--info,_#4a90a4)]')} />
+                    <div className="min-w-0">
+                      <p className="cn-text-body1 text-[12.5px] font-bold text-[var(--ink,_#1b2240)] leading-[1.3]">
                         {a.title}
-                      </Typography>
-                      <Typography sx={{ fontSize: 11.5, color: 'var(--muted, #6b7280)', lineHeight: 1.35 }}>
+                      </p>
+                      <p className="cn-text-body1 text-[11.5px] text-[var(--muted,_#6b7280)] leading-[1.35]">
                         {a.description}
-                      </Typography>
-                    </Box>
-                  </Box>
+                      </p>
+                    </div>
+                  </div>
                 ))}
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
 
-          <Box sx={cardSx}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: '14px 16px 12px', fontWeight: 800, fontSize: 13.5, color: 'var(--ink, #1b2240)' }}>
+          <div className={CARD_CLASS}>
+            <div className="flex items-center gap-1.5 p-[14px 16px 12px] font-extrabold text-[13.5px] text-[var(--ink,_#1b2240)]">
               {t('supervision.queue.title')}
-              <Box
-                component="span"
-                sx={{
-                  ml: 'auto',
-                  minWidth: 24,
-                  height: 24,
-                  px: 0.75,
-                  borderRadius: '8px',
-                  bgcolor: 'var(--warn-soft)',
-                  color: 'var(--warn)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 12,
-                  fontWeight: 800,
-                }}
-              >
+              <span className="ms-auto min-w-[24px] h-[24px] px-[4.5px] rounded-[8px] bg-[var(--warn-soft)] text-[var(--warn)] flex items-center justify-center text-[12px] font-extrabold">
                 {portfolio.pending.length}
-              </Box>
-            </Box>
-            <Box sx={{ p: 1.5, maxHeight: 320, overflowY: 'auto' }}>
+              </span>
+            </div>
+            {/* data-tethers-viewport : une carte défilée hors de ce cadre perd
+                son attache (son rect survit au rognage overflow). */}
+            <div className="p-2 max-h-[320px] overflow-y-auto" data-tethers-viewport>
               <PendingQueue actions={portfolio.pending} onValidate={handleValidate} onEdit={handleEdit} onAdjustPrice={handleAdjustPrice} variant="panel" />
-            </Box>
-          </Box>
+            </div>
+          </div>
 
-          <Box sx={cardSx}>
-            <Typography sx={{ p: '14px 16px 8px', fontWeight: 800, fontSize: 13.5, color: 'var(--ink, #1b2240)' }}>
+          <div className={CARD_CLASS}>
+            <p className="cn-text-body1 p-[14px 16px 8px] font-extrabold text-[13.5px] text-[var(--ink,_#1b2240)]">
               {t('supervision.feed.title')}
-            </Typography>
-            <Box sx={{ px: 1, pb: 1, maxHeight: 220, overflowY: 'auto' }}>
+            </p>
+            <div className="px-1.5 pb-1.5 max-h-[220px] overflow-y-auto">
               {portfolio.feed.length > 0 ? (
-                <ActivityFeed entries={portfolio.feed} />
+                <ActivityFeed entries={portfolio.feed} pending={portfolio.pending} />
               ) : (
-                <Box sx={{ px: 1.5, py: 2, textAlign: 'center', fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+                <div className="px-2 py-3 text-center text-[12px] text-[var(--muted)] leading-[1.5]">
                   {t(
                     'supervision.feed.emptyOnboarding',
                     'Les agents observent vos logements. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord.',
                   )}
-                </Box>
+                </div>
               )}
-            </Box>
-          </Box>
-        </Box>
-      </Box>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {toasts.length > 0 && (
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 16,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 8,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 1,
-          }}
-        >
+        <div className="absolute top-[16px] start-[50%] z-[8] flex flex-col items-center gap-1.5" style={{ transform: 'translateX(-50%)' }}>
           <ResolutionToasts toasts={toasts} />
-        </Box>
+        </div>
       )}
 
       <AgentDrawer open={Boolean(selected)} detail={detail} onClose={() => setSelected(null)} />
@@ -203,6 +175,6 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
           }}
         />
       )}
-    </Box>
+    </div>
   );
 }

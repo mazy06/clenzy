@@ -1,14 +1,18 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import {
-  Box, Typography, Paper, Button, Chip, IconButton, Tooltip,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  TextField, Alert, Snackbar, CircularProgress, Stack,
-} from '@mui/material';
+import StatusChip from '../../components/StatusChip';
+import { Badge } from '../../components/ui';
+import { Spinner } from '../../components/ui';
+import { Button } from '../../components/ui';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Field, FieldLabel, Textarea } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import {
   Add, Edit, CheckCircle, Pause, Cancel,
   Handshake, Home, Person, PictureAsPdf, Send,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useNotification } from '../../hooks/useNotification';
 import {
   managementContractsApi,
   type ManagementContract,
@@ -40,15 +44,13 @@ const FILTER_ALL_COLOR = 'var(--accent)';
 
 const ManagementContractsPage: React.FC = () => {
   const { t } = useTranslation();
+  const { notify } = useNotification();
 
   // State
   const [contracts, setContracts] = useState<ManagementContract[]>([]);
   const [properties, setProperties] = useState<PropertyOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<ContractStatus | ''>('');
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false, message: '', severity: 'success',
-  });
 
   // Modal de création/édition. editingContract != null = mode édition.
   const [formModalOpen, setFormModalOpen] = useState(false);
@@ -67,11 +69,11 @@ const ManagementContractsPage: React.FC = () => {
       const data = await managementContractsApi.getAll(params);
       setContracts(data);
     } catch {
-      setSnackbar({ open: true, message: t('contracts.errorLoading'), severity: 'error' });
+      notify.error(t('contracts.errorLoading'));
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, t]);
+  }, [statusFilter, t, notify]);
 
   const loadProperties = useCallback(async () => {
     try {
@@ -96,8 +98,8 @@ const ManagementContractsPage: React.FC = () => {
     return prop?.ownerName ?? `Propriétaire #${ownerId}`;
   };
 
-  const showSuccess = (msg: string) => setSnackbar({ open: true, message: msg, severity: 'success' });
-  const showError = (msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' });
+  const showSuccess = (msg: string) => notify.success(msg);
+  const showError = (msg: string) => notify.error(msg);
 
   // Split en deux groupes : actifs (ACTIVE+SUSPENDED+DRAFT) / inactifs (TERMINATED+EXPIRED).
   const { activeContracts, inactiveContracts } = useMemo(() => {
@@ -229,7 +231,7 @@ const ManagementContractsPage: React.FC = () => {
   }));
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <div className="flex flex-col gap-2">
       {/* ─── Header standardise (PageHeader) ──────────────────────────── */}
       <PageHeader
         title={t('contracts.title')}
@@ -248,29 +250,32 @@ const ManagementContractsPage: React.FC = () => {
           />
         )}
         actions={(
-          <Tooltip title={t('contracts.create', 'Nouveau contrat')}>
-            <IconButton
-              size="small"
-              onClick={openCreateModal}
-              sx={{
-                p: 0.5,
-                borderRadius: '9px',
-                border: '1px solid var(--accent)',
-                color: 'var(--accent)',
-                '&:hover': { bgcolor: 'var(--accent-soft)', color: 'var(--accent)' },
-              }}
-            >
-              <Add size={20} strokeWidth={1.75} />
-            </IconButton>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/* span : TooltipTrigger asChild pose une ref DOM, que le Button du
+                  kit (fonction, React 18) ne transmet pas. */}
+              <span className="inline-flex">
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  className="rounded-[9px] border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
+                  onClick={openCreateModal}
+                  aria-label={t('contracts.create', 'Nouveau contrat')}
+                >
+                  <Add size={20} strokeWidth={1.75} />
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t('contracts.create', 'Nouveau contrat')}</TooltipContent>
           </Tooltip>
         )}
       />
 
       {/* ─── Body ──────────────────────────────────────────────────── */}
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress />
-        </Box>
+        <div className="flex justify-center py-9">
+          <Spinner className="size-10" />
+        </div>
       ) : contracts.length === 0 ? (
         <EmptyState
           icon={<Handshake />}
@@ -279,18 +284,17 @@ const ManagementContractsPage: React.FC = () => {
           tip="Crée un contrat ici pour appliquer une commission spécifique à un bien (au lieu de la répartition globale)."
           action={(
             <Button
-              variant="outlined"
-              size="small"
-              startIcon={<Add size={16} strokeWidth={1.75} />}
+              variant="outline"
+              size="sm"
               onClick={openCreateModal}
-              sx={{ textTransform: 'none' }}
             >
+              <Add size={16} strokeWidth={1.75} />
               {t('contracts.createTitle', 'Créer un contrat de gestion')}
             </Button>
           )}
         />
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="flex flex-col gap-3">
           {activeContracts.length > 0 && (
             <ContractsTableSection
               title="Contrats en vigueur"
@@ -334,7 +338,7 @@ const ManagementContractsPage: React.FC = () => {
               muted
             />
           )}
-        </Box>
+        </div>
       )}
 
       {/* Modal de création / édition */}
@@ -344,18 +348,7 @@ const ManagementContractsPage: React.FC = () => {
         onSaved={handleSaved}
         contract={editingContract}
       />
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-      >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+    </div>
   );
 };
 
@@ -394,41 +387,29 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
   const { t } = useTranslation();
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}>
+    <div>
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
           {title}
-        </Typography>
-        <Box
-          component="span"
-          sx={{
-            fontSize: '10.5px',
-            fontWeight: 700,
-            px: 0.75,
-            py: '1px',
-            borderRadius: '999px',
-            bgcolor: accentSoft,
-            color: accentColor,
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
+        </p>
+        <span className="text-[10.5px] font-bold px-[4.5px] py-px rounded-[999px] tabular-nums" style={{ backgroundColor: accentSoft, color: accentColor }}>
           {contracts.length}
-        </Box>
-      </Box>
-      <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', opacity: muted ? 0.85 : 1 }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow sx={{ bgcolor: 'var(--surface-2)' }}>
-              <TableCell>{t('contracts.contractNumber')}</TableCell>
-              <TableCell>{t('contracts.property')}</TableCell>
-              <TableCell>{t('contracts.owner')}</TableCell>
-              <TableCell>{t('contracts.type')}</TableCell>
-              <TableCell align="center">{t('contracts.commission')}</TableCell>
-              <TableCell>{t('contracts.period')}</TableCell>
-              <TableCell align="center">{t('contracts.status')}</TableCell>
-              <TableCell align="right">{t('contracts.actions')}</TableCell>
+        </span>
+      </div>
+      <div className={cn('overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]', muted && 'opacity-85')}>
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-[var(--surface-2)]">
+              <TableHead>{t('contracts.contractNumber')}</TableHead>
+              <TableHead>{t('contracts.property')}</TableHead>
+              <TableHead>{t('contracts.owner')}</TableHead>
+              <TableHead>{t('contracts.type')}</TableHead>
+              <TableHead className="text-center">{t('contracts.commission')}</TableHead>
+              <TableHead>{t('contracts.period')}</TableHead>
+              <TableHead className="text-center">{t('contracts.status')}</TableHead>
+              <TableHead className="text-end">{t('contracts.actions')}</TableHead>
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {contracts.map(c => {
               const meta = STATUS_META[c.status] ?? { label: c.status, color: 'var(--muted)', soft: 'var(--hover)' };
@@ -437,163 +418,221 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
               if (isTerminating) {
                 return (
                   <TableRow key={c.id}>
-                    <TableCell colSpan={8} sx={{ p: 2, bgcolor: 'var(--err-soft)' }}>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'var(--err)' }}>
+                    {/* whitespace-normal : le primitif est nowrap par defaut, or cette
+                        cellule porte un panneau de texte qui doit se replier. */}
+                    <TableCell colSpan={8} className="p-3 bg-[var(--err-soft)] whitespace-normal">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-1.5 text-[var(--err)]">
                           <Cancel size={18} strokeWidth={2} />
-                          <Typography variant="subtitle2" fontWeight={700} sx={{ color: 'var(--err)' }}>
+                          <h6 className="cn-text-subtitle2 font-bold text-[var(--err)]">
                             Résilier le contrat {c.contractNumber} ?
-                          </Typography>
-                        </Box>
-                        <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'var(--body)' }}>
+                          </h6>
+                        </div>
+                        <p className="cn-text-body2 text-[0.8125rem] text-[var(--body)]">
                           {t('contracts.terminateWarning')}
-                        </Typography>
-                        <TextField
-                          label={t('contracts.terminateReason')}
-                          value={terminateReason}
-                          onChange={e => setTerminateReason(e.target.value)}
-                          multiline
-                          rows={2}
-                          fullWidth
-                          size="small"
-                          sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'var(--card)' } }}
-                        />
-                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        </p>
+                        <Field>
+                          <FieldLabel htmlFor={`terminate-reason-${c.id}`}>
+                            {t('contracts.terminateReason')}
+                          </FieldLabel>
+                          <Textarea
+                            id={`terminate-reason-${c.id}`}
+                            className="w-full bg-[var(--card)]"
+                            rows={2}
+                            value={terminateReason}
+                            onChange={e => setTerminateReason(e.target.value)}
+                          />
+                        </Field>
+                        <div className="flex flex-row justify-end gap-1.5">
                           <Button
-                            size="small"
-                            variant="outlined"
+                            size="sm"
+                            variant="outline"
                             onClick={onTerminateCancel}
                           >
                             {t('contracts.cancel')}
                           </Button>
                           <Button
-                            size="small"
-                            variant="contained"
-                            color="error"
+                            size="sm"
+                            variant="destructive"
                             onClick={onTerminateConfirm}
-                            startIcon={<Cancel size={14} strokeWidth={1.75} />}
                           >
+                            <Cancel size={14} strokeWidth={1.75} />
                             {t('contracts.confirmTerminate')}
                           </Button>
-                        </Stack>
-                      </Box>
+                        </div>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
               }
 
               return (
-                <TableRow key={c.id} hover>
+                <TableRow key={c.id}>
                   <TableCell>
-                    <Typography variant="body2" fontWeight={600} sx={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: 'var(--ink)' }}>
+                    <p className="cn-text-body2 font-semibold font-mono text-[0.8125rem] text-[var(--ink)]">
                       {c.contractNumber}
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}>
+                    <div className="flex items-center gap-1">
+                      <span className="inline-flex text-[var(--faint)]">
                         <Home size={14} strokeWidth={1.75} />
-                      </Box>
-                      <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{getPropertyName(c.propertyId)}</Typography>
-                    </Box>
+                      </span>
+                      <p className="cn-text-body2 text-[0.8125rem]">{getPropertyName(c.propertyId)}</p>
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}>
+                    <div className="flex items-center gap-1">
+                      <span className="inline-flex text-[var(--faint)]">
                         <Person size={14} strokeWidth={1.75} />
-                      </Box>
-                      <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{getOwnerName(c.ownerId)}</Typography>
-                    </Box>
+                      </span>
+                      <p className="cn-text-body2 text-[0.8125rem]">{getOwnerName(c.ownerId)}</p>
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{CONTRACT_TYPE_LABELS[c.contractType]}</Typography>
+                    <p className="cn-text-body2 text-[0.8125rem]">{CONTRACT_TYPE_LABELS[c.contractType]}</p>
                   </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={`${(c.commissionRate * 100).toFixed(0)}%`}
-                      size="small"
-                      sx={{
-                        bgcolor: 'var(--accent-soft)',
-                        color: 'var(--accent)',
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    />
+                  <TableCell className="text-center">
+                    <Badge variant="secondary" className="bg-[var(--accent-soft)] text-[var(--accent)] tabular-nums">{`${(c.commissionRate * 100).toFixed(0)}%`}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                    <p className="cn-text-body2 text-[0.75rem] text-[var(--muted)] tabular-nums">
                       {c.startDate}{c.endDate ? ` → ${c.endDate}` : ' → ∞'}
-                    </Typography>
+                    </p>
                   </TableCell>
-                  <TableCell align="center">
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.375 }}>
-                      <Chip
-                        label={meta.label}
-                        size="small"
-                        sx={{ bgcolor: meta.soft, color: meta.color }}
-                      />
+                  <TableCell className="text-center">
+                    <div className="flex flex-col items-center gap-0.5">
+                      <StatusChip tokens={{ color: meta.color, bg: meta.soft }} label={meta.label} />
                       {c.status === 'DRAFT' && c.signatureStatus === 'PENDING' && (
-                        <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'var(--warn)' }}>
+                        <p className="cn-text-body1 text-[0.625rem] font-semibold text-[var(--warn)]">
                           {t('contracts.signature.pending', 'En attente de signature')}
-                        </Typography>
+                        </p>
                       )}
                       {c.status === 'DRAFT' && c.signatureStatus === 'EXPIRED' && (
-                        <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'var(--err)' }}>
+                        <p className="cn-text-body1 text-[0.625rem] font-semibold text-[var(--err)]">
                           {t('contracts.signature.expired', 'Lien de signature expiré')}
-                        </Typography>
+                        </p>
                       )}
-                    </Box>
+                    </div>
                   </TableCell>
-                  <TableCell align="right">
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.25 }}>
-                      <Tooltip title="Voir le mandat de gestion">
-                        <IconButton size="small" color="primary" onClick={() => onViewMandate(c.id)}>
-                          <PictureAsPdf size={16} strokeWidth={1.75} />
-                        </IconButton>
+                  <TableCell className="text-end">
+                    <div className="flex justify-end gap-0.5">
+                      {/* Chaque bouton d'action est enveloppe d'un span : TooltipTrigger
+                          asChild pose une ref DOM que le Button du kit ne transmet pas. */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className="text-[var(--mui-primary)]"
+                              aria-label="Voir le mandat de gestion"
+                              onClick={() => onViewMandate(c.id)}
+                            >
+                              <PictureAsPdf size={16} strokeWidth={1.75} />
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Voir le mandat de gestion</TooltipContent>
                       </Tooltip>
                       {c.status === 'DRAFT' && (
-                        <Tooltip title={t('contracts.signature.resend', 'Renvoyer le lien de signature')}>
-                          <IconButton size="small" sx={{ color: 'var(--warn)', '&:hover': { color: 'var(--warn)', bgcolor: 'var(--warn-soft)' } }} onClick={() => onResendSignature(c.id)}>
-                            <Send size={16} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-[var(--warn)] hover:text-[var(--warn)] hover:bg-[var(--warn-soft)]"
+                                aria-label={t('contracts.signature.resend', 'Renvoyer le lien de signature')}
+                                onClick={() => onResendSignature(c.id)}
+                              >
+                                <Send size={16} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('contracts.signature.resend', 'Renvoyer le lien de signature')}</TooltipContent>
                         </Tooltip>
                       )}
                       {(c.status === 'DRAFT' || c.status === 'SUSPENDED') && (
-                        <Tooltip title={t('contracts.activate')}>
-                          <IconButton size="small" color="success" onClick={() => onActivate(c.id)}>
-                            <CheckCircle size={16} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-[var(--ok)]"
+                                aria-label={t('contracts.activate')}
+                                onClick={() => onActivate(c.id)}
+                              >
+                                <CheckCircle size={16} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('contracts.activate')}</TooltipContent>
                         </Tooltip>
                       )}
                       {c.status === 'ACTIVE' && (
-                        <Tooltip title={t('contracts.suspend')}>
-                          <IconButton size="small" color="warning" onClick={() => onSuspend(c.id)}>
-                            <Pause size={16} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-[var(--warn)]"
+                                aria-label={t('contracts.suspend')}
+                                onClick={() => onSuspend(c.id)}
+                              >
+                                <Pause size={16} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('contracts.suspend')}</TooltipContent>
                         </Tooltip>
                       )}
                       {(c.status === 'ACTIVE' || c.status === 'SUSPENDED') && (
-                        <Tooltip title={t('contracts.terminate')}>
-                          <IconButton size="small" color="error" onClick={() => onTerminateStart(c.id)}>
-                            <Cancel size={16} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-[var(--err)]"
+                                aria-label={t('contracts.terminate')}
+                                onClick={() => onTerminateStart(c.id)}
+                              >
+                                <Cancel size={16} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('contracts.terminate')}</TooltipContent>
                         </Tooltip>
                       )}
                       {(c.status === 'DRAFT' || c.status === 'ACTIVE') && (
-                        <Tooltip title={t('contracts.edit')}>
-                          <IconButton size="small" onClick={() => onEdit(c)}>
-                            <Edit size={16} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t('contracts.edit')}
+                                onClick={() => onEdit(c)}
+                              >
+                                <Edit size={16} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('contracts.edit')}</TooltipContent>
                         </Tooltip>
                       )}
-                    </Box>
+                    </div>
                   </TableCell>
                 </TableRow>
               );
             })}
           </TableBody>
         </Table>
-      </TableContainer>
-    </Box>
+      </div>
+    </div>
   );
 };
 

@@ -1,30 +1,41 @@
 import React, { useState, useCallback } from 'react';
+import { cn } from '../../utils/cn';
+import { Badge } from '../../components/ui';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import { ASSIGNABLE_ORG_ROLES } from '../../utils/orgRoleLabels';
 import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  MenuItem,
-  Typography,
-  Alert,
-  CircularProgress,
-  Box,
-  IconButton,
-  InputAdornment,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  NativeSelect,
+  NativeSelectOption,
+  ToggleGroup,
+  ToggleGroupItem,
   Tooltip,
-  ToggleButtonGroup,
-  ToggleButton,
-  Autocomplete,
-  Chip,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import {
   Send,
   ContentCopy,
   CheckCircle,
-  Close,
   PersonAdd,
 } from '../../icons';
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
@@ -78,7 +89,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
   const [memberSuccess, setMemberSuccess] = useState(false);
   const [addingMember, setAddingMember] = useState(false);
 
-  const handleUserSearch = useCallback(async (_: React.SyntheticEvent, value: string) => {
+  const handleUserSearch = useCallback(async (value: string) => {
     if (value.length < 2) {
       setUserOptions([]);
       return;
@@ -181,221 +192,250 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="h6" fontWeight={600}>
-          {result ? 'Invitation envoyee' : memberSuccess ? 'Membre ajoute' : 'Inviter un membre'}
-        </Typography>
-        <IconButton size="small" onClick={handleClose}>
-          <Close />
-        </IconButton>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent className="sm:max-w-[600px]" aria-describedby={undefined}>
+        <DialogHeader>
+          <DialogTitle>
+            {result ? 'Invitation envoyee' : memberSuccess ? 'Membre ajoute' : 'Inviter un membre'}
+          </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent dividers>
+        {/* `dividers` du DialogContent MUI : filets haut/bas + corps defilant. */}
+        <div className="max-h-[60vh] overflow-y-auto border-y border-solid border-[var(--line)] py-3">
         {!result && !memberSuccess ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
-            <ToggleButtonGroup
+          <div className="flex flex-col gap-3.5 pt-1.5">
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              size="sm"
+              spacing={0}
+              className="w-full [&>*]:flex-1"
               value={mode}
-              exclusive
-              onChange={(_, v) => { if (v) { setMode(v); setError(null); } }}
-              size="small"
-              fullWidth
+              // Radix renvoie '' quand on re-clique l'option active : le garde-fou
+              // evite de laisser le formulaire sans mode.
+              onValueChange={(v) => { if (v) { setMode(v as Mode); setError(null); } }}
             >
-              <ToggleButton value="email">Inviter par email</ToggleButton>
-              <ToggleButton value="existing">Membre existant</ToggleButton>
-            </ToggleButtonGroup>
+              <ToggleGroupItem value="email">Inviter par email</ToggleGroupItem>
+              <ToggleGroupItem value="existing">Membre existant</ToggleGroupItem>
+            </ToggleGroup>
 
             {mode === 'email' ? (
               <>
-                <TextField
-                  label="Adresse email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  fullWidth
-                  autoFocus
-                  placeholder="exemple@email.com"
-                  disabled={loading}
-                />
+                <Field>
+                  <FieldLabel htmlFor="invitation-email">Adresse email</FieldLabel>
+                  <Input
+                    id="invitation-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    autoFocus
+                    placeholder="exemple@email.com"
+                    disabled={loading}
+                  />
+                </Field>
 
-                <TextField
-                  label="Role"
-                  select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  fullWidth
-                  disabled={loading}
-                  helperText="Le role attribue au nouvel utilisateur"
-                >
-                  {ROLES.map((r) => (
-                    <MenuItem key={r.value} value={r.value}>
-                      {r.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                <Field>
+                  <FieldLabel htmlFor="invitation-role">Role</FieldLabel>
+                  <NativeSelect
+                    id="invitation-role"
+                    className="w-full"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    disabled={loading}
+                  >
+                    {ROLES.map((r) => (
+                      <NativeSelectOption key={r.value} value={r.value}>
+                        {r.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                  <FieldDescription>Le role attribue au nouvel utilisateur</FieldDescription>
+                </Field>
               </>
             ) : (
               <>
-                <Autocomplete
-                  options={userOptions}
-                  getOptionLabel={(option) =>
-                    `${option.firstName} ${option.lastName} (${option.email})`
-                  }
-                  filterOptions={(x) => x}
-                  value={selectedUser}
-                  onChange={(_, value) => setSelectedUser(value)}
-                  onInputChange={handleUserSearch}
-                  loading={userSearchLoading}
-                  noOptionsText="Aucun utilisateur trouve"
-                  loadingText="Recherche..."
-                  renderOption={(props, option) => {
-                    const { key, ...optionProps } = props;
-                    return (
-                      <li key={key} {...optionProps}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                          <Box sx={{ flexGrow: 1 }}>
-                            <Typography variant="body2">
-                              {option.firstName} {option.lastName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {option.email}
-                            </Typography>
-                          </Box>
-                          {option.hasOrganization && (
-                            <Chip label="Deja dans une org" size="small" color="warning" variant="outlined" />
-                          )}
-                        </Box>
-                      </li>
-                    );
-                  }}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Rechercher un utilisateur..."
+                <Field>
+                  <FieldLabel htmlFor="invitation-user-search">Rechercher un utilisateur...</FieldLabel>
+                  {/* `filter={null}` : la liste vient deja filtree du serveur, on
+                      ne veut pas d'un second filtrage local (equivalent du
+                      `filterOptions={(x) => x}` de l'Autocomplete). */}
+                  <Combobox
+                    items={userOptions}
+                    filter={null}
+                    itemToStringLabel={(u: UserSearchResult) =>
+                      `${u.firstName} ${u.lastName} (${u.email})`
+                    }
+                    itemToStringValue={(u: UserSearchResult) => u.email}
+                    isItemEqualToValue={(a: UserSearchResult, b: UserSearchResult) => a.id === b.id}
+                    value={selectedUser}
+                    onValueChange={(next: UserSearchResult | null) => setSelectedUser(next)}
+                    onInputValueChange={(inputValue: string) => { void handleUserSearch(inputValue); }}
+                  >
+                    <ComboboxInput
+                      id="invitation-user-search"
                       placeholder="Nom, prenom ou email (min. 2 caracteres)"
-                      fullWidth
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {userSearchLoading ? <CircularProgress size={18} /> : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                    />
-                  )}
-                />
+                    >
+                      {userSearchLoading ? (
+                        <InputGroupAddon align="inline-end">
+                          <Spinner className="size-[18px]" />
+                        </InputGroupAddon>
+                      ) : null}
+                    </ComboboxInput>
+                    {/* Le popup est porte hors du DialogContent, ou Radix coupe les
+                        pointer-events du reste du document : sans `pointer-events-auto`
+                        les options ne seraient pas cliquables. */}
+                    <ComboboxContent className="pointer-events-auto">
+                      <ComboboxEmpty>
+                        {userSearchLoading ? 'Recherche...' : 'Aucun utilisateur trouve'}
+                      </ComboboxEmpty>
+                      <ComboboxList>
+                        {(option: UserSearchResult) => (
+                          <ComboboxItem key={option.id} value={option}>
+                            <span className="flex items-center gap-1.5 w-full">
+                              <span className="grow">
+                                <span className="cn-text-body2 block">
+                                  {option.firstName} {option.lastName}
+                                </span>
+                                <span className="cn-text-caption text-muted-foreground">
+                                  {option.email}
+                                </span>
+                              </span>
+                              {option.hasOrganization && (
+                                <Badge variant="warning">Deja dans une org</Badge>
+                              )}
+                            </span>
+                          </ComboboxItem>
+                        )}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                </Field>
 
-                <TextField
-                  label="Role"
-                  select
-                  value={memberRole}
-                  onChange={(e) => setMemberRole(e.target.value)}
-                  fullWidth
-                  disabled={addingMember}
-                  helperText="Le role attribue au membre"
-                >
-                  {ROLES.map((r) => (
-                    <MenuItem key={r.value} value={r.value}>
-                      {r.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                <Field>
+                  <FieldLabel htmlFor="invitation-member-role">Role</FieldLabel>
+                  <NativeSelect
+                    id="invitation-member-role"
+                    className="w-full"
+                    value={memberRole}
+                    onChange={(e) => setMemberRole(e.target.value)}
+                    disabled={addingMember}
+                  >
+                    {ROLES.map((r) => (
+                      <NativeSelectOption key={r.value} value={r.value}>
+                        {r.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                  <FieldDescription>Le role attribue au membre</FieldDescription>
+                </Field>
               </>
             )}
 
             {error && (
-              <Alert severity="error" onClose={() => setError(null)}>
-                {error}
-              </Alert>
+              <BuiAlert variant="destructive">
+                <TriangleAlert />
+                <AlertDescription>{error}</AlertDescription>
+                <AlertAction>
+                  <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+                    <X />
+                  </BuiButton>
+                </AlertAction>
+              </BuiAlert>
             )}
-          </Box>
+          </div>
         ) : memberSuccess ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1, alignItems: 'center' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={56} strokeWidth={1.75} /></Box>
-            <Typography variant="body1" textAlign="center">
+          <div className="flex flex-col gap-3 pt-1.5 items-center">
+            <span className="inline-flex text-[var(--ok)]"><CheckCircle size={56} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 text-center">
               <strong>{selectedUser?.firstName} {selectedUser?.lastName}</strong> a ete ajoute a l'organisation.
-            </Typography>
-          </Box>
+            </p>
+          </div>
         ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1, alignItems: 'center' }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={56} strokeWidth={1.75} /></Box>
-            <Typography variant="body1" textAlign="center">
+          <div className="flex flex-col gap-3 pt-1.5 items-center">
+            <span className="inline-flex text-[var(--ok)]"><CheckCircle size={56} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 text-center">
               L'invitation a ete envoyee a <strong>{result?.invitedEmail}</strong>
-            </Typography>
+            </p>
 
             {result?.invitationLink && (
-              <Box sx={{ width: '100%' }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              <div className="w-full">
+                <label
+                  htmlFor="invitation-link"
+                  className="cn-text-body2 text-muted-foreground mb-1.5 block"
+                >
                   Vous pouvez aussi partager ce lien directement :
-                </Typography>
-                <TextField
-                  value={result?.invitationLink ?? ''}
-                  fullWidth
-                  size="small"
-                  InputProps={{
-                    readOnly: true,
-                    sx: { fontSize: '0.8rem', fontFamily: 'monospace' },
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <Tooltip title={copied ? 'Copie !' : 'Copier le lien'}>
-                          <IconButton onClick={handleCopyLink} size="small" color={copied ? 'success' : 'default'}>
-                            {copied ? <CheckCircle fontSize="small" /> : <ContentCopy fontSize="small" />}
-                          </IconButton>
-                        </Tooltip>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Box>
+                </label>
+                <InputGroup>
+                  <InputGroupInput
+                    id="invitation-link"
+                    readOnly
+                    className="text-[0.8rem] font-mono"
+                    value={result?.invitationLink ?? ''}
+                  />
+                  <InputGroupAddon align="inline-end">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <BuiButton
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="Copier le lien d'invitation"
+                          onClick={handleCopyLink}
+                          className={cn(copied && 'text-[var(--ok)]')}
+                        >
+                          {copied ? <CheckCircle size={16} /> : <ContentCopy size={16} />}
+                        </BuiButton>
+                      </TooltipTrigger>
+                      <TooltipContent>{copied ? 'Copie !' : 'Copier le lien'}</TooltipContent>
+                    </Tooltip>
+                  </InputGroupAddon>
+                </InputGroup>
+              </div>
             )}
 
-            <Typography variant="caption" color="text.secondary" textAlign="center">
+            <span className="cn-text-caption text-[var(--muted)] text-center">
               L'invitation expire le{' '}
               {result?.expiresAt ? new Date(result.expiresAt).toLocaleDateString('fr-FR', {
                 day: 'numeric',
                 month: 'long',
                 year: 'numeric',
               }) : ''}
-            </Typography>
-          </Box>
+            </span>
+          </div>
         )}
-      </DialogContent>
+        </div>
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
+      <DialogFooter>
         {!result && !memberSuccess ? (
           <>
-            <Button onClick={handleClose} disabled={loading || addingMember}>
+            <BuiButton variant="outline" onClick={handleClose} disabled={loading || addingMember}>
               Annuler
-            </Button>
+            </BuiButton>
             {mode === 'email' ? (
-              <Button
-                variant="contained"
+              <BuiButton
                 onClick={handleSend}
                 disabled={loading || !email.trim()}
-                startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <Send />}
               >
+                {loading ? <Spinner className="size-4" /> : <Send />}
                 {loading ? 'Envoi...' : 'Envoyer'}
-              </Button>
+              </BuiButton>
             ) : (
-              <Button
-                variant="contained"
+              <BuiButton
                 onClick={handleAddMember}
                 disabled={addingMember || !selectedUser}
-                startIcon={addingMember ? <CircularProgress size={16} color="inherit" /> : <PersonAdd />}
               >
+                {addingMember ? <Spinner className="size-4" /> : <PersonAdd />}
                 {addingMember ? 'Ajout...' : 'Ajouter'}
-              </Button>
+              </BuiButton>
             )}
           </>
         ) : (
-          <Button variant="contained" onClick={handleClose}>
+          <BuiButton onClick={handleClose}>
             Fermer
-          </Button>
+          </BuiButton>
         )}
-      </DialogActions>
+      </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

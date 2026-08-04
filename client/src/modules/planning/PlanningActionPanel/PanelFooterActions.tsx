@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
-  Box,
+  AlertDescription,
   Button,
-  CircularProgress,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  Typography,
-} from '@mui/material';
+  Spinner,
+} from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { SwapHoriz, OpenInNew, WhatsApp, Cancel, Warning } from '../../../icons';
 import type { PlanningEvent, PlanningProperty } from '../types';
 import GuestCardDialog from './GuestCardDialog';
@@ -24,18 +26,6 @@ import { useSendTemplateForReservation } from '../../../hooks/useConversations';
 // historiques de l'onglet Infos — mêmes dialogs, aucune action nouvelle.
 
 type ActionResult = { success: boolean; error: string | null };
-
-const FOOTER_BUTTON_SX = {
-  textTransform: 'none',
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  borderRadius: 'var(--radius-sm)',
-  justifyContent: 'center',
-  color: 'var(--ink)',
-  borderColor: 'var(--line-2)',
-  transition: 'border-color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out)',
-  '&:hover': { borderColor: 'var(--ink)', backgroundColor: 'var(--hover)' },
-} as const;
 
 interface PanelFooterActionsProps {
   event: PlanningEvent;
@@ -90,60 +80,30 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
   const canChangeProperty = Boolean(properties && onChangeProperty);
 
   return (
-    <Box
-      sx={{
-        flexShrink: 0,
-        borderTop: '1px solid var(--line)',
-        backgroundColor: 'var(--card)',
-        p: '12px 16px',
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 1,
-      }}
-    >
+    <div className="shrink-0 bg-[var(--card)] p-[12px 16px] grid grid-cols-[1fr_1fr] gap-1.5" style={{ borderTop: '1px solid var(--line)' }}>
       {canChangeProperty && (
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<SwapHoriz size={13} strokeWidth={1.75} />}
-          onClick={() => setChangePropertyOpen(true)}
-          sx={FOOTER_BUTTON_SX}
-        >
+        <Button variant="outline" size="sm" onClick={() => setChangePropertyOpen(true)}>
+          <SwapHoriz size={13} strokeWidth={1.75} />
           Changer logement
         </Button>
       )}
-      <Button
-        size="small"
-        variant="outlined"
-        startIcon={<OpenInNew size={13} strokeWidth={1.75} />}
-        onClick={() => setGuestCardOpen(true)}
-        sx={FOOTER_BUTTON_SX}
-      >
+      <Button variant="outline" size="sm" onClick={() => setGuestCardOpen(true)}>
+        <OpenInNew size={13} strokeWidth={1.75} />
         Fiche client
       </Button>
-      <Button
-        size="small"
-        variant="outlined"
-        startIcon={<WhatsApp size={13} strokeWidth={1.75} />}
-        onClick={() => setTemplateOpen(true)}
-        sx={FOOTER_BUTTON_SX}
-      >
+      <Button variant="outline" size="sm" onClick={() => setTemplateOpen(true)}>
+        <WhatsApp size={13} strokeWidth={1.75} />
         WhatsApp
       </Button>
+      {/* `destructive` et non `outline` : annuler une reservation est irreversible —
+          la teinte --err portait deja cette intention dans l'ancien sx. */}
       <Button
-        size="small"
-        variant="outlined"
-        startIcon={<Cancel size={13} strokeWidth={1.75} />}
+        variant="destructive"
+        size="sm"
         onClick={() => setCancelDialogOpen(true)}
         disabled={reservation.status === 'cancelled' || !onCancelReservation}
-        sx={{
-          ...FOOTER_BUTTON_SX,
-          color: 'var(--err)',
-          borderColor: 'var(--err)',
-          '&:hover': { borderColor: 'var(--err)', backgroundColor: 'var(--err-soft)' },
-          '&.Mui-disabled': { borderColor: 'var(--line)', color: 'var(--faint)' },
-        }}
       >
+        <Cancel size={13} strokeWidth={1.75} />
         Annuler
       </Button>
 
@@ -189,68 +149,67 @@ const PanelFooterActions: React.FC<PanelFooterActionsProps> = ({
       {/* Confirmation d'annulation */}
       <Dialog
         open={cancelDialogOpen}
-        onClose={() => { setCancelDialogOpen(false); setCancelError(null); }}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 'var(--radius-lg)' } }}
+        onOpenChange={(next) => { if (!next) { setCancelDialogOpen(false); setCancelError(null); } }}
       >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 1, pt: 2, px: 2.5 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Warning size={22} strokeWidth={1.75} /></Box>
-          <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
-            Annuler la reservation
-          </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ px: 2.5, pt: 1 }}>
-          <Typography variant="body2" sx={{ fontSize: '0.8125rem', mb: 1 }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5 pe-8">
+              <span className="inline-flex text-[var(--err)]"><Warning size={22} strokeWidth={1.75} /></span>
+              Annuler la reservation
+            </DialogTitle>
+            <DialogDescription>
+              Du {reservation.checkIn} au {reservation.checkOut}
+            </DialogDescription>
+          </DialogHeader>
+
+          <p className="cn-text-body2 text-[0.8125rem] mb-1.5">
             Etes-vous sur de vouloir annuler la reservation de{' '}
             <strong>{reservation.guestName}</strong> au{' '}
             <strong>{reservation.propertyName}</strong> ?
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.8125rem', mb: 1 }}>
-            Du <strong>{reservation.checkIn}</strong> au <strong>{reservation.checkOut}</strong>
-          </Typography>
-          <Alert severity="warning" sx={{ fontSize: '0.75rem' }}>
-            Les interventions liees (menage) seront egalement annulees. Cette action est irreversible.
+          </p>
+          <Alert variant="warning" className="text-[0.75rem]">
+            <TriangleAlert />
+            <AlertDescription>Les interventions liees (menage) seront egalement annulees. Cette action est irreversible.</AlertDescription>
           </Alert>
           {cancelError && (
-            <Alert severity="error" sx={{ fontSize: '0.75rem', mt: 1 }}>
-              {cancelError}
+            <Alert variant="destructive" className="text-[0.75rem] mt-1.5">
+              <TriangleAlert />
+              <AlertDescription>{cancelError}</AlertDescription>
             </Alert>
           )}
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setCancelDialogOpen(false); setCancelError(null); }}
+            >
+              Retour
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!onCancelReservation) return;
+                setCancelLoading(true);
+                setCancelError(null);
+                const result = await onCancelReservation(reservation.id);
+                setCancelLoading(false);
+                if (result.success) {
+                  setCancelDialogOpen(false);
+                } else {
+                  setCancelError(result.error);
+                }
+              }}
+              variant="destructive"
+              size="sm"
+              disabled={cancelLoading || !onCancelReservation}
+            >
+              {cancelLoading ? <Spinner className="size-3.5" /> : <Cancel size={16} strokeWidth={1.75} />}
+              Confirmer l'annulation
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2.5, pb: 2, pt: 1 }}>
-          <Button
-            onClick={() => { setCancelDialogOpen(false); setCancelError(null); }}
-            size="small"
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}
-          >
-            Retour
-          </Button>
-          <Button
-            onClick={async () => {
-              if (!onCancelReservation) return;
-              setCancelLoading(true);
-              setCancelError(null);
-              const result = await onCancelReservation(reservation.id);
-              setCancelLoading(false);
-              if (result.success) {
-                setCancelDialogOpen(false);
-              } else {
-                setCancelError(result.error);
-              }
-            }}
-            variant="contained"
-            color="error"
-            size="small"
-            disabled={cancelLoading || !onCancelReservation}
-            startIcon={cancelLoading ? <CircularProgress size={14} /> : <Cancel size={16} strokeWidth={1.75} />}
-            sx={{ fontSize: '0.75rem', textTransform: 'none' }}
-          >
-            Confirmer l'annulation
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

@@ -1,5 +1,7 @@
 import React from 'react';
-import { Paper, Box, Typography } from '@mui/material';
+import { cn } from '../utils/cn';
+import { Card } from '../components/ui';
+
 import { Money } from './Money';
 
 /**
@@ -33,66 +35,61 @@ export default function RevenueByChannelCard({
   headerAction,
 }: RevenueByChannelCardProps) {
   return (
-    <Paper variant="outlined" sx={{ borderRadius: '14px', bgcolor: 'var(--card)', borderColor: 'var(--line)', overflow: 'hidden' }}>
-      <Box
-        sx={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1,
-          px: '17px', pt: '15px', pb: headerAction ? '11px' : '4px',
-        }}
-      >
-        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+    <Card className="gap-0 py-0 bg-[var(--card)] border-[var(--line)] overflow-hidden">
+      <div className={cn('flex items-center justify-between gap-1.5 px-[17px] pt-[15px]', headerAction ? 'pb-[11px]' : 'pb-1')}>
+        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] tracking-[-0.01em]">
           {title}
-        </Typography>
+        </p>
         {headerAction}
-      </Box>
+      </div>
 
-      <Box sx={{ px: '17px', pb: '8px' }}>
+      <div className="px-[17px] pb-2">
         {channels.length === 0 && (
-          <Typography sx={{ fontSize: '12px', color: 'var(--muted)', py: '14px' }}>
+          <p className="cn-text-body1 text-[12px] text-[var(--muted)] py-3.5">
             Aucun revenu par canal sur la période.
-          </Typography>
+          </p>
         )}
         {channels.map((c) => {
           const delta = c.comparePct != null ? Math.round((c.pct - c.comparePct) * 10) / 10 : null;
           return (
-            <Box
+            <div
               key={c.name}
-              sx={{
-                display: 'flex', alignItems: 'center', gap: '11px', py: '11px',
-                borderTop: '1px solid var(--line)',
-                '&:first-of-type': { borderTop: 0 },
-              }}
+              className="flex items-center gap-[11px] py-[11px] border-t border-solid border-[var(--line)] first-of-type:border-t-0"
             >
-              <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', width: 74, flexShrink: 0 }}>
+              <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] w-[74px] shrink-0">
                 {c.name}
-              </Typography>
-              <Box sx={{ flex: 1, height: 8, borderRadius: '5px', bgcolor: 'var(--field)', overflow: 'hidden' }}>
-                <Box sx={{ height: '100%', borderRadius: '5px', width: `${c.pct}%`, backgroundColor: c.color, transition: 'width .3s var(--ease-out)', '@media (prefers-reduced-motion: reduce)': { transition: 'none' } }} />
-              </Box>
-              <Box sx={{ flexShrink: 0, textAlign: 'right', minWidth: 66 }}>
+              </p>
+              <div className="flex-1 h-[8px] rounded-[5px] bg-[var(--field)] overflow-hidden">
+                {/* Largeur et couleur calculees a l'execution : style inline obligatoire. */}
+                <div
+                  className="h-full rounded-[5px] transition-[width] duration-300 ease-[var(--ease-out)] motion-reduce:transition-none"
+                  style={{ width: `${c.pct}%`, backgroundColor: c.color }}
+                />
+              </div>
+              <div className="shrink-0 text-end min-w-[66px]">
                 {/* Montant (devise) en tête, % + delta en sous-ligne. */}
-                <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '13px', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
+                <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[13px] font-semibold text-[var(--ink)] leading-[1.2] tabular-nums">
                   {c.amount != null ? <Money value={c.amount} decimals={0} /> : `${c.pct}%`}
-                </Typography>
+                </p>
                 {(c.amount != null || (delta != null && delta !== 0)) && (
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '5px', mt: '1px' }}>
+                  <div className="flex justify-end items-center gap-[5px] mt-px">
                     {c.amount != null && (
-                      <Typography component="span" sx={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                      <span className="text-[10.5px] font-semibold text-[var(--muted)] tabular-nums">
                         {c.pct}%
-                      </Typography>
+                      </span>
                     )}
                     {delta != null && delta !== 0 && (
-                      <Typography component="span" sx={{ fontSize: '10.5px', fontWeight: 700, color: delta > 0 ? 'var(--ok)' : 'var(--err)', fontVariantNumeric: 'tabular-nums' }}>
+                      <span className={cn('cn-text-body1 text-[10.5px] font-bold tabular-nums', delta > 0 ? 'text-[var(--ok)]' : 'text-[var(--err)]')}>
                         {delta > 0 ? '▲' : '▼'}{Math.abs(delta)} pt
-                      </Typography>
+                      </span>
                     )}
-                  </Box>
+                  </div>
                 )}
-              </Box>
-            </Box>
+              </div>
+            </div>
           );
         })}
-      </Box>
-    </Paper>
+      </div>
+    </Card>
   );
 }

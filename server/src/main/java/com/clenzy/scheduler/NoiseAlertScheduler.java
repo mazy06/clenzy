@@ -112,7 +112,7 @@ public class NoiseAlertScheduler {
                 );
                 if (alert != null) {
                     alertCount++;
-                    recordConstellationActivity(config);
+                    recordConstellationActivity(config, alert.getId());
                 }
             } catch (Exception e) {
                 log.warn("Erreur lecture capteur device={}: {}", device.getId(), e.getMessage());
@@ -127,19 +127,23 @@ public class NoiseAlertScheduler {
      * et {@code organizationId} sont ceux de CETTE occurrence. Best-effort — le record est lui-même
      * best-effort et transactionnel côté service : un échec ne doit JAMAIS casser le scheduler.
      */
-    private void recordConstellationActivity(NoiseAlertConfig config) {
+    private void recordConstellationActivity(NoiseAlertConfig config, Long alertId) {
         try {
             Long propertyId = config.getPropertyId();
             if (propertyId != null) {
                 supervisionActivityService.recordModuleAct(
                     config.getOrganizationId(), propertyId, "ops", "noise_alert",
                     "Bruit détecté au-dessus du seuil sur ce logement");
-                // Carte HITL actionnable EN PLUS du feed : le feed = historique,
-                // la carte = todo à traiter (dédup intégrée sur l'intitulé).
-                supervisionSuggestionService.record(
-                    config.getOrganizationId(), propertyId, "ops", "noise_alert",
+                // Carte HITL ACTIONNABLE en plus du feed (constellation métiers Phase 2) :
+                // « Envoyer » avertit le voyageur du séjour en cours (WhatsApp, repli email,
+                // idempotence 1 avertissement / séjour / 24 h côté service d'envoi).
+                supervisionSuggestionService.recordActionable(
+                    config.getOrganizationId(), propertyId, "ops",
                     "Alerte de bruit à traiter",
-                    "Niveau sonore au-dessus du seuil — contacter le voyageur / vérifier le logement.");
+                    "Niveau sonore au-dessus du seuil. « Envoyer » avertit le voyageur du séjour "
+                        + "en cours (WhatsApp, repli email) — un seul avertissement par 24 h.",
+                    com.clenzy.service.agent.supervision.SupervisionActionType.NOISE_WARNING_SEND,
+                    "{\"alertId\":" + alertId + "}", null, "warning");
             }
         } catch (Exception e) {
             log.debug("Alerte bruit: activite constellation non enregistree (property={}): {}",

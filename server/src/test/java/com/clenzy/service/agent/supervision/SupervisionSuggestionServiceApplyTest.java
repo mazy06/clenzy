@@ -170,8 +170,8 @@ class SupervisionSuggestionServiceApplyTest {
     @Test
     @DisplayName("recordActionableForAutoApply : memes garanties, mais AUCUNE notification « en attente »")
     void recordActionableForAutoApply_doesNotNotifyPending() {
-        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
-                any(), any(), any(), any(), any())).thenReturn(false);
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                any(), any(), any(), any(), any(), any())).thenReturn(false);
         when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndDismissedAtAfter(
                 any(), any(), any(), any(), any(), any())).thenReturn(false);
 
@@ -187,8 +187,8 @@ class SupervisionSuggestionServiceApplyTest {
     @Test
     @DisplayName("recordActionableForAutoApply : cooldown dismiss respecte (pas de re-creation)")
     void recordActionableForAutoApply_respectsDismissCooldown() {
-        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
-                any(), any(), any(), any(), any())).thenReturn(false);
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                any(), any(), any(), any(), any(), any())).thenReturn(false);
         when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndDismissedAtAfter(
                 any(), any(), any(), any(), any(), any())).thenReturn(true);
 
@@ -202,8 +202,8 @@ class SupervisionSuggestionServiceApplyTest {
     @Test
     @DisplayName("recordActionableStrict : dedup par intitule en attente -> false, sinon persiste true")
     void recordActionableStrict_dedupes() {
-        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
-                ORG_ID, 7L, "fin", "titre", SupervisionSuggestion.STATUS_PENDING))
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                eq(ORG_ID), eq(7L), eq("fin"), eq("titre"), eq(SupervisionSuggestion.STATUS_PENDING), any()))
                 .thenReturn(true).thenReturn(false);
 
         boolean first = service.recordActionableStrict(ORG_ID, 7L, "fin", 100L,
@@ -219,8 +219,8 @@ class SupervisionSuggestionServiceApplyTest {
     @Test
     @DisplayName("carte actionnable warning -> notification hors-ecran (B2)")
     void recordActionableWarning_notifiesOffScreen() {
-        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
-                any(), any(), any(), any(), any())).thenReturn(false);
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                any(), any(), any(), any(), any(), any())).thenReturn(false);
 
         service.recordActionableStrict(ORG_ID, 10L, "fin", null, "Solde echoue", "motif",
                 SupervisionActionType.PAYMENT_REMINDER, "{}", null, "warning");
@@ -232,8 +232,8 @@ class SupervisionSuggestionServiceApplyTest {
     @Test
     @DisplayName("carte informationnelle -> pas de notification (anti-spam)")
     void recordInformational_doesNotNotify() {
-        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
-                any(), any(), any(), any(), any())).thenReturn(false);
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                any(), any(), any(), any(), any(), any())).thenReturn(false);
 
         service.record(ORG_ID, 10L, "ops", "cleaning_missing", "Menage manquant", "motif");
 
@@ -244,8 +244,8 @@ class SupervisionSuggestionServiceApplyTest {
     @Test
     @DisplayName("carte récemment IGNORÉE -> pas re-suggérée (cooldown)")
     void recordActionable_suppressedWhenRecentlyDismissed() {
-        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
-                ORG_ID, 7L, "rev", "Occupation à venir faible", "PENDING")).thenReturn(false);
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                eq(ORG_ID), eq(7L), eq("rev"), eq("Occupation à venir faible"), eq("PENDING"), any())).thenReturn(false);
         when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndDismissedAtAfter(
                 eq(ORG_ID), eq(7L), eq("rev"), eq("Occupation à venir faible"), eq("DISMISSED"), any()))
                 .thenReturn(true);
@@ -260,8 +260,8 @@ class SupervisionSuggestionServiceApplyTest {
     @Test
     @DisplayName("carte non récemment ignorée -> créée normalement")
     void recordActionable_createsWhenNotRecentlyDismissed() {
-        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatus(
-                ORG_ID, 7L, "rev", "Occupation à venir faible", "PENDING")).thenReturn(false);
+        when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndExpiresAtAfter(
+                eq(ORG_ID), eq(7L), eq("rev"), eq("Occupation à venir faible"), eq("PENDING"), any())).thenReturn(false);
         when(repository.existsByOrganizationIdAndPropertyIdAndModuleKeyAndTitleAndStatusAndDismissedAtAfter(
                 eq(ORG_ID), eq(7L), eq("rev"), eq("Occupation à venir faible"), eq("DISMISSED"), any()))
                 .thenReturn(false);

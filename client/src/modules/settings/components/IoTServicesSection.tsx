@@ -1,6 +1,6 @@
 import { useState } from 'react';
+import { Button, Card, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Box, IconButton, Paper, Tooltip, Typography } from '@mui/material';
 import { Settings2 } from 'lucide-react';
 import OAuthProviderCard, { type OAuthApiAdapter } from './OAuthProviderCard';
 import TuyaProjectConfigDialog from './TuyaProjectConfigDialog';
@@ -92,73 +92,61 @@ export default function IoTServicesSection() {
 
   // Action « configurer le projet Tuya » en icône (libellé + statut/région portés par le tooltip).
   const tuyaConfigAction = (
-    <Tooltip
-      title={
-        tuyaConfigured
+    <Tooltip>
+      {/* Le trigger enveloppe un <span> (element hote) : Radix y pose sa ref
+          d'ancrage, ce qu'un composant fonction React 18 ne peut pas recevoir. */}
+      <TooltipTrigger asChild>
+        <span className="inline-flex">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setConfigOpen(true)}
+            aria-label="Configurer le projet Tuya"
+            className={tuyaConfigured ? 'text-[var(--muted)]' : 'text-[var(--warn)]'}
+          >
+            <Settings2 size={16} strokeWidth={2} />
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        {tuyaConfigured
           ? `Projet Tuya configuré${tuyaConfig?.region ? ` · ${tuyaConfig.region.toUpperCase()}` : ''} · Modifier les identifiants`
-          : 'Configurer le projet Tuya Cloud (Access ID / Secret)'
-      }
-      arrow
-    >
-      <IconButton
-        size="small"
-        onClick={() => setConfigOpen(true)}
-        aria-label="Configurer le projet Tuya"
-        sx={{
-          color: tuyaConfigured ? 'text.secondary' : 'var(--warn)',
-          '&:hover': { bgcolor: 'action.hover' },
-          cursor: 'pointer',
-        }}
-      >
-        <Settings2 size={16} strokeWidth={2} />
-      </IconButton>
+          : 'Configurer le projet Tuya Cloud (Access ID / Secret)'}
+      </TooltipContent>
     </Tooltip>
   );
 
   // Action « configurer l'app Netatmo » (Client ID / Secret / Redirect URI).
   const netatmoConfigAction = (
-    <Tooltip
-      title={netatmoConfigured ? "App Netatmo configurée · Modifier les identifiants" : "Configurer l'app Netatmo (Client ID / Secret)"}
-      arrow
-    >
-      <IconButton
-        size="small"
-        onClick={() => setNetatmoConfigOpen(true)}
-        aria-label="Configurer l'app Netatmo"
-        sx={{
-          color: netatmoConfigured ? 'text.secondary' : 'var(--warn)',
-          '&:hover': { bgcolor: 'action.hover' },
-          cursor: 'pointer',
-        }}
-      >
-        <Settings2 size={16} strokeWidth={2} />
-      </IconButton>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setNetatmoConfigOpen(true)}
+            aria-label="Configurer l'app Netatmo"
+            className={netatmoConfigured ? 'text-[var(--muted)]' : 'text-[var(--warn)]'}
+          >
+            <Settings2 size={16} strokeWidth={2} />
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        {netatmoConfigured ? "App Netatmo configurée · Modifier les identifiants" : "Configurer l'app Netatmo (Client ID / Secret)"}
+      </TooltipContent>
     </Tooltip>
   );
 
   return (
-    <Paper
-      id="section-connected-objects"
-      elevation={0}
-      sx={{
-        borderRadius: '12px',
-        border: '1px solid',
-        borderColor: 'divider',
-        boxShadow: 'none',
-        mt: 3,
-        mb: 2,
-        px: 2,
-        py: 1.75,
-        scrollMarginTop: 80,
-      }}
-    >
-      <Typography sx={{ fontWeight: 700, fontSize: '1rem', mb: 0.25 }}>Objets connectés (IoT)</Typography>
-      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.75 }}>
+    <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-connected-objects">
+      <p className="cn-text-body1 font-bold text-[1rem] mb-0.5">Objets connectés (IoT)</p>
+      <p className="cn-text-body2 text-muted-foreground mb-2.5">
         Reliez les comptes IoT de l'organisation : serrures, caméras, thermostats et capteurs de bruit.
         Une fois un service connecté, les membres de l'org ajoutent leurs appareils en quelques clics.
-      </Typography>
+      </p>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 1.5 }}>
+      <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px]">
         <OAuthProviderCard
           providerId="TUYA"
           label="Tuya"
@@ -185,7 +173,7 @@ export default function IoTServicesSection() {
           mainActionDisabled={!netatmoConfigured}
           mainActionDisabledReason="Configurez d'abord l'app Netatmo (bouton ⚙)."
         />
-      </Box>
+      </div>
 
       <TuyaProjectConfigDialog
         open={configOpen}
@@ -200,6 +188,6 @@ export default function IoTServicesSection() {
         current={netatmoConfig}
         onSaved={() => refetchNetatmoConfig()}
       />
-    </Paper>
+    </Card>
   );
 }

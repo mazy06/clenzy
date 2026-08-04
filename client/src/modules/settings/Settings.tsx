@@ -1,16 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Alert as BuiAlert, AlertDescription } from '../../components/ui';
+import { Info } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import {
-  Box,
-  Typography,
-  Button,
-  TextField,
-  Grid,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  ToggleButton,
-  ToggleButtonGroup,
-} from '@mui/material';
+  Button as UiButton,
+  Field,
+  FieldGroup,
+  FieldLabel,
+  Input,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+  NativeSelect,
+  NativeSelectOption,
+  ToggleGroup,
+  ToggleGroupItem,
+} from '../../components/ui';
 import {
   Notifications,
   Security,
@@ -34,6 +42,8 @@ import {
   Extension,
   CalendarMonth,
   LocalOffer,
+  Bolt,
+  NightsStay,
 } from '../../icons';
 import { guestMessagingApi } from '../../services/api/guestMessagingApi';
 import type { MessagingAutomationConfig } from '../../services/api/guestMessagingApi';
@@ -44,6 +54,7 @@ import storageService, { STORAGE_KEYS } from '../../services/storageService';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNotification } from '../../hooks/useNotification';
 import { useOnboarding } from '../../hooks/useOnboarding';
 import { useUserPreferences } from '../../hooks/useUserPreferences';
 import { organizationsApi } from '../../services/api/organizationsApi';
@@ -62,6 +73,7 @@ interface SettingsTabMeta {
   subtitle: string;
 }
 import AccountSecuritySection from './AccountSecuritySection';
+import PrivacyRequestsSection from './PrivacyRequestsSection';
 import NotificationPreferencesCard from './NotificationPreferencesCard';
 import type { NotificationPreferencesHandle } from './NotificationPreferencesCard';
 import MarketingPreferencesCard from './MarketingPreferencesCard';
@@ -111,7 +123,7 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ pt: 2 }}>{children}</Box>
+        <div className="pt-3">{children}</div>
       )}
     </div>
   );
@@ -127,6 +139,7 @@ function a11yProps(index: number) {
 export default function Settings() {
   const { user, hasPermissionAsync, hasAnyRole } = useAuth();
   const { t } = useTranslation();
+  const { notify } = useNotification();
   const queryClient = useQueryClient();
   const { completeStep, steps } = useOnboarding();
   const isConfigureOrgDone = steps.find((s) => s.key === 'configure_org')?.completed ?? false;
@@ -201,15 +214,22 @@ export default function Settings() {
   // OAuth callback status handling
   const oauthStatus = searchParams.get('status');
   const isValidOauthStatus = oauthStatus === 'success' || oauthStatus === 'error';
-  const [oauthSnackbar, setOauthSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: isValidOauthStatus,
-    message: oauthStatus === 'success'
-      ? t('settings.integrations.pennylane.connectionSuccess')
-      : oauthStatus === 'error'
-        ? t('settings.integrations.pennylane.connectionError')
-        : '',
-    severity: oauthStatus === 'error' ? 'error' : 'success',
-  });
+  // L'ancien Snackbar naissait deja ouvert quand l'URL portait ?status=… : la
+  // notification est donc tiree UNE fois au montage (garde par un ref, pas par
+  // un etat : ce n'est pas une donnee de rendu), puis le parametre est purge —
+  // ce que faisait auparavant le onClose du Snackbar.
+  const oauthNotifiedRef = useRef(false);
+  useEffect(() => {
+    if (!isValidOauthStatus || oauthNotifiedRef.current) return;
+    oauthNotifiedRef.current = true;
+    if (oauthStatus === 'success') {
+      notify.success(t('settings.integrations.pennylane.connectionSuccess'));
+    } else {
+      notify.error(t('settings.integrations.pennylane.connectionError'));
+    }
+    searchParams.delete('status');
+    setSearchParams(searchParams, { replace: true });
+  }, [isValidOauthStatus, oauthStatus, notify, t, searchParams, setSearchParams]);
 
   // Ref pour NotificationPreferencesCard
   const notifRef = useRef<NotificationPreferencesHandle>(null);
@@ -346,12 +366,27 @@ export default function Settings() {
 
   // Auto-push pricing global toggle
   const [autoPushPricingEnabled, setAutoPushPricingEnabled] = useState(false);
+  // Heures calmes messagerie (M10) — "HH:mm" heure locale du logement, vide = désactivé.
+  const [quietHours, setQuietHours] = useState<{ start: string; end: string }>({ start: '', end: '' });
 
   useEffect(() => {
     guestMessagingApi.getConfig()
-      .then((cfg) => setAutoPushPricingEnabled(cfg.autoPushPricingEnabled))
+      .then((cfg) => {
+        setAutoPushPricingEnabled(cfg.autoPushPricingEnabled);
+        setQuietHours({ start: cfg.quietHoursStart ?? '', end: cfg.quietHoursEnd ?? '' });
+      })
       .catch(() => {});
   }, []);
+
+  const handleQuietHoursChange = async (next: { start: string; end: string }) => {
+    setQuietHours(next);
+    try {
+      // Chaîne vide = désactivation explicite côté serveur (null = inchangé).
+      await guestMessagingApi.updateConfig({ quietHoursStart: next.start, quietHoursEnd: next.end });
+    } catch {
+      /* meilleure chance au prochain changement */
+    }
+  };
 
   const handleToggleAutoPushPricing = async (enabled: boolean) => {
     setAutoPushPricingEnabled(enabled);
@@ -361,9 +396,6 @@ export default function Settings() {
       setAutoPushPricingEnabled(!enabled); // revert on error
     }
   };
-
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   // Vérifier les permissions au chargement
   useEffect(() => {
@@ -386,27 +418,27 @@ export default function Settings() {
   // Attendre que l'utilisateur soit complètement chargé APRÈS tous les hooks
   if (!user) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
   // Si pas de permission, afficher un message informatif
   if (!canViewSettings) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="info">
-          <Typography variant="h6" gutterBottom>
+      <div className="p-4">
+        <BuiAlert variant="info">
+          <Info />
+          <AlertDescription><h6 className="cn-text-h6 mb-[0.35em]">
             Accès non autorisé
-          </Typography>
-          <Typography variant="body1">
+          </h6><p className="cn-text-body1">
             Vous n'avez pas les permissions nécessaires pour accéder aux paramètres.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
-          </Typography>
-        </Alert>
-      </Box>
+          </p></AlertDescription>
+        </BuiAlert>
+      </div>
     );
   }
 
@@ -446,14 +478,12 @@ export default function Settings() {
       // 4. Invalidate onboarding auto-checks
       queryClient.invalidateQueries({ queryKey: ['onboarding', 'me'] });
 
-      setSnackbarMessage('Paramètres sauvegardés avec succès');
-      setSnackbarOpen(true);
+      notify.success('Paramètres sauvegardés avec succès');
       if (!isConfigureOrgDone) {
         completeStep('configure_org');
       }
     } catch {
-      setSnackbarMessage('Erreur lors de la sauvegarde des paramètres');
-      setSnackbarOpen(true);
+      notify.error('Erreur lors de la sauvegarde des paramètres');
     }
   };
 
@@ -476,8 +506,7 @@ export default function Settings() {
         notifySms: false,
       });
     } catch { /* ignore */ }
-    setSnackbarMessage('Paramètres réinitialisés');
-    setSnackbarOpen(true);
+    notify.success('Paramètres réinitialisés');
   };
 
   // useTabKeyParam ecrit la cle de l'onglet actif dans l'URL (?tab=<key>), robuste au role.
@@ -523,96 +552,65 @@ export default function Settings() {
 
   // ─── Actions dynamiques selon l'onglet ────────────────────────────────────
 
-  // Boutons du header : styles 100 % hérités du thème global Signature
-  // (contained = contour accent, outlined = carte hairline) — aucun override local.
-  const refinedOutlinedSx = undefined;
-  const refinedContainedSx = undefined;
-
+  // Boutons du header : la sauvegarde est l'action principale de l'onglet
+  // (default), « Réinitialiser » reste une secondaire a poids egal (outline).
   const headerActions = tabValue === tabIdx.general ? (
     <>
-      <Button
-        variant="outlined"
-        startIcon={<Refresh size={14} strokeWidth={1.75} />}
-        onClick={handleReset}
-        size="small"
-        title="Réinitialiser"
-        sx={refinedOutlinedSx}
-      >
+      <UiButton variant="outline" size="sm" onClick={handleReset} title="Réinitialiser">
+        <Refresh size={14} strokeWidth={1.75} />
         Réinitialiser
-      </Button>
-      <Button
-        variant="contained"
-        disableElevation
-        startIcon={<Save size={14} strokeWidth={1.75} />}
-        onClick={handleSave}
-        size="small"
-        title="Sauvegarder"
-        sx={refinedContainedSx}
-      >
+      </UiButton>
+      <UiButton size="sm" onClick={handleSave} title="Sauvegarder">
+        <Save size={14} strokeWidth={1.75} />
         Sauvegarder
-      </Button>
+      </UiButton>
     </>
   ) : tabValue === tabIdx.notifications && notifRef.current?.hasChanges() ? (
-    <Button
-      variant="contained"
-      disableElevation
-      startIcon={
-        notifRef.current?.isSaving ? (
-          <CircularProgress size={14} color="inherit" />
-        ) : (
-          <Save size={14} strokeWidth={1.75} />
-        )
-      }
+    <UiButton
+      size="sm"
       onClick={handleNotifSave}
       disabled={notifRef.current?.isSaving}
-      size="small"
       title="Sauvegarder"
-      sx={refinedContainedSx}
     >
+      {notifRef.current?.isSaving ? (
+        <Spinner className="size-3.5" />
+      ) : (
+        <Save size={14} strokeWidth={1.75} />
+      )}
       {notifRef.current?.isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
-    </Button>
+    </UiButton>
   ) : tabValue === tabIdx.fiscal && hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) ? (
-    <Button
-      variant="contained"
-      disableElevation
-      startIcon={
-        fiscalRef.current?.isSaving ? (
-          <CircularProgress size={14} color="inherit" />
-        ) : (
-          <Save size={14} strokeWidth={1.75} />
-        )
-      }
+    <UiButton
+      size="sm"
       onClick={handleFiscalSave}
       disabled={fiscalRef.current?.isSaving || !fiscalRef.current?.hasChanges()}
-      size="small"
       title={t('fiscal.profile.save', 'Enregistrer le profil fiscal')}
-      sx={refinedContainedSx}
     >
+      {fiscalRef.current?.isSaving ? (
+        <Spinner className="size-3.5" />
+      ) : (
+        <Save size={14} strokeWidth={1.75} />
+      )}
       {fiscalRef.current?.isSaving
         ? t('fiscal.profile.saving', 'Enregistrement...')
         : t('fiscal.profile.save', 'Enregistrer le profil fiscal')}
-    </Button>
+    </UiButton>
   ) : tabValue === tabIdx.payouts && hasAnyRole(['SUPER_ADMIN']) ? (
-    <Button
-      variant="contained"
-      disableElevation
-      startIcon={
-        reversementsIsSaving ? (
-          <CircularProgress size={14} color="inherit" />
-        ) : (
-          <Save size={14} strokeWidth={1.75} />
-        )
-      }
+    <UiButton
+      size="sm"
       onClick={handleReversementsSave}
       disabled={reversementsIsSaving || !reversementsHasChanges || !reversementsIsValid}
-      size="small"
       title={t('settings.reversements.save', 'Enregistrer les paramètres')}
-      sx={refinedContainedSx}
     >
+      {reversementsIsSaving ? (
+        <Spinner className="size-3.5" />
+      ) : (
+        <Save size={14} strokeWidth={1.75} />
+      )}
       {reversementsIsSaving
         ? t('settings.reversements.saving', 'Enregistrement...')
         : t('settings.reversements.save', 'Enregistrer les paramètres')}
-    </Button>
+    </UiButton>
   ) : undefined;
 
   // settingsTabs + visibleSettingsTabs + tabValue sont definis plus haut (avant leur 1ere
@@ -676,15 +674,15 @@ export default function Settings() {
   // OU bien il portale via le slot ? Si headerActions est defini ET le slot est
   // utilise par un tab, on stack les deux. Sinon on prend ce qui existe.
   const combinedActions = (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+    <div className="flex items-center gap-1.5">
       {headerActionsPortal}
       {headerActions}
-    </Box>
+    </div>
   );
 
   return (
     <SettingsHeaderProvider slot={headerActionsSlot}>
-    <Box>
+    <div>
       {/* Header avec actions */}
       <PageHeader
         title={headerTitle}
@@ -715,10 +713,10 @@ export default function Settings() {
 
       {/* ─── Onglet Général ─────────────────────────────────────────────── */}
       <TabPanel value={tabValue} index={tabIdx.general}>
-        <Grid container spacing={2}>
+        <div className="grid grid-cols-12 gap-3">
 
           {/* Mon compte */}
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <SettingsSection
               title="Mon compte"
               icon={Person}
@@ -733,109 +731,103 @@ export default function Settings() {
                 alt: user?.fullName || user?.username || 'Photo de profil',
               }}
             >
-              <Grid container spacing={1.5}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Prénom"
-                    value={user?.firstName || ''}
-                    disabled
-                    size="small"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Nom"
-                    value={user?.lastName || ''}
-                    disabled
-                    size="small"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Nom d'utilisateur"
-                    value={user?.username || ''}
-                    disabled
-                    size="small"
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Email"
-                    value={user?.email || ''}
-                    disabled
-                    size="small"
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Nom de l'entreprise"
+              <FieldGroup className="gap-3">
+                {/* Identite : ces quatre valeurs viennent de Keycloak et ne sont
+                    JAMAIS modifiables ici. Les rendre en champs desactives
+                    invitait a cliquer dans un formulaire qui n'accepte rien —
+                    on les donne a lire, et la section n'expose plus que ce qui
+                    se modifie vraiment. */}
+                <div className="rounded-lg border border-border/70 bg-muted/30 px-2.5 py-2">
+                  <dl className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+                    {[
+                      { label: 'Prénom', value: user?.firstName },
+                      { label: 'Nom', value: user?.lastName },
+                      { label: "Nom d'utilisateur", value: user?.username },
+                      { label: 'Email', value: user?.email },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="min-w-0">
+                        <dt className="text-[0.68rem] uppercase tracking-[0.04em] text-muted-foreground">
+                          {label}
+                        </dt>
+                        <dd className="m-0 truncate text-[0.8125rem] text-foreground">
+                          {value || <span className="text-muted-foreground">—</span>}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+
+                <Field>
+                  <FieldLabel htmlFor="settings-company-name">Nom de l'entreprise</FieldLabel>
+                  <Input
+                    id="settings-company-name"
                     value={settings.business.companyName}
                     onChange={(e) => handleSettingChange('business', 'companyName', e.target.value)}
-                    size="small"
                   />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Fuseau horaire"
-                    value={settings.business.timezone}
-                    onChange={(e) => handleSettingChange('business', 'timezone', e.target.value)}
-                    select
-                    size="small"
-                    SelectProps={{ native: true }}
-                  >
-                    <option value="Europe/Paris">Europe/Paris</option>
-                    <option value="Europe/London">Europe/London</option>
-                    <option value="America/New_York">America/New_York</option>
-                    <option value="Asia/Tokyo">Asia/Tokyo</option>
-                  </TextField>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Devise"
-                    value={settings.business.currency}
-                    onChange={(e) => handleSettingChange('business', 'currency', e.target.value)}
-                    select
-                    size="small"
-                    SelectProps={{ native: true }}
-                  >
-                    {CURRENCY_OPTIONS.map(c => (
-                      <option key={c.code} value={c.code}>{c.label}</option>
-                    ))}
-                  </TextField>
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Langue"
+                </Field>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <Field>
+                    <FieldLabel htmlFor="settings-timezone">Fuseau horaire</FieldLabel>
+                    <NativeSelect
+                      id="settings-timezone"
+                      className="w-full"
+                      value={settings.business.timezone}
+                      onChange={(e) => handleSettingChange('business', 'timezone', e.target.value)}
+                    >
+                      <NativeSelectOption value="Europe/Paris">Europe/Paris</NativeSelectOption>
+                      <NativeSelectOption value="Europe/London">Europe/London</NativeSelectOption>
+                      <NativeSelectOption value="America/New_York">America/New_York</NativeSelectOption>
+                      <NativeSelectOption value="Asia/Tokyo">Asia/Tokyo</NativeSelectOption>
+                    </NativeSelect>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel htmlFor="settings-currency">Devise</FieldLabel>
+                    <NativeSelect
+                      id="settings-currency"
+                      className="w-full"
+                      value={settings.business.currency}
+                      onChange={(e) => handleSettingChange('business', 'currency', e.target.value)}
+                    >
+                      {CURRENCY_OPTIONS.map(c => (
+                        <NativeSelectOption key={c.code} value={c.code}>{c.label}</NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                  </Field>
+                </div>
+
+                <Field>
+                  <FieldLabel htmlFor="settings-language">Langue</FieldLabel>
+                  <NativeSelect
+                    id="settings-language"
+                    className="w-full"
                     value={settings.business.language}
                     onChange={(e) => handleSettingChange('business', 'language', e.target.value)}
-                    select
-                    size="small"
-                    SelectProps={{ native: true }}
                   >
-                    <option value="fr">Français</option>
-                    <option value="en">English</option>
-                    <option value="ar">العربية</option>
-                  </TextField>
-                </Grid>
-              </Grid>
+                    <NativeSelectOption value="fr">Français</NativeSelectOption>
+                    <NativeSelectOption value="en">English</NativeSelectOption>
+                    <NativeSelectOption value="ar">العربية</NativeSelectOption>
+                  </NativeSelect>
+                </Field>
+              </FieldGroup>
             </SettingsSection>
-          </Grid>
+          </div>
 
           {/* Sécurité (changement de mot de passe via email Keycloak) */}
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <AccountSecuritySection />
-          </Grid>
+          </div>
+
+          {/* Confidentialité RGPD (M9) — registre des demandes, réservé aux gestionnaires */}
+          {hasAnyRole(['HOST', 'SUPER_ADMIN', 'SUPER_MANAGER']) && (
+            <div className="col-span-12">
+              <PrivacyRequestsSection />
+            </div>
+          )}
 
           {/* Workflow */}
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <SettingsSection
               title="Workflow"
               icon={Storage}
@@ -846,24 +838,19 @@ export default function Settings() {
                 title="Délai d'annulation"
                 description="Temps limite pour annuler une demande approuvée"
                 control={(
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <TextField
+                  <div className="flex items-center gap-0.5">
+                    <Input
                       type="number"
                       value={workflowSettings.cancellationDeadlineHours}
                       onChange={(e) => updateWorkflowSettings({ cancellationDeadlineHours: parseInt(e.target.value) })}
-                      sx={{
-                        width: 72,
-                        '& input': { textAlign: 'center', fontVariantNumeric: 'tabular-nums', fontWeight: 600 },
-                      }}
-                      size="small"
-                      inputProps={{ min: 0, 'aria-label': "Délai d'annulation en heures" }}
+                      min={0}
+                      aria-label="Délai d'annulation en heures"
+                      className="w-[72px] text-center font-semibold tabular-nums"
                     />
-                    <Typography
-                      sx={{ fontSize: '0.72rem', color: 'text.secondary', fontWeight: 600, letterSpacing: '0.02em' }}
-                    >
+                    <p className="cn-text-body1 text-[0.72rem] text-muted-foreground font-semibold tracking-[0.02em]">
                       h
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                 )}
               />
               <SettingsToggleRow
@@ -892,73 +879,57 @@ export default function Settings() {
                 divider={false}
               />
             </SettingsSection>
-          </Grid>
+          </div>
 
           {/* Affichage */}
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <SettingsSection
               title="Affichage"
               icon={Palette}
               accent="warm"
               description="Apparence, densité et préférences visuelles"
             >
-              <Box sx={{ pb: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}>
-                <Typography
-                  sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', mb: 0.125 }}
-                >
+              <div className="pb-2 border-b border-[var(--line)]">
+                <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground mb-0">
                   Apparence
-                </Typography>
-                <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 1 }}>
+                </p>
+                <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-1.5">
                   {themeMode === 'auto'
                     ? `Système (${isDark ? 'sombre' : 'clair'} détecté)`
                     : themeMode === 'dark'
                       ? 'Mode sombre'
                       : 'Mode clair'}
-                </Typography>
-                <ToggleButtonGroup
+                </p>
+                <ToggleGroup
+                  type="single"
+                  variant="outline"
+                  size="sm"
+                  spacing={0}
                   value={themeMode}
-                  exclusive
-                  onChange={(_e, newMode) => {
-                    if (newMode !== null) {
-                      handleSettingChange('display', 'theme', newMode);
-                      setThemeMode(newMode);
-                    }
+                  // Radix renvoie '' quand on re-clique l'option active : sans ce
+                  // garde-fou, l'apparence se retrouverait sans valeur.
+                  onValueChange={(newMode) => {
+                    if (!newMode) return;
+                    handleSettingChange('display', 'theme', newMode);
+                    setThemeMode(newMode as typeof themeMode);
                   }}
-                  size="small"
-                  fullWidth
-                  sx={{
-                    '& .MuiToggleButton-root': {
-                      textTransform: 'none',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      gap: 0.625,
-                      py: 0.625,
-                      borderColor: 'divider',
-                      color: 'text.secondary',
-                      '&.Mui-selected': {
-                        bgcolor: 'var(--accent-soft)',
-                        color: 'var(--accent)',
-                        borderColor: 'color-mix(in srgb, var(--accent) 38%, transparent)',
-                        '&:hover': { bgcolor: 'var(--accent-soft)' },
-                      },
-                      '&:hover': { bgcolor: 'var(--hover)' },
-                    },
-                  }}
+                  aria-label="Apparence"
+                  className="w-full [&>*]:flex-1"
                 >
-                  <ToggleButton value="light">
+                  <ToggleGroupItem value="light" className="gap-1.5 text-[0.78rem] font-semibold">
                     <LightMode size={14} strokeWidth={1.75} />
                     Clair
-                  </ToggleButton>
-                  <ToggleButton value="dark">
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="dark" className="gap-1.5 text-[0.78rem] font-semibold">
                     <DarkMode size={14} strokeWidth={1.75} />
                     Sombre
-                  </ToggleButton>
-                  <ToggleButton value="auto">
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="auto" className="gap-1.5 text-[0.78rem] font-semibold">
                     <SettingsBrightness size={14} strokeWidth={1.75} />
                     Système
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </Box>
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
               <SettingsToggleRow
                 icon={Storage}
                 iconColor="var(--muted)"
@@ -977,56 +948,87 @@ export default function Settings() {
                 divider={false}
               />
             </SettingsSection>
-          </Grid>
+          </div>
 
-        </Grid>
+        </div>
       </TabPanel>
 
       {/* ─── Onglet Notifications ───────────────────────────────────────── */}
       <TabPanel value={tabValue} index={tabIdx.notifications}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="flex flex-col gap-3">
           <NotificationPreferencesCard
             ref={notifRef}
             onChangeState={() => forceUpdate(n => n + 1)}
           />
           <MarketingPreferencesCard />
-        </Box>
+        </div>
       </TabPanel>
 
       {/* ─── Onglet Messagerie ────────────────────────────────────────── */}
       <TabPanel value={tabValue} index={tabIdx.messaging}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div className="flex flex-col gap-6">
           {/* La config du provider WhatsApp (credentials Meta/OpenWA) est gérée
               par la plateforme depuis l'onglet Organisation. Le HOST voit ici un
               statut read-only + ses automatisations de messages voyageurs. */}
           <WhatsAppStatusBanner />
           {/* La messagerie automatique check-in/check-out est désormais gérée dans
               le hub Automatisations (source de vérité unique). */}
-          <Box
-            sx={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              gap: 2, p: 2, borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--hairline)', backgroundColor: 'var(--field)',
-            }}
-          >
-            <Box>
-              <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ink)' }}>
+          <Item variant="muted">
+            <ItemMedia variant="icon">
+              <Bolt size={16} strokeWidth={1.75} />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>
                 {t('messaging.automation.movedTitle', 'Messages automatiques (check-in / check-out)')}
-              </Typography>
-              <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mt: 0.5 }}>
+              </ItemTitle>
+              <ItemDescription>
                 {t('messaging.automation.movedBody', 'La messagerie automatique est désormais gérée dans Automatisations, avec les autres règles.')}
-              </Typography>
-            </Box>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => navigate('/automation-rules')}
-              sx={{ flexShrink: 0 }}
-            >
-              {t('messaging.automation.movedCta', 'Ouvrir les automatisations')}
-            </Button>
-          </Box>
-        </Box>
+              </ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              <UiButton variant="outline" onClick={() => navigate('/automation-rules')}>
+                {t('messaging.automation.movedCta', 'Ouvrir les automatisations')}
+              </UiButton>
+            </ItemActions>
+          </Item>
+
+          {/* Heures calmes (M10) : les envois automatiques non urgents attendent la
+              fin de fenêtre (heure locale du logement) ; codes d'accès et alertes
+              partent toujours. Vider les deux champs désactive. */}
+          <Item variant="muted">
+            <ItemMedia variant="icon">
+              <NightsStay size={16} strokeWidth={1.75} />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>
+                {t('messaging.quietHours.title', 'Heures calmes')}
+              </ItemTitle>
+              <ItemDescription>
+                {t('messaging.quietHours.body',
+                  'Les messages automatiques non urgents (bienvenue, guides, demandes d’avis) sont mis en file et partent à la fin de la fenêtre, en heure locale du logement. Les codes d’accès et alertes partent toujours immédiatement.')}
+              </ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              <div className="flex items-center gap-1.5">
+                <Input
+                  type="time"
+                  value={quietHours.start}
+                  onChange={(e) => handleQuietHoursChange({ ...quietHours, start: e.target.value })}
+                  aria-label={t('messaging.quietHours.start', 'Début des heures calmes')}
+                  className="w-[100px] tabular-nums"
+                />
+                <span className="text-[12px] text-[var(--muted)]">→</span>
+                <Input
+                  type="time"
+                  value={quietHours.end}
+                  onChange={(e) => handleQuietHoursChange({ ...quietHours, end: e.target.value })}
+                  aria-label={t('messaging.quietHours.end', 'Fin des heures calmes')}
+                  className="w-[100px] tabular-nums"
+                />
+              </div>
+            </ItemActions>
+          </Item>
+        </div>
       </TabPanel>
 
       {/* ─── Onglet Mes reversements (HOST) ────────────────────────── */}
@@ -1064,9 +1066,9 @@ export default function Settings() {
             ref={fiscalRef}
             onChangeState={() => forceUpdate(n => n + 1)}
           />
-          <Box sx={{ mt: 3 }} />
+          <div className="mt-4" />
           <TaxRulesSection />
-          <Box sx={{ mt: 3 }} />
+          <div className="mt-4" />
           <TouristTaxSection canEdit={hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER'])} />
         </TabPanel>
       )}
@@ -1101,23 +1103,23 @@ export default function Settings() {
       {/* ─── Onglet Reversements (SUPER_ADMIN) ──────────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN']) && (
         <TabPanel value={tabValue} index={tabIdx.payouts}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+          <div className="grid grid-cols-12 gap-3">
+            <div className="col-span-12 min-[900px]:col-span-6">
               <SepaDebtorSettings
                 ref={sepaRef}
                 onChangeState={() => forceUpdate(n => n + 1)}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
               <PayoutScheduleSettings
                 ref={scheduleRef}
                 onChangeState={() => forceUpdate(n => n + 1)}
               />
-            </Grid>
-          </Grid>
-          <Box sx={{ mt: 2 }}>
+            </div>
+          </div>
+          <div className="mt-3">
             <OwnerPayoutSettings />
-          </Box>
+          </div>
         </TabPanel>
       )}
 
@@ -1128,45 +1130,7 @@ export default function Settings() {
         </TabPanel>
       )}
 
-      {/* Snackbar de confirmation */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={6000}
-        onClose={() => setSnackbarOpen(false)}
-      >
-        <Alert
-          onClose={() => setSnackbarOpen(false)}
-          severity="success"
-          sx={{ width: '100%' }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
-
-      {/* OAuth callback snackbar */}
-      <Snackbar
-        open={oauthSnackbar.open}
-        autoHideDuration={6000}
-        onClose={() => {
-          setOauthSnackbar(prev => ({ ...prev, open: false }));
-          // Clean URL params
-          searchParams.delete('status');
-          setSearchParams(searchParams, { replace: true });
-        }}
-      >
-        <Alert
-          onClose={() => {
-            setOauthSnackbar(prev => ({ ...prev, open: false }));
-            searchParams.delete('status');
-            setSearchParams(searchParams, { replace: true });
-          }}
-          severity={oauthSnackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {oauthSnackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+    </div>
     </SettingsHeaderProvider>
   );
 }

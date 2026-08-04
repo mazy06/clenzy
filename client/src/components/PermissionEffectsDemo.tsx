@@ -1,5 +1,8 @@
 import React from 'react';
-import { Box, Card, CardContent, Typography, Chip, Grid, Alert } from '@mui/material';
+import { Alert, AlertDescription, Card, CardContent } from './ui';
+import { Info } from 'lucide-react';
+import { cn } from '../utils/cn';
+import StatusChip from './StatusChip';
 import {
   Dashboard as DashboardIcon,
   Home as HomeIcon,
@@ -29,11 +32,12 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
   // Si aucun rôle n'est sélectionné, afficher un message
   if (!selectedRole || !rolePermissions) {
     return (
-      <Box>
-        <Alert severity="info">
-          Veuillez sélectionner un rôle pour voir la démonstration des effets
+      <div>
+        <Alert variant="info">
+          <Info />
+          <AlertDescription>Veuillez sélectionner un rôle pour voir la démonstration des effets</AlertDescription>
         </Alert>
-      </Box>
+      </div>
     );
   }
 
@@ -121,145 +125,121 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
   };
 
   return (
-    <Box>
-      <Grid container spacing={2}>
+    <div>
+      <div className="grid grid-cols-12 gap-3">
         {menuPermissions.map((menu) => {
           const status = getMenuStatus(menu.name, menu.permissions);
           
           return (
-            <Grid item xs={12} lg={6} key={menu.name}>
-              <Card 
-                variant="outlined" 
-                sx={{ 
-                  height: '100%',
-                  transition: 'all 0.2s ease-in-out',
-                  '&:hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: 2,
-                    borderColor: 'primary.main'
-                  },
-                  borderColor: status.accessible ? 'success.main' : 'grey.300',
-                  borderWidth: 1,
-                  bgcolor: 'background.paper'
-                }}
+            <div className="col-span-12 min-[1200px]:col-span-6" key={menu.name}>
+              {/* Le liseré remplace l'anneau du primitif (`ring-0`) : c'est lui qui
+                  porte l'etat accessible / inaccessible. `grey.300` n'ayant pas
+                  d'equivalent direct, il devient la hairline forte --line-2. */}
+              <Card
+                className={cn(
+                  'h-full py-0 ring-0 border border-solid bg-[var(--card)]',
+                  'transition-all duration-200 ease-out hover:-translate-y-[2px] hover:border-[var(--mui-primary)]',
+                  status.accessible ? 'border-[var(--ok)]' : 'border-[var(--line-2)]',
+                )}
               >
-                <CardContent sx={{ p: 2.5 }}>
+                <CardContent className="p-[15px]">
                   {/* En-tête avec icône et statut */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                    <Box sx={{ 
-                      p: 1, 
-                      bgcolor: 'grey.100', 
-                      borderRadius: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'text.secondary'
-                    }}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-1.5 bg-[var(--hover)] rounded-[8px] flex items-center justify-center text-muted-foreground">
                       {getModuleIcon(menu.name)}
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+                    </div>
+                    <div className="flex-1">
+                      <h6 className="cn-text-h6 font-semibold text-foreground mb-0.5">
                         {menu.name}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+                      </h6>
+                      <p className="cn-text-body2 text-muted-foreground leading-[1.4]">
                         {menu.description}
-                      </Typography>
-                    </Box>
-                    <Chip
+                      </p>
+                    </div>
+                    <StatusChip
+                      tone={status.accessible ? 'ok' : 'err'}
                       label={status.accessible ? 'Accessible' : 'Inaccessible'}
-                      size="small"
-                      color={status.accessible ? 'success' : 'error'}
-                      variant="outlined"
-                      sx={{ 
-                        fontWeight: 500,
-                        borderWidth: 1.5,
-                        minWidth: 80
-                      }}
+                      className="min-w-20 shrink-0 justify-center"
                     />
-                  </Box>
+                  </div>
                   
                   {/* Permissions requises */}
-                  <Box sx={{ 
-                    p: 1.5, 
-                    bgcolor: 'grey.50', 
-                    borderRadius: 1, 
-                    mb: 2,
-                    border: '1px solid',
-                    borderColor: 'grey.200'
-                  }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, display: 'block', mb: 0.5 }}>
+                  <div className="p-2 bg-[var(--surface-2)] rounded-[8px] mb-3 border border-[var(--line)]">
+                    <span className="cn-text-caption text-muted-foreground font-medium block mb-0.5">
                       Permissions requises
-                    </Typography>
-                    <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500, fontFamily: 'monospace' }}>
+                    </span>
+                    <p className="cn-text-body2 text-foreground font-medium font-mono">
                       {menu.permissions.join(', ')}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                   
                   {/* Raison du statut */}
-                  <Box sx={{ 
-                    p: 1.5, 
-                    bgcolor: status.accessible ? 'success.50' : 'error.50', 
-                    borderRadius: 1,
-                    border: '1px solid',
-                    borderColor: status.accessible ? 'success.200' : 'error.200'
-                  }}>
-                    <Typography variant="caption" color={status.accessible ? 'success.dark' : 'error.dark'} sx={{ fontWeight: 500 }}>
+                  {/* Bandeau -soft + hairline 30 % : le couple soft/ink du kit
+                      remplace les nuances `.50` / `.200` / `.dark` de MUI. */}
+                  <div
+                    className={cn(
+                      'p-[9px] rounded-[8px] border border-solid',
+                      status.accessible
+                        ? 'bg-[var(--bui-success-soft)] border-[color-mix(in_srgb,var(--bui-success)_30%,transparent)]'
+                        : 'bg-[var(--bui-destructive-soft)] border-[color-mix(in_srgb,var(--bui-destructive)_30%,transparent)]',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'cn-text-caption font-medium',
+                        status.accessible
+                          ? 'text-[var(--bui-success-ink)]'
+                          : 'text-[var(--bui-destructive-ink)]',
+                      )}
+                    >
                       {status.reason}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
           );
         })}
-      </Grid>
+      </div>
 
       {/* Résumé des accès */}
-      <Box sx={{ mt: 4 }}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
-            <Card 
-              variant="outlined" 
-              sx={{ 
-                p: 2.5, 
-                textAlign: 'center',
-                bgcolor: 'background.paper',
-                borderColor: 'success.main',
-                borderWidth: 1.5
-              }}
-            >
-              <Typography variant="h4" color="success.main" sx={{ fontWeight: 700, mb: 1 }}>
+      <div className="mt-6">
+        <div className="grid grid-cols-12 gap-3">
+          <div className="col-span-12 min-[900px]:col-span-6">
+            <Card className="p-[15px] text-center ring-0 border-[1.5px] border-solid border-[var(--ok)] bg-[var(--card)]">
+              <h4 className="cn-text-h4 text-[var(--bui-success-ink)] font-bold mb-1.5">
                 {rolePermissions.permissions.length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+              </h4>
+              <p className="cn-text-body2 text-muted-foreground font-medium">
                 Permissions actives
-              </Typography>
+              </p>
             </Card>
-          </Grid>
+          </div>
           
-          <Grid item xs={12} md={6}>
-            <Card 
-              variant="outlined" 
-              sx={{ 
-                p: 2.5, 
-                textAlign: 'center',
-                bgcolor: 'background.paper',
-                borderColor: rolePermissions.isDefault ? 'success.main' : 'warning.main',
-                borderWidth: 1.5
-              }}
+          <div className="col-span-12 min-[900px]:col-span-6">
+            <Card
+              className={cn(
+                'p-[15px] text-center ring-0 border-[1.5px] border-solid bg-[var(--card)]',
+                rolePermissions.isDefault ? 'border-[var(--ok)]' : 'border-[var(--warn)]',
+              )}
             >
-              <Typography variant="h4" color={rolePermissions.isDefault ? 'success.main' : 'warning.main'} sx={{ fontWeight: 700, mb: 1 }}>
+              <h4
+                className={cn(
+                  'cn-text-h4 font-bold mb-1.5',
+                  rolePermissions.isDefault ? 'text-[var(--ok)]' : 'text-[var(--warn)]',
+                )}
+              >
                 {rolePermissions.isDefault ? '✅' : '⚠️'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+              </h4>
+              <p className="cn-text-body2 text-muted-foreground font-medium">
                 {rolePermissions.isDefault ? 'Par défaut' : 'Modifié'}
-              </Typography>
+              </p>
             </Card>
-          </Grid>
-        </Grid>
+          </div>
+        </div>
         
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

@@ -8,16 +8,10 @@
    Ne s'affiche que si le bilan est disponible.
    ============================================================ */
 
-import { Box, Typography } from '@mui/material';
+
+import { cn } from '../../../utils/cn';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSupervisionReport } from '../core/useSupervisionReport';
-
-const cardSx = {
-  border: '1px solid var(--line, #e6e8ef)',
-  borderRadius: '14px',
-  bgcolor: 'var(--card, #fff)',
-  overflow: 'hidden',
-};
 
 export function SupervisionReportStrip() {
   const { t } = useTranslation();
@@ -37,88 +31,51 @@ export function SupervisionReportStrip() {
   const byType = report.acceptanceByType ?? [];
 
   return (
-    <Box sx={cardSx}>
-      <Typography sx={{ p: '14px 16px 6px', fontWeight: 800, fontSize: 13.5, color: 'var(--ink, #1b2240)' }}>
+    <div className="overflow-hidden rounded-[14px] border border-solid border-[var(--line,#e6e8ef)] bg-[var(--card,#fff)]">
+      <p className="cn-text-body1 p-[14px 16px 6px] font-extrabold text-[13.5px] text-[var(--ink,_#1b2240)]">
         {t('supervision.report.title', 'Bilan · 30 jours')}
-      </Typography>
-      <Box sx={{ display: 'flex', p: '2px 8px 14px' }}>
+      </p>
+      <div className="flex p-[2px 8px 14px]">
         {stats.map((s) => (
-          <Box key={s.label} sx={{ flex: 1, textAlign: 'center', px: 0.5, minWidth: 0 }}>
-            <Box
-              sx={{
-                fontSize: 17,
-                fontWeight: 800,
-                color: 'var(--accent)',
-                fontVariantNumeric: 'tabular-nums',
-                lineHeight: 1.15,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
+          <div className="flex-1 text-center px-0.5 min-w-0" key={s.label}>
+            <div
+              className="text-[17px] font-extrabold text-[var(--accent)] tabular-nums leading-[1.15] whitespace-nowrap overflow-hidden text-ellipsis"
               title={s.value}
             >
               {s.value}
-            </Box>
-            <Box sx={{ fontSize: 10.5, color: 'var(--muted, #6b7280)', mt: 0.5, fontWeight: 600 }}>{s.label}</Box>
-          </Box>
+            </div>
+            <div className="text-[10.5px] text-[var(--muted,_#6b7280)] mt-[3px] font-semibold">{s.label}</div>
+          </div>
         ))}
-      </Box>
+      </div>
 
       {/* Acceptation PAR TYPE (Vague 1) : lignes compactes type → décisions → taux. */}
       {byType.length > 0 && (
-        <Box sx={{ borderTop: '1px solid var(--line, #e6e8ef)', px: 1.5, pt: 1, pb: 1.25 }}>
-          <Typography
-            sx={{
-              fontSize: 10.5,
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: 'var(--muted, #6b7280)',
-              mb: 0.5,
-            }}
-          >
+        <div className="px-[9px] pt-1.5 pb-[7.5px]" style={{ borderTop: '1px solid var(--line, #e6e8ef)' }}>
+          <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[0.06em] text-[var(--muted,_#6b7280)] mb-[3px]">
             {t('supervision.report.acceptanceByType', 'Acceptation par type')}
-          </Typography>
+          </p>
           {byType.map((row) => {
             const decided = row.applied + row.dismissed;
             return (
-              <Box
-                key={`${row.moduleKey}:${row.actionType}`}
-                sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.375, minWidth: 0 }}
-              >
-                <Typography
-                  noWrap
-                  sx={{ flex: 1, minWidth: 0, fontSize: 11.5, color: 'var(--ink, #1b2240)', fontWeight: 600 }}
-                  title={row.actionType}
-                >
+              <div className="flex items-center gap-1.5 py-0.5 min-w-0" key={`${row.moduleKey}:${row.actionType}`}>
+                <p className="cn-text-body1 truncate flex-1 min-w-0 text-[11.5px] text-[var(--ink,_#1b2240)] font-semibold" title={row.actionType}>
                   {t(
                     `supervision.report.types.${row.actionType}`,
                     row.actionType.replaceAll('_', ' ').toLowerCase(),
                   )}
-                </Typography>
-                <Typography
-                  sx={{ fontSize: 11, color: 'var(--muted, #6b7280)', fontVariantNumeric: 'tabular-nums' }}
-                >
+                </p>
+                <p className="cn-text-body1 text-[11px] text-[var(--muted,_#6b7280)] tabular-nums">
                   {t('supervision.report.decisions', '{{count}} déc.', { count: decided })}
-                </Typography>
-                <Box
-                  component="span"
-                  sx={{
-                    minWidth: 40,
-                    textAlign: 'right',
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    fontVariantNumeric: 'tabular-nums',
-                    color: decided === 0 ? 'var(--muted, #6b7280)' : 'var(--accent)',
-                  }}
-                >
+                </p>
+                <span className={cn('min-w-[40px] text-end text-[11.5px] font-bold tabular-nums', decided === 0 ? 'text-[var(--muted,_#6b7280)]' : 'text-[var(--accent)]')}>
                   {decided === 0 ? '—' : `${Math.round(row.acceptanceRate * 100)} %`}
-                </Box>
-              </Box>
+                </span>
+              </div>
             );
           })}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }

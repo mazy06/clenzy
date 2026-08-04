@@ -73,9 +73,11 @@ public class ActionItemQueryService {
      *   <li><b>Natures techniques</b> — réservées au staff plateforme. Une
      *       file de messages saturée n'est pas une information qu'un hôte peut
      *       exploiter, et l'afficher ne ferait que du bruit.</li>
-     *   <li><b>Périmètre de l'hôte</b> — un hôte ne voit que ses logements. Les
-     *       lignes sans logement (litige, invitation) relèvent de
-     *       l'organisation : elles lui sont masquées.</li>
+     *   <li><b>Périmètre du propriétaire</b> — un hôte indépendant comme un
+     *       propriétaire tiers ne voient que leurs logements. Les lignes SANS
+     *       logement (RGPD, taxe, site) leur restent visibles : elles portent
+     *       une obligation de l'organisation, et les masquer revenait à cacher
+     *       à l'exploitant ses propres échéances légales.</li>
      * </ul>
      */
     public ActionItemsDto getActionItems(Long orgId, UserRole role, String keycloakId) {
@@ -86,7 +88,10 @@ public class ActionItemQueryService {
         final Set<ActionItemKind> allowedKinds = allowedKinds(role);
         // Une seule requête, projetant des identifiants et non des entités : cette
         // liste ne sert qu'à filtrer.
-        final Set<Long> ownedProperties = role == UserRole.HOST
+        // Le périmètre découle du RÔLE, plus d une égalité écrite à la main :
+        // un hôte indépendant comme un propriétaire tiers ne voient que leurs biens.
+        final boolean ownerScoped = role != null && role.isOwnerScoped();
+        final Set<Long> ownedProperties = ownerScoped
                 ? Set.copyOf(propertyRepository.findIdsByOwnerKeycloakId(keycloakId, orgId))
                 : Set.of();
 
@@ -94,7 +99,7 @@ public class ActionItemQueryService {
                 .findOpenForOrg(orgId, clock.instant()).stream()
                 .filter(item -> isKnownKind(item.getKind()))
                 .filter(item -> allowedKinds.contains(ActionItemKind.valueOf(item.getKind())))
-                .filter(item -> visibleToOwner(item, ownedProperties, role == UserRole.HOST))
+                .filter(item -> visibleToOwner(item, ownedProperties, ownerScoped))
                 .map(ActionItemQueryService::toDto)
                 .toList();
 
@@ -154,9 +159,20 @@ public class ActionItemQueryService {
         return false;
     }
 
+    /**
+     * Périmètre d'un hôte : ses logements — ET ce qui n'appartient à aucun
+     * logement.
+     *
+     * <p>Une ligne sans logement porte une obligation de l'ORGANISATION :
+     * demande RGPD, taxe de séjour, site. Les masquer revenait à cacher à
+     * l'exploitant ses propres échéances légales — une demande d'effacement a
+     * trente jours pour être traitée. Le risque inverse est nul dans le chemin
+     * nominal : un propriétaire tiers n'a pas de compte, il consulte un portail
+     * en lecture seule et ne voit jamais cet écran.</p>
+     */
     private static boolean visibleToOwner(ActionItem item, Set<Long> owned, boolean scoped) {
         if (!scoped) return true;
-        return item.getPropertyId() != null && owned.contains(item.getPropertyId());
+        return item.getPropertyId() == null || owned.contains(item.getPropertyId());
     }
 
     private static ActionItemDto toDto(ActionItem item) {

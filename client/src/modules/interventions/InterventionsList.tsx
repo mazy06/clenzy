@@ -1,15 +1,18 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert, Info } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import {
-  Box,
-  Typography,
-  MenuItem,
-  Alert,
-  CircularProgress,
-  Menu,
-  IconButton,
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   Tooltip,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
@@ -26,7 +29,6 @@ import {
   Refresh,
 } from '../../icons';
 import { INTERVENTION_STATUS_OPTIONS, PRIORITY_OPTIONS } from '../../types/statusEnums';
-import { createSpacing } from '../../theme/spacing';
 import ExportButton from '../../components/ExportButton';
 import { useInterventionsList, MAP_VIEW_PAGE_SIZE } from './useInterventionsList';
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
@@ -41,15 +43,13 @@ interface InterventionsListProps {
   filtersContainer?: HTMLElement | null;
 }
 
-const iconButtonSx = {
-  p: 0.5,
-  borderRadius: '9px',
-  border: '1px solid',
-  borderColor: 'var(--line-2)',
-  color: 'var(--muted)',
-  '&:hover': { bgcolor: 'var(--hover)', borderColor: 'var(--faint)', color: 'var(--ink)' },
-  '& .MuiSvgIcon-root': { fontSize: 18 },
-} as const;
+const ICON_BUTTON_CLASS =
+  'p-[3px] rounded-[9px] border border-solid border-[var(--line-2)] text-[var(--muted)] '
+  + 'hover:bg-[var(--hover)] hover:border-[var(--faint)] hover:text-[var(--ink)]';
+
+const ICON_BUTTON_ACCENT_CLASS =
+  'p-[3px] rounded-[9px] border border-solid border-[var(--accent)] text-[var(--accent)] '
+  + 'hover:bg-[var(--accent-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)]';
 
 export default function InterventionsList({ embedded = false, actionsContainer, filtersContainer }: InterventionsListProps) {
   const {
@@ -167,6 +167,24 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     if (viewMode !== 'map') setMapBounds(null);
   }, [viewMode]);
 
+  // Un DropdownMenuItem Radix referme le menu de lui-meme apres selection, la
+  // ou le MenuItem MUI ne le faisait pas. Sans ce garde, `onOpenChange(false)`
+  // appellerait handleMenuClose(), qui EFFACE selectedIntervention — or
+  // handleOpenAssignDialog doit le conserver pour la modale d'assignation.
+  const menuItemSelectedRef = useRef(false);
+  const onMenuItem = (action: () => void) => () => {
+    menuItemSelectedRef.current = true;
+    action();
+  };
+  const handleMenuOpenChange = (open: boolean) => {
+    if (open) return;
+    if (menuItemSelectedRef.current) {
+      menuItemSelectedRef.current = false;
+      return;
+    }
+    handleMenuClose();
+  };
+
   const mapMarkers: PropertyMarker[] = useMemo(
     () =>
       filteredInterventions
@@ -204,45 +222,46 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
   // Protection contre les données invalides
   if (!Array.isArray(interventions)) {
     return (
-      <Box sx={createSpacing.page()}>
-        <Alert severity="error">
-          Erreur de chargement des données. Veuillez rafraîchir la page.
-        </Alert>
-      </Box>
+      <div className="p-3">
+        <UiAlert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>Erreur de chargement des données. Veuillez rafraîchir la page.</AlertDescription>
+        </UiAlert>
+      </div>
     );
   }
 
   // Vérifications conditionnelles dans le rendu
   if (!user) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress size={32} />
-      </Box>
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Spinner className="size-8" />
+      </div>
     );
   }
 
   // Permissions en cours de chargement
   if (permissionsLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress size={32} />
-      </Box>
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Spinner className="size-8" />
+      </div>
     );
   }
 
   // Si pas de permission, afficher un message informatif
   if (!canViewInterventions) {
     return (
-      <Box sx={createSpacing.page()}>
-        <Alert severity="info">
-          <Typography variant="h6" gutterBottom>
+      <div className="p-3">
+        <UiAlert variant="info">
+          <Info />
+          <AlertDescription><h6 className="cn-text-h6 mb-[0.35em]">
             {t('interventions.errors.noPermission')}
-          </Typography>
-          <Typography variant="body1">
+          </h6><p className="cn-text-body1">
             {t('interventions.noPermissionMessage')}
-          </Typography>
-        </Alert>
-      </Box>
+          </p></AlertDescription>
+        </UiAlert>
+      </div>
     );
   }
 
@@ -288,37 +307,60 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     })),
   ];
 
+  // Le bouton « … » qui ouvre le menu vit dans les vues enfant (grille / table),
+  // qui remontent seulement son noeud DOM via l'`anchorEl` du hook : impossible
+  // d'envelopper ce bouton dans un DropdownMenuTrigger d'ici. On accroche donc
+  // Radix a une ancre invisible calee sur le rectangle du bouton, ce qui rend
+  // le meme point d'ancrage que l'ancien Menu MUI.
+  const anchorRect = anchorEl?.getBoundingClientRect();
+
   const actionButtons = (
-    <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
+    <div className="flex gap-1 items-center">
       <ExportButton
         data={filteredInterventions}
         columns={exportColumns}
         fileName="interventions"
         variant="icon"
       />
-      <Tooltip title={t('common.refresh')}>
-        <IconButton
-          onClick={loadInterventions}
-          disabled={loading}
-          size="small"
-          sx={iconButtonSx}
-        >
-          <Refresh size={18} strokeWidth={1.75} />
-        </IconButton>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {/* span : un bouton desactive n'emet pas d'evenement de survol, et le
+              Button du kit (fonction, React 18) ne transmet pas de ref. */}
+          <span className="inline-flex">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('common.refresh')}
+              onClick={loadInterventions}
+              disabled={loading}
+              className={ICON_BUTTON_CLASS}
+            >
+              <Refresh size={18} strokeWidth={1.75} />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>{t('common.refresh')}</TooltipContent>
       </Tooltip>
       {/* Seuls les ADMIN et MANAGER peuvent créer des interventions manuellement */}
       {canCreateInterventions && (isAdmin() || isManager()) && (
-        <Tooltip title={t('interventions.create')}>
-          <IconButton
-            size="small"
-            onClick={() => navigate('/interventions/new')}
-            sx={{ ...iconButtonSx, color: 'var(--accent)', borderColor: 'var(--accent)', '&:hover': { bgcolor: 'var(--accent-soft)', borderColor: 'var(--accent)', color: 'var(--accent)' } }}
-          >
-            <AddIcon size={20} strokeWidth={1.75} />
-          </IconButton>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t('interventions.create')}
+                onClick={() => navigate('/interventions/new')}
+                className={ICON_BUTTON_ACCENT_CLASS}
+              >
+                <AddIcon size={20} strokeWidth={1.75} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('interventions.create')}</TooltipContent>
         </Tooltip>
       )}
-    </Box>
+    </div>
   );
 
   const filterBar = (
@@ -361,7 +403,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Portal actions into parent's PageHeader when embedded */}
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
 
@@ -369,7 +411,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
       {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}
 
       {!embedded && (
-        <Box sx={{ flexShrink: 0 }}>
+        <div className="shrink-0">
           <PageHeader
             title={t('interventions.title')}
             subtitle={t('interventions.subtitle')}
@@ -379,17 +421,18 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
             actions={actionButtons}
             filters={filterBar}
           />
-        </Box>
+        </div>
       )}
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2, py: 1, flexShrink: 0 }}>
-          {error}
-        </Alert>
+        <UiAlert variant="destructive" className="mb-3 py-1.5 shrink-0">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </UiAlert>
       )}
 
       {/* ─── Liste des interventions ─────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      <div className="flex flex-col flex-1 min-h-0">
 
           {loading ? (
             <ListSkeleton rows={6} variant="row" />
@@ -432,33 +475,47 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
               navigate={navigate}
             />
           )}
-        </Box>
+        </div>
 
       {/* ─── Menus et dialogs partagés ─────────────────────────────────────── */}
-      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-        <MenuItem onClick={handleViewDetails} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-          <Box component="span" sx={{ display: "inline-flex", mr: 1 }}><VisibilityIcon size={18} strokeWidth={1.75} /></Box>
-          {t('interventions.viewDetails')}
-        </MenuItem>
-        {(isManager() || isAdmin()) && selectedIntervention?.status === 'PENDING' && (
-          <MenuItem onClick={handleOpenAssignDialog} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-            <Box component="span" sx={{ display: "inline-flex", mr: 1, color: "var(--info)" }}><AssignmentIcon size={18} strokeWidth={1.75} /></Box>
-            Assigner
-          </MenuItem>
-        )}
-        {selectedIntervention && canModifyIntervention(selectedIntervention) && (
-          <MenuItem onClick={handleEdit} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-            <Box component="span" sx={{ display: "inline-flex", mr: 1 }}><EditIcon size={18} strokeWidth={1.75} /></Box>
-            Modifier
-          </MenuItem>
-        )}
-        {canDeleteInterventions && (
-          <MenuItem onClick={handleDelete} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-            <Box component="span" sx={{ display: "inline-flex", mr: 1 }}><DeleteIcon size={18} strokeWidth={1.75} /></Box>
-            {t('interventions.delete')}
-          </MenuItem>
-        )}
-      </Menu>
+      <DropdownMenu open={Boolean(anchorEl)} onOpenChange={handleMenuOpenChange}>
+        <DropdownMenuTrigger asChild>
+          <span
+            aria-hidden="true"
+            className="fixed pointer-events-none"
+            style={{
+              left: anchorRect?.left ?? 0,
+              top: anchorRect?.top ?? 0,
+              width: anchorRect?.width ?? 0,
+              height: anchorRect?.height ?? 0,
+            }}
+          />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-auto min-w-[11rem]">
+          <DropdownMenuItem onClick={onMenuItem(handleViewDetails)}>
+            <span className="inline-flex"><VisibilityIcon size={18} strokeWidth={1.75} /></span>
+            {t('interventions.viewDetails')}
+          </DropdownMenuItem>
+          {(isManager() || isAdmin()) && selectedIntervention?.status === 'PENDING' && (
+            <DropdownMenuItem onClick={onMenuItem(handleOpenAssignDialog)}>
+              <span className="inline-flex text-[var(--info)]"><AssignmentIcon size={18} strokeWidth={1.75} /></span>
+              Assigner
+            </DropdownMenuItem>
+          )}
+          {selectedIntervention && canModifyIntervention(selectedIntervention) && (
+            <DropdownMenuItem onClick={onMenuItem(handleEdit)}>
+              <span className="inline-flex"><EditIcon size={18} strokeWidth={1.75} /></span>
+              Modifier
+            </DropdownMenuItem>
+          )}
+          {canDeleteInterventions && (
+            <DropdownMenuItem onClick={onMenuItem(handleDelete)}>
+              <span className="inline-flex"><DeleteIcon size={18} strokeWidth={1.75} /></span>
+              {t('interventions.delete')}
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Dialog d'assignation rapide */}
       <InterventionAssignDialog
@@ -475,6 +532,6 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
         setAssignTargetId={setAssignTargetId}
       />
 
-    </Box>
+    </div>
   );
 }

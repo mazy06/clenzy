@@ -1,13 +1,42 @@
 import React from 'react';
-import { Box, Typography, TextField, Tooltip } from '@mui/material';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  InputGroup,
+  InputGroupInput,
+  InputGroupAddon,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../ui';
 import { CheckCircle, CreditCard, Mail } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
-import { SEC_SX, SEG_WRAP_SX, segBtnSx, FIELD_SX, AdornIcon } from './reservationDialogStyles';
+
+/** Transcription de `SEC_SX` (reservationDialogStyles) — overline de section .rm-sec. */
+const SEC_CLASS = 'text-[10.5px] font-bold tracking-[0.08em] uppercase text-[var(--faint)]';
 
 interface Props {
   form: UseReservationFormResult;
 }
+
+/**
+ * Transcription de `segBtnSx` (reservationDialogStyles) en classes : seuls le fond,
+ * la couleur et l'ombre dependent de l'etat actif. `background: none` du sx d'origine
+ * devient `bg-transparent` — sans lui le bouton reprendrait le fond gris de l'UA.
+ */
+const segBtnClass = (on: boolean) =>
+  cn(
+    'inline-flex flex-1 items-center justify-center gap-[6px] border-0 rounded-[7px] p-[9px]',
+    '[font-family:inherit] text-[12px] font-semibold whitespace-nowrap cursor-pointer',
+    'transition-[background-color,color] duration-[140ms]',
+    'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-1',
+    on
+      ? 'bg-[var(--card)] text-[var(--accent)] shadow-[0_1px_3px_rgba(21,36,45,.12)]'
+      : 'bg-transparent text-[var(--muted)] shadow-none',
+  );
 
 /** Étape 4 : intention de paiement + email du lien (si demande de paiement) + récapitulatif. */
 const FinalizeStep: React.FC<Props> = ({ form }) => {
@@ -25,73 +54,75 @@ const FinalizeStep: React.FC<Props> = ({ form }) => {
   return (
     <>
       {/* Intention : confirmer maintenant / demander le paiement (déplacé de l'entête) */}
-      <Box sx={{ ...SEG_WRAP_SX, width: '100%' }}>
-        <Tooltip title={t('reservations.dialog.confirmNowHint')} arrow>
-          <Box
-            component="button"
-            type="button"
-            onClick={() => form.setPaymentIntent('confirm_now')}
-            sx={{ ...segBtnSx(form.paymentIntent === 'confirm_now'), flex: 1, padding: '9px' }}
-          >
-            <CheckCircle size={14} strokeWidth={1.75} />
-            {t('reservations.dialog.confirmNow')}
-          </Box>
+      <div className="inline-flex w-full gap-[2px] p-[3px] rounded-[10px] border border-solid border-[var(--field-line)] bg-[var(--field)]">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => form.setPaymentIntent('confirm_now')}
+              className={segBtnClass(form.paymentIntent === 'confirm_now')}
+            >
+              <CheckCircle size={14} strokeWidth={1.75} />
+              {t('reservations.dialog.confirmNow')}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{t('reservations.dialog.confirmNowHint')}</TooltipContent>
         </Tooltip>
-        <Tooltip title={t('reservations.dialog.requestPaymentHint')} arrow>
-          <Box
-            component="button"
-            type="button"
-            onClick={() => form.setPaymentIntent('request_payment')}
-            sx={{ ...segBtnSx(form.paymentIntent === 'request_payment'), flex: 1, padding: '9px' }}
-          >
-            <CreditCard size={14} strokeWidth={1.75} />
-            {t('reservations.dialog.requestPayment')}
-          </Box>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => form.setPaymentIntent('request_payment')}
+              className={segBtnClass(form.paymentIntent === 'request_payment')}
+            >
+              <CreditCard size={14} strokeWidth={1.75} />
+              {t('reservations.dialog.requestPayment')}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{t('reservations.dialog.requestPaymentHint')}</TooltipContent>
         </Tooltip>
-      </Box>
+      </div>
 
       {/* Email destinataire du lien de paiement (déplacé de GuestSection) */}
       {form.requestPayment && (
-        <TextField
-          label={t('reservations.dialog.paymentEmail')}
-          type="email"
-          value={form.paymentEmail}
-          onChange={(e) => form.setPaymentEmail(e.target.value)}
-          placeholder={form.selectedGuest?.email || ''}
-          required
-          fullWidth
-          InputLabelProps={{ shrink: true }}
-          helperText={t('reservations.dialog.paymentEmailHelp')}
-          InputProps={{ startAdornment: <AdornIcon><Mail size={15} strokeWidth={1.75} /></AdornIcon> }}
-          sx={{ ...FIELD_SX, '& .MuiFormHelperText-root': { fontSize: '11px', color: 'var(--accent)', marginLeft: '2px' } }}
-        />
+        <Field>
+          <FieldLabel htmlFor="finalize-payment-email">{t('reservations.dialog.paymentEmail')}</FieldLabel>
+          <InputGroup>
+            <InputGroupAddon>
+              <Mail size={15} strokeWidth={1.75} />
+            </InputGroupAddon>
+            <InputGroupInput
+              id="finalize-payment-email"
+              type="email"
+              required
+              value={form.paymentEmail}
+              onChange={(e) => form.setPaymentEmail(e.target.value)}
+              placeholder={form.selectedGuest?.email || ''}
+            />
+          </InputGroup>
+          <FieldDescription className="text-[11px] text-[var(--accent)]">
+            {t('reservations.dialog.paymentEmailHelp')}
+          </FieldDescription>
+        </Field>
       )}
 
       {/* Récapitulatif lecture seule */}
-      <Box sx={{ borderRadius: '12px', border: '1px solid var(--line)', backgroundColor: 'var(--surface-2)', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <Typography sx={SEC_SX}>{t('reservations.dialog.recapTitle')}</Typography>
+      <div className="flex flex-col gap-[10px] rounded-[12px] border border-solid border-[var(--line)] bg-[var(--surface-2)] px-[18px] py-4">
+        <p className={SEC_CLASS}>{t('reservations.dialog.recapTitle')}</p>
         {recapRows.map((row) => (
-          <Box key={row.label} sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px' }}>
-            <Typography sx={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', flexShrink: 0 }}>{row.label}</Typography>
-            <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>{row.value}</Typography>
-          </Box>
+          <div className="flex items-baseline justify-between gap-3" key={row.label}>
+            <p className="cn-text-body1 text-[12px] font-semibold text-[var(--muted)] shrink-0">{row.label}</p>
+            <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)] text-end tabular-nums">{row.value}</p>
+          </div>
         ))}
-        <Box sx={{ height: '1px', backgroundColor: 'var(--line)', margin: '2px 0' }} />
-        <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px' }}>
-          <Typography sx={{ fontSize: '12px', fontWeight: 700, color: 'var(--ink)' }}>{t('reservations.dialog.recapTotal')}</Typography>
-          <Typography
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '18px',
-              fontWeight: 600,
-              color: 'var(--accent-deep)',
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
+        <div className="h-px my-[2px] bg-[var(--line)]" />
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="cn-text-body1 text-[12px] font-bold text-[var(--ink)]">{t('reservations.dialog.recapTotal')}</p>
+          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[18px] font-semibold text-[var(--accent-deep)] tabular-nums">
             {form.totalPrice.toFixed(2)} €
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
     </>
   );
 };

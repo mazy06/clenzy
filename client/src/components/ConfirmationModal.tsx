@@ -1,15 +1,14 @@
 import React from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
-  Typography,
-  Box,
-  IconButton,
-  CircularProgress,
-} from '@mui/material';
+  Spinner,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from './ui';
 import {
   Warning as WarningIcon,
   Close as CloseIcon,
@@ -55,10 +54,25 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   // Token sémantique de la sévérité (désaturé — baseline §1)
   const severityToken = severity === 'error' ? 'err' : severity === 'info' ? 'info' : 'warn';
 
+  // Le kit n'a pas de variante par teinte : `error` prend `destructive`, `primary` reste
+  // l'action principale (`default`), et les severites restantes se posent en classes sur
+  // `outline`. Branches litterales : une classe Tailwind ne peut pas naitre d'une variable.
+  const confirmTone = confirmColor ?? (severity === 'error' ? 'error' : 'primary');
+  const confirmVariant =
+    confirmTone === 'error' ? 'destructive' : confirmTone === 'primary' ? 'default' : 'outline';
+  const confirmToneClass =
+    confirmTone === 'warning'
+      ? 'text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]'
+      : confirmTone === 'success'
+        ? 'text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]'
+        : confirmTone === 'info'
+          ? 'text-[var(--info)] border-[var(--info)] hover:bg-[var(--info-soft)]'
+          : '';
+
   const getIcon = () => {
     if (icon) return icon;
     const wrap = (cssVar: string, child: React.ReactNode) => (
-      <Box component="span" sx={{ display: 'inline-flex', color: cssVar }}>{child}</Box>
+      <span className="inline-flex" style={{ color: cssVar }}>{child}</span>
     );
     switch (severity) {
       case 'error':
@@ -71,87 +85,68 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-      // Peau modale (r18, hairline, ombre profonde, animation) : thème global
-    >
-      <DialogTitle sx={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 1.5,
-      }}>
-        <Box display="flex" alignItems="center" gap={1.25} sx={{ minWidth: 0 }}>
-          {getIcon()}
-          <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {title}
-          </Box>
-        </Box>
-        {/* ✕ — pattern .rm-x : 34px r10 hairline, hover --err */}
-        <IconButton
-          onClick={onClose}
-          aria-label="Fermer"
-          sx={{
-            width: 34,
-            height: 34,
-            borderRadius: '10px',
-            border: '1px solid var(--line-2)',
-            backgroundColor: 'var(--card)',
-            color: 'var(--muted)',
-            flexShrink: 0,
-            '&:hover': { color: 'var(--err)', borderColor: 'var(--err)', backgroundColor: 'var(--card)' },
-            '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-          }}
-        >
-          <CloseIcon size={16} strokeWidth={1.75} />
-        </IconButton>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      {/* Peau modale (r18, hairline, ombre profonde, animation) : primitif du kit.
+          `sm` MUI = 600px, hors echelle Tailwind → largeur litterale. */}
+      <DialogContent className="sm:max-w-[600px]" showCloseButton={false}>
+        <DialogHeader className="flex-row items-center justify-between gap-[9px]">
+          <DialogTitle className="flex items-center gap-[7.5px] min-w-0">
+            {getIcon()}
+            <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+              {title}
+            </span>
+          </DialogTitle>
+          {/* ✕ — pattern .rm-x : 34px r10 hairline, hover --err */}
+          <DialogClose asChild>
+            <button
+              type="button"
+              aria-label="Fermer"
+              className="inline-flex items-center justify-center size-[34px] shrink-0 rounded-[10px] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] cursor-pointer transition-colors duration-200 hover:text-[var(--err)] hover:border-[var(--err)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            >
+              <CloseIcon size={16} strokeWidth={1.75} />
+            </button>
+          </DialogClose>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: '22px !important' }}>
         {/* Alerte pleine largeur — pattern .rm-conflict : -soft + border color-mix 30% */}
-        <Box
-          sx={{
+        {/* Tokens derives de `severityToken` a l'execution : ils restent en style inline,
+            une classe Tailwind ne peut pas naitre d'une variable. */}
+        <div
+          className="rounded-[12px] border border-solid px-4 py-[13px]"
+          style={{
             backgroundColor: `var(--${severityToken}-soft)`,
-            border: `1px solid color-mix(in srgb, var(--${severityToken}) 30%, transparent)`,
-            borderRadius: '12px',
-            padding: '13px 16px',
+            borderColor: `color-mix(in srgb, var(--${severityToken}) 30%, transparent)`,
           }}
         >
-          <Typography sx={{ fontSize: '13px', color: 'var(--body)' }}>
+          <p className="cn-text-body1 text-[13px] text-[var(--body)]">
             {message}
-          </Typography>
-        </Box>
-      </DialogContent>
+          </p>
+        </div>
 
-      <DialogActions>
-        <Button
-          onClick={onClose}
-          variant="outlined"
-          disabled={loading}
-          sx={{ minWidth: 100 }}
-        >
-          {cancelText}
-        </Button>
-        <Button
-          onClick={onConfirm}
-          variant="contained"
-          color={confirmColor ?? (severity === 'error' ? 'error' : 'primary')}
-          disabled={loading}
-          startIcon={
-            loading
-              ? <CircularProgress size={13} thickness={4} color="inherit" />
+        <DialogFooter>
+          <Button
+            onClick={onClose}
+            variant="outline"
+            disabled={loading}
+            className="min-w-[100px]"
+          >
+            {cancelText}
+          </Button>
+          <Button
+            onClick={onConfirm}
+            variant={confirmVariant}
+            disabled={loading}
+            className={`min-w-[100px] ${confirmToneClass}`}
+          >
+            {loading
+              ? <Spinner className="size-[13px]" />
               : confirmIcon === null
-                ? undefined
-                : confirmIcon ?? <DeleteIcon size={13} strokeWidth={1.75} />
-          }
-          sx={{ minWidth: 100 }}
-        >
-          {loading ? 'Traitement...' : confirmText}
-        </Button>
-      </DialogActions>
+                ? null
+                : confirmIcon ?? <DeleteIcon size={13} strokeWidth={1.75} />}
+            {loading ? 'Traitement...' : confirmText}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

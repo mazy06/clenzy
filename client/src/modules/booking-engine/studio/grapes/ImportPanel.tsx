@@ -1,5 +1,13 @@
 import { useState, type ReactNode } from 'react';
-import { Box, ButtonBase, Modal } from '@mui/material';
+import { cn } from '../../../../utils/cn';
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../../../../components/ui';
 import { X, ClipboardPaste, FileUp, LayoutTemplate } from 'lucide-react';
 import type { Editor } from 'grapesjs';
 import type { GalleryTemplate } from './import/galleryTemplates';
@@ -47,9 +55,9 @@ export default function ImportPanel({ open, onClose, editor, onImportTemplate }:
   const renderSlot = (): ReactNode => {
     if (!editor) {
       return (
-        <Box sx={{ py: 6, textAlign: 'center', color: 'var(--faint)', fontSize: 'var(--text-sm)' }}>
+        <div className="py-9 text-center text-[var(--faint)] text-[var(--text-sm)]">
           Éditeur non disponible.
-        </Box>
+        </div>
       );
     }
     switch (tab) {
@@ -63,57 +71,63 @@ export default function ImportPanel({ open, onClose, editor, onImportTemplate }:
   };
 
   return (
-    <Modal open={open} onClose={onClose} aria-label="Importer un design"
-      sx={{ '& .MuiBackdrop-root': { bgcolor: 'rgba(21,36,45,.45)' } }}>
-      <Box sx={{
-        position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-        width: 'min(680px, 94vw)', maxHeight: '88vh', display: 'flex', flexDirection: 'column',
-        bgcolor: 'var(--card)', color: 'var(--ink)', border: '1px solid var(--line)',
-        borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-pop)', outline: 'none', overflow: 'hidden',
-      }}>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        className="w-[min(680px,94vw)] sm:max-w-[680px] max-h-[88vh] flex flex-col gap-0 p-0 overflow-hidden bg-[var(--card)] text-[var(--ink)] border border-solid border-[var(--line)] rounded-[var(--radius-lg)] shadow-[var(--shadow-pop)]"
+      >
         {/* En-tête */}
-        <Box sx={{ display: 'flex', alignItems: 'center', px: 2.5, height: 64, borderBottom: '1px solid var(--line)' }}>
-          <Box>
-            <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-semibold)' }}>
+        <DialogHeader className="flex-row items-center gap-0 px-3.5 h-[64px] shrink-0 border-b border-solid border-[var(--line)]">
+          <div>
+            <DialogTitle
+              className="font-[family-name:var(--font-display)]"
+              style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-semibold)' }}
+            >
               Importer un design
-            </Box>
-            <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)' }}>
+            </DialogTitle>
+            <DialogDescription className="text-[var(--muted)]" style={{ fontSize: 'var(--text-sm)' }}>
               Charge un contenu HTML+CSS dans l'éditeur. Le canevas actuel sera remplacé.
-            </Box>
-          </Box>
-          <Box sx={{ flex: 1 }} />
-          <ButtonBase onClick={onClose} aria-label="Fermer"
-            sx={{ width: 34, height: 34, borderRadius: 'var(--radius-md)', color: 'var(--muted)', cursor: 'pointer',
-              '&:hover': { bgcolor: 'var(--hover)', color: 'var(--ink)' },
-              '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 } }}>
+            </DialogDescription>
+          </div>
+          <div className="flex-1" />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onClose}
+            aria-label="Fermer"
+            className="size-[34px] rounded-[var(--radius-md)] text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]"
+          >
             <X size={20} strokeWidth={2} />
-          </ButtonBase>
-        </Box>
+          </Button>
+        </DialogHeader>
 
         {/* Onglets */}
-        <Box sx={{ display: 'flex', gap: 0.5, px: 2.5, pt: 1.5, borderBottom: '1px solid var(--line)' }}>
+        <div className="flex gap-0.5 px-3.5 pt-2 shrink-0 border-b border-solid border-[var(--line)]">
           {TABS.map((t) => {
             const active = t.id === tab;
             return (
-              <ButtonBase key={t.id} onClick={() => setTab(t.id)}
-                sx={{
-                  display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1.5, height: 38,
-                  borderRadius: 'var(--radius-md) var(--radius-md) 0 0', cursor: 'pointer',
-                  color: active ? 'var(--ink)' : 'var(--muted)', fontWeight: 'var(--fw-medium)', fontSize: 'var(--text-sm)',
-                  borderBottom: `2px solid ${active ? 'var(--accent)' : 'transparent'}`,
-                  transition: 'color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out)',
-                  '&:hover': { color: 'var(--ink)' },
-                  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                }}>
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                className={cn(
+                  'inline-flex items-center gap-[4.5px] px-[9px] h-[38px] cursor-pointer',
+                  'rounded-t-[var(--radius-md)] rounded-b-none border-b-2 border-solid',
+                  'transition-[color,border-color] duration-[var(--duration-fast)] ease-[var(--ease-out)]',
+                  'hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+                  active ? 'text-[var(--ink)] border-b-[var(--accent)]' : 'text-[var(--muted)] border-b-transparent',
+                )}
+                style={{ fontWeight: 'var(--fw-medium)', fontSize: 'var(--text-sm)' }}
+              >
                 {t.icon}{t.label}
-              </ButtonBase>
+              </button>
             );
           })}
-        </Box>
+        </div>
 
         {/* Corps de l'onglet actif */}
-        <Box sx={{ overflowY: 'auto', p: 2.5 }}>{renderSlot()}</Box>
-      </Box>
-    </Modal>
+        <div className="overflow-y-auto p-3.5">{renderSlot()}</div>
+      </DialogContent>
+    </Dialog>
   );
 }

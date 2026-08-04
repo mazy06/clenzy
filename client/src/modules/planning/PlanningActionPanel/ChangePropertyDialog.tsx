@@ -1,20 +1,19 @@
 import React, { useMemo, useState } from 'react';
+import { cn } from '../../../utils/cn';
+import StatusChip from '../../../components/StatusChip';
+import { Badge, Button } from '../../../components/ui';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { Info, TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../../components/ui';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Box,
-  Typography,
-  Chip,
-  IconButton,
-  Button,
-  Divider,
-  Alert,
-  CircularProgress,
-} from '@mui/material';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Separator,
+} from '../../../components/ui';
 import {
-  Close,
   Home,
   CalendarMonth,
   Person,
@@ -114,105 +113,62 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: {
-          maxHeight: '80vh',
-        },
-      }}
-    >
-      {/* Header */}
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          pb: 1,
-          pt: 2,
-          px: 2.5,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><SwapHoriz size={20} strokeWidth={1.75} /></Box>
-          <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+    // maxWidth="sm" + fullWidth MUI = pleine largeur plafonnee a 600 px. La
+    // croix de fermeture est celle du primitif (DialogContent), l'ancien
+    // IconButton du titre fait doublon.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent className="w-full sm:max-w-[600px] max-h-[80vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-1.5 pe-8">
+            <span className="inline-flex text-[var(--accent)]"><SwapHoriz size={20} strokeWidth={1.75} /></span>
             Changer de logement
-          </Typography>
-        </Box>
-        <IconButton size="small" onClick={handleClose}>
-          <Close size={18} strokeWidth={1.75} />
-        </IconButton>
-      </DialogTitle>
+          </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent sx={{ px: 2.5, pt: 1, pb: 0 }}>
+        <div className="min-h-0 overflow-y-auto">
         {/* Current reservation summary */}
-        <Box
-          sx={{
-            p: 1.5,
-            borderRadius: '10px',
-            backgroundColor: 'var(--surface-2)',
-            border: '1px solid var(--line)',
-            mb: 2,
-          }}
-        >
-          <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--faint)' }}>
+        <div className="p-2 rounded-[10px] bg-[var(--surface-2)] border border-[var(--line)] mb-3">
+          <span className="cn-text-caption font-bold text-[10.5px] uppercase tracking-[0.05em] text-[var(--faint)]">
             Reservation actuelle
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Person size={16} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
+          </span>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="inline-flex text-[var(--muted)]"><Person size={16} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2 font-semibold text-[0.8125rem]">
               {reservation.guestName}
-            </Typography>
-            <Chip
-              label={`${reservation.guestCount} voyageur${reservation.guestCount > 1 ? 's' : ''}`}
-              size="small"
-              variant="outlined"
-              sx={{ fontSize: '0.625rem', height: 20 }}
-            />
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><Home size={16} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+            </p>
+            <Badge variant="outline" className="text-[0.625rem] h-[20px]">{`${reservation.guestCount} voyageur${reservation.guestCount > 1 ? 's' : ''}`}</Badge>
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="inline-flex text-[var(--muted)]"><Home size={16} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2 text-[0.8125rem]">
               {reservation.propertyName}
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><CalendarMonth size={16} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="inline-flex text-[var(--muted)]"><CalendarMonth size={16} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2 text-[0.8125rem]">
               {reservation.checkIn} &rarr; {reservation.checkOut}
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
 
-        <Divider sx={{ mb: 2 }} />
+        <Separator className="mb-3" />
 
         {/* Available properties */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.8125rem' }}>
+        <div className="flex items-center justify-between mb-2">
+          <h6 className="cn-text-subtitle2 font-bold text-[0.8125rem]">
             Logements disponibles
-          </Typography>
-          <Chip
-            label={`${compatibleProperties.length} disponible${compatibleProperties.length > 1 ? 's' : ''}`}
-            size="small"
-            sx={{
-              fontSize: '0.625rem',
-              height: 20,
-              fontWeight: 700,
-              backgroundColor: compatibleProperties.length > 0 ? 'var(--ok-soft)' : 'var(--hover)',
-              color: compatibleProperties.length > 0 ? 'var(--ok)' : 'var(--muted)',
-            }}
-          />
-        </Box>
+          </h6>
+          <StatusChip size="sm" tokens={{ color: compatibleProperties.length > 0 ? 'var(--ok)' : 'var(--muted)', bg: compatibleProperties.length > 0 ? 'var(--ok-soft)' : 'var(--hover)' }} label={`${compatibleProperties.length} disponible${compatibleProperties.length > 1 ? 's' : ''}`} className="h-[20px]" />
+        </div>
 
         {compatibleProperties.length === 0 ? (
-          <Alert severity="info" sx={{ fontSize: '0.75rem', mb: 2 }}>
-            Aucun logement disponible dans la meme ville avec une capacite suffisante pour ces dates.
+          <Alert variant="info" className="text-[0.75rem] mb-3">
+            <Info />
+            <AlertDescription>Aucun logement disponible dans la meme ville avec une capacite suffisante pour ces dates.</AlertDescription>
           </Alert>
         ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
+          <div className="flex flex-col gap-1.5 mb-3">
             {compatibleProperties.map((property) => {
               const isSelected = selectedPropertyId === property.id;
               const typeLabel = property.type
@@ -220,99 +176,79 @@ const ChangePropertyDialog: React.FC<ChangePropertyDialogProps> = ({
                 : '';
 
               return (
-                <Box
+                <div
                   key={property.id}
                   onClick={() => setSelectedPropertyId(property.id)}
-                  sx={{
-                    p: 1.5,
-                    borderRadius: '10px',
-                    border: '1px solid',
-                    borderColor: isSelected ? 'var(--accent)' : 'var(--line-2)',
-                    backgroundColor: isSelected ? 'var(--accent-soft)' : 'var(--card)',
-                    cursor: 'pointer',
-                    transition: 'border-color 0.15s ease, background-color 0.15s ease',
-                    '&:hover': {
-                      borderColor: isSelected ? 'var(--accent)' : 'var(--faint)',
-                      backgroundColor: isSelected ? 'var(--accent-soft)' : 'var(--hover)',
-                    },
-                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                  }}
+                  className={cn(
+                    'p-[9px] rounded-[10px] border border-solid cursor-pointer',
+                    'transition-[border-color,background-color] duration-150 ease-[ease] motion-reduce:transition-none',
+                    // Selectionne : le survol ne change rien, donc pas de variante hover.
+                    isSelected
+                      ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                      : 'border-[var(--line-2)] bg-[var(--card)] hover:border-[var(--faint)] hover:bg-[var(--hover)]',
+                  )}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: isSelected ? 'var(--accent)' : 'var(--muted)' }}><Home size={18} strokeWidth={1.75} /></Box>
-                      <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem' }}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className={cn('inline-flex', isSelected ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}><Home size={18} strokeWidth={1.75} /></span>
+                      <p className="cn-text-body2 font-bold text-[0.8125rem]">
                         {property.name}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                     {isSelected && (
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CheckCircle size={18} strokeWidth={1.75} /></Box>
+                      <span className="inline-flex text-[var(--accent)]"><CheckCircle size={18} strokeWidth={1.75} /></span>
                     )}
-                  </Box>
-                  <Box sx={{ display: 'flex', gap: 0.75, mt: 0.75, ml: 3.5 }}>
-                    <Chip
-                      label={property.city}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontSize: '0.625rem', height: 20 }}
-                    />
+                  </div>
+                  <div className="flex gap-1 mt-1 ms-5">
+                    <Badge variant="outline" className="text-[0.625rem] h-[20px]">{property.city}</Badge>
                     {typeLabel && (
-                      <Chip
-                        label={typeLabel}
-                        size="small"
-                        variant="outlined"
-                        sx={{ fontSize: '0.625rem', height: 20 }}
-                      />
+                      <Badge variant="outline" className="text-[0.625rem] h-[20px]">{typeLabel}</Badge>
                     )}
-                    <Chip
-                      label={`${property.maxGuests} pers. max`}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontSize: '0.625rem', height: 20 }}
-                    />
-                  </Box>
-                </Box>
+                    <Badge variant="outline" className="text-[0.625rem] h-[20px]">{`${property.maxGuests} pers. max`}</Badge>
+                  </div>
+                </div>
               );
             })}
-          </Box>
+          </div>
         )}
 
         {/* Confirmation info */}
         {selectedProperty && (
-          <Alert severity="info" sx={{ fontSize: '0.75rem', mb: 1 }}>
-            La reservation de <strong>{reservation.guestName}</strong> sera deplacee vers{' '}
-            <strong>{selectedProperty.name}</strong>. Les interventions liees (menage) seront
-            automatiquement deplacees.
+          <Alert variant="info" className="text-[0.75rem] mb-1.5">
+            <Info />
+            <AlertDescription>La reservation de <strong>{reservation.guestName}</strong>sera deplacee vers{' '}<strong>{selectedProperty.name}</strong>. Les interventions liees (menage) seront
+            automatiquement deplacees.</AlertDescription>
           </Alert>
         )}
 
         {/* Error */}
         {error && (
-          <Alert severity="error" sx={{ fontSize: '0.75rem', mb: 1 }}>
-            {error}
+          <Alert variant="destructive" className="text-[0.75rem] mb-1.5">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-      </DialogContent>
+        </div>
 
-      <DialogActions sx={{ px: 2.5, pb: 2, pt: 1 }}>
-        <Button
-          onClick={handleClose}
-          size="small"
-          sx={{ fontSize: '0.75rem', textTransform: 'none' }}
-        >
-          Annuler
-        </Button>
-        <Button
-          onClick={handleConfirm}
-          variant="contained"
-          size="small"
-          disabled={!selectedProperty || loading}
-          startIcon={loading ? <CircularProgress size={14} /> : <SwapHoriz size={16} strokeWidth={1.75} />}
-          sx={{ fontSize: '0.75rem', textTransform: 'none' }}
-        >
-          Confirmer le changement
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClose}
+          >
+            Annuler
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleConfirm}
+            disabled={!selectedProperty || loading}
+          >
+            {loading ? <Spinner className="size-3.5" /> : <SwapHoriz size={16} strokeWidth={1.75} />}
+            Confirmer le changement
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

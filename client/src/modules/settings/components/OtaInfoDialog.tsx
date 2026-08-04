@@ -1,14 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Chip,
-  Alert,
-  CircularProgress,
-  TextField,
-} from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { Info, TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../../components/ui';
+import { Card } from '../../../components/ui';
+import { Button, Field, FieldLabel, Input } from '../../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckCircle as CheckCircleIcon,
@@ -58,22 +54,8 @@ import IntegrationConfigDialog from './IntegrationConfigDialog';
  */
 
 const ACCENT = 'var(--ok)';
-const DANGER = 'var(--err)';
 const NEUTRAL = 'var(--muted)';
 
-const statusChipSx = (color: string) => ({
-  height: 22,
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  letterSpacing: '0.01em',
-  borderRadius: '6px',
-  px: 0.25,
-  backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
-  color,
-  border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-  '& .MuiChip-icon': { color: `${color} !important`, ml: '6px', mr: '-2px' },
-  '& .MuiChip-label': { px: 0.875 },
-});
 
 // Labels FR pour les champs de credentials — evite la dependance sur i18n
 // pour ces stubs scaffoldes.
@@ -208,354 +190,242 @@ export default function OtaInfoDialog({
 
   return (
     <IntegrationConfigDialog open={open} onClose={onClose}>
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          overflow: 'hidden',
-        }}
-      >
+      <Card className="gap-0 py-0 border-border overflow-hidden">
         {/* ─── Header (uniforme avec ApiKeyConnectionCard) ─────────────── */}
-        <Box
-          sx={{
-            px: 2,
-            py: 1.75,
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 1.5,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: '10px',
-              backgroundColor: ota.logo ? 'transparent' : ota.brandColor,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-              flexShrink: 0,
-            }}
-            aria-hidden="true"
-          >
+        <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[var(--line)]">
+          <div className="w-[40px] h-[40px] rounded-[10px] inline-flex items-center justify-center overflow-hidden shrink-0" style={{ backgroundColor: ota.logo ? 'transparent' : ota.brandColor }} aria-hidden="true">
             {ota.logo ? (
-              <Box
-                component="img"
-                src={ota.logo}
-                alt=""
-                sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-              />
+              <img className="max-w-full max-h-[100%] object-contain" src={ota.logo} alt="" />
             ) : (
-              <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--on-accent)' }}>
+              <p className="cn-text-body1 text-[0.85rem] font-bold text-[var(--on-accent)]">
                 {ota.name.slice(0, 2).toUpperCase()}
-              </Typography>
+              </p>
             )}
-          </Box>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-              <Typography sx={{ fontSize: '0.92rem', fontWeight: 600 }}>{ota.name}</Typography>
-              <Chip
-                label={ota.segment}
-                size="small"
-                sx={{
-                  height: 18,
-                  fontSize: '0.62rem',
-                  fontWeight: 600,
-                  bgcolor: 'var(--ok-soft)',
-                  color: ACCENT,
-                  border: '1px solid color-mix(in srgb, var(--ok) 20%, transparent)',
-                  '& .MuiChip-label': { px: 0.625 },
-                }}
-              />
-            </Box>
-            <Typography sx={{ fontSize: '0.74rem', color: 'text.secondary', mt: 0.5 }}>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-0.5 flex-wrap">
+              <p className="cn-text-body1 text-[0.92rem] font-semibold">{ota.name}</p>
+              <StatusChip size="sm" tokens={{ color: ACCENT, bg: 'var(--ok-soft)' }} label={ota.segment} className="text-[0.62rem]" />
+            </div>
+            <p className="cn-text-body1 text-[0.74rem] text-muted-foreground mt-0.5">
               {isAirbnb
                 ? 'Connexion OAuth2 native'
                 : isFormConnectable
                   ? 'Connexion via formulaire (API ou iCal)'
                   : 'Intégration en cours de développement'}
-            </Typography>
-          </Box>
-          <Box sx={{ flexShrink: 0 }}>
+            </p>
+          </div>
+          <div className="shrink-0">
             {isConnected ? (
-              <Chip
-                icon={<CheckCircleIcon size={11} strokeWidth={2} />}
-                label="Connecté"
-                size="small"
-                sx={statusChipSx(ACCENT)}
-              />
+              <StatusChip color={ACCENT} label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
             ) : (
-              <Chip
-                icon={<ErrorOutline size={11} strokeWidth={2} />}
-                label={ota.available ? 'Non connecté' : 'Bientôt'}
-                size="small"
-                sx={statusChipSx(NEUTRAL)}
-              />
+              <StatusChip color={NEUTRAL} label={ota.available ? 'Non connecté' : 'Bientôt'} icon={<ErrorOutline size={11} strokeWidth={2} />} />
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* ─── Body ────────────────────────────────────────────────────── */}
-        <Box sx={{ p: 2 }}>
+        <div className="p-3">
           {/* Cas 1 : Coming soon */}
           {!ota.available && (
-            <Alert
-              severity="info"
-              variant="outlined"
-              sx={{ borderRadius: '8px', fontSize: '0.78rem' }}
-            >
-              L'intégration {ota.name} est en cours de développement. La page <strong>Channels</strong> permet d'exprimer votre intérêt et de suivre la disponibilité.
-            </Alert>
+            <UiAlert variant="info" className="text-[0.78rem]">
+              <Info />
+              <AlertDescription>L'intégration {ota.name}est en cours de développement. La page <strong>Channels</strong>permet d'exprimer votre intérêt et de suivre la disponibilité.</AlertDescription>
+            </UiAlert>
           )}
 
           {/* Cas 2 : Deja connecte (form OTA ou Airbnb), mode consultation */}
           {ota.available && isConnected && !editingForm && (
-            <Box>
-              <Alert
-                severity="success"
-                variant="outlined"
-                icon={<CheckCircleIcon size={16} strokeWidth={2} />}
-                sx={{ borderRadius: '8px', fontSize: '0.78rem', mb: 1.5 }}
-              >
-                Cette intégration est <strong>active</strong>. Vous pouvez gérer la connexion ici ou depuis l'onglet Channels.
-              </Alert>
+            <div>
+              <UiAlert variant="success" className="text-[0.78rem] mb-2">
+                <CheckCircleIcon size={16} strokeWidth={2} />
+                <AlertDescription>
+                  Cette intégration est <strong>active</strong>. Vous pouvez gérer la connexion ici ou depuis l'onglet Channels.
+                </AlertDescription>
+              </UiAlert>
 
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.25, mb: 1.5 }}>
+              <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-[7.5px] mb-[9px]">
                 {isChannelConnected && channelStatus && (
                   <>
                     {channelStatus.externalPropertyId && (
-                      <Box>
-                        <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Property ID</Typography>
-                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>{channelStatus.externalPropertyId}</Typography>
-                      </Box>
+                      <div>
+                        <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Property ID</p>
+                        <p className="cn-text-body1 text-[0.82rem] font-medium">{channelStatus.externalPropertyId}</p>
+                      </div>
                     )}
                     {channelStatus.connectedAt && (
-                      <Box>
-                        <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Connecté depuis</Typography>
-                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>
+                      <div>
+                        <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Connecté depuis</p>
+                        <p className="cn-text-body1 text-[0.82rem] font-medium">
                           {new Date(channelStatus.connectedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
                     )}
                     {channelStatus.lastSyncAt && (
-                      <Box>
-                        <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Dernière sync</Typography>
-                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>
+                      <div>
+                        <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Dernière sync</p>
+                        <p className="cn-text-body1 text-[0.82rem] font-medium">
                           {new Date(channelStatus.lastSyncAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
                     )}
                   </>
                 )}
                 {isAirbnbConnected && airbnbStatus?.connectedAt && (
-                  <Box>
-                    <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Connecté depuis</Typography>
-                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 500 }}>
+                  <div>
+                    <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Connecté depuis</p>
+                    <p className="cn-text-body1 text-[0.82rem] font-medium">
                       {new Date(airbnbStatus.connectedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                 )}
-              </Box>
+              </div>
 
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <div className="flex gap-1.5 flex-wrap">
                 {isFormConnectable && (
                   <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<LinkIcon size={14} strokeWidth={2} />}
+                    variant="outline"
+                    size="sm"
                     onClick={() => setEditingForm(true)}
-                    sx={{
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      fontSize: '0.78rem',
-                      borderRadius: '8px',
-                      borderColor: 'divider',
-                      color: 'text.primary',
-                      '&:hover': { borderColor: 'color-mix(in srgb, var(--ok) 40%, transparent)', backgroundColor: 'var(--ok-soft)', color: ACCENT },
-                    }}
                   >
+                    <LinkIcon size={14} strokeWidth={2} />
                     Modifier la connexion
                   </Button>
                 )}
                 {isFormConnectable && (
+                  // Deconnecter est l'action irreversible de cette zone : le kit lui
+                  // donne la variante destructive, la ou MUI ne l'exprimait qu'au hover.
                   <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={disconnectMutation.isPending ? <CircularProgress size={12} /> : <LinkOffIcon size={14} strokeWidth={2} />}
+                    variant="destructive"
+                    size="sm"
                     onClick={handleDisconnect}
                     disabled={disconnectMutation.isPending}
-                    sx={{
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      fontSize: '0.78rem',
-                      borderRadius: '8px',
-                      borderColor: 'divider',
-                      color: 'text.primary',
-                      '&:hover': { borderColor: 'color-mix(in srgb, var(--err) 40%, transparent)', backgroundColor: 'var(--err-soft)', color: DANGER },
-                    }}
                   >
+                    {disconnectMutation.isPending ? <Spinner className="size-3" /> : <LinkOffIcon size={14} strokeWidth={2} />}
                     {disconnectMutation.isPending ? 'Déconnexion...' : `Déconnecter ${ota.name}`}
                   </Button>
                 )}
                 <Button
-                  variant="text"
-                  size="small"
-                  endIcon={<ArrowRightIcon size={14} strokeWidth={2} />}
+                  variant="ghost"
+                  size="sm"
                   onClick={() => navigate('/channels')}
-                  sx={{
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    fontSize: '0.78rem',
-                    color: 'text.secondary',
-                    '&:hover': { color: ACCENT },
-                  }}
                 >
                   Gérer dans Channels
+                  <ArrowRightIcon size={14} strokeWidth={2} />
                 </Button>
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
 
           {/* Cas 3 : Airbnb non connecte (OAuth) */}
           {ota.available && isAirbnb && !isConnected && (
-            <Box>
-              <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary', mb: 1.5 }}>
+            <div>
+              <p className="cn-text-body1 text-[0.82rem] text-muted-foreground mb-2">
                 Airbnb utilise un flow OAuth2 natif. Vous serez redirigé vers Airbnb pour autoriser l'accès à votre compte.
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              </p>
+              <div className="flex gap-1.5 flex-wrap">
                 <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={airbnbConnectMutation.isPending ? <CircularProgress size={12} color="inherit" /> : <LinkIcon size={14} strokeWidth={2} />}
+                  size="sm"
                   onClick={handleAirbnbConnect}
                   disabled={airbnbConnectMutation.isPending}
-                  sx={{ textTransform: 'none', fontWeight: 600 }}
                 >
+                  {airbnbConnectMutation.isPending ? <Spinner className="size-3" /> : <LinkIcon size={14} strokeWidth={2} />}
                   {airbnbConnectMutation.isPending ? 'Redirection...' : 'Se connecter via Airbnb'}
                 </Button>
                 <Button
-                  variant="text"
-                  size="small"
-                  endIcon={<ArrowRightIcon size={14} strokeWidth={2} />}
+                  variant="ghost"
+                  size="sm"
                   onClick={() => navigate('/channels')}
-                  sx={{
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    fontSize: '0.78rem',
-                    color: 'text.secondary',
-                  }}
                 >
                   Détails dans Channels
+                  <ArrowRightIcon size={14} strokeWidth={2} />
                 </Button>
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
 
           {/* Cas 4 : Form OTA — non connecte OU mode "modifier" */}
           {showForm && (
-            <Box
-              component="form"
-              onSubmit={(e) => { e.preventDefault(); handleConnect(); }}
-              sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}
-            >
-              <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
+            <form className="flex flex-col gap-2" onSubmit={(e) => { e.preventDefault(); handleConnect(); }}>
+              <p className="cn-text-body1 text-[0.78rem] text-muted-foreground">
                 {editingForm
                   ? `Modifier les credentials ${ota.name}. Les anciennes valeurs seront ecrasees apres connexion.`
                   : `Renseignez vos credentials ${ota.name}. Ils sont chiffrés (AES-256) avant stockage.`}
-              </Typography>
+              </p>
 
-              {fields.map((field) => (
-                <TextField
-                  key={field.key}
-                  label={FIELD_LABELS[field.key] ?? field.key}
-                  type={field.type}
-                  size="small"
-                  fullWidth
-                  required={field.required}
-                  placeholder={field.placeholder}
-                  value={formData[field.key] ?? ''}
-                  onChange={(e) => handleFieldChange(field.key, e.target.value)}
-                  autoComplete="off"
-                />
+              {fields.map((credentialField) => (
+                // L'id derive de la cle du credential (hotelId, apiKey...) : stable
+                // et unique dans la modale, contrairement a un index de boucle.
+                <Field key={credentialField.key}>
+                  <FieldLabel htmlFor={`ota-credential-${credentialField.key}`}>
+                    {FIELD_LABELS[credentialField.key] ?? credentialField.key}
+                  </FieldLabel>
+                  <Input
+                    id={`ota-credential-${credentialField.key}`}
+                    className="w-full"
+                    type={credentialField.type}
+                    required={credentialField.required}
+                    placeholder={credentialField.placeholder}
+                    value={formData[credentialField.key] ?? ''}
+                    onChange={(e) => handleFieldChange(credentialField.key, e.target.value)}
+                    autoComplete="off"
+                  />
+                </Field>
               ))}
 
               {/* Resultat test */}
               {testResult && (
-                <Alert
-                  severity={testResult.success ? 'success' : 'error'}
-                  variant="outlined"
-                  icon={testResult.success ? <CheckCircleIcon size={14} strokeWidth={2} /> : undefined}
-                  sx={{ borderRadius: '8px', fontSize: '0.76rem' }}
-                >
-                  {testResult.success
-                    ? `Credentials valides${testResult.channelPropertyName ? ` (${testResult.channelPropertyName})` : ''}.`
-                    : testResult.message}
-                </Alert>
+                <UiAlert variant={testResult.success ? 'success' : 'destructive'} className="text-[0.76rem]">
+                  {testResult.success ? <CheckCircleIcon size={14} strokeWidth={2} /> : <TriangleAlert />}
+                  <AlertDescription>
+                    {testResult.success
+                      ? `Credentials valides${testResult.channelPropertyName ? ` (${testResult.channelPropertyName})` : ''}.`
+                      : testResult.message}
+                  </AlertDescription>
+                </UiAlert>
               )}
 
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 0.5 }}>
+              <div className="flex gap-1.5 flex-wrap mt-0.5">
                 <Button
                   type="button"
-                  variant="outlined"
-                  size="small"
-                  startIcon={testMutation.isPending ? <CircularProgress size={12} /> : <TestIcon size={14} strokeWidth={2} />}
+                  variant="outline"
+                  size="sm"
                   onClick={handleTest}
                   disabled={!isFormValid || testMutation.isPending || connectMutation.isPending}
-                  sx={{
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    fontSize: '0.78rem',
-                    borderRadius: '8px',
-                    borderColor: 'divider',
-                    color: 'text.primary',
-                    '&:hover': { borderColor: 'color-mix(in srgb, var(--ok) 40%, transparent)', backgroundColor: 'var(--ok-soft)', color: ACCENT },
-                  }}
                 >
+                  {testMutation.isPending ? <Spinner className="size-3" /> : <TestIcon size={14} strokeWidth={2} />}
                   {testMutation.isPending ? 'Test en cours...' : 'Tester'}
                 </Button>
                 <Button
                   type="submit"
-                  variant="contained"
-                  size="small"
-                  startIcon={connectMutation.isPending ? <CircularProgress size={12} color="inherit" /> : <LinkIcon size={14} strokeWidth={2} />}
+                  size="sm"
                   disabled={!isFormValid || connectMutation.isPending}
-                  sx={{ textTransform: 'none', fontWeight: 600 }}
                 >
+                  {connectMutation.isPending ? <Spinner className="size-3" /> : <LinkIcon size={14} strokeWidth={2} />}
                   {connectMutation.isPending ? 'Connexion...' : `Connecter ${ota.name}`}
                 </Button>
                 {editingForm && (
                   <Button
                     type="button"
-                    variant="text"
-                    size="small"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => { setEditingForm(false); setFormData({}); setTestResult(null); }}
-                    sx={{
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      fontSize: '0.78rem',
-                      color: 'text.secondary',
-                    }}
                   >
                     Annuler
                   </Button>
                 )}
-              </Box>
-            </Box>
+              </div>
+            </form>
           )}
 
           {actionError && (
-            <Alert severity="error" sx={{ mt: 1.5, borderRadius: '8px', fontSize: '0.78rem' }}>
-              {actionError}
-            </Alert>
+            <UiAlert variant="destructive" className="mt-2 text-[0.78rem]">
+              <TriangleAlert />
+              <AlertDescription>{actionError}</AlertDescription>
+            </UiAlert>
           )}
-        </Box>
-      </Paper>
+        </div>
+      </Card>
     </IntegrationConfigDialog>
   );
 }

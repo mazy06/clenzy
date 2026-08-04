@@ -1,37 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  Button,
-  CircularProgress,
-  Skeleton,
-  Alert,
-  Typography,
-} from '@mui/material';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Button, Skeleton, Spinner } from '../../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { Refresh } from '../../../icons';
 import { syncAdminApi, ConnectionSummary } from '../../../services/api/syncAdminApi';
+import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 
-/** Chip -soft : texte couleur + fond -soft (pilule/typo via thème global MuiChip) */
-const chipSx = (fg: string, bg: string) => ({ color: fg, backgroundColor: bg });
-
-const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
+const NEUTRAL_TOKEN: ToneTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
 
 // Statut connexion → tokens sémantiques (ACTIVE = --ok, sinon neutre)
-const statusToken = (status: string) =>
-  status === 'ACTIVE' ? { fg: 'var(--ok)', bg: 'var(--ok-soft)' } : NEUTRAL_TOKEN;
+const statusToken = (status: string): ToneTokens =>
+  status === 'ACTIVE' ? { color: 'var(--ok)', bg: 'var(--ok-soft)' } : NEUTRAL_TOKEN;
 
 // Santé → tokens sémantiques (HEALTHY --ok, DEGRADED --warn, UNHEALTHY --err)
-const HEALTH_TOKEN: Record<string, { fg: string; bg: string }> = {
-  HEALTHY: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  DEGRADED: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  UNHEALTHY: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+const HEALTH_TOKEN: Record<string, ToneTokens> = {
+  HEALTHY: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
+  DEGRADED: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
+  UNHEALTHY: { color: 'var(--err)', bg: 'var(--err-soft)' },
 };
 
 const ConnectionsTab: React.FC = () => {
@@ -75,95 +61,81 @@ const ConnectionsTab: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <div className="flex flex-col gap-1.5">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+          <Skeleton key={i} className="h-[36px] w-full rounded-[9px]" />
         ))}
-      </Box>
+      </div>
     );
   }
 
   if (error) {
-    return <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>;
+    return <Alert variant="destructive" className="mb-3">
+      <TriangleAlert />
+      <AlertDescription>{error}</AlertDescription>
+    </Alert>;
   }
 
   return (
-    <Box>
-      <Typography variant="h6" gutterBottom sx={{ color: 'var(--ink)' }}>
+    <div>
+      <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
         Connexions Channel
-      </Typography>
+      </h6>
 
-      <TableContainer
-        component={Paper}
-        variant="outlined"
-        sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}
-      >
-        <Table size="small">
-          <TableHead>
+      <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Channel</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Last Sync</TableCell>
-              <TableCell>Last Error</TableCell>
-              <TableCell>Mappings</TableCell>
-              <TableCell>Health</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableHead>ID</TableHead>
+              <TableHead>Channel</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Last Sync</TableHead>
+              <TableHead>Last Error</TableHead>
+              <TableHead>Mappings</TableHead>
+              <TableHead>Health</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {connections.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ color: 'var(--muted)', py: 3 }}>
+                <TableCell colSpan={8} className="text-center text-[var(--muted)] py-[18px]">
                   Aucune connexion
                 </TableCell>
               </TableRow>
             ) : (
               connections.map((conn) => (
                 <TableRow key={conn.id}>
-                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{conn.id}</TableCell>
+                  <TableCell className="tabular-nums">{conn.id}</TableCell>
                   <TableCell>{conn.channel}</TableCell>
                   <TableCell>
-                    <Chip
-                      label={conn.status}
-                      size="small"
-                      sx={(() => {
-                        const tk = statusToken(conn.status);
-                        return chipSx(tk.fg, tk.bg);
-                      })()}
-                    />
+                    <StatusChip label={conn.status} tokens={statusToken(conn.status)} />
                   </TableCell>
                   <TableCell>
                     {conn.lastSyncAt ? new Date(conn.lastSyncAt).toLocaleString() : '—'}
                   </TableCell>
                   <TableCell>
-                    <Typography
-                      variant="body2"
-                      sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                      title={conn.lastError || undefined}
-                    >
+                    <p className="cn-text-body2 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title={conn.lastError || undefined}>
                       {conn.lastError || '—'}
-                    </Typography>
+                    </p>
                   </TableCell>
-                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{conn.mappingCount}</TableCell>
+                  <TableCell className="tabular-nums">{conn.mappingCount}</TableCell>
                   <TableCell>
-                    <Chip
+                    <StatusChip
                       label={conn.healthStatus}
-                      size="small"
-                      sx={(() => {
-                        const tk = HEALTH_TOKEN[conn.healthStatus] ?? NEUTRAL_TOKEN;
-                        return chipSx(tk.fg, tk.bg);
-                      })()}
+                      tokens={HEALTH_TOKEN[conn.healthStatus] ?? NEUTRAL_TOKEN}
                     />
                   </TableCell>
                   <TableCell>
+                    {/* Action repetee sur chaque ligne : registre tertiaire du kit,
+                        pour ne pas paver le tableau de cadres. */}
                     <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={checkingId === conn.id ? <CircularProgress size={16} /> : <Refresh />}
+                      size="sm"
+                      variant="ghost"
                       onClick={() => handleHealthCheck(conn.id)}
                       disabled={checkingId === conn.id}
                     >
+                      {checkingId === conn.id ? <Spinner className="size-4" /> : <Refresh />}
                       Health Check
                     </Button>
                   </TableCell>
@@ -172,8 +144,8 @@ const ConnectionsTab: React.FC = () => {
             )}
           </TableBody>
         </Table>
-      </TableContainer>
-    </Box>
+      </div>
+    </div>
   );
 };
 

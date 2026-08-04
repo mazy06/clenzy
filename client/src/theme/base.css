@@ -1,0 +1,147 @@
+/* ============================================================================
+   Socle global — remplace le <CssBaseline> de MUI.
+
+   La preflight de Tailwind est desactivee (elle l'avait ete pour cohabiter avec
+   MUI), si bien que le reset venait UNIQUEMENT de MUI : sans ce fichier, le
+   `body` perdrait sa marge nulle, sa police et son fond, et toute l'application
+   retomberait sur les defauts du navigateur.
+
+   Les declarations ci-dessous reprennent une a une celles que `CssBaseline`
+   emettait avec ce theme (source : @mui/material/CssBaseline + les
+   `MuiCssBaseline.styleOverrides` de theme.ts / darkTheme.ts). Les couleurs
+   passent par les jetons deja definis dans signature/tokens.css, dont les
+   valeurs sont exactement celles de la palette : `--bg` valait
+   `palette.background.default`, `--ink` valait `palette.text.primary`.
+
+   Gain au passage : le clair/sombre bascule desormais par l'attribut
+   `data-theme` sur <html>, en CSS pur. Avant, ces regles etaient injectees par
+   React et tout changement de mode re-rendait l'arbre pour les reecrire.
+   ========================================================================== */
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  box-sizing: border-box;
+  -webkit-text-size-adjust: 100%;
+  /* Chiffres a chasse fixe : les colonnes de montants ne dansent pas d'une
+     ligne a l'autre. */
+  font-variant-numeric: tabular-nums;
+  text-rendering: optimizeLegibility;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+strong,
+b {
+  font-weight: 700;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background-color: var(--bg);
+  font-family: var(--font-sans);
+  /* Reprise du variant `body1` : les trois paliers de taille sont ceux du
+     theme, et `letter-spacing` la valeur par defaut de MUI pour ce variant
+     (0.15px sur une base de 16) — heritee par tout le texte de l'application. */
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.00938em;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 1200px) {
+  body {
+    font-size: 0.8125rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  body {
+    font-size: 0.875rem;
+  }
+}
+
+@media print {
+  body {
+    background-color: #fff;
+  }
+}
+
+body::backdrop {
+  background-color: var(--bg);
+}
+
+/* ── Arabe ──────────────────────────────────────────────────────────────────
+   Plus Jakarta Sans n'a pas de glyphes arabes dessines : sans cette bascule le
+   navigateur retombe sur une police systeme quelconque. Auparavant une usine a
+   theme reecrivait `fontFamily` sur les treize variants de typographie ; il
+   suffit ici de redefinir le jeton, que tout le reste lit deja.
+   `lang` est pose sur <html> par AppWithTheme a chaque changement de langue. */
+html[lang='ar'] {
+  --font-sans: 'Tajawal', 'Tahoma', 'Geeza Pro', 'Arabic Typesetting', 'Traditional Arabic', sans-serif;
+}
+
+/* ── Barre de defilement en mode sombre ─────────────────────────────────────
+   Une barre claire sur un canvas sombre trahit l'interface ; ces valeurs sont
+   celles du theme sombre d'origine. */
+[data-theme='dark'] body {
+  position: relative;
+  scrollbar-color: #3d5468 #0f1923;
+}
+
+[data-theme='dark'] body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-theme='dark'] body::-webkit-scrollbar-track {
+  background: #0f1923;
+}
+
+[data-theme='dark'] body::-webkit-scrollbar-thumb {
+  background: #3d5468;
+  border-radius: 4px;
+}
+
+[data-theme='dark'] body::-webkit-scrollbar-thumb:hover {
+  background: #5a7589;
+}
+
+/* ── Animations d'entree en cascade ─────────────────────────────────────────
+   Referencees par leur nom dans plusieurs ecrans. */
+@keyframes clz-fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes clz-fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

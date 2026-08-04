@@ -462,12 +462,16 @@ public class ReservationService {
 
         syncCalendarOnUpdate(existing, oldStatus, oldPropertyId, oldCheckIn, oldCheckOut, orgId, actorId);
         rescheduleLinkedIntervention(existing, oldCheckOut);
+        moveLinkedInterventionProperty(existing, oldPropertyId);
 
         Reservation saved = reservationRepository.save(existing);
 
         boolean datesChanged = !Objects.equals(saved.getCheckIn(), oldCheckIn)
                 || !Objects.equals(saved.getCheckOut(), oldCheckOut);
-        if (datesChanged && "confirmed".equals(saved.getStatus())) {
+        // Relogement : les codes de l'ANCIEN logement ne doivent plus ouvrir quoi que
+        // ce soit pour ce sejour — regeneres au meme titre qu'un changement de dates.
+        boolean propertyChanged = !Objects.equals(saved.getProperty().getId(), oldPropertyId);
+        if ((datesChanged || propertyChanged) && "confirmed".equals(saved.getStatus())) {
             // Non bloquant : une panne serrure ne doit pas bloquer la mise a jour.
             revokeAccessCodes(saved.getId());
             generateAccessCodes(saved, orgId);
@@ -553,6 +557,113 @@ public class ReservationService {
             syncMetrics.incrementDoubleBookingPrevented();
             throw e;
         }
+    }
+
+    /**
+     * Relogement CANONIQUE d'un sejour (carte RELODGE_TRANSFER + usages internes) :
+     * change le logement SANS toucher aux dates. Le calendrier est deplace
+     * atomiquement par {@code CalendarEngine.move} (locks sur les deux logements,
+     * conflit → {@code CalendarConflictException}), le menage lie suit, les codes
+     * d'acces sont regeneres. Idempotent si la reservation est deja sur la cible.
+     */
+    @Transactional
+    public Reservation relodge(Long reservationId, Long targetPropertyId, String actorId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        Reservation existing = reservationRepository.findByIdFetchAll(reservationId)
+                .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + reservationId));
+        if (!orgId.equals(existing.getOrganizationId())) {
+            throw new RuntimeException("Acces refuse : reservation hors de votre organisation");
+        }
+        Property target = propertyRepository.findById(targetPropertyId)
+                .orElseThrow(() -> new NotFoundException("Propriete introuvable: " + targetPropertyId));
+        // findById contourne le filtre Hibernate : garde d'org explicite (regle audit n°3).
+        if (!orgId.equals(target.getOrganizationId())) {
+            throw new RuntimeException("Acces refuse : logement hors de votre organisation");
+        }
+        Long oldPropertyId = existing.getProperty().getId();
+        if (Objects.equals(oldPropertyId, targetPropertyId)) {
+            return existing; // deja relogee (autre operateur) — idempotent
+        }
+        String status = existing.getStatus();
+        LocalDate checkIn = existing.getCheckIn();
+        LocalDate checkOut = existing.getCheckOut();
+        existing.setProperty(target);
+
+        syncCalendarOnUpdate(existing, status, oldPropertyId, checkIn, checkOut, orgId, actorId);
+        moveLinkedInterventionProperty(existing, oldPropertyId);
+        Reservation saved = reservationRepository.save(existing);
+
+        if ("confirmed".equals(saved.getStatus())) {
+            // Non bloquant : une panne serrure ne doit pas bloquer le relogement.
+            revokeAccessCodes(saved.getId());
+            generateAccessCodes(saved, orgId);
+        }
+        notifyReservationUpdated(saved);
+        return saved;
+    }
+
+    /**
+     * Replanification CANONIQUE d'un sejour (avenant STAY_MODIFICATION v2) : change
+     * les DATES sans toucher au logement — le symetrique de {@link #relodge}. Le
+     * calendrier est deplace atomiquement ({@code CalendarEngine.move}, conflit →
+     * {@code CalendarConflictException}), le menage lie est decale sur le nouveau
+     * checkout, les codes d'acces regeneres. {@code newTotalPrice} est le total
+     * RE-calcule par l'appelant cote serveur (PriceEngine) — jamais un montant
+     * client (regle argent n°1) ; null = total inchange. Idempotent si les dates
+     * sont deja les bonnes.
+     */
+    @Transactional
+    public Reservation reschedule(Long reservationId, LocalDate newCheckIn, LocalDate newCheckOut,
+                                  java.math.BigDecimal newTotalPrice, String actorId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        Reservation existing = reservationRepository.findByIdFetchAll(reservationId)
+                .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + reservationId));
+        if (!orgId.equals(existing.getOrganizationId())) {
+            throw new RuntimeException("Acces refuse : reservation hors de votre organisation");
+        }
+        if (newCheckIn == null || newCheckOut == null || !newCheckOut.isAfter(newCheckIn)) {
+            throw new IllegalArgumentException("Dates de replanification incoherentes");
+        }
+        if (Objects.equals(existing.getCheckIn(), newCheckIn)
+                && Objects.equals(existing.getCheckOut(), newCheckOut)) {
+            return existing; // deja replanifiee (autre operateur) — idempotent
+        }
+        String status = existing.getStatus();
+        Long propertyId = existing.getProperty().getId();
+        LocalDate oldCheckIn = existing.getCheckIn();
+        LocalDate oldCheckOut = existing.getCheckOut();
+        existing.setCheckIn(newCheckIn);
+        existing.setCheckOut(newCheckOut);
+        if (newTotalPrice != null) {
+            existing.setTotalPrice(newTotalPrice);
+        }
+
+        syncCalendarOnUpdate(existing, status, propertyId, oldCheckIn, oldCheckOut, orgId, actorId);
+        rescheduleLinkedIntervention(existing, oldCheckOut);
+        Reservation saved = reservationRepository.save(existing);
+
+        if ("confirmed".equals(saved.getStatus())) {
+            // Non bloquant : une panne serrure ne doit pas bloquer l'avenant.
+            revokeAccessCodes(saved.getId());
+            generateAccessCodes(saved, orgId);
+        }
+        notifyReservationUpdated(saved);
+        return saved;
+    }
+
+    /**
+     * Relogement : le menage lie suit la reservation sur le NOUVEAU logement — sans
+     * ca, l'equipe se presentait a l'ancienne adresse (promesse deja affichee par le
+     * front « les interventions liees seront automatiquement deplacees »).
+     */
+    private void moveLinkedInterventionProperty(Reservation reservation, Long oldPropertyId) {
+        Intervention intervention = reservation.getIntervention();
+        if (intervention == null
+                || Objects.equals(reservation.getProperty().getId(), oldPropertyId)) {
+            return;
+        }
+        intervention.setProperty(reservation.getProperty());
+        interventionRepository.save(intervention);
     }
 
     /** Decale l'intervention liee si le checkout a change (meme heure, nouvelle date). */

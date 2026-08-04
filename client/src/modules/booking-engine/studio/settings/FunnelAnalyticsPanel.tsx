@@ -1,25 +1,13 @@
 import { useEffect, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Card,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  ToggleButton,
-  ToggleButtonGroup,
-  Typography,
-} from '@mui/material';
+import { Alert, AlertDescription } from '../../../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Skeleton, ToggleGroup, ToggleGroupItem } from '../../../../components/ui';
 import { CalendarX2, Eye, MousePointerClick, Search, ShoppingCart } from 'lucide-react';
 import StatTile from '../../../../components/StatTile';
 import EmptyState from '../../../../components/EmptyState';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { funnelApi, type FunnelAnalytics } from '../../../../services/api/funnelApi';
-
-const NUM_SX = { fontVariantNumeric: 'tabular-nums' } as const;
 
 const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -90,31 +78,38 @@ export default function FunnelAnalyticsPanel() {
   ];
 
   return (
-    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5, maxWidth: 980 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+    <div className="p-3 flex flex-col gap-2 max-w-[980px]">
+      <div className="flex items-center justify-between">
+        <div>
+          <h6 className="cn-text-subtitle1 font-semibold">
             {t('bookingEngine.funnel.title', 'Funnel de réservation')}
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+          </h6>
+          <span className="cn-text-caption text-[var(--muted)]">
             {t('bookingEngine.funnel.subtitle',
               'Demande captée par votre moteur de réservation — y compris la demande refusée.')}
-          </Typography>
-        </Box>
-        <ToggleButtonGroup
-          size="small"
-          exclusive
-          value={days}
-          onChange={(_, v) => { if (v) setDays(v); }}
+          </span>
+        </div>
+        {/* Radix ne connait que des valeurs texte : la fenetre reste un nombre
+            cote etat, on ne convertit qu'aux frontieres du composant. */}
+        <ToggleGroup
+          type="single"
+          size="sm"
+          variant="outline"
+          spacing={0}
+          value={String(days)}
+          onValueChange={(v) => { if (v) setDays(Number(v) as 30 | 90); }}
         >
-          <ToggleButton value={30}>30 j</ToggleButton>
-          <ToggleButton value={90}>90 j</ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
+          <ToggleGroupItem value="30">30 j</ToggleGroupItem>
+          <ToggleGroupItem value="90">90 j</ToggleGroupItem>
+        </ToggleGroup>
+      </div>
 
-      {error && <Alert severity="error">{error}</Alert>}
+      {error && <Alert variant="destructive">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(5, 1fr)' }, gap: 1.25 }}>
+      <div className="grid grid-cols-[1fr_1fr] min-[900px]:grid-cols-[repeat(5,_1fr)] gap-[7.5px]">
         {steps.map((s) => (
           <StatTile
             key={s.label}
@@ -126,18 +121,18 @@ export default function FunnelAnalyticsPanel() {
             loading={loading}
           />
         ))}
-      </Box>
+      </div>
 
-      <Card variant="outlined" sx={{ p: 1.5 }}>
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>
+      <div className="rounded-xl border border-solid border-[var(--line)] bg-[var(--card)] p-2.5">
+        <h6 className="cn-text-subtitle2 mb-1.5">
           {t('bookingEngine.funnel.topDeniedTitle', 'Séjours demandés sans disponibilité')}
-        </Typography>
-        <Typography variant="caption" sx={{ color: 'var(--muted)', display: 'block', mb: 1 }}>
+        </h6>
+        <span className="cn-text-caption text-[var(--muted)] block mb-1.5">
           {t('bookingEngine.funnel.topDeniedHint',
             'Ces dates ont été recherchées mais aucun logement n’était disponible — un signal pour revoir prix, min-stay ou inventaire.')}
-        </Typography>
+        </span>
         {loading ? (
-          <Skeleton variant="rounded" height={160} />
+          <Skeleton className="h-[160px] w-full rounded-lg" />
         ) : (data?.topDenied.length ?? 0) === 0 ? (
           <EmptyState
             icon={<CalendarX2 />}
@@ -145,28 +140,28 @@ export default function FunnelAnalyticsPanel() {
             variant="plain"
           />
         ) : (
-          <Table size="small">
-            <TableHead>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('bookingEngine.funnel.colCheckIn', 'Arrivée')}</TableCell>
-                <TableCell>{t('bookingEngine.funnel.colCheckOut', 'Départ')}</TableCell>
-                <TableCell align="right">{t('bookingEngine.funnel.colGuests', 'Voyageurs')}</TableCell>
-                <TableCell align="right">{t('bookingEngine.funnel.colCount', 'Demandes')}</TableCell>
+                <TableHead>{t('bookingEngine.funnel.colCheckIn', 'Arrivée')}</TableHead>
+                <TableHead>{t('bookingEngine.funnel.colCheckOut', 'Départ')}</TableHead>
+                <TableHead className="text-end">{t('bookingEngine.funnel.colGuests', 'Voyageurs')}</TableHead>
+                <TableHead className="text-end">{t('bookingEngine.funnel.colCount', 'Demandes')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {data?.topDenied.map((row) => (
-                <TableRow key={`${row.checkIn}-${row.checkOut}-${row.guests}`} hover>
-                  <TableCell sx={NUM_SX}>{row.checkIn ?? '—'}</TableCell>
-                  <TableCell sx={NUM_SX}>{row.checkOut ?? '—'}</TableCell>
-                  <TableCell align="right" sx={NUM_SX}>{row.guests ?? '—'}</TableCell>
-                  <TableCell align="right" sx={{ ...NUM_SX, fontWeight: 600 }}>{row.count}</TableCell>
+                <TableRow key={`${row.checkIn}-${row.checkOut}-${row.guests}`}>
+                  <TableCell className="tabular-nums">{row.checkIn ?? '—'}</TableCell>
+                  <TableCell className="tabular-nums">{row.checkOut ?? '—'}</TableCell>
+                  <TableCell className="text-end tabular-nums">{row.guests ?? '—'}</TableCell>
+                  <TableCell className="text-end tabular-nums font-semibold">{row.count}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
-      </Card>
-    </Box>
+      </div>
+    </div>
   );
 }

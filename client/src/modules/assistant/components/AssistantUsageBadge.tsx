@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Tooltip, Typography } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import type { AssistantUsage } from '../../../services/api/assistantApi';
 
 interface AssistantUsageBadgeProps {
@@ -34,40 +34,18 @@ export const AssistantUsageBadge: React.FC<AssistantUsageBadgeProps> = ({
   const periodLabel = usage?.period === 'today' ? "aujourd'hui" : 'ce mois';
 
   return (
-    <Tooltip
-      arrow
-      placement="bottom-end"
-      title={<UsageTooltipContent usage={usage} loading={loading} />}
-      enterDelay={300}
-    >
-      <Box
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 0.75,
-          px: 1.25,
-          height: 28,
-          borderRadius: 999,
-          fontSize: '11.5px',
-          fontWeight: 600,
-          color: 'var(--muted)',
-          bgcolor: 'var(--card)',
-          border: '1px solid var(--line)',
-          cursor: 'help',
-          transition: 'border-color .15s',
-          fontVariantNumeric: 'tabular-nums',
-          userSelect: 'none',
-          '&:hover': {
-            borderColor: 'var(--line-2)',
-          },
-        }}
-        aria-label={`Consommation assistant : ${costLabel} ${periodLabel}, ${tokensLabel} tokens`}
-      >
-        <Box component="span" sx={{ fontWeight: 600, color: 'var(--body)' }}>{costLabel}</Box>
-        <Box component="span" sx={{ color: 'var(--faint)' }}>
-          · {tokensLabel} tokens
-        </Box>
-      </Box>
+    <Tooltip delayDuration={300}>
+      <TooltipTrigger asChild>
+        <div className="inline-flex items-center gap-[4.5px] px-[7.5px] h-[28px] rounded-[7992px] text-[11.5px] font-semibold text-[var(--muted)] bg-[var(--card)] border border-solid border-[var(--line)] cursor-help tabular-nums select-none hover:border-[var(--line-2)]" style={{ transition: 'border-color .15s' }} aria-label={`Consommation assistant : ${costLabel} ${periodLabel}, ${tokensLabel} tokens`}>
+          <span className="font-semibold text-[var(--body)]">{costLabel}</span>
+          <span className="text-[var(--faint)]">
+            · {tokensLabel} tokens
+          </span>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" align="end">
+        <UsageTooltipContent usage={usage} loading={loading} />
+      </TooltipContent>
     </Tooltip>
   );
 };
@@ -79,13 +57,13 @@ const UsageTooltipContent: React.FC<{
   loading: boolean;
 }> = ({ usage, loading }) => {
   if (loading) {
-    return <Typography variant="caption">Chargement…</Typography>;
+    return <span className="cn-text-caption">Chargement…</span>;
   }
   if (!usage || usage.requestCount === 0) {
     return (
-      <Box sx={{ minWidth: 200, fontSize: '0.75rem' }}>
+      <div className="min-w-[200px] text-[0.75rem]">
         Aucune consommation enregistree pour cette periode.
-      </Box>
+      </div>
     );
   }
 
@@ -96,71 +74,55 @@ const UsageTooltipContent: React.FC<{
       : null;
 
   return (
-    <Box sx={{ minWidth: 240, fontSize: '0.75rem', lineHeight: 1.5 }}>
-      <Typography
-        variant="overline"
-        sx={{ fontSize: '0.625rem', letterSpacing: 0.8, fontWeight: 700, opacity: 0.7 }}
-      >
+    <div className="min-w-[240px] text-[0.75rem] leading-[1.5]">
+      <span className="cn-text-overline text-[0.625rem] tracking-[0.8px] font-bold opacity-70">
         {periodLabel}
-      </Typography>
+      </span>
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+      <div className="flex justify-between mt-0.5">
         <span>Cout total</span>
         <strong style={{ fontVariantNumeric: 'tabular-nums' }}>
           {formatCost(usage.costUsd, true)}
         </strong>
-      </Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+      </div>
+      <div className="flex justify-between">
         <span>Tokens entree</span>
         <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatTokens(usage.tokensIn)}</span>
-      </Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+      </div>
+      <div className="flex justify-between">
         <span>Tokens sortie</span>
         <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatTokens(usage.tokensOut)}</span>
-      </Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+      </div>
+      <div className="flex justify-between">
         <span>Appels LLM</span>
         <span style={{ fontVariantNumeric: 'tabular-nums' }}>{usage.requestCount}</span>
-      </Box>
+      </div>
 
       {budgetPct !== null && (
-        <Box sx={{ mt: 0.5, opacity: 0.85 }}>
+        <div className="mt-0.5 opacity-85">
           {budgetPct.toFixed(1)}% du budget mensuel
           {usage.monthlyBudget != null && ` (${formatTokens(usage.monthlyBudget)})`}
-        </Box>
+        </div>
       )}
 
       {usage.byModel.length > 0 && (
         <>
-          <Box
-            sx={{
-              // Le tooltip global a un fond --ink (inverse) : filet teinte --bg.
-              borderTop: '1px solid color-mix(in srgb, var(--bg) 25%, transparent)',
-              mt: 1,
-              pt: 0.75,
-            }}
-          >
-            <Typography
-              variant="overline"
-              sx={{ fontSize: '0.625rem', letterSpacing: 0.8, fontWeight: 700, opacity: 0.7 }}
-            >
+          <div className="mt-1.5 pt-[4.5px]" style={{ borderTop: '1px solid color-mix(in srgb, var(--bg) 25%, transparent)' }}>
+            <span className="cn-text-overline text-[0.625rem] tracking-[0.8px] font-bold opacity-70">
               Par modele
-            </Typography>
-          </Box>
+            </span>
+          </div>
           {usage.byModel.map((m) => (
-            <Box
-              key={m.model}
-              sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}
-            >
+            <div className="flex justify-between items-baseline" key={m.model}>
               <span style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {shortenModelName(m.model)}
               </span>
               <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCost(m.costUsd, true)}</span>
-            </Box>
+            </div>
           ))}
         </>
       )}
-    </Box>
+    </div>
   );
 };
 

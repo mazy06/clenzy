@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { Box, Typography, CircularProgress, Button, Collapse, Divider } from '@mui/material';
+import { cn } from '../../utils/cn';
+import {
+  Spinner,
+  Button,
+  Collapsible,
+  CollapsibleContent,
+  Separator,
+} from '../../components/ui';
 import { Mail, Rocket, Users, ChevronDown, ChevronUp, UserPlus } from 'lucide-react';
 import SettingsSection from './components/SettingsSection';
 import SettingsToggleRow from './components/SettingsToggleRow';
@@ -36,9 +43,9 @@ const LaunchSettingsSection: React.FC = () => {
   return (
     <SettingsSection title="Pré-lancement" icon={Rocket} accent="primary">
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-          <CircularProgress size={20} />
-        </Box>
+        <div className="flex justify-center py-3">
+          <Spinner className="size-5" />
+        </div>
       ) : (
         <>
           <SettingsToggleRow
@@ -76,14 +83,14 @@ const LaunchSettingsSection: React.FC = () => {
       )}
 
       {/* Liste d'attente de lancement */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5, py: 1.25 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
-          <Box sx={{ color: 'text.secondary', display: 'inline-flex', flexShrink: 0 }}><Users size={18} /></Box>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.primary' }}>
+      <div className="flex items-center justify-between gap-2 py-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="text-muted-foreground inline-flex shrink-0"><Users size={18} /></div>
+          <div className="min-w-0">
+            <p className="cn-text-body1 text-[0.8125rem] font-medium text-foreground">
               Liste d'attente de lancement
-            </Typography>
-            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+            </p>
+            <p className="cn-text-body1 text-[0.75rem] text-muted-foreground tabular-nums">
               {stats ? (
                 <>
                   {stats.total} inscrit{stats.total > 1 ? 's' : ''}
@@ -93,60 +100,50 @@ const LaunchSettingsSection: React.FC = () => {
                     : 'Places fondateur complètes'}
                 </>
               ) : '—'}
-            </Typography>
-          </Box>
-        </Box>
-        <Button
-          size="small"
-          variant="text"
-          onClick={() => setShowList((v) => !v)}
-          endIcon={showList ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-          sx={{ textTransform: 'none', fontSize: '0.75rem', flexShrink: 0 }}
-        >
+            </p>
+          </div>
+        </div>
+        <Button variant="ghost" size="sm" className="shrink-0" onClick={() => setShowList((v) => !v)}>
           {showList ? 'Masquer' : 'Voir les inscrits'}
+          {showList ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
         </Button>
-      </Box>
+      </div>
 
-      <Collapse in={showList} unmountOnExit>
-        <Divider sx={{ mb: 1 }} />
-        <Box sx={{ maxHeight: 320, overflowY: 'auto' }}>
+      <Collapsible open={showList}>
+        <CollapsibleContent>
+        <Separator className="mb-1.5" />
+        <div className="max-h-[320px] overflow-y-auto">
           {(list ?? []).length === 0 ? (
-            <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', textAlign: 'center', py: 2 }}>
+            <p className="cn-text-body1 text-[0.78rem] text-muted-foreground text-center py-3">
               Aucun inscrit pour le moment.
-            </Typography>
+            </p>
           ) : (
             (list ?? []).map((w, i) => (
-              <Box
+              // gap: 1 = 6px et py: 0.75 = 4.5px (theme.spacing vaut 6 dans ce projet).
+              <div
                 key={w.id}
-                sx={{
-                  display: 'flex', alignItems: 'center', gap: 1, py: 0.75,
-                  borderBottom: '1px solid', borderColor: 'divider',
-                  '&:last-of-type': { borderBottom: 'none' },
-                }}
+                className="flex items-center gap-1.5 py-[4.5px] border-b border-solid border-[var(--line)] last-of-type:border-b-0"
               >
-                <Typography sx={{
-                  fontSize: '0.7rem', fontWeight: 600, width: 30, flexShrink: 0,
-                  fontVariantNumeric: 'tabular-nums',
-                  color: i < founderSpots ? 'primary.main' : 'text.disabled',
-                }}>
+                <p className={cn('cn-text-body1 text-[0.7rem] font-semibold w-[30px] shrink-0 tabular-nums', i < founderSpots ? 'text-[var(--mui-primary)]' : 'text-[var(--faint)]')}>
                   #{i + 1}
-                </Typography>
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Typography sx={{ fontSize: '0.78rem', color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                </p>
+                <div className="min-w-0 flex-1">
+                  <p className="cn-text-body1 text-[0.78rem] text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                     {w.fullName || w.email}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.68rem', color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  </p>
+                  <p className="cn-text-body1 text-[0.68rem] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                     {w.email}{w.city ? ` · ${w.city}` : ''}
-                  </Typography>
-                </Box>
-                <Typography sx={{ fontSize: '0.66rem', color: 'text.disabled', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+                  </p>
+                </div>
+                <p className="cn-text-body1 text-[0.66rem] text-muted-foreground opacity-60 shrink-0 tabular-nums">
                   {fmtDate(w.createdAt)}
-                </Typography>
-              </Box>
+                </p>
+              </div>
             ))
           )}
-        </Box>
-      </Collapse>
+        </div>
+        </CollapsibleContent>
+      </Collapsible>
     </SettingsSection>
   );
 };

@@ -1,24 +1,24 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useTabKeyParam } from '../../components/tabKeyParam';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import {
-  Box,
-  Typography,
-  CircularProgress,
-  Alert,
+  Spinner,
   Button,
-  Card,
-  CardContent,
-  Grid,
-  Chip,
-  Paper,
-  Divider,
-  Tooltip,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Snackbar,
-} from '@mui/material';
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Separator,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { useTabKeyParam } from '../../components/tabKeyParam';
+import { useNotification } from '../../hooks/useNotification';
 import {  Edit,
   Home,
   LocationOn,
@@ -57,6 +57,7 @@ import {  Edit,
   OpenInNew,
   PhotoLibrary,
   Inventory2,
+  GppGood,
   Send,
 } from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -73,6 +74,7 @@ import DescriptionNotesDisplay from '../../components/DescriptionNotesDisplay';
 import CheckInInstructionsForm from '../channels/CheckInInstructionsForm';
 import PropertyPhotosTab from './PropertyPhotosTab';
 import PropertyInventoryTab from './PropertyInventoryTab';
+import PropertyComplianceTab from './PropertyComplianceTab';
 import PropertyInterventionsTab from './PropertyInterventionsTab';
 import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.svg';
 import bookingLogoSmall from '../../assets/logo/booking-logo-small.svg';
@@ -86,7 +88,7 @@ import {
   getPropertyTypeLabel,
   getCleaningFrequencyLabel,
 } from '../../utils/statusUtils';
-import { propertyStatusChipSx, FIELD_CHIP_SX } from './propertiesListConstants';
+import { propertyStatusTokens, FIELD_TOKENS, FIELD_CHIP_CLASS } from './propertiesListConstants';
 import { airbnbApi } from '../../services/api/airbnbApi';
 import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
 import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
@@ -98,33 +100,13 @@ import { useQuery } from '@tanstack/react-query';
 // ── Constantes sx alignées DESIGN_BASELINE (réf maquette screen-property .pd-*) ──
 
 // .pd-kpi — tuile KPI centrée : icône accent-soft, valeur display tabular-nums, label overline.
-const METRIC_CARD_SX = {
-  p: '14px 12px',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  textAlign: 'center',
-  bgcolor: 'var(--card)',
-  border: '1px solid var(--line)',
-  borderRadius: '13px',
-  boxShadow: 'none',
-  minHeight: 72,
-  justifyContent: 'center',
-  transition: 'border-color .14s',
-  '&:hover': { borderColor: 'var(--line-2)' },
-} as const;
+const METRIC_CARD_CLASS =
+  'flex flex-col items-center justify-center text-center py-[14px] px-3 bg-[var(--card)] '
+  + 'border border-solid border-[var(--line)] rounded-[13px] min-h-[72px] '
+  + 'transition-[border-color] duration-[140ms] hover:border-[var(--line-2)]';
 
-const METRIC_ICON_BADGE_SX = {
-  width: 32,
-  height: 32,
-  borderRadius: '10px',
-  bgcolor: 'var(--accent-soft)',
-  color: 'var(--accent)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  mb: '8px',
-} as const;
+const METRIC_ICON_BADGE_CLASS =
+  'w-8 h-8 rounded-[10px] bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center mb-2';
 
 const METRIC_VALUE_SX = {
   fontFamily: 'var(--font-display)',
@@ -136,6 +118,10 @@ const METRIC_VALUE_SX = {
   letterSpacing: '-.01em',
 } as const;
 
+/** Report en classes de `METRIC_VALUE_SX`. */
+const METRIC_VALUE_CLASS =
+  'cn-text-body1 [font-family:var(--font-display)] text-[18px] font-semibold text-[var(--ink)] leading-[1.2] tabular-nums tracking-[-0.01em]';
+
 const METRIC_LABEL_SX = {
   fontSize: '10px',
   fontWeight: 700,
@@ -144,6 +130,9 @@ const METRIC_LABEL_SX = {
   letterSpacing: '.04em',
   mt: '3px',
 } as const;
+
+/** Report en classes de `METRIC_LABEL_SX`. */
+const METRIC_LABEL_CLASS = 'text-[10px] font-bold text-[var(--faint)] uppercase tracking-[.04em] mt-[3px]';
 
 // .fr-sec / .pd-sec — overline de section.
 const SECTION_TITLE_SX = {
@@ -155,19 +144,20 @@ const SECTION_TITLE_SX = {
   mb: 1,
 } as const;
 
+/** Report en classes de `SECTION_TITLE_SX`. */
+const SECTION_TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-1.5';
+
 // .pd-kv — bloc label/valeur (icône accent, label muted 11, valeur ink 13 fw600).
-const INFO_ROW_SX = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 1,
-  py: 0.75,
-} as const;
+const INFO_ROW_CLASS = 'flex items-center gap-1.5 py-[4.5px]';
 
 const INFO_LABEL_SX = {
   fontSize: '11px',
   fontWeight: 500,
   color: 'var(--muted)',
 } as const;
+
+/** Report en classes de `INFO_LABEL_SX`. */
+const INFO_LABEL_CLASS = 'text-[11px] font-medium text-[var(--muted)]';
 
 const INFO_VALUE_SX = {
   fontSize: '13px',
@@ -176,14 +166,14 @@ const INFO_VALUE_SX = {
   mt: '1px',
 } as const;
 
+/** Report en classes de `INFO_VALUE_SX`. */
+const INFO_VALUE_CLASS = 'text-[13px] font-semibold text-[var(--ink)] mt-px';
+
 // .pd-card — carte hairline r14 plate.
-const CARD_SX = {
-  border: '1px solid var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: '16px 18px',
-} as const;
+// `border-solid` est obligatoire : sans preflight Tailwind, `border` seul donne une
+// largeur mais un style `none` — bordure invisible.
+const CARD_CLASS =
+  'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] py-4 px-[18px]';
 
 // ─── Cleaning price estimation (mirrored from CleaningPriceEstimator) ───────
 
@@ -296,17 +286,17 @@ const PropertyDetails: React.FC = () => {
   // Devis ménage (Moteur Ménage 3A) : confirmation + envoi au propriétaire.
   const [cleaningQuoteDialogOpen, setCleaningQuoteDialogOpen] = useState(false);
   const [cleaningQuoteSending, setCleaningQuoteSending] = useState(false);
-  const [cleaningQuoteSnackbar, setCleaningQuoteSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
+  const { notify } = useNotification();
 
   const handleSendCleaningQuote = async () => {
     setCleaningQuoteSending(true);
     try {
       await documentsApi.sendCleaningQuote(Number(id));
-      setCleaningQuoteSnackbar({ open: true, message: t('properties.cleaningQuote.sent'), severity: 'success' });
+      notify.success(t('properties.cleaningQuote.sent'));
       setCleaningQuoteDialogOpen(false);
     } catch (err: unknown) {
       const message = err instanceof Error && err.message ? err.message : t('properties.cleaningQuote.error');
-      setCleaningQuoteSnackbar({ open: true, message, severity: 'error' });
+      notify.error(message);
     } finally {
       setCleaningQuoteSending(false);
     }
@@ -379,70 +369,75 @@ const PropertyDetails: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress size={28} />
-      </Box>
+      <div className="flex justify-center items-center h-[50vh]">
+        <Spinner className="size-7" />
+      </div>
     );
   }
 
   if (isError) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="error" sx={{ py: 0.75, fontSize: '0.8125rem' }}>{error || t('properties.loadError')}</Alert>
-      </Box>
+      <div className="p-3">
+        <UiAlert variant="destructive" className="py-1 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{error || t('properties.loadError')}</AlertDescription>
+        </UiAlert>
+      </div>
     );
   }
 
   if (!property) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="warning" sx={{ py: 0.75, fontSize: '0.8125rem' }}>{t('properties.notFound')}</Alert>
-      </Box>
+      <div className="p-3">
+        <UiAlert variant="warning" className="py-1 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{t('properties.notFound')}</AlertDescription>
+        </UiAlert>
+      </div>
     );
   }
 
   // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+    <div className="flex flex-col h-full min-h-0">
       {/* ─── Header ──────────────────────────────────────────────────────── */}
-      <Box sx={{ flexShrink: 0 }}>
+      <div className="shrink-0">
         <PageHeader
           title={property.name}
           subtitle={`${getPropertyTypeLabel(property.propertyType, t)} · ${property.city}`}
           iconBadge={<Home />}
           backPath="/properties"
           actions={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <div className="flex items-center gap-1">
               {canEdit && (
                 <Button
-                  variant="outlined"
-                  startIcon={<Send size={16} strokeWidth={1.75} />}
+                  variant="outline"
                   onClick={() => setCleaningQuoteDialogOpen(true)}
-                  size="small"
+                  size="sm"
                   title={t('properties.cleaningQuote.button')}
                 >
+                  <Send size={16} strokeWidth={1.75} />
                   {t('properties.cleaningQuote.button')}
                 </Button>
               )}
               {canEdit && (
                 <Button
-                  variant="contained"
-                  startIcon={<Edit size={16} strokeWidth={1.75} />}
                   onClick={() => navigate(`/properties/${id}/edit`)}
-                  size="small"
+                  size="sm"
                   title={t('properties.modify')}
                 >
+                  <Edit size={16} strokeWidth={1.75} />
                   {t('properties.modify')}
                 </Button>
               )}
-            </Box>
+            </div>
           }
         />
-      </Box>
+      </div>
 
       {/* ─── Tabs (primitive PageTabs — onglets niveau 1 soulignés accent) ── */}
-      <Box sx={{ flexShrink: 0 }}>
+      <div className="shrink-0">
         <PageTabs
           ariaLabel={t('properties.details')}
           mb={0}
@@ -453,111 +448,112 @@ const PropertyDetails: React.FC = () => {
             { key: 'check-in', label: t('channels.checkIn.title'), icon: <FlightLand /> },
             { key: 'photos', label: t('properties.tabs.photos'), icon: <PhotoLibrary /> },
             { key: 'inventory', label: 'Inventaire', icon: <Inventory2 /> },
+            { key: 'compliance', label: t('properties.tabs.compliance', 'Conformité'), icon: <GppGood /> },
           ]}
           value={tabValue}
           onChange={setTabValue}
         />
-      </Box>
+      </div>
 
       {/* ─── Tab 0: Vue d'ensemble ───────────────────────────────────────── */}
       {tabValue === 0 && (
-        <Box
-          role="tabpanel"
-          id="property-tabpanel-0"
-          aria-labelledby="property-tab-0"
-          sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
-        >
+        <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-0" aria-labelledby="property-tab-0">
           {/* ── Key metrics grid ──────────────────────────────────────── */}
-          <Grid container spacing={1} sx={{ mb: featureChips.length > 0 ? 1 : 1.5 }}>
-            <Grid item xs={6} sm={4} md={2}>
-              <Tooltip title={t('properties.cleaningEstimateTooltip')} arrow placement="top">
-                <Box sx={{ ...METRIC_CARD_SX, cursor: 'help' }}>
-                  <Box sx={METRIC_ICON_BADGE_SX}><Payments size={16} strokeWidth={1.75} /></Box>
-                  <Typography sx={METRIC_VALUE_SX}>
-                    {cleaningEstimate ? <Money value={cleaningEstimate.min} from="EUR" decimals={0} /> : '—'}
-                  </Typography>
-                  <Typography sx={METRIC_LABEL_SX}>{t('properties.cleaningEstimate')}</Typography>
-                </Box>
+          <div className={cn('grid grid-cols-12 gap-1.5', featureChips.length > 0 ? 'mb-1.5' : 'mb-[9px]')}>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className={cn(METRIC_CARD_CLASS, 'cursor-help')}>
+                    <div className={METRIC_ICON_BADGE_CLASS}><Payments size={16} strokeWidth={1.75} /></div>
+                    <p className={METRIC_VALUE_CLASS}>
+                      {cleaningEstimate ? <Money value={cleaningEstimate.min} from="EUR" decimals={0} /> : '—'}
+                    </p>
+                    <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningEstimate')}</p>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top">{t('properties.cleaningEstimateTooltip')}</TooltipContent>
               </Tooltip>
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
-              <Box sx={METRIC_CARD_SX}>
-                <Box sx={METRIC_ICON_BADGE_SX}><Bed size={16} strokeWidth={1.75} /></Box>
-                <Typography sx={METRIC_VALUE_SX}>{property.bedrooms}</Typography>
-                <Typography sx={METRIC_LABEL_SX}>{t('properties.bedrooms')}</Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
-              <Box sx={METRIC_CARD_SX}>
-                <Box sx={METRIC_ICON_BADGE_SX}><Bathroom size={16} strokeWidth={1.75} /></Box>
-                <Typography sx={METRIC_VALUE_SX}>{property.bathrooms}</Typography>
-                <Typography sx={METRIC_LABEL_SX}>{t('properties.bathroomCount')}</Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
-              <Box sx={METRIC_CARD_SX}>
-                <Box sx={METRIC_ICON_BADGE_SX}><SquareFoot size={16} strokeWidth={1.75} /></Box>
-                <Typography sx={METRIC_VALUE_SX}>{property.surfaceArea} m²</Typography>
-                <Typography sx={METRIC_LABEL_SX}>{t('properties.surface')}</Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
-              <Box sx={METRIC_CARD_SX}>
-                <Box sx={METRIC_ICON_BADGE_SX}><Group size={16} strokeWidth={1.75} /></Box>
-                <Typography sx={METRIC_VALUE_SX}>{property.maxGuests}</Typography>
-                <Typography sx={METRIC_LABEL_SX}>{t('properties.maxCapacity')}</Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
-              <Box sx={METRIC_CARD_SX}>
-                <Box sx={METRIC_ICON_BADGE_SX}><CleaningServices size={16} strokeWidth={1.75} /></Box>
-                <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '12.5px' }}>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
+              <div className={METRIC_CARD_CLASS}>
+                <div className={METRIC_ICON_BADGE_CLASS}><Bed size={16} strokeWidth={1.75} /></div>
+                <p className={METRIC_VALUE_CLASS}>{property.bedrooms}</p>
+                <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.bedrooms')}</p>
+              </div>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
+              <div className={METRIC_CARD_CLASS}>
+                <div className={METRIC_ICON_BADGE_CLASS}><Bathroom size={16} strokeWidth={1.75} /></div>
+                <p className={METRIC_VALUE_CLASS}>{property.bathrooms}</p>
+                <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.bathroomCount')}</p>
+              </div>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
+              <div className={METRIC_CARD_CLASS}>
+                <div className={METRIC_ICON_BADGE_CLASS}><SquareFoot size={16} strokeWidth={1.75} /></div>
+                <p className={METRIC_VALUE_CLASS}>{property.surfaceArea} m²</p>
+                <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.surface')}</p>
+              </div>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
+              <div className={METRIC_CARD_CLASS}>
+                <div className={METRIC_ICON_BADGE_CLASS}><Group size={16} strokeWidth={1.75} /></div>
+                <p className={METRIC_VALUE_CLASS}>{property.maxGuests}</p>
+                <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.maxCapacity')}</p>
+              </div>
+            </div>
+            <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
+              <div className={METRIC_CARD_CLASS}>
+                <div className={METRIC_ICON_BADGE_CLASS}><CleaningServices size={16} strokeWidth={1.75} /></div>
+                {/* leading-[1.2] repose apres la taille : tailwind-merge
+                    supprime un `leading-*` place avant une classe `text-[taille]`. */}
+                <p className={cn(METRIC_VALUE_CLASS, 'text-[12.5px] leading-[1.2]')}>
                   {getCleaningFrequencyLabel(property.cleaningFrequency, t)}
-                </Typography>
-                <Typography sx={METRIC_LABEL_SX}>{t('properties.cleaningFrequency')}</Typography>
-              </Box>
-            </Grid>
-          </Grid>
+                </p>
+                <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningFrequency')}</p>
+              </div>
+            </div>
+          </div>
 
           {/* ── Prestations à la carte chips ──────────────────────────── */}
           {featureChips.length > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.75, mb: 1 }}>
-              <Typography sx={{ ...SECTION_TITLE_SX, mb: 0, mr: 0.5 }}>
+            <div className="flex items-center flex-wrap gap-1 mb-1.5">
+              <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0 me-[3px]')}>
                 {t('properties.addOnServices.title')}
-              </Typography>
+              </p>
               {featureChips.map((chip) => (
-                <Chip
+                <StatusChip
                   key={chip.label}
+                  tokens={FIELD_TOKENS}
                   label={chip.label}
-                  size="small"
-                  sx={{ ...FIELD_CHIP_SX, '& .MuiChip-label': { px: 1 } }}
+                  className={FIELD_CHIP_CLASS}
                 />
               ))}
-            </Box>
+            </div>
           )}
 
           {/* ── Équipements chips ──────────────────────────────────── */}
           {property.amenities && property.amenities.length > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
-              <Typography sx={{ ...SECTION_TITLE_SX, mb: 0, mr: 0.5 }}>
+            <div className="flex items-center flex-wrap gap-1 mb-2">
+              <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0 me-[3px]')}>
                 {t('properties.amenities.title')}
-              </Typography>
+              </p>
               {property.amenities.map((amenity) => (
-                <Chip
+                <StatusChip
                   key={amenity}
+                  tokens={FIELD_TOKENS}
                   label={t(`properties.amenities.items.${amenity}`)}
-                  size="small"
-                  sx={{ ...FIELD_CHIP_SX, '& .MuiChip-label': { px: 1 } }}
+                  className={FIELD_CHIP_CLASS}
                 />
               ))}
-            </Box>
+            </div>
           )}
 
           {/* ── Row 1: Photos | Informations + Tarification | Configuration ── */}
-          <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'stretch' }}>
+          <div className={cn(CARD_CLASS, 'mb-[9px]')}>
+            <div className="flex gap-3 items-stretch">
               {/* ── Col 1: Photos (carrousel + plein ecran au clic) ──── */}
-              <Box sx={{ flex: 1, minWidth: 0, display: 'flex' }}>
+              <div className="flex-1 min-w-0 flex">
                 <PropertyImageCarousel
                   photoUrls={photoUrls}
                   alt={property.name}
@@ -568,190 +564,193 @@ const PropertyDetails: React.FC = () => {
                   showCounter
                   sx={{ width: '100%' }}
                 />
-              </Box>
+              </div>
 
-              <Divider orientation="vertical" flexItem />
+              <Separator orientation="vertical" />
 
               {/* ── Col 2: Informations generales + Tarification menage ── */}
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography sx={SECTION_TITLE_SX}>
+              <div className="flex-1 min-w-0">
+                <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
                   {t('properties.informationsGeneral')}
-                </Typography>
-                <Box sx={INFO_ROW_SX}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><LocationOn size={16} strokeWidth={1.75} /></Box>
-                  <Box sx={{ flex: 1 }}>
-                    <Typography sx={INFO_LABEL_SX}>{t('properties.address')}</Typography>
-                    <Typography sx={INFO_VALUE_SX}>
+                </p>
+                <div className={INFO_ROW_CLASS}>
+                  <span className="inline-flex text-[var(--accent)]"><LocationOn size={16} strokeWidth={1.75} /></span>
+                  <div className="flex-1">
+                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.address')}</p>
+                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>
                       {property.address}, {property.city} {property.postalCode}
-                    </Typography>
-                  </Box>
-                </Box>
+                    </p>
+                  </div>
+                </div>
                 {property.country && (
                   <>
-                    <Divider sx={{ my: 0.5 }} />
-                    <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Flag size={16} strokeWidth={1.75} /></Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography sx={INFO_LABEL_SX}>{t('properties.country')}</Typography>
-                        <Typography sx={INFO_VALUE_SX}>{property.country}</Typography>
-                      </Box>
-                    </Box>
+                    <Separator className="my-[3px]" />
+                    <div className={INFO_ROW_CLASS}>
+                      <span className="inline-flex text-[var(--accent)]"><Flag size={16} strokeWidth={1.75} /></span>
+                      <div className="flex-1">
+                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.country')}</p>
+                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{property.country}</p>
+                      </div>
+                    </div>
                   </>
                 )}
-                <Divider sx={{ my: 0.5 }} />
-                <Box sx={INFO_ROW_SX}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Home size={16} strokeWidth={1.75} /></Box>
-                  <Box sx={{ flex: 1 }}>
-                    <Typography sx={INFO_LABEL_SX}>{t('properties.type')}</Typography>
-                    <Typography sx={INFO_VALUE_SX}>{getPropertyTypeLabel(property.propertyType, t)}</Typography>
-                  </Box>
-                </Box>
+                <Separator className="my-[3px]" />
+                <div className={INFO_ROW_CLASS}>
+                  <span className="inline-flex text-[var(--accent)]"><Home size={16} strokeWidth={1.75} /></span>
+                  <div className="flex-1">
+                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.type')}</p>
+                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{getPropertyTypeLabel(property.propertyType, t)}</p>
+                  </div>
+                </div>
                 {property.createdAt && (
                   <>
-                    <Divider sx={{ my: 0.5 }} />
-                    <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CalendarMonth size={16} strokeWidth={1.75} /></Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography sx={INFO_LABEL_SX}>{t('properties.createdAt')}</Typography>
-                        <Typography sx={INFO_VALUE_SX}>{formatDate(property.createdAt)}</Typography>
-                      </Box>
-                    </Box>
+                    <Separator className="my-[3px]" />
+                    <div className={INFO_ROW_CLASS}>
+                      <span className="inline-flex text-[var(--accent)]"><CalendarMonth size={16} strokeWidth={1.75} /></span>
+                      <div className="flex-1">
+                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.createdAt')}</p>
+                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{formatDate(property.createdAt)}</p>
+                      </div>
+                    </div>
                   </>
                 )}
 
-                <Typography sx={{ ...SECTION_TITLE_SX, mt: 1.5 }}>
+                <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mt-[9px]')}>
                   {t('properties.cleaningPricing')}
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                </p>
+                <div className="flex flex-col gap-0.5">
                   {property.cleaningBasePrice != null && property.cleaningBasePrice > 0 && (
-                    <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Payments size={16} strokeWidth={1.75} /></Box>
-                      <Box>
-                        <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningBasePrice')}</Typography>
-                        <Typography sx={{ ...INFO_VALUE_SX, fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}><Money value={property.cleaningBasePrice} from="EUR" decimals={0} /></Typography>
-                      </Box>
-                    </Box>
+                    <div className={INFO_ROW_CLASS}>
+                      <span className="inline-flex text-[var(--accent)]"><Payments size={16} strokeWidth={1.75} /></span>
+                      <div>
+                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningBasePrice')}</p>
+                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1 tabular-nums')} style={{ fontFamily: 'var(--font-display)' }}><Money value={property.cleaningBasePrice} from="EUR" decimals={0} /></p>
+                      </div>
+                    </div>
                   )}
                   {property.cleaningDurationMinutes != null && property.cleaningDurationMinutes > 0 && (
-                    <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Timer size={16} strokeWidth={1.75} /></Box>
-                      <Box>
-                        <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningDuration')}</Typography>
-                        <Typography sx={INFO_VALUE_SX}>
+                    <div className={INFO_ROW_CLASS}>
+                      <span className="inline-flex text-[var(--accent)]"><Timer size={16} strokeWidth={1.75} /></span>
+                      <div>
+                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningDuration')}</p>
+                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>
                           {property.cleaningDurationMinutes >= 60
                             ? `${Math.floor(property.cleaningDurationMinutes / 60)}h${property.cleaningDurationMinutes % 60 > 0 ? String(property.cleaningDurationMinutes % 60).padStart(2, '0') : ''}`
                             : `${property.cleaningDurationMinutes} min`}
-                        </Typography>
-                      </Box>
-                    </Box>
+                        </p>
+                      </div>
+                    </div>
                   )}
                   {property.numberOfFloors != null && property.numberOfFloors > 0 && (
-                    <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Stairs size={16} strokeWidth={1.75} /></Box>
-                      <Box>
-                        <Typography sx={INFO_LABEL_SX}>{t('properties.numberOfFloors')}</Typography>
-                        <Typography sx={INFO_VALUE_SX}>{property.numberOfFloors}</Typography>
-                      </Box>
-                    </Box>
+                    <div className={INFO_ROW_CLASS}>
+                      <span className="inline-flex text-[var(--accent)]"><Stairs size={16} strokeWidth={1.75} /></span>
+                      <div>
+                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.numberOfFloors')}</p>
+                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{property.numberOfFloors}</p>
+                      </div>
+                    </div>
                   )}
                   {property.hasExterior && (
-                    <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Deck size={16} strokeWidth={1.75} /></Box>
-                      <Typography sx={INFO_VALUE_SX}>{t('properties.hasExterior')}</Typography>
-                    </Box>
+                    <div className={INFO_ROW_CLASS}>
+                      <span className="inline-flex text-[var(--accent)]"><Deck size={16} strokeWidth={1.75} /></span>
+                      <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{t('properties.hasExterior')}</p>
+                    </div>
                   )}
                   {property.hasLaundry && (
-                    <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><LocalLaundryService size={16} strokeWidth={1.75} /></Box>
-                      <Typography sx={INFO_VALUE_SX}>{t('properties.hasLaundry')}</Typography>
-                    </Box>
+                    <div className={INFO_ROW_CLASS}>
+                      <span className="inline-flex text-[var(--accent)]"><LocalLaundryService size={16} strokeWidth={1.75} /></span>
+                      <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{t('properties.hasLaundry')}</p>
+                    </div>
                   )}
-                </Box>
-              </Box>
+                </div>
+              </div>
 
-              <Divider orientation="vertical" flexItem />
+              <Separator orientation="vertical" />
 
               {/* ── Col 3: Configuration ───────────────────────────── */}
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography sx={SECTION_TITLE_SX}>
+              <div className="flex-1 min-w-0">
+                <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
                   {t('properties.configuration')}
-                </Typography>
-                <Box sx={INFO_ROW_SX}>
-                  <Box>
-                    <Typography sx={INFO_LABEL_SX}>{t('properties.status')}</Typography>
-                    <Chip label={getPropertyStatusLabel(property.status, t)} size="small"
-                      sx={{ mt: 0.5, ...propertyStatusChipSx(property.status), '& .MuiChip-label': { px: 1 } }} />
-                  </Box>
-                </Box>
+                </p>
+                <div className={INFO_ROW_CLASS}>
+                  <div>
+                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.status')}</p>
+                    <StatusChip
+                      tokens={propertyStatusTokens(property.status)}
+                      label={getPropertyStatusLabel(property.status, t)}
+                      className="mt-0.5"
+                    />
+                  </div>
+                </div>
                 {property.ownerName && (
                   <>
-                    <Divider sx={{ my: 0.5 }} />
-                    <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Person size={16} strokeWidth={1.75} /></Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography sx={INFO_LABEL_SX}>{t('properties.owner')}</Typography>
-                        <Typography sx={INFO_VALUE_SX}>{property.ownerName}</Typography>
-                      </Box>
-                    </Box>
+                    <Separator className="my-[3px]" />
+                    <div className={INFO_ROW_CLASS}>
+                      <span className="inline-flex text-[var(--accent)]"><Person size={16} strokeWidth={1.75} /></span>
+                      <div className="flex-1">
+                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.owner')}</p>
+                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{property.ownerName}</p>
+                      </div>
+                    </div>
                   </>
                 )}
                 {(property.defaultCheckInTime || property.defaultCheckOutTime) && (
                   <>
-                    <Divider sx={{ my: 0.5 }} />
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    <Separator className="my-[3px]" />
+                    <div className="flex flex-col gap-0.5">
                       {property.defaultCheckInTime && (
-                        <Box sx={INFO_ROW_SX}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Login size={16} strokeWidth={1.75} /></Box>
-                          <Box>
-                            <Typography sx={INFO_LABEL_SX}>{t('properties.checkInTime')}</Typography>
-                            <Typography sx={INFO_VALUE_SX}>{formatTime(property.defaultCheckInTime)}</Typography>
-                          </Box>
-                        </Box>
+                        <div className={INFO_ROW_CLASS}>
+                          <span className="inline-flex text-[var(--accent)]"><Login size={16} strokeWidth={1.75} /></span>
+                          <div>
+                            <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.checkInTime')}</p>
+                            <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{formatTime(property.defaultCheckInTime)}</p>
+                          </div>
+                        </div>
                       )}
                       {property.defaultCheckOutTime && (
-                        <Box sx={INFO_ROW_SX}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Logout size={16} strokeWidth={1.75} /></Box>
-                          <Box>
-                            <Typography sx={INFO_LABEL_SX}>{t('properties.checkOutTime')}</Typography>
-                            <Typography sx={INFO_VALUE_SX}>{formatTime(property.defaultCheckOutTime)}</Typography>
-                          </Box>
-                        </Box>
+                        <div className={INFO_ROW_CLASS}>
+                          <span className="inline-flex text-[var(--accent)]"><Logout size={16} strokeWidth={1.75} /></span>
+                          <div>
+                            <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.checkOutTime')}</p>
+                            <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{formatTime(property.defaultCheckOutTime)}</p>
+                          </div>
+                        </div>
                       )}
-                    </Box>
+                    </div>
                   </>
                 )}
-                <Divider sx={{ my: 0.5 }} />
-                <Box sx={INFO_ROW_SX}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CleaningServices size={16} strokeWidth={1.75} /></Box>
-                  <Box sx={{ flex: 1 }}>
-                    <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningFrequency')}</Typography>
-                    <Typography sx={INFO_VALUE_SX}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Typography>
-                  </Box>
-                </Box>
+                <Separator className="my-[3px]" />
+                <div className={INFO_ROW_CLASS}>
+                  <span className="inline-flex text-[var(--accent)]"><CleaningServices size={16} strokeWidth={1.75} /></span>
+                  <div className="flex-1">
+                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningFrequency')}</p>
+                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</p>
+                  </div>
+                </div>
                 {property.lastCleaning && (
                   <>
-                    <Divider sx={{ my: 0.5 }} />
-                    <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Schedule size={16} strokeWidth={1.75} /></Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography sx={INFO_LABEL_SX}>{t('properties.lastCleaning')}</Typography>
-                        <Typography sx={INFO_VALUE_SX}>{formatDate(property.lastCleaning)}</Typography>
-                      </Box>
-                    </Box>
+                    <Separator className="my-[3px]" />
+                    <div className={INFO_ROW_CLASS}>
+                      <span className="inline-flex text-[var(--accent)]"><Schedule size={16} strokeWidth={1.75} /></span>
+                      <div className="flex-1">
+                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.lastCleaning')}</p>
+                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{formatDate(property.lastCleaning)}</p>
+                      </div>
+                    </div>
                   </>
                 )}
-              </Box>
+              </div>
 
-            </Box>
-          </Paper>
+            </div>
+          </div>
 
           {/* ── Row 2: Map + Description | Instructions voyageur ────── */}
-          <Box sx={{ display: 'flex', gap: 1.5, mb: 1.5 }}>
+          <div className="flex gap-2 mb-2">
             {/* ── Left column: Map + Description ──────────────────── */}
-            <Box sx={{ flex: 6, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <div className="flex-[6] min-w-0 flex flex-col gap-[9px]">
               {/* Mini-carte Mapbox */}
               {property.latitude != null && property.longitude != null && (
-                <Paper sx={{ ...CARD_SX, p: 0, overflow: 'hidden' }}>
+                <div className={cn(CARD_CLASS, 'p-0 overflow-hidden')}>
                   <MapboxPropertyMap
                     properties={[{
                       lat: property.latitude,
@@ -764,7 +763,7 @@ const PropertyDetails: React.FC = () => {
                     zoom={15}
                     height={220}
                   />
-                </Paper>
+                </div>
               )}
 
               {/* Description du logement & Consignes de ménage */}
@@ -775,7 +774,7 @@ const PropertyDetails: React.FC = () => {
                   variant="cleaning"
                 />
               )}
-            </Box>
+            </div>
 
             {/* ── Right column: Instructions voyageur ─────────────── */}
             {property.checkInInstructions && (() => {
@@ -785,14 +784,14 @@ const PropertyDetails: React.FC = () => {
               if (!hasAnyField) return null;
 
               const fields: { icon: React.ReactNode; label: string; value: string | null }[] = [
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><VpnKey size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.accessCode'), value: ci.accessCode },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Wifi size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.wifiName'), value: ci.wifiName },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Wifi size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.wifiPassword'), value: ci.wifiPassword },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><LocalParking size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.parkingInfo'), value: ci.parkingInfo },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Login size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.arrivalInstructions'), value: ci.arrivalInstructions },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Logout size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.departureInstructions'), value: ci.departureInstructions },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Gavel size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.houseRules'), value: ci.houseRules },
-                { icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Phone size={16} strokeWidth={1.75} /></Box>, label: t('channels.checkIn.emergencyContact'), value: ci.emergencyContact },
+                { icon: <span className="inline-flex text-[var(--accent)]"><VpnKey size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.accessCode'), value: ci.accessCode },
+                { icon: <span className="inline-flex text-[var(--accent)]"><Wifi size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.wifiName'), value: ci.wifiName },
+                { icon: <span className="inline-flex text-[var(--accent)]"><Wifi size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.wifiPassword'), value: ci.wifiPassword },
+                { icon: <span className="inline-flex text-[var(--accent)]"><LocalParking size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.parkingInfo'), value: ci.parkingInfo },
+                { icon: <span className="inline-flex text-[var(--accent)]"><Login size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.arrivalInstructions'), value: ci.arrivalInstructions },
+                { icon: <span className="inline-flex text-[var(--accent)]"><Logout size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.departureInstructions'), value: ci.departureInstructions },
+                { icon: <span className="inline-flex text-[var(--accent)]"><Gavel size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.houseRules'), value: ci.houseRules },
+                { icon: <span className="inline-flex text-[var(--accent)]"><Phone size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.emergencyContact'), value: ci.emergencyContact },
               ];
 
               // Split: first 4 fields in 2-col grid, rest full-width
@@ -802,118 +801,105 @@ const PropertyDetails: React.FC = () => {
               if (compactFields.length === 0 && fullWidthFields.length === 0) return null;
 
               return (
-                <Box sx={{ flex: 6, minWidth: 0 }}>
-                  <Paper sx={CARD_SX}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Typography sx={SECTION_TITLE_SX}>
+                <div className="flex-[6] min-w-0">
+                  <div className={CARD_CLASS}>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
                         {t('channels.checkIn.title')}
-                      </Typography>
+                      </p>
+                      {/* Raccourci discret en tete de carte : `xs` remplace le gabarit 26 px du sx. */}
                       <Button
-                        size="small"
-                        endIcon={<OpenInNew size={12} strokeWidth={1.75} />}
+                        size="xs"
+                        variant="ghost"
                         onClick={() => setTabValue(3)}
-                        variant="text"
-                        sx={{ minWidth: 0, px: 1, py: 0.25, height: 26, fontSize: '11.5px' }}
                       >
                         {t('properties.modify')}
+                        <OpenInNew size={12} strokeWidth={1.75} />
                       </Button>
-                    </Box>
+                    </div>
 
                     {/* Compact fields: 2 columns */}
                     {compactFields.length > 0 && (
-                      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: fullWidthFields.length > 0 ? 1 : 0 }}>
+                      <div className={cn('grid grid-cols-[1fr_1fr] gap-1.5', fullWidthFields.length > 0 ? 'mb-1.5' : 'mb-0')}>
                         {compactFields.map((field) => (
-                          <Box key={field.label} sx={INFO_ROW_SX}>
+                          <div key={field.label} className={INFO_ROW_CLASS}>
                             {field.icon}
-                            <Box sx={{ flex: 1 }}>
-                              <Typography sx={INFO_LABEL_SX}>{field.label}</Typography>
-                              <Typography sx={INFO_VALUE_SX}>{field.value}</Typography>
-                            </Box>
-                          </Box>
+                            <div className="flex-1">
+                              <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{field.label}</p>
+                              <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{field.value}</p>
+                            </div>
+                          </div>
                         ))}
-                      </Box>
+                      </div>
                     )}
 
                     {/* Full-width fields */}
                     {fullWidthFields.map((field) => (
                       <React.Fragment key={field.label}>
-                        <Divider sx={{ my: 0.5 }} />
-                        <Box sx={INFO_ROW_SX}>
+                        <Separator className="my-[3px]" />
+                        <div className={INFO_ROW_CLASS}>
                           {field.icon}
-                          <Box sx={{ flex: 1 }}>
-                            <Typography sx={INFO_LABEL_SX}>{field.label}</Typography>
-                            <Typography sx={{ ...INFO_VALUE_SX, whiteSpace: 'pre-line' }}>{field.value}</Typography>
-                          </Box>
-                        </Box>
+                          <div className="flex-1">
+                            <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{field.label}</p>
+                            <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1 whitespace-pre-line')}>{field.value}</p>
+                          </div>
+                        </div>
                       </React.Fragment>
                     ))}
-                  </Paper>
-                </Box>
+                  </div>
+                </div>
               );
             })()}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* ─── Tab 1: Interventions ────────────────────────────────────────── */}
       {tabValue === 1 && (
-        <Box
-          role="tabpanel"
-          id="property-tabpanel-1"
-          aria-labelledby="property-tab-1"
-          sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
-        >
+        <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-1" aria-labelledby="property-tab-1">
           <PropertyInterventionsTab interventions={interventions} propertyId={String(id)} />
-        </Box>
+        </div>
       )}
 
       {/* ─── Tab 2: Channels ──────────────────────────────────────────── */}
       {tabValue === 2 && (
-        <Box
-          role="tabpanel"
-          id="property-tabpanel-2"
-          aria-labelledby="property-tab-2"
-          sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
-        >
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 1.5 }}>
+        <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-2" aria-labelledby="property-tab-2">
+          <div className="grid grid-cols-[repeat(auto-fill,_minmax(280px,_1fr))] gap-[9px]">
             {/* Airbnb — with real status */}
-            <Paper sx={CARD_SX}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <Box component="img" src={airbnbLogoSmall} alt="Airbnb" sx={{ width: 21, height: 21, borderRadius: '7px', objectFit: 'contain' }} />
-                <Typography sx={{ ...SECTION_TITLE_SX, mb: 0 }}>Airbnb</Typography>
-                <Chip
-                  label={channelStatus?.airbnb?.linked ? t('channels.connected') : t('channels.notConnected')}
-                  size="small"
-                  sx={{ ml: 'auto', height: 20, bgcolor: channelStatus?.airbnb?.linked ? 'var(--ok-soft)' : 'var(--hover)', color: channelStatus?.airbnb?.linked ? 'var(--ok)' : 'var(--muted)', border: 'none', '& .MuiChip-label': { px: 1 } }}
-                />
-              </Box>
+            <div className={CARD_CLASS}>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <img className="w-[21px] h-[21px] rounded-[7px] object-contain" src={airbnbLogoSmall} alt="Airbnb" />
+                <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0')}>Airbnb</p>
+                <StatusChip tokens={{ color: channelStatus?.airbnb?.linked ? 'var(--ok)' : 'var(--muted)', bg: channelStatus?.airbnb?.linked ? 'var(--ok-soft)' : 'var(--hover)' }} label={channelStatus?.airbnb?.linked ? t('channels.connected') : t('channels.notConnected')} className="ms-auto h-[20px]" />
+              </div>
               {channelStatus?.airbnb?.linked ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                  <Box sx={INFO_ROW_SX}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: channelStatus.airbnb.syncEnabled ? 'var(--ok)' : 'var(--muted)' }}><Sync size={16} strokeWidth={1.75} /></Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography sx={INFO_LABEL_SX}>{t('channels.syncStatus.title')}</Typography>
-                      <Typography sx={INFO_VALUE_SX}>
+                <div className="flex flex-col gap-0.5">
+                  <div className={INFO_ROW_CLASS}>
+                    <span className={cn('inline-flex', channelStatus.airbnb.syncEnabled ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}><Sync size={16} strokeWidth={1.75} /></span>
+                    <div className="flex-1">
+                      <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('channels.syncStatus.title')}</p>
+                      <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>
                         {channelStatus.airbnb.syncEnabled ? t('channels.syncStatus.syncOn') : t('channels.syncStatus.syncOff')}
-                      </Typography>
-                    </Box>
-                  </Box>
+                      </p>
+                    </div>
+                  </div>
                   {channelStatus.airbnb.lastSyncAt && (
-                    <Box sx={INFO_ROW_SX}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Schedule size={16} strokeWidth={1.75} /></Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography sx={INFO_LABEL_SX}>{t('channels.syncStatus.lastSync')}</Typography>
-                        <Typography sx={INFO_VALUE_SX}>{new Date(channelStatus.airbnb.lastSyncAt).toLocaleString('fr-FR')}</Typography>
-                      </Box>
-                    </Box>
+                    <div className={INFO_ROW_CLASS}>
+                      <span className="inline-flex text-[var(--accent)]"><Schedule size={16} strokeWidth={1.75} /></span>
+                      <div className="flex-1">
+                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('channels.syncStatus.lastSync')}</p>
+                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{new Date(channelStatus.airbnb.lastSyncAt).toLocaleString('fr-FR')}</p>
+                      </div>
+                    </div>
                   )}
-                </Box>
+                </div>
               ) : (
-                <Button size="small" variant="outlined" startIcon={<Hub size={14} strokeWidth={1.75} />} onClick={() => navigate('/channels')}>
+                <Button size="sm" variant="outline" onClick={() => navigate('/channels')}>
+                  <Hub size={14} strokeWidth={1.75} />
                   {t('channels.listings.linkProperty')}
                 </Button>
               )}
-            </Paper>
+            </div>
 
             {/* Other channels — static cards */}
             {[
@@ -924,95 +910,73 @@ const PropertyDetails: React.FC = () => {
               { name: 'Vrbo', logo: vrboLogo },
               { name: 'Abritel', logo: abritelLogo },
             ].map((ch) => (
-              <Paper key={ch.name} sx={CARD_SX}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <Box component="img" src={ch.logo} alt={ch.name} sx={{ width: 21, height: 21, borderRadius: '7px', objectFit: 'contain' }} />
-                  <Typography sx={{ ...SECTION_TITLE_SX, mb: 0 }}>{ch.name}</Typography>
-                  <Chip
-                    label={t('channels.notConnected')}
-                    size="small"
-                    sx={{ ml: 'auto', height: 20, bgcolor: 'var(--hover)', color: 'var(--muted)', border: 'none', '& .MuiChip-label': { px: 1 } }}
-                  />
-                </Box>
-                <Button size="small" variant="outlined" startIcon={<Hub size={14} strokeWidth={1.75} />} onClick={() => navigate('/channels')}>
+              <div key={ch.name} className={CARD_CLASS}>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <img className="w-[21px] h-[21px] rounded-[7px] object-contain" src={ch.logo} alt={ch.name} />
+                  <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0')}>{ch.name}</p>
+                  <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--hover)' }} label={t('channels.notConnected')} className="ms-auto h-[20px]" />
+                </div>
+                <Button size="sm" variant="outline" onClick={() => navigate('/channels')}>
+                  <Hub size={14} strokeWidth={1.75} />
                   {t('channels.listings.linkProperty')}
                 </Button>
-              </Paper>
+              </div>
             ))}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* ─── Tab 3: Instructions voyageur ─────────────────────────────── */}
       {tabValue === 3 && (
-        <Box
-          role="tabpanel"
-          id="property-tabpanel-3"
-          aria-labelledby="property-tab-3"
-          sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
-        >
+        <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-3" aria-labelledby="property-tab-3">
           <CheckInInstructionsForm propertyId={Number(id)} />
-        </Box>
+        </div>
       )}
 
       {/* ─── Tab 4: Photos ─────────────────────────────────────────────── */}
       {tabValue === 4 && (
-        <Box
-          role="tabpanel"
-          id="property-tabpanel-4"
-          aria-labelledby="property-tab-4"
-          sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
-        >
+        <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-4" aria-labelledby="property-tab-4">
           <PropertyPhotosTab propertyId={Number(id)} />
-        </Box>
+        </div>
       )}
 
       {/* ─── Tab 5: Inventaire ───────────────────────────────────────────── */}
       {tabValue === 5 && (
-        <Box
-          role="tabpanel"
-          id="property-tabpanel-5"
-          aria-labelledby="property-tab-5"
-          sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
-        >
+        <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-5" aria-labelledby="property-tab-5">
           <PropertyInventoryTab propertyId={Number(id)} canEdit={canEdit} />
-        </Box>
+        </div>
       )}
 
+      {/* ─── Tab 6: Conformité (licences & autorisations, vague M-A) ─────── */}
+      {tabValue === 6 && (
+        <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-6" aria-labelledby="property-tab-6">
+          <PropertyComplianceTab propertyId={Number(id)} canEdit={canEdit} />
+        </div>
+      )}
 
       {/* Devis ménage : confirmation avant envoi au propriétaire */}
-      <Dialog open={cleaningQuoteDialogOpen} onClose={() => setCleaningQuoteDialogOpen(false)}>
-        <DialogTitle>{t('properties.cleaningQuote.confirmTitle')}</DialogTitle>
+      <Dialog open={cleaningQuoteDialogOpen} onOpenChange={(next) => { if (!next) setCleaningQuoteDialogOpen(false); }}>
         <DialogContent>
-          <Typography variant="body2">{t('properties.cleaningQuote.confirmBody')}</Typography>
+          <DialogHeader>
+            <DialogTitle>{t('properties.cleaningQuote.confirmTitle')}</DialogTitle>
+            <DialogDescription>{t('properties.cleaningQuote.confirmBody')}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button size="sm" variant="ghost" onClick={() => setCleaningQuoteDialogOpen(false)} disabled={cleaningQuoteSending}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSendCleaningQuote}
+              disabled={cleaningQuoteSending}
+            >
+              {cleaningQuoteSending ? <Spinner className="size-3.5" /> : <Send size={14} strokeWidth={1.75} />}
+              {t('properties.cleaningQuote.confirmSend')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button size="small" onClick={() => setCleaningQuoteDialogOpen(false)} disabled={cleaningQuoteSending}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            size="small"
-            variant="contained"
-            onClick={handleSendCleaningQuote}
-            disabled={cleaningQuoteSending}
-            startIcon={cleaningQuoteSending ? <CircularProgress size={14} color="inherit" /> : <Send size={14} strokeWidth={1.75} />}
-          >
-            {t('properties.cleaningQuote.confirmSend')}
-          </Button>
-        </DialogActions>
       </Dialog>
-
-      <Snackbar
-        open={cleaningQuoteSnackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setCleaningQuoteSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity={cleaningQuoteSnackbar.severity} variant="filled" onClose={() => setCleaningQuoteSnackbar((prev) => ({ ...prev, open: false }))}>
-          {cleaningQuoteSnackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+    </div>
   );
 };
 

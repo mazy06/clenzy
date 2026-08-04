@@ -1,15 +1,10 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Paper,
-  Chip,
-  CircularProgress,
-  Alert,
-  Skeleton,
-  Tooltip,
-  Button,
-} from '@mui/material';
+import { cn } from '../../utils/cn';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
+import { Badge, Button } from '../../components/ui';
+import { Alert, AlertDescription } from '../../components/ui';
+import { Info, TriangleAlert } from 'lucide-react';
+import { Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import {
   AutoAwesome,
   TrendingUp,
@@ -31,23 +26,10 @@ interface AiPricingRecommendationsProps {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: 1.5,
-  transition: 'border-color 0.15s ease',
-  '&:hover': { borderColor: 'var(--line-2)' },
-} as const;
-
-const HEADER_SX = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 1,
-  mb: 1.5,
-} as const;
+// Pendant en classes de l'ancien CARD_SX (p: 1.5 = 9 px, theme.spacing vaut 6).
+const CARD_CLASS =
+  'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] p-[9px] '
+  + 'transition-[border-color] duration-150 ease-[ease] hover:border-[var(--line-2)]';
 
 function isAiNotConfiguredError(error: unknown): boolean {
   const apiErr = error as { details?: Record<string, unknown> } | undefined;
@@ -55,10 +37,10 @@ function isAiNotConfiguredError(error: unknown): boolean {
   return errorCode === 'AI_NOT_CONFIGURED' || errorCode === 'AI_FEATURE_DISABLED';
 }
 
-function confidenceColor(confidence: number): 'success' | 'warning' | 'error' {
-  if (confidence >= 0.7) return 'success';
-  if (confidence >= 0.4) return 'warning';
-  return 'error';
+function confidenceTone(confidence: number): StatusTone {
+  if (confidence >= 0.7) return 'ok';
+  if (confidence >= 0.4) return 'warn';
+  return 'err';
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -77,19 +59,19 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
     // ── Loading state ─────────────────────────────────────────────────
     if (isLoading) {
       return (
-        <Paper sx={CARD_SX}>
-          <Box sx={HEADER_SX}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
-            <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
+        <div className={CARD_CLASS}>
+          <div className="flex items-center gap-1.5 mb-[9px]">
+            <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
+            <h6 className="cn-text-subtitle2 font-bold text-[0.8rem]">
               {t('bookingEngine.ai.pricing.title')}
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            </h6>
+          </div>
+          <div className="flex flex-col gap-1.5">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} variant="rounded" height={48} />
+              <Skeleton key={i} className="h-[48px] rounded-[8px]" />
             ))}
-          </Box>
-        </Paper>
+          </div>
+        </div>
       );
     }
 
@@ -98,136 +80,118 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
       const aiNotConfigured = isAiNotConfiguredError(error);
 
       return (
-        <Paper sx={CARD_SX}>
-          <Box sx={HEADER_SX}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
-            <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
+        <div className={CARD_CLASS}>
+          <div className="flex items-center gap-1.5 mb-[9px]">
+            <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
+            <h6 className="cn-text-subtitle2 font-bold text-[0.8rem]">
               {t('bookingEngine.ai.pricing.title')}
-            </Typography>
-          </Box>
+            </h6>
+          </div>
           {aiNotConfigured ? (
-            <Alert severity="info" sx={{ fontSize: '0.75rem' }}>
-              <Typography variant="body2" fontSize="0.75rem" sx={{ mb: 1 }}>
+            <Alert variant="info" className="text-[0.75rem]">
+              <Info />
+              <AlertDescription><p className="cn-text-body2 text-[0.75rem] mb-1.5">
                 {t('bookingEngine.ai.guidance.pricing.text')}
-              </Typography>
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<SettingsIcon size={14} strokeWidth={1.75} />}
+              </p><Button
+                size="xs"
+                variant="outline"
                 onClick={() => navigate('/settings')}
-                sx={{ textTransform: 'none', fontSize: '0.7rem' }}
               >
+                <SettingsIcon strokeWidth={1.75} />
                 {t('bookingEngine.ai.guidance.pricing.button')}
-              </Button>
+              </Button></AlertDescription>
             </Alert>
           ) : (
-            <Alert severity="error" sx={{ fontSize: '0.75rem' }}>
-              {t('common.error')}
+            <Alert variant="destructive" className="text-[0.75rem]">
+              <TriangleAlert />
+              <AlertDescription>{t('common.error')}</AlertDescription>
             </Alert>
           )}
-        </Paper>
+        </div>
       );
     }
 
     // ── Empty state ───────────────────────────────────────────────────
     if (!data || data.length === 0) {
       return (
-        <Paper sx={CARD_SX}>
-          <Box sx={HEADER_SX}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
-            <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
+        <div className={CARD_CLASS}>
+          <div className="flex items-center gap-1.5 mb-[9px]">
+            <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
+            <h6 className="cn-text-subtitle2 font-bold text-[0.8rem]">
               {t('bookingEngine.ai.pricing.title')}
-            </Typography>
-          </Box>
-          <Typography variant="body2" color="text.secondary" fontSize="0.75rem">
+            </h6>
+          </div>
+          <p className="cn-text-body2 text-[var(--muted)] text-[0.75rem]">
             {t('bookingEngine.ai.pricing.loading')}
-          </Typography>
-        </Paper>
+          </p>
+        </div>
       );
     }
 
     // ── Content ───────────────────────────────────────────────────────
     return (
-      <Paper sx={CARD_SX}>
-        <Box sx={HEADER_SX}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
-          <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
+      <div className={CARD_CLASS}>
+        <div className="flex items-center gap-1.5 mb-[9px]">
+          <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
+          <h6 className="cn-text-subtitle2 font-bold text-[0.8rem]">
             {t('bookingEngine.ai.pricing.title')}
-          </Typography>
-          <Chip
-            label={`${data.length}`}
-            size="small"
-            color="primary"
-            sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700 }}
-          />
-        </Box>
+          </h6>
+          <Badge variant="default" className="h-[20px] text-[0.65rem] font-bold">{`${data.length}`}</Badge>
+        </div>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {data.map((rec) => (
-            <Box
-              key={rec.date}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-                p: 1,
-                borderRadius: 1,
-                bgcolor: 'action.hover',
-              }}
-            >
+            <div className="flex items-center gap-2 p-1.5 rounded-[8px] bg-[var(--hover)]" key={rec.date}>
               {/* Date */}
-              <Box sx={{ minWidth: 60 }}>
-                <Typography variant="caption" fontWeight={600} fontSize="0.7rem">
+              <div className="min-w-[60px]">
+                <span className="cn-text-caption font-semibold text-[0.7rem]">
                   {rec.date}
-                </Typography>
-              </Box>
+                </span>
+              </div>
 
               {/* Suggested Price */}
-              <Box sx={{ minWidth: 70, textAlign: 'right' }}>
-                <Typography variant="body2" fontWeight={700} fontSize="0.85rem" color="primary.main">
+              <div className="min-w-[70px] text-end">
+                <p className="cn-text-body2 font-bold text-[0.85rem] text-[var(--mui-primary)]">
                   {rec.suggestedPrice.toFixed(0)} €
-                </Typography>
-              </Box>
+                </p>
+              </div>
 
               {/* Confidence */}
-              <Tooltip title={`${t('bookingEngine.ai.pricing.confidence')}: ${(rec.confidence * 100).toFixed(0)}%`}>
-                <Chip
-                  label={`${(rec.confidence * 100).toFixed(0)}%`}
-                  size="small"
-                  color={confidenceColor(rec.confidence)}
-                  sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600 }}
-                />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {/* Le `span` porte la ref que TooltipTrigger pose sur son
+                      enfant : StatusChip est une fonction et n'en transmet pas. */}
+                  <span className="inline-flex">
+                    <StatusChip
+                      tone={confidenceTone(rec.confidence)}
+                      size="sm"
+                      label={`${(rec.confidence * 100).toFixed(0)}%`}
+                      className="text-[0.6rem]"
+                    />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {`${t('bookingEngine.ai.pricing.confidence')}: ${(rec.confidence * 100).toFixed(0)}%`}
+                </TooltipContent>
               </Tooltip>
 
               {/* Explanation */}
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                fontSize="0.7rem"
-                sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-              >
+              <span className="cn-text-caption flex-1 truncate text-[0.7rem] text-[var(--muted)]">
                 {rec.explanation}
-              </Typography>
-            </Box>
+              </span>
+            </div>
           ))}
-        </Box>
+        </div>
 
         {/* Market comparison from first recommendation */}
         {data[0]?.marketComparison && (
-          <Box
-            sx={{
-              mt: 1.5,
-              pt: 1,
-              borderTop: '1px solid',
-              borderColor: 'divider',
-            }}
-          >
-            <Typography variant="caption" color="text.secondary" fontSize="0.7rem">
+          <div className="mt-2 pt-1.5 border-t border-[var(--line)]">
+            <span className="cn-text-caption text-[var(--muted)] text-[0.7rem]">
               {t('bookingEngine.ai.pricing.marketComparison')}: {data[0].marketComparison}
-            </Typography>
-          </Box>
+            </span>
+          </div>
         )}
-      </Paper>
+      </div>
     );
   },
 );

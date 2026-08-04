@@ -1,26 +1,23 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { Badge } from '../../components/ui';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Button, Spinner } from '../../components/ui';
+import { Card as BuiCard, CardContent } from '../../components/ui';
 import {
-  Box,
-  Paper,
-  Grid,
-  Card,
-  CardActionArea,
-  CardContent,
-  Typography,
-  Chip,
-  Button,
-  CircularProgress,
-  Alert,
-  Switch,
-  FormControlLabel,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
+  Field,
+  FieldLabel,
+  NativeSelect,
+  NativeSelectOption,
   Skeleton,
-  Tooltip as MuiTooltip,
-} from '@mui/material';
+  Switch,
+  Tooltip as BuiTooltip,
+  TooltipContent as BuiTooltipContent,
+  TooltipTrigger as BuiTooltipTrigger,
+} from '../../components/ui';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Refresh,
   Warning,
@@ -89,6 +86,12 @@ interface ScoreGaugeProps {
   criticalFailed: boolean;
 }
 
+// Jauge circulaire : 160 px de diametre, anneau de 4 px (r = 80 - 4/2).
+const GAUGE_SIZE = 160;
+const GAUGE_STROKE = 4;
+const GAUGE_RADIUS = GAUGE_SIZE / 2 - GAUGE_STROKE / 2;
+const GAUGE_CIRCUMFERENCE = 2 * Math.PI * GAUGE_RADIUS;
+
 const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
   // Couleur du score → tokens sémantiques (réactifs thème/accent)
   const color = criticalFailed ? 'var(--err)'
@@ -96,62 +99,71 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
     : score >= 50 ? 'var(--warn)'
     : 'var(--err)';
 
+  const filled = Math.min(Math.max(score, 0), 100);
+
   return (
-    <Card sx={{ textAlign: 'center', py: 3 }}>
+    <BuiCard className="text-center py-[18px]">
       <CardContent>
-        <Box sx={{ position: 'relative', display: 'inline-flex' }}>
-          <CircularProgress
-            variant="determinate"
-            value={100}
-            size={160}
-            thickness={4}
-            sx={{ color: 'var(--line)', position: 'absolute' }}
-          />
-          <CircularProgress
-            variant="determinate"
-            value={Math.min(score, 100)}
-            size={160}
-            thickness={4}
-            sx={{ color }}
-          />
-          <Box
-            sx={{
-              top: 0, left: 0, bottom: 0, right: 0,
-              position: 'absolute',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+        <div className="relative inline-flex">
+          {/* SVG plutot que le CircularProgress MUI : le kit n'a pas de jauge
+              circulaire DETERMINEE (Progress est lineaire, Spinner indetermine),
+              et deux cercles suffisent — piste + arc, demarrage a midi. */}
+          <svg
+            width={GAUGE_SIZE}
+            height={GAUGE_SIZE}
+            viewBox={`0 0 ${GAUGE_SIZE} ${GAUGE_SIZE}`}
+            role="img"
+            aria-label={`Score de readiness : ${criticalFailed ? 0 : Math.round(score)} sur 100`}
+            className="-rotate-90"
           >
-            <Box component="span" sx={{ display: 'inline-flex', color, mb: 0.5 }}>
+            <circle
+              cx={GAUGE_SIZE / 2}
+              cy={GAUGE_SIZE / 2}
+              r={GAUGE_RADIUS}
+              fill="none"
+              stroke="var(--line)"
+              strokeWidth={GAUGE_STROKE}
+            />
+            <circle
+              cx={GAUGE_SIZE / 2}
+              cy={GAUGE_SIZE / 2}
+              r={GAUGE_RADIUS}
+              fill="none"
+              stroke={color}
+              strokeWidth={GAUGE_STROKE}
+              strokeLinecap="round"
+              strokeDasharray={GAUGE_CIRCUMFERENCE}
+              strokeDashoffset={GAUGE_CIRCUMFERENCE * (1 - filled / 100)}
+              className="[transition:stroke-dashoffset_400ms_ease-out] motion-reduce:transition-none"
+            />
+          </svg>
+          <div className="top-[0px] start-[0px] bottom-[0px] end-[0px] absolute flex flex-col items-center justify-center">
+            {/* La teinte suit le score, calculee au rendu. */}
+            <span className="mb-[3px] inline-flex" style={{ color }}>
               {criticalFailed ? (
                 <Warning size={32} strokeWidth={1.75} />
               ) : (
                 <Shield size={32} strokeWidth={1.75} />
               )}
-            </Box>
-            <Typography
-              variant="h3"
-              sx={{ fontWeight: 600, color, fontVariantNumeric: 'tabular-nums' }}
+            </span>
+            {/* Echelle h3 du theme (1rem / 1.125 / 1.25 selon le palier). */}
+            <p
+              className="text-[1rem] min-[1200px]:text-[1.125rem] min-[1536px]:text-[1.25rem] font-semibold leading-[1.25] tracking-[-0.015em] tabular-nums"
+              style={{ color }}
             >
               {criticalFailed ? '0' : Math.round(score)}
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'var(--muted)' }}>/ 100</Typography>
-          </Box>
-        </Box>
-        <Typography variant="h6" sx={{ mt: 2, fontWeight: 600, color: 'var(--ink)' }}>
+            </p>
+            <span className="cn-text-caption text-[var(--muted)]">/ 100</span>
+          </div>
+        </div>
+        <h6 className="cn-text-h6 mt-3 font-semibold text-[var(--ink)]">
           Readiness Score
-        </Typography>
+        </h6>
         {criticalFailed && (
-          <Chip
-            label="KPI CRITIQUE EN ECHEC"
-            size="small"
-            sx={{ mt: 1, color: 'var(--err)', backgroundColor: 'var(--err-soft)' }}
-          />
+          <Badge variant="secondary" className="mt-1.5 text-[var(--err)] bg-[var(--err-soft)]">KPI CRITIQUE EN ECHEC</Badge>
         )}
       </CardContent>
-    </Card>
+    </BuiCard>
   );
 };
 
@@ -189,102 +201,72 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipCont
     : kpi.target;
 
   const cardContent = (
-    <CardContent sx={{ pb: '12px !important' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1, gap: 0.5 }}>
+    <CardContent className="pb-3">
+      <div className="flex justify-between items-start mb-1.5 gap-0.5">
         {/* Label en overline (pattern entête de tuile KPI) */}
-        <Typography
-          sx={{
-            fontSize: '10.5px',
-            fontWeight: 700,
-            letterSpacing: '.05em',
-            textTransform: 'uppercase',
-            color: 'var(--faint)',
-          }}
-        >
+        <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)]">
           {kpi.name}
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
+        </p>
+        <div className="flex gap-0.5 shrink-0">
           {badgeCount !== undefined && badgeCount > 0 && (
-            <Chip
-              label={`${badgeCount} ouvert${badgeCount > 1 ? 's' : ''}`}
-              size="small"
-              sx={{ color: 'var(--err)', backgroundColor: 'var(--err-soft)' }}
-            />
+            <Badge variant="secondary" className="text-[var(--err)] bg-[var(--err-soft)]">{`${badgeCount} ouvert${badgeCount > 1 ? 's' : ''}`}</Badge>
           )}
           {kpi.critical && (
-            <Chip
-              label="Critical"
-              size="small"
-              sx={{ color: 'var(--err)', backgroundColor: 'var(--err-soft)' }}
-            />
+            <Badge variant="secondary" className="text-[var(--err)] bg-[var(--err-soft)]">Critical</Badge>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
+      <div className="flex items-baseline gap-1.5 mb-1.5">
         {/* Valeur display tabular-nums — l'accent statut vit dans la valeur + le chip */}
-        <Typography
-          variant="h4"
-          sx={{ fontWeight: 600, color: tk.fg, fontVariantNumeric: 'tabular-nums' }}
-        >
+        <h4 className="cn-text-h4 font-semibold tabular-nums" style={{ color: tk.fg }}>
           {displayedValue}
-        </Typography>
-      </Box>
+        </h4>
+      </div>
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+      <div className="flex justify-between items-center">
+        <span className="cn-text-caption text-[var(--muted)]">
           Target: {displayedTarget}
-        </Typography>
-        <Chip
-          icon={<StatusIcon size={13} strokeWidth={1.75} />}
-          label={kpi.status}
-          size="small"
-          sx={{
-            color: tk.fg,
-            backgroundColor: tk.bg,
-            '& .MuiChip-icon': { color: tk.fg, marginLeft: '6px' },
-          }}
-        />
-      </Box>
+        </span>
+        <StatusChip tokens={{ color: tk.fg, bg: tk.bg }} label={kpi.status} icon={<StatusIcon size={13} strokeWidth={1.75} />} />
+      </div>
     </CardContent>
   );
 
   // Carte plate hairline (statut porté par valeur + chip, pas par la bordure)
   const card = (
-    <Card
-      variant="outlined"
-      sx={{
-        height: '100%',
-        ...(onClick && {
-          cursor: 'pointer',
-          '&:hover': { borderColor: 'var(--line-2)', boxShadow: 'var(--shadow-card)' },
-        }),
-      }}
+    <BuiCard
+      className={cn(
+        'h-full',
+        onClick && 'cursor-pointer hover:border-[var(--line-2)] hover:shadow-[var(--shadow-card)]',
+      )}
     >
       {onClick ? (
-        <CardActionArea onClick={onClick} sx={{ height: '100%' }}>
+        // Remplace CardActionArea : bouton nu qui couvre la carte, sans gabarit
+        // de bouton (le style vit deja sur la carte).
+        <button
+          type="button"
+          onClick={onClick}
+          className="h-full w-full cursor-pointer border-0 bg-transparent p-0 text-start"
+        >
           {cardContent}
-        </CardActionArea>
+        </button>
       ) : (
         cardContent
       )}
-    </Card>
+    </BuiCard>
   );
 
   if (tooltipContent) {
     return (
-      <MuiTooltip
-        title={tooltipContent}
-        arrow
-        placement="top"
-        slotProps={{
-          tooltip: {
-            sx: { maxWidth: 360, fontSize: '0.75rem', p: 1.5 },
-          },
-        }}
-      >
-        <Box sx={{ height: '100%' }}>{card}</Box>
-      </MuiTooltip>
+      <BuiTooltip>
+        <BuiTooltipTrigger asChild>
+          <div className="h-full">{card}</div>
+        </BuiTooltipTrigger>
+        <BuiTooltipContent side="top" className="max-w-[360px] text-[0.75rem]">
+          {tooltipContent}
+        </BuiTooltipContent>
+      </BuiTooltip>
     );
   }
 
@@ -303,28 +285,18 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
   if (!active || !payload || payload.length === 0) return null;
   // Pattern tooltip Signature : encre sur fond (--ink / --bg), r8
   return (
-    <Box
-      sx={{
-        p: '6px 10px',
-        borderRadius: '8px',
-        backgroundColor: 'var(--ink)',
-        color: 'var(--bg)',
-      }}
-    >
+    <div className="p-[6px 10px] rounded-[8px] bg-[var(--ink)] text-[var(--bg)]">
       {label && (
-        <Typography sx={{ fontWeight: 700, mb: 0.5, fontSize: '11.5px' }}>
+        <p className="cn-text-body1 font-bold mb-0.5 text-[11.5px]">
           {new Date(label).toLocaleString()}
-        </Typography>
+        </p>
       )}
       {payload.map((entry) => (
-        <Typography
-          key={entry.name}
-          sx={{ display: 'block', fontSize: '11.5px', fontWeight: 600 }}
-        >
+        <p className="cn-text-body1 block text-[11.5px] font-semibold" key={entry.name}>
           {entry.name}: {typeof entry.value === 'number' ? entry.value.toFixed(1) : entry.value}
-        </Typography>
+        </p>
       ))}
-    </Box>
+    </div>
   );
 };
 
@@ -460,7 +432,7 @@ const KpiReadinessPage: React.FC = () => {
   })) || [];
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title="KPI Readiness"
         subtitle="Indicateurs de performance pour la certification Airbnb Partner"
@@ -469,146 +441,117 @@ const KpiReadinessPage: React.FC = () => {
         showBackButton={false}
       />
 
-      {error && <Alert severity="error" sx={{ mt: 2, mb: 2 }}>{error}</Alert>}
+      {error && <Alert variant="destructive" className="mt-3 mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       {loading ? (
         // Skeletons à la silhouette de la page (gauge + panneau + grille KPI)
-        <Box sx={{ mt: 3 }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
-              <Skeleton variant="rounded" height={260} sx={{ borderRadius: '14px' }} />
-            </Grid>
-            <Grid item xs={12} md={8}>
-              <Skeleton variant="rounded" height={260} sx={{ borderRadius: '14px' }} />
-            </Grid>
-          </Grid>
-          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+        <div className="mt-4">
+          <div className="grid grid-cols-12 gap-[18px]">
+            <div className="col-span-12 min-[900px]:col-span-4">
+              <Skeleton className="h-[260px] rounded-[14px]" />
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-8">
+              <Skeleton className="h-[260px] rounded-[14px]" />
+            </div>
+          </div>
+          <div className="grid grid-cols-12 gap-3 mt-[3px]">
             {Array.from({ length: 8 }).map((_, i) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={i}>
-                <Skeleton variant="rounded" height={120} sx={{ borderRadius: '14px' }} />
-              </Grid>
+              <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={i}>
+                <Skeleton className="h-[120px] rounded-[14px]" />
+              </div>
             ))}
-          </Grid>
-        </Box>
+          </div>
+        </div>
       ) : snapshot ? (
         <>
           {/* Score + Controls */}
-          <Grid container spacing={3} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={4}>
+          <div className="grid grid-cols-12 gap-[18px] mt-1.5">
+            <div className="col-span-12 min-[900px]:col-span-4">
               <ScoreGauge score={snapshot.readinessScore} criticalFailed={snapshot.criticalFailed} />
-            </Grid>
-            <Grid item xs={12} md={8}>
-              <Paper
-                variant="outlined"
-                sx={{
-                  p: 3,
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  borderRadius: '14px',
-                  borderColor: 'var(--line)',
-                }}
-              >
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-                  <Box>
-                    <Typography
-                      sx={{
-                        fontSize: '10.5px',
-                        fontWeight: 700,
-                        letterSpacing: '.05em',
-                        textTransform: 'uppercase',
-                        color: 'var(--faint)',
-                      }}
-                    >
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-8">
+              <BuiCard className="gap-0 py-0 p-4 h-full flex flex-col justify-center border-[var(--line)]">
+                <div className="flex justify-between items-center flex-wrap gap-3">
+                  <div>
+                    <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)]">
                       Derniere capture
-                    </Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: 'var(--ink)' }}>
+                    </p>
+                    <h6 className="cn-text-h6 font-semibold text-[var(--ink)]">
                       {formatTimestamp(snapshot.capturedAt)}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'var(--muted)' }}>
+                    </h6>
+                    <span className="cn-text-caption text-[var(--muted)]">
                       Source: {snapshot.source}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={autoRefresh}
-                          onChange={(e) => setAutoRefresh(e.target.checked)}
-                          size="small"
-                        />
-                      }
-                      label="Auto-refresh"
-                    />
-                    <Button
-                      variant="contained"
-                      size="small"
-                      startIcon={refreshing ? <CircularProgress size={16} color="inherit" /> : <Refresh />}
-                      onClick={handleManualRefresh}
-                      disabled={refreshing}
-                    >
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Field orientation="horizontal" className="w-auto gap-1.5">
+                      <Switch
+                        id="kpi-auto-refresh"
+                        size="sm"
+                        checked={autoRefresh}
+                        onCheckedChange={setAutoRefresh}
+                      />
+                      <FieldLabel htmlFor="kpi-auto-refresh">Auto-refresh</FieldLabel>
+                    </Field>
+                    <Button size="sm" onClick={handleManualRefresh} disabled={refreshing}>
+                      {refreshing ? <Spinner className="size-4" /> : <Refresh />}
                       Rafraichir
                     </Button>
-                  </Box>
-                </Box>
+                  </div>
+                </div>
 
                 {/* Summary chips — -soft : texte couleur + fond -soft */}
-                <Box sx={{ display: 'flex', gap: 1, mt: 2, flexWrap: 'wrap' }}>
+                <div className="flex gap-1.5 mt-3 flex-wrap">
                   {(['OK', 'WARNING', 'CRITICAL'] as KpiStatus[]).map((status) => {
                     const count = snapshot.kpis.filter((k) => k.status === status).length;
                     if (count === 0) return null;
                     const tk = STATUS_TOKEN[status];
                     return (
-                      <Chip
-                        key={status}
-                        label={`${count} ${status}`}
-                        size="small"
-                        sx={{ color: tk.fg, backgroundColor: tk.bg }}
-                      />
+                      <StatusChip tokens={{ color: tk.fg, bg: tk.bg }} label={`${count} ${status}`} key={status} />
                     );
                   })}
-                </Box>
-              </Paper>
-            </Grid>
-          </Grid>
+                </div>
+              </BuiCard>
+            </div>
+          </div>
 
           {/* 12 KPI Cards */}
-          <Grid container spacing={2} sx={{ mt: 2 }}>
+          <div className="grid grid-cols-12 gap-3 mt-3">
             {snapshot.kpis.map((kpi) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={kpi.id}>
+              <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={kpi.id}>
                 <KpiCard
                   kpi={kpi}
                   onClick={kpi.id === 'P1_RESOLUTION' ? handleOpenIncidentDialog : undefined}
                   badgeCount={kpi.id === 'P1_RESOLUTION' ? openIncidentCount : undefined}
                   tooltipContent={KPI_TOOLTIPS[kpi.id]}
                 />
-              </Grid>
+              </div>
             ))}
-          </Grid>
+          </div>
 
           {/* Historical Trend Chart */}
-          <Paper
-            variant="outlined"
-            sx={{ mt: 3, p: 3, borderRadius: '14px', borderColor: 'var(--line)' }}
-          >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 600, color: 'var(--ink)' }}>
+          <BuiCard className="gap-0 py-0 mt-4 p-4 border-[var(--line)]">
+            <div className="flex justify-between items-center mb-3">
+              <h6 className="cn-text-h6 font-semibold text-[var(--ink)]">
                 Tendance historique
-              </Typography>
-              <FormControl size="small" sx={{ minWidth: 120 }}>
-                <InputLabel>Periode</InputLabel>
-                <Select
-                  value={historyHours}
-                  label="Periode"
-                  onChange={(e) => setHistoryHours(Number(e.target.value))}
-                >
-                  <MenuItem value={24}>24 heures</MenuItem>
-                  <MenuItem value={168}>7 jours</MenuItem>
-                  <MenuItem value={720}>30 jours</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
+              </h6>
+              {/* Filtre sans libelle visible (il jouxte le titre de la carte) :
+                  l'aria-label reste la seule etiquette. */}
+              <NativeSelect
+                size="sm"
+                className="min-w-[120px]"
+                aria-label="Periode"
+                value={historyHours}
+                onChange={(e) => setHistoryHours(Number(e.target.value))}
+              >
+                <NativeSelectOption value={24}>24 heures</NativeSelectOption>
+                <NativeSelectOption value={168}>7 jours</NativeSelectOption>
+                <NativeSelectOption value={720}>30 jours</NativeSelectOption>
+              </NativeSelect>
+            </div>
 
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={350}>
@@ -648,16 +591,16 @@ const KpiReadinessPage: React.FC = () => {
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <Box sx={{ textAlign: 'center', py: 6 }}>
-                <Typography variant="body1" color="text.secondary">
+              <div className="text-center py-9">
+                <p className="cn-text-body1 text-muted-foreground">
                   Aucune donnee historique disponible.
-                </Typography>
-                <Typography variant="body2" color="text.disabled" sx={{ mt: 1 }}>
+                </p>
+                <p className="cn-text-body2 text-muted-foreground opacity-60 mt-1.5">
                   Les snapshots sont captures automatiquement toutes les heures.
-                </Typography>
-              </Box>
+                </p>
+              </div>
             )}
-          </Paper>
+          </BuiCard>
         </>
       ) : null}
 
@@ -673,7 +616,7 @@ const KpiReadinessPage: React.FC = () => {
           snapshot?.kpis.find((k) => k.id === 'P1_RESOLUTION')?.targetValue ?? 60
         }
       />
-    </Box>
+    </div>
   );
 };
 

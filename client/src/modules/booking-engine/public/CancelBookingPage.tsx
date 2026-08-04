@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
+import { Input, Spinner } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
-import { Box, ButtonBase, CircularProgress, InputBase } from '@mui/material';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { cn } from '../../../utils/cn';
 import { API_CONFIG } from '../../../config/api';
 
 const API_BASE = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}`;
@@ -68,19 +69,19 @@ export default function CancelBookingPage() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'var(--bg)', color: 'var(--ink)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', px: 2, py: { xs: 4, md: 8 } }}>
-      <Box sx={{ width: '100%', maxWidth: 460, bgcolor: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-card)', p: { xs: 2.5, md: 3.5 } }}>
-        <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', fontWeight: 'var(--fw-bold)', mb: 0.5 }}>
+    <div className="min-h-[100vh] bg-[var(--bg)] text-[var(--ink)] flex items-start justify-center px-3 py-6 min-[900px]:py-12">
+      <div className="w-full max-w-[460px] bg-[var(--card)] border border-solid border-[var(--line)] rounded-[var(--radius-lg)] p-[15px] min-[900px]:p-[21px]" style={{ boxShadow: 'var(--shadow-card)' }}>
+        <div className="font-[family-name:var(--font-display)] text-[var(--text-2xl)] font-[family-name:var(--fw-bold)] mb-0.5">
           Annuler ma réservation
-        </Box>
-        <Box sx={{ fontSize: 'var(--text-md)', color: 'var(--muted)', mb: 3 }}>
+        </div>
+        <div className="text-[var(--text-md)] text-[var(--muted)] mb-4">
           Renseignez votre code de confirmation et votre email.
-        </Box>
+        </div>
 
         {error && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, p: 1.5, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 'var(--text-sm)' }}>
+          <div className="flex items-center gap-1.5 mb-3 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
             <AlertTriangle size={16} strokeWidth={2} /> {error}
-          </Box>
+          </div>
         )}
 
         {step === 'form' && (
@@ -93,48 +94,59 @@ export default function CancelBookingPage() {
 
         {step === 'preview' && preview && (
           <>
-            <Box sx={{ p: 2, borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent-soft)', mb: 2 }}>
-              <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)' }}>Remboursement applicable</Box>
-              <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', fontWeight: 'var(--fw-bold)', color: 'var(--accent)' }}>
-                {fmt(preview.refundAmount, preview.currency)} <Box component="span" sx={{ fontSize: 'var(--text-md)', color: 'var(--muted)', fontWeight: 'var(--fw-medium)' }}>({preview.refundPercentage}%)</Box>
-              </Box>
-              <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--body)', mt: 0.5 }}>{preview.explanation}</Box>
-            </Box>
+            <div className="p-3 rounded-[var(--radius-md)] bg-[var(--accent-soft)] mb-3">
+              <div className="text-[var(--text-sm)] text-[var(--muted)]">Remboursement applicable</div>
+              <div className="font-[family-name:var(--font-display)] text-[var(--text-2xl)] font-[family-name:var(--fw-bold)] text-[var(--accent)]">
+                {fmt(preview.refundAmount, preview.currency)} <span className="text-[var(--text-md)] text-[var(--muted)] font-[family-name:var(--fw-medium)]">({preview.refundPercentage}%)</span>
+              </div>
+              <div className="text-[var(--text-sm)] text-[var(--body)] mt-0.5">{preview.explanation}</div>
+            </div>
             <PrimaryButton onClick={confirmCancel} loading={loading} label="Confirmer l'annulation" danger />
-            <ButtonBase onClick={() => setStep('form')} sx={{ mt: 1, fontSize: 'var(--text-sm)', color: 'var(--muted)', cursor: 'pointer' }}>Retour</ButtonBase>
+            <button
+              type="button"
+              onClick={() => setStep('form')}
+              className="mt-1.5 inline-flex items-center justify-center bg-transparent border-none appearance-none text-[var(--text-sm)] text-[var(--muted)] cursor-pointer hover:text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            >
+              Retour
+            </button>
           </>
         )}
 
         {step === 'done' && result && (
-          <Box sx={{ textAlign: 'center', py: 2 }}>
-            <Box sx={{ color: 'var(--ok)', display: 'flex', justifyContent: 'center', mb: 1.5 }}><CheckCircle2 size={40} strokeWidth={1.75} /></Box>
-            <Box sx={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-semibold)', mb: 0.5 }}>
+          <div className="text-center py-3">
+            <div className="text-[var(--ok)] flex justify-center mb-2"><CheckCircle2 size={40} strokeWidth={1.75} /></div>
+            <div className="text-[var(--text-lg)] font-[family-name:var(--fw-semibold)] mb-0.5">
               {result.status === 'already_cancelled' ? 'Réservation déjà annulée' : 'Réservation annulée'}
-            </Box>
+            </div>
             {result.refundAmount > 0 && (
-              <Box sx={{ fontSize: 'var(--text-md)', color: 'var(--muted)' }}>
+              <div className="text-[var(--text-md)] text-[var(--muted)]">
                 Remboursement de {fmt(result.refundAmount, result.currency)} en cours de traitement.
-              </Box>
+              </div>
             )}
-          </Box>
+          </div>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 
 function Field({ label, value, onChange, placeholder, type = 'text' }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
 }) {
+  // Le libelle est du texte libre (accents, espaces) : il ne peut pas servir
+  // d'identifiant, et le composant est monte deux fois dans la page.
+  const inputId = useId();
   return (
-    <Box sx={{ mb: 2 }}>
-      <Box component="label" sx={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--body)', mb: 0.75 }}>{label}</Box>
-      <InputBase
+    <div className="mb-3">
+      <label className="block text-[var(--text-sm)] font-medium text-[var(--body)] mb-1" htmlFor={inputId}>{label}</label>
+      {/* Le gabarit du champ (fond, lisere, rayon, anneau de focus) vient du
+          primitif : l'ancien sx ne faisait que le redire. */}
+      <Input
+        id={inputId}
         value={value} type={type} placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        sx={{ width: '100%', px: 1.5, py: 1, fontSize: 'var(--text-md)', color: 'var(--ink)', bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', '&.Mui-focused': { borderColor: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-soft)' } }}
       />
-    </Box>
+    </div>
   );
 }
 
@@ -142,19 +154,20 @@ function PrimaryButton({ onClick, loading, label, danger = false }: {
   onClick: () => void; loading: boolean; label: string; danger?: boolean;
 }) {
   return (
-    <ButtonBase
+    <button
+      type="button"
       onClick={onClick}
       disabled={loading}
-      sx={{
-        width: '100%', height: 46, borderRadius: 'var(--radius-md)', cursor: 'pointer',
-        bgcolor: danger ? 'var(--err)' : 'var(--accent)', color: '#fff',
-        fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-md)',
-        transition: 'opacity var(--duration-fast) var(--ease-out)',
-        '&:hover': { opacity: 0.92 }, '&.Mui-disabled': { opacity: 0.5 },
-        '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-      }}
+      className={cn(
+        'w-full h-[46px] inline-flex items-center justify-center rounded-[var(--radius-md)] border-none appearance-none',
+        'text-[var(--text-md)] font-semibold text-[#FFFFFF] cursor-pointer',
+        'transition-opacity duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:opacity-[.92]',
+        'disabled:opacity-50 disabled:cursor-default',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]',
+        danger ? 'bg-[var(--err)]' : 'bg-[var(--accent)]',
+      )}
     >
-      {loading ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : label}
-    </ButtonBase>
+      {loading ? <Spinner className="size-5 text-[#FFFFFF]" /> : label}
+    </button>
   );
 }

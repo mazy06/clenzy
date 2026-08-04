@@ -7,7 +7,8 @@
    pour status / dates / montants, et un titre dérivé du nom métier.
    ============================================================ */
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { cn } from '../../../../utils/cn';
+
 import {
   SurfaceCard,
   StatusChip,
@@ -60,51 +61,22 @@ export const DetailsResult: React.FC<{ data: Details }> = ({ data }) => {
 
   return (
     <SurfaceCard>
-      <Typography
-        sx={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '15px',
-          fontWeight: 600,
-          color: 'var(--ink)',
-          mb: 1,
-          letterSpacing: '-0.01em',
-        }}
-      >
+      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] mb-1.5 tracking-[-0.01em]">
         {title}
-      </Typography>
+      </p>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+      <div className="flex flex-col">
         {entries.map(([key, value], idx) => (
-          <Box
-            key={key}
-            sx={{
-              display: 'flex',
-              gap: 1.5,
-              py: 0.75,
-              alignItems: 'baseline',
-              borderTop: idx > 0 ? '1px solid var(--line)' : 'none',
-            }}
-          >
-            <Typography
-              sx={{ flex: '0 0 38%', color: 'var(--muted)', fontSize: '11.5px', fontWeight: 500 }}
-            >
+          <div className="flex gap-[9px] py-[4.5px] items-baseline" style={{ borderTop: idx > 0 ? '1px solid var(--line)' : 'none' }} key={key}>
+            <p className="cn-text-body1 flex-[0_0_38%] text-[var(--muted)] text-[11.5px] font-medium">
               {humanizeKey(key)}
-            </Typography>
-            <Typography
-              component="div"
-              sx={{
-                flex: 1,
-                fontSize: '12.5px',
-                color: 'var(--body)',
-                fontWeight: 500,
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
+            </p>
+            <div className="flex-1 text-[12.5px] text-[var(--body)] font-medium tabular-nums">
               {formatValue(key, value, data.currency)}
-            </Typography>
-          </Box>
+            </div>
+          </div>
         ))}
-      </Box>
+      </div>
     </SurfaceCard>
   );
 };

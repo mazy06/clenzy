@@ -1,13 +1,13 @@
 import React from 'react';
 import {
-  Box,
-  Typography,
-  IconButton,
-  Chip,
-  ToggleButtonGroup,
-  ToggleButton,
+  Badge,
+  Button,
+  ToggleGroup,
+  ToggleGroupItem,
   Tooltip,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import {
   ChevronLeft,
   ChevronRight,
@@ -46,6 +46,96 @@ interface PlanningToolbarProps {
   onToggleStatus: (status: ReservationStatus) => void;
 }
 
+/** Fleches de navigation : carre 28 px filete, encre sourde qui vire accent au survol. */
+const NAV_BTN_CLS =
+  'size-[28px] rounded-[9px] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] '
+  + 'transition-[color,border-color] duration-[160ms] ease-[cubic-bezier(.16,1,.3,1)] motion-reduce:transition-none '
+  + 'hover:bg-[var(--card)] hover:text-[var(--accent)] hover:border-[var(--accent)]';
+
+/** Segment du selecteur de zoom — l'onglet actif se detache en carte encrée. */
+const ZOOM_ITEM_CLS =
+  'rounded-[7px] border-0 px-[13px] py-[6px] text-[0.75rem] font-semibold leading-none normal-case tracking-[0.01em] '
+  + 'text-[var(--muted)] transition-[background-color,color] duration-[140ms] motion-reduce:transition-none '
+  + 'hover:bg-transparent hover:text-[var(--body)] '
+  + 'data-[state=on]:bg-[var(--card)] data-[state=on]:text-[var(--ink)] '
+  + 'data-[state=on]:shadow-[0_1px_3px_color-mix(in_srgb,var(--ink)_10%,transparent)]';
+
+// ─── Navigation de dates + zoom (réutilisable) ───────────────────────────────
+
+interface PlanningDateNavProps {
+  currentDate: Date;
+  zoom: ZoomLevel;
+  onGoPrev: () => void;
+  onGoToday: () => void;
+  onGoNext: () => void;
+  onZoomChange: (zoom: ZoomLevel) => void;
+}
+
+/**
+ * Groupe ‹ Mois › · Aujourd'hui · Semaine/Quinzaine/Mois. Rendu par la toolbar
+ * en temps normal, et REMONTÉ dans le PageHeader quand la constellation
+ * d'agents est déployée — la toolbar disparaît alors pour rendre sa hauteur à
+ * l'accordéon.
+ */
+export const PlanningDateNav: React.FC<PlanningDateNavProps> = ({
+  currentDate,
+  zoom,
+  onGoPrev,
+  onGoToday,
+  onGoNext,
+  onZoomChange,
+}) => (
+  <>
+    {/* Navigation */}
+    <div className="flex items-center gap-0.5">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={onGoPrev}
+        aria-label="Période précédente"
+        className={NAV_BTN_CLS}
+      >
+        <ChevronLeft size={15} strokeWidth={1.75} />
+      </Button>
+
+      {/* Month title : info principale (display, encre) */}
+      <h6 className="cn-text-subtitle2 font-[family-name:var(--font-display)] text-[0.9375rem] font-semibold capitalize text-[var(--ink)] tracking-[-0.01em] min-w-[110px] text-center">
+        {formatMonthYear(currentDate)}
+      </h6>
+
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={onGoNext}
+        aria-label="Période suivante"
+        className={NAV_BTN_CLS}
+      >
+        <ChevronRight size={15} strokeWidth={1.75} />
+      </Button>
+    </div>
+
+    <Badge variant="outline" className="text-[0.6875rem] font-semibold h-[28px] rounded-[9px] cursor-pointer bg-[var(--card)] border-[var(--line-2)] text-[var(--body)] hover:bg-[var(--hover)] hover:border-[var(--faint)] [&>svg]:text-[13px] [&>svg]:text-[var(--accent)]" onClick={onGoToday}><TodayOutlined size={13} strokeWidth={1.75} />Aujourd'hui</Badge>
+
+    {/* Zoom selector — segmented control Signature (.s-seg) */}
+    <ToggleGroup
+      type="single"
+      value={zoom}
+      // Radix laisse deselectionner : on ignore la valeur vide (comportement
+      // `exclusive` MUI, ou un clic sur l'onglet actif ne change rien).
+      onValueChange={(value) => value && onZoomChange(value as ZoomLevel)}
+      size="sm"
+      spacing={0}
+      className="gap-[2px] rounded-[10px] border border-solid border-[var(--field-line)] bg-[var(--field)] p-[3px]"
+    >
+      {(Object.keys(ZOOM_LABELS) as ZoomLevel[]).map((level) => (
+        <ToggleGroupItem key={level} value={level} className={ZOOM_ITEM_CLS}>
+          {ZOOM_LABELS[level]}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
+  </>
+);
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
@@ -67,175 +157,56 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
   onToggleStatus,
 }) => {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 1,
-        py: 0.875,
-        px: 1.25,
-        backgroundColor: 'transparent',
-        flexShrink: 0,
-      }}
-    >
+    <div className="flex flex-col gap-1.5 py-1.5 px-2 bg-[transparent] shrink-0">
       {/* ── Rangée 1 : navigation + mois + segmented + recherche + actions ── */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.875 }}>
+      <div className="flex flex-wrap items-center gap-1.5">
         {/* Spacer de tête flex:1 — centre le groupe nav+mois+Aujourd'hui+zoom
             dans la zone planning. Symétrique au spacer de queue → centrage qui
             s'adapte à la largeur de contenu (donc à l'écran ET à l'état de la
             sidebar, le contenu étant un flex-sibling de la sidebar). */}
-        <Box sx={{ flex: 1, minWidth: 8 }} aria-hidden />
+        <div className="flex-1 min-w-[8px]" aria-hidden />
 
-        {/* Navigation */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <IconButton
-            size="small"
-            onClick={onGoPrev}
-            sx={{
-              width: 28,
-              height: 28,
-              borderRadius: '9px',
-              border: '1px solid var(--line-2)',
-              backgroundColor: 'var(--card)',
-              color: 'var(--muted)',
-              transition: 'color 160ms cubic-bezier(.16,1,.3,1), border-color 160ms cubic-bezier(.16,1,.3,1)',
-              '&:hover': { color: 'var(--accent)', borderColor: 'var(--accent)', backgroundColor: 'var(--card)' },
-              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            }}
-          >
-            <ChevronLeft size={15} strokeWidth={1.75} />
-          </IconButton>
-
-          {/* Month title : info principale (display, encre) */}
-          <Typography
-            variant="subtitle2"
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '0.9375rem',
-              fontWeight: 600,
-              textTransform: 'capitalize',
-              color: 'var(--ink)',
-              letterSpacing: '-0.01em',
-              minWidth: 110,
-              textAlign: 'center',
-            }}
-          >
-            {formatMonthYear(currentDate)}
-          </Typography>
-
-          <IconButton
-            size="small"
-            onClick={onGoNext}
-            sx={{
-              width: 28,
-              height: 28,
-              borderRadius: '9px',
-              border: '1px solid var(--line-2)',
-              backgroundColor: 'var(--card)',
-              color: 'var(--muted)',
-              transition: 'color 160ms cubic-bezier(.16,1,.3,1), border-color 160ms cubic-bezier(.16,1,.3,1)',
-              '&:hover': { color: 'var(--accent)', borderColor: 'var(--accent)', backgroundColor: 'var(--card)' },
-              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            }}
-          >
-            <ChevronRight size={15} strokeWidth={1.75} />
-          </IconButton>
-        </Box>
-
-        <Chip
-          icon={<TodayOutlined size={13} strokeWidth={1.75} />}
-          label="Aujourd'hui"
-          size="small"
-          variant="outlined"
-          onClick={onGoToday}
-          sx={{
-            fontSize: '0.6875rem',
-            fontWeight: 600,
-            height: 28,
-            borderRadius: '9px',
-            cursor: 'pointer',
-            backgroundColor: 'var(--card)',
-            borderColor: 'var(--line-2)',
-            color: 'var(--body)',
-            '&:hover': { backgroundColor: 'var(--hover)', borderColor: 'var(--faint)' },
-            '& .MuiChip-icon': { fontSize: 13, color: 'var(--accent)' },
-          }}
+        <PlanningDateNav
+          currentDate={currentDate}
+          zoom={zoom}
+          onGoPrev={onGoPrev}
+          onGoToday={onGoToday}
+          onGoNext={onGoNext}
+          onZoomChange={onZoomChange}
         />
 
-        {/* Zoom selector — segmented control Signature (.s-seg) */}
-        <ToggleButtonGroup
-          value={zoom}
-          exclusive
-          onChange={(_, value) => value && onZoomChange(value)}
-          size="small"
-          sx={{
-            backgroundColor: 'var(--field)',
-            border: '1px solid var(--field-line)',
-            borderRadius: '10px',
-            p: '3px',
-            gap: '2px',
-            '& .MuiToggleButtonGroup-grouped': {
-              border: 0,
-              m: 0,
-              borderRadius: '7px !important',
-            },
-            '& .MuiToggleButton-root': {
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              lineHeight: 1,
-              padding: '6px 13px',
-              textTransform: 'none',
-              letterSpacing: '0.01em',
-              color: 'var(--muted)',
-              transition: 'background-color 140ms, color 140ms',
-              '&:hover': { backgroundColor: 'transparent', color: 'var(--body)' },
-              '&.Mui-selected': {
-                backgroundColor: 'var(--card)',
-                color: 'var(--ink)',
-                boxShadow: '0 1px 3px color-mix(in srgb, var(--ink) 10%, transparent)',
-                '&:hover': { backgroundColor: 'var(--card)' },
-              },
-              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            },
-          }}
-        >
-          {(Object.keys(ZOOM_LABELS) as ZoomLevel[]).map((level) => (
-            <ToggleButton key={level} value={level}>
-              {ZOOM_LABELS[level]}
-            </ToggleButton>
-          ))}
-        </ToggleButtonGroup>
-
-        <Box sx={{ flex: 1, minWidth: 8 }} />
+        <div className="flex-1 min-w-[8px]" />
 
         {/* Plein écran — escape hatch : seul moment où le PageHeader (qui porte
             désormais le toggle) est masqué, donc on le réaffiche ici pour
             pouvoir TOUJOURS ressortir du plein écran. */}
         {isFullscreen && (
-          <Tooltip title="Quitter le plein écran">
-            <IconButton
-              size="small"
-              onClick={onToggleFullscreen}
-              sx={{
-                width: 28,
-                height: 28,
-                flexShrink: 0,
-                color: 'var(--muted)',
-                '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--hover)' },
-              }}
-            >
-              <FullscreenExit size={18} strokeWidth={1.75} />
-            </IconButton>
+          <Tooltip>
+            {/* Le Button du kit ne transmet pas de ref : span d'ancrage. */}
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={onToggleFullscreen}
+                  aria-label="Quitter le plein écran"
+                  className="size-[28px] shrink-0 text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--hover)]"
+                >
+                  <FullscreenExit size={18} strokeWidth={1.75} />
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Quitter le plein écran</TooltipContent>
           </Tooltip>
         )}
-      </Box>
+      </div>
 
       {/* ── Rangée 2 (desktop) : filtres togglables fusionnés — canaux,
           statuts puis Interventions, sans libellés de rangée. Migrée dans la
           modale de filtres quand `legendInModal` (viewport compact OU
           constellation d'agents déployée) pour ne jamais dupliquer les chips. */}
       {!legendInModal && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+        <div className="flex items-center gap-1.5 flex-wrap">
           {/* Canaux : LOGO de canal (la pastille des briques), toggle masque/affiche */}
           <ChannelLegendChips activeChannels={activeChannels} onToggleChannel={onToggleChannel}
             presentChannels={presentChannels} />
@@ -246,9 +217,9 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
             active={filters.showInterventions}
             onToggle={() => onShowInterventionsChange(!filters.showInterventions)}
           />
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 });
 

@@ -8,7 +8,8 @@
      valeur display tabular-nums, cible muted).
    ============================================================ */
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { cn } from '../../../../utils/cn';
+
 import { Overline } from './shared';
 
 interface Kpi {
@@ -42,25 +43,11 @@ function statusColor(status?: string): string {
 }
 
 const KpiTile: React.FC<{ kpi: Kpi; idx: number }> = ({ kpi, idx }) => (
-  <Box
-    sx={{
-      position: 'relative',
-      px: 1.25,
-      py: 1,
-      borderRadius: '10px',
-      bgcolor: 'var(--card)',
-      border: '1px solid var(--line)',
-      '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: 8,
-        right: 8,
-        width: 6,
-        height: 6,
-        borderRadius: '50%',
-        bgcolor: statusColor(kpi.status),
-      },
-    }}
+  // La pastille de statut est calculee a l'execution : elle passe par une custom
+  // property, la classe qui la consomme reste statique.
+  <div
+    className="relative px-[7.5px] py-1.5 rounded-[10px] bg-[var(--card)] border border-solid border-[var(--line)] before:content-[''] before:absolute before:top-2 before:end-2 before:w-[6px] before:h-[6px] before:rounded-full before:bg-[var(--kpi-dot)]"
+    style={{ '--kpi-dot': statusColor(kpi.status) } as React.CSSProperties}
   >
     <Overline
       sx={{
@@ -73,24 +60,15 @@ const KpiTile: React.FC<{ kpi: Kpi; idx: number }> = ({ kpi, idx }) => (
     >
       {kpi.name ?? kpi.id ?? `KPI ${idx + 1}`}
     </Overline>
-    <Typography
-      sx={{
-        fontFamily: 'var(--font-display)',
-        fontSize: '1.05rem',
-        fontWeight: 600,
-        lineHeight: 1.2,
-        fontVariantNumeric: 'tabular-nums',
-        color: 'var(--ink)',
-      }}
-    >
+    <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.05rem] font-semibold leading-[1.2] tabular-nums text-[var(--ink)]">
       {kpi.value ?? '—'}
-    </Typography>
+    </p>
     {kpi.target && (
-      <Typography sx={{ display: 'block', color: 'var(--muted)', fontSize: '10.5px', mt: 0.25, fontVariantNumeric: 'tabular-nums' }}>
+      <p className="cn-text-body1 block text-[var(--muted)] text-[10.5px] mt-0.5 tabular-nums">
         cible {kpi.target}
-      </Typography>
+      </p>
     )}
-  </Box>
+  </div>
 );
 
 export const KpiSummaryResult: React.FC<{ data: KpiData }> = ({ data }) => {
@@ -101,59 +79,32 @@ export const KpiSummaryResult: React.FC<{ data: KpiData }> = ({ data }) => {
   const kpis = Array.isArray(data.kpis) ? data.kpis : [];
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5 }}>
+    <div className="mt-1.5 mb-2">
       {scorePct !== null && (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'baseline',
-            gap: 1.5,
-            mb: 1.5,
-            px: 2,
-            py: 1.75,
-            borderRadius: '12px',
-            bgcolor: critical ? 'var(--err-soft)' : 'var(--ok-soft)',
-          }}
-        >
-          <Typography
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '2.25rem',
-              fontWeight: 600,
-              lineHeight: 1,
-              fontVariantNumeric: 'tabular-nums',
-              letterSpacing: '-0.02em',
-              color: critical ? 'var(--err)' : 'var(--ok)',
-            }}
-          >
+        <div className={cn('flex items-baseline gap-[9px] mb-[9px] px-3 py-[10.5px] rounded-[12px]', critical ? 'bg-[var(--err-soft)]' : 'bg-[var(--ok-soft)]')}>
+          <p className={cn('cn-text-body1 text-[2.25rem] font-semibold leading-[1] tabular-nums tracking-[-0.02em]', critical ? 'text-[var(--err)]' : 'text-[var(--ok)]')} style={{ fontFamily: 'var(--font-display)' }}>
             {scorePct}
-            <Box component="span" sx={{ fontSize: '1.25rem', fontWeight: 500, ml: 0.25 }}>
+            <span className="text-[1.25rem] font-medium ms-0.5">
               %
-            </Box>
-          </Typography>
-          <Box>
+            </span>
+          </p>
+          <div>
             <Overline>Readiness score</Overline>
-            <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)' }}>
+            <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">
               {critical ? 'KPI critique en défaut' : 'Tous les KPI critiques OK'}
               {data.kpiCount !== undefined && ` · ${data.kpiCount} indicateurs`}
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
       )}
 
       {kpis.length > 0 && (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-            gap: 1,
-          }}
-        >
+        <div className="grid grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(3,_1fr)] gap-1.5">
           {kpis.map((kpi, idx) => (
             <KpiTile key={kpi.id ?? idx} kpi={kpi} idx={idx} />
           ))}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };

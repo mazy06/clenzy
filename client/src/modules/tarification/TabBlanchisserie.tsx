@@ -1,23 +1,19 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from '../../components/ui';
 import {
-  Box,
-  Typography,
-  TextField,
-  InputAdornment,
-  Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Button,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-} from '@mui/material';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  Switch,
+} from '../../components/ui';
 import { LocalLaundryService, Add, Delete } from '../../icons';
 import type { PricingConfig, BlanchisserieItem, CommissionConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -82,112 +78,133 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
   }, [config.commissionConfigs, onUpdate]);
 
   return (
-    <Box sx={{ pt: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+    <div className="pt-3">
+      <div className="flex items-center gap-1.5 mb-1.5">
         <LocalLaundryService size={20} strokeWidth={1.75} color='var(--accent)' />
-        <Typography variant="subtitle1" fontWeight={600}>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {t('tarification.blanchisserie.title')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('tarification.blanchisserie.subtitle')}
-      </Typography>
+      </p>
 
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell>{t('tarification.blanchisserie.article')}</TableCell>
-              <TableCell align="center">{t('tarification.blanchisserie.enabled')}</TableCell>
-              <TableCell align="right">{t('tarification.blanchisserie.price')}</TableCell>
-              {canEdit && <TableCell align="center" sx={{ width: 48 }} />}
+              <TableHead>{t('tarification.blanchisserie.article')}</TableHead>
+              <TableHead className="text-center">{t('tarification.blanchisserie.enabled')}</TableHead>
+              <TableHead className="text-end">{t('tarification.blanchisserie.price')}</TableHead>
+              {canEdit && <TableHead className="text-center w-12" />}
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {items.map((item, index) => (
               <TableRow key={item.key}>
                 <TableCell>
                   {t(`tarification.blanchisserie.items.${item.key}`, item.label)}
                 </TableCell>
-                <TableCell align="center">
+                <TableCell className="text-center">
                   <Switch
                     checked={item.enabled}
-                    onChange={(e) => updateItem(index, { enabled: e.target.checked })}
+                    onCheckedChange={(checked) => updateItem(index, { enabled: checked })}
                     disabled={!canEdit}
-                    size="small"
+                    size="sm"
+                    aria-label={t(`tarification.blanchisserie.items.${item.key}`, item.label)}
                   />
                 </TableCell>
-                <TableCell align="right" sx={{ width: 140 }}>
-                  <TextField
-                    type="number"
-                    size="small"
-                    value={item.price}
-                    onChange={(e) => {
-                      const num = parseFloat(e.target.value);
-                      if (!isNaN(num)) updateItem(index, { price: num });
-                    }}
-                    disabled={!canEdit || !item.enabled}
-                    inputProps={{ step: 0.5, min: 0, style: { textAlign: 'right' } }}
-                    InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-                    sx={{ width: 120 }}
-                  />
+                <TableCell className="text-end w-[140px]">
+                  {/* Pas de libelle visible : l'en-tete de colonne porte le sens,
+                      l'aria-label nomme la ligne concernee pour le lecteur d'ecran. */}
+                  <InputGroup className="w-[120px]">
+                    <InputGroupInput
+                      id={`laundry-price-${item.key}`}
+                      aria-label={t(`tarification.blanchisserie.items.${item.key}`, item.label)}
+                      type="number"
+                      className="text-end"
+                      value={item.price}
+                      onChange={(e) => {
+                        const num = parseFloat(e.target.value);
+                        if (!isNaN(num)) updateItem(index, { price: num });
+                      }}
+                      disabled={!canEdit || !item.enabled}
+                      step={0.5}
+                      min={0}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <CurrencySymbol code={currency} />
+                    </InputGroupAddon>
+                  </InputGroup>
                 </TableCell>
                 {canEdit && (
-                  <TableCell align="center">
-                    <IconButton size="small" onClick={() => removeItem(index)} color="error">
+                  <TableCell className="text-center">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => removeItem(index)}
+                      aria-label={t('tarification.delete', 'Supprimer')}
+                      className="text-[var(--err)] hover:bg-[var(--err-soft)]"
+                    >
                       <Delete size={16} strokeWidth={1.75} />
-                    </IconButton>
+                    </Button>
                   </TableCell>
                 )}
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
 
       {/* ─── Add button ────────────────────────────────────────────────── */}
       {canEdit && (
-        <Box sx={{ mt: 1.5 }}>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<Add />}
-            onClick={() => setAddDialogOpen(true)}
-            sx={{ textTransform: 'none' }}
-          >
+        <div className="mt-2">
+          <Button variant="outline" size="sm" onClick={() => setAddDialogOpen(true)}>
+            <Add />
             {t('tarification.addArticle')}
           </Button>
-        </Box>
+        </div>
       )}
 
       {/* ─── Add dialog ──────────────────────────────────────────────── */}
-      <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>{t('tarification.addArticle')}</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-          <TextField
-            label={t('tarification.newItem.label')}
-            value={newItemLabel}
-            onChange={(e) => setNewItemLabel(e.target.value)}
-            size="small"
-            fullWidth
-            autoFocus
-          />
-          <TextField
-            label={t('tarification.newItem.price')}
-            type="number"
-            value={newItemPrice}
-            onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
-            size="small"
-            fullWidth
-            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-          />
+      <Dialog open={addDialogOpen} onOpenChange={(next) => { if (!next) setAddDialogOpen(false); }}>
+        <DialogContent className="max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle>{t('tarification.addArticle')}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+          <Field>
+            <FieldLabel htmlFor="laundry-new-label">{t('tarification.newItem.label')}</FieldLabel>
+            <Input
+              id="laundry-new-label"
+              value={newItemLabel}
+              onChange={(e) => setNewItemLabel(e.target.value)}
+              autoFocus
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="laundry-new-price">{t('tarification.newItem.price')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="laundry-new-price"
+                type="number"
+                value={newItemPrice}
+                onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
+              />
+              <InputGroupAddon align="inline-end">
+                <CurrencySymbol code={currency} />
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddDialogOpen(false)}>{t('tarification.cancel')}</Button>
+            <Button onClick={handleAdd} disabled={!newItemLabel.trim()}>
+              {t('tarification.add')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddDialogOpen(false)}>{t('tarification.cancel')}</Button>
-          <Button onClick={handleAdd} variant="contained" disabled={!newItemLabel.trim()}>
-            {t('tarification.add')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* ─── Commission ──────────────────────────────────────────────── */}
@@ -198,6 +215,6 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
           onChange={handleCommissionChange}
         />
       )}
-    </Box>
+    </div>
   );
 }

@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Box, Button, Skeleton, Menu, MenuItem } from '@mui/material';
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Skeleton,
+} from '../../../components/ui';
 import { Sparkles, Rocket, AlertTriangle, Check, ArrowUp, Wand2, SquarePen, ChevronDown } from 'lucide-react';
 import { sitesApi, type Site, type SitePage } from '../../../services/api/sitesApi';
 
@@ -82,7 +90,6 @@ export default function SiteManagerPage() {
   const [refining, setRefining] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [turnsByPage, setTurnsByPage] = useState<Record<number, Turn[]>>({});
-  const [pageMenuAnchor, setPageMenuAnchor] = useState<HTMLElement | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
@@ -150,175 +157,147 @@ export default function SiteManagerPage() {
 
   if ((site === null || pages === null) && !error) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Skeleton variant="rounded" height="80vh" sx={{ borderRadius: '16px', bgcolor: 'var(--hover)' }} />
-      </Box>
+      <div className="p-4">
+        <Skeleton className="h-[80vh] w-full rounded-[16px] bg-[var(--hover)]" />
+      </div>
     );
   }
 
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'var(--bg)' }}>
+    <div className="h-[100vh] flex flex-col bg-[var(--bg)]">
       {/* Barre supérieure */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 3, py: 1.5, borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
-        <Button onClick={() => navigate('/booking-engine/studio')} sx={{ textTransform: 'none', color: 'var(--muted)', minWidth: 0 }}>← Studio</Button>
-        <Box sx={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{site?.name ?? 'Mon site'}</Box>
-        <Box sx={{ flex: 1 }} />
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-[var(--line)] shrink-0">
+        <Button variant="ghost" onClick={() => navigate('/booking-engine/studio')} className="text-[var(--muted)]">← Studio</Button>
+        <div className="text-[15px] font-bold text-[var(--ink)]">{site?.name ?? 'Mon site'}</div>
+        <div className="flex-1" />
         {/* Passage en ÉDITION MANUELLE : ouvre l'éditeur GrapesJS sur ce site (config liée). */}
         <Button
-          variant="text"
-          startIcon={<SquarePen size={16} strokeWidth={2} />}
+          variant="ghost"
           onClick={() => { if (site?.bookingEngineConfigId) navigate(`/booking-engine/studio/${site.bookingEngineConfigId}`); }}
           disabled={!site?.bookingEngineConfigId}
-          sx={{ textTransform: 'none', color: 'var(--muted)' }}
+          className="text-[var(--muted)]"
         >
+          <SquarePen size={16} strokeWidth={2} />
           Édition manuelle
         </Button>
         <Button
-          variant="contained" disableElevation
-          startIcon={<Rocket size={16} strokeWidth={2} />}
           onClick={handlePublish}
           disabled={publishing || !selected?.dirty}
-          sx={{ textTransform: 'none' }}
         >
+          <Rocket size={16} strokeWidth={2} />
           {publishing ? 'Publication…' : selected?.dirty ? 'Publier cette page' : 'Publié'}
         </Button>
-      </Box>
+      </div>
 
       {error && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mx: 3, mt: 1.5, p: 1.25, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 13 }}>
+        <div className="flex items-center gap-1.5 mx-4 mt-2 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[13px]">
           <AlertTriangle size={16} strokeWidth={2} /> {error}
-        </Box>
+        </div>
       )}
 
       {/* Corps : aperçu | conversation (la sélection de page vit dans la barre d'adresse de l'aperçu). */}
-      <Box sx={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 360px' }, gap: 0 }}>
+      <div className="flex-1 min-h-0 grid grid-cols-[1fr] min-[900px]:grid-cols-[1fr_360px] gap-0">
 
         {/* Aperçu live */}
-        <Box sx={{ p: 2, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          <Box sx={{ flex: 1, minHeight: 0, border: '1px solid var(--line)', borderRadius: 'var(--radius-lg, 14px)', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 40px -24px rgba(20,30,55,0.35)' }}>
+        <div className="p-3 min-w-0 flex flex-col">
+          <div className="flex-1 min-h-0 border border-solid border-[var(--line)] rounded-[var(--radius-lg,_14px)] overflow-hidden flex flex-col" style={{ boxShadow: '0 10px 40px -24px rgba(20,30,55,0.35)' }}>
             {/* Chrome navigateur */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 1, bgcolor: 'var(--surface-2, #f4f5f8)', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
-              <Box sx={{ display: 'flex', gap: 0.6 }}>
-                {['#ff5f57', '#febc2e', '#28c840'].map((c) => <Box key={c} sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: c }} />)}
-              </Box>
+            <div className="flex items-center gap-1.5 px-[9px] py-1.5 bg-[var(--surface-2,_#f4f5f8)] shrink-0" style={{ borderBottom: '1px solid var(--line)' }}>
+              <div className="flex gap-1">
+                {['#ff5f57', '#febc2e', '#28c840'].map((c) => <div className="w-[10px] h-[10px] rounded-[50%]" style={{ backgroundColor: c }} key={c} />)}
+              </div>
               {/* Barre d'adresse = sélecteur de page (remplace la colonne « Pages » retirée). */}
-              <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0 }}>
-                <Box
-                  component="button" type="button" onClick={(e: React.MouseEvent<HTMLButtonElement>) => setPageMenuAnchor(e.currentTarget)}
-                  aria-label="Changer de page"
-                  sx={{
-                    display: 'inline-flex', alignItems: 'center', gap: 0.75, maxWidth: '100%', cursor: 'pointer',
-                    border: '1px solid var(--line)', bgcolor: 'var(--field, #fff)', borderRadius: 'var(--radius-pill, 999px)',
-                    px: 1.5, py: 0.4, color: 'var(--muted)', fontSize: 12,
-                    transition: 'border-color 150ms ease', '&:hover': { borderColor: 'var(--accent)' },
-                  }}
-                >
-                  <Box component="span" sx={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {site?.slug ? `${site.slug}.baitly.site` : 'aperçu'}{selected?.path && selected.path !== '/' ? selected.path : ''}
-                  </Box>
-                  {selected?.dirty && <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'var(--accent)', flexShrink: 0 }} />}
-                  <ChevronDown size={13} strokeWidth={2.2} style={{ flexShrink: 0 }} />
-                </Box>
-              </Box>
-            </Box>
+              <div className="flex-1 flex justify-center min-w-0">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="inline-flex items-center gap-[4.5px] max-w-full cursor-pointer border border-solid border-[var(--line)] bg-[var(--field,_#fff)] rounded-[var(--radius-pill,_999px)] px-[9px] py-[2.4000000000000004px] text-[var(--muted)] text-[12px] hover:border-[var(--accent)]" style={{ transition: 'border-color 150ms ease' }} type="button" aria-label="Changer de page">
+                      <span className="tabular-nums whitespace-nowrap overflow-hidden text-ellipsis">
+                        {site?.slug ? `${site.slug}.baitly.site` : 'aperçu'}{selected?.path && selected.path !== '/' ? selected.path : ''}
+                      </span>
+                      {selected?.dirty && <div className="w-[6px] h-[6px] rounded-[50%] bg-[var(--accent)] shrink-0" />}
+                      <ChevronDown size={13} strokeWidth={2.2} style={{ flexShrink: 0 }} />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center">
+                    {pages?.map((p) => (
+                      <DropdownMenuItem
+                        key={p.id}
+                        onSelect={() => setSelectedId(p.id)}
+                        className="text-[13px] gap-[9px] min-w-[240px]"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-[var(--ink)] whitespace-nowrap overflow-hidden text-ellipsis">{p.title || p.path}</div>
+                          <div className="text-[11px] text-[var(--muted)] tabular-nums">{p.path}</div>
+                        </div>
+                        {p.dirty
+                          ? <div className="w-[7px] h-[7px] rounded-[50%] bg-[var(--accent)] shrink-0" title="Brouillon non publié" />
+                          : <Check size={14} strokeWidth={2.4} color="var(--muted)" />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
 
-            <Menu
-              anchorEl={pageMenuAnchor} open={!!pageMenuAnchor} onClose={() => setPageMenuAnchor(null)}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} transformOrigin={{ vertical: 'top', horizontal: 'center' }}
-            >
-              {pages?.map((p) => (
-                <MenuItem
-                  key={p.id} selected={p.id === selectedId}
-                  onClick={() => { setSelectedId(p.id); setPageMenuAnchor(null); }}
-                  sx={{ fontSize: 13, gap: 1.5, minWidth: 240 }}
-                >
-                  <Box sx={{ minWidth: 0, flex: 1 }}>
-                    <Box sx={{ fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.title || p.path}</Box>
-                    <Box sx={{ fontSize: 11, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>{p.path}</Box>
-                  </Box>
-                  {p.dirty
-                    ? <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: 'var(--accent)', flexShrink: 0 }} title="Brouillon non publié" />
-                    : <Check size={14} strokeWidth={2.4} color="var(--muted)" />}
-                </MenuItem>
-              ))}
-            </Menu>
-            <Box sx={{ position: 'relative', flex: 1, minHeight: 0, bgcolor: '#fff' }}>
+            <div className="relative flex-1 min-h-0 bg-[#fff]">
               {refining && (
-                <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(255,255,255,0.55)', display: 'grid', placeItems: 'center', zIndex: 2, fontSize: 13, color: 'var(--muted)', gap: 1 }}>
+                <div className="absolute inset-0 bg-[rgba(255,255,255,0.55)] grid place-items-[center] z-[2] text-[13px] text-[var(--muted)] gap-1.5">
                   <Wand2 size={20} strokeWidth={1.8} /> Retouche en cours…
-                </Box>
+                </div>
               )}
               <iframe title="Aperçu de la page" srcDoc={srcDoc} sandbox="" style={{ width: '100%', height: '100%', border: 0, background: '#fff', display: 'block' }} />
-            </Box>
-          </Box>
-        </Box>
+            </div>
+          </div>
+        </div>
 
         {/* Conversation d'itération */}
-        <Box sx={{ borderLeft: '1px solid var(--line)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+        <div className="border-s border-[var(--line)] flex flex-col min-h-0">
+          <div className="px-3 py-2 border-b border-[var(--line)] flex items-center gap-1.5 shrink-0">
             <Sparkles size={16} strokeWidth={2} color="var(--accent)" />
-            <Box sx={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>Assistant de design</Box>
-          </Box>
+            <div className="text-[13.5px] font-bold text-[var(--ink)]">Assistant de design</div>
+          </div>
 
-          <Box ref={logRef} sx={{ flex: 1, minHeight: 0, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+          <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-2" ref={logRef}>
             {turns.length === 0 && !refining && (
-              <Box sx={{ color: 'var(--muted)', fontSize: 13, lineHeight: 1.6 }}>
+              <div className="text-[var(--muted)] text-[13px] leading-[1.6]">
                 Décrivez une modification de la page <b>{selected?.title || selected?.path}</b> en langage naturel.
-                <Box component="ul" sx={{ pl: 2.5, mt: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <ul className="ps-3.5 mt-1.5 flex flex-col gap-0.5">
                   <li>« Rends le hero plus chaleureux »</li>
                   <li>« Passe la liste des logements en 2 colonnes »</li>
                   <li>« Ajoute une section “à propos” sous le hero »</li>
-                </Box>
-              </Box>
+                </ul>
+              </div>
             )}
             {turns.map((turn, i) => (
-              <Box
-                key={i}
-                sx={{
-                  alignSelf: turn.role === 'user' ? 'flex-end' : 'flex-start',
-                  maxWidth: '88%', px: 1.5, py: 1, borderRadius: 'var(--radius-md)', fontSize: 13, lineHeight: 1.5,
-                  bgcolor: turn.role === 'user' ? 'var(--accent)' : turn.error ? 'var(--err-soft)' : 'var(--hover)',
-                  color: turn.role === 'user' ? '#fff' : turn.error ? 'var(--err)' : 'var(--ink)',
-                  display: 'flex', gap: 0.75, alignItems: 'flex-start',
-                }}
-              >
+              <div className={cn('max-w-[88%] px-[9px] py-1.5 rounded-[var(--radius-md)] text-[13px] leading-[1.5] flex gap-[4.5px] items-start', turn.role === 'user' ? 'self-end' : 'self-start', turn.role === 'user' ? 'bg-[var(--accent)]' : turn.error ? 'bg-[var(--err-soft)]' : 'bg-[var(--hover)]', turn.role === 'user' ? 'text-[#fff]' : turn.error ? 'text-[var(--err)]' : 'text-[var(--ink)]')} key={i}>
                 {turn.role === 'assistant' && !turn.error && <Check size={15} strokeWidth={2.4} style={{ flexShrink: 0, marginTop: 1 }} />}
                 {turn.role === 'assistant' && turn.error && <AlertTriangle size={15} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />}
                 <span>{turn.text}</span>
-              </Box>
+              </div>
             ))}
             {refining && (
-              <Box sx={{ alignSelf: 'flex-start', px: 1.5, py: 1, borderRadius: 'var(--radius-md)', bgcolor: 'var(--hover)', color: 'var(--muted)', fontSize: 13 }}>…</Box>
+              <div className="self-start px-2 py-1.5 rounded-[var(--radius-md)] bg-[var(--hover)] text-[var(--muted)] text-[13px]">…</div>
             )}
-          </Box>
+          </div>
 
-          <Box sx={{ p: 1.5, borderTop: '1px solid var(--line)', flexShrink: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1, border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', px: 1, py: 0.75, bgcolor: 'var(--field, #fff)' }}>
-              <Box
-                component="textarea"
+          <div className="p-2 border-t border-[var(--line)] shrink-0">
+            <div className="flex items-end gap-1.5 border border-solid border-[var(--line)] rounded-[var(--radius-md)] px-1.5 py-[4.5px] bg-[var(--field,_#fff)]">
+              <textarea
                 value={instruction}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInstruction(e.target.value)}
-                onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleRefine(); } }}
+                onChange={(e) => setInstruction(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleRefine(); } }}
                 placeholder="Décrivez une modification…"
                 disabled={refining}
                 rows={2}
-                sx={{ flex: 1, resize: 'none', border: 0, outline: 0, bgcolor: 'transparent', fontFamily: 'inherit', fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.5, py: 0.5 }}
+                className="flex-1 resize-none border-0 outline-0 bg-transparent [font-family:inherit] text-[13.5px] text-[var(--ink)] leading-[1.5] py-[3px]"
               />
-              <Box
-                component="button" type="button" aria-label="Envoyer" onClick={handleRefine}
-                disabled={refining || !instruction.trim()}
-                sx={{
-                  flexShrink: 0, width: 34, height: 34, borderRadius: '50%', border: 0, cursor: refining || !instruction.trim() ? 'default' : 'pointer',
-                  bgcolor: instruction.trim() && !refining ? 'var(--accent)' : 'var(--line)', color: '#fff',
-                  display: 'grid', placeItems: 'center', transition: 'background 150ms ease',
-                }}
-              >
+              <button className={cn('shrink-0 w-[34px] h-[34px] rounded-[50%] text-[#fff] grid place-items-[center]', refining || !instruction.trim() ? 'cursor-default' : 'cursor-pointer', instruction.trim() && !refining ? 'bg-[var(--accent)]' : 'bg-[var(--line)]')} style={{ border: 0, transition: 'background 150ms ease' }} type="button" aria-label="Envoyer" onClick={handleRefine} disabled={refining || !instruction.trim()}>
                 <ArrowUp size={17} strokeWidth={2.4} />
-              </Box>
-            </Box>
-          </Box>
-        </Box>
-      </Box>
-    </Box>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

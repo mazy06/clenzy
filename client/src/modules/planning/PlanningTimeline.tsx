@@ -1,11 +1,12 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Box, Paper } from '@mui/material';
+import { Card } from '../../components/ui';
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import PlanningDateHeaders from './PlanningDateHeaders';
 import PlanningPropertyColumn from './PlanningPropertyColumn';
 import PlanningRow from './PlanningRow';
 import PlanningTodayLine from './PlanningTodayLine';
 import PlanningBarGhost from './PlanningBarGhost';
+import PlanningOccupancyRow from './PlanningOccupancyRow';
 // Tokens locaux de la grille (week-end clair/sombre) + animations d'urgence :
 // importé ici pour garantir la présence des custom properties --pl-*-we dès
 // le rendu des entêtes/cellules.
@@ -52,6 +53,8 @@ interface PlanningTimelineProps {
   /** Nb de cartes HITL en attente par logement → pastille sur la cellule. */
   pendingCountByProperty?: Map<number, number>;
   pageSize?: number;
+  /** Occupation par jour (alignée sur `days`) — rangée pied de grille, absente = masquée. */
+  dayOccupancy?: number[];
   /** Superviseur d'agents : logement déployé en accordéon (null = aucun). */
   expandedPropertyId?: number | null;
   /** Toggle du chevron d'accordéon (gated par le rôle côté parent). */
@@ -87,6 +90,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   channelSyncMap,
   pendingCountByProperty,
   pageSize,
+  dayOccupancy,
   expandedPropertyId = null,
   onToggleExpanded,
   renderExpanded,
@@ -176,20 +180,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   }, [events]);
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        flex: 1,
-        minHeight: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        // Carte Signature : hairline + radius lg (maquette .pl-grid)
-        backgroundColor: 'var(--card)',
-        border: '1px solid var(--line)',
-        borderRadius: 'var(--radius-lg)',
-        overflow: 'hidden',
-      }}
-    >
+    <Card className="gap-0 py-0 flex-1 min-h-[0px] flex flex-col bg-[var(--card)] overflow-hidden">
       <DndContext
         sensors={drag.sensors}
         modifiers={drag.modifiers}
@@ -198,23 +189,19 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
         onDragEnd={drag.handleDragEnd}
         onDragCancel={drag.handleDragCancel}
       >
-        <Box
-          ref={scrollRef}
+        {/* Jamais de scroll vertical : la grille paginée et l'accordéon (dont la
+            hauteur est calculée pour tenir dans le viewport) ne débordent pas.
+            La barre de défilement est masquée sur les deux moteurs. */}
+        <div
+          // Box typait son `ref` souplement ; un element intrinseque exige un
+          // `RefObject<HTMLDivElement>` strict, la ou le hook expose
+          // `RefObject<HTMLDivElement | null>`. Meme objet, simple variance.
+          ref={scrollRef as React.RefObject<HTMLDivElement>}
           onScroll={onScroll}
-          sx={{
-            flex: 1,
-            overflowX: 'auto',
-            // Jamais de scroll vertical : la grille paginée et l'accordéon (dont la
-            // hauteur est calculée pour tenir dans le viewport) ne débordent pas.
-            overflowY: 'hidden',
-            position: 'relative',
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'none',           // Firefox
-            '&::-webkit-scrollbar': { display: 'none' },  // Chrome/Safari
-          }}
+          className="flex-1 relative overflow-x-auto overflow-y-hidden [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {/* Scrollable content: headers + rows */}
-          <Box sx={{ width: propertyColWidth + totalGridWidth, minWidth: '100%' }}>
+          <div className="min-w-full" style={{ width: propertyColWidth + totalGridWidth }}>
             {/* Date headers (sticky top) */}
             <PlanningDateHeaders
               days={days}
@@ -226,7 +213,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
             />
 
             {/* Body: property column + grid rows */}
-            <Box sx={{ display: 'flex', position: 'relative' }}>
+            <div className="flex relative">
               {/* Property column (sticky left) */}
               <PlanningPropertyColumn
                 properties={properties}
@@ -245,7 +232,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
               />
 
               {/* Grid rows */}
-              <Box sx={{ position: 'relative', width: totalGridWidth, flexShrink: 0 }}>
+              <div className="relative shrink-0" style={{ width: totalGridWidth }}>
                 {/* Today line spanning all rows */}
                 <PlanningTodayLine
                   days={days}
@@ -290,40 +277,18 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                       loadedReservations={loadedReservations}
                     />
                     {expandedPropertyId === property.id && renderExpanded && (
-                      <Box
-                        sx={{
-                          position: 'relative',
-                          width: totalGridWidth,
-                          height: accordionHeight,
-                          borderBottom: '1px solid var(--line)',
-                          backgroundColor: 'var(--bg)',
-                          // PAS de fondu d'opacité ici : le panneau interne (sticky, tiré à
-                          // gauche par ml) est OPAQUE dès la 1re frame → il couvre le spacer
-                          // sombre côté colonne instantanément. Un fondu rendait la
-                          // constellation semi-transparente 260ms et laissait voir le spacer
-                          // (bloc sombre qui « s'affichait et se fermait »). Ni overflow:hidden
-                          // ni transform ici (casseraient le sticky du panneau).
-                        }}
-                      >
+                      <div className="relative bg-[var(--bg)]" style={{ width: totalGridWidth, height: accordionHeight, borderBottom: '1px solid var(--line)' }}>
                         {/* Panneau calé sur le viewport (sticky-left) + tiré sous la
-                            colonne sticky (ml négatif) → plein largeur, ne défile pas. */}
-                        <Box
-                          sx={{
-                            position: 'sticky',
-                            left: 0,
-                            ml: `-${propertyColWidth}px`,
-                            width: viewport.width || '100%',
-                            height: '100%',
-                            zIndex: 11,
-                            // Pas de padding : le canvas sombre (flush) couvre TOUT
-                            // l'accordéon, sans espace vide autour.
-                            p: 0,
-                            boxSizing: 'border-box',
-                          }}
+                            colonne sticky (ml négatif) → plein largeur, ne défile pas.
+                            Pas de padding : le canvas sombre (flush) couvre TOUT
+                            l'accordéon. Retrait gauche et largeur sont calculés → `style`. */}
+                        <div
+                          className="sticky left-0 h-full z-[11] p-0 box-border"
+                          style={{ marginLeft: `-${propertyColWidth}px`, width: viewport.width || '100%' }}
                         >
                           {renderExpanded(property)}
-                        </Box>
-                      </Box>
+                        </div>
+                      </div>
                     )}
                   </React.Fragment>
                 ))}
@@ -331,19 +296,25 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                 {/* Empty filler rows to fill remaining space — fond plat
                     (spec : pas de zebra) */}
                 {Array.from({ length: emptyRowCount }, (_, i) => (
-                  <Box
-                    key={`empty-grid-${i}`}
-                    sx={{
-                      height: effectiveRowHeight,
-                      width: totalGridWidth,
-                      backgroundColor: 'transparent',
-                    }}
-                  />
+                  <div className="bg-[transparent]" style={{ height: effectiveRowHeight, width: totalGridWidth }} key={`empty-grid-${i}`} />
                 ))}
-              </Box>
-            </Box>
-          </Box>
-        </Box>
+              </div>
+            </div>
+
+            {/* Rangée « Occupation » (projection) — masquée en mode accordéon :
+                l'accordéon est dimensionné pour remplir EXACTEMENT le viewport,
+                une rangée de plus créerait un débordement vertical. */}
+            {dayOccupancy && expandedPropertyId == null && (
+              <PlanningOccupancyRow
+                days={days}
+                dayWidth={dayWidth}
+                totalGridWidth={totalGridWidth}
+                propertyColWidth={propertyColWidth}
+                occupancy={dayOccupancy}
+              />
+            )}
+          </div>
+        </div>
 
         {/* Drag ghost overlay — only for move, resize uses live width on the bar */}
         <DragOverlay dropAnimation={null}>
@@ -355,7 +326,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
           )}
         </DragOverlay>
       </DndContext>
-    </Paper>
+    </Card>
   );
 });
 

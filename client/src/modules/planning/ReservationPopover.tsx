@@ -1,5 +1,10 @@
 import React from 'react';
-import { Box, Button, Popover, useMediaQuery } from '@mui/material';
+import {
+  Button,
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+} from '../../components/ui';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -59,30 +64,22 @@ function InfoRow({
   valueColor?: string;
 }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: '14px', py: '7px' }}>
-      <Box sx={{ display: 'inline-flex', alignItems: 'center', color: 'var(--muted)', flexShrink: 0 }}>
+    <div className="flex items-center gap-1.5 px-3.5 py-[7px]">
+      <div className="inline-flex items-center text-[var(--muted)] shrink-0">
         {icon}
-      </Box>
-      <Box component="span" sx={{ fontSize: ROW_LABEL_FS, color: 'var(--muted)', flexShrink: 0 }}>
+      </div>
+      <span className="text-[var(--muted)] shrink-0" style={{ fontSize: ROW_LABEL_FS }}>
         {label}
-      </Box>
-      <Box
-        component="span"
-        sx={{
-          ml: 'auto',
-          fontSize: ROW_VALUE_FS,
-          fontWeight: 600,
-          color: valueColor ?? 'var(--ink)',
-          fontVariantNumeric: 'tabular-nums',
-          minWidth: 0,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
+      </span>
+      {/* `ms-auto` (logique) et non `ml-auto` : le `ml` du sx passait par le plugin
+          RTL d'Emotion, pas les classes Tailwind. */}
+      <span
+        className="ms-auto font-semibold tabular-nums min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
+        style={{ fontSize: ROW_VALUE_FS, color: valueColor ?? 'var(--ink)' }}
       >
         {value}
-      </Box>
-    </Box>
+      </span>
+    </div>
   );
 }
 
@@ -106,7 +103,6 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
   onDetail,
   onMessage,
 }) => {
-  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const reservation = event.reservation;
   if (!reservation) return null;
 
@@ -129,72 +125,47 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
       : null;
 
   return (
-    <Popover
-      open
-      anchorEl={anchorEl}
-      onClose={onClose}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      transformOrigin={{ vertical: 'top', horizontal: 'center' }}
-      transitionDuration={reduceMotion ? 0 : undefined}
-      slotProps={{
-        paper: {
-          sx: {
-            width: 290,
-            borderRadius: '14px',
-            border: '1px solid var(--line)',
-            boxShadow: 'var(--shadow-pop)',
-            backgroundColor: 'var(--card)',
-            backgroundImage: 'none',
-            overflow: 'hidden',
-          },
-        },
-      }}
-    >
+    // L'ancre est une brique de la grille de planning, qui vit HORS de cet arbre :
+    // elle est fournie a Radix en `virtualRef`, ce qui evite d'avoir a deplacer le
+    // declencheur dans ce composant. `PopoverAnchor` ne rend alors aucun noeud.
+    <Popover open onOpenChange={(next) => { if (!next) onClose(); }}>
+      <PopoverAnchor virtualRef={{ current: anchorEl }} />
+      <PopoverContent
+        side="bottom"
+        align="center"
+        aria-label="Récapitulatif de la réservation"
+        className="w-[290px] gap-0 p-0 rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] shadow-[var(--shadow-pop)] ring-0 overflow-hidden motion-reduce:animate-none"
+      >
       {/* Entête : avatar 40 + nom + canal (logo + label) */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: '12px 14px' }}>
+      {/* `p-[12px 14px]` (espace = classe invalide, silencieusement ignoree)
+          remplace par les deux axes. */}
+      <div className="flex items-center gap-[7.5px] px-3.5 py-3">
         <GuestAvatar
           name={event.label}
           photoUrl={reservation.guestAvatarUrl}
           size={40}
           sx={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)', fontSize: '0.8125rem' }}
         />
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Box
-            component="span"
-            sx={{
-              display: 'block',
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              color: 'var(--ink)',
-              lineHeight: 1.25,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
+        <div className="min-w-0 flex-1">
+          <span className="block text-[0.8125rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
             {event.label}
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: '2px' }}>
+          </span>
+          <div className="flex items-center gap-[3px] mt-0.5">
             {sourceLogo && (
-              <Box
-                component="img"
-                src={sourceLogo}
-                alt=""
-                sx={{ width: 12, height: 12, objectFit: 'contain', display: 'block' }}
-              />
+              <img className="w-[12px] h-[12px] object-contain block" src={sourceLogo} alt="" />
             )}
-            <Box component="span" sx={{ fontSize: '0.65625rem', color: 'var(--muted)' }}>
+            <span className="text-[0.65625rem] text-[var(--muted)]">
               {channelLabel}
-            </Box>
-          </Box>
-        </Box>
-      </Box>
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* Lignes séparées hairline (la 1ère est séparée de l'entête) */}
-      <Box sx={{ '& > *': { borderTop: '1px solid var(--line)' } }}>
+      <div className="[&>*]:border-t [&>*]:border-solid [&>*]:border-t-[var(--line)]">
         <InfoRow
           icon={
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: statusColor }} />
+            <div className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: statusColor }} />
           }
           label="Statut"
           value={statusLabel}
@@ -233,47 +204,24 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
             valueColor={payment.color}
           />
         )}
-      </Box>
+      </div>
 
-      {/* Pied : Message (outlined neutre) + Détail (outlined accent) */}
-      <Box sx={{ display: 'flex', gap: 1, p: '10px 14px', borderTop: '1px solid var(--line)' }}>
-        <Button
-          size="small"
-          variant="outlined"
-          fullWidth
-          startIcon={<ChatBubbleOutline size={ICON_SIZE} strokeWidth={1.75} />}
-          onClick={onMessage}
-          sx={{
-            textTransform: 'none',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            borderRadius: '9px',
-            color: 'var(--ink)',
-            borderColor: 'var(--line-2)',
-            '&:hover': { borderColor: 'var(--ink)', backgroundColor: 'var(--hover)' },
-          }}
-        >
+      {/* Pied : Message (secondaire) + Détail (action principale du popover) */}
+      {/* `p-[10px 14px]` (espace = classe invalide, silencieusement ignoree)
+          remplace par les deux axes. */}
+      <div className="flex gap-1.5 px-3.5 py-2.5" style={{ borderTop: '1px solid var(--line)' }}>
+        <Button variant="outline" size="sm" className="w-full shrink" onClick={onMessage}>
+          <ChatBubbleOutline size={ICON_SIZE} strokeWidth={1.75} />
           Message
         </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          fullWidth
-          startIcon={<Visibility size={ICON_SIZE} strokeWidth={1.75} />}
-          onClick={onDetail}
-          sx={{
-            textTransform: 'none',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            borderRadius: '9px',
-            color: 'var(--accent)',
-            borderColor: 'var(--accent)',
-            '&:hover': { borderColor: 'var(--accent-deep)', backgroundColor: 'var(--accent-soft)' },
-          }}
-        >
+        {/* L'ancien sx teintait ce bouton en accent : c'est l'action attendue au clic
+            sur une brique — donc `default` et non un second `outline`. */}
+        <Button size="sm" className="w-full shrink" onClick={onDetail}>
+          <Visibility size={ICON_SIZE} strokeWidth={1.75} />
           Détail
         </Button>
-      </Box>
+      </div>
+      </PopoverContent>
     </Popover>
   );
 };

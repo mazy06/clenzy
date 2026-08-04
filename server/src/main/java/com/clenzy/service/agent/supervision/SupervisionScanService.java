@@ -52,6 +52,17 @@ public class SupervisionScanService {
     private final GuestInstructionsScanner guestInstructionsScanner;
     private final GuestEmailMissingScanner guestEmailMissingScanner;
     private final GuestMessageFailedScanner guestMessageFailedScanner;
+    private final PostStayReviewScanner postStayReviewScanner;
+    private final CleaningPayoutScanner cleaningPayoutScanner;
+    private final ComplianceScanner complianceScanner;
+    private final RevenuePlanScanner revenuePlanScanner;
+    private final GuestUpsellScanner guestUpsellScanner;
+    private final OpsMaintenanceScanner opsMaintenanceScanner;
+    private final FinanceIncidentScanner financeIncidentScanner;
+    private final OwnerRelationScanner ownerRelationScanner;
+    private final GrowthDistributionScanner growthDistributionScanner;
+    private final EscalationScanner escalationScanner;
+    private final MessageIntentScanner messageIntentScanner;
     private final PropertyRepository propertyRepository;
     private final OrganizationAccessGuard organizationAccessGuard;
     private final TenantContext tenantContext;
@@ -66,6 +77,17 @@ public class SupervisionScanService {
                                   GuestInstructionsScanner guestInstructionsScanner,
                                   GuestEmailMissingScanner guestEmailMissingScanner,
                                   GuestMessageFailedScanner guestMessageFailedScanner,
+                                  PostStayReviewScanner postStayReviewScanner,
+                                  CleaningPayoutScanner cleaningPayoutScanner,
+                                  ComplianceScanner complianceScanner,
+                                  RevenuePlanScanner revenuePlanScanner,
+                                  GuestUpsellScanner guestUpsellScanner,
+                                  OpsMaintenanceScanner opsMaintenanceScanner,
+                                  FinanceIncidentScanner financeIncidentScanner,
+                                  OwnerRelationScanner ownerRelationScanner,
+                                  GrowthDistributionScanner growthDistributionScanner,
+                                  EscalationScanner escalationScanner,
+                                  MessageIntentScanner messageIntentScanner,
                                   PropertyRepository propertyRepository,
                                   OrganizationAccessGuard organizationAccessGuard,
                                   TenantContext tenantContext) {
@@ -79,6 +101,17 @@ public class SupervisionScanService {
         this.guestInstructionsScanner = guestInstructionsScanner;
         this.guestEmailMissingScanner = guestEmailMissingScanner;
         this.guestMessageFailedScanner = guestMessageFailedScanner;
+        this.postStayReviewScanner = postStayReviewScanner;
+        this.cleaningPayoutScanner = cleaningPayoutScanner;
+        this.complianceScanner = complianceScanner;
+        this.revenuePlanScanner = revenuePlanScanner;
+        this.guestUpsellScanner = guestUpsellScanner;
+        this.opsMaintenanceScanner = opsMaintenanceScanner;
+        this.financeIncidentScanner = financeIncidentScanner;
+        this.ownerRelationScanner = ownerRelationScanner;
+        this.growthDistributionScanner = growthDistributionScanner;
+        this.escalationScanner = escalationScanner;
+        this.messageIntentScanner = messageIntentScanner;
         this.propertyRepository = propertyRepository;
         this.organizationAccessGuard = organizationAccessGuard;
         this.tenantContext = tenantContext;
@@ -144,6 +177,17 @@ public class SupervisionScanService {
         guestInstructionsScanner.scanProperty(orgId, propertyId);
         guestEmailMissingScanner.scanProperty(orgId, propertyId);
         guestMessageFailedScanner.scanProperty(orgId, propertyId);
+        postStayReviewScanner.scanProperty(orgId, propertyId);
+        cleaningPayoutScanner.scanProperty(orgId, propertyId);
+        complianceScanner.scanProperty(orgId, propertyId);
+        revenuePlanScanner.scanProperty(orgId, propertyId);
+        guestUpsellScanner.scanProperty(orgId, propertyId);
+        opsMaintenanceScanner.scanProperty(orgId, propertyId);
+        financeIncidentScanner.scanProperty(orgId, propertyId);
+        ownerRelationScanner.scanProperty(orgId, propertyId);
+        growthDistributionScanner.scanProperty(orgId, propertyId);
+        escalationScanner.scanProperty(orgId, propertyId);
+        messageIntentScanner.scanProperty(orgId, propertyId);
     }
 
     /**
@@ -159,6 +203,18 @@ public class SupervisionScanService {
             reviewModerationScanner.scanProperty(orgId, propertyId);
             guestInstructionsScanner.scanProperty(orgId, propertyId);
             guestEmailMissingScanner.scanProperty(orgId, propertyId);
+            guestMessageFailedScanner.scanProperty(orgId, propertyId);
+            postStayReviewScanner.scanProperty(orgId, propertyId);
+            cleaningPayoutScanner.scanProperty(orgId, propertyId);
+            complianceScanner.scanProperty(orgId, propertyId);
+            revenuePlanScanner.scanProperty(orgId, propertyId);
+        guestUpsellScanner.scanProperty(orgId, propertyId);
+        opsMaintenanceScanner.scanProperty(orgId, propertyId);
+        financeIncidentScanner.scanProperty(orgId, propertyId);
+        ownerRelationScanner.scanProperty(orgId, propertyId);
+        growthDistributionScanner.scanProperty(orgId, propertyId);
+        escalationScanner.scanProperty(orgId, propertyId);
+        messageIntentScanner.scanProperty(orgId, propertyId);
         }
         AtomicInteger activities = new AtomicInteger();
         AtomicInteger suggestions = new AtomicInteger();

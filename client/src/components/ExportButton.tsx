@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
-import {
-  Button,
-  IconButton,
-  Menu,
-  MenuItem,
-  Snackbar,
-  Alert,
-  Tooltip,
-  ListItemIcon,
-  ListItemText,
-} from '@mui/material';
+import React from 'react';
 import {
   Download as DownloadIcon,
   Description as CsvIcon,
 } from '../icons';
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from './ui';
 import { exportToCSV, type ExportColumn } from '../utils/exportUtils';
 import { useTranslation } from '../hooks/useTranslation';
+import { useNotification } from '../hooks/useNotification';
 
 interface ExportButtonProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,27 +28,6 @@ interface ExportButtonProps {
   onExport?: () => void;
 }
 
-// ─── Stable sx constants ────────────────────────────────────────────────────
-
-const MENU_ITEM_SX = {
-  fontSize: '12.5px',
-  py: 0.5,
-  minHeight: 32,
-} as const;
-
-// Snackbar succès — alerte -soft hairline flottante (fond opaque + couche ok-soft)
-const SNACKBAR_ALERT_SX = {
-  width: '100%',
-  fontSize: '12.5px',
-  bgcolor: 'var(--card)',
-  backgroundImage: 'linear-gradient(var(--ok-soft), var(--ok-soft))',
-  border: '1px solid color-mix(in srgb, var(--ok) 30%, transparent)',
-  borderRadius: '12px',
-  color: 'var(--body)',
-  boxShadow: 'var(--shadow-pop)',
-  '& .MuiAlert-icon': { color: 'var(--ok)' },
-} as const;
-
 export default function ExportButton({
   data,
   columns,
@@ -59,122 +38,99 @@ export default function ExportButton({
   onExport,
 }: ExportButtonProps) {
   const { t } = useTranslation();
-  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const { notify } = useNotification();
 
   const isDataEmpty = !data || data.length === 0;
   const isDisabled = disabled || isDataEmpty;
 
   const handleExportCSV = () => {
     exportToCSV(data, columns, fileName);
-    setSnackbarOpen(true);
-    setMenuAnchorEl(null);
+    notify.success(t('export.success'), 3000);
     onExport?.();
-  };
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setMenuAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setMenuAnchorEl(null);
   };
 
   const tooltipTitle = isDataEmpty ? t('export.noData') : '';
 
-  const snackbarElement = (
-    <Snackbar
-      open={snackbarOpen}
-      autoHideDuration={3000}
-      onClose={() => setSnackbarOpen(false)}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-    >
-      <Alert onClose={() => setSnackbarOpen(false)} severity="success" sx={SNACKBAR_ALERT_SX}>
-        {t('export.success')}
-      </Alert>
-    </Snackbar>
-  );
-
   if (variant === 'icon') {
+    const iconLabel = isDataEmpty ? t('export.noData') : t('export.button');
     return (
-      <>
-        <Tooltip title={isDataEmpty ? t('export.noData') : t('export.button')}>
-          <span>
-            <IconButton
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {/* Le span porte le declencheur : un bouton desactive n'emet plus
+              d'evenement de survol, le tooltip ne s'ouvrirait jamais. */}
+          <span className="inline-flex">
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={handleExportCSV}
               disabled={isDisabled}
-              size="small"
-              sx={{
-                p: 0.5,
-                borderRadius: '9px',
-                border: '1px solid var(--line-2)',
-                color: 'var(--muted)',
-                '&:hover': { bgcolor: 'var(--hover)', borderColor: 'var(--faint)', color: 'var(--ink)' },
-                '&.Mui-disabled': { opacity: 0.45 },
-              }}
+              aria-label={iconLabel}
+              className="rounded-[9px] border border-solid border-[var(--line-2)] text-[var(--muted)] hover:bg-[var(--hover)] hover:border-[var(--faint)] hover:text-[var(--ink)] disabled:opacity-45"
             >
               <DownloadIcon size={16} strokeWidth={1.75} />
-            </IconButton>
+            </Button>
           </span>
-        </Tooltip>
-        {snackbarElement}
-      </>
+        </TooltipTrigger>
+        <TooltipContent>{iconLabel}</TooltipContent>
+      </Tooltip>
     );
   }
 
   if (variant === 'menu') {
-    return (
-      <>
-        <Tooltip title={tooltipTitle}>
-          <span>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<DownloadIcon size={13} strokeWidth={1.75} />}
-              onClick={handleMenuOpen}
-              disabled={isDisabled}
-            >
-              {t('export.button')}
-            </Button>
-          </span>
-        </Tooltip>
-        <Menu
-          anchorEl={menuAnchorEl}
-          open={Boolean(menuAnchorEl)}
-          onClose={handleMenuClose}
+    const trigger = (
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isDisabled}
         >
+          <DownloadIcon size={13} strokeWidth={1.75} />
+          {t('export.button')}
+        </Button>
+      </DropdownMenuTrigger>
+    );
+    return (
+      <DropdownMenu>
+        {tooltipTitle ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">{trigger}</span>
+            </TooltipTrigger>
+            <TooltipContent>{tooltipTitle}</TooltipContent>
+          </Tooltip>
+        ) : trigger}
+        <DropdownMenuContent align="end" className="w-auto min-w-[10rem]">
           {formats.includes('csv') && (
-            <MenuItem onClick={handleExportCSV} sx={MENU_ITEM_SX}>
-              <ListItemIcon>
-                <CsvIcon size={16} strokeWidth={1.75} />
-              </ListItemIcon>
-              <ListItemText primaryTypographyProps={{ fontSize: '0.8125rem' }}>{t('export.csv')}</ListItemText>
-            </MenuItem>
+            <DropdownMenuItem onSelect={handleExportCSV} className="text-[0.8125rem]">
+              <CsvIcon size={16} strokeWidth={1.75} />
+              {t('export.csv')}
+            </DropdownMenuItem>
           )}
-        </Menu>
-        {snackbarElement}
-      </>
+        </DropdownMenuContent>
+      </DropdownMenu>
     );
   }
 
   // Default: variant === 'button'
+  const exportButton = (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleExportCSV}
+      disabled={isDisabled}
+      title={t('export.button')}
+    >
+      <DownloadIcon size={13} strokeWidth={1.75} />
+      {t('export.button')}
+    </Button>
+  );
+  if (!tooltipTitle) return exportButton;
   return (
-    <>
-      <Tooltip title={tooltipTitle}>
-        <span>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<DownloadIcon size={13} strokeWidth={1.75} />}
-            onClick={handleExportCSV}
-            disabled={isDisabled}
-            title={t('export.button')}
-          >
-            {t('export.button')}
-          </Button>
-        </span>
-      </Tooltip>
-      {snackbarElement}
-    </>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">{exportButton}</span>
+      </TooltipTrigger>
+      <TooltipContent>{tooltipTitle}</TooltipContent>
+    </Tooltip>
   );
 }

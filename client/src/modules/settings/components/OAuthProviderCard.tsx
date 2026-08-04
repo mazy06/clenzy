@@ -1,20 +1,23 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
+import { Spinner } from '../../../components/ui';
+import { Card } from '../../../components/ui';
 import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Chip,
-  CircularProgress,
   Alert,
-  IconButton,
-  Tooltip,
+  AlertAction,
+  AlertDescription,
   Dialog,
-  DialogActions,
   DialogContent,
-  DialogContentText,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-} from '@mui/material';
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+import { X } from 'lucide-react';
+import { Button } from '../../../components/ui';
 import {
   CheckCircle as CheckCircleIcon,
   ErrorOutline,
@@ -95,19 +98,6 @@ interface OAuthProviderCardProps {
   };
 }
 
-const buildStatusChipSx = (color: string) => ({
-  height: 22,
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  letterSpacing: '0.01em',
-  borderRadius: '6px',
-  px: 0.25,
-  backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
-  color,
-  border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-  '& .MuiChip-icon': { color: `${color} !important`, ml: '6px', mr: '-2px' },
-  '& .MuiChip-label': { px: 0.875 },
-});
 
 export default function OAuthProviderCard({
   providerId,
@@ -193,12 +183,9 @@ export default function OAuthProviderCard({
 
   if (loading) {
     return (
-      <Paper
-        elevation={0}
-        sx={{ borderRadius: '12px', border: '1px solid', borderColor: 'divider', boxShadow: 'none', p: 3, display: 'flex', justifyContent: 'center' }}
-      >
-        <CircularProgress size={28} sx={{ color: ACCENT }} />
-      </Paper>
+      <Card className="gap-0 py-0 border-border p-4 flex justify-center">
+        <Spinner className="size-7 text-[var(--ok)]" />
+      </Card>
     );
   }
 
@@ -206,33 +193,13 @@ export default function OAuthProviderCard({
   const isError = status?.status === 'ERROR';
 
   const statusChip = notConfigured ? (
-    <Chip
-      icon={<ErrorOutline size={11} strokeWidth={2} />}
-      label={labels.notConfigured ?? 'Non configuré'}
-      size="small"
-      sx={buildStatusChipSx(NEUTRAL)}
-    />
+    <StatusChip color={NEUTRAL} label={labels.notConfigured ?? 'Non configuré'} icon={<ErrorOutline size={11} strokeWidth={2} />} />
   ) : isError ? (
-    <Chip
-      icon={<ErrorOutline size={11} strokeWidth={2} />}
-      label="Erreur"
-      size="small"
-      sx={buildStatusChipSx('var(--err)')}
-    />
+    <StatusChip color={'var(--err)'} label="Erreur" icon={<ErrorOutline size={11} strokeWidth={2} />} />
   ) : isConnected ? (
-    <Chip
-      icon={<CheckCircleIcon size={11} strokeWidth={2} />}
-      label="Connecté"
-      size="small"
-      sx={buildStatusChipSx(ACCENT)}
-    />
+    <StatusChip color={ACCENT} label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
   ) : (
-    <Chip
-      icon={<ErrorOutline size={11} strokeWidth={2} />}
-      label="Non connecté"
-      size="small"
-      sx={buildStatusChipSx(NEUTRAL)}
-    />
+    <StatusChip color={NEUTRAL} label="Non connecté" icon={<ErrorOutline size={11} strokeWidth={2} />} />
   );
 
   const connectTooltip = mainActionDisabled
@@ -240,129 +207,122 @@ export default function OAuthProviderCard({
     : (labels.connect ?? `Se connecter via ${label}`);
 
   // Bouton d'action principal en icône seule (libellé porté par le tooltip).
+  // Le <span> reste : un bouton desactive n'emet pas d'evenement de pointeur,
+  // le tooltip ne s'ouvrirait jamais si le declencheur etait le bouton lui-meme.
   const mainAction = notConfigured ? null : isConnected ? (
-    <Tooltip title={labels.disconnect ?? `Déconnecter ${label}`} arrow>
-      <span>
-        <IconButton
-          size="small"
-          onClick={() => setDisconnectOpen(true)}
-          disabled={actionLoading}
-          aria-label={labels.disconnect ?? `Déconnecter ${label}`}
-          sx={{ color: 'text.secondary', '&:hover': { color: 'var(--err)', bgcolor: 'var(--err-soft)' } }}
-        >
-          <LinkOffIcon size={16} strokeWidth={2} />
-        </IconButton>
-      </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setDisconnectOpen(true)}
+            disabled={actionLoading}
+            aria-label={labels.disconnect ?? `Déconnecter ${label}`}
+            className="text-[var(--muted)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
+          >
+            <LinkOffIcon size={16} strokeWidth={2} />
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{labels.disconnect ?? `Déconnecter ${label}`}</TooltipContent>
     </Tooltip>
   ) : (
-    <Tooltip title={connectTooltip} arrow>
-      <span>
-        <IconButton
-          size="small"
-          onClick={handleConnect}
-          disabled={actionLoading || mainActionDisabled}
-          aria-label={connectTooltip}
-          sx={{ color: ACCENT, '&:hover': { bgcolor: 'var(--ok-soft)' } }}
-        >
-          {actionLoading
-            ? <CircularProgress size={16} sx={{ color: ACCENT }} />
-            : <LinkIcon size={16} strokeWidth={2} />}
-        </IconButton>
-      </span>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleConnect}
+            disabled={actionLoading || mainActionDisabled}
+            aria-label={connectTooltip}
+            className="text-[var(--ok)] hover:bg-[var(--ok-soft)] hover:text-[var(--ok)]"
+          >
+            {actionLoading
+              ? <Spinner className="size-4 text-[var(--ok)]" />
+              : <LinkIcon size={16} strokeWidth={2} />}
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{connectTooltip}</TooltipContent>
     </Tooltip>
   );
 
   // Zone descriptive (logo + titre + statut + description). C'est l'ancre du tooltip riche du service,
   // tenue à l'écart des boutons (frères) pour qu'aucun tooltip ne s'imbrique.
   const infoZone = (
-    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: 1, minWidth: 0 }}>
+    <div className="flex items-start gap-2 flex-1 min-w-0">
       <ProviderLogo provider={providerId} size={40} muted={notConfigured} />
-      <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-          <Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }}>{label}</Typography>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <p className="cn-text-body1 text-[0.875rem] font-semibold">{label}</p>
           {statusChip}
-        </Box>
-        <Typography
-          noWrap
-          sx={{
-            fontSize: '0.72rem',
-            color: 'text.secondary',
-            mt: 0.25,
-          }}
-        >
+        </div>
+        <p className="cn-text-body1 truncate text-[0.72rem] text-muted-foreground mt-0.5">
           {description}
-        </Typography>
-      </Box>
-    </Box>
+        </p>
+      </div>
+    </div>
   );
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        borderRadius: '12px',
-        border: '1px solid',
-        borderColor: 'divider',
-        boxShadow: 'none',
-        overflow: 'hidden',
-        transition: 'border-color 200ms cubic-bezier(0.16, 1, 0.3, 1)',
-        '&:hover': {
-          borderColor: 'color-mix(in srgb, var(--ok) 25%, transparent)',
-        },
-      }}
-    >
+    <Card className="gap-0 overflow-hidden py-0 transition-colors duration-200 hover:border-[color-mix(in_srgb,var(--ok)_25%,transparent)]">
       {/* Carte compacte : zone descriptive (tooltip riche du service) + actions en icônes à droite. */}
-      <Box sx={{ px: 2, py: 1.75, display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+      <div className="px-3 py-2.5 flex items-start gap-1.5">
         {serviceTooltipId ? (
           <ServiceTooltip providerId={serviceTooltipId} name={label}>{infoZone}</ServiceTooltip>
         ) : (
           infoZone
         )}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0 }}>
+        <div className="flex items-center gap-0.5 shrink-0">
           {secondaryAction}
           {mainAction}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {message && (
-        <Box sx={{ px: 2, pb: 1.5, mt: -0.5 }}>
-          <Alert
-            severity={message.type}
-            variant="outlined"
-            sx={{ borderRadius: '8px', fontSize: '0.75rem', py: 0.25 }}
-            onClose={() => setMessage(null)}
-          >
-            {message.text}
+        <div className="px-3 pb-[9px] mt-[-3px]">
+          <Alert variant={message.type === 'success' ? 'success' : 'destructive'} className="text-[0.75rem]">
+            <AlertDescription>{message.text}</AlertDescription>
+            <AlertAction>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label="Fermer le message"
+                onClick={() => setMessage(null)}
+              >
+                <X size={14} strokeWidth={2} />
+              </Button>
+            </AlertAction>
           </Alert>
-        </Box>
+        </div>
       )}
 
       {/* Dialog confirmation */}
-      <Dialog open={disconnectOpen} onClose={() => setDisconnectOpen(false)}>
-        <DialogTitle sx={{ fontSize: '1rem', fontWeight: 600 }}>
-          {labels.confirmDisconnect ?? `Déconnecter ${label} ?`}
-        </DialogTitle>
+      <Dialog open={disconnectOpen} onOpenChange={(next) => !next && setDisconnectOpen(false)}>
         <DialogContent>
-          <DialogContentText sx={{ fontSize: '0.85rem' }}>
-            {labels.confirmDisconnectMessage ??
-              `Cette action révoquera le token et déconnectera ${label} de votre organisation. Vous pourrez vous reconnecter à tout moment.`}
-          </DialogContentText>
+          <DialogHeader>
+            <DialogTitle>{labels.confirmDisconnect ?? `Déconnecter ${label} ?`}</DialogTitle>
+            <DialogDescription>
+              {labels.confirmDisconnectMessage ??
+                `Cette action révoquera le token et déconnectera ${label} de votre organisation. Vous pourrez vous reconnecter à tout moment.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDisconnectOpen(false)} disabled={actionLoading}>
+              {labels.cancel ?? 'Annuler'}
+            </Button>
+            <Button
+              onClick={handleDisconnect}
+              variant="destructive"
+              disabled={actionLoading}
+            >
+              {actionLoading ? <Spinner className="size-3.5" /> : (labels.confirm ?? 'Déconnecter')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDisconnectOpen(false)} disabled={actionLoading} sx={{ textTransform: 'none' }}>
-            {labels.cancel ?? 'Annuler'}
-          </Button>
-          <Button
-            onClick={handleDisconnect}
-            color="error"
-            variant="contained"
-            disabled={actionLoading}
-            sx={{ textTransform: 'none', boxShadow: 'none' }}
-          >
-            {actionLoading ? <CircularProgress size={14} color="inherit" /> : (labels.confirm ?? 'Déconnecter')}
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Paper>
+    </Card>
   );
 }

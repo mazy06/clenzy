@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Alert, Button } from '@mui/material';
+import { TriangleAlert } from 'lucide-react';
+import { Alert, AlertAction, AlertDescription, Button } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useMissingContractCount } from '../../hooks/useMissingContractCount';
@@ -22,30 +23,21 @@ const MissingContractsDashboardAlert: React.FC = () => {
 
   return (
     <>
-      <Alert
-        severity="warning"
-        sx={{
-          mb: 2,
-          borderRadius: 'var(--radius-md)',
-          fontSize: '0.8125rem',
-          bgcolor: 'var(--warn-soft)',
-          color: 'var(--body)',
-          border: '1px solid color-mix(in srgb, var(--warn) 30%, transparent)',
-          '& .MuiAlert-icon': { color: 'var(--warn)' },
-          '& .MuiAlert-message': { fontSize: '0.8125rem' },
-        }}
-        action={
+      <Alert variant="warning" className="mb-3 text-[0.8125rem]">
+        <TriangleAlert />
+        <AlertDescription className="text-[0.8125rem]">
+          {`${count} ${t('contracts.gate.banner', "logement(s) sans contrat de gestion actif. La répartition par défaut de l'organisation s'applique en attendant.")}`}
+        </AlertDescription>
+        {/* Action logee dans une alerte : ghost, pour ne pas concurrencer le message. */}
+        <AlertAction>
           <Button
-            color="inherit"
-            size="small"
+            variant="ghost"
+            size="sm"
             onClick={() => setContractModalOpen(true)}
-            sx={{ textTransform: 'none', fontWeight: 700 }}
           >
             {t('contracts.gate.cta', 'Établir les contrats')}
           </Button>
-        }
-      >
-        {`${count} ${t('contracts.gate.banner', "logement(s) sans contrat de gestion actif. La répartition par défaut de l'organisation s'applique en attendant.")}`}
+        </AlertAction>
       </Alert>
 
       <ManagementContractFormModal

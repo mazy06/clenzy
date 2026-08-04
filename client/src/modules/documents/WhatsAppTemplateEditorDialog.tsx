@@ -1,19 +1,24 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
-  Box,
+  AlertDescription,
   Button,
-  CircularProgress,
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  Input,
+  Textarea,
+  NativeSelect,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  Grid,
-  MenuItem,
-  Paper,
-  TextField,
-  Typography,
-} from '@mui/material';
+} from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import { Save, Replay } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -159,171 +164,181 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
   const saving = upsertMutation.isPending || removeMutation.isPending;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth PaperProps={{ sx: { minHeight: '70vh' } }}>
-      <DialogTitle>{t('messaging.templates.editor.editWhatsappTitle')}</DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[1200px] min-h-[70vh] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{t('messaging.templates.editor.editWhatsappTitle')}</DialogTitle>
+        </DialogHeader>
 
-      <DialogContent dividers>
+        {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+        <div className="border-y border-solid border-[var(--line)] py-3">
         {isLoading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-            <CircularProgress />
-          </Box>
+          <div className="flex justify-center p-6">
+            <Spinner className="size-10" />
+          </div>
         )}
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {t('whatsappTemplates.dialog.loadError')}
+          <Alert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{t('whatsappTemplates.dialog.loadError')}</AlertDescription>
           </Alert>
         )}
 
         {upsertMutation.error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {t('whatsappTemplates.dialog.saveError')} {upsertMutation.error.message}
+          <Alert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{t('whatsappTemplates.dialog.saveError')}{upsertMutation.error.message}</AlertDescription>
           </Alert>
         )}
         {removeMutation.error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {t('whatsappTemplates.dialog.resetError')}
+          <Alert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{t('whatsappTemplates.dialog.resetError')}</AlertDescription>
           </Alert>
         )}
 
         {group && (
-          <Grid container spacing={3}>
+          <div className="grid grid-cols-12 gap-[18px]">
             {/* ── Formulaire (gauche 7/12) ── */}
-            <Grid item xs={12} md={7}>
-              <Grid container spacing={2}>
+            <div className="col-span-12 min-[900px]:col-span-7">
+              <div className="grid grid-cols-12 gap-3">
                 {/* Nom du template (readonly — slug systeme immuable) */}
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label={t('messaging.templates.editor.name')}
-                    value={friendlyName}
-                    size="small"
-                    InputProps={{ readOnly: true }}
-                    helperText={t('messaging.templates.editor.systemNameHelper')}
-                  />
-                </Grid>
+                <div className="col-span-12 min-[600px]:col-span-6">
+                  <Field>
+                    <FieldLabel htmlFor="wa-template-name">
+                      {t('messaging.templates.editor.name')}
+                    </FieldLabel>
+                    <Input id="wa-template-name" value={friendlyName} readOnly />
+                    <FieldDescription>
+                      {t('messaging.templates.editor.systemNameHelper')}
+                    </FieldDescription>
+                  </Field>
+                </div>
                 {/* Categorie Meta (readonly) */}
-                <Grid item xs={6} sm={3}>
-                  <TextField
-                    fullWidth
-                    label={t('messaging.templates.editor.metaCategory')}
-                    value={group.category}
-                    size="small"
-                    InputProps={{ readOnly: true }}
-                  />
-                </Grid>
+                <div className="col-span-6 min-[600px]:col-span-3">
+                  <Field>
+                    <FieldLabel htmlFor="wa-template-category">
+                      {t('messaging.templates.editor.metaCategory')}
+                    </FieldLabel>
+                    <Input id="wa-template-category" value={group.category} readOnly />
+                  </Field>
+                </div>
                 {/* Selecteur Langue */}
-                <Grid item xs={6} sm={3}>
-                  <TextField
-                    fullWidth
-                    select
-                    label={t('messaging.templates.editor.language')}
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    size="small"
-                  >
-                    {LANGUAGES.map((lang) => {
-                      const tpl = group.languages[lang.value];
-                      const isCustom = tpl && !tpl.isSystem;
-                      return (
-                        <MenuItem key={lang.value} value={lang.value} disabled={!tpl}>
-                          {lang.label}
-                          {isCustom && (
-                            <Box
-                              component="span"
-                              sx={{
-                                ml: 1,
-                                width: 6,
-                                height: 6,
-                                borderRadius: '50%',
-                                bgcolor: 'var(--accent)',
-                                display: 'inline-block',
-                              }}
-                            />
-                          )}
-                        </MenuItem>
-                      );
-                    })}
-                  </TextField>
-                </Grid>
-                {/* Body multiline (pas de subject pour WhatsApp) */}
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label={t('messaging.templates.editor.body')}
-                    value={body}
-                    onChange={(e) => { setBody(e.target.value); setTouched(true); }}
-                    inputRef={bodyRef}
-                    multiline
-                    rows={12}
-                    required
-                    error={isOverLimit}
-                    helperText={
-                      isOverLimit
-                        ? t('whatsappTemplates.dialog.tooLong', { count: charCount })
-                        : t('whatsappTemplates.dialog.charCount', { count: charCount })
-                    }
-                    InputProps={{
-                      sx: language === 'ar_AR' ? { direction: 'rtl' } : undefined,
-                    }}
-                  />
-                </Grid>
-              </Grid>
+                <div className="col-span-6 min-[600px]:col-span-3">
+                  <Field>
+                    <FieldLabel htmlFor="wa-template-language">
+                      {t('messaging.templates.editor.language')}
+                    </FieldLabel>
+                    {/* Une <option> native ne peut contenir que du texte : la pastille
+                        « traduction personnalisee » devient un suffixe textuel. */}
+                    <NativeSelect
+                      id="wa-template-language"
+                      className="w-full"
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value)}
+                    >
+                      {LANGUAGES.map((lang) => {
+                        const tpl = group.languages[lang.value];
+                        const isCustom = tpl && !tpl.isSystem;
+                        return (
+                          <option key={lang.value} value={lang.value} disabled={!tpl}>
+                            {isCustom ? `${lang.label} •` : lang.label}
+                          </option>
+                        );
+                      })}
+                    </NativeSelect>
+                  </Field>
+                </div>
+                {/* Body multiline (pas de subject pour WhatsApp). La ref porte
+                    l'insertion de variable A LA POSITION DU CURSEUR : elle vise
+                    donc le <textarea> lui-meme, pas son enveloppe. */}
+                <div className="col-span-12">
+                  <Field data-invalid={isOverLimit || undefined}>
+                    <FieldLabel htmlFor="wa-template-body">
+                      {t('messaging.templates.editor.body')}
+                    </FieldLabel>
+                    <Textarea
+                      id="wa-template-body"
+                      ref={bodyRef}
+                      value={body}
+                      onChange={(e) => { setBody(e.target.value); setTouched(true); }}
+                      required
+                      aria-invalid={isOverLimit || undefined}
+                      // `field-sizing: content` du kit neutralise `rows` : la
+                      // hauteur se pose en lignes (`lh`).
+                      className={cn('min-h-[12lh]', language === 'ar_AR' && '[direction:rtl]')}
+                    />
+                    {isOverLimit ? (
+                      <FieldError>
+                        {t('whatsappTemplates.dialog.tooLong', { count: charCount })}
+                      </FieldError>
+                    ) : (
+                      <FieldDescription>
+                        {t('whatsappTemplates.dialog.charCount', { count: charCount })}
+                      </FieldDescription>
+                    )}
+                  </Field>
+                </div>
+              </div>
 
               {/* ── Preview : SEULE difference visuelle vs SystemTemplate — bulle WhatsApp ── */}
-              <Box sx={{ mt: 3 }}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <div className="mt-4">
+                <h6 className="cn-text-subtitle2 text-muted-foreground mb-[0.35em]">
                   {t('whatsappTemplates.dialog.preview')}
-                </Typography>
+                </h6>
                 <WhatsAppBubblePreview body={body} rtl={language === 'ar_AR'} />
-              </Box>
-            </Grid>
+              </div>
+            </div>
 
             {/* ── Sidebar variables (droite 5/12) ── */}
-            <Grid item xs={12} md={5}>
-              <Paper variant="outlined" sx={{ p: 2, position: 'sticky', top: 16 }}>
-                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+            <div className="col-span-12 min-[900px]:col-span-5">
+              <div className="sticky top-4 p-3 rounded-xl border border-solid border-[var(--line)] bg-[var(--card)]">
+                <h6 className="cn-text-subtitle2 font-semibold mb-[0.35em]">
                   {t('messaging.templates.editor.variables')}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+                </h6>
+                <span className="cn-text-caption text-muted-foreground block mb-2">
                   {t('messaging.templates.editor.variablesDesc')}
-                </Typography>
+                </span>
                 <VariablePicker
                   variables={availableVariables}
                   usedKeys={usedVariables}
                   onInsert={handleInsertVariable}
                   showDetails
                 />
-              </Paper>
-            </Grid>
-          </Grid>
+              </div>
+            </div>
+          </div>
         )}
-      </DialogContent>
+        </div>
 
-      <DialogActions sx={{ px: 3, py: 1.5 }}>
-        {isOverride && (
-          <Button
-            startIcon={<Replay size={16} strokeWidth={1.75} />}
-            onClick={handleResetToSystem}
-            disabled={saving}
-            color="warning"
-          >
-            {t('whatsappTemplates.dialog.resetToSystem')}
+        <DialogFooter>
+          {isOverride && (
+            <Button
+              variant="outline"
+              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              onClick={handleResetToSystem}
+              disabled={saving}
+            >
+              <Replay size={16} strokeWidth={1.75} />
+              {t('whatsappTemplates.dialog.resetToSystem')}
+            </Button>
+          )}
+          {/* Cale-espace : masque en colonne (mobile), ou `flex-1` grandirait en
+              hauteur au lieu de repousser les actions. */}
+          <div className="hidden sm:block flex-1" />
+          <Button variant="ghost" onClick={onClose} disabled={saving}>
+            {t('common.cancel')}
           </Button>
-        )}
-        <Box sx={{ flex: 1 }} />
-        <Button onClick={onClose} disabled={saving}>
-          {t('common.cancel')}
-        </Button>
-        <Button
-          variant="contained"
-          startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <Save />}
-          onClick={handleSave}
-          disabled={saving || !touched || !body.trim() || isOverLimit}
-        >
-          {saving ? t('common.processing') : t('common.save')}
-        </Button>
-      </DialogActions>
+          <Button
+            onClick={handleSave}
+            disabled={saving || !touched || !body.trim() || isOverLimit}
+          >
+            {saving ? <Spinner className="size-4" /> : <Save />}
+            {saving ? t('common.processing') : t('common.save')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };
@@ -343,40 +358,33 @@ const WhatsAppBubblePreview: React.FC<{ body: string; rtl: boolean }> = ({ body,
   const renderedNodes = useMemo(() => renderWhatsAppBody(body), [body]);
 
   return (
-    <Box
-      sx={{
-        bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0b141a' : '#e5ddd5',
+    // Le callback de theme du sx ne faisait qu'un aiguillage clair/sombre : la
+    // variante `dark:` du kit lit le meme signal ([data-theme="dark"]).
+    // Le motif pointille reste en style : la syntaxe arbitraire de Tailwind
+    // n'accepte pas les espaces d'un `radial-gradient()`.
+    <div
+      className="bg-[#e5ddd5] dark:bg-[#0b141a] p-3 rounded-lg min-h-[80px]"
+      style={{
         backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px)',
         backgroundSize: '10px 10px',
-        p: 2,
-        borderRadius: 1,
-        minHeight: 80,
       }}
     >
-      <Box
-        sx={{
-          bgcolor: '#dcf8c6',
-          color: '#111',
-          maxWidth: '85%',
-          ml: rtl ? 0 : 'auto',
-          mr: rtl ? 'auto' : 0,
-          px: 1.5,
-          py: 1,
-          borderRadius: 2,
-          borderTopRightRadius: rtl ? 8 : 2,
-          borderTopLeftRadius: rtl ? 2 : 8,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-          fontSize: '0.875rem',
-          lineHeight: 1.45,
-          direction: rtl ? 'rtl' : 'ltr',
-        }}
+      {/* px 1.5 = 9px, py 1 = 6px (spacing 6) ; borderRadius 2 = 16px (shape 8),
+          alors que borderTop*Radius n'est PAS un prop systeme MUI : 8/2 = px bruts.
+          fontFamily reste en style : `font-[...]` est ambigu (famille vs graisse). */}
+      <div
+        style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+        className={cn(
+          'bg-[#dcf8c6] text-[#111] max-w-[85%] px-[9px] py-1.5 rounded-[16px]',
+          'shadow-[0_1px_2px_rgba(0,0,0,0.1)] whitespace-pre-wrap break-words text-[0.875rem] leading-[1.45]',
+          rtl
+            ? 'ml-0 mr-auto rounded-tr-[8px] rounded-tl-[2px] [direction:rtl]'
+            : 'ml-auto mr-0 rounded-tr-[2px] rounded-tl-[8px] [direction:ltr]',
+        )}
       >
         {renderedNodes}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 
@@ -388,20 +396,9 @@ function renderWhatsAppBody(body: string): React.ReactNode {
   return partsWithVars.map((part, idx) => {
     if (/^\{[a-zA-Z][a-zA-Z0-9_]*\}$/.test(part)) {
       return (
-        <Box
-          key={idx}
-          component="span"
-          sx={{
-            fontFamily: 'monospace',
-            fontSize: '0.85em',
-            bgcolor: 'rgba(37,211,102,0.18)',
-            color: '#075E54',
-            px: 0.5,
-            borderRadius: 0.5,
-          }}
-        >
+        <span className="font-mono text-[0.85em] bg-[rgba(37,211,102,0.18)] text-[#075E54] px-0.5 rounded-[4px]" key={idx}>
           {part}
-        </Box>
+        </span>
       );
     }
     return <React.Fragment key={idx}>{renderMarkdownTokens(part)}</React.Fragment>;

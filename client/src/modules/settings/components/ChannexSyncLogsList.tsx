@@ -10,16 +10,15 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Box,
-  Typography,
-  IconButton,
-  Collapse,
-  Stack,
-  Skeleton,
-  Chip,
-  Tooltip,
+  Badge,
   Button,
-} from '@mui/material';
+  Collapsible,
+  CollapsibleContent,
+  Skeleton,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import {
   History,
   ChevronDown,
@@ -86,64 +85,30 @@ function LogRow({ log }: { log: ChannexSyncLogDto }) {
   const typeMeta = TYPE_LABELS[log.syncType] ?? { label: log.syncType, Icon: Upload };
   const TypeIcon = typeMeta.Icon;
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        gap: 1,
-        py: 0.65,
-        px: 0.85,
-        // Pattern -soft baseline (pas de side-stripe — interdit absolu) ;
-        // color-mix compatible var() ET hex.
-        bgcolor: `color-mix(in srgb, ${statusMeta.color} 10%, transparent)`,
-        borderRadius: '8px',
-        alignItems: 'flex-start',
-      }}
-    >
-      <Box sx={{ mt: 0.25, color: statusMeta.color, flexShrink: 0 }}>
+    <div className="flex gap-1.5 py-[3.9000000000000004px] px-[5.1px] rounded-[8px] items-start" style={{ backgroundColor: `color-mix(in srgb, ${statusMeta.color} 10%, transparent)` }}>
+      <div className="mt-[1.5px] shrink-0" style={{ color: statusMeta.color }}>
         <statusMeta.Icon size={14} strokeWidth={2.2} />
-      </Box>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-0.5 flex-wrap">
           <TypeIcon size={11} strokeWidth={2} color="var(--muted)" />
-          <Typography variant="caption" fontWeight={600} sx={{ lineHeight: 1.3, fontSize: '0.72rem' }}>
+          <span className="cn-text-caption font-semibold leading-[1.3] text-[0.72rem]">
             {typeMeta.label}
-          </Typography>
+          </span>
           {log.recordCount > 0 && (
-            <Chip
-              size="small"
-              label={`${log.recordCount}`}
-              sx={{
-                height: 16,
-                fontSize: '0.6rem',
-                fontWeight: 600,
-                bgcolor: 'var(--accent-soft)',
-                color: 'var(--accent)',
-                '& .MuiChip-label': { px: 0.6 },
-              }}
-            />
+            <Badge variant="secondary" className="h-[16px] text-[0.6rem] font-semibold bg-[var(--accent-soft)] text-[var(--accent)] px-1">{`${log.recordCount}`}</Badge>
           )}
-          <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem', ml: 'auto' }}>
+          <span className="cn-text-caption text-muted-foreground opacity-60 text-[0.65rem] ms-auto">
             {formatDuration(log.durationMs)} · {formatRelative(log.startedAt)}
-          </Typography>
-        </Box>
+          </span>
+        </div>
         {log.errorMessage && (
-          <Typography
-            variant="caption"
-            sx={{
-              display: 'block',
-              mt: 0.3,
-              fontSize: '0.66rem',
-              color: 'var(--err)',
-              fontFamily: 'monospace',
-              lineHeight: 1.35,
-              wordBreak: 'break-word',
-            }}
-          >
+          <span className="cn-text-caption block mt-0.5 text-[0.66rem] text-[var(--err)] font-mono leading-[1.35] break-words">
             {log.errorMessage}
-          </Typography>
+          </span>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 
@@ -182,98 +147,92 @@ export default function ChannexSyncLogsList({
   const hiddenCount = logs.length - visibleLogs.length;
 
   return (
-    <Box
-      sx={{
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        overflow: 'hidden',
-      }}
-    >
+    <div className="border border-[var(--line)] rounded-[8px] overflow-hidden">
       {/* Header cliquable pour collapse */}
-      <Box
-        onClick={() => setCollapsed((c) => !c)}
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          px: 1.25,
-          py: 1,
-          cursor: 'pointer',
-          userSelect: 'none',
-          '&:hover': { bgcolor: 'var(--hover)' },
-        }}
-      >
+      <div className="flex items-center gap-1.5 px-[7.5px] py-1.5 cursor-pointer select-none hover:bg-[var(--hover)]" onClick={() => setCollapsed((c) => !c)}>
         <History size={14} color="var(--accent)" strokeWidth={2.2} />
-        <Typography variant="caption" fontWeight={600} sx={{ flex: 1 }}>
+        <span className="cn-text-caption font-semibold flex-1">
           Historique de sync
           {logs.length > 0 && (
-            <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.5, fontWeight: 400 }}>
+            <span className="cn-text-caption text-muted-foreground ms-0.5 font-normal">
               · {logs.length} entree{logs.length > 1 ? 's' : ''}
-            </Typography>
-          )}
-        </Typography>
-        {!collapsed && (
-          <Tooltip title="Rafraichir" arrow placement="top">
-            <span>
-              <IconButton
-                size="small"
-                disabled={loading}
-                onClick={(e) => { e.stopPropagation(); void fetchLogs(); }}
-                sx={{ width: 22, height: 22 }}
-              >
-                <RefreshCw size={11} strokeWidth={2.2} color="var(--accent)" />
-              </IconButton>
             </span>
+          )}
+        </span>
+        {!collapsed && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/* Le span porte le declencheur : un bouton desactive n'emet plus
+                  d'evenement de survol, le tooltip ne s'ouvrirait jamais. */}
+              <span className="inline-flex">
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label="Rafraichir"
+                  disabled={loading}
+                  onClick={(e) => { e.stopPropagation(); void fetchLogs(); }}
+                  className="size-[22px]"
+                >
+                  <RefreshCw size={11} strokeWidth={2.2} color="var(--accent)" />
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">Rafraichir</TooltipContent>
           </Tooltip>
         )}
         {collapsed
           ? <ChevronDown size={14} color="var(--accent)" />
           : <ChevronUp size={14} color="var(--accent)" />}
-      </Box>
+      </div>
 
-      <Collapse in={!collapsed}>
-        <Box sx={{ px: 1.25, pb: 1.25, pt: 0.25 }}>
+      <Collapsible open={!collapsed}>
+        <CollapsibleContent>
+        <div className="px-2 pb-2 pt-0.5">
           {loading && logs.length === 0 && (
-            <Stack spacing={0.5}>
-              <Skeleton variant="rounded" height={32} />
-              <Skeleton variant="rounded" height={32} />
-              <Skeleton variant="rounded" height={32} />
-            </Stack>
+            <div className="flex flex-col gap-[3px]">
+              <Skeleton className="h-[32px] rounded-[8px]" />
+              <Skeleton className="h-[32px] rounded-[8px]" />
+              <Skeleton className="h-[32px] rounded-[8px]" />
+            </div>
           )}
           {error && !loading && (
-            <Box sx={{ py: 1 }}>
-              <Typography variant="caption" color="error" sx={{ display: 'block', mb: 0.5 }}>
+            <div className="py-1.5">
+              <span className="cn-text-caption text-destructive block mb-0.5">
                 {error}
-              </Typography>
-              <Button size="small" onClick={() => void fetchLogs()} sx={{ textTransform: 'none', fontSize: '0.72rem' }}>
+              </span>
+              {/* Outline et non ghost : seule voie de reprise apres une erreur de
+                  chargement, elle doit rester reperable dans ce panneau dense. */}
+              <Button variant="outline" size="sm" onClick={() => void fetchLogs()}>
                 Reessayer
               </Button>
-            </Box>
+            </div>
           )}
           {!loading && !error && logs.length === 0 && (
-            <Typography variant="caption" color="text.disabled" sx={{ display: 'block', py: 1, fontStyle: 'italic' }}>
+            <span className="cn-text-caption text-muted-foreground opacity-60 block py-1.5 italic">
               Aucune operation sync enregistree pour cette propriete.
-            </Typography>
+            </span>
           )}
           {logs.length > 0 && (
-            <Stack spacing={0.3}>
+            // spacing 0.3 = 1,8 px (theme.spacing vaut 6 dans ce projet).
+            <div className="flex flex-col gap-[1.8px] items-stretch">
               {visibleLogs.map((log) => (
                 <LogRow key={log.id} log={log} />
               ))}
               {hiddenCount > 0 && (
                 <Button
-                  size="small"
+                  variant="ghost"
+                  size="sm"
+                  className="self-start"
                   onClick={() => setShowAll(true)}
-                  sx={{ textTransform: 'none', fontSize: '0.7rem', alignSelf: 'flex-start' }}
                 >
                   Voir {hiddenCount} entree{hiddenCount > 1 ? 's' : ''} de plus
                 </Button>
               )}
-            </Stack>
+            </div>
           )}
-        </Box>
-      </Collapse>
-    </Box>
+        </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
   );
 }

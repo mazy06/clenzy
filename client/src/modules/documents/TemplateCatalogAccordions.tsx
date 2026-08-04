@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
+import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
 import {
-  Box,
-  Typography,
   Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Chip,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
   Button,
-  Divider,
-} from '@mui/material';
+  Separator,
+} from '../../components/ui';
 import {
-  ExpandMore,
   EventAvailable,
   Hotel,
   ExitToApp,
@@ -29,18 +27,7 @@ import type { DocumentTemplate } from '../../services/api/documentsApi';
 // ─── Tons sémantiques (tokens Signature) ─────────────────────────────────────
 // Mapping : étapes du parcours → ok/accent/warn ; documents PDF → err (pastille
 // type), admin → muted. Les -soft viennent des tokens (dark mode automatique).
-interface Tone { c: string; bg: string }
 
-const TONES: Record<'ok' | 'accent' | 'warn' | 'err' | 'info' | 'muted', Tone> = {
-  ok:     { c: 'var(--ok)',     bg: 'var(--ok-soft)' },
-  accent: { c: 'var(--accent)', bg: 'var(--accent-soft)' },
-  warn:   { c: 'var(--warn)',   bg: 'var(--warn-soft)' },
-  err:    { c: 'var(--err)',    bg: 'var(--err-soft)' },
-  info:   { c: 'var(--info)',   bg: 'var(--info-soft)' },
-  muted:  { c: 'var(--muted)',  bg: 'var(--hover)' },
-};
-
-const chipSx = (tone: Tone) => ({ color: tone.c, bgcolor: tone.bg, '& .MuiChip-icon': { color: tone.c } });
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -70,7 +57,7 @@ interface CatalogGroup {
   id: string;
   label: string;
   icon: React.ReactNode;
-  tone: Tone;
+  tone: ToneTokens;
   items: CatalogItem[];
 }
 
@@ -89,7 +76,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'pre-stay',
     label: 'Avant le sejour',
     icon: <EventAvailable />,
-    tone: TONES.ok,
+    tone: STATUS_TONES.ok,
     items: [
       {
         id: 'checkin-instructions',
@@ -143,7 +130,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'during-stay',
     label: 'Pendant le sejour',
     icon: <Hotel />,
-    tone: TONES.accent,
+    tone: STATUS_TONES.accent,
     items: [
       {
         id: 'noise-alert-owner',
@@ -191,7 +178,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'post-stay',
     label: 'Fin du sejour',
     icon: <ExitToApp />,
-    tone: TONES.warn,
+    tone: STATUS_TONES.warn,
     items: [
       {
         id: 'checkout-instructions',
@@ -216,7 +203,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'documents',
     label: 'Documents commerciaux',
     icon: <Description />,
-    tone: TONES.err,
+    tone: STATUS_TONES.err,
     items: [
       {
         id: 'doc-devis',
@@ -312,7 +299,7 @@ const CATALOG_GROUPS: CatalogGroup[] = [
     id: 'admin',
     label: 'Administration',
     icon: <AdminPanelSettings />,
-    tone: TONES.muted,
+    tone: STATUS_TONES.neutral,
     items: [
       {
         id: 'invitation-org',
@@ -362,18 +349,18 @@ const CATALOG_GROUPS: CatalogGroup[] = [
 //   manual    = muted (action humaine)
 //   form      = warn (declenchement externe)
 //   document  = err (pastille type document, cf. pattern .fr-doc)
-const TRIGGER_CONFIG: Record<string, { label: string; tone: Tone }> = {
-  auto: { label: 'Automatique', tone: TONES.accent },
-  manual: { label: 'Manuel', tone: TONES.muted },
-  form: { label: 'Formulaire', tone: TONES.warn },
-  'auto+manual': { label: 'Auto / Manuel', tone: TONES.ok },
+const TRIGGER_CONFIG: Record<string, { label: string; tone: ToneTokens }> = {
+  auto: { label: 'Automatique', tone: STATUS_TONES.accent },
+  manual: { label: 'Manuel', tone: STATUS_TONES.neutral },
+  form: { label: 'Formulaire', tone: STATUS_TONES.warn },
+  'auto+manual': { label: 'Auto / Manuel', tone: STATUS_TONES.ok },
 };
 
-const CHANNEL_CONFIG: Record<string, { label: string; tone: Tone }> = {
-  email: { label: 'Email', tone: TONES.info },
-  'in-app': { label: 'In-app', tone: TONES.ok },
-  'email+in-app': { label: 'Email + In-app', tone: TONES.ok },
-  document: { label: 'Document .odt', tone: TONES.err },
+const CHANNEL_CONFIG: Record<string, { label: string; tone: ToneTokens }> = {
+  email: { label: 'Email', tone: STATUS_TONES.info },
+  'in-app': { label: 'In-app', tone: STATUS_TONES.ok },
+  'email+in-app': { label: 'Email + In-app', tone: STATUS_TONES.ok },
+  document: { label: 'Document .odt', tone: STATUS_TONES.err },
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -402,138 +389,93 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
   };
 
   return (
-    <Box sx={{ mb: 4 }}>
+    <div className="mb-6">
       {/* Section title — no forced uppercase, no aggressive letter-spacing (anti-pattern templated) */}
-      <Typography
-        variant="subtitle2"
-        sx={{ mb: 1.5, color: 'text.secondary', fontSize: '0.78rem', fontWeight: 600 }}
-      >
+      <h6 className="cn-text-subtitle2 mb-2 text-muted-foreground text-[0.78rem] font-semibold">
         Catalogue des templates par étape du parcours
-      </Typography>
+      </h6>
 
+      {/* Un seul Accordion « single » remplace les N Accordion MUI : c'est deja
+          la semantique de `expandedGroup` (un seul groupe ouvert a la fois). */}
+      <Accordion
+        type="single"
+        collapsible
+        value={expandedGroup === false ? '' : expandedGroup}
+        onValueChange={(v) => setExpandedGroup(v ? v : false)}
+        className="gap-0"
+      >
       {CATALOG_GROUPS.map((group) => (
-        <Accordion
+        <AccordionItem
           key={group.id}
-          expanded={expandedGroup === group.id}
-          onChange={(_, isExpanded) => setExpandedGroup(isExpanded ? group.id : false)}
-          disableGutters
-          elevation={0}
-          sx={{
-            mb: 1,
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: '8px !important',
-            '&:before': { display: 'none' },
-            '&.Mui-expanded': { mb: 1 },
-            transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-            '&:hover': { borderColor: 'text.disabled' },
-          }}
+          value={group.id}
+          className="mb-1.5 border border-solid border-[var(--line)] rounded-[8px] transition-[border-color] duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-[var(--faint)]"
         >
-          <AccordionSummary
-            expandIcon={<ExpandMore size={18} strokeWidth={1.75} />}
-            sx={{
-              borderRadius: '8px',
-              cursor: 'pointer',
-              '&.Mui-expanded': { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottom: '1px solid', borderColor: 'divider' },
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, width: '100%' }}>
+          <AccordionTrigger className="px-3 py-2 rounded-[8px] cursor-pointer data-[state=open]:rounded-b-none data-[state=open]:border-b data-[state=open]:border-solid data-[state=open]:border-b-[var(--line)]">
+            <div className="flex items-center gap-2 w-full">
               {/* Badge icone Baitly (tile 26x26, accent color, contraste WCAG AA+) */}
-              <Box
-                sx={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 1,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: group.tone.bg,
-                  color: group.tone.c,
-                  flexShrink: 0,
-                }}
-              >
+              <div className="w-[26px] h-[26px] rounded-[8px] inline-flex items-center justify-center shrink-0" style={{ backgroundColor: group.tone.bg, color: group.tone.color }}>
                 {React.isValidElement(group.icon)
                   ? React.cloneElement(group.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
                       size: 16,
                       strokeWidth: 1.75,
                     })
                   : group.icon}
-              </Box>
-              <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', flex: 1, color: 'text.primary' }}>
+              </div>
+              <p className="cn-text-body1 font-semibold text-[0.875rem] flex-1 text-foreground">
                 {group.label}
-              </Typography>
-              <Chip
-                label={`${group.items.length} template${group.items.length > 1 ? 's' : ''}`}
-                size="small"
-                sx={chipSx(group.tone)}
-              />
-            </Box>
-          </AccordionSummary>
-          <AccordionDetails sx={{ p: 0 }}>
+              </p>
+              <StatusChip tokens={group.tone} label={`${group.items.length} template${group.items.length > 1 ? 's' : ''}`} />
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="p-0">
             {group.items.map((item, idx) => {
               const linkedTemplate = findLinkedTemplate(item);
               const trigger = TRIGGER_CONFIG[item.trigger] || TRIGGER_CONFIG.manual;
               const channel = CHANNEL_CONFIG[item.channel] || CHANNEL_CONFIG.email;
 
               return (
-                <Box key={item.id}>
-                  {idx > 0 && <Divider />}
-                  <Box sx={{ p: 2 }}>
+                <div key={item.id}>
+                  {idx > 0 && <Separator />}
+                  <div className="p-3">
                     {/* Header : titre + chips meta uniformes (toutes en softChipSx) */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1, flexWrap: 'wrap' }}>
-                      <Typography sx={{ fontWeight: 600, fontSize: '0.8125rem', flex: 1, minWidth: 0 }}>
+                    <div className="flex items-center gap-1 mb-1.5 flex-wrap">
+                      <p className="cn-text-body1 font-semibold text-[0.8125rem] flex-1 min-w-0">
                         {item.name}
-                      </Typography>
-                      <Chip label={trigger.label} size="small" sx={chipSx(trigger.tone)} />
-                      <Chip label={channel.label} size="small" sx={chipSx(channel.tone)} />
-                      <Chip label={item.recipient} size="small" sx={chipSx(TONES.muted)} />
-                    </Box>
+                      </p>
+                      <StatusChip tokens={trigger.tone} label={trigger.label} />
+                      <StatusChip tokens={channel.tone} label={channel.label} />
+                      <StatusChip tokens={STATUS_TONES.neutral} label={item.recipient} />
+                    </div>
 
                     {/* Description */}
-                    <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8125rem', mb: 1.25, lineHeight: 1.5 }}>
+                    <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] mb-2 leading-[1.5]">
                       {item.description}
-                    </Typography>
+                    </p>
 
                     {/* Trigger detail */}
-                    <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mb: 0.5 }}>
-                      <Box component="strong" sx={{ color: 'text.primary', fontWeight: 600 }}>Déclencheur :</Box> {item.triggerDetail}
-                    </Typography>
+                    <span className="cn-text-caption block text-muted-foreground mb-0.5">
+                      <strong className="text-foreground font-semibold">Déclencheur :</strong> {item.triggerDetail}
+                    </span>
 
                     {/* Variables — chips tres legeres (variant pure tag, font 10px, no border) */}
                     {item.variables && item.variables.length > 0 && (
-                      <Box sx={{ mt: 1.25 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.625 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+                      <div className="mt-2">
+                        <div className="flex items-center gap-0.5 mb-1">
+                          <span className="inline-flex text-muted-foreground">
                             <Code size={13} strokeWidth={1.75} />
-                          </Box>
-                          <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.7rem' }}>
+                          </span>
+                          <span className="cn-text-caption font-semibold text-muted-foreground text-[0.7rem]">
                             Variables disponibles
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-0.5">
                           {item.variables.map((v) => (
-                            <Box
-                              key={v}
-                              component="code"
-                              sx={{
-                                fontFamily: '"SF Mono", Menlo, Consolas, monospace',
-                                fontSize: '0.6875rem',
-                                color: 'var(--accent)',
-                                backgroundColor: 'var(--accent-soft)',
-                                border: '1px solid',
-                                borderColor: 'color-mix(in srgb, var(--accent) 24%, transparent)',
-                                borderRadius: '4px',
-                                px: 0.625,
-                                py: '2px',
-                                lineHeight: 1.5,
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
+                            <code className="text-[0.6875rem] text-[var(--accent)] bg-[var(--accent-soft)] border border-solid border-[color-mix(in_srgb,_var(--accent)_24%,_transparent)] rounded-[4px] px-[3.75px] py-0.5 leading-[1.5] whitespace-nowrap" style={{ fontFamily: '"SF Mono", Menlo, Consolas, monospace' }} key={v}>
                               {`{${v}}`}
-                            </Box>
+                            </code>
                           ))}
-                        </Box>
-                      </Box>
+                        </div>
+                      </div>
                     )}
 
                     {/* Footer status row — couleur tintee selon l'etat (palette Baitly) */}
@@ -541,55 +483,38 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                       // Etat = couleur d'accent + icone choisis selon le type de template
                       const status =
                         item.templateKind === 'document' && linkedTemplate
-                          ? { tone: TONES.ok, icon: <CheckCircle size={16} strokeWidth={1.75} /> }
+                          ? { tone: STATUS_TONES.ok, icon: <CheckCircle size={16} strokeWidth={1.75} /> }
                           : item.templateKind === 'document' && !linkedTemplate
-                          ? { tone: TONES.warn, icon: <Warning size={16} strokeWidth={1.75} /> }
+                          ? { tone: STATUS_TONES.warn, icon: <Warning size={16} strokeWidth={1.75} /> }
                           : item.templateKind === 'message'
-                          ? { tone: TONES.info, icon: <CheckCircle size={16} strokeWidth={1.75} /> }
-                          : { tone: TONES.muted, icon: <CheckCircle size={16} strokeWidth={1.75} /> };
+                          ? { tone: STATUS_TONES.info, icon: <CheckCircle size={16} strokeWidth={1.75} /> }
+                          : { tone: STATUS_TONES.neutral, icon: <CheckCircle size={16} strokeWidth={1.75} /> };
 
                       return (
-                        <Box
-                          sx={{
-                            mt: 1.5,
-                            px: 1.25,
-                            py: 1,
-                            borderRadius: 1.25,
-                            backgroundColor: status.tone.bg,
-                            border: '1px solid',
-                            borderColor: `color-mix(in srgb, ${status.tone.c} 24%, transparent)`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                          }}
-                        >
-                          <Box component="span" sx={{ display: 'inline-flex', color: status.tone.c, flexShrink: 0 }}>
+                        <div className="mt-[9px] px-[7.5px] py-1.5 rounded-[10px] border border-solid flex items-center gap-1.5" style={{ backgroundColor: status.tone.bg, borderColor: `color-mix(in srgb, ${status.tone.color} 24%, transparent)` }}>
+                          <span className="inline-flex shrink-0" style={{ color: status.tone.color }}>
                             {status.icon}
-                          </Box>
+                          </span>
 
                           {item.templateKind === 'document' && linkedTemplate && (
                             <>
-                              <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <div className="flex-1 min-w-0">
+                                <p className="cn-text-body1 text-[0.75rem] font-semibold text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                                   {linkedTemplate.originalFilename}
-                                </Typography>
-                                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6875rem' }}>
+                                </p>
+                                <span className="cn-text-caption text-muted-foreground text-[0.6875rem]">
                                   {linkedTemplate.active ? 'Actif' : 'Inactif'} · v{linkedTemplate.version}
-                                </Typography>
-                              </Box>
+                                </span>
+                              </div>
+                              {/* Teinte calculee a l'execution (status.tone) : elle passe par
+                                  style, une classe Tailwind ne peut pas naitre d'une variable. */}
                               <Button
-                                size="small"
-                                startIcon={<Visibility size={13} strokeWidth={1.75} />}
+                                variant="ghost"
+                                size="sm"
+                                style={{ color: status.tone.color }}
                                 onClick={() => navigate(`/documents/templates/${linkedTemplate.id}`)}
-                                sx={{
-                                  fontSize: '0.6875rem',
-                                  textTransform: 'none',
-                                  fontWeight: 600,
-                                  color: status.tone.c,
-                                  cursor: 'pointer',
-                                  '&:hover': { backgroundColor: status.tone.bg },
-                                }}
                               >
+                                <Visibility size={13} strokeWidth={1.75} />
                                 Voir
                               </Button>
                             </>
@@ -597,24 +522,16 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
 
                           {item.templateKind === 'document' && !linkedTemplate && (
                             <>
-                              <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.primary', fontWeight: 500 }}>
+                              <p className="cn-text-body1 flex-1 text-[0.75rem] text-foreground font-medium">
                                 Aucun template uploadé
-                              </Typography>
+                              </p>
                               <Button
-                                size="small"
-                                variant="outlined"
-                                startIcon={<CloudUpload size={13} strokeWidth={1.75} />}
+                                variant="outline"
+                                size="sm"
+                                style={{ color: status.tone.color, borderColor: status.tone.color }}
                                 onClick={onOpenUpload}
-                                sx={{
-                                  fontSize: '0.6875rem',
-                                  textTransform: 'none',
-                                  fontWeight: 600,
-                                  borderColor: `color-mix(in srgb, ${status.tone.c} 40%, transparent)`,
-                                  color: status.tone.c,
-                                  cursor: 'pointer',
-                                  '&:hover': { borderColor: status.tone.c, backgroundColor: status.tone.bg },
-                                }}
                               >
+                                <CloudUpload size={13} strokeWidth={1.75} />
                                 Uploader un template .odt
                               </Button>
                             </>
@@ -622,23 +539,17 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
 
                           {item.templateKind === 'message' && (
                             <>
-                              <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.primary' }}>
-                                Template de messagerie — configurable dans <Box component="span" sx={{ fontWeight: 600 }}>Templates messages</Box>
-                              </Typography>
+                              <p className="cn-text-body1 flex-1 text-[0.75rem] text-foreground">
+                                Template de messagerie — configurable dans <span className="font-semibold">Templates messages</span>
+                              </p>
                               {onSwitchToMessagingTab && (
                                 <Button
-                                  size="small"
-                                  startIcon={<OpenInNew size={13} strokeWidth={1.75} />}
+                                  variant="ghost"
+                                  size="sm"
+                                  style={{ color: status.tone.color }}
                                   onClick={onSwitchToMessagingTab}
-                                  sx={{
-                                    fontSize: '0.6875rem',
-                                    textTransform: 'none',
-                                    fontWeight: 600,
-                                    color: status.tone.c,
-                                    cursor: 'pointer',
-                                    '&:hover': { backgroundColor: status.tone.bg },
-                                  }}
                                 >
+                                  <OpenInNew size={13} strokeWidth={1.75} />
                                   Gérer
                                 </Button>
                               )}
@@ -646,46 +557,41 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                           )}
 
                           {item.templateKind === 'hardcoded' && (
-                            <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.secondary' }}>
+                            <p className="cn-text-body1 flex-1 text-[0.75rem] text-muted-foreground">
                               Template intégré au système — non modifiable
-                            </Typography>
+                            </p>
                           )}
 
                           {item.templateKind === 'system-email' && (
                             <>
-                              <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.primary' }}>
-                                Template email systeme — éditable dans <Box component="span" sx={{ fontWeight: 600 }}>Templates email</Box>
-                              </Typography>
+                              <p className="cn-text-body1 flex-1 text-[0.75rem] text-foreground">
+                                Template email systeme — éditable dans <span className="font-semibold">Templates email</span>
+                              </p>
                               {onOpenSystemEmail && item.systemEmailKey && (
                                 <Button
-                                  size="small"
-                                  startIcon={<OpenInNew size={13} strokeWidth={1.75} />}
+                                  variant="ghost"
+                                  size="sm"
+                                  style={{ color: status.tone.color }}
                                   onClick={() => onOpenSystemEmail(item.systemEmailKey!)}
-                                  sx={{
-                                    fontSize: '0.6875rem',
-                                    textTransform: 'none',
-                                    fontWeight: 600,
-                                    color: status.tone.c,
-                                    cursor: 'pointer',
-                                    '&:hover': { backgroundColor: status.tone.bg },
-                                  }}
                                 >
+                                  <OpenInNew size={13} strokeWidth={1.75} />
                                   Personnaliser
                                 </Button>
                               )}
                             </>
                           )}
-                        </Box>
+                        </div>
                       );
                     })()}
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               );
             })}
-          </AccordionDetails>
-        </Accordion>
+          </AccordionContent>
+        </AccordionItem>
       ))}
-    </Box>
+      </Accordion>
+    </div>
   );
 };
 

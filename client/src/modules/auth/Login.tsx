@@ -1,18 +1,20 @@
 import React, { useState, useCallback } from 'react';
+import {
+  Alert as UiAlert,
+  AlertDescription,
+  Button,
+  Field,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '../../components/ui';
+import { CircleCheck } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import { useSearchParams, Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
-  Box,
-  TextField,
-  Button,
-  Typography,
-  Stack,
-  Alert,
-  CircularProgress,
-  IconButton,
-  InputAdornment,
-  Link,
-} from '@mui/material';
 import { Visibility, VisibilityOff } from '../../icons';
 import keycloak, { decodeJwt } from '../../keycloak';
 import apiClient, { ApiError } from '../../services/apiClient';
@@ -159,56 +161,39 @@ export default function Login() {
   return (
     <AuthLayout>
       {/* ── Header form ── */}
-      <Box sx={{ mb: 4 }}>
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 600,
-            color: 'text.primary',
-            mb: 1,
-            fontSize: { xs: '1.75rem', md: '2rem' },
-            textWrap: 'balance',
-          }}
-        >
-          {t('auth.login.title', 'Bon retour parmi nous')}
-        </Typography>
-        <Typography
-          variant="body1"
-          sx={{
-            color: 'text.secondary',
-            fontSize: '0.95rem',
-            lineHeight: 1.5,
-          }}
-        >
+      <div className="mb-6">
+        {/* md = 900 px cote MUI (breakpoints non configures), pas les 768 px de
+            Tailwind : d'ou la variante exacte `min-[900px]:`. */}
+        <h4 className="cn-text-h4 font-semibold text-[var(--ink)] mb-1.5 text-[1.75rem] min-[900px]:text-[2rem] text-balance">
+          {t('auth.login.title', 'Connexion')}
+        </h4>
+        <p className="cn-text-body1 text-muted-foreground text-[0.95rem] leading-[1.5]">
           {t('auth.login.subtitle', 'Connecte-toi pour accéder à ton tableau de bord.')}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       {/* Message succes inscription */}
       {inscriptionSuccess && (
-        <Alert severity="success" sx={{ mb: 3, borderRadius: 1.5 }}>
-          <Typography variant="body2" sx={{ fontSize: '0.875rem', fontWeight: 500 }}>
+        <UiAlert variant="success" className="mb-4">
+          <CircleCheck />
+          <AlertDescription><p className="cn-text-body2 text-[0.875rem] font-medium">
             {t('auth.login.inscriptionSuccess', 'Votre compte a été créé avec succès. Connectez-vous pour accéder à votre espace.')}
-          </Typography>
-        </Alert>
+          </p></AlertDescription>
+        </UiAlert>
       )}
 
       {/* ── Form ── */}
       <form onSubmit={handleSubmit} noValidate>
-        <Stack spacing={2.5}>
-          <Box>
-            <Typography
-              component="label"
-              htmlFor="login-email"
-              variant="body2"
-              sx={{ fontWeight: 600, mb: 0.75, display: 'block', fontSize: '0.8125rem' }}
-            >
+        {/* spacing={2.5} avec un theme.spacing de 6 px = 15 px, pas les 20 px du
+            defaut MUI. */}
+        <div className="flex flex-col gap-[15px]">
+          <Field>
+            <FieldLabel className="cn-text-body2 font-semibold mb-1 block text-[0.8125rem]" htmlFor="login-email">
               {t('auth.login.emailLabel', "Email ou nom d'utilisateur")}
-            </Typography>
-            <TextField
+            </FieldLabel>
+            <Input
               id="login-email"
-              fullWidth
-              size="medium"
+              className="w-full"
               placeholder={t('auth.login.emailPlaceholder', 'vous@exemple.com')}
               type="text"
               value={email}
@@ -218,163 +203,103 @@ export default function Login() {
               autoComplete="username"
               autoFocus
             />
-          </Box>
+          </Field>
 
-          <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.75 }}>
-              <Typography
-                component="label"
-                htmlFor="login-password"
-                variant="body2"
-                sx={{ fontWeight: 600, fontSize: '0.8125rem' }}
-              >
+          <Field>
+            <div className="flex justify-between items-baseline mb-1">
+              <FieldLabel className="cn-text-body2 font-semibold text-[0.8125rem]" htmlFor="login-password">
                 {t('auth.login.passwordLabel', 'Mot de passe')}
-              </Typography>
-              <Link
-                component={RouterLink}
+              </FieldLabel>
+              <RouterLink
                 to="/forgot-password"
-                sx={{
-                  fontSize: '0.75rem',
-                  color: 'primary.main',
-                  textDecoration: 'none',
-                  fontWeight: 500,
-                  '&:hover': { textDecoration: 'underline' },
-                }}
+                className="text-[0.75rem] font-medium no-underline text-[var(--mui-primary)] hover:underline"
               >
                 {t('auth.login.forgotPassword', 'Mot de passe oublié ?')}
-              </Link>
-            </Box>
-            <TextField
-              id="login-password"
-              fullWidth
-              size="medium"
-              placeholder={t('auth.login.passwordPlaceholder', 'Votre mot de passe')}
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={loading}
-              autoComplete="current-password"
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label={
-                        showPassword
-                          ? t('auth.login.hidePassword', 'Masquer le mot de passe')
-                          : t('auth.login.showPassword', 'Afficher le mot de passe')
-                      }
-                      onClick={() => setShowPassword(!showPassword)}
-                      onMouseDown={(e) => e.preventDefault()}
-                      edge="end"
-                      size="small"
-                      sx={{ color: 'text.secondary' }}
-                    >
-                      {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Box>
+              </RouterLink>
+            </div>
+            <InputGroup>
+              <InputGroupInput
+                id="login-password"
+                placeholder={t('auth.login.passwordPlaceholder', 'Votre mot de passe')}
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+                autoComplete="current-password"
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  size="icon-xs"
+                  aria-label={
+                    showPassword
+                      ? t('auth.login.hidePassword', 'Masquer le mot de passe')
+                      : t('auth.login.showPassword', 'Afficher le mot de passe')
+                  }
+                  onClick={() => setShowPassword(!showPassword)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  className="text-[var(--muted)]"
+                >
+                  {showPassword
+                    ? <VisibilityOff size={16} strokeWidth={1.75} />
+                    : <Visibility size={16} strokeWidth={1.75} />}
+                </InputGroupButton>
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
 
           {error && (
-            <Alert
-              severity={isLocked ? 'warning' : captchaRequired ? 'info' : 'error'}
-              sx={{ borderRadius: 1.5 }}
-            >
-              <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>{error}</Typography>
-            </Alert>
+            <UiAlert variant={isLocked ? 'warning' : captchaRequired ? 'info' : 'destructive'}>
+              <AlertDescription>
+                <p className="cn-text-body2 text-[0.875rem]">{error}</p>
+              </AlertDescription>
+            </UiAlert>
           )}
 
           {captchaRequired && (
-            <Box>
+            <div>
               <TurnstileCaptcha
                 onVerified={handleCaptchaVerified}
                 onError={(msg) => setError(msg)}
               />
-            </Box>
+            </div>
           )}
 
+          {/* Action principale de l'ecran : `default`. Le gabarit (rayon, graisse,
+              casse, ombre, etat disabled, transition) est porte par le kit — l'ancien
+              `sx` ne faisait que le redire, il est supprime. */}
           <Button
             type="submit"
-            variant="contained"
-            size="large"
+            size="lg"
+            className="w-full shrink"
             disabled={loading || isLocked || (captchaRequired && !captchaToken)}
-            sx={{
-              py: 1.5,
-              fontSize: '0.9375rem',
-              fontWeight: 600,
-              textTransform: 'none',
-              borderRadius: 1.5,
-              boxShadow: 'none',
-              // Hover identique aux champs : remplissage soft-indigo (var(--accent-soft)
-              // herite du theme containedPrimary), pas de fond indigo fonce qui
-              // rendait le texte indigo illisible.
-              '&:hover': {
-                boxShadow: 'none',
-              },
-              '&:disabled': {
-                bgcolor: 'action.disabledBackground',
-                color: 'action.disabled',
-              },
-              transition: 'background-color 150ms ease, border-color 150ms ease',
-            }}
           >
-            {loading ? <CircularProgress size={22} color="inherit" /> : t('auth.login.submit', 'Se connecter')}
+            {loading ? <Spinner className="size-[22px]" /> : t('auth.login.submit', 'Se connecter')}
           </Button>
-        </Stack>
+        </div>
       </form>
 
       {/* ── Footer : signup + support ── */}
-      <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
-        <Typography
-          variant="body2"
-          sx={{
-            color: 'text.secondary',
-            fontSize: '0.875rem',
-            textAlign: 'center',
-            mb: 1.5,
-          }}
-        >
+      <div className="mt-6 pt-4 border-t border-[var(--line)]">
+        <p className="cn-text-body2 text-muted-foreground text-[0.875rem] text-center mb-2">
           {t('auth.login.noAccount', 'Pas encore de compte ?')}{' '}
-          <Link
-            component={RouterLink}
+          <RouterLink
             to="/inscription"
-            sx={{
-              color: 'primary.main',
-              fontWeight: 600,
-              textDecoration: 'none',
-              '&:hover': { textDecoration: 'underline' },
-            }}
+            className="font-semibold no-underline text-[var(--mui-primary)] hover:underline"
           >
             {t('auth.login.createAccount', 'Crée le tien')}
-          </Link>
-        </Typography>
-        <Typography
-          variant="caption"
-          sx={{
-            color: 'text.secondary',
-            display: 'block',
-            textAlign: 'center',
-            fontSize: '0.75rem',
-          }}
-        >
+          </RouterLink>
+        </p>
+        <span className="cn-text-caption text-muted-foreground block text-center text-[0.75rem]">
           {t('auth.login.needHelp', "Besoin d'aide ?")}{' '}
-          <Link
-            component={RouterLink}
+          <RouterLink
             to="/support"
-            sx={{
-              color: 'text.secondary',
-              fontWeight: 500,
-              textDecoration: 'underline',
-              '&:hover': { color: 'primary.main' },
-            }}
+            className="font-medium underline text-[var(--muted)] hover:text-[var(--mui-primary)]"
           >
             {t('auth.login.contactSupport', 'Contactez le support')}
-          </Link>
-        </Typography>
-      </Box>
+          </RouterLink>
+        </span>
+      </div>
     </AuthLayout>
   );
 }

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Box, Typography, CircularProgress, Dialog, DialogContent } from '@mui/material';
+import { Spinner } from '../../../components/ui';
+import { Dialog, DialogContent, DialogTitle } from '../../../components/ui';
+import { cn } from '../../../utils/cn';
 import BaitlyMarkLogo from '../../../components/BaitlyMarkLogo';
 import type { DisplayMessage } from '../../../hooks/useAgent';
 import { ToolCallCard } from './ToolCallCard';
@@ -34,118 +36,63 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   // ── USER : bulle .mg-b out (accent plein), alignée droite, max 74% ───────
   if (isUser) {
     const attachments = message.attachments ?? [];
+    // arabicTextSx (taille +30 %, interligne, pile de polices arabes) reste une
+    // constante partagee de utils/textDirection : posee en style inline, elle bat
+    // les classes exactement comme le spread la faisait gagner dans le sx.
+    const arabicHeavy = isArabicHeavy(message.content);
     return (
       <>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-          <Box
-            sx={{
-              maxWidth: '74%',
-              p: '11px 14px',
-              borderRadius: '15px',
-              borderBottomRightRadius: '5px',
-              bgcolor: 'var(--accent)',
-              color: 'var(--on-accent)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 1,
-            }}
-          >
+        <div className="flex justify-end mb-3">
+          <div className="max-w-[74%] py-[11px] px-[14px] rounded-[15px] rounded-br-[5px] bg-[var(--accent)] text-[var(--on-accent)] flex flex-col gap-1.5">
             {/* Attachments thumbnails 100x100 — au-dessus du texte */}
             {attachments.length > 0 && (
-              <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+              <div className="flex gap-1 flex-wrap">
                 {attachments.map((att) => (
-                  <Box
+                  <button
                     key={att.storageKey}
-                    component="button"
                     onClick={() => {
                       setFullSizeUrl(att.url);
                       setFullSizeAlt(att.name ?? 'image jointe');
                     }}
                     aria-label={`Voir ${att.name ?? 'l\'image'} en grand`}
-                    sx={{
-                      width: 100,
-                      height: 100,
-                      borderRadius: '10px',
-                      overflow: 'hidden',
-                      border: 'none',
-                      padding: 0,
-                      cursor: 'pointer',
-                      bgcolor: 'rgba(255,255,255,.18)',
-                      transition: 'opacity .15s',
-                      '&:hover': { opacity: 0.85 },
-                      '&:focus-visible': {
-                        outline: '2px solid var(--on-accent)',
-                        outlineOffset: 2,
-                      },
-                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                    }}
+                    className="w-[100px] h-[100px] rounded-[10px] overflow-hidden border-none p-0 cursor-pointer bg-[rgba(255,255,255,.18)] transition-opacity duration-150 hover:opacity-[.85] focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-[var(--on-accent)] focus-visible:outline-offset-2 motion-reduce:transition-none"
                   >
-                    <Box
-                      component="img"
-                      src={att.url}
-                      alt={att.name ?? 'image jointe'}
-                      sx={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block',
-                      }}
-                    />
-                  </Box>
+                    <img className="w-full h-full object-cover block" src={att.url} alt={att.name ?? 'image jointe'} />
+                  </button>
                 ))}
-              </Box>
+              </div>
             )}
 
+            {/* Si le message user est en arabe : agrandit + line-height adapte +
+                font-family arabe-friendly. Sinon styles latins. */}
             {message.content && (
-              <Typography
+              <p
                 dir={arabicDirProp(message.content)}
-                sx={{
-                  fontSize: 13,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  lineHeight: 1.5,
-                  // Si le message user est en arabe : agrandit + line-height
-                  // adapte + font-family arabe-friendly. Sinon styles latins.
-                  ...(isArabicHeavy(message.content) ? {
-                    ...arabicTextSx,
-                    textAlign: 'right',
-                  } : {}),
-                }}
+                className={cn(
+                  'cn-text-body1 text-[13px] whitespace-pre-wrap [word-break:break-word] leading-[1.5]',
+                  arabicHeavy && 'text-right',
+                )}
+                style={arabicHeavy ? arabicTextSx : undefined}
               >
                 {message.content}
-              </Typography>
+              </p>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* Modal full-size — declenche par clic sur un thumbnail */}
         <Dialog
           open={fullSizeUrl !== null}
-          onClose={() => setFullSizeUrl(null)}
-          maxWidth="lg"
-          aria-labelledby="attachment-fullsize-title"
+          onOpenChange={(next) => { if (!next) setFullSizeUrl(null); }}
         >
-          <DialogContent sx={{ p: 1.5 }}>
-            <Typography
-              id="attachment-fullsize-title"
-              variant="caption"
-              sx={{ display: 'block', mb: 1, color: 'var(--muted)' }}
-            >
+          {/* Le titre porte desormais lui-meme l'etiquetage de la modale : le
+              aria-labelledby manuel du Dialog MUI n'a plus lieu d'etre. */}
+          <DialogContent aria-describedby={undefined} className="max-w-[1200px] p-[9px]">
+            <DialogTitle className="cn-text-caption block mb-1.5 text-[var(--muted)]">
               {fullSizeAlt}
-            </Typography>
+            </DialogTitle>
             {fullSizeUrl && (
-              <Box
-                component="img"
-                src={fullSizeUrl}
-                alt={fullSizeAlt}
-                sx={{
-                  maxWidth: '100%',
-                  maxHeight: '80vh',
-                  display: 'block',
-                  mx: 'auto',
-                  borderRadius: '10px',
-                }}
-              />
+              <img className="max-w-full max-h-[80vh] block mx-auto rounded-[10px]" src={fullSizeUrl} alt={fullSizeAlt} />
             )}
           </DialogContent>
         </Dialog>
@@ -155,35 +102,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
 
   // ── ASSISTANT : avatar mark + bulle .mg-b in (carte hairline) ────────────
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        gap: 1.5,
-        alignItems: 'flex-start',
-        mb: 2.5,
+    <div
+      className={cn(
+        'flex gap-[9px] items-start mb-[15px] transition-opacity duration-200 motion-reduce:transition-none',
         // Streaming visual : opacity subtile uniquement avant tout contenu
-        opacity: isStreaming && !message.content && !message.toolCalls?.length ? 0.85 : 1,
-        transition: 'opacity .2s',
-        '@media (prefers-reduced-motion: reduce)': {
-          transition: 'none',
-        },
-      }}
+        isStreaming && !message.content && !message.toolCalls?.length ? 'opacity-[.85]' : 'opacity-100',
+      )}
     >
       {/* Avatar Baitly mark — signature visuelle de l'assistant.
           Pas de bg circulaire : le mark a son propre dessin (8 nodes +
           centre + lignes) qui se suffit a lui-meme. Container minimal
           pour aligner la taille avec le premier ligne de texte. */}
-      <Box
-        sx={{
-          flexShrink: 0,
-          width: 28,
-          height: 28,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          mt: 0.5, // align with bubble first line
-        }}
-      >
+      <div className="shrink-0 w-[28px] h-[28px] flex items-center justify-center mt-0.5">
         {/* idleAnimation=false : pas de boot+scan+breathe sur chaque message
             (visual noise constant si 50 messages). active={isStreaming} :
             declenche l'animation hover-equivalent (lignes absorbees + centre
@@ -196,17 +126,17 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           idleAnimation={false}
           active={isStreaming}
         />
-      </Box>
+      </div>
 
       {/* Contenu : tool calls + widgets pleine largeur, texte en bulle in */}
-      <Box sx={{ flex: 1, minWidth: 0 }}>
+      <div className="flex-1 min-w-0">
         {/* Tool call cards : chip recap des outils utilises (compact) */}
         {message.toolCalls && message.toolCalls.length > 0 && (
-          <Box sx={{ mb: 1, display: 'flex', flexWrap: 'wrap' }}>
+          <div className="mb-1.5 flex flex-wrap">
             {message.toolCalls.map((tc) => (
               <ToolCallCard key={tc.toolCallId} call={tc} />
             ))}
-          </Box>
+          </div>
         )}
 
         {/* Rich widgets : KPI tiles, tables, etc. — rendus selon displayHint
@@ -224,32 +154,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             Permet au LLM de proposer "[Settings](/settings?tab=ai)" cliquable inline.
             Bulle in : carte hairline, coin bas-gauche 5px. */}
         {message.content && (
-          <Box
-            sx={{
-              display: 'inline-block',
-              maxWidth: '100%',
-              p: '11px 14px',
-              borderRadius: '15px',
-              borderBottomLeftRadius: '5px',
-              bgcolor: 'var(--card)',
-              border: '1px solid var(--line)',
-              color: 'var(--body)',
-            }}
-          >
+          <div className="inline-block max-w-full py-[11px] px-[14px] rounded-[15px] rounded-bl-[5px] bg-[var(--card)] border border-solid border-[var(--line)] text-[var(--body)]">
             <AssistantMarkdown text={message.content} />
-          </Box>
+          </div>
         )}
 
         {/* Streaming indicator quand le contenu est encore vide */}
         {isStreaming && !message.content && !message.toolCalls?.length && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
-            <CircularProgress size={12} thickness={5} sx={{ color: 'var(--accent)' }} />
-            <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)' }}>
+          <div className="flex items-center gap-1.5 py-0.5">
+            <Spinner className="size-3 text-[var(--accent)]" />
+            <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">
               Reflechit...
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };

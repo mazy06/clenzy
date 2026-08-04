@@ -1,12 +1,7 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Chip,
-  CircularProgress,
-  useTheme,
-} from '@mui/material';
+import { Button, Spinner } from '../../components/ui';
+import StatusChip from '../../components/StatusChip';
+import { cn } from '../../utils/cn';
 import {
   CalendarMonth as CalendarIcon,
   TrendingUp as TrendingIcon,
@@ -19,7 +14,6 @@ import { subscriptionApi } from '../../services/api/subscriptionApi';
 const C = {
   primary:      '#6B8A9A',
   primaryLight: '#8BA3B3',
-  primaryDark:  '#5A7684',
 } as const;
 
 // ─── Forfaits ──────────────────────────────────────────────────────────────
@@ -56,8 +50,6 @@ interface UpgradeBannerProps {
 }
 
 const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,251 +72,128 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
   }
 
   return (
-    <Box
-      sx={{
-        bgcolor: 'background.paper',
-        borderRadius: '12px',
-        borderLeft: `4px solid ${C.primary}`,
-        boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(107,138,154,0.12)',
-        p: 2.5,
-        mb: 2,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2,
-      }}
-    >
+    // L'ombre bascule desormais par la variante `dark:` (pilotee par
+    // [data-theme="dark"]) : plus besoin de lire le mode a l'execution.
+    <div className="bg-[var(--card)] rounded-[12px] border-l-4 border-solid border-l-[var(--mui-primary)] p-[15px] mb-3 flex flex-col gap-3 shadow-[0_2px_8px_rgba(107,138,154,0.12)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
       {/* ── Ligne 1 : Description (gauche) + Forfaits (droite) ──────── */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          gap: 2.5,
-          alignItems: { md: 'flex-start' },
-        }}
-      >
+      <div className="flex flex-col min-[900px]:flex-row gap-[15px] min-[900px]:items-start">
         {/* Colonne gauche : icone + texte descriptif */}
-        <Box sx={{ display: 'flex', gap: 2, flex: '1 1 0', minWidth: 0 }}>
+        <div className="flex gap-3 flex-[1_1_0] min-w-0">
           {/* Icone cercle */}
-          <Box
-            sx={{
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              bgcolor: 'rgba(107,138,154,0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Box component="span" sx={{ display: 'inline-flex', color: C.primary }}><CalendarIcon size={24} strokeWidth={1.75} /></Box>
-          </Box>
+          <div className="w-[48px] h-[48px] rounded-[50%] bg-[rgba(107,138,154,0.08)] flex items-center justify-center shrink-0">
+            <span className="inline-flex" style={{ color: C.primary }}><CalendarIcon size={24} strokeWidth={1.75} /></span>
+          </div>
 
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
-              <Typography
-                variant="h6"
-                sx={{ fontWeight: 700, fontSize: '1rem', color: 'text.primary', lineHeight: 1.3 }}
-              >
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+              <h6 className="cn-text-h6 font-bold text-[1rem] text-foreground leading-[1.3]">
                 Debloquez le Planning & l'import iCal
-              </Typography>
-              <Chip
-                label="Forfait Essentiel"
-                size="small"
-                variant="outlined"
-                sx={{
-                  color: 'text.secondary',
-                  fontWeight: 600,
-                  fontSize: '0.7rem',
-                  height: 22,
-                  borderWidth: 1.5,
-                  borderColor: 'divider',
-                  '& .MuiChip-label': { px: 0.75 },
-                }}
-              />
-            </Box>
-            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.813rem', lineHeight: 1.6 }}>
+              </h6>
+              <StatusChip tone="neutral" label="Forfait Essentiel" className="text-[0.7rem]" />
+            </div>
+            <p className="cn-text-body2 text-muted-foreground text-[0.813rem] leading-[1.6]">
               Votre forfait actuel ne permet pas l'acces au planning interactif ni a l'import
               automatique de vos calendriers Airbnb, Booking et autres plateformes. Passez au
               forfait Confort pour automatiser la gestion de vos reservations.
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
 
         {/* Colonne droite : 3 forfaits cote a cote */}
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 1.5,
-            flex: '1 1 0',
-            minWidth: 0,
-            flexShrink: 0,
-          }}
-        >
+        <div className="flex gap-[9px] flex-[1_1_0] min-w-0 shrink-0">
           {Object.entries(FORFAITS).map(([key, { label, features, highlight }]) => {
             const isCurrent = key === currentForfait?.toLowerCase();
             return (
-              <Box
+              <div
                 key={key}
-                sx={{
-                  flex: '1 1 0',
-                  minWidth: 0,
-                  bgcolor: highlight
-                    ? (isDark ? 'rgba(107,138,154,0.12)' : 'rgba(107,138,154,0.05)')
-                    : (isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC'),
-                  borderRadius: '8px',
-                  p: 1.5,
-                  border: highlight
-                    ? `1.5px solid ${C.primary}`
-                    : '1px solid',
-                  borderColor: highlight ? C.primary : 'divider',
-                  position: 'relative',
-                  transition: 'box-shadow 0.2s ease',
-                  ...(highlight && {
-                    boxShadow: isDark ? '0 1px 4px rgba(0,0,0,0.2)' : '0 1px 4px rgba(107,138,154,0.10)',
-                  }),
-                }}
+                className={cn(
+                  'flex-[1_1_0] min-w-0 rounded-[8px] p-[9px] relative border-solid',
+                  'transition-shadow duration-200 ease-[ease] motion-reduce:transition-none',
+                  // Branches LITTERALES : fond et ombre basculent par la variante
+                  // `dark:`, la ou l'ancien style inline lisait le mode MUI.
+                  highlight
+                    ? 'border-[1.5px] border-[var(--mui-primary)] bg-[rgba(107,138,154,0.05)] dark:bg-[rgba(107,138,154,0.12)] shadow-[0_1px_4px_rgba(107,138,154,0.10)] dark:shadow-[0_1px_4px_rgba(0,0,0,0.2)]'
+                    : 'border border-[var(--line)] bg-[#F8FAFC] dark:bg-[rgba(255,255,255,0.04)]',
+                )}
               >
+                {/* Puce a cheval sur la bordure de la carte : fond OPAQUE
+                    (--card) et bordure d'accent, sinon le trait de la carte
+                    transparait sous le fond doux habituel. */}
                 {highlight && (
-                  <Chip
+                  <StatusChip
+                    tokens={{ color: 'var(--accent)', bg: 'var(--card)' }}
                     label="Recommande"
-                    size="small"
-                    variant="outlined"
-                    color="primary"
-                    sx={{
-                      position: 'absolute',
-                      top: -10,
-                      right: 8,
-                      fontWeight: 700,
-                      fontSize: '0.65rem',
-                      height: 20,
-                      borderWidth: 1.5,
-                      bgcolor: 'background.paper',
-                      '& .MuiChip-label': { px: 1 },
-                    }}
+                    size="sm"
+                    className="absolute -top-2.5 right-2 h-5 border-[1.5px] border-solid border-[var(--accent)] px-1.5 text-[0.65rem] font-bold"
                   />
                 )}
-                <Typography
-                  variant="subtitle2"
-                  sx={{
-                    fontWeight: 700,
-                    fontSize: '0.813rem',
-                    color: highlight ? C.primary : isCurrent ? 'text.secondary' : 'text.primary',
-                    mb: 0.75,
-                  }}
+                {/* Couleur calculee a l'execution (highlight/isCurrent) : elle passe par
+                    style, ou les jetons MUI 'text.*' seraient inertes — d'ou les
+                    variables CSS. mb: 0.75 = 4,5 px (theme.spacing vaut 6). */}
+                <h6
+                  className="cn-text-subtitle2 font-bold text-[0.813rem] mb-[4.5px]"
+                  style={{ color: highlight ? C.primary : isCurrent ? 'var(--muted)' : 'var(--ink)' }}
                 >
                   {label}
                   {isCurrent && (
-                    <Typography
-                      component="span"
-                      sx={{ fontSize: '0.7rem', color: 'text.secondary', fontWeight: 400, ml: 0.5 }}
-                    >
+                    <span className="text-[0.7rem] text-muted-foreground font-normal ms-0.5">
                       (actuel)
-                    </Typography>
+                    </span>
                   )}
-                </Typography>
+                </h6>
                 {features.map((f) => (
-                  <Box key={f} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
-                    <Box
-                      component="span"
-                      sx={{
-                        display: 'inline-flex',
-                        color: highlight ? C.primary : isCurrent ? 'text.disabled' : C.primaryLight,
-                        flexShrink: 0,
-                      }}
-                    >
+                  <div className="flex items-center gap-1 mb-0.5" key={f}>
+                    {/* 'text.disabled' etait un jeton MUI inerte en style inline : jeton CSS du projet */}
+                    <span className="inline-flex shrink-0" style={{ color: highlight ? C.primary : isCurrent ? 'var(--faint)' : C.primaryLight }}>
                       <CheckIcon size={13} strokeWidth={1.75} />
-                    </Box>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: isCurrent ? 'text.secondary' : 'text.primary',
-                        lineHeight: 1.35,
-                        fontSize: '0.7rem',
-                        ...(isCurrent && { textDecoration: 'line-through', opacity: 0.6 }),
-                      }}
+                    </span>
+                    <span
+                      className={cn(
+                        'cn-text-caption text-[0.7rem] leading-[1.35]',
+                        isCurrent ? 'text-[var(--muted)] line-through opacity-60' : 'text-[var(--ink)]',
+                      )}
                     >
                       {f}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 ))}
-              </Box>
+              </div>
             );
           })}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* ── Ligne 2 : Boutons CTA en dessous ────────────────────────── */}
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 1.5,
-          alignItems: 'center',
-          flexWrap: 'wrap',
-        }}
-      >
+      <div className="flex gap-2 items-center flex-wrap">
+        {/* « Confort » est l'offre poussee par la banniere : action principale du bloc.
+            « Premium » reste une alternative, donc secondaire (outline sourdine). */}
         <Button
-          variant="contained"
-          size="medium"
           disabled={loading}
           onClick={() => handleUpgrade('confort')}
-          startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <CalendarIcon />}
-          endIcon={!loading ? <ArrowIcon size={18} strokeWidth={1.75} /> : undefined}
-          sx={{
-            bgcolor: C.primary,
-            color: '#fff',
-            fontWeight: 600,
-            textTransform: 'none',
-            borderRadius: '6px',
-            px: 2.5,
-            py: 0.75,
-            fontSize: '0.813rem',
-            boxShadow: isDark ? '0 1px 3px rgba(0,0,0,0.4)' : '0 1px 3px rgba(107,138,154,0.3)',
-            '&:hover': {
-              bgcolor: C.primaryDark,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            },
-            '&:disabled': {
-              bgcolor: C.primaryLight,
-              color: '#fff',
-              opacity: 0.6,
-            },
-          }}
         >
+          {loading ? <Spinner className="size-4" /> : <CalendarIcon />}
           {loading ? 'Redirection...' : 'Passer au Confort'}
+          {!loading && <ArrowIcon size={18} strokeWidth={1.75} />}
         </Button>
         <Button
-          variant="outlined"
-          size="small"
+          variant="outline"
+          size="sm"
+          className="text-[var(--muted)]"
           disabled={loading}
           onClick={() => handleUpgrade('premium')}
-          startIcon={<TrendingIcon size={16} strokeWidth={1.75} />}
-          sx={{
-            borderColor: 'divider',
-            color: 'text.secondary',
-            fontWeight: 600,
-            textTransform: 'none',
-            borderRadius: '6px',
-            fontSize: '0.75rem',
-            py: 0.5,
-            '&:hover': {
-              borderColor: C.primary,
-              color: C.primary,
-              bgcolor: 'rgba(107,138,154,0.04)',
-            },
-          }}
         >
+          <TrendingIcon size={16} strokeWidth={1.75} />
           Passer au Premium
         </Button>
 
         {/* Error message */}
         {error && (
-          <Typography variant="caption" sx={{ color: 'error.main', ml: 1 }}>
+          <span className="cn-text-caption text-destructive ms-1.5">
             {error}
-          </Typography>
+          </span>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

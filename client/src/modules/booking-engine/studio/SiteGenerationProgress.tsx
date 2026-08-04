@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { useTranslation } from 'react-i18next';
-import { Box } from '@mui/material';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { FileSearch, LayoutTemplate, PenLine, Palette, Check, type LucideIcon } from 'lucide-react';
 
@@ -49,40 +49,30 @@ export default function SiteGenerationProgress({ brandLabel }: { brandLabel?: st
   }, []);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 2.5, py: 2 }}>
+    <div className="flex flex-col items-center text-center gap-3.5 py-3">
       <PageAssemblyMotif reduce={reduce} />
 
-      <Box>
-        <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-bold)', color: 'var(--ink)' }}>
+      <div>
+        <div className="font-[family-name:var(--font-display)] text-[var(--text-lg)] font-[family-name:var(--fw-bold)] text-[var(--ink)]">
           {k('title', 'Construction de votre site…')}
-        </Box>
+        </div>
         {brandLabel ? (
-          <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', mt: 0.25, maxWidth: 360, lineHeight: 1.45, textWrap: 'balance' }}>
+          <div className="text-[var(--text-sm)] text-[var(--muted)] mt-[1.5px] max-w-[360px] leading-[1.45] text-balance">
             {brandLabel}
-          </Box>
+          </div>
         ) : null}
-      </Box>
+      </div>
 
       <IndeterminateBar reduce={reduce} />
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%', maxWidth: 300, textAlign: 'left' }}>
+      <div className="flex flex-col gap-1.5 w-full max-w-[300px] text-start">
         {steps.map((s, i) => {
           const done = i < step;
           const active = i === step;
           const Icon = s.icon;
           return (
-            <Box
-              key={s.label}
-              sx={{ display: 'flex', alignItems: 'center', gap: 1.25, opacity: done || active ? 1 : 0.4, transition: 'opacity .3s var(--ease-out)' }}
-            >
-              <Box
-                sx={{
-                  width: 26, height: 26, borderRadius: '50%', display: 'grid', placeItems: 'center', flexShrink: 0,
-                  bgcolor: done || active ? 'var(--accent-soft)' : 'var(--line)',
-                  color: done || active ? 'var(--accent)' : 'var(--muted)',
-                  transition: 'background .3s var(--ease-out), color .3s var(--ease-out)',
-                }}
-              >
+            <div className={cn('flex items-center gap-[7.5px]', done || active ? 'opacity-100' : 'opacity-40')} style={{ transition: 'opacity .3s var(--ease-out)' }} key={s.label}>
+              <div className={cn('w-[26px] h-[26px] rounded-[50%] grid place-items-[center] shrink-0', done || active ? 'bg-[var(--accent-soft)]' : 'bg-[var(--line)]', done || active ? 'text-[var(--accent)]' : 'text-[var(--muted)]')} style={{ transition: 'background .3s var(--ease-out), color .3s var(--ease-out)' }}>
                 {done ? (
                   <Check size={14} strokeWidth={2.6} />
                 ) : active && !reduce ? (
@@ -96,16 +86,16 @@ export default function SiteGenerationProgress({ brandLabel }: { brandLabel?: st
                 ) : (
                   <Icon size={14} strokeWidth={2} />
                 )}
-              </Box>
-              <Box sx={{ fontSize: 'var(--text-sm)', color: active ? 'var(--ink)' : 'var(--body)', fontWeight: active ? 'var(--fw-semibold)' : undefined }}>
+              </div>
+              <div className={cn('text-[var(--text-sm)]', active ? 'text-[var(--ink)]' : 'text-[var(--body)]')} style={{ fontWeight: active ? 'var(--fw-semibold)' : undefined }}>
                 {s.label}
-              </Box>
-            </Box>
+              </div>
+            </div>
           );
         })}
-      </Box>
+      </div>
 
-      <Box sx={{ minHeight: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="min-h-[32px] flex items-center justify-center">
         <AnimatePresence mode="wait">
           <motion.div
             key={tip}
@@ -118,12 +108,12 @@ export default function SiteGenerationProgress({ brandLabel }: { brandLabel?: st
             {tips[tip]}
           </motion.div>
         </AnimatePresence>
-      </Box>
+      </div>
 
-      <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', opacity: 0.7 }}>
+      <div className="text-[var(--text-2xs)] text-[var(--muted)] opacity-70">
         {k('doNotClose', 'Ne fermez pas cette fenêtre.')}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 
@@ -137,34 +127,28 @@ function PageAssemblyMotif({ reduce }: { reduce: boolean }) {
     />
   );
   return (
-    <Box
-      sx={{
-        width: 132, p: 1.25, borderRadius: 'var(--radius-lg)', bgcolor: 'var(--card)',
-        border: '1px solid var(--line)', boxShadow: '0 12px 32px -20px rgba(0,0,0,0.3)',
-        display: 'flex', flexDirection: 'column', gap: 0.75,
-      }}
-    >
+    <div className="w-[132px] p-[7.5px] rounded-[var(--radius-lg)] bg-[var(--card)] border border-solid border-[var(--line)] flex flex-col gap-[4.5px]" style={{ boxShadow: '0 12px 32px -20px rgba(0,0,0,0.3)' }}>
       {block(0, { height: 8, width: '45%', background: 'var(--muted)' })}
       {block(0.2, { height: 30, width: '100%', background: 'var(--accent)' })}
       {block(0.4, { height: 6, width: '80%', background: 'var(--line)' })}
       {block(0.5, { height: 6, width: '60%', background: 'var(--line)' })}
-      <Box sx={{ display: 'flex', gap: 0.5, mt: 0.25 }}>
+      <div className="flex gap-0.5 mt-0.5">
         {[0, 1, 2].map((i) => (
-          <Box key={i} sx={{ flex: 1, display: 'flex' }}>
+          <div className="flex-1 flex" key={i}>
             {block(0.6 + i * 0.12, { height: 22, width: '100%', background: 'var(--field)', border: '1px solid var(--line)' })}
-          </Box>
+          </div>
         ))}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 
 /** Barre de progression INDÉTERMINÉE : un balayage en boucle (pas de pourcentage faux). */
 function IndeterminateBar({ reduce }: { reduce: boolean }) {
   return (
-    <Box sx={{ width: '100%', maxWidth: 300, height: 5, borderRadius: 999, bgcolor: 'var(--line)', overflow: 'hidden', position: 'relative' }}>
+    <div className="w-full max-w-[300px] h-[5px] rounded-[999px] bg-[var(--line)] overflow-hidden relative">
       {reduce ? (
-        <Box sx={{ position: 'absolute', insetBlock: 0, left: 0, width: '45%', borderRadius: 999, bgcolor: 'var(--accent)', opacity: 0.6 }} />
+        <div className="absolute inset-y-0 left-0 w-[45%] rounded-[999px] bg-[var(--accent)] opacity-60" />
       ) : (
         <motion.div
           animate={{ x: ['-45%', '260%'] }}
@@ -172,6 +156,6 @@ function IndeterminateBar({ reduce }: { reduce: boolean }) {
           style={{ position: 'absolute', top: 0, bottom: 0, width: '40%', borderRadius: 999, background: 'var(--accent)' }}
         />
       )}
-    </Box>
+    </div>
   );
 }

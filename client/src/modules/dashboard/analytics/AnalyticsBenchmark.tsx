@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
+import { Card, CardContent } from '../../../components/ui';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -13,28 +13,9 @@ import type { BenchmarkMetrics } from '../../../hooks/useAnalyticsEngine';
 
 const LEGEND_STYLE = { fontSize: 10, letterSpacing: '0.02em' } as const;
 
-const CHART_CARD_SX = {
-  width: '100%',
-  height: 240,
-} as const;
-
-const CHART_CONTENT_SX = {
-  p: 1.25,
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  '&:last-child': { pb: 1.25 },
-} as const;
-
-const SECTION_LABEL_SX = {
-  fontSize: '0.6875rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.04em',
-  color: 'text.secondary',
-  mb: 0.5,
-  flexShrink: 0,
-} as const;
+/** Intitule de section (mb 0.5 de l'ancien sx = 3 px, theme.spacing valait 6). */
+const SECTION_LABEL_CLASS =
+  'cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.04em] text-[var(--muted)] mb-[3px] shrink-0';
 
 interface Props {
   data: BenchmarkMetrics | null;
@@ -50,20 +31,20 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
       title={t('dashboard.analytics.benchmark')}
       subtitle={t('dashboard.analytics.benchmarkDesc')}
     >
-      <Grid container spacing={1.5}>
+      <div className="grid grid-cols-12 gap-[9px]">
         {/* Radar chart */}
-        <Grid item xs={12} md={6}>
-          <Card sx={CHART_CARD_SX}>
-            <CardContent sx={CHART_CONTENT_SX}>
-              <Typography sx={SECTION_LABEL_SX}>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <Card className="w-full h-[240px] gap-0 p-0">
+            <CardContent className="p-2 h-full flex flex-col">
+              <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.portfolioVsBest')}
-              </Typography>
+              </p>
               {loading || !data || data.radarData.length === 0 ? (
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.disabled">...</Typography>
-                </Box>
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                </div>
               ) : (
-                <Box sx={{ flex: 1, minHeight: 0 }}>
+                <div className="flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart data={data.radarData}>
                       <PolarGrid stroke="#E2E8F0" />
@@ -88,14 +69,14 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
                       <Legend wrapperStyle={LEGEND_STYLE} iconSize={6} />
                     </RadarChart>
                   </ResponsiveContainer>
-                </Box>
+                </div>
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Portfolio average */}
-        <Grid item xs={6} sm={4} md={2}>
+        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.portfolioAvg')}
             value={data ? <Money value={data.portfolioAvg.revPAN} from="EUR" decimals={2} /> : '-'}
@@ -104,10 +85,10 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
             icon={<Compare color="primary" />}
             loading={loading}
           />
-        </Grid>
+        </div>
 
         {/* Best property */}
-        <Grid item xs={6} sm={4} md={2}>
+        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.bestProperty')}
             value={data ? data.bestProperty.name : '-'}
@@ -115,10 +96,10 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
             icon={<EmojiEvents color="warning" />}
             loading={loading}
           />
-        </Grid>
+        </div>
 
         {/* Std dev */}
-        <Grid item xs={6} sm={4} md={2}>
+        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.perfDispersion')}
             value={data ? `${data.stdDevPerformance}` : '-'}
@@ -127,8 +108,8 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
             tooltip={t('dashboard.analytics.perfDispersionTooltip')}
             loading={loading}
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </GridSection>
   );
 });

@@ -1,38 +1,39 @@
 import React, { useMemo, useState } from 'react';
+import { cn } from '../../utils/cn';
+import { Badge, Button } from '../../components/ui';
+import { Alert as UiAlert, AlertAction, AlertDescription } from '../../components/ui';
+import { Info } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Chip,
-  Typography,
-  Box,
-  CircularProgress,
-  IconButton,
   Tooltip,
-  Snackbar,
-  Alert,
-  alpha,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { Close, Refresh, Delete } from '../../icons';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import type { IncidentDto, IncidentStatus } from '../../services/api/incidentApi';
 import { incidentApi } from '../../services/api/incidentApi';
 import { useAuth } from '../../hooks/useAuth';
+import { useNotification } from '../../hooks/useNotification';
 import { formatDuration } from '../../utils/durationUtils';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<IncidentStatus, { label: string; color: 'error' | 'success' | 'warning' }> = {
-  OPEN: { label: 'Ouvert', color: 'error' },
-  ACKNOWLEDGED: { label: 'Pris en charge', color: 'warning' },
-  RESOLVED: { label: 'Résolu', color: 'success' },
+const STATUS_CONFIG: Record<IncidentStatus, { label: string; tone: StatusTone }> = {
+  OPEN: { label: 'Ouvert', tone: 'err' },
+  ACKNOWLEDGED: { label: 'Pris en charge', tone: 'warn' },
+  RESOLVED: { label: 'Résolu', tone: 'ok' },
 };
 
 const formatDate = (iso: string): string => {
@@ -118,6 +119,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
   targetMinutes = 60,
 }) => {
   const { isSuperAdmin } = useAuth();
+  const { notify } = useNotification();
   const canDelete = isSuperAdmin();
 
   const [retestingId, setRetestingId] = useState<number | null>(null);
@@ -125,11 +127,6 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [confirmBulkOpen, setConfirmBulkOpen] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'warning' | 'error';
-  }>({ open: false, message: '', severity: 'success' });
 
   // ─── Derived state : tri + stats KPI ───────────────────────────────────────
 
@@ -174,11 +171,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
     setDeletingId(incidentId);
     try {
       await incidentApi.deleteIncident(incidentId);
-      setSnackbar({
-        open: true,
-        message: `Incident #${incidentId} supprimé.`,
-        severity: 'success',
-      });
+      notify.success(`Incident #${incidentId} supprimé.`);
       onRefresh?.();
     } catch (err) {
       // Diagnostic precis : distinguer 403 (role manquant) / 404 (deja supprime) / autre.
@@ -193,7 +186,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
         const backendMsg = apiErr?.message ?? 'erreur inconnue';
         message = `Erreur lors de la suppression (HTTP ${status ?? '?'} — ${backendMsg}).`;
       }
-      setSnackbar({ open: true, message, severity: 'error' });
+      notify.error(message);
     } finally {
       setDeletingId(null);
       setConfirmDeleteId(null);
@@ -222,23 +215,11 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
     setConfirmBulkOpen(false);
 
     if (failCount === 0) {
-      setSnackbar({
-        open: true,
-        message: `${okCount} incident${okCount > 1 ? 's' : ''} hors cible supprimé${okCount > 1 ? 's' : ''}.`,
-        severity: 'success',
-      });
+      notify.success(`${okCount} incident${okCount > 1 ? 's' : ''} hors cible supprimé${okCount > 1 ? 's' : ''}.`);
     } else if (okCount === 0) {
-      setSnackbar({
-        open: true,
-        message: `Echec de la suppression bulk (${failCount} erreurs).`,
-        severity: 'error',
-      });
+      notify.error(`Echec de la suppression bulk (${failCount} erreurs).`);
     } else {
-      setSnackbar({
-        open: true,
-        message: `${okCount} supprimé${okCount > 1 ? 's' : ''}, ${failCount} echec${failCount > 1 ? 's' : ''}.`,
-        severity: 'warning',
-      });
+      notify.warning(`${okCount} supprimé${okCount > 1 ? 's' : ''}, ${failCount} echec${failCount > 1 ? 's' : ''}.`);
     }
 
     onRefresh?.();
@@ -250,26 +231,14 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
       const result = await incidentApi.retestIncident(incidentId);
 
       if (result.status === 'UP' && result.resolved) {
-        setSnackbar({
-          open: true,
-          message: `Service ${result.service} est opérationnel — incident résolu`,
-          severity: 'success',
-        });
+        notify.success(`Service ${result.service} est opérationnel — incident résolu`);
       } else {
-        setSnackbar({
-          open: true,
-          message: `Service ${result.service} est toujours inaccessible : ${result.message}`,
-          severity: 'warning',
-        });
+        notify.warning(`Service ${result.service} est toujours inaccessible : ${result.message}`);
       }
 
       onRefresh?.();
     } catch {
-      setSnackbar({
-        open: true,
-        message: 'Erreur lors du retest',
-        severity: 'error',
-      });
+      notify.error('Erreur lors du retest');
     } finally {
       setRetestingId(null);
     }
@@ -281,113 +250,104 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Détail des incidents P1
-            </Typography>
-            {overTargetCount > 0 && (
-              <Tooltip title={`Cible KPI : < ${formatDuration(targetMinutes)}. Ces incidents tirent la moyenne au-dessus du seuil.`}>
-                <Chip
-                  label={`${overTargetCount} hors cible à nettoyer`}
-                  color="error"
-                  size="small"
-                  sx={{ height: 22, fontSize: '0.7rem', fontWeight: 600 }}
-                />
-              </Tooltip>
-            )}
-          </Box>
-        </DialogTitle>
+      <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+        <DialogContent className="max-w-[900px] max-h-[88vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <DialogTitle className="cn-text-h6 font-semibold">
+                Détail des incidents P1
+              </DialogTitle>
+              {overTargetCount > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    {/* Le span porte la ref que Radix pose sur son enfant :
+                        Badge est une fonction, il n'en transmet pas. */}
+                    <span className="inline-flex">
+                      <Badge variant="destructive" className="h-[22px] text-[0.7rem] font-semibold">{`${overTargetCount} hors cible à nettoyer`}</Badge>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>{`Cible KPI : < ${formatDuration(targetMinutes)}. Ces incidents tirent la moyenne au-dessus du seuil.`}</TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+          </DialogHeader>
 
-        <DialogContent dividers>
+          <div>
           {/* Avertissement diagnostic : des incidents OPEN existent dans
               d'autres sévérités (P2/P3) mais ne sont pas listés ici car
               le modal est scopé P1 (contexte du KPI 'P1 Incident Resolution'). */}
           {otherSeveritiesOpenCount > 0 && (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              {otherSeveritiesOpenCount} incident
-              {otherSeveritiesOpenCount > 1 ? 's' : ''} ouvert
-              {otherSeveritiesOpenCount > 1 ? 's' : ''} de sévérité autre que P1
-              {otherSeveritiesOpenCount > 1 ? ' ne sont pas affichés' : " n'est pas affiché"} ici
-              (ce tableau ne montre que les incidents P1).
-            </Alert>
+            <UiAlert variant="info" className="mb-3">
+              <Info />
+              <AlertDescription>{otherSeveritiesOpenCount}incident
+              {otherSeveritiesOpenCount > 1 ? 's' : ''}ouvert
+              {otherSeveritiesOpenCount > 1 ? 's' : ''}de sévérité autre que P1
+              {otherSeveritiesOpenCount > 1 ? ' ne sont pas affichés' : " n'est pas affiché"}ici
+              (ce tableau ne montre que les incidents P1).</AlertDescription>
+            </UiAlert>
           )}
 
           {/* Stats KPI + bulk action — uniquement si on a des hors cible */}
           {!loading && overTargetCount > 0 && (
-            <Alert
-              severity="warning"
-              icon={false}
-              sx={{
-                mb: 2,
-                '& .MuiAlert-message': { width: '100%' },
-              }}
-              action={
-                canDelete && (
+            <UiAlert variant="warning" className="mb-3">
+              <AlertDescription>
+                <div className="flex flex-col gap-0.5">
+                  <p className="cn-text-body2 font-semibold">
+                    Moyenne actuelle : {formatDuration(stats.currentAvg)}{' '}
+                    <span className="cn-text-caption text-muted-foreground">
+                      (cible : &lt; {formatDuration(targetMinutes)})
+                    </span>
+                  </p>
+                  <span className="cn-text-caption text-muted-foreground">
+                    En supprimant les {overTargetCount} hors cible →{' '}
+                    <span className={cn('cn-text-caption font-semibold', stats.projectedAvg <= targetMinutes ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
+                      moyenne projetée {formatDuration(stats.projectedAvg)}
+                    </span>{' '}
+                    sur {stats.projectedCount} incident{stats.projectedCount > 1 ? 's' : ''} restant
+                    {stats.projectedCount > 1 ? 's' : ''}.
+                  </span>
+                </div>
+              </AlertDescription>
+              {canDelete && (
+                <AlertAction>
                   <Button
-                    size="small"
-                    color="error"
-                    variant="contained"
-                    startIcon={bulkDeleting ? <CircularProgress size={14} color="inherit" /> : <Delete fontSize="small" />}
+                    size="sm"
+                    variant="destructive"
                     onClick={() => setConfirmBulkOpen(true)}
                     disabled={bulkDeleting}
                   >
+                    {bulkDeleting ? <Spinner className="size-3.5" /> : <Delete />}
                     Supprimer les {overTargetCount} hors cible
                   </Button>
-                )
-              }
-            >
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  Moyenne actuelle : {formatDuration(stats.currentAvg)}{' '}
-                  <Typography component="span" variant="caption" sx={{ color: 'text.secondary' }}>
-                    (cible : &lt; {formatDuration(targetMinutes)})
-                  </Typography>
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  En supprimant les {overTargetCount} hors cible →{' '}
-                  <Typography
-                    component="span"
-                    variant="caption"
-                    sx={{
-                      fontWeight: 600,
-                      color: stats.projectedAvg <= targetMinutes ? 'success.main' : 'warning.main',
-                    }}
-                  >
-                    moyenne projetée {formatDuration(stats.projectedAvg)}
-                  </Typography>{' '}
-                  sur {stats.projectedCount} incident{stats.projectedCount > 1 ? 's' : ''} restant
-                  {stats.projectedCount > 1 ? 's' : ''}.
-                </Typography>
-              </Box>
-            </Alert>
+                </AlertAction>
+              )}
+            </UiAlert>
           )}
 
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress />
-            </Box>
+            <div className="flex justify-center py-6">
+              <Spinner className="size-10" />
+            </div>
           ) : sortedIncidents.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Typography color="text.secondary">
+            <div className="text-center py-6">
+              <p className="cn-text-body1 text-muted-foreground">
                 Aucun incident P1 récent.
-              </Typography>
-            </Box>
+              </p>
+            </div>
           ) : (
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Service</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Titre</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Statut</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Durée</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Service</TableHead>
+                    <TableHead>Titre</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Durée</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {sortedIncidents.map((incident) => {
                     const statusConfig = STATUS_CONFIG[incident.status];
@@ -396,168 +356,164 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                     return (
                       <TableRow
                         key={incident.id}
-                        hover
-                        sx={overTarget ? {
-                          backgroundColor: (theme) => alpha(theme.palette.error.main, 0.04),
-                        } : undefined}
+                        className={overTarget ? 'bg-[color-mix(in_srgb,var(--err)_4%,transparent)]' : undefined}
                       >
-                        <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}>
+                        <TableCell className="whitespace-nowrap text-[0.8rem]">
                           {formatDate(incident.openedAt)}
                         </TableCell>
-                        <TableCell sx={{ fontSize: '0.8rem' }}>
+                        <TableCell className="text-[0.8rem]">
                           {incident.type}
                         </TableCell>
-                        <TableCell sx={{ fontSize: '0.8rem' }}>
+                        <TableCell className="text-[0.8rem]">
                           {incident.serviceName}
                         </TableCell>
-                        <TableCell sx={{ fontSize: '0.8rem', maxWidth: 200 }}>
-                          <Typography variant="body2" noWrap title={incident.title}>
+                        <TableCell className="text-[0.8rem] max-w-[200px]">
+                          <p className="cn-text-body2 truncate" title={incident.title}>
                             {incident.title}
-                          </Typography>
+                          </p>
                         </TableCell>
                         <TableCell>
-                          <Chip
+                          <StatusChip
                             label={statusConfig.label}
-                            color={statusConfig.color}
-                            size="small"
-                            sx={{ height: 22, fontSize: '0.7rem' }}
+                            tone={statusConfig.tone}
+                            className="text-[0.7rem]"
                           />
                         </TableCell>
-                        <TableCell sx={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-                            <Typography
-                              component="span"
-                              sx={{
-                                fontSize: '0.8rem',
-                                fontWeight: overTarget ? 600 : 400,
-                                color: overTarget ? 'error.main' : 'inherit',
-                                fontVariantNumeric: 'tabular-nums',
-                              }}
-                            >
+                        <TableCell className="text-[0.8rem] whitespace-nowrap">
+                          <div className="inline-flex items-center gap-0.5">
+                            <span className={cn('cn-text-body1 text-[0.8rem] tabular-nums', overTarget ? 'font-semibold' : 'font-normal', overTarget ? 'text-[var(--err)]' : 'text-[inherit]')}>
                               {formatDuration(incident.resolutionMinutes)}
-                            </Typography>
+                            </span>
                             {overTarget && (
-                              <Tooltip
-                                title={`Au-dessus de la cible (< ${formatDuration(targetMinutes)}) — pollue la moyenne KPI P1. Candidat à suppression pour purger le KPI.`}
-                              >
-                                <Chip
-                                  label="hors cible"
-                                  size="small"
-                                  color="error"
-                                  variant="outlined"
-                                  sx={{
-                                    height: 18,
-                                    fontSize: '0.625rem',
-                                    fontWeight: 600,
-                                    letterSpacing: '0.03em',
-                                  }}
-                                />
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex">
+                                    <Badge variant="destructive" className="h-[18px] text-[0.625rem] font-semibold tracking-[0.03em]">hors cible</Badge>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>{`Au-dessus de la cible (< ${formatDuration(targetMinutes)}) — pollue la moyenne KPI P1. Candidat à suppression pour purger le KPI.`}</TooltipContent>
                               </Tooltip>
                             )}
-                          </Box>
+                          </div>
                         </TableCell>
                         <TableCell>
-                          <Box sx={{ display: 'inline-flex', gap: 0.25 }}>
+                          <div className="inline-flex gap-0.5">
                             {incident.status === 'OPEN' && (
-                              <Tooltip title="Retester le service — si UP, l'incident sera auto-résolu">
-                                <IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => handleRetest(incident.id)}
-                                  disabled={isRetesting || deletingId === incident.id}
-                                >
-                                  {isRetesting ? (
-                                    <CircularProgress size={18} />
-                                  ) : (
-                                    <Refresh fontSize="small" />
-                                  )}
-                                </IconButton>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      className="text-[var(--mui-primary)]"
+                                      aria-label="Retester le service"
+                                      onClick={() => handleRetest(incident.id)}
+                                      disabled={isRetesting || deletingId === incident.id}
+                                    >
+                                      {isRetesting ? (
+                                        <Spinner className="size-[18px]" />
+                                      ) : (
+                                        <Refresh size={18} strokeWidth={1.75} />
+                                      )}
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>Retester le service — si UP, l&apos;incident sera auto-résolu</TooltipContent>
                               </Tooltip>
                             )}
                             {canDelete && (
-                              <Tooltip
-                                title={
-                                  incident.status === 'OPEN'
-                                    ? "Supprimer définitivement (service non monitoré localement, etc.)"
-                                    : "Supprimer cet incident résolu (purge la moyenne KPI P1)"
-                                }
-                              >
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => setConfirmDeleteId(incident.id)}
-                                  disabled={deletingId === incident.id || isRetesting}
-                                >
-                                  {deletingId === incident.id ? (
-                                    <CircularProgress size={18} />
-                                  ) : (
-                                    <Delete fontSize="small" />
-                                  )}
-                                </IconButton>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      className="text-[var(--err)]"
+                                      aria-label="Supprimer l'incident"
+                                      onClick={() => setConfirmDeleteId(incident.id)}
+                                      disabled={deletingId === incident.id || isRetesting}
+                                    >
+                                      {deletingId === incident.id ? (
+                                        <Spinner className="size-[18px]" />
+                                      ) : (
+                                        <Delete size={18} strokeWidth={1.75} />
+                                      )}
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {incident.status === 'OPEN'
+                                    ? 'Supprimer définitivement (service non monitoré localement, etc.)'
+                                    : 'Supprimer cet incident résolu (purge la moyenne KPI P1)'}
+                                </TooltipContent>
                               </Tooltip>
                             )}
-                          </Box>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </div>
           )}
-        </DialogContent>
+          </div>
 
-        <DialogActions>
-          <Button onClick={onClose} startIcon={<Close />}>
-            Fermer
-          </Button>
-        </DialogActions>
+          <DialogFooter>
+            {/* Dialog de consultation : « Fermer » n'engage rien, il reste tertiaire. */}
+            <Button variant="ghost" onClick={onClose}>
+              <Close />
+              Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
       {/* Confirmation de suppression unitaire */}
       <Dialog
         open={confirmDeleteId !== null}
-        onClose={() => setConfirmDeleteId(null)}
-        maxWidth="xs"
+        onOpenChange={(next) => { if (!next) setConfirmDeleteId(null); }}
       >
-        <DialogTitle>Supprimer l'incident #{confirmDeleteId} ?</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ mb: 1 }}>
-            Cette action retire l'incident de la base. Conséquences :
-          </Typography>
-          <Typography variant="body2" component="ul" sx={{ pl: 2, color: 'text.secondary' }}>
-            <li>Décrémente le compteur d'incidents ouverts (badge).</li>
-            <li>Si l'incident était RÉSOLU, sa durée n'entre plus dans la moyenne KPI P1.</li>
+        <DialogContent className="max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>Supprimer l&apos;incident #{confirmDeleteId} ?</DialogTitle>
+          </DialogHeader>
+          <p className="cn-text-body2 mb-1.5">
+            Cette action retire l&apos;incident de la base. Conséquences :
+          </p>
+          <ul className="cn-text-body2 ps-3 text-muted-foreground">
+            <li>Décrémente le compteur d&apos;incidents ouverts (badge).</li>
+            <li>Si l&apos;incident était RÉSOLU, sa durée n&apos;entre plus dans la moyenne KPI P1.</li>
             <li>Action irréversible — pas de soft-delete.</li>
-          </Typography>
+          </ul>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDeleteId(null)}>Annuler</Button>
+            <Button
+              variant="destructive"
+              onClick={() => confirmDeleteId !== null && handleDelete(confirmDeleteId)}
+              disabled={deletingId !== null}
+            >
+              Supprimer
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmDeleteId(null)}>Annuler</Button>
-          <Button
-            color="error"
-            variant="contained"
-            onClick={() => confirmDeleteId !== null && handleDelete(confirmDeleteId)}
-            disabled={deletingId !== null}
-          >
-            Supprimer
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Confirmation de bulk delete */}
       <Dialog
         open={confirmBulkOpen}
-        onClose={() => !bulkDeleting && setConfirmBulkOpen(false)}
-        maxWidth="xs"
+        onOpenChange={(next) => { if (!next && !bulkDeleting) setConfirmBulkOpen(false); }}
       >
-        <DialogTitle>
-          Supprimer {overTargetCount} incident{overTargetCount > 1 ? 's' : ''} hors cible ?
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ mb: 1 }}>
+        <DialogContent className="max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>
+              Supprimer {overTargetCount} incident{overTargetCount > 1 ? 's' : ''} hors cible ?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="cn-text-body2 mb-1.5">
             Tous les incidents RÉSOLUS dont la durée dépasse {formatDuration(targetMinutes)} seront supprimés :
-          </Typography>
-          <Typography variant="body2" component="ul" sx={{ pl: 2, color: 'text.secondary', mb: 1 }}>
+          </p>
+          <ul className="cn-text-body2 ps-3 text-muted-foreground mb-1.5">
             {overTargetIncidents.slice(0, 5).map((i) => (
               <li key={i.id}>
                 {i.serviceName} — {formatDuration(i.resolutionMinutes)}
@@ -566,42 +522,25 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
             {overTargetIncidents.length > 5 && (
               <li><i>+ {overTargetIncidents.length - 5} autre{overTargetIncidents.length - 5 > 1 ? 's' : ''}</i></li>
             )}
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          </ul>
+          <span className="cn-text-caption text-muted-foreground">
             Action irréversible. Moyenne KPI P1 après suppression : <b>{formatDuration(stats.projectedAvg)}</b>.
-          </Typography>
+          </span>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmBulkOpen(false)} disabled={bulkDeleting}>
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+            >
+              {bulkDeleting ? <Spinner className="size-3.5" /> : <Delete />}
+              Supprimer tout
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmBulkOpen(false)} disabled={bulkDeleting}>
-            Annuler
-          </Button>
-          <Button
-            color="error"
-            variant="contained"
-            onClick={handleBulkDelete}
-            disabled={bulkDeleting}
-            startIcon={bulkDeleting ? <CircularProgress size={14} color="inherit" /> : <Delete fontSize="small" />}
-          >
-            Supprimer tout
-          </Button>
-        </DialogActions>
       </Dialog>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={5000}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%', fontSize: '0.8rem' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </>
   );
 };

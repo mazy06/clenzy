@@ -1,11 +1,14 @@
 import React, { useCallback } from 'react';
+import { cn } from '../../utils/cn';
 import {
-  Box,
-  Grid,
-  Typography,
-  TextField,
-  MenuItem,
-} from '@mui/material';
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
 import { LocationOn } from '../../icons';
 import { Controller, useWatch } from 'react-hook-form';
 import type { Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
@@ -30,6 +33,9 @@ const SECTION_TITLE_SX = {
   alignItems: 'center',
   gap: 0.5,
 } as const;
+
+/** Report en classes de `SECTION_TITLE_SX`. */
+const SECTION_TITLE_CLASS = 'text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-[var(--muted)] mb-[9px] flex items-center gap-[3px]';
 
 // Fuseaux pertinents pour les marchés Clenzy (Europe + Maghreb + DOM-TOM). La
 // valeur courante est prepended si absente (édition d'un logement au fuseau exotique).
@@ -97,58 +103,65 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
     );
 
     return (
-      <Box>
-        <Typography sx={SECTION_TITLE_SX}>
+      <div>
+        <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
           <LocationOn size={14} strokeWidth={1.75} />
           {t('properties.address')}
-        </Typography>
+        </p>
 
-        <Grid container spacing={1.5}>
+        <div className="grid grid-cols-12 gap-[9px]">
           {/* Pays en premier — driver de l'autocomplete */}
-          <Grid item xs={12} md={4}>
+          <div className="col-span-12 min-[900px]:col-span-4">
             <Controller
               name="countryCode"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  select
-                  fullWidth
-                  label={t('properties.country')}
-                  required
-                  size="small"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  onChange={(e) => {
-                    const code = e.target.value;
-                    if (code === field.value) return;
-                    field.onChange(code);
-                    const c = COUNTRY_BY_CODE[code];
-                    if (c) {
-                      setValue('country', c.name, { shouldValidate: true });
-                    }
-                    // Reset des champs dependants : adresse / ville / CP / GPS / departement / arrondissement
-                    setValue('address', '', { shouldValidate: true });
-                    setValue('city', '', { shouldValidate: true });
-                    setValue('postalCode', '', { shouldValidate: true });
-                    setValue('latitude', null);
-                    setValue('longitude', null);
-                    setValue('department', null);
-                    setValue('arrondissement', null);
-                  }}
-                >
-                  {COUNTRIES.map((c) => (
-                    <MenuItem key={c.code} value={c.code}>
-                      <span style={{ marginRight: 8 }}>{c.flag}</span>
-                      {c.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                <Field>
+                  <FieldLabel htmlFor="property-country-code">{t('properties.country')}</FieldLabel>
+                  {/* field.ref n'est pas transmis : les primitives du kit sont des
+                      composants fonction sans forwardRef (React 18), le passer
+                      declencherait un avertissement sans jamais s'attacher. */}
+                  <NativeSelect
+                    id="property-country-code"
+                    className="w-full"
+                    name={field.name}
+                    value={field.value}
+                    onBlur={field.onBlur}
+                    required
+                    aria-invalid={!!fieldState.error}
+                    onChange={(e) => {
+                      const code = e.target.value;
+                      if (code === field.value) return;
+                      field.onChange(code);
+                      const c = COUNTRY_BY_CODE[code];
+                      if (c) {
+                        setValue('country', c.name, { shouldValidate: true });
+                      }
+                      // Reset des champs dependants : adresse / ville / CP / GPS / departement / arrondissement
+                      setValue('address', '', { shouldValidate: true });
+                      setValue('city', '', { shouldValidate: true });
+                      setValue('postalCode', '', { shouldValidate: true });
+                      setValue('latitude', null);
+                      setValue('longitude', null);
+                      setValue('department', null);
+                      setValue('arrondissement', null);
+                    }}
+                  >
+                    {COUNTRIES.map((c) => (
+                      <NativeSelectOption key={c.code} value={c.code}>
+                        {c.flag} {c.name}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                  {fieldState.error?.message && (
+                    <FieldError>{fieldState.error.message}</FieldError>
+                  )}
+                </Field>
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} md={8}>
+          <div className="col-span-12 min-[900px]:col-span-8">
             <Controller
               name="address"
               control={control}
@@ -167,9 +180,9 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
                 />
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <Controller
               name="city"
               control={control}
@@ -199,28 +212,34 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
                 />
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <Controller
               name="postalCode"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label={t('properties.postalCode')}
-                  required
-                  placeholder={t('properties.postalCodePlaceholder')}
-                  size="small"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                />
+                <Field>
+                  <FieldLabel htmlFor="property-postal-code">{t('properties.postalCode')}</FieldLabel>
+                  <Input
+                    id="property-postal-code"
+                    name={field.name}
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    required
+                    placeholder={t('properties.postalCodePlaceholder')}
+                    aria-invalid={!!fieldState.error}
+                  />
+                  {fieldState.error?.message && (
+                    <FieldError>{fieldState.error.message}</FieldError>
+                  )}
+                </Field>
               )}
             />
-          </Grid>
+          </div>
 
-          <Grid item xs={12} md={6}>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <Controller
               name="timezone"
               control={control}
@@ -229,61 +248,43 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
                   ? [field.value, ...TIMEZONES]
                   : TIMEZONES;
                 return (
-                  <TextField
-                    {...field}
-                    value={field.value || 'Europe/Paris'}
-                    select
-                    fullWidth
-                    size="small"
-                    label={t('properties.timezone', 'Fuseau horaire')}
-                    helperText={t('properties.timezoneHelp', "Heure locale du logement (codes d'accès, planning)")}
-                    error={!!fieldState.error}
-                  >
-                    {opts.map((tz) => (
-                      <MenuItem key={tz} value={tz}>{tz}</MenuItem>
-                    ))}
-                  </TextField>
+                  <Field>
+                    <FieldLabel htmlFor="property-timezone">
+                      {t('properties.timezone', 'Fuseau horaire')}
+                    </FieldLabel>
+                    <NativeSelect
+                      id="property-timezone"
+                      className="w-full"
+                      name={field.name}
+                      value={field.value || 'Europe/Paris'}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      aria-invalid={!!fieldState.error}
+                    >
+                      {opts.map((tz) => (
+                        <NativeSelectOption key={tz} value={tz}>{tz}</NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                    <FieldDescription>
+                      {t('properties.timezoneHelp', "Heure locale du logement (codes d'accès, planning)")}
+                    </FieldDescription>
+                  </Field>
                 );
               }}
             />
-          </Grid>
+          </div>
 
           {/* ─── Position GPS sur la carte ────────────────────────────── */}
-          <Grid item xs={12}>
-            <Typography
-              sx={{
-                fontSize: '0.6875rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: 'text.secondary',
-                mt: 0.5,
-                mb: 1,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-              }}
-            >
+          <div className="col-span-12">
+            <p className="cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-muted-foreground mt-0.5 mb-1.5 flex items-center gap-0.5">
               <LocationOn size={14} strokeWidth={1.75} />
               Position GPS
               {latitude != null && longitude != null && (
-                <Box
-                  component="span"
-                  sx={{
-                    ml: 0.5,
-                    px: 0.75,
-                    py: 0.1,
-                    borderRadius: 999,
-                    bgcolor: 'var(--ok-soft)',
-                    color: 'var(--ok)',
-                    fontSize: '9.5px',
-                    fontWeight: 700,
-                  }}
-                >
+                <span className="ms-0.5 px-1 py-0 rounded-[999px] bg-[var(--ok-soft)] text-[var(--ok)] text-[9.5px] font-bold">
                   ✓ DÉFINIE
-                </Box>
+                </span>
               )}
-            </Typography>
+            </p>
             <PropertyLocationPicker
               latitude={latitude}
               longitude={longitude}
@@ -291,9 +292,9 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
               height={260}
               helperText="Aucune coordonnée GPS n'a été trouvée. Cliquez sur la carte ou faites glisser le pin pour positionner manuellement le logement."
             />
-          </Grid>
-        </Grid>
-      </Box>
+          </div>
+        </div>
+      </div>
     );
   }
 );

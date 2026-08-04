@@ -1,8 +1,9 @@
 import React, { useCallback } from 'react';
-import { Box, Typography, TextField, Chip } from '@mui/material';
+import { Field, FieldLabel, Input } from '../../components/ui';
 import { Receipt, Search } from '../../icons';
 import type { QuoteLine } from '../../schemas/serviceRequestSchema';
 import ServiceRequestQuoteEditor from './ServiceRequestQuoteEditor';
+import StatusChip, { STATUS_TONES } from '../../components/StatusChip';
 
 // ─── Chiffrage maintenance ──────────────────────────────────────────────────
 //
@@ -72,84 +73,65 @@ const ServiceRequestMaintenancePricing: React.FC<ServiceRequestMaintenancePricin
     );
 
     return (
-      <Box>
-        <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1 }}>
+      <div>
+        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1.5">
           Chiffrage
-        </Typography>
+        </p>
 
         {/* Sélecteur de mode */}
-        <Box sx={{ display: 'flex', gap: 0.75, mb: 1.5, flexWrap: 'wrap' }}>
+        <div className="flex gap-1 mb-2 flex-wrap">
           {MODES.map((m) => {
             const isActive = pricingMode === m.value;
             return (
-              <Chip
+              <StatusChip
                 key={m.value}
+                outlined
+                selected={isActive}
+                pressed={isActive}
+                tokens={STATUS_TONES.accent}
                 icon={m.icon}
                 label={m.label}
                 onClick={disabled ? undefined : () => handleModeChange(m.value)}
                 disabled={disabled}
-                aria-pressed={isActive}
-                sx={{
-                  height: 30,
-                  fontSize: '11.5px',
-                  fontWeight: isActive ? 600 : 500,
-                  border: '1px solid',
-                  borderColor: isActive ? 'var(--accent)' : 'var(--line-2)',
-                  bgcolor: isActive ? 'var(--accent-soft)' : 'var(--card)',
-                  color: isActive ? 'var(--accent)' : 'var(--body)',
-                  '& .MuiChip-icon': { fontSize: 15, ml: 0.5, color: isActive ? 'var(--accent)' : 'var(--muted)' },
-                  '& .MuiChip-label': { px: 0.75 },
-                  '&:hover': disabled ? {} : { borderColor: 'var(--accent)', bgcolor: isActive ? 'var(--accent-soft)' : 'var(--hover)' },
-                  cursor: disabled ? 'default' : 'pointer',
-                  transition: 'background-color .15s, border-color .15s, color .15s',
-                }}
+                className={`h-[30px] text-[11.5px] border-solid${isActive ? ' font-semibold' : ''}`}
               />
             );
           })}
-        </Box>
+        </div>
 
         {/* Contenu selon le mode */}
         {pricingMode === 'DIAGNOSTIC' ? (
-          <Box
-            sx={{
-              border: '1px solid var(--line)',
-              borderRadius: '11px',
-              bgcolor: 'var(--field)',
-              p: 1.5,
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-              <Box>
-                <Typography sx={{ fontSize: '10px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '.04em', mb: 0.5 }}>
+          <div className="border border-[var(--line)] rounded-[11px] bg-[var(--field)] p-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Field className="w-[130px]">
+                <FieldLabel
+                  htmlFor="maintenance-diagnostic-fee"
+                  className="cn-text-body1 text-[10px] font-bold text-[var(--faint)] uppercase tracking-[.04em] mb-0.5"
+                >
                   Montant du diagnostic (€)
-                </Typography>
-                <TextField
+                </FieldLabel>
+                <Input
+                  id="maintenance-diagnostic-fee"
+                  className="w-full bg-[var(--card)] text-[13px] tabular-nums text-end [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   value={Number.isFinite(diagnosticFee as number) && diagnosticFee !== undefined ? diagnosticFee : ''}
                   onChange={(e) => handleDiagnosticChange(e.target.value)}
                   type="number"
-                  inputProps={{ min: 0, step: 1 }}
+                  min={0}
+                  step={1}
                   placeholder="0"
                   disabled={disabled}
-                  size="small"
-                  sx={{
-                    width: 130,
-                    '& .MuiOutlinedInput-root': { fontSize: '13px', fontVariantNumeric: 'tabular-nums', bgcolor: 'var(--card)' },
-                    '& input': { textAlign: 'right' },
-                    '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': { WebkitAppearance: 'none', margin: 0 },
-                    '& input[type=number]': { MozAppearance: 'textfield' },
-                  }}
                 />
-              </Box>
-              <Typography sx={{ flex: 1, minWidth: 180, fontSize: '11.5px', color: 'var(--muted)', lineHeight: 1.4 }}>
+              </Field>
+              <p className="cn-text-body1 flex-1 min-w-[180px] text-[11.5px] text-[var(--muted)] leading-[1.4]">
                 L'artisan facture d'abord ce diagnostic pour évaluer sur place, puis
                 établit le devis après la visite. Optionnel — laisse vide pour chiffrer plus tard.
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
         ) : (
           <ServiceRequestQuoteEditor value={quoteLines} onChange={handleQuoteChange} disabled={disabled} />
         )}
-      </Box>
+      </div>
     );
   },
 );

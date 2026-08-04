@@ -139,7 +139,7 @@ class DtoCoverageTest {
         }
         @Test void messagingAutomationConfigDto() {
             MessagingAutomationConfigDto dto = new MessagingAutomationConfigDto(
-                    true, true, 24, 2, 1L, 2L, false);
+                    true, true, 24, 2, 1L, 2L, false, "22:00", "08:00");
             assertThat(dto.autoSendCheckIn()).isTrue();
             assertThat(dto.hoursBeforeCheckIn()).isEqualTo(24);
         }

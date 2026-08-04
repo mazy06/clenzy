@@ -123,6 +123,8 @@ export {
   Filter as FilterList,
   LayoutGrid as GridView,
   List as ViewList,
+  Orbit,
+  MousePointerClick,
 } from 'lucide-react';
 
 // ─── Utilisateurs / auth ────────────────────────────────────────────────────
@@ -414,6 +416,7 @@ export {
   MessageCircle as ChatBubbleOutline,
   Puzzle as Extension,
   UserRoundPlus as GroupAdd,
+  Hand,
   Handshake,
   Building as HomeWork,
   Lightbulb,
@@ -466,6 +469,7 @@ export {
   CalendarRange as CalendarViewWeek,
   Code,
   ArrowLeftRight as CompareArrows,
+  ConciergeBell,
   Contact as Contacts,
   Building2 as CorporateFare,
   Code as Css,

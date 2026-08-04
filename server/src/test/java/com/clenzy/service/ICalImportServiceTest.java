@@ -89,6 +89,7 @@ class ICalImportServiceTest {
                 new com.clenzy.service.pricing.CleaningPricingEngine(pricingConfigService, new com.fasterxml.jackson.databind.ObjectMapper(), org.mockito.Mockito.mock(com.clenzy.repository.HousekeeperRateRepository.class)),
                 tenantContext),
                 supervisionActivityService,
+                org.mockito.Mockito.mock(com.clenzy.service.agent.supervision.SupervisionSuggestionService.class),
                 selfProvider
         );
     }

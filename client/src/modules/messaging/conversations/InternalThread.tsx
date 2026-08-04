@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Box, Chip, Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
+import StatusChip from '../../../components/StatusChip';
 import {
   Archive as ArchiveIcon,
   AttachFile as AttachFileIcon,
@@ -14,8 +15,12 @@ import {
 } from '../../../hooks/useContactMessages';
 import { useAiSuggestResponse } from '../../../hooks/useAi';
 import type { ContactThreadSummary } from '../../../services/api/contactApi';
-import ThreadView, { composeToolSx } from './ThreadView';
+import ThreadView from './ThreadView';
 import { type ThreadMessage, getChannelBadge } from './unified';
+
+/** Equivalent classes de `composeToolSx` (toujours exporte par ThreadView pour ChannelThread). */
+const COMPOSE_TOOL_CLASS =
+  'w-[30px] h-[30px] rounded-[8px] border-0 bg-transparent text-[var(--muted)] flex items-center justify-center cursor-pointer p-0 shrink-0 transition-[background,color] duration-[140ms] hover:bg-[var(--bg)] hover:text-[var(--accent)] disabled:opacity-[0.45] disabled:cursor-default';
 
 interface InternalThreadProps {
   thread: ContactThreadSummary;
@@ -110,9 +115,9 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
         title={counterpartName}
         subtitle={
           <>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
+            <span className="inline-flex text-[var(--accent)]">
               <badge.Icon size={13} strokeWidth={2} />
-            </Box>
+            </span>
             {t('messagingHub.internalChat', 'Chat interne')}
             {thread.counterpartEmail ? ` · ${thread.counterpartEmail}` : ''}
           </>
@@ -136,49 +141,53 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
         composePlaceholder={t('messagingHub.replyTo', 'Répondre à {{name}}…', { name: counterpartName })}
         composeExtra={
           attachments.length > 0 ? (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, pb: 1 }}>
+            <div className="flex flex-wrap gap-0.5 pb-1.5">
               {attachments.map((file, idx) => (
-                <Chip
+                <StatusChip
                   key={`${file.name}-${idx}`}
                   label={file.name}
-                  size="small"
                   onDelete={() => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
-                  sx={{ fontSize: '11px', height: 22 }}
+                  deleteLabel={t('common.remove', 'Retirer')}
                 />
               ))}
-            </Box>
+            </div>
           ) : undefined
         }
         composeTools={
           <>
-            <Tooltip title={t('messagingHub.attachFile', 'Joindre un fichier')} arrow>
-              <Box
-                component="button"
-                onClick={() => fileInputRef.current?.click()}
-                aria-label={t('messagingHub.attachFile', 'Joindre un fichier')}
-                sx={composeToolSx}
-              >
-                <AttachFileIcon size={15} strokeWidth={1.75} />
-              </Box>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  aria-label={t('messagingHub.attachFile', 'Joindre un fichier')}
+                  className={COMPOSE_TOOL_CLASS}
+                >
+                  <AttachFileIcon size={15} strokeWidth={1.75} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{t('messagingHub.attachFile', 'Joindre un fichier')}</TooltipContent>
             </Tooltip>
             {lastInbound && (
-              <Tooltip
-                title={
-                  aiSuggestMutation.isError
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {/* Le span porte le declencheur : un bouton desactive n'emet
+                      plus d'evenement de survol. */}
+                  <span className="inline-flex">
+                    <button
+                      onClick={handleAiSuggest}
+                      disabled={aiSuggestMutation.isPending}
+                      aria-label={t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')}
+                      className={COMPOSE_TOOL_CLASS}
+                    >
+                      <SparklesIcon size={15} strokeWidth={1.75} />
+                    </button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {aiSuggestMutation.isError
                     ? t('messagingHub.aiUnavailable', 'Suggestion IA indisponible')
-                    : t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')
-                }
-                arrow
-              >
-                <Box
-                  component="button"
-                  onClick={handleAiSuggest}
-                  disabled={aiSuggestMutation.isPending}
-                  aria-label={t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')}
-                  sx={composeToolSx}
-                >
-                  <SparklesIcon size={15} strokeWidth={1.75} />
-                </Box>
+                    : t('messagingHub.aiSuggest', 'Suggérer une réponse (IA)')}
+                </TooltipContent>
               </Tooltip>
             )}
           </>

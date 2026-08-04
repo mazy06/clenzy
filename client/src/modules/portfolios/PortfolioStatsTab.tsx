@@ -1,18 +1,7 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Grid,
-  CircularProgress,
-  Paper,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Divider,
-  Avatar,
-  Chip,
-} from '@mui/material';
+import StatusChip from '../../components/StatusChip';
+import { Spinner } from '../../components/ui';
+import { Card, Separator } from '../../components/ui';
 import {
   Business,
   People,
@@ -62,197 +51,184 @@ const PortfolioStatsTab: React.FC = () => {
 
   if (statsQuery.isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
-        <CircularProgress size={32} />
-      </Box>
+      <div className="flex justify-center items-center min-h-[200px]">
+        <Spinner className="size-8" />
+      </div>
     );
   }
 
   if (statsQuery.isError) {
     return (
-      <Typography color="error" sx={{ textAlign: 'center', py: 4, fontSize: '0.85rem' }}>
+      <p className="cn-text-body1 text-destructive text-center py-6 text-[0.85rem]">
         {t('portfolios.errors.connectionError')}
-      </Typography>
+      </p>
     );
   }
 
   if (!stats) {
     return (
-      <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4, fontSize: '0.85rem' }}>
+      <p className="cn-text-body1 text-muted-foreground text-center py-6 text-[0.85rem]">
         {t('portfolios.statistics.noDataAvailable')}
-      </Typography>
+      </p>
     );
   }
 
   return (
-    <Box>
-      <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.95rem', mb: 0.5 }}>
+    <div>
+      <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem] mb-0.5">
         {t('portfolios.statistics.title')}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.82rem', mb: 3 }}>
+      </h6>
+      <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-4">
         {t('portfolios.subtitle')}
-      </Typography>
+      </p>
 
       {/* Stat tiles (primitive partagée) */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      <div className="grid grid-cols-12 gap-3 mb-[18px]">
+        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={<Business />}
             value={stats.totalPortfolios}
             label={t('portfolios.statistics.portfolios')}
             color={STAT_COLORS.portfolios}
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={<People />}
             value={stats.totalClients}
             label={t('portfolios.statistics.clients')}
             color={STAT_COLORS.clients}
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={<Assignment />}
             value={stats.totalProperties}
             label={t('portfolios.statistics.properties')}
             color={STAT_COLORS.properties}
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={<Group />}
             value={stats.totalTeamMembers}
             label={t('teams.members')}
             color={STAT_COLORS.members}
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
       {/* Detail sections */}
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {/* Portfolio breakdown */}
-        <Grid item xs={12} md={6}>
-          <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2, height: '100%' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem', mb: 1.5 }}>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <Card className="gap-0 py-0 p-3.5 h-full">
+            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-2">
               {t('portfolios.statistics.title')}
-            </Typography>
+            </h6>
             {stats.portfolioBreakdown.length > 0 ? (
-              <List disablePadding>
+              <div>
                 {stats.portfolioBreakdown.map((portfolio, index) => (
                   <React.Fragment key={portfolio.portfolioId}>
-                    <ListItem disableGutters sx={{ py: 1 }}>
-                      <ListItemIcon sx={{ minWidth: 36 }}>
-                        <Avatar
-                          sx={{
-                            width: 28,
-                            height: 28,
-                            bgcolor: portfolio.isActive ? 'var(--accent-soft)' : 'var(--hover)',
-                            color: portfolio.isActive ? 'var(--accent)' : 'var(--muted)',
-                            borderRadius: '8px',
-                          }}
+                    <div className="flex items-center py-1.5">
+                      <div className="min-w-[36px] flex shrink-0">
+                        <span
+                          className={
+                            'w-7 h-7 rounded-[8px] inline-flex items-center justify-center '
+                            + (portfolio.isActive
+                              ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+                              : 'bg-[var(--hover)] text-[var(--muted)]')
+                          }
                         >
                           <Business size={14} strokeWidth={1.75} />
-                        </Avatar>
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={
-                          <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
-                            {portfolio.portfolioName}
-                          </Typography>
-                        }
-                        secondary={
-                          <Box sx={{ display: 'flex', gap: 1.5, mt: 0.25 }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                              {portfolio.clientCount} client{portfolio.clientCount > 1 ? 's' : ''}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                              {portfolio.teamMemberCount} {t('portfolios.fields.members')}
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                      <Chip
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold">
+                          {portfolio.portfolioName}
+                        </h6>
+                        <div className="flex gap-2 mt-0.5">
+                          <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
+                            {portfolio.clientCount} client{portfolio.clientCount > 1 ? 's' : ''}
+                          </span>
+                          <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
+                            {portfolio.teamMemberCount} {t('portfolios.fields.members')}
+                          </span>
+                        </div>
+                      </div>
+                      <StatusChip
+                        tone={portfolio.isActive ? 'ok' : 'neutral'}
                         label={portfolio.isActive ? t('portfolios.teamManagement.active') : t('portfolios.teamManagement.inactive')}
-                        size="small"
-                        color={portfolio.isActive ? 'success' : 'default'}
-                        sx={{ height: 20, fontSize: '0.6rem' }}
+                        className="h-[20px] text-[0.6rem]"
                       />
-                    </ListItem>
-                    {index < stats.portfolioBreakdown.length - 1 && <Divider />}
+                    </div>
+                    {index < stats.portfolioBreakdown.length - 1 && <Separator />}
                   </React.Fragment>
                 ))}
-              </List>
+              </div>
             ) : (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3, fontSize: '0.82rem' }}>
+              <p className="cn-text-body2 text-muted-foreground text-center py-4 text-[0.82rem]">
                 {t('portfolios.statistics.noDataAvailable')}
-              </Typography>
+              </p>
             )}
-          </Paper>
-        </Grid>
+          </Card>
+        </div>
 
         {/* Recent assignments */}
-        <Grid item xs={12} md={6}>
-          <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2, height: '100%' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem', mb: 1.5 }}>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <Card className="gap-0 py-0 p-3.5 h-full">
+            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-2">
               {t('portfolios.fields.associatedOn')}
-            </Typography>
+            </h6>
             {stats.recentAssignments.length > 0 ? (
-              <List disablePadding>
+              <div>
                 {stats.recentAssignments.slice(0, 5).map((assignment, index) => (
                   <React.Fragment key={assignment.id}>
-                    <ListItem disableGutters sx={{ py: 1 }}>
-                      <ListItemIcon sx={{ minWidth: 36 }}>
-                        <Avatar
-                          sx={{
-                            width: 28,
-                            height: 28,
-                            bgcolor: assignment.type === 'CLIENT' ? 'var(--ok-soft)' : 'var(--info-soft)',
-                            color: assignment.type === 'CLIENT' ? 'var(--ok)' : 'var(--info)',
-                            borderRadius: '8px',
-                          }}
+                    <div className="flex items-center py-1.5">
+                      <div className="min-w-[36px] flex shrink-0">
+                        <span
+                          className={
+                            'w-7 h-7 rounded-[8px] inline-flex items-center justify-center '
+                            + (assignment.type === 'CLIENT'
+                              ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
+                              : 'bg-[var(--info-soft)] text-[var(--info)]')
+                          }
                         >
                           {assignment.type === 'CLIENT' ? (
                             <People size={14} strokeWidth={1.75} />
                           ) : (
                             <Group size={14} strokeWidth={1.75} />
                           )}
-                        </Avatar>
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={
-                          <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
-                            {assignment.name}
-                          </Typography>
-                        }
-                        secondary={
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.7rem' }}>
-                              {assignment.portfolioName}
-                            </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={12} strokeWidth={1.75} /></Box>
-                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                                {formatDate(assignment.assignedAt)}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        }
-                      />
-                    </ListItem>
-                    {index < Math.min(stats.recentAssignments.length, 5) - 1 && <Divider />}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold">
+                          {assignment.name}
+                        </h6>
+                        <span className="cn-text-caption text-muted-foreground block text-[0.7rem]">
+                          {assignment.portfolioName}
+                        </span>
+                        <div className="flex items-center gap-0.5 mt-0.5">
+                          <span className="inline-flex text-muted-foreground"><Schedule size={12} strokeWidth={1.75} /></span>
+                          <span className="cn-text-caption text-muted-foreground text-[0.65rem]">
+                            {formatDate(assignment.assignedAt)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {index < Math.min(stats.recentAssignments.length, 5) - 1 && <Separator />}
                   </React.Fragment>
                 ))}
-              </List>
+              </div>
             ) : (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3, fontSize: '0.82rem' }}>
+              <p className="cn-text-body2 text-muted-foreground text-center py-4 text-[0.82rem]">
                 {t('portfolios.fields.noClientAssociated')}
-              </Typography>
+              </p>
             )}
-          </Paper>
-        </Grid>
-      </Grid>
-    </Box>
+          </Card>
+        </div>
+      </div>
+    </div>
   );
 };
 

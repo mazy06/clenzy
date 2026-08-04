@@ -1,21 +1,11 @@
 import React, { useImperativeHandle, useMemo, useState, forwardRef } from 'react';
-import {
-  Alert,
-  Box,
-  Chip,
-  CircularProgress,
-  IconButton,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert, Info } from 'lucide-react';
+import { Button, Spinner, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Edit } from '../../icons';
+import { cn } from '../../utils/cn';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useWhatsAppTemplatesList } from '../../hooks/useWhatsAppTemplates';
 import type { WhatsAppTemplateGroup } from '../../services/api/whatsappTemplatesApi';
@@ -24,14 +14,14 @@ import WhatsAppTemplateEditorDialog from './WhatsAppTemplateEditorDialog';
 // ─── Tons sémantiques (tokens Signature, alignés sur MessageTemplatesSection) ─
 
 const TONE = {
-  ok:    { color: 'var(--ok)',    bgcolor: 'var(--ok-soft)' },
-  warn:  { color: 'var(--warn)',  bgcolor: 'var(--warn-soft)' },
-  info:  { color: 'var(--info)',  bgcolor: 'var(--info-soft)' },
-  muted: { color: 'var(--muted)', bgcolor: 'var(--hover)' },
+  ok: STATUS_TONES.ok,
+  warn: STATUS_TONES.warn,
+  info: STATUS_TONES.info,
+  muted: STATUS_TONES.neutral,
 } as const;
 
 /** Ton par categorie Meta WhatsApp. */
-const CATEGORY_TONE: Record<string, { color: string; bgcolor: string }> = {
+const CATEGORY_TONE: Record<string, ToneTokens> = {
   UTILITY: TONE.ok,
   MARKETING: TONE.warn,
   AUTHENTICATION: TONE.info,
@@ -107,39 +97,43 @@ const WhatsAppTemplatesSection = forwardRef<WhatsAppTemplatesSectionRef>((_, ref
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center p-6">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {t('whatsappTemplates.loadError')}
+        <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{t('whatsappTemplates.loadError')}</AlertDescription>
         </Alert>
       )}
 
       {sortedGroups.length === 0 ? (
-        <Alert severity="info" sx={{ mt: 2 }}>
-          {t('whatsappTemplates.empty')}
+        <Alert variant="info" className="mt-3">
+          <Info />
+          <AlertDescription>{t('whatsappTemplates.empty')}</AlertDescription>
         </Alert>
       ) : (
-        <TableContainer component={Paper}>
+        // Rayon 11px + fond --card : report du Paper par defaut du theme
+        // (shape.borderRadius = 11, elevation 0, background.paper).
+        <div className="overflow-x-auto rounded-[11px] bg-[var(--card)]">
           <Table>
-            <TableHead>
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('messaging.templates.name')}</TableCell>
-                <TableCell>{t('messaging.templates.origin')}</TableCell>
-                <TableCell>{t('whatsappTemplates.table.preview')}</TableCell>
-                <TableCell>{t('messaging.templates.language')}</TableCell>
-                <TableCell align="center">{t('messaging.templates.status')}</TableCell>
-                <TableCell align="center">{t('messaging.templates.version')}</TableCell>
-                <TableCell>{t('messaging.templates.createdBy')}</TableCell>
-                <TableCell align="right">{t('common.actions')}</TableCell>
+                <TableHead>{t('messaging.templates.name')}</TableHead>
+                <TableHead>{t('messaging.templates.origin')}</TableHead>
+                <TableHead>{t('whatsappTemplates.table.preview')}</TableHead>
+                <TableHead>{t('messaging.templates.language')}</TableHead>
+                <TableHead className="text-center">{t('messaging.templates.status')}</TableHead>
+                <TableHead className="text-center">{t('messaging.templates.version')}</TableHead>
+                <TableHead>{t('messaging.templates.createdBy')}</TableHead>
+                <TableHead className="text-end">{t('common.actions')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {sortedGroups.map((group) => (
                 <WhatsAppRow
@@ -150,7 +144,7 @@ const WhatsAppTemplatesSection = forwardRef<WhatsAppTemplatesSectionRef>((_, ref
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       {editingKey && (
@@ -160,7 +154,7 @@ const WhatsAppTemplatesSection = forwardRef<WhatsAppTemplatesSectionRef>((_, ref
           onClose={() => setEditingKey(null)}
         />
       )}
-    </Box>
+    </div>
   );
 });
 
@@ -193,76 +187,73 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
   const langChipLabel = previewLangCode.split('_')[0].toUpperCase();
 
   return (
-    <TableRow hover>
+    <TableRow>
       <TableCell>
-        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="body2" fontWeight={600} sx={{ color: 'var(--ink)' }}>
+        <div className="inline-flex items-center gap-1.5">
+          <p className="cn-text-body2 font-semibold text-[var(--ink)]">
             {friendlyName}
-          </Typography>
-          <Chip
-            label={group.category}
-            size="small"
-            sx={categoryTone}
-          />
-        </Box>
+          </p>
+          <StatusChip tokens={categoryTone} label={group.category} />
+        </div>
       </TableCell>
       <TableCell>
-        <Chip
+        <StatusChip
+          tokens={group.isCustomized ? TONE.ok : TONE.muted}
           label={group.isCustomized
             ? t('messaging.templates.originCustomized')
             : t('messaging.templates.originSystem')}
-          size="small"
-          sx={group.isCustomized ? TONE.ok : TONE.muted}
         />
       </TableCell>
       <TableCell>
-        <Typography
-          variant="body2"
-          noWrap
-          sx={{
-            maxWidth: 280,
-            fontSize: '0.8125rem',
-            // RTL pour l'apercu si la langue active est l'arabe — sinon le
-            // texte arabe s'affiche en LTR et est cassé visuellement.
-            direction: previewLangCode === 'ar_AR' ? 'rtl' : 'ltr',
-            textAlign: previewLangCode === 'ar_AR' ? 'right' : 'left',
-          }}
+        {/* RTL pour l'apercu si la langue active est l'arabe — sinon le
+            texte arabe s'affiche en LTR et est cassé visuellement. */}
+        <p
+          className={cn(
+            'cn-text-body2 max-w-[280px] truncate text-[0.8125rem]',
+            previewLangCode === 'ar_AR'
+              ? '[direction:rtl] text-right'
+              : '[direction:ltr] text-left',
+          )}
         >
           {previewExcerpt}
-        </Typography>
+        </p>
       </TableCell>
       <TableCell>
-        <Chip label={langChipLabel} size="small" sx={TONE.muted} />
+        <StatusChip tokens={TONE.muted} label={langChipLabel} />
       </TableCell>
-      <TableCell align="center">
+      <TableCell className="text-center">
         {/* Templates WhatsApp toujours actifs cote serveur (pas de notion
             d'activation/desactivation pour les templates WhatsApp en BDD).
             La valeur reelle d'activation cote Meta est dans metaApprovalStatus
             (PENDING/APPROVED/REJECTED) — non expose ici en colonne. */}
-        <Chip
-          label={t('messaging.templates.active')}
-          size="small"
-          sx={TONE.ok}
-        />
+        <StatusChip tokens={TONE.ok} label={t('messaging.templates.active')} />
       </TableCell>
-      <TableCell align="center">
-        <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>v1</Typography>
+      <TableCell className="text-center">
+        <span className="cn-text-caption font-mono text-muted-foreground">v1</span>
       </TableCell>
       <TableCell>
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+        <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
           {group.isCustomized ? '—' : t('messaging.templates.systemAuthor')}
-        </Typography>
+        </p>
       </TableCell>
-      <TableCell align="right">
-        <Tooltip title={t('common.edit')} arrow>
-          <IconButton
-            size="small"
-            onClick={onEdit}
-            aria-label={t('common.edit')}
-            sx={{ cursor: 'pointer', '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' } }}
-          >
-            <Edit size={16} strokeWidth={1.75} />
-          </IconButton>
+      <TableCell className="text-end">
+        <Tooltip>
+          {/* Declencheur = <span> natif : les primitives du kit ne transmettent
+              pas de ref (React 18), le tooltip n'aurait pas d'ancre. */}
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={onEdit}
+                aria-label={t('common.edit')}
+                className="cursor-pointer hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
+              >
+                <Edit size={16} strokeWidth={1.75} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('common.edit')}</TooltipContent>
         </Tooltip>
       </TableCell>
     </TableRow>

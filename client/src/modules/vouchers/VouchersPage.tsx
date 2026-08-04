@@ -1,35 +1,29 @@
 import React, { useMemo, useState } from 'react';
+import { cn } from '../../utils/cn';
+import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
+import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
   Dialog,
-  DialogActions,
   DialogContent,
-  DialogContentText,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  IconButton,
-  Paper,
-  Snackbar,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  ToggleButton,
-  ToggleButtonGroup,
+  ToggleGroup,
+  ToggleGroupItem,
   Tooltip,
-  Typography,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Add, Edit, Pause, PlayArrow as Play, Refresh, Delete as Trash, LocalOffer } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useNotification } from '../../hooks/useNotification';
 import {
   useBookingVouchersList,
   useDeleteBookingVoucher,
@@ -47,37 +41,21 @@ import VoucherEditorDialog from './VoucherEditorDialog';
 // ─── Tokens Signature : chips -soft par statut ───────────────────────────────
 
 /** Chip -soft (texte couleur + fond -soft) par statut de voucher. */
-const STATUS_CHIP_SX: Record<VoucherStatus, Record<string, unknown>> = {
-  ACTIVE: { backgroundColor: 'var(--ok-soft)', color: 'var(--ok)' },
-  PAUSED: { backgroundColor: 'var(--warn-soft)', color: 'var(--warn)' },
-  DRAFT: { backgroundColor: 'var(--info-soft)', color: 'var(--info)' },
-  EXPIRED: { backgroundColor: 'var(--field)', color: 'var(--muted)' },
+const STATUS_TOKENS: Record<VoucherStatus, ToneTokens> = {
+  ACTIVE: STATUS_TONES.ok,
+  PAUSED: STATUS_TONES.warn,
+  DRAFT: STATUS_TONES.info,
+  EXPIRED: { color: 'var(--muted)', bg: 'var(--field)' },
 };
-
-const CHIP_BASE_SX = {
-  fontSize: '10.5px',
-  fontWeight: 700,
-  height: 22,
-  border: 'none',
-} as const;
 
 /**
  * Code voucher — pattern .fr-dip (IP mono de la messagerie) :
  * mono display, fond --field, r6.
  */
-const CODE_SX = {
-  display: 'inline-block',
-  fontFamily: 'var(--font-display)',
-  fontSize: '11.5px',
-  letterSpacing: '0.04em',
-  fontVariantNumeric: 'tabular-nums',
-  color: 'var(--body)',
-  bgcolor: 'var(--field)',
-  border: '1px solid var(--field-line)',
-  borderRadius: '6px',
-  px: '8px',
-  py: '3px',
-} as const;
+const CODE_CLASS =
+  'inline-block font-[family-name:var(--font-display)] text-[11.5px] tracking-[0.04em] tabular-nums ' +
+  'text-[var(--body)] bg-[var(--field)] border border-solid border-[var(--field-line)] ' +
+  'rounded-[6px] px-2 py-[3px]';
 
 type FilterMode = 'all' | VoucherStatus;
 
@@ -109,11 +87,11 @@ export default function VouchersPage({
   filtersContainer,
 }: VouchersPageProps = {}) {
   const { t, currentLanguage } = useTranslation();
+  const { notify } = useNotification();
   const [filter, setFilter] = useState<FilterMode>('all');
   const [editing, setEditing] = useState<BookingVoucher | null>(null);
   const [creating, setCreating] = useState(false);
-  const [snackbar, setSnackbar] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
-  // Confirmation de suppression via Dialog MUI (window.confirm est bloque
+  // Confirmation de suppression via Dialog (window.confirm est bloque
   // en iframe, non accessible, non i18n).
   const [pendingDelete, setPendingDelete] = useState<BookingVoucher | null>(null);
 
@@ -139,27 +117,24 @@ export default function VouchersPage({
   const handlePause = async (v: BookingVoucher) => {
     try {
       await pauseMutation.mutateAsync(v.id);
-      setSnackbar({ msg: t('vouchers.pauseSuccess'), severity: 'success' });
+      notify.success(t('vouchers.pauseSuccess'));
     } catch (e: any) {
-      setSnackbar({ msg: e?.message ?? t('vouchers.pauseError'), severity: 'error' });
+      notify.error(e?.message ?? t('vouchers.pauseError'));
     }
   };
 
   const handleResume = async (v: BookingVoucher) => {
     try {
       await resumeMutation.mutateAsync(v.id);
-      setSnackbar({ msg: t('vouchers.resumeSuccess'), severity: 'success' });
+      notify.success(t('vouchers.resumeSuccess'));
     } catch (e: any) {
-      setSnackbar({ msg: e?.message ?? t('vouchers.resumeError'), severity: 'error' });
+      notify.error(e?.message ?? t('vouchers.resumeError'));
     }
   };
 
   const handleDelete = (v: BookingVoucher) => {
     if (v.usageCount > 0) {
-      setSnackbar({
-        msg: t('vouchers.deleteRefusedUsed', { count: v.usageCount }),
-        severity: 'error',
-      });
+      notify.error(t('vouchers.deleteRefusedUsed', { count: v.usageCount }));
       return;
     }
     setPendingDelete(v);
@@ -171,49 +146,60 @@ export default function VouchersPage({
     setPendingDelete(null);
     try {
       await deleteMutation.mutateAsync(target.id);
-      setSnackbar({ msg: t('vouchers.deleteSuccess'), severity: 'success' });
+      notify.success(t('vouchers.deleteSuccess'));
     } catch (e: any) {
-      setSnackbar({ msg: e?.message ?? t('vouchers.deleteError'), severity: 'error' });
+      notify.error(e?.message ?? t('vouchers.deleteError'));
     }
   };
 
   // Actions et filtres extraits pour pouvoir etre portales dans le
   // PageHeader du parent (mode embedded) ou rendus inline (mode standalone).
   const actions = (
-    <Stack direction="row" spacing={1}>
-      <Tooltip title={t('common.refresh')}>
-        <IconButton onClick={() => refetch()} size="small" sx={{ cursor: 'pointer' }}>
-          <Refresh size={18} strokeWidth={1.75} />
-        </IconButton>
+    <div className="flex flex-row items-center gap-1.5">
+      <Tooltip>
+        {/* Declencheur = <span> natif : les primitives du kit ne transmettent
+            pas de ref (React 18), le tooltip n'aurait pas d'ancre. */}
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => refetch()}
+              aria-label={t('common.refresh')}
+              className="cursor-pointer"
+            >
+              <Refresh size={18} strokeWidth={1.75} />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>{t('common.refresh')}</TooltipContent>
       </Tooltip>
-      <Button
-        variant="contained"
-        size="small"
-        startIcon={<Add size={16} strokeWidth={2} />}
-        onClick={() => setCreating(true)}
-      >
+      <Button size="sm" onClick={() => setCreating(true)}>
+        <Add size={16} strokeWidth={2} />
         {t('vouchers.createButton')}
       </Button>
-    </Stack>
+    </div>
   );
 
   const filterBar = (
-    <ToggleButtonGroup
+    <ToggleGroup
+      type="single"
       value={filter}
-      exclusive
-      onChange={(_, v) => v && setFilter(v)}
-      size="small"
+      onValueChange={(v) => v && setFilter(v as FilterMode)}
+      variant="outline"
+      size="sm"
+      spacing={0}
     >
-      <ToggleButton value="all">{t('vouchers.filter.all')}</ToggleButton>
-      <ToggleButton value="ACTIVE">{t('vouchers.filter.active')}</ToggleButton>
-      <ToggleButton value="DRAFT">{t('vouchers.filter.draft')}</ToggleButton>
-      <ToggleButton value="PAUSED">{t('vouchers.filter.paused')}</ToggleButton>
-      <ToggleButton value="EXPIRED">{t('vouchers.filter.expired')}</ToggleButton>
-    </ToggleButtonGroup>
+      <ToggleGroupItem value="all">{t('vouchers.filter.all')}</ToggleGroupItem>
+      <ToggleGroupItem value="ACTIVE">{t('vouchers.filter.active')}</ToggleGroupItem>
+      <ToggleGroupItem value="DRAFT">{t('vouchers.filter.draft')}</ToggleGroupItem>
+      <ToggleGroupItem value="PAUSED">{t('vouchers.filter.paused')}</ToggleGroupItem>
+      <ToggleGroupItem value="EXPIRED">{t('vouchers.filter.expired')}</ToggleGroupItem>
+    </ToggleGroup>
   );
 
   return (
-    <Box sx={{ p: embedded ? 0 : 3 }}>
+    <div className={cn(embedded ? 'p-0' : 'p-[18px]')}>
       {/* Mode standalone : on rend notre propre PageHeader. */}
       {!embedded && (
         <PageHeader
@@ -228,47 +214,49 @@ export default function VouchersPage({
       {embedded && actionsContainer ? createPortal(actions, actionsContainer) : null}
       {embedded && filtersContainer ? createPortal(filterBar, filtersContainer) : null}
 
-      <Box sx={{ p: embedded ? 3 : 0 }}>
+      <div className={cn(embedded ? 'p-[18px]' : 'p-0')}>
         <VoucherAnalyticsPanel />
 
         {/* Mode standalone : filter inline sous l'analytics panel. */}
-        {!embedded && <Box sx={{ mb: 2 }}>{filterBar}</Box>}
+        {!embedded && <div className="mb-3">{filterBar}</div>}
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {t('vouchers.loadError')}
-          </Alert>
+          <UiAlert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{t('vouchers.loadError')}</AlertDescription>
+          </UiAlert>
         )}
 
         {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
-            <CircularProgress />
-          </Box>
+          <div className="flex justify-center p-9">
+            <Spinner className="size-10" />
+          </div>
         ) : sortedVouchers.length === 0 ? (
           <EmptyState
             icon={<LocalOffer />}
             title={t('vouchers.empty')}
             action={(
-              <Button variant="contained" size="small" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setCreating(true)}>
+              <Button size="sm" onClick={() => setCreating(true)}>
+                <Add size={16} strokeWidth={2} />
                 {t('vouchers.createButton')}
               </Button>
             )}
           />
         ) : (
-          <TableContainer component={Paper}>
-            <Table size="small">
-              <TableHead>
+          <div className="overflow-x-auto rounded-[11px] bg-[var(--card)]">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>{t('vouchers.table.name')}</TableCell>
-                  <TableCell>{t('vouchers.table.code')}</TableCell>
-                  <TableCell>{t('vouchers.table.type')}</TableCell>
-                  <TableCell>{t('vouchers.table.discount')}</TableCell>
-                  <TableCell>{t('vouchers.table.validity')}</TableCell>
-                  <TableCell align="center">{t('vouchers.table.usage')}</TableCell>
-                  <TableCell align="center">{t('vouchers.table.status')}</TableCell>
-                  <TableCell align="right">{t('common.actions')}</TableCell>
+                  <TableHead>{t('vouchers.table.name')}</TableHead>
+                  <TableHead>{t('vouchers.table.code')}</TableHead>
+                  <TableHead>{t('vouchers.table.type')}</TableHead>
+                  <TableHead>{t('vouchers.table.discount')}</TableHead>
+                  <TableHead>{t('vouchers.table.validity')}</TableHead>
+                  <TableHead className="text-center">{t('vouchers.table.usage')}</TableHead>
+                  <TableHead className="text-center">{t('vouchers.table.status')}</TableHead>
+                  <TableHead className="text-end">{t('common.actions')}</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {sortedVouchers.map((v) => (
                   <VoucherRow
@@ -283,9 +271,9 @@ export default function VouchersPage({
                 ))}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
         )}
-      </Box>
+      </div>
 
       {(creating || editing) && (
         <VoucherEditorDialog
@@ -295,51 +283,37 @@ export default function VouchersPage({
           onSaved={() => {
             setCreating(false);
             setEditing(null);
-            setSnackbar({ msg: t('vouchers.saveSuccess'), severity: 'success' });
+            notify.success(t('vouchers.saveSuccess'));
           }}
         />
       )}
 
       <Dialog
         open={pendingDelete !== null}
-        onClose={() => setPendingDelete(null)}
-        maxWidth="xs"
-        fullWidth
+        onOpenChange={(next) => !next && setPendingDelete(null)}
       >
-        <DialogTitle>{t('vouchers.deleteConfirmTitle', 'Supprimer ce voucher ?')}</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            {pendingDelete && t('vouchers.deleteConfirm', { name: pendingDelete.name })}
-          </DialogContentText>
+          <DialogHeader>
+            <DialogTitle>{t('vouchers.deleteConfirmTitle', 'Supprimer ce voucher ?')}</DialogTitle>
+            <DialogDescription>
+              {pendingDelete && t('vouchers.deleteConfirm', { name: pendingDelete.name })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingDelete(null)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              autoFocus
+            >
+              {t('common.delete')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPendingDelete(null)}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            onClick={confirmDelete}
-            variant="contained"
-            color="error"
-            autoFocus
-          >
-            {t('common.delete')}
-          </Button>
-        </DialogActions>
       </Dialog>
-
-      <Snackbar
-        open={Boolean(snackbar)}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        {snackbar ? (
-          <Alert severity={snackbar.severity} onClose={() => setSnackbar(null)}>
-            {snackbar.msg}
-          </Alert>
-        ) : undefined}
-      </Snackbar>
-    </Box>
+    </div>
   );
 }
 
@@ -366,92 +340,119 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
   const canDelete = v.usageCount === 0;
 
   return (
-    <TableRow hover>
+    <TableRow>
       <TableCell>
-        <Stack spacing={0.25}>
-          <Typography variant="body2" fontWeight={600}>{v.name}</Typography>
+        <div className="flex flex-col gap-[1.5px]">
+          <p className="cn-text-body2 font-semibold">{v.name}</p>
           {v.description && (
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+            <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
               {v.description.slice(0, 80)}{v.description.length > 80 ? '…' : ''}
-            </Typography>
+            </span>
           )}
-        </Stack>
+        </div>
       </TableCell>
       <TableCell>
         {v.code ? (
-          <Typography variant="body2" component="span" sx={CODE_SX}>
+          <span className={`cn-text-body2 ${CODE_CLASS}`}>
             {v.code}
-          </Typography>
+          </span>
         ) : (
-          <Chip label={t('vouchers.autoCampaign')} size="small" sx={{ ...CHIP_BASE_SX, backgroundColor: 'var(--info-soft)', color: 'var(--info)' }} />
+          <StatusChip label={t('vouchers.autoCampaign')} tokens={STATUS_TONES.info} className="text-[10.5px] font-bold" />
         )}
       </TableCell>
       <TableCell>
-        <Chip
+        <StatusChip
           label={isAuto ? t('vouchers.typeAuto') : t('vouchers.typeManual')}
-          size="small"
-          sx={{
-            ...CHIP_BASE_SX,
-            ...(isAuto
-              ? { backgroundColor: 'var(--info-soft)', color: 'var(--info)' }
-              : { backgroundColor: 'var(--field)', color: 'var(--muted)' }),
-          }}
+          tokens={isAuto ? STATUS_TONES.info : { color: 'var(--muted)', bg: 'var(--field)' }}
+          className="text-[10.5px] font-bold"
         />
       </TableCell>
       <TableCell>
-        <Typography variant="body2" fontWeight={500} sx={{ fontVariantNumeric: 'tabular-nums' }}>
+        <p className="cn-text-body2 font-medium tabular-nums">
           {formatDiscount(v.discountType, v.discountValue)}
-        </Typography>
+        </p>
       </TableCell>
       <TableCell>
-        <Typography variant="caption" color="text.secondary">
+        <span className="cn-text-caption text-muted-foreground">
           {formatValidity(v.validFrom, v.validUntil, locale)}
-        </Typography>
+        </span>
       </TableCell>
-      <TableCell align="center">
-        <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+      <TableCell className="text-center">
+        <p className="cn-text-body2 tabular-nums">
           {v.usageCount}
           {v.maxUsesTotal !== null && (
-            <Typography component="span" variant="caption" color="text.secondary"> / {v.maxUsesTotal}</Typography>
+            <span className="cn-text-caption text-muted-foreground"> / {v.maxUsesTotal}</span>
           )}
-        </Typography>
+        </p>
       </TableCell>
-      <TableCell align="center">
-        <Chip
+      <TableCell className="text-center">
+        <StatusChip
           label={t(`vouchers.status.${v.status}`)}
-          size="small"
-          sx={{ ...CHIP_BASE_SX, ...STATUS_CHIP_SX[v.status] }}
+          tokens={STATUS_TOKENS[v.status]}
+          className="text-[10.5px] font-bold"
         />
       </TableCell>
-      <TableCell align="right">
-        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+      <TableCell className="text-end">
+        <div className="flex flex-row justify-end gap-[3px]">
           {canPause && (
-            <Tooltip title={t('vouchers.pause')} arrow>
-              <IconButton size="small" onClick={onPause} sx={{ cursor: 'pointer' }}>
-                <Pause size={16} strokeWidth={1.75} />
-              </IconButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button variant="ghost" size="icon-sm" onClick={onPause} aria-label={t('vouchers.pause')} className="cursor-pointer">
+                    <Pause size={16} strokeWidth={1.75} />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('vouchers.pause')}</TooltipContent>
             </Tooltip>
           )}
           {canResume && (
-            <Tooltip title={t('vouchers.resume')} arrow>
-              <IconButton size="small" onClick={onResume} sx={{ cursor: 'pointer' }}>
-                <Play size={16} strokeWidth={1.75} />
-              </IconButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button variant="ghost" size="icon-sm" onClick={onResume} aria-label={t('vouchers.resume')} className="cursor-pointer">
+                    <Play size={16} strokeWidth={1.75} />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('vouchers.resume')}</TooltipContent>
             </Tooltip>
           )}
-          <Tooltip title={t('common.edit')} arrow>
-            <IconButton size="small" onClick={onEdit} sx={{ cursor: 'pointer', '&:hover': { color: 'var(--accent)' } }}>
-              <Edit size={16} strokeWidth={1.75} />
-            </IconButton>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={onEdit}
+                  aria-label={t('common.edit')}
+                  className="cursor-pointer hover:text-[var(--accent)]"
+                >
+                  <Edit size={16} strokeWidth={1.75} />
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t('common.edit')}</TooltipContent>
           </Tooltip>
           {canDelete && (
-            <Tooltip title={t('common.delete')} arrow>
-              <IconButton size="small" onClick={onDelete} sx={{ cursor: 'pointer', '&:hover': { color: 'var(--err)' } }}>
-                <Trash size={16} strokeWidth={1.75} />
-              </IconButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={onDelete}
+                    aria-label={t('common.delete')}
+                    className="cursor-pointer hover:text-[var(--err)]"
+                  >
+                    <Trash size={16} strokeWidth={1.75} />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('common.delete')}</TooltipContent>
             </Tooltip>
           )}
-        </Stack>
+        </div>
       </TableCell>
     </TableRow>
   );

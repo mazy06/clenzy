@@ -1,16 +1,17 @@
 import React, { useMemo, useState, useRef, useCallback } from 'react';
+import StatusChip from '../../../components/StatusChip';
+import { Badge } from '../../../components/ui';
+import { Spinner } from '../../../components/ui';
 import {
+  Button,
   Dialog,
-  DialogTitle,
   DialogContent,
-  Box,
-  Typography,
-  Chip,
-  IconButton,
-  Divider,
-  CircularProgress,
-  TextField,
-} from '@mui/material';
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Separator,
+} from '../../../components/ui';
+import { cn } from '../../../utils/cn';
 import {
   Close,
   Person,
@@ -40,6 +41,15 @@ interface GuestCardDialogProps {
   allEvents: PlanningEvent[];
   onUpdateGuestInfo?: (reservationId: number, updates: { guestName?: string; guestEmail?: string; guestPhone?: string }) => Promise<{ success: boolean; error: string | null }>;
 }
+
+/**
+ * Champ d'edition en place : on neutralise le cadre de `.cn-input` pour ne
+ * garder qu'un filet sous le texte. C'est l'equivalent du `variant="standard"`
+ * de MUI — la valeur se lit comme du texte, le champ ne se signale qu'a
+ * l'edition, et la fiche ne se transforme pas en formulaire.
+ */
+const CHAMP_EN_PLACE =
+  'h-auto w-full rounded-none border-0 border-b border-solid border-[var(--line-2)] bg-transparent px-0 py-0.5 focus-visible:border-[var(--accent)] focus-visible:ring-0';
 
 const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reservation, allEvents, onUpdateGuestInfo }) => {
   // Find all reservations from the same guest (by name match)
@@ -145,207 +155,156 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          pb: 0.5,
-        }}
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent
+        className="sm:max-w-[600px]"
+        showCloseButton={false}
+        aria-describedby={undefined}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Person size={20} strokeWidth={1.75} /></Box>
-          <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>
+        <DialogHeader className="flex-row items-center justify-between gap-0">
+          <DialogTitle className="flex items-center gap-1.5 text-[0.9375rem] font-bold">
+            <span className="inline-flex text-[var(--accent)]"><Person size={20} strokeWidth={1.75} /></span>
             Fiche client
-          </Typography>
-        </Box>
-        <IconButton size="small" onClick={onClose}>
-          <Close size={'1rem'} strokeWidth={1.75} />
-        </IconButton>
-      </DialogTitle>
+          </DialogTitle>
+          <Button variant="ghost" size="icon-sm" aria-label="Fermer" onClick={onClose}>
+            <Close size={'1rem'} strokeWidth={1.75} />
+          </Button>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 1 }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        {/* max-h + scroll : le Dialog MUI faisait defiler son contenu, la coque du
+            kit ne borne pas la hauteur — sans cela la fiche deborde de l'ecran. */}
+        <div className="flex flex-col gap-2 max-h-[70vh] overflow-y-auto">
           {/* Header — Avatar + Name + Contact */}
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+          <div className="flex items-start gap-3">
             {/* Avatar initiales : pattern messagerie (carré arrondi r13, accent,
                 initiales display) — pas de rond plein */}
-            <Box
-              sx={{
-                width: 52,
-                height: 52,
-                borderRadius: '13px',
-                bgcolor: 'var(--accent)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--on-accent)',
-                fontFamily: 'var(--font-display)',
-                fontSize: '1.125rem',
-                fontWeight: 600,
-                flexShrink: 0,
-                mt: 0.5,
-              }}
-            >
+            <div className="w-[52px] h-[52px] rounded-[13px] bg-[var(--accent)] flex items-center justify-center text-[var(--on-accent)] font-[family-name:var(--font-display)] text-[1.125rem] font-semibold shrink-0 mt-0.5">
               {initials}
-            </Box>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
+            </div>
+            <div className="min-w-0 flex-1">
               {/* Editable guest name */}
               {editingField === 'name' ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <TextField
-                    inputRef={editRef}
+                <div className="flex items-center gap-0.5">
+                  <Input
+                    ref={editRef}
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
                     onKeyDown={handleEditKeyDown}
                     onBlur={commitEdit}
                     disabled={saving}
-                    size="small"
-                    fullWidth
-                    variant="standard"
-                    sx={{ '& input': { fontSize: '1rem', fontWeight: 700 } }}
+                    aria-label="Nom du voyageur"
+                    className={cn(CHAMP_EN_PLACE, 'text-[1rem] font-bold')}
                   />
-                  {saving && <CircularProgress size={14} />}
-                </Box>
+                  {saving && <Spinner className="size-3.5" />}
+                </div>
               ) : (
-                <Box
+                <div
                   onClick={() => startEdit('name')}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    cursor: onUpdateGuestInfo ? 'pointer' : 'default',
-                    borderRadius: 0.5,
-                    px: 0.5,
-                    mx: -0.5,
-                    '&:hover': onUpdateGuestInfo ? {
-                      bgcolor: 'var(--hover)',
-                      '& .edit-hint': { opacity: 1 },
-                    } : {},
-                  }}
-                >
-                  <Typography sx={{ fontSize: '1rem', fontWeight: 700 }}>
-                    {displayName}
-                  </Typography>
-                  {onUpdateGuestInfo && (
-                    <Box component="span" className="edit-hint" sx={{ display: 'inline-flex', color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }}><Edit size={14} strokeWidth={1.75} /></Box>
+                  className={cn(
+                    'flex items-center gap-[3px] rounded-[4px] px-[3px] mx-[-3px]',
+                    // Variante unique '&:hover .edit-hint' : evite toute ambiguite
+                    // d'ordre entre les variantes hover: et [&_...]:
+                    onUpdateGuestInfo
+                      ? 'cursor-pointer hover:bg-[var(--hover)] [&:hover_.edit-hint]:opacity-100'
+                      : 'cursor-default',
                   )}
-                  {saved === 'name' && <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><Check size={14} strokeWidth={1.75} /></Box>}
-                </Box>
+                >
+                  <p className="cn-text-body1 text-[1rem] font-bold">
+                    {displayName}
+                  </p>
+                  {onUpdateGuestInfo && (
+                    <span className="edit-hint inline-flex text-[var(--faint)] opacity-0" style={{ transition: 'opacity 0.15s' }}><Edit size={14} strokeWidth={1.75} /></span>
+                  )}
+                  {saved === 'name' && <span className="inline-flex text-[var(--ok)]"><Check size={14} strokeWidth={1.75} /></span>}
+                </div>
               )}
 
               {/* Editable contact info */}
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, mt: 0.5 }}>
+              <div className="flex flex-col gap-0.5 mt-0.5">
                 {/* Email — editable */}
                 {editingField === 'email' ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Email size={'0.8rem'} strokeWidth={1.75} /></Box>
-                    <TextField
-                      inputRef={editRef}
+                  <div className="flex items-center gap-0.5">
+                    <span className="inline-flex text-muted-foreground"><Email size={'0.8rem'} strokeWidth={1.75} /></span>
+                    <Input
+                      ref={editRef}
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
                       onKeyDown={handleEditKeyDown}
                       disabled={saving}
-                      size="small"
-                      fullWidth
-                      variant="standard"
                       placeholder="email@exemple.com"
-                      sx={{ '& input': { fontSize: '0.75rem' } }}
+                      aria-label="Email du voyageur"
+                      className={cn(CHAMP_EN_PLACE, 'text-[0.75rem]')}
                     />
-                    {saving ? <CircularProgress size={12} /> : (
-                      <IconButton size="small" onClick={commitEdit} sx={{ p: 0.25 }}>
-                        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><Check size={14} strokeWidth={1.75} /></Box>
-                      </IconButton>
+                    {saving ? <Spinner className="size-3" /> : (
+                      <Button variant="ghost" size="icon-xs" aria-label="Valider l'email" onClick={commitEdit}>
+                        <span className="inline-flex text-[var(--ok)]"><Check size={14} strokeWidth={1.75} /></span>
+                      </Button>
                     )}
-                  </Box>
+                  </div>
                 ) : (
-                  <Box
+                  <div
                     onClick={() => startEdit('email')}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      cursor: onUpdateGuestInfo ? 'pointer' : 'default',
-                      borderRadius: 0.5,
-                      px: 0.5,
-                      mx: -0.5,
-                      py: 0.25,
-                      '&:hover': onUpdateGuestInfo ? {
-                        bgcolor: 'var(--hover)',
-                        '& .edit-hint': { opacity: 1 },
-                      } : {},
-                    }}
-                  >
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Email size={'0.8rem'} strokeWidth={1.75} /></Box>
-                    <Typography sx={{ fontSize: '0.75rem', color: displayEmail ? 'text.secondary' : 'text.disabled', fontStyle: displayEmail ? 'normal' : 'italic' }}>
-                      {displayEmail || 'Ajouter un email'}
-                    </Typography>
-                    {onUpdateGuestInfo && (
-                      <Box component="span" className="edit-hint" sx={{ display: 'inline-flex', color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></Box>
+                    className={cn(
+                      'flex items-center gap-[3px] rounded-[4px] px-[3px] mx-[-3px] py-[1.5px]',
+                      onUpdateGuestInfo
+                        ? 'cursor-pointer hover:bg-[var(--hover)] [&:hover_.edit-hint]:opacity-100'
+                        : 'cursor-default',
                     )}
-                    {saved === 'email' && <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><Check size={12} strokeWidth={1.75} /></Box>}
-                  </Box>
+                  >
+                    <span className="inline-flex text-muted-foreground"><Email size={'0.8rem'} strokeWidth={1.75} /></span>
+                    <p className={cn('cn-text-body1 text-[0.75rem]', displayEmail ? 'text-[var(--muted)]' : 'text-[var(--faint)]', displayEmail ? 'not-italic' : 'italic')}>
+                      {displayEmail || 'Ajouter un email'}
+                    </p>
+                    {onUpdateGuestInfo && (
+                      <span className="edit-hint inline-flex text-[var(--faint)] opacity-0" style={{ transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></span>
+                    )}
+                    {saved === 'email' && <span className="inline-flex text-[var(--ok)]"><Check size={12} strokeWidth={1.75} /></span>}
+                  </div>
                 )}
 
                 {/* Phone — editable */}
                 {editingField === 'phone' ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Phone size={'0.8rem'} strokeWidth={1.75} /></Box>
-                    <TextField
-                      inputRef={editRef}
+                  <div className="flex items-center gap-0.5">
+                    <span className="inline-flex text-muted-foreground"><Phone size={'0.8rem'} strokeWidth={1.75} /></span>
+                    <Input
+                      ref={editRef}
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
                       onKeyDown={handleEditKeyDown}
                       onBlur={commitEdit}
                       disabled={saving}
-                      size="small"
-                      fullWidth
-                      variant="standard"
                       placeholder="+33 6 12 34 56 78"
-                      sx={{ '& input': { fontSize: '0.75rem' } }}
+                      aria-label="Telephone du voyageur"
+                      className={cn(CHAMP_EN_PLACE, 'text-[0.75rem]')}
                     />
-                    {saving && <CircularProgress size={12} />}
-                  </Box>
+                    {saving && <Spinner className="size-3" />}
+                  </div>
                 ) : (
-                  <Box
+                  <div
                     onClick={() => startEdit('phone')}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      cursor: onUpdateGuestInfo ? 'pointer' : 'default',
-                      borderRadius: 0.5,
-                      px: 0.5,
-                      mx: -0.5,
-                      py: 0.25,
-                      '&:hover': onUpdateGuestInfo ? {
-                        bgcolor: 'var(--hover)',
-                        '& .edit-hint': { opacity: 1 },
-                      } : {},
-                    }}
-                  >
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Phone size={'0.8rem'} strokeWidth={1.75} /></Box>
-                    <Typography sx={{ fontSize: '0.75rem', color: displayPhone ? 'text.secondary' : 'text.disabled', fontStyle: displayPhone ? 'normal' : 'italic' }}>
-                      {displayPhone || 'Ajouter un telephone'}
-                    </Typography>
-                    {onUpdateGuestInfo && (
-                      <Box component="span" className="edit-hint" sx={{ display: 'inline-flex', color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></Box>
+                    className={cn(
+                      'flex items-center gap-[3px] rounded-[4px] px-[3px] mx-[-3px] py-[1.5px]',
+                      onUpdateGuestInfo
+                        ? 'cursor-pointer hover:bg-[var(--hover)] [&:hover_.edit-hint]:opacity-100'
+                        : 'cursor-default',
                     )}
-                    {saved === 'phone' && <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><Check size={12} strokeWidth={1.75} /></Box>}
-                  </Box>
+                  >
+                    <span className="inline-flex text-muted-foreground"><Phone size={'0.8rem'} strokeWidth={1.75} /></span>
+                    <p className={cn('cn-text-body1 text-[0.75rem]', displayPhone ? 'text-[var(--muted)]' : 'text-[var(--faint)]', displayPhone ? 'not-italic' : 'italic')}>
+                      {displayPhone || 'Ajouter un telephone'}
+                    </p>
+                    {onUpdateGuestInfo && (
+                      <span className="edit-hint inline-flex text-[var(--faint)] opacity-0" style={{ transition: 'opacity 0.15s' }}><Edit size={12} strokeWidth={1.75} /></span>
+                    )}
+                    {saved === 'phone' && <span className="inline-flex text-[var(--ok)]"><Check size={12} strokeWidth={1.75} /></span>}
+                  </div>
                 )}
-              </Box>
-            </Box>
-          </Box>
+              </div>
+            </div>
+          </div>
 
           {/* Stats */}
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <div className="flex gap-2">
             <StatBox label="Sejours" value={String(guestReservations.length)} />
             <StatBox
               label="Total depense"
@@ -362,183 +321,112 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
               label="Voyageurs"
               value={String(reservation.guestCount)}
             />
-          </Box>
+          </div>
 
-          <Divider />
+          <Separator />
 
           {/* Current reservation */}
-          <Box>
-            <Typography
-              sx={{
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                color: 'text.secondary',
-                mb: 0.75,
-              }}
-            >
+          <div>
+            <p className="cn-text-body1 text-[0.6875rem] font-semibold uppercase text-muted-foreground mb-1">
               Reservation actuelle
-            </Typography>
-            <Box
-              sx={{
-                border: '1px solid var(--accent)',
-                borderRadius: '10px',
-                p: 1.25,
-                bgcolor: 'var(--accent-soft)',
-              }}
-            >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Home size={14} strokeWidth={1.75} /></Box>
-                    <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+            </p>
+            <div className="border border-[var(--accent)] rounded-[10px] p-2 bg-[var(--accent-soft)]">
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-0.5 mb-0.5">
+                    <span className="inline-flex text-muted-foreground"><Home size={14} strokeWidth={1.75} /></span>
+                    <p className="cn-text-body1 text-[0.8125rem] font-semibold">
                       {reservation.propertyName}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CalendarMonth size={12} strokeWidth={1.75} /></Box>
-                    <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-0.5">
+                    <span className="inline-flex text-muted-foreground"><CalendarMonth size={12} strokeWidth={1.75} /></span>
+                    <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
                       {formatDate(reservation.checkIn)} → {formatDate(reservation.checkOut)}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                   {(reservation.checkInTime || reservation.checkOutTime) && (
-                    <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', mt: 0.25, ml: 2.25 }}>
+                    <p className="cn-text-body1 text-[0.625rem] text-muted-foreground mt-0.5 ms-3.5">
                       {reservation.checkInTime && `Arrivee ${reservation.checkInTime}`}
                       {reservation.checkInTime && reservation.checkOutTime && ' · '}
                       {reservation.checkOutTime && `Depart ${reservation.checkOutTime}`}
-                    </Typography>
+                    </p>
                   )}
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><AttachMoney size={14} strokeWidth={1.75} /></Box>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5">
+                    <span className="inline-flex text-muted-foreground"><AttachMoney size={14} strokeWidth={1.75} /></span>
                     {hasNoPrice && isICalSource ? (
-                      <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontStyle: 'italic' }}>
+                      <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground italic">
                         Non communiqué
-                      </Typography>
+                      </p>
                     ) : (
-                      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700 }}>
+                      <p className="cn-text-body1 text-[0.8125rem] font-bold">
                         <Money value={reservation.totalPrice} from="EUR" />
-                      </Typography>
+                      </p>
                     )}
-                  </Box>
+                  </div>
                   {/* Statut : texte couleur + fond soft (jamais d'aplat plein) */}
-                  <Chip
-                    label={
-                      RESERVATION_STATUS_LABELS[reservation.status as ReservationStatus] ||
-                      reservation.status
-                    }
-                    size="small"
-                    sx={{
-                      fontSize: '10.5px',
-                      height: 20,
-                      fontWeight: 700,
-                      bgcolor: `color-mix(in srgb, ${statusTokenColor(reservation.status)} 14%, transparent)`,
-                      color: statusTokenColor(reservation.status),
-                    }}
-                  />
-                </Box>
-              </Box>
+                  <StatusChip tokens={{ color: statusTokenColor(reservation.status), bg: `color-mix(in srgb, ${statusTokenColor(reservation.status)} 14%, transparent)` }} label={RESERVATION_STATUS_LABELS[reservation.status as ReservationStatus] ||
+                      reservation.status} className="text-[10.5px] h-[20px]" />
+                </div>
+              </div>
               {reservation.notes && (
-                <Typography
-                  sx={{
-                    fontSize: '0.6875rem',
-                    color: 'text.secondary',
-                    fontStyle: 'italic',
-                    mt: 0.75,
-                    pl: 2.25,
-                  }}
-                >
+                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground italic mt-1 ps-3.5">
                   {reservation.notes}
-                </Typography>
+                </p>
               )}
-            </Box>
-          </Box>
+            </div>
+          </div>
 
           {/* Reservation history */}
           {guestReservations.length > 1 && (
             <>
-              <Divider />
-              <Box>
-                <Typography
-                  sx={{
-                    fontSize: '0.6875rem',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    color: 'text.secondary',
-                    mb: 0.75,
-                  }}
-                >
-                  <Box component="span" sx={{ display: 'inline-flex', mr: 0.25, verticalAlign: 'middle' }}>
+              <Separator />
+              <div>
+                <p className="cn-text-body1 text-[0.6875rem] font-semibold uppercase text-muted-foreground mb-1">
+                  <span className="inline-flex me-[1.5px] align-[middle]">
                     <CalendarMonth size={12} strokeWidth={1.75} />
-                  </Box>
+                  </span>
                   Historique des sejours ({guestReservations.length})
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                </p>
+                <div className="flex flex-col gap-0.5">
                   {guestReservations
                     .flatMap((r) => (r.id !== reservation.id ? [(
-                      <Box
-                        key={r.id}
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          border: '1px solid var(--line)',
-                          borderRadius: 0.75,
-                          px: 1,
-                          py: 0.5,
-                        }}
-                      >
-                        <Box>
-                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                      <div className="flex justify-between items-center border border-[var(--line)] rounded-[6px] px-1.5 py-0.5" key={r.id}>
+                        <div>
+                          <p className="cn-text-body1 text-[0.75rem] font-semibold">
                             {r.propertyName}
-                          </Typography>
-                          <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
+                          </p>
+                          <p className="cn-text-body1 text-[0.625rem] text-muted-foreground">
                             {formatDate(r.checkIn)} → {formatDate(r.checkOut)}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <p className="cn-text-body1 text-[0.75rem] font-semibold">
                             <Money value={r.totalPrice} from="EUR" decimals={0} />
-                          </Typography>
-                          <Chip
-                            label={
-                              RESERVATION_STATUS_LABELS[r.status as ReservationStatus] || r.status
-                            }
-                            size="small"
-                            sx={{
-                              fontSize: '10.5px',
-                              height: 18,
-                              fontWeight: 700,
-                              bgcolor: `color-mix(in srgb, ${statusTokenColor(r.status)} 14%, transparent)`,
-                              color: statusTokenColor(r.status),
-                            }}
-                          />
-                        </Box>
-                      </Box>
+                          </p>
+                          <StatusChip size="sm" tokens={{ color: statusTokenColor(r.status), bg: `color-mix(in srgb, ${statusTokenColor(r.status)} 14%, transparent)` }} label={RESERVATION_STATUS_LABELS[r.status as ReservationStatus] || r.status} className="text-[10.5px]" />
+                        </div>
+                      </div>
                     )] : []))}
-                </Box>
-              </Box>
+                </div>
+              </div>
             </>
           )}
 
           {reservation.confirmationCode && (
             <>
-              <Divider />
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+              <Separator />
+              <div className="flex items-center gap-1.5">
+                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
                   Code de confirmation :
-                </Typography>
-                <Chip
-                  label={reservation.confirmationCode}
-                  size="small"
-                  variant="outlined"
-                  sx={{ fontSize: '0.6875rem', fontWeight: 600 }}
-                />
-              </Box>
+                </p>
+                <Badge variant="outline" className="text-[0.6875rem] font-semibold">{reservation.confirmationCode}</Badge>
+              </div>
             </>
           )}
-        </Box>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -560,31 +448,14 @@ function formatDate(dateStr: string): string {
 
 function StatBox({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <Box
-      sx={{
-        flex: 1,
-        border: '1px solid var(--line)',
-        borderRadius: '10px',
-        px: 1,
-        py: 0.75,
-        textAlign: 'center',
-      }}
-    >
-      <Typography
-        sx={{
-          fontSize: '10.5px',
-          color: 'var(--faint)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontWeight: 700,
-        }}
-      >
+    <div className="flex-1 border border-[var(--line)] rounded-[10px] px-1.5 py-1 text-center">
+      <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] uppercase tracking-[0.05em] font-bold">
         {label}
-      </Typography>
-      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.875rem', fontWeight: 600, mt: 0.25, fontVariantNumeric: 'tabular-nums' }}>
+      </p>
+      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.875rem] font-semibold mt-0.5 tabular-nums">
         {value}
-      </Typography>
-    </Box>
+      </p>
+    </div>
   );
 }
 

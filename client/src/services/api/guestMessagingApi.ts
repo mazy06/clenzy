@@ -46,6 +46,9 @@ export interface MessagingAutomationConfig {
   checkInTemplateId: number | null;
   checkOutTemplateId: number | null;
   autoPushPricingEnabled: boolean;
+  /** Heures calmes "HH:mm" (heure locale du logement) — null/vide = désactivé (M10). */
+  quietHoursStart: string | null;
+  quietHoursEnd: string | null;
 }
 
 export type MessageChannel = 'EMAIL' | 'WHATSAPP';

@@ -15,13 +15,17 @@
    ============================================================ */
 
 import { useState } from 'react';
-import { Box, Button, Collapse, CircularProgress, IconButton } from '@mui/material';
-import { Check, ChevronDown, Timer, HomeWork, VisibilityOff, CreditCard, Schedule } from '../../../icons';
+import { cn } from '../../../utils/cn';
+import { Spinner } from '../../../components/ui';
+import { Button, Collapsible, CollapsibleContent } from '../../../components/ui';
+import { Check, ChevronDown, Edit, Timer, HomeWork, VisibilityOff, CreditCard, Schedule } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Money } from '../../../components/Money';
 import { useCountdown, type Countdown } from '../core/useCountdown';
 import { AgentIcon } from '../renderers/agentIcon';
 import { AGENT_META } from '../constants';
+import { parseReviewId, parseReviewMotif, type OpenReviewPayload } from './ConstellationQueue';
+import { verbFor } from './actionVerbs';
 import type { PendingAction, PortfolioPendingAction } from '../types';
 
 function formatRemaining(cd: Countdown, t: (k: string, o?: Record<string, unknown>) => string): string {
@@ -37,9 +41,12 @@ export interface PendingActionCardProps {
   onEdit: (id: string) => void;
   /** Ouvre la modale d'ajustement tarifaire (cartes PRICE_DROP multi-segment). */
   onAdjustPrice?: (action: PendingAction | PortfolioPendingAction) => void;
+  /** Carte d'avis : « Répondre » ouvre la modale de réponse (brouillon IA
+   *  insérable OU réponse libre) au lieu de publier le brouillon à l'aveugle. */
+  onOpenReview?: (payload: OpenReviewPayload) => void;
 }
 
-export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }: PendingActionCardProps) {
+export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, onOpenReview }: PendingActionCardProps) {
   const { t } = useTranslation();
   const cd = useCountdown(action.expiresAt);
   const [why, setWhy] = useState(false);
@@ -54,6 +61,13 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
   // au lieu d'appliquer directement, pour laisser l'opérateur éditer les plages/remises.
   const isPriceAdjust = isApply && action.applyActionType === 'PRICE_DROP'
     && Boolean(action.actionParams) && Boolean(onAdjustPrice);
+  // Réponse à un avis : jamais de publication à l'aveugle du brouillon IA —
+  // « Répondre » ouvre la modale du dashboard (brouillon insérable + saisie).
+  const reviewId = isApply && action.applyActionType === 'REVIEW_DRAFT_REPLY' && onOpenReview
+    ? parseReviewId(action.actionParams)
+    : null;
+  // Verbe CTA du type (grammaire des verbes, Phase 1) — « Appliquer » hors registre.
+  const verb = verbFor(action.applyActionType);
   // Un rappel/paiement/action applicable ne « périme » pas : boutons toujours actionnables.
   const expired = !isReminder && !isPayment && !isApply && cd.expired;
   const propertyName = 'propertyName' in action ? action.propertyName : undefined;
@@ -82,153 +96,113 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
   };
 
   return (
-    <Box
+    <div
+      className={cn('w-full bg-[var(--card)] border border-solid border-[var(--line)] rounded-[12px] p-[13px 14px]', expired ? 'opacity-72' : 'opacity-100')}
+      style={{ boxShadow: 'none' }}
       data-pending-action={action.id}
       data-expired={expired ? '1' : undefined}
-      sx={{
-        width: '100%',
-        bgcolor: 'var(--card)',
-        border: '1px solid var(--line)',
-        borderRadius: '12px',
-        p: '13px 14px',
-        boxShadow: 'none',
-        opacity: expired ? 0.72 : 1,
-      }}
+      // Ancrages de l'overlay d'attaches (SupervisionTethers) : agent porteur
+      // et signal ambre — même règle que la pastille de la carte : échéance
+      // sous l'heure OU carte paiement/rappel (« À régler », « Rappel »).
+      data-agent-id={action.agentId}
+      data-urgent={(isPayment || isReminder || (!expired && cd.hours < 1)) || undefined}
     >
       {/* en-tête : agent + statut + expiration */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1 }}>
-        <Box
-          sx={{
-            width: 30,
-            height: 30,
-            borderRadius: '9px',
-            background: `${meta.color}14`,
-            color: meta.color,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
+      <div className="flex items-center gap-2 mb-1.5">
+        <div className="w-[30px] h-[30px] rounded-[9px] flex items-center justify-center shrink-0" style={{ background: `${meta.color}14`, color: meta.color }}>
           <AgentIcon token={meta.icon} size={16} />
-        </Box>
-        <Box
-          sx={{
-            minWidth: 0,
-            flex: 1,
-            fontSize: 12,
-            fontWeight: 500,
-            color: 'var(--ink)',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
+        </div>
+        <div className="min-w-0 flex-1 text-[12px] font-medium text-[var(--ink)] whitespace-nowrap overflow-hidden text-ellipsis">
           {t(meta.nameKey)}
-        </Box>
+        </div>
         {/* Statut à DROITE, sur la même ligne que le nom : « À régler »/« Rappel »
             pour paiement/rappel, sinon le compte à rebours d'expiration. */}
         {isPayment || isReminder ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, flexShrink: 0 }}>
-            <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warn)', flexShrink: 0 }} />
-            <Box sx={{ fontSize: 10.5, fontWeight: 500, letterSpacing: '.01em', color: 'var(--warn)', whiteSpace: 'nowrap' }}>
+          <div className="flex items-center gap-1 shrink-0">
+            <div className="w-[6px] h-[6px] rounded-[50%] shrink-0" style={{ background: 'var(--warn)' }} />
+            <div className="text-[10.5px] font-medium tracking-[.01em] text-[var(--warn)] whitespace-nowrap">
               {isPayment ? t('supervision.payment.badge', 'À régler') : t('supervision.reminder.badge', 'Rappel')}
-            </Box>
-          </Box>
+            </div>
+          </div>
         ) : (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5,
-              px: 1,
-              py: 0.5,
-              borderRadius: '7px',
-              bgcolor: expired ? 'var(--err-soft)' : 'var(--warn-soft)',
-              color: expired ? 'var(--err)' : 'var(--warn)',
-              fontSize: 10.5,
-              fontWeight: 500,
-              whiteSpace: 'nowrap',
-              fontVariantNumeric: 'tabular-nums',
-              flexShrink: 0,
-            }}
-          >
+          <div className={cn('flex items-center gap-[3px] px-1.5 py-[3px] rounded-[7px] text-[10.5px] font-medium whitespace-nowrap tabular-nums shrink-0', expired ? 'bg-[var(--err-soft)]' : 'bg-[var(--warn-soft)]', expired ? 'text-[var(--err)]' : 'text-[var(--warn)]')}>
             <Timer size={12} />
             {expired ? t('supervision.hitl.expired') : t('supervision.hitl.expiresIn', { time: formatRemaining(cd, t) })}
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
 
       {propertyName && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.75, fontSize: 11.5, fontWeight: 400, color: 'var(--muted)' }}>
+        <div className="flex items-center gap-0.5 mb-1 text-[11.5px] font-normal text-[var(--muted)]">
           <HomeWork size={13} />
           {propertyName}
-        </Box>
+        </div>
       )}
 
       {/* titre + motif (texte brut) — plus de gras (sobriété demandée) */}
-      <Box sx={{ fontSize: 12.5, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.35, mb: isPayment ? 1.25 : 0.5 }}>
+      <div className={cn('text-[12.5px] font-medium text-[var(--ink)] leading-[1.35]', isPayment ? 'mb-[7.5px]' : 'mb-[3px]')}>
         {displayTitle}
-      </Box>
+      </div>
       {/* En 'payment' : plus de ligne « Montant à régler » — le montant est
           affiché DIRECTEMENT dans le bouton « Régler ». */}
-      {!isPayment && <Box sx={{ fontSize: 11.5, color: 'var(--muted)', mb: 1.25 }}>{action.motif}</Box>}
+      {!isPayment && <div className="text-[11.5px] text-[var(--muted)] mb-2">{action.motif}</div>}
 
       {/* actions */}
       {expired ? (
-        <Box sx={{ fontSize: 12, fontWeight: 500, color: 'var(--err)' }}>{t('supervision.hitl.expired')}</Box>
+        <div className="text-[12px] font-medium text-[var(--err)]">{t('supervision.hitl.expired')}</div>
       ) : (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <div className="flex items-center gap-1.5">
           <Button
-            size="small"
-            variant="contained"
-            disableElevation
+            variant="default"
+            size="sm"
             disabled={resolving}
-            onClick={isPriceAdjust ? () => onAdjustPrice!(action) : validate}
-            startIcon={
-              resolving ? (
-                <CircularProgress size={13} color="inherit" />
-              ) : isPayment ? (
-                <CreditCard size={15} />
-              ) : (
-                <Check size={15} />
-              )
+            onClick={
+              reviewId != null
+                ? () => {
+                    const review = parseReviewMotif(action.motif);
+                    onOpenReview!({
+                      reviewId,
+                      actionId: action.id,
+                      guestName: review?.meta.split(' · ')[0],
+                      rating: review?.rating,
+                    });
+                  }
+                : isPriceAdjust
+                  ? () => onAdjustPrice!(action)
+                  : validate
             }
-            // Couleur = token d'accent de la session (var(--accent)), pas le
-            // primary MUI figé sur l'indigo par défaut.
-            sx={{
-              textTransform: 'none',
-              fontWeight: 500,
-              fontSize: 12,
-              px: 1.5,
-              boxShadow: 'none',
-              bgcolor: 'var(--accent)',
-              color: 'var(--on-accent)',
-              // Icône collée au bord gauche par la marge négative par défaut de
-              // MUI : on la neutralise pour un espacement icône/texte régulier.
-              '& .MuiButton-startIcon': { ml: 0, mr: 0.75 },
-              '&:hover': { bgcolor: 'var(--accent-deep)', boxShadow: 'none' },
-              '&.Mui-disabled': { bgcolor: 'var(--accent-soft)', color: 'var(--accent)' },
-            }}
           >
-            {isPriceAdjust ? (
+            {resolving ? (
+              <Spinner className="size-[13px]" />
+            ) : reviewId != null ? (
+              <Edit size={15} />
+            ) : isPayment ? (
+              <CreditCard size={15} />
+            ) : isApply && !isPriceAdjust ? (
+              <verb.Icon size={15} />
+            ) : (
+              <Check size={15} />
+            )}
+            {reviewId != null ? (
+              t('dashboard.actionItems.reviewsAction', 'Répondre')
+            ) : isPriceAdjust ? (
               t('supervision.price.adjustCta', 'Ajuster les tarifs')
             ) : isPayment ? (
               <>
                 {t('supervision.payment.settle', 'Régler')}
                 {action.amountEur != null && (
-                  <Box component="span" sx={{ ml: 0.5 }}>
+                  <span className="ms-0.5">
                     <Money value={action.amountEur} from="EUR" />
-                  </Box>
+                  </span>
                 )}
               </>
             ) : isApply ? (
               <>
-                {t('supervision.apply.action', 'Appliquer')}
+                {t(verb.labelKey, verb.fallback)}
                 {action.amountEur != null && (
-                  <Box component="span" sx={{ ml: 0.5 }}>
+                  <span className="ms-0.5">
                     +<Money value={action.amountEur} from="EUR" decimals={0} />
-                  </Box>
+                  </span>
                 )}
               </>
             ) : isReminder ? (
@@ -238,14 +212,12 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
             )}
           </Button>
           <Button
-            size="small"
-            variant="outlined"
-            color="inherit"
+            variant="outline"
+            size="sm"
             disabled={resolving}
             onClick={edit}
-            startIcon={isPayment ? <Schedule size={14} /> : <VisibilityOff size={14} />}
-            sx={{ textTransform: 'none', fontWeight: 500, fontSize: 12, color: 'var(--ink)', borderColor: 'var(--line-2)', '&:hover': { borderColor: 'var(--muted)', bgcolor: 'transparent' } }}
           >
+            {isPayment ? <Schedule size={14} /> : <VisibilityOff size={14} />}
             {/* Le bouton secondaire ÉCARTE la suggestion (dismiss serveur) : aucun éditeur
                 métier n'est câblé (onEditAction non fourni). On l'étiquette donc honnêtement
                 « Ignorer » pour toute carte non-paiement/non-rappel — jamais « Modifier »,
@@ -258,24 +230,29 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice }:
           </Button>
           {/* « Pourquoi ? » réduit à la flèche seule, sur la MÊME ligne que les
               deux boutons (poussée à droite). Le libellé passe en aria-label. */}
-          <IconButton
-            size="small"
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={() => setWhy((w) => !w)}
             aria-expanded={why}
             aria-label={t('supervision.hitl.why')}
-            sx={{ ml: 'auto', color: 'var(--accent)', '&:hover': { bgcolor: 'transparent' } }}
+            className="ms-auto text-[var(--accent)] hover:bg-transparent hover:text-[var(--accent)]"
           >
             <ChevronDown size={16} style={{ transform: why ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
-          </IconButton>
-        </Box>
+          </Button>
+        </div>
       )}
 
       {/* « Pourquoi ? » — raisonnement métier (texte brut, déjà nettoyé serveur) */}
-      <Collapse in={why} unmountOnExit>
-        <Box sx={{ mt: 1.25, pt: 1.25, borderTop: '1px solid var(--line)', fontSize: 11.5, lineHeight: 1.5, color: 'var(--muted)' }}>
-          {displayReasoning}
-        </Box>
-      </Collapse>
-    </Box>
+      {/* Collapsible sans declencheur interne : la fleche « Pourquoi ? » vit dans
+          la rangee d'actions au-dessus et pilote l'etat `why`. */}
+      <Collapsible open={why} onOpenChange={setWhy}>
+        <CollapsibleContent>
+          <div className="mt-2 pt-2 border-t border-solid border-[var(--line)] text-[11.5px] leading-[1.5] text-[var(--muted)]">
+            {displayReasoning}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
   );
 }

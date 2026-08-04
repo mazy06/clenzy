@@ -1,23 +1,12 @@
 import React, { useState, useCallback } from 'react';
-import {
-  Box,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Button,
-  Typography,
-  CircularProgress,
-  Skeleton,
-  TextField,
-  MenuItem,
-  Chip,
-  Tooltip,
-  Alert,
-} from '@mui/material';
+import StatusChip from '../../components/StatusChip';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { CircleCheck, X, TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Card } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { Field, FieldLabel, Input, NativeSelect, NativeSelectOption } from '../../components/ui';
 import { Refresh, CurrencyExchange, TrendingUp } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../../components/PageHeader';
@@ -148,36 +137,31 @@ export default function ExchangeRateHistoryPage() {
     : null;
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title="Historique des taux de change"
         subtitle="Taux de change BCE mis a jour quotidiennement"
         iconBadge={<CurrencyExchange />}
         showBackButton={false}
         actions={
-          <Button
-            variant="contained"
-            startIcon={refreshMutation.isPending ? <CircularProgress size={16} /> : <Refresh />}
+          <BuiButton
             onClick={() => refreshMutation.mutate()}
             disabled={refreshMutation.isPending}
           >
+            {refreshMutation.isPending ? <Spinner className="size-4" /> : <Refresh />}
             Actualiser les taux
-          </Button>
+          </BuiButton>
         }
       />
 
       {/* Current rates summary */}
       {matrix && (
-        <Box sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: 'repeat(2, 1fr)',
-            sm: 'repeat(3, 1fr)',
-            md: `repeat(${CURRENCY_PAIRS.length}, 1fr)`,
-          },
-          gap: 2,
-          mb: 3,
-        }}>
+        // Le nombre de colonnes >=900px suit CURRENCY_PAIRS.length : il passe par
+        // une variable CSS, une classe Tailwind ne pouvant naitre d'une valeur runtime.
+        <div
+          className="grid grid-cols-2 min-[600px]:grid-cols-3 min-[900px]:grid-cols-[repeat(var(--pair-cols),1fr)] gap-3 mb-[18px]"
+          style={{ '--pair-cols': String(CURRENCY_PAIRS.length) } as React.CSSProperties}
+        >
           {CURRENCY_PAIRS.map((p) => {
             let rate: number | null = null;
             if (p.base === 'EUR' && matrix.rates[p.target]) {
@@ -198,131 +182,155 @@ export default function ExchangeRateHistoryPage() {
               />
             ) : null;
           })}
-        </Box>
+        </div>
       )}
 
       {/* Filters */}
-      <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: '14px', borderColor: 'var(--line)' }}>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-          <TextField
-            select
-            label="Paire de devises"
-            value={selectedPair}
-            onChange={(e) => {
-              setSelectedPair(Number(e.target.value));
-              setPage(0);
-            }}
-            size="small"
-            sx={{ minWidth: 180 }}
-          >
-            {CURRENCY_PAIRS.map((p, i) => (
-              <MenuItem key={p.label} value={i}>
-                {p.label}
-              </MenuItem>
-            ))}
-          </TextField>
+      <Card className="gap-0 py-0 p-3 mb-4 border-[var(--line)]">
+        <div className="flex gap-3 items-center flex-wrap">
+          {/* Largeurs figees : ces champs vivent dans une rangee flex, le `w-full`
+              du kit les ferait passer chacun sur sa propre ligne. */}
+          <Field className="w-[190px]">
+            <FieldLabel htmlFor="exchange-rate-pair">Paire de devises</FieldLabel>
+            <NativeSelect
+              id="exchange-rate-pair"
+              className="w-full"
+              value={selectedPair}
+              onChange={(e) => {
+                setSelectedPair(Number(e.target.value));
+                setPage(0);
+              }}
+            >
+              {CURRENCY_PAIRS.map((p, i) => (
+                <NativeSelectOption key={p.label} value={i}>
+                  {p.label}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
 
-          <TextField
-            label="Du"
-            type="date"
-            value={dateFrom}
-            onChange={(e) => {
-              setDateFrom(e.target.value);
-              setPage(0);
-            }}
-            size="small"
-            InputLabelProps={{ shrink: true }}
-          />
+          <Field className="w-[165px]">
+            <FieldLabel htmlFor="exchange-rate-from">Du</FieldLabel>
+            <Input
+              id="exchange-rate-from"
+              type="date"
+              value={dateFrom}
+              onChange={(e) => {
+                setDateFrom(e.target.value);
+                setPage(0);
+              }}
+            />
+          </Field>
 
-          <TextField
-            label="Au"
-            type="date"
-            value={dateTo}
-            onChange={(e) => {
-              setDateTo(e.target.value);
-              setPage(0);
-            }}
-            size="small"
-            InputLabelProps={{ shrink: true }}
-          />
+          <Field className="w-[165px]">
+            <FieldLabel htmlFor="exchange-rate-to">Au</FieldLabel>
+            <Input
+              id="exchange-rate-to"
+              type="date"
+              value={dateTo}
+              onChange={(e) => {
+                setDateTo(e.target.value);
+                setPage(0);
+              }}
+            />
+          </Field>
 
           {stats && (
-            <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
-              <Tooltip title="Minimum sur la periode">
-                <Chip label={`Min: ${formatRate(stats.min)}`} size="small" sx={chipSx('var(--info)', 'var(--info-soft)')} />
+            <div className="flex gap-1.5 ms-auto">
+              {/* Le trigger enveloppe un <span> : Radix pose sa ref d'ancrage sur
+                  l'enfant, que StatusChip (composant fonction, React 18) ne transmet pas. */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <StatusChip tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={`Min: ${formatRate(stats.min)}`} />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Minimum sur la periode</TooltipContent>
               </Tooltip>
-              <Tooltip title="Maximum sur la periode">
-                <Chip label={`Max: ${formatRate(stats.max)}`} size="small" sx={chipSx('var(--warn)', 'var(--warn-soft)')} />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <StatusChip tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }} label={`Max: ${formatRate(stats.max)}`} />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Maximum sur la periode</TooltipContent>
               </Tooltip>
-              <Tooltip title="Moyenne sur la periode">
-                <Chip
-                  icon={<TrendingUp size={14} strokeWidth={1.75} />}
-                  label={`Moy: ${formatRate(stats.avg)}`}
-                  size="small"
-                  sx={chipSx('var(--accent)', 'var(--accent-soft)')}
-                />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <StatusChip tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={`Moy: ${formatRate(stats.avg)}`} icon={<TrendingUp size={14} strokeWidth={1.75} />} />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Moyenne sur la periode</TooltipContent>
               </Tooltip>
-            </Box>
+            </div>
           )}
-        </Box>
-      </Paper>
+        </div>
+      </Card>
 
       {refreshMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => refreshMutation.reset()}>
-          Taux de change mis a jour avec succes depuis la BCE.
-        </Alert>
+        <BuiAlert variant="success" className="mb-3">
+          <CircleCheck />
+          <AlertDescription>Taux de change mis a jour avec succes depuis la BCE.</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => refreshMutation.reset()}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          Erreur lors du chargement de l'historique des taux.
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>Erreur lors du chargement de l'historique des taux.</AlertDescription>
+        </BuiAlert>
       )}
 
       {/* Table */}
-      <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}>
+      <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
         {isLoading ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 2 }}>
+          <div className="flex flex-col gap-1.5 p-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+              <Skeleton key={i} className="h-[36px] w-full rounded-[9px]" />
             ))}
-          </Box>
+          </div>
         ) : (
           <>
-            <Table size="small">
-              <TableHead>
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Base</TableCell>
-                  <TableCell>Cible</TableCell>
-                  <TableCell align="right">Taux</TableCell>
-                  <TableCell>Source</TableCell>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Base</TableHead>
+                  <TableHead>Cible</TableHead>
+                  <TableHead className="text-end">Taux</TableHead>
+                  <TableHead>Source</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {rows.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                      <Typography color="text.secondary">
+                    <TableCell colSpan={5} className="text-center py-6">
+                      <p className="cn-text-body1 text-muted-foreground">
                         Aucun taux de change sur cette periode.
-                      </Typography>
+                      </p>
                     </TableCell>
                   </TableRow>
                 )}
                 {rows.map((rate) => (
-                  <TableRow key={rate.id} hover>
+                  <TableRow key={rate.id}>
                     <TableCell>{formatDate(rate.rateDate)}</TableCell>
                     <TableCell>
-                      <Chip label={rate.baseCurrency} size="small" sx={hexChipSx(currencyHex(rate.baseCurrency))} />
+                      <StatusChip color={currencyHex(rate.baseCurrency)} label={rate.baseCurrency} />
                     </TableCell>
                     <TableCell>
-                      <Chip label={rate.targetCurrency} size="small" sx={hexChipSx(currencyHex(rate.targetCurrency))} />
+                      <StatusChip color={currencyHex(rate.targetCurrency)} label={rate.targetCurrency} />
                     </TableCell>
-                    <TableCell align="right" sx={{ fontFamily: 'monospace', fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>
+                    <TableCell className="text-end font-mono tabular-nums font-medium">
                       {formatRate(rate.rate)}
                     </TableCell>
                     <TableCell>
-                      <Chip label={rate.source} size="small" sx={chipSx('var(--muted)', 'var(--hover)')} />
+                      <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--hover)' }} label={rate.source} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -338,7 +346,7 @@ export default function ExchangeRateHistoryPage() {
             />
           </>
         )}
-      </TableContainer>
-    </Box>
+      </div>
+    </div>
   );
 }

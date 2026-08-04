@@ -1,20 +1,29 @@
 import React, { useState, useEffect } from 'react';
+import StatusChip from '../../components/StatusChip';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { Info, TriangleAlert, X, CircleCheck } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  FormControl,
-  InputLabel,
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
   Select,
-  MenuItem,
-  FormHelperText,
-  Chip,
-  IconButton,
-  Alert,
-  CircularProgress,
-  Autocomplete,
-} from '@mui/material';
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui';
 import {
   Save,
   Cancel,
@@ -43,9 +52,10 @@ const SEM_TOKEN: Partial<Record<ChipColor, { fg: string; bg: string }>> = {
   primary: { fg: 'var(--accent)', bg: 'var(--accent-soft)' },
 };
 const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
-const semChipSx = (color: ChipColor) => {
+/** Tokens de la primitive pour une couleur semantique. */
+const semTokens = (color: ChipColor) => {
   const tk = SEM_TOKEN[color] ?? NEUTRAL_TOKEN;
-  return { backgroundColor: tk.bg, color: tk.fg };
+  return { color: tk.fg, bg: tk.bg };
 };
 import DetailSection from './components/DetailSection';
 import AvatarUploader from './components/AvatarUploader';
@@ -159,16 +169,16 @@ const UserEdit: React.FC = () => {
 
   if (!canManageUsers) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="info" sx={{ p: 2, py: 1 }}>
-          <Typography variant="subtitle1" gutterBottom sx={{ mb: 1 }}>
+      <div className="p-3">
+        <BuiAlert variant="info" className="p-3 py-1.5">
+          <Info />
+          <AlertDescription><h6 className="cn-text-subtitle1 mb-1.5">
             Acces non autorise
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+          </h6><p className="cn-text-body2 text-[0.85rem]">
             Vous n'avez pas les permissions necessaires pour modifier des utilisateurs.
-          </Typography>
-        </Alert>
-      </Box>
+          </p></AlertDescription>
+        </BuiAlert>
+      </div>
     );
   }
 
@@ -252,17 +262,20 @@ const UserEdit: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress size={32} />
-      </Box>
+      <div className="flex justify-center items-center h-[50vh]">
+        <Spinner className="size-8" />
+      </div>
     );
   }
 
   if (error && !user) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="error" sx={{ p: 2, py: 1 }}>{error}</Alert>
-      </Box>
+      <div className="p-3">
+        <BuiAlert variant="destructive" className="p-3 py-1.5">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </BuiAlert>
+      </div>
     );
   }
 
@@ -278,7 +291,7 @@ const UserEdit: React.FC = () => {
       && formData.newPassword !== formData.confirmPassword;
 
   return (
-    <Box sx={{ p: 2 }}>
+    <div className="p-3">
       <PageHeader
         title="Modifier l'utilisateur"
         subtitle={`${user?.firstName || ''} ${user?.lastName || ''}`}
@@ -286,50 +299,49 @@ const UserEdit: React.FC = () => {
         showBackButton={false}
         actions={
           <>
-            <Button
-              variant="outlined"
-              size="small"
+            <BuiButton
+              variant="outline"
+              size="sm"
               onClick={() => navigate(`/users/${id}`)}
-              startIcon={<Cancel size={16} strokeWidth={1.75} />}
               disabled={saving}
-              sx={{ fontSize: '0.8125rem', textTransform: 'none' }}
             >
+              <Cancel strokeWidth={1.75} />
               Annuler
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
+            </BuiButton>
+            <BuiButton
+              size="sm"
               onClick={handleSubmit}
-              startIcon={
-                saving ? (
-                  <CircularProgress size={14} color="inherit" />
-                ) : (
-                  <Save size={16} strokeWidth={1.75} />
-                )
-              }
               disabled={saving}
-              sx={{ ml: 1, fontSize: '0.8125rem', textTransform: 'none', fontWeight: 600 }}
+              className="ms-1.5"
             >
+              {saving ? <Spinner className="size-3.5" /> : <Save strokeWidth={1.75} />}
               {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-            </Button>
+            </BuiButton>
           </>
         }
       />
 
       {/* Messages d'erreur / succès */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2, py: 1 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-3 py-1.5">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {success && (
-        <Alert severity="success" sx={{ mb: 2, py: 1 }}>
-          Utilisateur modifie avec succes ! Redirection en cours...
-        </Alert>
+        <BuiAlert variant="success" className="mb-3 py-1.5">
+          <CircleCheck />
+          <AlertDescription>Utilisateur modifie avec succes ! Redirection en cours...</AlertDescription>
+        </BuiAlert>
       )}
 
       <form onSubmit={handleSubmit}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <div className="flex flex-col gap-2">
           {/* Photo de profil — first section, OTA-aware */}
           {user && (
             <DetailSection
@@ -351,24 +363,26 @@ const UserEdit: React.FC = () => {
             accentColor="#6B8A9A"
             icon={<Person size={14} strokeWidth={1.75} />}
           >
-            <TextField
-              fullWidth
-              size="small"
-              label="Prénom"
-              value={formData.firstName}
-              onChange={(e) => handleInputChange('firstName', e.target.value)}
-              required
-              placeholder="Ex: Jean"
-            />
-            <TextField
-              fullWidth
-              size="small"
-              label="Nom"
-              value={formData.lastName}
-              onChange={(e) => handleInputChange('lastName', e.target.value)}
-              required
-              placeholder="Ex: Dupont"
-            />
+            <Field>
+              <FieldLabel htmlFor="user-first-name">Prénom</FieldLabel>
+              <Input
+                id="user-first-name"
+                value={formData.firstName}
+                onChange={(e) => handleInputChange('firstName', e.target.value)}
+                required
+                placeholder="Ex: Jean"
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="user-last-name">Nom</FieldLabel>
+              <Input
+                id="user-last-name"
+                value={formData.lastName}
+                onChange={(e) => handleInputChange('lastName', e.target.value)}
+                required
+                placeholder="Ex: Dupont"
+              />
+            </Field>
           </DetailSection>
 
           {/* Contact — accent teal */}
@@ -377,38 +391,40 @@ const UserEdit: React.FC = () => {
             accentColor="#4A9B8E"
             icon={<Email size={14} strokeWidth={1.75} />}
           >
-            <TextField
-              fullWidth
-              size="small"
-              label="Email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              required
-              placeholder="Ex: jean.dupont@clenzy.fr"
-              InputProps={{
-                startAdornment: (
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mr: 1 }}>
+            <Field>
+              <FieldLabel htmlFor="user-email">Email</FieldLabel>
+              <InputGroup>
+                <InputGroupAddon>
+                  <span className="inline-flex text-muted-foreground opacity-60">
                     <Email size={16} strokeWidth={1.75} />
-                  </Box>
-                ),
-              }}
-            />
-            <TextField
-              fullWidth
-              size="small"
-              label="Téléphone"
-              value={formData.phoneNumber}
-              onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-              placeholder="Ex: +33 6 12 34 56 78"
-              InputProps={{
-                startAdornment: (
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mr: 1 }}>
+                  </span>
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="user-email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  required
+                  placeholder="Ex: jean.dupont@baitly.fr"
+                />
+              </InputGroup>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="user-phone">Téléphone</FieldLabel>
+              <InputGroup>
+                <InputGroupAddon>
+                  <span className="inline-flex text-muted-foreground opacity-60">
                     <Phone size={16} strokeWidth={1.75} />
-                  </Box>
-                ),
-              }}
-            />
+                  </span>
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="user-phone"
+                  value={formData.phoneNumber}
+                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                  placeholder="Ex: +33 6 12 34 56 78"
+                />
+              </InputGroup>
+            </Field>
           </DetailSection>
 
           {/* Rôle et statut — accent purple */}
@@ -418,126 +434,90 @@ const UserEdit: React.FC = () => {
             icon={<AdminPanelSettings size={14} strokeWidth={1.75} />}
             disableGrid
           >
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
-                gap: 2,
-              }}
-            >
-              <FormControl fullWidth required size="small">
-                <InputLabel>Rôle</InputLabel>
+            <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_minmax(0,_1fr))] gap-3">
+              <Field>
+                <FieldLabel htmlFor="user-role">Rôle</FieldLabel>
+                {/* SelectValue avec enfants = report du `renderValue` MUI : la
+                    pastille reste compacte dans le declencheur alors que l'option
+                    deroulee porte en plus sa description. `h-auto` car la pastille
+                    (22px) depasse la hauteur fixe du declencheur. */}
                 <Select
                   value={formData.role}
-                  onChange={(e) => handleInputChange('role', e.target.value)}
-                  label="Rôle"
-                  renderValue={(value) => {
-                    const r = getRoleEntry(value as string);
-                    if (!r) return null;
-                    return (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                        <RoleIconBadge role={r.value} size={22} />
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>{r.label}</Typography>
-                      </Box>
-                    );
-                  }}
+                  onValueChange={(value) => handleInputChange('role', value)}
                 >
-                  {USER_ROLES.map((role) => (
-                    <MenuItem key={role.value} value={role.value} sx={{ py: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
-                        <RoleIconBadge role={role.value} size={26} />
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1.2 }}>
-                            {role.label}
-                          </Typography>
-                          <Typography
-                            sx={{
-                              fontSize: '0.6875rem',
-                              color: 'text.secondary',
-                              lineHeight: 1.3,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              maxWidth: 320,
-                            }}
-                          >
-                            {role.description}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </MenuItem>
-                  ))}
+                  <SelectTrigger id="user-role" className="w-full h-auto min-h-9">
+                    <SelectValue placeholder="Sélectionner un rôle">
+                      {selectedRoleInfo && (
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <RoleIconBadge role={selectedRoleInfo.value} size={22} />
+                          <p className="cn-text-body2 font-medium">{selectedRoleInfo.label}</p>
+                        </div>
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {USER_ROLES.map((role) => (
+                      <SelectItem key={role.value} value={role.value} textValue={role.label} className="py-1.5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <RoleIconBadge role={role.value} size={26} />
+                          <div className="min-w-0">
+                            <p className="cn-text-body2 font-medium leading-[1.2]">
+                              {role.label}
+                            </p>
+                            <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap max-w-[320px]">
+                              {role.description}
+                            </p>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-                <FormHelperText sx={{ fontSize: '0.7rem' }}>
+                <FieldDescription className="text-[0.7rem]">
                   Le rôle détermine les permissions de l'utilisateur
-                </FormHelperText>
-              </FormControl>
+                </FieldDescription>
+              </Field>
 
-              <FormControl fullWidth required size="small">
-                <InputLabel>Statut</InputLabel>
+              <Field>
+                <FieldLabel htmlFor="user-status">Statut</FieldLabel>
                 <Select
                   value={formData.status}
-                  onChange={(e) => handleInputChange('status', e.target.value)}
-                  label="Statut"
-                  renderValue={(value) => {
-                    const s = userStatuses.find((x) => x.value === value);
-                    if (!s) return null;
-                    return (
-                      <Chip
-                        label={s.label}
-                        size="small"
-                        sx={semChipSx(s.color)}
-                      />
-                    );
-                  }}
+                  onValueChange={(value) => handleInputChange('status', value)}
                 >
-                  {userStatuses.map((status) => (
-                    <MenuItem key={status.value} value={status.value}>
-                      <Chip
-                        label={status.label}
-                        size="small"
-                        sx={semChipSx(status.color)}
-                      />
-                    </MenuItem>
-                  ))}
+                  <SelectTrigger id="user-status" className="w-full h-auto min-h-9">
+                    <SelectValue placeholder="Sélectionner un statut">
+                      {selectedStatusInfo && (
+                        <StatusChip tokens={semTokens(selectedStatusInfo.color)} label={selectedStatusInfo.label} />
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {userStatuses.map((status) => (
+                      <SelectItem key={status.value} value={status.value} textValue={status.label}>
+                        <StatusChip tokens={semTokens(status.color)} label={status.label} />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
-                <FormHelperText sx={{ fontSize: '0.7rem' }}>
+                <FieldDescription className="text-[0.7rem]">
                   Le statut détermine si l'utilisateur peut se connecter
-                </FormHelperText>
-              </FormControl>
-            </Box>
+                </FieldDescription>
+              </Field>
+            </div>
 
             {/* Aperçu inline du rôle sélectionné — utilise le même badge que la liste */}
             {selectedRoleInfo && (
-              <Box
-                sx={{
-                  mt: 2,
-                  p: 1.5,
-                  borderRadius: '12px',
-                  bgcolor: 'var(--accent-soft)',
-                  border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1.25,
-                }}
-              >
+              <div className="mt-3 p-[9px] rounded-[12px] bg-[var(--accent-soft)] border border-solid border-[color-mix(in_srgb,_var(--accent)_30%,_transparent)] flex items-center gap-[7.5px]">
                 <RoleIconBadge role={selectedRoleInfo.value} size={32} />
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography
-                    sx={{
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      color: 'text.primary',
-                      mb: 0.125,
-                    }}
-                  >
+                <div className="min-w-0">
+                  <p className="cn-text-body1 text-[0.75rem] font-bold text-foreground mb-0">
                     Rôle sélectionné : {selectedRoleInfo.label}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.4 }}>
+                  </p>
+                  <p className="cn-text-body1 text-[0.75rem] text-muted-foreground leading-[1.4]">
                     {selectedRoleInfo.description}
-                  </Typography>
-                </Box>
-              </Box>
+                  </p>
+                </div>
+              </div>
             )}
           </DetailSection>
 
@@ -548,55 +528,53 @@ const UserEdit: React.FC = () => {
             icon={<Business size={14} strokeWidth={1.75} />}
             disableGrid
           >
-            <Box sx={{ maxWidth: { xs: '100%', md: '50%' } }}>
-              <Autocomplete
-                size="small"
-                options={organizations}
-                value={selectedOrg}
-                loading={orgsLoading}
-                onChange={(_event, newValue) => setSelectedOrg(newValue)}
-                getOptionLabel={(option) => option.name}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-                renderOption={(props, option) => {
-                  const { key, ...optionProps } = props;
-                  return (
-                    <li key={key} {...optionProps}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
-                          <Business size={16} strokeWidth={1.75} />
-                        </Box>
-                        <Typography variant="body2" sx={{ flex: 1 }}>
-                          {option.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
-                        </Typography>
-                      </Box>
-                    </li>
-                  );
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Organisation"
+            <div className="max-w-full min-[900px]:max-w-[50%]">
+              <Field>
+                <FieldLabel htmlFor="user-organization">Organisation</FieldLabel>
+                <Combobox
+                  items={organizations}
+                  itemToStringLabel={(o: OrganizationDto) => o.name}
+                  itemToStringValue={(o: OrganizationDto) => o.name}
+                  isItemEqualToValue={(a: OrganizationDto, b: OrganizationDto) => a.id === b.id}
+                  value={selectedOrg}
+                  onValueChange={(next: OrganizationDto | null) => setSelectedOrg(next)}
+                >
+                  <ComboboxInput
+                    id="user-organization"
                     placeholder="Sélectionner une organisation"
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {orgsLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
-                    }}
-                  />
-                )}
-                noOptionsText="Aucune organisation"
-              />
-              <FormHelperText sx={{ fontSize: '0.7rem', mt: 0.5 }}>
-                Organisation à laquelle l'utilisateur est rattaché
-              </FormHelperText>
-            </Box>
+                  >
+                    {/* Report de l'`endAdornment` : la roue tourne tant que la
+                        liste des organisations n'est pas chargée. */}
+                    {orgsLoading ? (
+                      <InputGroupAddon align="inline-end">
+                        <Spinner className="size-4" />
+                      </InputGroupAddon>
+                    ) : null}
+                  </ComboboxInput>
+                  <ComboboxContent>
+                    <ComboboxEmpty>Aucune organisation</ComboboxEmpty>
+                    <ComboboxList>
+                      {(option: OrganizationDto) => (
+                        <ComboboxItem key={option.id} value={option}>
+                          <span className="flex items-center gap-1.5 w-full">
+                            <span className="inline-flex text-muted-foreground opacity-60">
+                              <Business size={16} strokeWidth={1.75} />
+                            </span>
+                            <span className="cn-text-body2 flex-1">{option.name}</span>
+                            <span className="cn-text-caption text-muted-foreground">
+                              {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
+                            </span>
+                          </span>
+                        </ComboboxItem>
+                      )}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+                <FieldDescription className="text-[0.7rem] mt-[3px]">
+                  Organisation à laquelle l'utilisateur est rattaché
+                </FieldDescription>
+              </Field>
+            </div>
           </DetailSection>
 
           {/* Changement de mot de passe — accent muted red (security cue) */}
@@ -607,49 +585,35 @@ const UserEdit: React.FC = () => {
             disableGrid
             action={
               passwordsMatch ? (
-                <Chip
-                  label="Les mots de passe correspondent"
-                  size="small"
-                  sx={semChipSx('success')}
-                />
+                <StatusChip tokens={semTokens('success')} label="Les mots de passe correspondent" />
               ) : passwordsMismatch ? (
-                <Chip
-                  label="Les mots de passe ne correspondent pas"
-                  size="small"
-                  sx={semChipSx('error')}
-                />
+                <StatusChip tokens={semTokens('error')} label="Les mots de passe ne correspondent pas" />
               ) : undefined
             }
           >
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.75rem' }}>
+            <p className="cn-text-body2 text-muted-foreground mb-3 text-[0.75rem]">
               Laissez ces champs vides si vous ne souhaitez pas changer le mot de passe.
-            </Typography>
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
-                gap: 2,
-              }}
-            >
-              <TextField
-                fullWidth
-                size="small"
-                label="Nouveau mot de passe"
-                type={showNewPassword ? 'text' : 'password'}
-                value={formData.newPassword}
-                onChange={(e) => handleInputChange('newPassword', e.target.value)}
-                placeholder="Minimum 8 caractères"
-                InputProps={{
-                  startAdornment: (
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mr: 1 }}>
+            </p>
+            <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_minmax(0,_1fr))] gap-3">
+              <Field>
+                <FieldLabel htmlFor="user-new-password">Nouveau mot de passe</FieldLabel>
+                <InputGroup>
+                  <InputGroupAddon>
+                    <span className="inline-flex text-muted-foreground opacity-60">
                       <Lock size={16} strokeWidth={1.75} />
-                    </Box>
-                  ),
-                  endAdornment: (
-                    <IconButton
+                    </span>
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="user-new-password"
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={formData.newPassword}
+                    onChange={(e) => handleInputChange('newPassword', e.target.value)}
+                    placeholder="Minimum 8 caractères"
+                  />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      size="icon-xs"
                       onClick={() => setShowNewPassword(!showNewPassword)}
-                      edge="end"
-                      size="small"
                       aria-label={showNewPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                     >
                       {showNewPassword ? (
@@ -657,29 +621,29 @@ const UserEdit: React.FC = () => {
                       ) : (
                         <Visibility size={16} strokeWidth={1.75} />
                       )}
-                    </IconButton>
-                  ),
-                }}
-              />
-              <TextField
-                fullWidth
-                size="small"
-                label="Confirmer le mot de passe"
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={formData.confirmPassword}
-                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                placeholder="Répétez le mot de passe"
-                InputProps={{
-                  startAdornment: (
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mr: 1 }}>
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="user-confirm-password">Confirmer le mot de passe</FieldLabel>
+                <InputGroup>
+                  <InputGroupAddon>
+                    <span className="inline-flex text-muted-foreground opacity-60">
                       <Lock size={16} strokeWidth={1.75} />
-                    </Box>
-                  ),
-                  endAdornment: (
-                    <IconButton
+                    </span>
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="user-confirm-password"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                    placeholder="Répétez le mot de passe"
+                  />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupButton
+                      size="icon-xs"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      edge="end"
-                      size="small"
                       aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                     >
                       {showConfirmPassword ? (
@@ -687,15 +651,15 @@ const UserEdit: React.FC = () => {
                       ) : (
                         <Visibility size={16} strokeWidth={1.75} />
                       )}
-                    </IconButton>
-                  ),
-                }}
-              />
-            </Box>
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
+            </div>
           </DetailSection>
-        </Box>
+        </div>
       </form>
-    </Box>
+    </div>
   );
 };
 

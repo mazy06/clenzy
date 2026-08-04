@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo, lazy, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Box } from '@mui/material';
+import { cn } from '../../utils/cn';
 import { useLayoutState } from '../../hooks/useLayoutState';
+import { useScreenChrome } from '../../components/ScreenChrome';
 import { useNavigationMenu } from '../../hooks/useNavigationMenu';
 import { useSidebarState } from '../../hooks/useSidebarState';
 import { useFormsStats } from '../../hooks/useReceivedForms';
@@ -17,6 +18,7 @@ import { LoadingStates } from '../../components/LoadingStates';
 import { ScreenChromeProvider } from '../../components/ScreenChrome';
 import OfflineBanner from '../../components/OfflineBanner';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
+import OnboardingDockMount from '../../components/OnboardingDockMount';
 
 // Assistant en lazy : son sous-arbre (react-markdown, dialog plein écran, useAgent)
 // est lourd et monté sur CHAQUE page — le sortir du chunk layout permet au premier
@@ -41,7 +43,13 @@ interface MainLayoutFullProps {
  */
 function MobileTopBar() {
   const { isMobile } = useSidebar();
-  if (!isMobile) return null;
+  const { tabsSlot } = useScreenChrome();
+  // Un `PageHeader` monte porte deja le bouton : lui laisser une bande a lui
+  // seul redonnerait la hauteur qu'on vient de rendre au contenu. `tabsSlot`
+  // n'est renseigne que par le header, il vaut donc presence. Les rares ecrans
+  // sans header gardent cette barre, sans quoi la navigation deviendrait
+  // inaccessible sous 1024 px.
+  if (!isMobile || tabsSlot) return null;
 
   return (
     <div className="flex h-12 shrink-0 items-center border-b border-border bg-background px-2">
@@ -140,30 +148,30 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       <SidebarInset className="min-w-0 overflow-hidden">
         <MobileTopBar />
 
-        {/* Contenu principal — flex container pour que les enfants puissent remplir l'espace */}
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            flexGrow: 1,
-            minHeight: 0,
-            p: fullBleed ? 0 : { xs: 1.5, md: 2 },
-            backgroundColor: 'background.default',
-            // Les pages qui gèrent leur propre scroll (ex: Dashboard Planning)
-            // utilisent flex: 1 + overflow interne.
-            // Les pages classiques débordent et scrollent via ce container.
-            overflow: fullBleed ? 'hidden' : 'auto',
-          }}
+        {/* Contenu principal — flex container pour que les enfants puissent remplir l'espace.
+            p: { xs: 1.5, md: 2 } avec theme.spacing = 6 et le breakpoint MUI md = 900px.
+            Les pages qui gèrent leur propre scroll (ex: Dashboard Planning) utilisent
+            flex: 1 + overflow interne ; les pages classiques scrollent via ce container. */}
+        <div
+          className={cn(
+            'flex flex-col grow min-h-0 bg-[var(--bg)]',
+            fullBleed ? 'p-0 overflow-hidden' : 'p-[9px] min-[900px]:p-3 overflow-auto',
+          )}
         >
           {/* Navigation de niveau 1 des hubs : elle passe par le menu du premier
               segment du fil d'Ariane, rendu DANS le PageHeader de chaque page
               (cf. PageBreadcrumb), pas par un bandeau séparé. */}
           {children}
-        </Box>
+        </div>
       </SidebarInset>
 
       {/* PWA install prompt */}
       <PWAInstallBanner />
+
+      {/* Guide de démarrage persistant (projection Onboarding) : suit
+          l'utilisateur hors du dashboard tant que le parcours n'est ni
+          terminé ni rejeté. Se masque tout seul sinon. */}
+      <OnboardingDockMount />
 
       {/* Assistant : accessible depuis toutes les pages, agrandissable en
           plein ecran. Unique point d'entree de l'assistant (la page dediee

@@ -1,46 +1,44 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Spinner } from '../../../components/ui';
+import { Card } from '../../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import {
-  Box, Paper, Typography, Button, TextField, Chip, IconButton, Tooltip,
-  Table, TableHead, TableBody, TableRow, TableCell, TableContainer, CircularProgress,
-  Skeleton, Snackbar, Alert,
-} from '@mui/material';
+  Button,
+  Field,
+  FieldLabel,
+  Input,
+  Skeleton,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNotification } from '../../../hooks/useNotification';
 import { VpnKey, History, Add, Delete as Trash, LocationOn } from '../../../icons';
 import EmptyState from '../../../components/EmptyState';
+import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import { keyExchangeApi, type KeyExchangeCodeDto } from '../../../services/api/keyExchangeApi';
 import type { ConnectedDevice } from '../types';
 import PageTabs from '../../../components/PageTabs';
 
 // Statuts de code : tokens sémantiques désaturés (texte couleur + fond `-soft`) —
 // actif = --ok, utilisé = --info, expiré = neutre, annulé = --err.
-const CODE_STATUS_TOKENS: Record<string, { color: string; soft: string }> = {
-  ACTIVE: { color: 'var(--ok)', soft: 'var(--ok-soft)' },
-  USED: { color: 'var(--info)', soft: 'var(--info-soft)' },
-  EXPIRED: { color: 'var(--muted)', soft: 'var(--hover)' },
-  CANCELLED: { color: 'var(--err)', soft: 'var(--err-soft)' },
+const CODE_STATUS_TOKENS: Record<string, ToneTokens> = {
+  ACTIVE: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
+  USED: { color: 'var(--info)', bg: 'var(--info-soft)' },
+  EXPIRED: { color: 'var(--muted)', bg: 'var(--hover)' },
+  CANCELLED: { color: 'var(--err)', bg: 'var(--err-soft)' },
 };
-/** Pilule soft : fond doux + texte couleur (pattern chips statut baseline §2). */
-const codeStatusPillSx = (status: string) => {
-  const { color, soft } = CODE_STATUS_TOKENS[status] ?? { color: 'var(--muted)', soft: 'var(--hover)' };
-  return {
-    height: 22,
-    fontSize: '0.6875rem',
-    fontWeight: 600,
-    backgroundColor: soft,
-    color,
-    border: 'none',
-    borderRadius: 'var(--radius-pill)',
-    '& .MuiChip-label': { px: 1 },
-  } as const;
-};
+const codeStatusTokens = (status: string): ToneTokens =>
+  CODE_STATUS_TOKENS[status] ?? { color: 'var(--muted)', bg: 'var(--hover)' };
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.5 }}>
-      <Typography variant="caption" sx={{ color: 'text.secondary' }}>{label}</Typography>
-      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary', textAlign: 'right' }}>{value}</Typography>
-    </Box>
+    <div className="flex justify-between gap-3 py-0.5">
+      <span className="cn-text-caption text-muted-foreground">{label}</span>
+      <span className="cn-text-caption font-semibold text-foreground text-end">{value}</span>
+    </div>
   );
 }
 
@@ -52,9 +50,9 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
  */
 export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
   const qc = useQueryClient();
+  const { notify } = useNotification();
   const [subTab, setSubTab] = useState(0);
   const [guestName, setGuestName] = useState('');
-  const [snack, setSnack] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
 
   const pointsQuery = useQuery({ queryKey: ['key-exchange-points'], queryFn: () => keyExchangeApi.getPoints(), staleTime: 60_000 });
   const point = pointsQuery.data?.find((p) => p.id === device.id);
@@ -76,42 +74,42 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
     mutationFn: () => keyExchangeApi.generateCode({ pointId: device.id, guestName: guestName.trim() || undefined }),
     onSuccess: () => {
       setGuestName('');
-      setSnack({ msg: 'Code généré', severity: 'success' });
+      notify.success('Code généré');
       void qc.invalidateQueries({ queryKey: ['key-exchange-codes', device.id] });
       void qc.invalidateQueries({ queryKey: ['connected-objects'] });
     },
-    onError: (e: unknown) => setSnack({ msg: e instanceof Error ? e.message : 'Échec de la génération', severity: 'error' }),
+    onError: (e: unknown) => notify.error(e instanceof Error ? e.message : 'Échec de la génération'),
   });
 
   const cancel = useMutation({
     mutationFn: (id: number) => keyExchangeApi.cancelCode(id),
     onSuccess: () => {
-      setSnack({ msg: 'Code annulé', severity: 'success' });
+      notify.success('Code annulé');
       void qc.invalidateQueries({ queryKey: ['key-exchange-codes', device.id] });
       void qc.invalidateQueries({ queryKey: ['connected-objects'] });
     },
-    onError: (e: unknown) => setSnack({ msg: e instanceof Error ? e.message : "Échec de l'annulation", severity: 'error' }),
+    onError: (e: unknown) => notify.error(e instanceof Error ? e.message : "Échec de l'annulation"),
   });
 
   const codes: KeyExchangeCodeDto[] = codesQuery.data ?? [];
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div className="flex flex-col gap-3">
       {/* Infos du point */}
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)' }}>
-        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+      <Card className="gap-0 py-0 p-3">
+        <h6 className="cn-text-subtitle2 mb-1.5 font-bold flex items-center gap-0.5">
           <LocationOn size={15} strokeWidth={1.75} /> Point de remise
-        </Typography>
+        </h6>
         <InfoRow label="Fournisseur" value={point?.provider ?? device.provider} />
         <InfoRow label="Commerce" value={point?.storeName ?? device.name} />
         <InfoRow label="Adresse" value={point?.storeAddress} />
         <InfoRow label="Téléphone" value={point?.storePhone} />
         <InfoRow label="Horaires" value={point?.storeOpeningHours} />
         <InfoRow label="Logement" value={device.propertyName} />
-      </Paper>
+      </Card>
 
       {/* Codes | Mouvements */}
-      <Box>
+      <div>
         <PageTabs
           options={[
             { label: 'Codes', icon: <VpnKey /> },
@@ -124,78 +122,80 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
           trail={false}
         />
 
-        <Box sx={{ pt: 2 }}>
+        <div className="pt-3">
           {subTab === 0 && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <div className="flex flex-col gap-2">
               {/* Génération */}
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <TextField
-                  size="small"
-                  label="Nom du voyageur (optionnel)"
-                  value={guestName}
-                  onChange={(e) => setGuestName(e.target.value)}
-                  sx={{ flex: 1, maxWidth: 320 }}
-                />
+              {/* items-end : le libelle du champ est desormais statique au-dessus,
+                  le bouton doit s'aligner sur la ligne de saisie et non au centre. */}
+              <div className="flex gap-1.5 items-end">
+                <Field className="w-auto flex-1 max-w-[320px]">
+                  <FieldLabel htmlFor="keybox-guest-name">Nom du voyageur (optionnel)</FieldLabel>
+                  <Input
+                    id="keybox-guest-name"
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                  />
+                </Field>
                 <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={generate.isPending ? <CircularProgress size={14} color="inherit" /> : <Add size={16} strokeWidth={2} />}
+                  variant="default"
+                  size="sm"
                   onClick={() => generate.mutate()}
                   disabled={generate.isPending}
                 >
+                  {generate.isPending ? <Spinner className="size-3.5" /> : <Add size={16} strokeWidth={2} />}
                   Générer un code
                 </Button>
-              </Box>
+              </div>
 
               {/* Liste */}
               {codesQuery.isLoading ? (
-                <Skeleton variant="rounded" height={140} sx={{ borderRadius: 'var(--radius-lg)' }} />
+                <Skeleton className="h-[140px] w-full rounded-[var(--radius-lg)]" />
               ) : codes.length === 0 ? (
                 <EmptyState icon={<VpnKey />} title="Aucun code actif" description="Générez un code de remise pour un voyageur." />
               ) : (
-                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 'var(--radius-lg)' }}>
-                  <Table size="small">
-                    <TableHead>
+                <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell>Code</TableCell>
-                        <TableCell>Voyageur</TableCell>
-                        <TableCell>Statut</TableCell>
-                        <TableCell align="right">Action</TableCell>
+                        <TableHead>Code</TableHead>
+                        <TableHead>Voyageur</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead className="text-end">Action</TableHead>
                       </TableRow>
-                    </TableHead>
+                    </TableHeader>
                     <TableBody>
                       {codes.map((c) => (
                         <TableRow key={c.id}>
                           <TableCell>
                             {/* Code PIN : display (Space Grotesk) tabular-nums sur fond --field */}
-                            <Box
-                              component="span"
-                              sx={{
-                                fontFamily: 'var(--font-display)',
-                                fontVariantNumeric: 'tabular-nums',
-                                fontWeight: 600,
-                                letterSpacing: '0.06em',
-                                color: 'var(--ink)',
-                                bgcolor: 'var(--field)',
-                                borderRadius: '9px',
-                                px: 1,
-                                py: 0.375,
-                                display: 'inline-block',
-                              }}
-                            >
+                            <span className="font-[family-name:var(--font-display)] tabular-nums font-semibold tracking-[0.06em] text-[var(--ink)] bg-[var(--field)] rounded-[9px] px-1.5 py-0.5 inline-block">
                               {c.code}
-                            </Box>
+                            </span>
                           </TableCell>
                           <TableCell>{c.guestName || '—'}</TableCell>
                           <TableCell>
-                            <Chip size="small" label={c.status} sx={codeStatusPillSx(c.status)} />
+                            <StatusChip tokens={codeStatusTokens(c.status)} label={c.status} pill />
                           </TableCell>
-                          <TableCell align="right">
+                          <TableCell className="text-end">
                             {c.status === 'ACTIVE' && (
-                              <Tooltip title="Annuler ce code" arrow>
-                                <IconButton size="small" onClick={() => cancel.mutate(c.id)} disabled={cancel.isPending} sx={{ color: 'error.main' }}>
-                                  <Trash size={16} strokeWidth={1.75} />
-                                </IconButton>
+                              <Tooltip>
+                                {/* Le Button du kit ne transmet pas de ref : span d'ancrage. */}
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      aria-label="Annuler ce code"
+                                      onClick={() => cancel.mutate(c.id)}
+                                      disabled={cancel.isPending}
+                                      className="text-[var(--err)] hover:text-[var(--err)]"
+                                    >
+                                      <Trash size={16} strokeWidth={1.75} />
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>Annuler ce code</TooltipContent>
                               </Tooltip>
                             )}
                           </TableCell>
@@ -203,49 +203,45 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                       ))}
                     </TableBody>
                   </Table>
-                </TableContainer>
+                </div>
               )}
-            </Box>
+            </div>
           )}
 
           {subTab === 1 && (
             eventsQuery.isLoading ? (
-              <Skeleton variant="rounded" height={140} sx={{ borderRadius: 'var(--radius-lg)' }} />
+              <Skeleton className="h-[140px] w-full rounded-[var(--radius-lg)]" />
             ) : (eventsQuery.data?.content.length ?? 0) === 0 ? (
               <EmptyState icon={<History />} title="Aucun mouvement" description="Les remises et collectes de clés de ce logement apparaîtront ici." />
             ) : (
-              <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 'var(--radius-lg)' }}>
-                <Table size="small">
-                  <TableHead>
+              <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell>Type</TableCell>
-                      <TableCell>Acteur</TableCell>
-                      <TableCell>Notes</TableCell>
-                      <TableCell align="right">Date</TableCell>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Acteur</TableHead>
+                      <TableHead>Notes</TableHead>
+                      <TableHead className="text-end">Date</TableHead>
                     </TableRow>
-                  </TableHead>
+                  </TableHeader>
                   <TableBody>
                     {eventsQuery.data!.content.map((ev) => (
                       <TableRow key={ev.id}>
                         <TableCell>{ev.eventType}</TableCell>
                         <TableCell>{ev.actorName || '—'}</TableCell>
-                        <TableCell sx={{ color: 'text.secondary' }}>{ev.notes || '—'}</TableCell>
-                        <TableCell align="right" sx={{ whiteSpace: 'nowrap', color: 'text.disabled' }}>
+                        <TableCell className="text-[var(--muted)]">{ev.notes || '—'}</TableCell>
+                        <TableCell className="text-end whitespace-nowrap text-[var(--faint)]">
                           {new Date(ev.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              </TableContainer>
+              </div>
             )
           )}
-        </Box>
-      </Box>
-
-      <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        {snack ? <Alert severity={snack.severity} variant="filled" onClose={() => setSnack(null)} sx={{ width: '100%' }}>{snack.msg}</Alert> : undefined}
-      </Snackbar>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }

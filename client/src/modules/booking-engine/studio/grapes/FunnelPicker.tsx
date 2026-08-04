@@ -1,5 +1,15 @@
 import { createElement, useMemo, useRef, useState } from 'react';
-import { Box, ButtonBase, Dialog, TextField, Tooltip } from '@mui/material';
+import { cn } from '../../../../utils/cn';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  Input,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../../components/ui';
 import { X, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, Check, Save, Workflow, Pencil, RotateCcw, AlertTriangle, Info } from 'lucide-react';
 import {
   BUILTIN_FUNNEL_PRESETS,
@@ -109,42 +119,47 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
   const activeTab: TabKey = tab === 'saved' && !showSavedTab ? 'models' : tab;
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth={false}
-      fullWidth
-      PaperProps={{ sx: { width: '100%', maxWidth: 1040, m: 2, bgcolor: 'var(--card)', color: 'var(--body)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' } }}
-    >
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      {/* La croix du gabarit est masquee : l'en-tete en porte deja une, calee
+          sur le vocabulaire de tokens de ce module. */}
+      <DialogContent
+        showCloseButton={false}
+        className="w-[calc(100%-24px)] max-w-[1040px] max-h-[92vh] bg-[var(--card)] text-[var(--body)] rounded-[var(--radius-lg)] border border-solid border-[var(--line)] overflow-hidden flex flex-col p-0 gap-0"
+      >
       {/* ── En-tête ── */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, px: 2.75, py: 2, borderBottom: '1px solid var(--line)' }}>
-        <Box sx={{ flexShrink: 0, width: 42, height: 42, borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)', display: 'grid', placeItems: 'center' }}>
+      <div className="flex items-start gap-2 px-4 py-3 border-b border-solid border-[var(--line)]">
+        <div className="shrink-0 w-[42px] h-[42px] rounded-[var(--radius-md)] bg-[var(--accent)] text-[var(--on-accent)] grid place-items-center">
           <Workflow size={20} strokeWidth={2} />
-        </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box component="h2" sx={{ m: 0, fontSize: 'var(--text-md)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)', letterSpacing: '-.01em' }}>
+        </div>
+        <div className="flex-1 min-w-0">
+          <DialogTitle className="m-0 text-[var(--text-md)] font-[family-name:var(--fw-semibold)] text-[var(--ink)] tracking-[-.01em]">
             Parcours de réservation
-          </Box>
-          <Box component="p" sx={{ m: '4px 0 0', fontSize: 'var(--text-2xs)', color: 'var(--muted)', lineHeight: 1.45, maxWidth: '62ch' }}>
+          </DialogTitle>
+          <DialogDescription className="mt-1 text-[var(--text-2xs)] text-[var(--muted)] leading-[1.45] max-w-[62ch]">
             Démarrez avec un modèle prêt à l'emploi, ou composez votre propre parcours, écran par écran.
-          </Box>
-        </Box>
-        <ButtonBase onClick={onClose} aria-label="Fermer" sx={{ flexShrink: 0, width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)', color: 'var(--muted)', display: 'grid', placeItems: 'center', cursor: 'pointer', '&:hover': { bgcolor: 'var(--hover)', color: 'var(--ink)' } }}>
+          </DialogDescription>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Fermer"
+          className="shrink-0 w-[34px] h-[34px] rounded-[var(--radius-sm)] border border-solid border-[var(--line)] bg-transparent text-[var(--muted)] grid place-items-center cursor-pointer hover:bg-[var(--hover)] hover:text-[var(--ink)]"
+        >
           <X size={18} strokeWidth={2} />
-        </ButtonBase>
-      </Box>
+        </button>
+      </div>
 
       {/* ── Onglets ── */}
-      <Box sx={{ display: 'flex', gap: 0.75, px: 2.75, pt: 1.5 }}>
+      <div className="flex gap-1 px-4 pt-2">
         <TabBtn label="Modèles" count={BUILTIN_FUNNEL_PRESETS.length} active={activeTab === 'models'} onClick={() => setTab('models')} />
         {showSavedTab && (
           <TabBtn label="Mes parcours" count={savedPresets.length} active={activeTab === 'saved'} onClick={() => setTab('saved')} />
         )}
         <TabBtn label="Composer sur mesure" active={activeTab === 'compose'} onClick={() => setTab('compose')} />
-      </Box>
+      </div>
 
       {/* ── Corps (scroll) ── */}
-      <Box ref={bodyRef} sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', px: 2.75, py: 2.5 }}>
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-[16.5px] py-[15px]" ref={bodyRef}>
         {activeTab === 'models' && (
           <>
             <SecLabel>Choisissez un modèle</SecLabel>
@@ -178,137 +193,131 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
             <SecLabel>{editingId ? 'Modifier le parcours' : 'Composez votre parcours'}</SecLabel>
 
             {baseLabel && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.75, px: 1.5, py: 1, borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent-soft)', border: '1px solid var(--line)' }}>
-                <Box sx={{ flexShrink: 0, width: 27, height: 27, borderRadius: 'var(--radius-sm)', bgcolor: 'var(--card)', color: 'var(--accent)', display: 'grid', placeItems: 'center' }}>
+              <div className="flex items-center gap-2 mb-2.5 px-2 py-1.5 rounded-[var(--radius-md)] bg-[var(--accent-soft)] border border-[var(--line)]">
+                <div className="shrink-0 w-[27px] h-[27px] rounded-[var(--radius-sm)] bg-[var(--card)] text-[var(--accent)] grid place-items-[center]">
                   <Pencil size={15} strokeWidth={2} />
-                </Box>
-                <Box component="span" sx={{ flex: 1, minWidth: 0, fontSize: 'var(--text-2xs)', color: 'var(--body)', lineHeight: 1.4 }}>
-                  Basé sur <Box component="span" sx={{ fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>« {baseLabel} »</Box>
+                </div>
+                <span className="flex-1 min-w-0 text-[var(--text-2xs)] text-[var(--body)] leading-[1.4]">
+                  Basé sur <span className="font-[family-name:var(--fw-semibold)] text-[var(--ink)]">« {baseLabel} »</span>
                   {' — '}{editingId ? 'vos modifications mettront à jour ce parcours.' : 'vos modifications créeront un nouveau parcours personnalisé.'}
-                </Box>
+                </span>
                 <SecondaryBtn icon={RotateCcw} label="Repartir de zéro" onClick={resetComposer} />
-              </Box>
+              </div>
             )}
 
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+            <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[1fr_1fr] gap-3">
               {/* Widgets disponibles */}
               <Panel title="Widgets disponibles" pill={`${selected.length} sélectionné${selected.length > 1 ? 's' : ''}`}>
-                <Box sx={{ maxHeight: 340, overflowY: 'auto', p: 1 }}>
+                <div className="max-h-[340px] overflow-y-auto p-1.5">
                   {widgetGroups.map((g) => (
-                    <Box key={g.category} sx={{ mb: 1.25 }}>
-                      <Box sx={{ px: 0.75, pt: 0.75, pb: 0.75, fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)' }}>{g.category}</Box>
+                    <div className="mb-2" key={g.category}>
+                      <div className="px-1 pt-1 pb-1 text-[var(--text-2xs)] font-[family-name:var(--fw-semibold)] uppercase tracking-[.08em] text-[var(--muted)]">{g.category}</div>
                       {g.items.map((w) => {
                         const on = selectedSet.has(w.id);
                         return (
-                          <ButtonBase
+                          <button
+                            type="button"
                             key={w.id}
                             onClick={() => toggleWidget(w.id)}
-                            sx={{
-                              display: 'flex', alignItems: 'center', gap: 1.25, width: '100%', justifyContent: 'flex-start',
-                              px: 1.25, py: 1, borderRadius: 'var(--radius-md)', textAlign: 'left', cursor: 'pointer',
-                              border: '1px solid', borderColor: on ? 'var(--accent)' : 'transparent',
-                              bgcolor: on ? 'var(--accent-soft)' : 'transparent',
-                              transition: 'background var(--duration-fast) var(--ease-out)',
-                              '&:hover': { bgcolor: on ? 'var(--accent-soft)' : 'var(--hover)' },
-                            }}
+                            className={cn(
+                              'flex items-center gap-[7.5px] w-full justify-start px-[7.5px] py-1.5 rounded-[var(--radius-md)] text-start cursor-pointer border border-solid',
+                              '[transition:background_var(--duration-fast)_var(--ease-out)]',
+                              on
+                                ? 'border-[var(--accent)] bg-[var(--accent-soft)] hover:bg-[var(--accent-soft)]'
+                                : 'border-transparent bg-transparent hover:bg-[var(--hover)]',
+                            )}
                           >
-                            <Box sx={{ flexShrink: 0, width: 32, height: 32, borderRadius: 'var(--radius-sm)', bgcolor: on ? 'var(--card)' : 'var(--hover)', color: on ? 'var(--accent)' : 'var(--muted)', display: 'grid', placeItems: 'center' }}>
+                            <div className={cn('shrink-0 w-[32px] h-[32px] rounded-[var(--radius-sm)] grid place-items-[center]', on ? 'bg-[var(--card)]' : 'bg-[var(--hover)]', on ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}>
                               <WidgetGlyph id={w.id} size={17} />
-                            </Box>
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                              <Box component="span" sx={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--ink)' }}>{w.label}</Box>
-                              {w.description && <Box component="span" sx={{ display: 'block', fontSize: 'var(--text-2xs)', color: 'var(--muted)', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{w.description}</Box>}
-                            </Box>
-                            <Box sx={{
-                              flexShrink: 0, width: 20, height: 20, borderRadius: 'var(--radius-xs, 5px)',
-                              border: `1.5px solid ${on ? 'var(--accent)' : 'var(--line)'}`,
-                              bgcolor: on ? 'var(--accent)' : 'transparent', color: 'var(--on-accent)',
-                              display: 'grid', placeItems: 'center',
-                            }}>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="block text-[var(--text-sm)] font-[family-name:var(--fw-medium)] text-[var(--ink)]">{w.label}</span>
+                              {w.description && <span className="block text-[var(--text-2xs)] text-[var(--muted)] leading-[1.3] whitespace-nowrap overflow-hidden text-ellipsis">{w.description}</span>}
+                            </div>
+                            <div className={cn('shrink-0 w-[20px] h-[20px] rounded-[var(--radius-xs,_5px)] text-[var(--on-accent)] grid place-items-[center]', on ? 'bg-[var(--accent)]' : 'bg-[transparent]')} style={{ border: `1.5px solid ${on ? 'var(--accent)' : 'var(--line)'}` }}>
                               {on && <Check size={12} strokeWidth={3} />}
-                            </Box>
-                          </ButtonBase>
+                            </div>
+                          </button>
                         );
                       })}
-                    </Box>
+                    </div>
                   ))}
-                </Box>
+                </div>
               </Panel>
 
               {/* Ordre du parcours */}
               <Panel title="Ordre du parcours" pill={String(selected.length)}>
-                <Box sx={{ flex: 1, minHeight: 200, maxHeight: 340, overflowY: 'auto', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <div className="flex-1 min-h-[200px] max-h-[340px] overflow-y-auto p-2 flex flex-col gap-1.5">
                   {selected.length === 0 ? (
-                    <Box sx={{ m: 'auto', textAlign: 'center', maxWidth: 240, px: 1.25, py: 3 }}>
-                      <Box sx={{ width: 46, height: 46, borderRadius: 'var(--radius-md)', bgcolor: 'var(--hover)', color: 'var(--muted)', display: 'grid', placeItems: 'center', mx: 'auto', mb: 1.5 }}>
+                    <div className="m-auto text-center max-w-[240px] px-2 py-4">
+                      <div className="w-[46px] h-[46px] rounded-[var(--radius-md)] bg-[var(--hover)] text-[var(--muted)] grid place-items-[center] mx-auto mb-[9px]">
                         <Workflow size={22} strokeWidth={1.75} />
-                      </Box>
-                      <Box component="p" sx={{ m: 0, fontSize: 'var(--text-sm)', color: 'var(--muted)', lineHeight: 1.5 }}>
+                      </div>
+                      <p className="m-0 text-[var(--text-sm)] text-[var(--muted)] leading-[1.5]">
                         Cochez des widgets à gauche pour composer votre parcours, étape par étape.
-                      </Box>
-                    </Box>
+                      </p>
+                    </div>
                   ) : selected.map((id, i) => (
-                    <Box key={id} sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 1.25, py: 1, bgcolor: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)' }}>
-                      <Box sx={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', bgcolor: 'var(--hover)', color: 'var(--body)', fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', display: 'grid', placeItems: 'center', fontVariantNumeric: 'tabular-nums' }}>{i + 1}</Box>
-                      <Box sx={{ flexShrink: 0, width: 28, height: 28, borderRadius: 'var(--radius-sm)', bgcolor: 'var(--hover)', color: 'var(--muted)', display: 'grid', placeItems: 'center' }}>
+                    <div className="flex items-center gap-2 px-2 py-1.5 bg-[var(--card)] border border-[var(--line)] rounded-[var(--radius-md)]" key={id}>
+                      <div className="shrink-0 w-[22px] h-[22px] rounded-[50%] bg-[var(--hover)] text-[var(--body)] text-[var(--text-2xs)] grid place-items-[center] tabular-nums" style={{ fontWeight: 'var(--fw-semibold)' }}>{i + 1}</div>
+                      <div className="shrink-0 w-[28px] h-[28px] rounded-[var(--radius-sm)] bg-[var(--hover)] text-[var(--muted)] grid place-items-[center]">
                         <WidgetGlyph id={id} size={15} />
-                      </Box>
-                      <Box component="span" sx={{ flex: 1, minWidth: 0, fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--ink)' }}>{widgetLabel(id)}</Box>
+                      </div>
+                      <span className="flex-1 min-w-0 text-[var(--text-sm)] font-[family-name:var(--fw-medium)] text-[var(--ink)]">{widgetLabel(id)}</span>
                       <IconAction title="Monter" icon={ChevronUp} disabled={i === 0} onClick={() => move(id, -1)} />
                       <IconAction title="Descendre" icon={ChevronDown} disabled={i === selected.length - 1} onClick={() => move(id, 1)} />
                       <IconAction title="Retirer" icon={X} danger onClick={() => toggleWidget(id)} />
-                    </Box>
+                    </div>
                   ))}
-                </Box>
-                <Box sx={{ borderTop: '1px solid var(--line)', px: 1.75, py: 1.25, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Box component="span" sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>
+                </div>
+                <div className="border-t border-[var(--line)] px-2.5 py-2 flex items-center gap-2">
+                  <span className="text-[var(--text-2xs)] text-[var(--muted)]">
                     {selected.length === 0 ? 'Aucun widget' : `${selected.length} écran${selected.length > 1 ? 's' : ''} dans le parcours`}
-                  </Box>
-                  <Box sx={{ ml: 'auto' }}>
+                  </span>
+                  <div className="ms-auto">
                     <PrimaryBtn icon={Plus} label={baseLabel && !editingId ? 'Créer le parcours' : editingId ? 'Insérer ce parcours' : 'Insérer le parcours'} onClick={insertCustom} disabled={selected.length === 0} />
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               </Panel>
-            </Box>
+            </div>
 
             {/* Avertissements de composition (prérequis manquants) — non bloquants. */}
             {compositionWarnings.length > 0 && (
-              <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 0.5, px: 1.5, py: 1.25, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--hover)' }}>
+              <div className="mt-2 flex flex-col gap-0.5 px-2 py-2 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--hover)]">
                 {compositionWarnings.map((w) => (
-                  <Box key={`${w.severity}:${w.widgetId}:${w.capability}`} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>
-                    <Box component="span" sx={{ flexShrink: 0, color: w.severity === 'warning' ? 'var(--accent)' : 'var(--muted)', display: 'inline-flex' }}>
+                  <div className="flex items-center gap-1 text-[var(--text-2xs)] text-[var(--muted)]" key={`${w.severity}:${w.widgetId}:${w.capability}`}>
+                    <span className={cn('shrink-0 inline-flex', w.severity === 'warning' ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}>
                       {w.severity === 'warning' ? <AlertTriangle size={13} strokeWidth={2} /> : <Info size={13} strokeWidth={2} />}
-                    </Box>
+                    </span>
                     {w.message}
-                  </Box>
+                  </div>
                 ))}
-              </Box>
+              </div>
             )}
 
             {/* Enregistrement dans « Mes parcours » (P3) */}
             {onSave && (
-              <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid var(--line)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.25 }}>
-                <Box component="span" sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', mr: 0.5 }}>
+              <div className="mt-3 pt-3 border-t border-[var(--line)] flex flex-wrap items-center gap-2">
+                <span className="text-[var(--text-2xs)] text-[var(--muted)] me-0.5">
                   {editingId ? 'Mettre à jour ce parcours enregistré' : 'Enregistrer dans « Mes parcours »'}
-                </Box>
-                <TextField
+                </span>
+                {/* Pas de libelle : la phrase a gauche introduit le champ,
+                    d'ou l'aria-label repris du placeholder. */}
+                <Input
+                  id="funnel-preset-name"
+                  aria-label="Nom du parcours"
+                  className="flex-1 min-w-[180px]"
                   value={presetName}
                   onChange={(e) => setPresetName(e.target.value)}
                   placeholder="Nom du parcours"
-                  size="small"
-                  sx={{
-                    flex: 1, minWidth: 180,
-                    '& .MuiInputBase-root': { bgcolor: 'var(--field)', color: 'var(--ink)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)' },
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--line)' },
-                    '& .Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--accent)' },
-                  }}
                 />
                 <SecondaryBtn icon={Save} label={editingId ? 'Mettre à jour' : 'Enregistrer'} onClick={saveCustom} disabled={selected.length === 0 || !presetName.trim()} />
-              </Box>
+              </div>
             )}
           </>
         )}
-      </Box>
+      </div>
+      </DialogContent>
     </Dialog>
   );
 }
@@ -317,30 +326,34 @@ export default function FunnelPicker({ open, onClose, onInsert, savedPresets = [
 
 function TabBtn({ label, count, active, onClick }: { label: string; count?: number; active: boolean; onClick: () => void }) {
   return (
-    <ButtonBase
+    <button
+      type="button"
       onClick={onClick}
-      sx={{
-        display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1.5, py: 1, borderRadius: 'var(--radius-md)',
-        fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', cursor: 'pointer',
-        color: active ? 'var(--accent)' : 'var(--muted)', bgcolor: active ? 'var(--accent-soft)' : 'transparent',
-        transition: 'background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
-        '&:hover': { bgcolor: active ? 'var(--accent-soft)' : 'var(--hover)', color: active ? 'var(--accent)' : 'var(--ink)' },
-      }}
+      // La graisse reste en style : `font-[var(--…)]` est ambigu pour Tailwind,
+      // qui ne devine pas s'il s'agit d'une famille ou d'un poids.
+      style={{ fontWeight: 'var(--fw-medium)' }}
+      className={cn(
+        'inline-flex items-center gap-[4.5px] px-[9px] py-1.5 rounded-[var(--radius-md)] text-[var(--text-sm)] cursor-pointer border-none',
+        '[transition:background_var(--duration-fast)_var(--ease-out),color_var(--duration-fast)_var(--ease-out)]',
+        active
+          ? 'text-[var(--accent)] bg-[var(--accent-soft)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]'
+          : 'text-[var(--muted)] bg-transparent hover:bg-[var(--hover)] hover:text-[var(--ink)]',
+      )}
     >
       {label}
       {typeof count === 'number' && (
-        <Box component="span" sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', borderRadius: 'var(--radius-xs, 5px)', px: 0.75, py: '1px', bgcolor: active ? 'var(--card)' : 'var(--hover)', color: 'inherit', fontVariantNumeric: 'tabular-nums' }}>{count}</Box>
+        <span className={cn('text-[var(--text-2xs)] rounded-[var(--radius-xs,_5px)] px-[4.5px] py-px text-[inherit] tabular-nums', active ? 'bg-[var(--card)]' : 'bg-[var(--hover)]')} style={{ fontWeight: 'var(--fw-semibold)' }}>{count}</span>
       )}
-    </ButtonBase>
+    </button>
   );
 }
 
 function SecLabel({ children }: { children: React.ReactNode }) {
-  return <Box sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--muted)', mb: 1.5 }}>{children}</Box>;
+  return <div className="text-[var(--text-2xs)] font-[family-name:var(--fw-semibold)] tracking-[.1em] uppercase text-[var(--muted)] mb-2">{children}</div>;
 }
 
 function CardGrid({ children }: { children: React.ReactNode }) {
-  return <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.75 }}>{children}</Box>;
+  return <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-[10.5px]">{children}</div>;
 }
 
 /** Étapes affichées : `steps` curatées (modèles) sinon dérivées des libellés de widgets (customs). */
@@ -352,56 +365,59 @@ function FunnelCard({ preset: p, onInsert, onEdit, onDelete }: { preset: FunnelP
   const steps = flowSteps(p);
   const screensMeta = p.steps && p.steps.length ? ` · ${p.steps.length} écran${p.steps.length > 1 ? 's' : ''}` : '';
   return (
-    <Box sx={{ position: 'relative', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', bgcolor: 'var(--card)', p: 2, display: 'flex', flexDirection: 'column', gap: 1.5, transition: 'border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out)', '&:hover': { borderColor: 'var(--accent)', boxShadow: 'var(--shadow-sm, 0 6px 18px rgba(28,40,70,.08))' } }}>
+    <div
+      className="relative border border-solid border-[var(--line)] rounded-[var(--radius-md)] bg-[var(--card)] p-3 flex flex-col gap-[9px] hover:border-[var(--accent)] hover:shadow-[var(--shadow-sm,_0_6px_18px_rgba(28,40,70,.08))]"
+      style={{ transition: 'border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out)' }}
+    >
       {/* Titre + badge + (supprimer) */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-          <Box component="span" sx={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>{p.label}</Box>
+      <div className="flex items-center gap-1.5">
+        <div className="flex-1 min-w-0 flex items-center gap-1 flex-wrap">
+          <span className="text-[var(--text-sm)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">{p.label}</span>
           {p.badge && (
-            <Box component="span" sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', px: 0.75, py: '1px', borderRadius: 999, bgcolor: 'var(--hover)', color: 'var(--muted)', whiteSpace: 'nowrap' }}>{p.badge}</Box>
+            <span className="text-[var(--text-2xs)] px-[4.5px] py-px rounded-[7992px] bg-[var(--hover)] text-[var(--muted)] whitespace-nowrap" style={{ fontWeight: 'var(--fw-semibold)' }}>{p.badge}</span>
           )}
-        </Box>
+        </div>
         {onDelete && !p.builtin && <IconAction title="Supprimer" icon={Trash2} danger onClick={onDelete} />}
-      </Box>
+      </div>
 
-      {p.description && <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', lineHeight: 1.4, mt: -0.75 }}>{p.description}</Box>}
+      {p.description && <div className="text-[var(--text-2xs)] text-[var(--muted)] leading-[1.4] -mt-[4.5px]">{p.description}</div>}
 
       {/* Visualisation du parcours : étapes numérotées + flèches */}
-      <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.75, p: 1.25, bgcolor: 'var(--hover)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)' }}>
+      <div className="flex items-center flex-wrap gap-1 p-2 bg-[var(--hover)] border border-[var(--line)] rounded-[var(--radius-md)]">
         {steps.map((s, i) => (
-          <Box key={`${s}-${i}`} sx={{ display: 'contents' }}>
-            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, bgcolor: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', pl: 0.5, pr: 1, py: 0.5 }}>
-              <Box component="span" sx={{ flexShrink: 0, width: 17, height: 17, borderRadius: '50%', bgcolor: 'var(--hover)', color: 'var(--body)', fontSize: '10px', fontWeight: 'var(--fw-semibold)', display: 'grid', placeItems: 'center', fontVariantNumeric: 'tabular-nums' }}>{i + 1}</Box>
-              <Box component="span" sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-medium)', color: 'var(--ink)' }}>{s}</Box>
-            </Box>
-            {i < steps.length - 1 && <Box component="span" sx={{ color: 'var(--muted)', display: 'grid', placeItems: 'center' }}><ChevronRight size={14} strokeWidth={2.4} /></Box>}
-          </Box>
+          <div key={`${s}-${i}`} className="contents">
+            <div className="inline-flex items-center gap-1 bg-[var(--card)] border border-[var(--line)] rounded-[var(--radius-sm)] ps-0.5 pe-1.5 py-0.5">
+              <span className="shrink-0 w-[17px] h-[17px] rounded-[50%] bg-[var(--hover)] text-[var(--body)] text-[10px] grid place-items-[center] tabular-nums" style={{ fontWeight: 'var(--fw-semibold)' }}>{i + 1}</span>
+              <span className="text-[var(--text-2xs)] font-[family-name:var(--fw-medium)] text-[var(--ink)]">{s}</span>
+            </div>
+            {i < steps.length - 1 && <span className="text-[var(--muted)] grid place-items-[center]"><ChevronRight size={14} strokeWidth={2.4} /></span>}
+          </div>
         ))}
-      </Box>
+      </div>
 
       {/* Pied : méta + actions */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 'auto' }}>
-        <Box component="span" sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)' }}>
-          <Box component="span" sx={{ color: 'var(--body)', fontWeight: 'var(--fw-medium)' }}>{p.widgetIds.length} widgets</Box>{screensMeta}
-        </Box>
-        <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+      <div className="flex items-center gap-1.5 mt-auto">
+        <span className="text-[var(--text-2xs)] text-[var(--muted)]">
+          <span className="text-[var(--body)] font-[family-name:var(--fw-medium)]">{p.widgetIds.length} widgets</span>{screensMeta}
+        </span>
+        <div className="ms-auto flex gap-1.5">
           <SecondaryBtn icon={Pencil} label="Modifier" onClick={onEdit} />
           <InsertBtn onClick={onInsert} />
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }
 
 function Panel({ title, pill, children }: { title: string; pill: string; children: React.ReactNode }) {
   return (
-    <Box sx={{ border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', bgcolor: 'var(--card)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.75, py: 1.25, borderBottom: '1px solid var(--line)' }}>
-        <Box component="span" sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>{title}</Box>
-        <Box component="span" sx={{ ml: 'auto', fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)', color: 'var(--muted)', bgcolor: 'var(--hover)', borderRadius: 'var(--radius-xs, 5px)', px: 0.75, py: '1px', fontVariantNumeric: 'tabular-nums' }}>{pill}</Box>
-      </Box>
+    <div className="border border-[var(--line)] rounded-[var(--radius-md)] bg-[var(--card)] overflow-hidden flex flex-col">
+      <div className="flex items-center gap-1.5 px-2.5 py-2 border-b border-[var(--line)]">
+        <span className="text-[var(--text-2xs)] font-[family-name:var(--fw-semibold)] tracking-[.08em] uppercase text-[var(--muted)]">{title}</span>
+        <span className="ms-auto text-[var(--text-2xs)] text-[var(--muted)] bg-[var(--hover)] rounded-[var(--radius-xs,_5px)] px-[4.5px] py-px tabular-nums" style={{ fontWeight: 'var(--fw-semibold)' }}>{pill}</span>
+      </div>
       {children}
-    </Box>
+    </div>
   );
 }
 
@@ -418,23 +434,29 @@ function WidgetGlyph({ id, size = 17 }: { id: string; size?: number }) {
 
 function IconAction({ title, icon: Icon, onClick, disabled, danger }: { title: string; icon: typeof X; onClick: () => void; disabled?: boolean; danger?: boolean }) {
   return (
-    <Tooltip title={title}>
-      <Box component="span">
-        <ButtonBase
-          onClick={onClick}
-          disabled={disabled}
-          aria-label={title}
-          sx={{
-            width: 26, height: 24, borderRadius: 'var(--radius-sm)', color: 'var(--muted)', cursor: 'pointer',
-            '&:hover': danger
-              ? { color: 'var(--danger, #d4453f)', bgcolor: 'var(--danger-soft, rgba(212,69,63,.12))' }
-              : { color: 'var(--ink)', bgcolor: 'var(--hover)' },
-            '&.Mui-disabled': { opacity: 0.35 },
-          }}
-        >
-          <Icon size={14} strokeWidth={2} />
-        </ButtonBase>
-      </Box>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {/* span : un bouton desactive n'emet pas d'evenement de survol, l'ancre du
+            tooltip doit donc vivre au-dessus de lui. */}
+        <span className="inline-flex">
+          <button
+            type="button"
+            onClick={onClick}
+            disabled={disabled}
+            aria-label={title}
+            className={cn(
+              'w-[26px] h-[24px] rounded-[var(--radius-sm)] border-none bg-transparent text-[var(--muted)] cursor-pointer grid place-items-center',
+              'disabled:opacity-35 disabled:pointer-events-none',
+              danger
+                ? 'hover:text-[var(--danger,#d4453f)] hover:bg-[var(--danger-soft,rgba(212,69,63,.12))]'
+                : 'hover:text-[var(--ink)] hover:bg-[var(--hover)]',
+            )}
+          >
+            <Icon size={14} strokeWidth={2} />
+          </button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{title}</TooltipContent>
     </Tooltip>
   );
 }
@@ -442,34 +464,46 @@ function IconAction({ title, icon: Icon, onClick, disabled, danger }: { title: s
 /** Bouton « Insérer » (outline accent → plein au survol), façon CTA de carte. */
 function InsertBtn({ onClick }: { onClick: () => void }) {
   return (
-    <ButtonBase
+    <button
+      type="button"
       onClick={onClick}
-      sx={{
-        display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 32, px: 1.5, borderRadius: 'var(--radius-md)',
-        border: '1px solid var(--accent)', color: 'var(--accent)', bgcolor: 'transparent',
-        fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', cursor: 'pointer',
-        transition: 'background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
-        '&:hover': { bgcolor: 'var(--accent)', color: 'var(--on-accent)' },
-        '&:active': { transform: 'translateY(1px)' },
-      }}
+      style={{ fontWeight: 'var(--fw-semibold)' }}
+      className={cn(
+        'inline-flex items-center gap-[4.5px] h-[32px] px-[9px] rounded-[var(--radius-md)] cursor-pointer',
+        'border border-solid border-[var(--accent)] text-[var(--accent)] bg-transparent text-[var(--text-sm)]',
+        '[transition:background_var(--duration-fast)_var(--ease-out),color_var(--duration-fast)_var(--ease-out)]',
+        'hover:bg-[var(--accent)] hover:text-[var(--on-accent)] active:translate-y-px',
+      )}
     >
       <Plus size={15} strokeWidth={2} /> Insérer
-    </ButtonBase>
+    </button>
   );
 }
 
 function PrimaryBtn({ icon: Icon, label, onClick, disabled }: { icon: typeof X; label: string; onClick: () => void; disabled?: boolean }) {
   return (
-    <ButtonBase onClick={onClick} disabled={disabled} sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 34, px: 1.75, borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', cursor: 'pointer', '&:hover': { bgcolor: 'var(--accent-deep)' }, '&.Mui-disabled': { opacity: 0.45 } }}>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{ fontWeight: 'var(--fw-semibold)' }}
+      className="inline-flex items-center gap-[4.5px] h-[34px] px-[10.5px] rounded-[var(--radius-md)] border-none bg-[var(--accent)] text-[var(--on-accent)] text-[var(--text-sm)] cursor-pointer hover:bg-[var(--accent-deep)] disabled:opacity-45 disabled:pointer-events-none"
+    >
       <Icon size={15} strokeWidth={2} /> {label}
-    </ButtonBase>
+    </button>
   );
 }
 
 function SecondaryBtn({ icon: Icon, label, onClick, disabled }: { icon: typeof X; label: string; onClick: () => void; disabled?: boolean }) {
   return (
-    <ButtonBase onClick={onClick} disabled={disabled} sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 30, px: 1.25, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', color: 'var(--body)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', cursor: 'pointer', '&:hover': { borderColor: 'var(--accent)', color: 'var(--ink)' }, '&.Mui-disabled': { opacity: 0.45 } }}>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{ fontWeight: 'var(--fw-medium)' }}
+      className="inline-flex items-center gap-[3px] h-[30px] px-[7.5px] rounded-[var(--radius-md)] border border-solid border-[var(--line)] bg-transparent text-[var(--body)] text-[var(--text-sm)] cursor-pointer hover:border-[var(--accent)] hover:text-[var(--ink)] disabled:opacity-45 disabled:pointer-events-none"
+    >
       <Icon size={14} strokeWidth={2} /> {label}
-    </ButtonBase>
+    </button>
   );
 }

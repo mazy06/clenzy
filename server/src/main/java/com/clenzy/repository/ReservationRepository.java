@@ -349,6 +349,49 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
      * creable malgre un sejour en cours. Les valeurs de statut sont normalisees en minuscules
      * (cf. ICalEventParser), donc la comparaison litterale est sure.
      */
+    /**
+     * Revenu brut d'un logement sur une fenêtre d'ARRIVÉES (somme des totaux de
+     * réservations non annulées, checkIn ∈ [from, to)) — note de revenus propriétaire
+     * de la constellation (agent own). Approximation par mois d'arrivée, assumée.
+     */
+    @Query("SELECT COALESCE(SUM(r.totalPrice), 0) FROM Reservation r "
+        + "WHERE r.property.id = :propertyId AND r.organizationId = :orgId "
+        + "AND r.status <> 'cancelled' AND r.checkIn >= :from AND r.checkIn < :to")
+    java.math.BigDecimal sumRevenueByPropertyAndCheckInBetween(
+            @Param("propertyId") Long propertyId,
+            @Param("orgId") Long orgId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to);
+
+    /**
+     * Paires de réservations qui se CHEVAUCHENT sur un logement (non annulées, séjours
+     * pas encore terminés) — scanner overbooking de la constellation (agent sync).
+     * {@code r1.id < r2.id} évite les doublons symétriques.
+     */
+    @Query("SELECT r1, r2 FROM Reservation r1, Reservation r2 "
+        + "WHERE r1.property.id = :propertyId AND r2.property.id = :propertyId "
+        + "AND r1.organizationId = :orgId AND r2.organizationId = :orgId "
+        + "AND r1.id < r2.id AND r1.status <> 'cancelled' AND r2.status <> 'cancelled' "
+        + "AND r1.checkIn < r2.checkOut AND r2.checkIn < r1.checkOut "
+        + "AND r1.checkOut > :today AND r2.checkOut > :today")
+    List<Object[]> findOverlappingPairsByProperty(
+            @Param("propertyId") Long propertyId,
+            @Param("orgId") Long orgId,
+            @Param("today") LocalDate today);
+
+    /**
+     * Départs récents d'un logement (fenêtre [from, toExclusive) sur checkOut, non
+     * annulés) — scanner post-séjour de la constellation (demande d'avis, agent gst).
+     */
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
+           "WHERE r.property.id = :propertyId AND r.checkOut >= :from AND r.checkOut < :toExclusive " +
+           "AND r.status <> 'cancelled' AND r.organizationId = :orgId ORDER BY r.checkOut DESC")
+    List<Reservation> findRecentCheckoutsByPropertyId(
+            @Param("propertyId") Long propertyId,
+            @Param("from") LocalDate from,
+            @Param("toExclusive") LocalDate toExclusive,
+            @Param("orgId") Long orgId);
+
     @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
            "WHERE r.property.id = :propertyId AND r.checkOut >= :date " +
            "AND r.status <> 'cancelled' AND r.organizationId = :orgId ORDER BY r.checkIn ASC")

@@ -44,13 +44,19 @@ public class OwnerStatementScheduler {
     private final AutomationRuleRepository automationRuleRepository;
     private final PropertyRepository propertyRepository;
     private final AutomationEngine automationEngine;
+    private final com.clenzy.repository.OrganizationRepository organizationRepository;
+    private final com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService;
 
     public OwnerStatementScheduler(AutomationRuleRepository automationRuleRepository,
                                    PropertyRepository propertyRepository,
-                                   AutomationEngine automationEngine) {
+                                   AutomationEngine automationEngine,
+                                   com.clenzy.repository.OrganizationRepository organizationRepository,
+                                   com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService) {
         this.automationRuleRepository = automationRuleRepository;
         this.propertyRepository = propertyRepository;
         this.automationEngine = automationEngine;
+        this.organizationRepository = organizationRepository;
+        this.supervisionSuggestionService = supervisionSuggestionService;
     }
 
     /** Le 1er du mois a 05:30 (Europe/Paris) : releve du mois ecoule. */
@@ -62,9 +68,6 @@ public class OwnerStatementScheduler {
                 .map(AutomationRule::getOrganizationId)
                 .distinct()
                 .toList();
-        if (orgIds.isEmpty()) {
-            return;
-        }
 
         LocalDate today = LocalDate.now(STATEMENT_ZONE);
         LocalDate from = today.minusMonths(1).withDayOfMonth(1);
@@ -80,6 +83,44 @@ public class OwnerStatementScheduler {
                 // Isolation par org : erreur logguee (stacktrace), les autres orgs continuent.
                 log.error("OwnerStatementScheduler: echec pour org={}", orgId, e);
             }
+        }
+
+        // Constellation métiers Phase 2 : les orgs SANS automatisation reçoivent une
+        // carte HITL par propriétaire (« Envoyer », OWNER_STATEMENT_SEND) — l'agent
+        // Propriétaire propose, rien ne part sans validation.
+        for (Long orgId : organizationRepository.findAllIds()) {
+            if (orgIds.contains(orgId)) {
+                continue; // automatisation active : l'envoi part par le moteur de règles
+            }
+            try {
+                suggestStatementCards(orgId, from, to);
+            } catch (Exception e) {
+                log.debug("OwnerStatementScheduler: cartes HITL non emises pour org={}: {}",
+                        orgId, e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Une carte par propriétaire de l'org, ancrée sur l'un de ses logements (la carte
+     * de supervision est per-property). Montants NON portés par la carte : l'apply
+     * re-calcule tout depuis les reversements PAID ({@code sendStatement}, règle n°1).
+     */
+    private void suggestStatementCards(Long orgId, LocalDate from, LocalDate to) {
+        for (Long ownerId : propertyRepository.findDistinctOwnerIdsByOrgId(orgId)) {
+            Long anchorPropertyId = propertyRepository.findFirstPropertyIdByOwnerAndOrg(ownerId, orgId);
+            if (anchorPropertyId == null) {
+                continue;
+            }
+            supervisionSuggestionService.recordActionable(
+                    orgId, anchorPropertyId, "own",
+                    "Relevé mensuel à envoyer (propriétaire #" + ownerId + ", " + from + ")",
+                    "Le relevé " + from + " → " + to + " est prêt : reversements versés, commission "
+                            + "et détail par séjour. « Envoyer » le génère et l'adresse par email "
+                            + "au propriétaire.",
+                    com.clenzy.service.agent.supervision.SupervisionActionType.OWNER_STATEMENT_SEND,
+                    "{\"ownerId\":" + ownerId + ",\"from\":\"" + from + "\",\"to\":\"" + to + "\"}",
+                    null, "info");
         }
     }
 

@@ -1,20 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import StatusChip from '../../components/StatusChip';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import { getOrgRoleLabel, getOrgRoleHex, getOrgRoleIcon } from '../../utils/orgRoleLabels';
-import {
-  Box,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  IconButton,
-  Tooltip,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { cn } from '../../utils/cn';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Refresh as RefreshIcon,
   Cancel as CancelIcon,
@@ -35,36 +27,20 @@ const STATUS_STYLE: Record<string, { label: string; fg: string; bg: string; Icon
 
 const DEFAULT_STATUS_STYLE = { label: '', fg: 'var(--muted)', bg: 'var(--hover)' };
 
-// ─── Styles partagés pour les IconButton d'actions ──────────────────────────
+// ─── Classes partagées pour les boutons d'action ────────────────────────────
+// Ecrites en litteraux : une classe Tailwind ne peut pas naitre d'une fabrique
+// parametree (les classes sont emises en scannant les sources).
 
-const ACTION_BTN_BASE_SX = {
-  width: 28,
-  height: 28,
-  borderRadius: '7px',
-  color: 'var(--muted)',
-  border: '1px solid var(--line-2)',
-  backgroundColor: 'var(--card)',
-  transition:
-    'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-} as const;
+const ACTION_BTN_BASE_CLS =
+  'size-7 rounded-[7px] text-[var(--muted)] border border-solid border-[var(--line-2)] bg-[var(--card)] disabled:border-[var(--line)] [transition:border-color_150ms_cubic-bezier(0.22,1,0.36,1),background-color_150ms_cubic-bezier(0.22,1,0.36,1),color_150ms_cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none';
 
 /** Variante de bouton d'action : hover teinte (texte couleur, bord 40%, fond -soft) */
-const actionBtnSx = (fg: string, bg: string) =>
-  ({
-    ...ACTION_BTN_BASE_SX,
-    '&:hover': {
-      color: fg,
-      borderColor: `color-mix(in srgb, ${fg} 40%, transparent)`,
-      backgroundColor: bg,
-    },
-    '&:focus-visible': { outline: `2px solid ${fg}`, outlineOffset: 2 },
-    '&.Mui-disabled': { borderColor: 'var(--line)' },
-  }) as const;
-
-const ACTION_BTN_PRIMARY_SX = actionBtnSx('var(--accent)', 'var(--accent-soft)');
-const ACTION_BTN_WARM_SX = actionBtnSx('var(--warn)', 'var(--warn-soft)');
-const ACTION_BTN_DANGER_SX = actionBtnSx('var(--err)', 'var(--err-soft)');
+const ACTION_BTN_PRIMARY_CLS =
+  'hover:text-[var(--accent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] hover:bg-[var(--accent-soft)] focus-visible:[outline:2px_solid_var(--accent)] focus-visible:outline-offset-2';
+const ACTION_BTN_WARM_CLS =
+  'hover:text-[var(--warn)] hover:border-[color-mix(in_srgb,var(--warn)_40%,transparent)] hover:bg-[var(--warn-soft)] focus-visible:[outline:2px_solid_var(--warn)] focus-visible:outline-offset-2';
+const ACTION_BTN_DANGER_CLS =
+  'hover:text-[var(--err)] hover:border-[color-mix(in_srgb,var(--err)_40%,transparent)] hover:bg-[var(--err-soft)] focus-visible:[outline:2px_solid_var(--err)] focus-visible:outline-offset-2';
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
 import ConfirmationModal from '../../components/ConfirmationModal';
 
@@ -77,16 +53,7 @@ const getStatusChip = (status: string) => {
   const style = STATUS_STYLE[status] ?? { ...DEFAULT_STATUS_STYLE, label: status };
   const { Icon, fg, bg, label } = style;
   return (
-    <Chip
-      icon={Icon ? <Icon size={11} strokeWidth={2} /> : undefined}
-      label={label}
-      size="small"
-      sx={{
-        backgroundColor: bg,
-        color: fg,
-        '& .MuiChip-icon': { color: fg, ml: '6px', mr: '-2px' },
-      }}
-    />
+    <StatusChip tokens={{ color: fg, bg: bg }} label={label} icon={Icon ? <Icon size={11} strokeWidth={2} /> : undefined} />
   );
 };
 
@@ -99,16 +66,12 @@ const formatShortDate = (iso: string) => {
   return `${dd}/${mm}/${yy}`;
 };
 
-const CELL_SX = {
-  fontSize: '0.75rem',
-  whiteSpace: 'nowrap',
-  py: 0.75,
-  px: 1,
-} as const;
+// py 0.75 / px 1 en spacing MUI (6px) = 4.5px / 6px. Le nowrap vient deja du primitif.
+const CELL_CLS = 'text-[0.75rem] py-[4.5px] px-1.5';
 // Email cell : shrinkable + ellipsis pour eviter de pousser la table et clipper les actions
-const CELL_EMAIL_SX = { fontSize: '0.75rem', py: 0.75, px: 1, maxWidth: 0, width: '100%' } as const;
-// Entete : l'overline vient du theme global (MuiTableCell head) — on ne garde que l'espacement
-const HEAD_CELL_SX = { whiteSpace: 'nowrap', py: 0.75, px: 1 } as const;
+const CELL_EMAIL_CLS = 'text-[0.75rem] py-[4.5px] px-1.5 max-w-0 w-full';
+// Entete : l'overline vient du primitif (cn-table-head) — on ne garde que l'espacement
+const HEAD_CELL_CLS = 'py-[4.5px] px-1.5';
 
 export default function InvitationsList({ organizationId, refreshTrigger }: Props) {
   const [invitations, setInvitations] = useState<InvitationDto[]>([]);
@@ -191,25 +154,26 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-        <CircularProgress size={32} />
-      </Box>
+      <div className="flex justify-center py-4">
+        <Spinner className="size-8" />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mb: 2 }}>
-        {error}
+      <Alert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
   }
 
   if (invitations.length === 0) {
     return (
-      <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+      <p className="cn-text-body2 text-muted-foreground py-3 text-center">
         Aucune invitation envoyee.
-      </Typography>
+      </p>
     );
   }
 
@@ -219,123 +183,123 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
 
   return (
     <>
-    <TableContainer sx={{ overflowX: 'hidden' }}>
-      <Table size="small" sx={{ tableLayout: 'auto', width: '100%' }}>
-        <TableHead>
+    <div className="overflow-x-hidden">
+      <Table className="table-auto">
+        <TableHeader>
           <TableRow>
-            <TableCell sx={HEAD_CELL_SX}>Email</TableCell>
-            <TableCell sx={HEAD_CELL_SX}>Role</TableCell>
-            <TableCell sx={HEAD_CELL_SX}>Statut</TableCell>
-            <TableCell sx={HEAD_CELL_SX}>Envoyee</TableCell>
-            <TableCell sx={HEAD_CELL_SX}>Expire</TableCell>
-            <TableCell align="right" sx={{ ...HEAD_CELL_SX, pr: 1.25 }}>Actions</TableCell>
+            <TableHead className={HEAD_CELL_CLS}>Email</TableHead>
+            <TableHead className={HEAD_CELL_CLS}>Role</TableHead>
+            <TableHead className={HEAD_CELL_CLS}>Statut</TableHead>
+            <TableHead className={HEAD_CELL_CLS}>Envoyee</TableHead>
+            <TableHead className={HEAD_CELL_CLS}>Expire</TableHead>
+            <TableHead className="py-[4.5px] ps-1.5 pe-[7.5px] text-end">Actions</TableHead>
           </TableRow>
-        </TableHead>
+        </TableHeader>
         <TableBody>
           {invitations.map((inv) => (
-            <TableRow key={inv.id} hover>
-              <TableCell sx={CELL_EMAIL_SX}>
-                <Typography
-                  variant="body2"
-                  fontWeight={500}
-                  sx={{
-                    fontSize: '0.75rem',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                  title={inv.invitedEmail}
-                >
+            <TableRow key={inv.id}>
+              <TableCell className={CELL_EMAIL_CLS}>
+                <p className="cn-text-body2 font-medium text-[0.75rem] overflow-hidden text-ellipsis whitespace-nowrap" title={inv.invitedEmail}>
                   {inv.invitedEmail}
-                </Typography>
+                </p>
               </TableCell>
-              <TableCell sx={CELL_SX}>
+              <TableCell className={CELL_CLS}>
                 {(() => {
                   const roleColor = getOrgRoleHex(inv.roleInvited);
                   const RoleIcon = getOrgRoleIcon(inv.roleInvited);
                   return (
-                    <Chip
-                      icon={<RoleIcon size={11} strokeWidth={2} />}
-                      label={getRoleLabel(inv.roleInvited)}
-                      size="small"
-                      sx={{
-                        backgroundColor: `${roleColor}18`,
-                        color: roleColor,
-                        '& .MuiChip-icon': { color: roleColor, ml: '6px', mr: '-2px' },
-                      }}
-                    />
+                    <StatusChip tokens={{ color: roleColor, bg: `${roleColor}18` }} label={getRoleLabel(inv.roleInvited)} icon={<RoleIcon size={11} strokeWidth={2} />} />
                   );
                 })()}
               </TableCell>
-              <TableCell sx={CELL_SX}>
+              <TableCell className={CELL_CLS}>
                 {getStatusChip(inv.status)}
               </TableCell>
-              <TableCell sx={CELL_SX}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums' }}>
+              <TableCell className={CELL_CLS}>
+                <p className="cn-text-body2 text-muted-foreground text-[0.75rem] tabular-nums">
                   {formatShortDate(inv.createdAt)}
-                </Typography>
+                </p>
               </TableCell>
-              <TableCell sx={CELL_SX}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums' }}>
+              <TableCell className={CELL_CLS}>
+                <p className="cn-text-body2 text-muted-foreground text-[0.75rem] tabular-nums">
                   {formatShortDate(inv.expiresAt)}
-                </Typography>
+                </p>
               </TableCell>
-              <TableCell align="right" sx={{ ...CELL_SX, pr: 1.25 }}>
+              <TableCell className="text-[0.75rem] py-[4.5px] ps-1.5 pe-[7.5px] text-end">
                 {inv.status === 'PENDING' && (
-                  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-                    <Tooltip title="Renvoyer l'invitation">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleResend(inv.id)}
-                        disabled={actionLoading === inv.id}
-                        aria-label="Renvoyer l'invitation"
-                        sx={ACTION_BTN_PRIMARY_SX}
-                      >
-                        {actionLoading === inv.id ? (
-                          <CircularProgress size={13} color="inherit" />
-                        ) : (
-                          <RefreshIcon size={13} strokeWidth={1.75} />
-                        )}
-                      </IconButton>
+                  <div className="inline-flex items-center gap-0.5">
+                    <Tooltip>
+                      {/* Le Button du kit ne transmet pas de ref : span d'ancrage. */}
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleResend(inv.id)}
+                            disabled={actionLoading === inv.id}
+                            aria-label="Renvoyer l'invitation"
+                            className={cn(ACTION_BTN_BASE_CLS, ACTION_BTN_PRIMARY_CLS)}
+                          >
+                            {actionLoading === inv.id ? (
+                              <Spinner className="size-[13px]" />
+                            ) : (
+                              <RefreshIcon size={13} strokeWidth={1.75} />
+                            )}
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Renvoyer l&apos;invitation</TooltipContent>
                     </Tooltip>
-                    <Tooltip title="Annuler l'invitation">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleCancel(inv.id)}
-                        disabled={actionLoading === inv.id}
-                        aria-label="Annuler l'invitation"
-                        sx={ACTION_BTN_WARM_SX}
-                      >
-                        <CancelIcon size={13} strokeWidth={1.75} />
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleCancel(inv.id)}
+                            disabled={actionLoading === inv.id}
+                            aria-label="Annuler l'invitation"
+                            className={cn(ACTION_BTN_BASE_CLS, ACTION_BTN_WARM_CLS)}
+                          >
+                            <CancelIcon size={13} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Annuler l&apos;invitation</TooltipContent>
                     </Tooltip>
-                  </Box>
+                  </div>
                 )}
                 {(inv.status === 'CANCELLED' || inv.status === 'EXPIRED') && (
-                  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, justifyContent: 'flex-end' }}>
-                    <Tooltip title="Supprimer l'invitation">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDelete(inv.id)}
-                        disabled={actionLoading === inv.id}
-                        aria-label="Supprimer l'invitation"
-                        sx={ACTION_BTN_DANGER_SX}
-                      >
-                        {actionLoading === inv.id ? (
-                          <CircularProgress size={13} color="inherit" />
-                        ) : (
-                          <DeleteIcon size={13} strokeWidth={1.75} />
-                        )}
-                      </IconButton>
+                  <div className="inline-flex items-center gap-0.5 justify-end">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleDelete(inv.id)}
+                            disabled={actionLoading === inv.id}
+                            aria-label="Supprimer l'invitation"
+                            className={cn(ACTION_BTN_BASE_CLS, ACTION_BTN_DANGER_CLS)}
+                          >
+                            {actionLoading === inv.id ? (
+                              <Spinner className="size-[13px]" />
+                            ) : (
+                              <DeleteIcon size={13} strokeWidth={1.75} />
+                            )}
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Supprimer l&apos;invitation</TooltipContent>
                     </Tooltip>
-                  </Box>
+                  </div>
                 )}
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
-    </TableContainer>
+    </div>
 
     <ConfirmationModal
       open={pendingDeleteId !== null}

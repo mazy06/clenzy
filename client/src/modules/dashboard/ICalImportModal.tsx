@@ -1,28 +1,40 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { Badge } from '../../components/ui';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X, Info } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  Box,
-  IconButton,
-  TextField,
-  MenuItem,
-  Alert,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Switch,
   Tooltip,
-  CircularProgress,
-  Chip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Paper,
-} from '@mui/material';
+} from '../../components/ui';
 import {
   Close as CloseIcon,
   CalendarToday as CalendarIcon,
@@ -44,8 +56,6 @@ import {
   useICalPreview,
   useICalImport,
 } from './useICalImport';
-import { RM_FIELD_SX } from '../../components/rmFieldSx';
-
 // ─── Source logos ─────────────────────────────────────────────────────────────
 import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.svg';
 import bookingLogoSmall from '../../assets/logo/logo-booking-planning.png';
@@ -91,115 +101,53 @@ function detectSourceFromUrl(url: string): SourceDef {
 const SourceLogoIcon: React.FC<{ logo?: string; label: string; size?: number }> = ({ logo, label, size = 20 }) => {
   if (!logo) return null;
   const imgSize = size * 0.7;
+  // La taille est une prop : elle passe par style, une classe ne peut pas naitre d'une variable.
   return (
-    <Box
-      sx={{
-        width: size,
-        height: size,
-        minWidth: size,
-        borderRadius: '50%',
-        border: '1.5px solid',
-        borderColor: 'divider',
-        backgroundColor: '#fff',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}
+    <div
+      className="inline-flex items-center justify-center shrink-0 rounded-[50%] border-[1.5px] border-solid border-[var(--line)] bg-[#fff]"
+      style={{ width: size, height: size, minWidth: size }}
     >
       <img src={logo} alt={label} width={imgSize} height={imgSize} style={{ objectFit: 'contain', borderRadius: '50%' }} />
-    </Box>
+    </div>
   );
 };
 
 const STEPS = ['Configuration', 'Aperçu', 'Résultat'];
 
-// ─── Stable sx — pattern « Signature » (champs à libellé notché .rm-field) ─────
-//
-// Source de vérité unique partagée (RM_FIELD_SX, cf. components/rmFieldSx.ts),
-// reprise fidèlement de PlanningQuickCreateDialog. REQUIERT
-// `InputLabelProps={{ shrink: true }}` sur chaque champ pour que le libellé soit
-// TOUJOURS notché sur la bordure haute (sinon il flotte dans le champ).
-
-const SX_FIELD = RM_FIELD_SX;
-
-/** Toggle « Signature » (.rm-toggle) — accent quand coché, conserve la taille small. */
-const SWITCH_SX = {
-  '& .MuiSwitch-switchBase.Mui-checked': {
-    color: '#fff',
-    '& + .MuiSwitch-track': { backgroundColor: 'var(--accent)', opacity: 1 },
-  },
-  '& .MuiSwitch-track': { backgroundColor: 'var(--line-2)', opacity: 1, transition: 'background-color .18s' },
-} as const;
+// Les champs de ce formulaire sont passes aux primitives du kit : le libelle
+// notche sur la bordure (pattern .rm-field) laisse place au libelle statique.
 
 // ─── Step indicator component ────────────────────────────────────────────────
 
 const StepIndicator: React.FC<{ steps: string[]; activeStep: number }> = ({ steps, activeStep }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, py: 1.5 }}>
+  <div className="flex items-center justify-center gap-0 py-2">
     {steps.map((label, idx) => {
       const isActive = idx === activeStep;
       const isDone = idx < activeStep;
       return (
         <React.Fragment key={label}>
           {idx > 0 && (
-            <Box
-              sx={{
-                width: 48,
-                height: 2,
-                backgroundColor: isDone ? 'var(--accent)' : 'var(--line)',
-                mx: 0.5,
-                borderRadius: 1,
-                transition: 'background-color 0.3s',
-              }}
-            />
+            <div className={cn('w-[48px] h-[2px] mx-[3px] rounded-[8px]', isDone ? 'bg-[var(--accent)]' : 'bg-[var(--line)]')} style={{ transition: 'background-color 0.3s' }} />
           )}
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
-            <Box
-              sx={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                transition: 'all 0.3s',
-                ...(isActive && {
-                  backgroundColor: 'var(--accent)',
-                  color: 'var(--on-accent)',
-                  boxShadow: '0 0 0 3px var(--accent-soft)',
-                }),
-                ...(isDone && {
-                  backgroundColor: 'var(--accent)',
-                  color: 'var(--on-accent)',
-                }),
-                ...(!isActive && !isDone && {
-                  backgroundColor: 'var(--field)',
-                  color: 'var(--muted)',
-                  border: '1.5px solid',
-                  borderColor: 'var(--line-2)',
-                }),
-              }}
+          <div className="flex flex-col items-center gap-0.5">
+            <div
+              className={cn(
+                'w-7 h-7 rounded-[50%] flex items-center justify-center text-[0.75rem] font-bold [transition:all_0.3s]',
+                isActive && 'bg-[var(--accent)] text-[var(--on-accent)] shadow-[0_0_0_3px_var(--accent-soft)]',
+                isDone && 'bg-[var(--accent)] text-[var(--on-accent)]',
+                !isActive && !isDone && 'bg-[var(--field)] text-[var(--muted)] border-[1.5px] border-solid border-[var(--line-2)]',
+              )}
             >
               {isDone ? '✓' : idx + 1}
-            </Box>
-            <Typography
-              variant="caption"
-              sx={{
-                fontSize: '0.625rem',
-                fontWeight: isActive ? 700 : 500,
-                color: isActive ? 'var(--ink)' : 'var(--muted)',
-                letterSpacing: '0.02em',
-              }}
-            >
+            </div>
+            <span className={cn('cn-text-caption text-[0.625rem] tracking-[0.02em]', isActive ? 'font-bold' : 'font-medium', isActive ? 'text-[var(--ink)]' : 'text-[var(--muted)]')}>
               {label}
-            </Typography>
-          </Box>
+            </span>
+          </div>
         </React.Fragment>
       );
     })}
-  </Box>
+  </div>
 );
 
 const formatDate = (dateStr: string) => {
@@ -371,193 +319,170 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
   // ─── Render Step 1: Configuration ──────────────────────────────────────
 
   const renderConfigStep = () => (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+    <div className="flex flex-col gap-3.5">
       {!hasAccess && (
-        <Alert
-          severity="warning"
-          sx={{ borderRadius: '10px', fontSize: '0.8125rem' }}
-        >
-          L'import iCal est disponible avec les forfaits Confort et Premium.
-        </Alert>
+        <BuiAlert variant="warning" className="text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>L'import iCal est disponible avec les forfaits Confort et Premium.</AlertDescription>
+        </BuiAlert>
       )}
 
       {/* Info banner */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 1.5,
-          p: 1.5,
-          borderRadius: '11px',
-          backgroundColor: 'var(--accent-soft)',
-          border: '1px solid',
-          borderColor: 'var(--field-line)',
-        }}
-      >
-        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mt: 0.25 }}><InfoIcon size={18} strokeWidth={1.75} /></Box>
-        <Box>
-          <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--ink)' }}>
+      <div className="flex items-start gap-2 p-2 rounded-[11px] bg-[var(--accent-soft)] border border-[var(--field-line)]">
+        <span className="inline-flex text-[var(--accent)] mt-0.5"><InfoIcon size={18} strokeWidth={1.75} /></span>
+        <div>
+          <p className="cn-text-body2 text-[0.8125rem] font-medium text-[var(--ink)]">
             Collez le lien iCal de votre calendrier externe pour importer vos réservations.
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'var(--muted)', fontSize: '0.6875rem' }}>
+          </p>
+          <span className="cn-text-caption text-[var(--muted)] text-[0.6875rem]">
             Airbnb : Annonce &rarr; Tarification et disponibilité &rarr; Exporter le calendrier
-          </Typography>
-        </Box>
-      </Box>
+          </span>
+        </div>
+      </div>
 
       {/* URL du calendrier */}
-      <TextField
-        label="Lien iCal (.ics)"
-        placeholder="https://www.airbnb.fr/calendar/ical/12345.ics?s=..."
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        fullWidth
-        required
-        disabled={!hasAccess}
-        helperText="Copiez le lien iCal depuis votre plateforme de réservation"
-        sx={SX_FIELD}
-        InputLabelProps={{ shrink: true }}
-        InputProps={{
-          startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', mr: 1 }}><CalendarIcon size={18} strokeWidth={1.75} /></Box>,
-        }}
-      />
+      <Field>
+        <FieldLabel htmlFor="ical-url">Lien iCal (.ics)</FieldLabel>
+        <InputGroup>
+          <InputGroupAddon>
+            <span className="inline-flex text-[var(--faint)]"><CalendarIcon size={18} strokeWidth={1.75} /></span>
+          </InputGroupAddon>
+          <InputGroupInput
+            id="ical-url"
+            placeholder="https://www.airbnb.fr/calendar/ical/12345.ics?s=..."
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            required
+            disabled={!hasAccess}
+          />
+        </InputGroup>
+        <FieldDescription>Copiez le lien iCal depuis votre plateforme de réservation</FieldDescription>
+      </Field>
 
       {/* 2-column grid — champs principaux */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+      <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[1fr_1fr] gap-3">
         {/* Proprietaire */}
         {canChangeOwner ? (
-          <TextField
-            select
-            fullWidth
-            label="Propriétaire"
-            value={ownerId}
-            onChange={(e) => {
-              setOwnerId(e.target.value as unknown as number);
-              setPropertyId('');
-            }}
-            disabled={!hasAccess}
-            sx={SX_FIELD}
-            InputLabelProps={{ shrink: true }}
-          >
-            {owners.map((owner) => (
-              <MenuItem key={owner.id} value={owner.id} sx={{ fontSize: '0.8125rem' }}>
-                {owner.firstName} {owner.lastName} — {owner.email}
-              </MenuItem>
-            ))}
-          </TextField>
+          <Field>
+            <FieldLabel htmlFor="ical-owner">Propriétaire</FieldLabel>
+            <NativeSelect
+              id="ical-owner"
+              className="w-full"
+              value={ownerId}
+              // Un select natif renvoie toujours une chaine : la conversion en
+              // nombre est indispensable, les comparaisons en aval sont strictes.
+              onChange={(e) => {
+                setOwnerId(e.target.value === '' ? '' : Number(e.target.value));
+                setPropertyId('');
+              }}
+              disabled={!hasAccess}
+            >
+              <NativeSelectOption value="">Sélectionner un propriétaire</NativeSelectOption>
+              {owners.map((owner) => (
+                <NativeSelectOption key={owner.id} value={owner.id}>
+                  {owner.firstName} {owner.lastName} — {owner.email}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
         ) : (
-          <TextField
-            label="Propriétaire"
-            value={getOwnerDisplayName()}
-            fullWidth
-            disabled
-            InputLabelProps={{ shrink: true }}
-            sx={{
-              ...SX_FIELD,
-              '& .MuiInputBase-input.Mui-disabled': {
-                WebkitTextFillColor: 'var(--body)',
-              },
-            }}
-          />
+          <Field>
+            <FieldLabel htmlFor="ical-owner-readonly">Propriétaire</FieldLabel>
+            <Input
+              id="ical-owner-readonly"
+              className="w-full"
+              value={getOwnerDisplayName()}
+              disabled
+            />
+          </Field>
         )}
 
         {/* Source (auto-detected from URL) */}
-        <TextField
-          label="Source"
-          value={detectedSource.label}
-          fullWidth
-          disabled
-          InputLabelProps={{ shrink: true }}
-          sx={{
-            ...SX_FIELD,
-            '& .MuiInputBase-input.Mui-disabled': {
-              WebkitTextFillColor: 'var(--ink)',
-              fontWeight: 600,
-            },
-          }}
-          InputProps={{
-            startAdornment: detectedSource.logo ? (
-              <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>
+        <Field>
+          <FieldLabel htmlFor="ical-source">Source</FieldLabel>
+          <InputGroup>
+            {detectedSource.logo && (
+              <InputGroupAddon>
                 <SourceLogoIcon logo={detectedSource.logo} label={detectedSource.label} size={22} />
-              </Box>
-            ) : undefined,
-          }}
-          helperText="Détecté automatiquement depuis l'URL"
-        />
+              </InputGroupAddon>
+            )}
+            <InputGroupInput
+              id="ical-source"
+              className="font-semibold"
+              value={detectedSource.label}
+              disabled
+            />
+          </InputGroup>
+          <FieldDescription>Détecté automatiquement depuis l'URL</FieldDescription>
+        </Field>
 
         {/* Propriete */}
-        <TextField
-          select
-          fullWidth
-          required
-          label="Propriété"
-          value={propertyId}
-          onChange={(e) => setPropertyId(e.target.value as unknown as number)}
-          disabled={!hasAccess || (canChangeOwner && !ownerId)}
-          sx={SX_FIELD}
-          InputLabelProps={{ shrink: true }}
-        >
-          {filteredProperties.map((p) => (
-            <MenuItem key={p.id} value={p.id} sx={{ fontSize: '0.8125rem' }}>
-              {p.name} — {p.city}
-            </MenuItem>
-          ))}
-          {filteredProperties.length === 0 && (
-            <MenuItem disabled value="">
-              <Typography variant="body2" color="text.secondary" fontStyle="italic" sx={{ fontSize: '0.8125rem' }}>
-                {canChangeOwner && !ownerId
+        <Field>
+          <FieldLabel htmlFor="ical-property">Propriété</FieldLabel>
+          <NativeSelect
+            id="ical-property"
+            className="w-full"
+            required
+            value={propertyId}
+            onChange={(e) => setPropertyId(e.target.value === '' ? '' : Number(e.target.value))}
+            disabled={!hasAccess || (canChangeOwner && !ownerId)}
+          >
+            <NativeSelectOption value="">
+              {filteredProperties.length === 0
+                ? (canChangeOwner && !ownerId
                   ? 'Sélectionnez d\'abord un propriétaire'
-                  : 'Aucune propriété disponible'}
-              </Typography>
-            </MenuItem>
-          )}
-        </TextField>
-      </Box>
+                  : 'Aucune propriété disponible')
+                : 'Sélectionner une propriété'}
+            </NativeSelectOption>
+            {filteredProperties.map((p) => (
+              <NativeSelectOption key={p.id} value={p.id}>
+                {p.name} — {p.city}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </Field>
+      </div>
 
       {/* Menage automatique — ligne inline legere */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          py: 0.5,
-          cursor: 'pointer',
-        }}
-        onClick={() => hasAccess && setAutoCreateInterventions(!autoCreateInterventions)}
-      >
-        <Tooltip
-          title={!hasAccess ? 'Disponible avec le forfait Confort ou Premium' : ''}
-          arrow
-        >
-          <span>
-            <Switch
-              checked={autoCreateInterventions}
-              onChange={(e) => setAutoCreateInterventions(e.target.checked)}
-              disabled={!hasAccess}
-              size="small"
-              disableRipple
-              sx={SWITCH_SX}
-            />
-          </span>
-        </Tooltip>
-        <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--ink)' }}>
+      <div className="flex items-center gap-1.5 py-0.5 cursor-pointer" onClick={() => hasAccess && setAutoCreateInterventions(!autoCreateInterventions)}>
+        {/* Le tooltip n'existait que pour expliquer l'indisponibilite : sans le
+            libelle vide de MUI, on ne monte le tooltip que dans ce cas. */}
+        {hasAccess ? (
+          <Switch
+            checked={autoCreateInterventions}
+            onCheckedChange={(checked) => setAutoCreateInterventions(checked)}
+            size="sm"
+          />
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Switch checked={autoCreateInterventions} disabled size="sm" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Disponible avec le forfait Confort ou Premium</TooltipContent>
+          </Tooltip>
+        )}
+        <p className="cn-text-body2 text-[0.8125rem] font-medium text-[var(--ink)]">
           Ménage automatique
-        </Typography>
-        <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>
+        </p>
+        <span className="cn-text-caption text-[0.6875rem] text-[var(--muted)]">
           — Crée une demande de ménage le jour du checkout à l'heure de départ du voyageur
-        </Typography>
-      </Box>
+        </span>
+      </div>
 
       {error && (
-        <Alert
-          severity="error"
-          onClose={() => { setFormError(null); previewMutation.reset(); }}
-          sx={{ borderRadius: '10px', fontSize: '0.8125rem' }}
-        >
-          {error}
-        </Alert>
+        <BuiAlert variant="destructive" className="text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => { setFormError(null); previewMutation.reset(); }}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
-    </Box>
+    </div>
   );
 
   // ─── Render Step 2: Preview ────────────────────────────────────────────
@@ -571,112 +496,64 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
     const blockedCount = allEvents.filter((e) => e.type === 'blocked').length;
 
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-          <Typography variant="subtitle2" sx={{ fontSize: '0.875rem', fontWeight: 700 }}>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <h6 className="cn-text-subtitle2 text-[0.875rem] font-bold">
             {preview.propertyName}
-          </Typography>
-          <Chip
-            icon={<EventIcon size={14} strokeWidth={1.75} />}
-            label={`${reservationCount} réservation${reservationCount > 1 ? 's' : ''}`}
-            size="small"
-            sx={{
-              backgroundColor: 'var(--accent-soft)',
-              color: 'var(--accent)',
-              border: '1px solid var(--field-line)',
-              borderRadius: '6px',
-              fontWeight: 600,
-              fontSize: '0.6875rem',
-              height: 24,
-              '& .MuiChip-icon': { fontSize: 14, color: 'var(--accent)' },
-              '& .MuiChip-label': { px: 0.75 },
-            }}
-          />
+          </h6>
+          <StatusChip tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={`${reservationCount} réservation${reservationCount > 1 ? 's' : ''}`} icon={<EventIcon size={14} strokeWidth={1.75} />} className="h-[24px]" />
           {blockedCount > 0 && (
-            <Chip
-              label={`${blockedCount} période${blockedCount > 1 ? 's' : ''} bloquée${blockedCount > 1 ? 's' : ''}`}
-              size="small"
-              sx={{
-                backgroundColor: 'var(--field-bg)',
-                color: 'var(--muted)',
-                border: '1px solid var(--field-line)',
-                borderRadius: '6px',
-                fontWeight: 600,
-                fontSize: '0.6875rem',
-                height: 24,
-                '& .MuiChip-label': { px: 0.75 },
-              }}
-            />
+            <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--field-bg)' }} label={`${blockedCount} période${blockedCount > 1 ? 's' : ''} bloquée${blockedCount > 1 ? 's' : ''}`} className="h-[24px]" />
           )}
-        </Box>
+        </div>
 
         {totalCount === 0 && (
-          <Alert severity="info" sx={{ borderRadius: '10px', fontSize: '0.8125rem' }}>
-            Aucune réservation ni période bloquée trouvée dans ce calendrier.
-          </Alert>
+          <BuiAlert variant="info" className="text-[0.8125rem]">
+            <Info />
+            <AlertDescription>Aucune réservation ni période bloquée trouvée dans ce calendrier.</AlertDescription>
+          </BuiAlert>
         )}
 
-        <TableContainer
-          component={Paper}
-          variant="outlined"
-          sx={{
-            maxHeight: 320,
-            borderRadius: '10px',
-            '& .MuiTableCell-root': { fontSize: '0.8125rem', py: 1, px: 1.5 },
-            '& .MuiTableCell-head': { fontWeight: 700, fontSize: '0.75rem', color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.03em' },
-          }}
-        >
-          <Table size="small" stickyHeader>
-            <TableHead>
+        {/* stickyHeader : c'est le conteneur INTERNE du primitif Table qui est le
+            bloc de defilement (il porte deja overflow-x). La hauteur bornee et le
+            defilement vertical doivent donc lui etre poses, sinon les en-tetes
+            `sticky` n'ont aucun ancetre scrollable et ne se figent jamais. */}
+        <div className="rounded-[10px] overflow-hidden border border-solid border-[var(--line)] bg-[var(--card)] [&_[data-slot=table-container]]:max-h-[320px] [&_[data-slot=table-container]]:overflow-y-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>Arrivée</TableCell>
-                <TableCell>Départ</TableCell>
-                <TableCell align="center">Nuits</TableCell>
-                <TableCell>Guest / Détails</TableCell>
+                {/* Fond opaque obligatoire : sans lui les lignes defilent par transparence. */}
+                <TableHead className="sticky top-0 z-10 bg-[var(--card)]">Arrivée</TableHead>
+                <TableHead className="sticky top-0 z-10 bg-[var(--card)]">Départ</TableHead>
+                <TableHead className="sticky top-0 z-10 bg-[var(--card)] text-center">Nuits</TableHead>
+                <TableHead className="sticky top-0 z-10 bg-[var(--card)]">Guest / Détails</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {allEvents.map((event: ICalEventPreview) => (
-                <TableRow key={`${event.uid}-${event.dtStart}`} hover sx={{ '&:last-child td': { border: 0 } }}>
+                <TableRow key={`${event.uid}-${event.dtStart}`}>
                   <TableCell>{formatDate(event.dtStart)}</TableCell>
                   <TableCell>{formatDate(event.dtEnd)}</TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={event.nights || '-'}
-                      size="small"
-                      sx={{ fontSize: '0.6875rem', fontWeight: 600, height: 22, minWidth: 28 }}
-                    />
+                  <TableCell className="text-center">
+                    <Badge variant="secondary" className="text-[0.6875rem] font-semibold h-[22px] min-w-[28px]">{event.nights || '-'}</Badge>
                   </TableCell>
                   <TableCell>
                     {event.type === 'blocked' ? (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                        <Chip
-                          label="Bloqué"
-                          size="small"
-                          sx={{
-                            backgroundColor: 'var(--field-bg)',
-                            color: 'var(--muted)',
-                            border: '1px solid var(--field-line)',
-                            borderRadius: '6px',
-                            fontWeight: 600,
-                            fontSize: '0.625rem',
-                            height: 20,
-                            '& .MuiChip-label': { px: 0.5 },
-                          }}
-                        />
-                        <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'var(--muted)' }}>
+                      <div className="flex items-center gap-1">
+                        <StatusChip size="sm" tokens={{ color: 'var(--muted)', bg: 'var(--field-bg)' }} label="Bloqué" className="h-[20px]" />
+                        <p className="cn-text-body2 text-[0.8125rem] text-[var(--muted)]">
                           Période bloquée
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
                     ) : (
                       <>
-                        <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500 }}>
+                        <p className="cn-text-body2 text-[0.8125rem] font-medium">
                           {event.guestName || event.summary || 'Réservation'}
-                        </Typography>
+                        </p>
                         {event.confirmationCode && (
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+                          <span className="cn-text-caption text-muted-foreground text-[0.6875rem]">
                             {event.confirmationCode}
-                          </Typography>
+                          </span>
                         )}
                       </>
                     )}
@@ -685,39 +562,30 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
 
         {autoCreateInterventions && totalCount > 0 && (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 1.5,
-              p: 1.5,
-              borderRadius: '11px',
-              backgroundColor: 'var(--accent-soft)',
-              border: '1px solid',
-              borderColor: 'var(--field-line)',
-            }}
-          >
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mt: 0.25 }}><SyncIcon size={18} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'var(--body)' }}>
+          <div className="flex items-start gap-2 p-2 rounded-[11px] bg-[var(--accent-soft)] border border-[var(--field-line)]">
+            <span className="inline-flex text-[var(--accent)] mt-0.5"><SyncIcon size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2 text-[0.8125rem] text-[var(--body)]">
               {totalCount} demande{totalCount > 1 ? 's' : ''} de service de ménage
               {totalCount > 1 ? ' seront' : ' sera'} automatiquement créée{totalCount > 1 ? 's' : ''} à l'heure de départ du voyageur, le jour du checkout.
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
 
         {error && (
-          <Alert
-            severity="error"
-            onClose={() => { setFormError(null); importMutation.reset(); }}
-            sx={{ borderRadius: '10px', fontSize: '0.8125rem' }}
-          >
-            {error}
-          </Alert>
+          <BuiAlert variant="destructive" className="text-[0.8125rem]">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+            <AlertAction>
+              <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => { setFormError(null); importMutation.reset(); }}>
+                <X />
+              </BuiButton>
+            </AlertAction>
+          </BuiAlert>
         )}
-      </Box>
+      </div>
     );
   };
 
@@ -729,98 +597,52 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
     const hasErrors = importResult.errors && importResult.errors.length > 0;
 
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, alignItems: 'center', py: 3 }}>
+      <div className="flex flex-col gap-3.5 items-center py-4">
         {/* Success/Warning icon */}
-        <Box
-          sx={{
-            width: 64,
-            height: 64,
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: hasErrors ? 'rgba(255, 152, 0, 0.08)' : 'rgba(76, 175, 80, 0.08)',
-          }}
-        >
+        <div className={cn('w-[64px] h-[64px] rounded-[50%] flex items-center justify-center', hasErrors ? 'bg-[rgba(255,_152,_0,_0.08)]' : 'bg-[rgba(76,_175,_80,_0.08)]')}>
           {!hasErrors ? (
-            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircleIcon size={36} strokeWidth={1.75} /></Box>
+            <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircleIcon size={36} strokeWidth={1.75} /></span>
           ) : (
-            <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><ErrorIcon size={36} strokeWidth={1.75} /></Box>
+            <span className="inline-flex text-[var(--bui-warning-ink)]"><ErrorIcon size={36} strokeWidth={1.75} /></span>
           )}
-        </Box>
+        </div>
 
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+        <h6 className="cn-text-subtitle1 font-bold text-[1rem]">
           Import terminé
-        </Typography>
+        </h6>
 
-        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Chip
-            icon={<CheckCircleIcon size={14} strokeWidth={1.75} />}
-            label={`${importResult.imported} importée${importResult.imported > 1 ? 's' : ''}`}
-            color="success"
-            variant="outlined"
-            size="small"
-            sx={{ fontSize: '0.6875rem', fontWeight: 600, height: 28, '& .MuiChip-icon': { fontSize: 14 } }}
-          />
-          <Chip
-            label={`${importResult.skipped} doublon${importResult.skipped > 1 ? 's' : ''} ignoré${importResult.skipped > 1 ? 's' : ''}`}
-            variant="outlined"
-            size="small"
-            sx={{ fontSize: '0.6875rem', fontWeight: 600, height: 28, borderColor: 'divider', color: 'text.secondary' }}
-          />
+        <div className="flex gap-1.5 justify-center flex-wrap">
+          <Badge variant="success" className="text-[0.6875rem] font-semibold h-[28px] [&>svg]:text-[14px]"><CheckCircleIcon size={14} strokeWidth={1.75} />{`${importResult.imported} importée${importResult.imported > 1 ? 's' : ''}`}</Badge>
+          <Badge variant="outline" className="text-[0.6875rem] font-semibold h-[28px] border-[var(--line)] text-[var(--muted)]">{`${importResult.skipped} doublon${importResult.skipped > 1 ? 's' : ''} ignoré${importResult.skipped > 1 ? 's' : ''}`}</Badge>
           {!!importResult.daysBlocked && importResult.daysBlocked > 0 && (
-            <Chip
-              label={`${importResult.daysBlocked} jour${importResult.daysBlocked > 1 ? 's' : ''} bloqué${importResult.daysBlocked > 1 ? 's' : ''}`}
-              variant="outlined"
-              size="small"
-              sx={{ fontSize: '0.6875rem', fontWeight: 600, height: 28, borderColor: 'divider', color: 'text.secondary' }}
-            />
+            <Badge variant="outline" className="text-[0.6875rem] font-semibold h-[28px] border-[var(--line)] text-[var(--muted)]">{`${importResult.daysBlocked} jour${importResult.daysBlocked > 1 ? 's' : ''} bloqué${importResult.daysBlocked > 1 ? 's' : ''}`}</Badge>
           )}
           {hasErrors && (
-            <Chip
-              icon={<ErrorIcon size={14} strokeWidth={1.75} />}
-              label={`${importResult.errors.length} erreur${importResult.errors.length > 1 ? 's' : ''}`}
-              color="error"
-              variant="outlined"
-              size="small"
-              sx={{ fontSize: '0.6875rem', fontWeight: 600, height: 28, '& .MuiChip-icon': { fontSize: 14 } }}
-            />
+            <Badge variant="destructive" className="text-[0.6875rem] font-semibold h-[28px] [&>svg]:text-[14px]"><ErrorIcon size={14} strokeWidth={1.75} />{`${importResult.errors.length} erreur${importResult.errors.length > 1 ? 's' : ''}`}</Badge>
           )}
-        </Box>
+        </div>
 
         {hasErrors && (
-          <Alert severity="warning" sx={{ width: '100%', borderRadius: '10px', fontSize: '0.8125rem' }}>
-            <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5, fontSize: '0.8125rem' }}>
+          <BuiAlert variant="warning" className="w-full text-[0.8125rem]">
+            <TriangleAlert />
+            <AlertDescription><p className="cn-text-body2 font-semibold mb-0.5 text-[0.8125rem]">
               Certains événements n'ont pas pu être importés :
-            </Typography>
-            {importResult.errors.map((err, i) => (
-              <Typography key={i} variant="caption" display="block" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+            </p>{importResult.errors.map((err, i) => (
+              <span className="cn-text-caption block text-muted-foreground text-[0.6875rem]" key={i}>
                 &bull; {err}
-              </Typography>
-            ))}
-          </Alert>
+              </span>
+            ))}</AlertDescription>
+          </BuiAlert>
         )}
 
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 1.5,
-            p: 1.5,
-            borderRadius: '11px',
-            backgroundColor: 'var(--accent-soft)',
-            border: '1px solid',
-            borderColor: 'var(--field-line)',
-            width: '100%',
-          }}
-        >
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mt: 0.25 }}><SyncIcon size={18} strokeWidth={1.75} /></Box>
-          <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'var(--body)' }}>
+        <div className="flex items-start gap-2 p-2 rounded-[11px] bg-[var(--accent-soft)] border border-[var(--field-line)] w-full">
+          <span className="inline-flex text-[var(--accent)] mt-0.5"><SyncIcon size={18} strokeWidth={1.75} /></span>
+          <p className="cn-text-body2 text-[0.8125rem] text-[var(--body)]">
             Votre calendrier sera automatiquement re-synchronisé toutes les 3 heures.
             Les doublons sont ignorés automatiquement.
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
     );
   };
 
@@ -837,149 +659,89 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         : `Importer ${previewReservations} résa. + ${previewBlocked} blocage${previewBlocked > 1 ? 's' : ''}`;
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: '18px',
-          backgroundColor: 'var(--card)',
-          backgroundImage: 'none',
-          color: 'var(--body)',
-          boxShadow: 'var(--shadow-pop)',
-          border: '1px solid var(--line)',
-          overflow: 'hidden',
-        },
-      }}
-    >
-      {/* ─── Title ──────────────────────────────────────────────────────── */}
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          py: 1.5,
-          px: 3,
-          borderBottom: '1px solid var(--line)',
-        }}
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        aria-describedby={undefined}
+        className="sm:max-w-[600px] overflow-hidden"
       >
-        <Box display="flex" alignItems="center" gap={1}>
-          <Box
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: 'var(--accent-soft)',
-            }}
-          >
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CalendarIcon size={18} strokeWidth={1.75} /></Box>
-          </Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--ink)' }}>
+        {/* En-tete pleine largeur : les marges negatives annulent le padding de
+            la coque, comme le pied du kit le fait deja. */}
+        <DialogHeader className="-mx-4 -mt-4 flex-row items-center justify-between border-b border-solid border-[var(--line)] px-4 py-2">
+          <DialogTitle className="flex items-center gap-1.5 text-[0.9375rem] font-bold text-[var(--ink)]">
+            <span className="w-[32px] h-[32px] rounded-[8px] flex items-center justify-center bg-[var(--accent-soft)] text-[var(--accent)]">
+              <CalendarIcon size={18} strokeWidth={1.75} />
+            </span>
             Import Calendrier iCal
-          </Typography>
-        </Box>
-        <IconButton onClick={handleClose} size="small" sx={{ color: 'var(--muted)', '&:hover': { color: 'var(--err)', backgroundColor: 'var(--hover)' } }}>
-          <CloseIcon size={18} strokeWidth={1.75} />
-        </IconButton>
-      </DialogTitle>
+          </DialogTitle>
+          <BuiButton
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Fermer"
+            onClick={handleClose}
+            className="text-[var(--muted)] hover:text-[var(--err)] hover:bg-[var(--hover)]"
+          >
+            <CloseIcon size={18} strokeWidth={1.75} />
+          </BuiButton>
+        </DialogHeader>
 
-      {/* ─── Stepper ────────────────────────────────────────────────────── */}
-      <Box sx={{ px: 3, pt: 0.5 }}>
         <StepIndicator steps={STEPS} activeStep={activeStep} />
-      </Box>
 
-      {/* ─── Content ────────────────────────────────────────────────────── */}
-      <DialogContent sx={{ px: 3, py: 2.5 }}>
-        {activeStep === 0 && renderConfigStep()}
-        {activeStep === 1 && renderPreviewStep()}
-        {activeStep === 2 && renderResultStep()}
-      </DialogContent>
+        {/* Hauteur bornee + defilement : le Dialog MUI faisait defiler son corps. */}
+        <div className="max-h-[60vh] overflow-y-auto">
+          {activeStep === 0 && renderConfigStep()}
+          {activeStep === 1 && renderPreviewStep()}
+          {activeStep === 2 && renderResultStep()}
+        </div>
 
-      {/* ─── Actions ────────────────────────────────────────────────────── */}
-      <DialogActions
-        sx={{
-          px: 3,
-          py: 1.5,
-          gap: 1,
-          justifyContent: 'flex-end',
-          borderTop: '1px solid var(--line)',
-          backgroundColor: 'var(--surface-2)',
-        }}
-      >
+        <DialogFooter className="gap-1.5">
         {activeStep === 0 && (
           <>
-            <Button
-              onClick={handleClose}
-              variant="outlined"
-              size="small"
-              sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, px: 2.5 }}
-            >
+            <BuiButton onClick={handleClose} variant="outline" size="sm">
               Annuler
-            </Button>
-            <Button
+            </BuiButton>
+            <BuiButton
               onClick={handlePreview}
-              variant="contained"
-              color="primary"
-              size="small"
+              variant="default"
+              size="sm"
               disabled={loading || !hasAccess || !url.trim() || !propertyId}
-              startIcon={loading ? <CircularProgress size={16} /> : <ArrowForwardIcon size={16} strokeWidth={1.75} />}
-              sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, px: 2.5 }}
             >
+              {loading ? <Spinner className="size-4" /> : <ArrowForwardIcon size={16} strokeWidth={1.75} />}
               {loading ? 'Chargement...' : 'Prévisualiser'}
-            </Button>
+            </BuiButton>
           </>
         )}
 
         {activeStep === 1 && (
           <>
-            <Button
+            <BuiButton
               onClick={() => { setActiveStep(0); setFormError(null); previewMutation.reset(); importMutation.reset(); }}
-              variant="outlined"
-              size="small"
+              variant="outline"
+              size="sm"
               disabled={loading}
-              startIcon={<ArrowBackIcon size={16} strokeWidth={1.75} />}
-              sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, px: 2.5 }}
             >
+              <ArrowBackIcon size={16} strokeWidth={1.75} />
               Retour
-            </Button>
-            <Button
+            </BuiButton>
+            <BuiButton
               onClick={handleImport}
-              variant="contained"
-              color="primary"
-              size="small"
+              variant="default"
+              size="sm"
               disabled={loading || !preview || totalPreviewEvents === 0}
-              startIcon={loading ? <CircularProgress size={16} /> : <ImportIcon size={16} strokeWidth={1.75} />}
-              sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, px: 2.5 }}
             >
+              {loading ? <Spinner className="size-4" /> : <ImportIcon size={16} strokeWidth={1.75} />}
               {loading ? 'Import en cours...' : importButtonLabel}
-            </Button>
+            </BuiButton>
           </>
         )}
 
         {activeStep === 2 && (
-          <Button
-            onClick={handleClose}
-            variant="contained"
-            size="small"
-            sx={{
-              borderRadius: '10px',
-              textTransform: 'none',
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              px: 3,
-              boxShadow: 'none',
-              '&:hover': { boxShadow: 'none' },
-            }}
-          >
+          <BuiButton onClick={handleClose} variant="default" size="sm">
             Fermer
-          </Button>
+          </BuiButton>
         )}
-      </DialogActions>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

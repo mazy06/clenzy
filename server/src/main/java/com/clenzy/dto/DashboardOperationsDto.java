@@ -233,6 +233,13 @@ public record DashboardOperationsDto(
         DOCUMENT_DELIVERY_FAILED,
         /** Facture électronique refusée par l'administration fiscale. */
         EINVOICE_FAILED,
+        /**
+         * Proposition d'un agent de la constellation qui attend une décision.
+         * Les deux files convergent ici : ce qui attend dans la constellation
+         * du planning attend aussi dans « À traiter » — une même réalité ne
+         * doit pas dépendre de l'écran où l'on se trouve pour exister.
+         */
+        AGENT_CARD,
 
         // Natures techniques : réservées au staff plateforme. Ce sont des pannes
         // de plomberie interne, qu'un hôte ne pourrait ni comprendre ni éteindre.

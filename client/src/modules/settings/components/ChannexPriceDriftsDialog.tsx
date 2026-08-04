@@ -15,21 +15,23 @@
  * Sans propertyId : montre TOUS les drifts actifs de l'organisation.</p>
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
+import { Badge, Button } from '../../../components/ui';
+import { Spinner } from '../../../components/ui';
 import {
+  Alert,
+  AlertAction,
+  AlertDescription,
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogHeader,
   DialogTitle,
-  Box,
-  Typography,
-  Button,
-  CircularProgress,
-  Alert,
-  Stack,
   Skeleton,
-  Chip,
-  IconButton,
   Tooltip,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import {
   X,
   TrendingDown,
@@ -98,111 +100,63 @@ function DriftRow({
   const TrendIcon = clenzyHigher ? TrendingUp : TrendingDown;
   const trendColor = clenzyHigher ? 'var(--ok)' : 'var(--err)';
   return (
-    <Box
-      sx={{
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        p: 1.25,
-        bgcolor: 'var(--surface-2)',
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-        <Box sx={{ color: trendColor, flexShrink: 0 }}>
+    <div className="border border-[var(--line)] rounded-[8px] p-2 bg-[var(--surface-2)]">
+      <div className="flex items-center gap-2 mb-1.5">
+        <div className="shrink-0" style={{ color: trendColor }}>
           <TrendIcon size={18} strokeWidth={2.2} />
-        </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, flexWrap: 'wrap' }}>
-            <Typography variant="body2" fontWeight={600}>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-1 flex-wrap">
+            <p className="cn-text-body2 font-semibold">
               {drift.driftDate}
-            </Typography>
-            <Typography variant="caption" color="text.disabled">
+            </p>
+            <span className="cn-text-caption text-muted-foreground opacity-60">
               · property #{drift.clenzyPropertyId}
-            </Typography>
-            <Typography variant="caption" color="text.disabled" sx={{ ml: 'auto' }}>
+            </span>
+            <span className="cn-text-caption text-muted-foreground opacity-60 ms-auto">
               {formatRelative(drift.detectedAt)}
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-            <Chip
-              size="small"
-              label={`Baitly ${drift.clenzyPrice}${drift.currency}`}
-              sx={{
-                height: 22,
-                fontSize: '0.72rem',
-                bgcolor: 'var(--accent-soft)',
-                color: 'var(--accent)',
-                fontWeight: 600,
-              }}
-            />
-            <Typography variant="caption" color="text.disabled">vs</Typography>
-            <Chip
-              size="small"
-              label={`OTA ${drift.otaPrice}${drift.currency}`}
-              sx={{
-                height: 22,
-                fontSize: '0.72rem',
-                bgcolor: 'var(--warn-soft)',
-                color: 'var(--warn)',
-                fontWeight: 600,
-              }}
-            />
-            <Chip
-              size="small"
-              label={formatPct(drift.diffPercent)}
-              sx={{
-                height: 22,
-                fontSize: '0.7rem',
-                fontFamily: 'monospace',
-                bgcolor: `${trendColor}22`,
-                color: trendColor,
-                fontWeight: 700,
-              }}
-            />
-          </Box>
-        </Box>
-      </Box>
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <Badge variant="secondary" className="h-[22px] text-[0.72rem] bg-[var(--accent-soft)] text-[var(--accent)] font-semibold">{`Baitly ${drift.clenzyPrice}${drift.currency}`}</Badge>
+            <span className="cn-text-caption text-muted-foreground opacity-60">vs</span>
+            <Badge variant="secondary" className="h-[22px] text-[0.72rem] bg-[var(--warn-soft)] text-[var(--warn)] font-semibold">{`OTA ${drift.otaPrice}${drift.currency}`}</Badge>
+            <StatusChip tokens={{ color: trendColor, bg: `${trendColor}22` }} label={formatPct(drift.diffPercent)} className="text-[0.7rem] font-mono" />
+          </div>
+        </div>
+      </div>
 
       {/* Boutons d'action */}
-      <Stack direction="row" spacing={1} sx={{ mt: 1.25 }}>
+      <div className="flex flex-row gap-1.5 mt-[7.5px]">
         {(['KEEP_CLENZY', 'KEEP_OTA', 'DISMISSED'] as ChannexPriceDriftResolution[]).map((r) => {
           const isBusy = busyResolution === r;
           const anyBusy = busyResolution !== null;
           return (
+            // Trois arbitrages de meme poids (l'ancien `contained` etait deja
+            // neutralise en contour par son sx) : outline pour les trois, la
+            // teinte de chaque resolution etant choisie a l'execution -> inline.
             <Button
               key={r}
-              size="small"
-              variant={r === 'KEEP_CLENZY' ? 'contained' : 'outlined'}
+              size="sm"
+              variant="outline"
               disabled={anyBusy}
               onClick={() => onResolve(r)}
-              startIcon={
-                isBusy ? (
-                  <CircularProgress size={12} sx={{ color: 'inherit' }} />
-                ) : r === 'KEEP_CLENZY' || r === 'KEEP_OTA' ? (
-                  <CheckCircle2 size={12} />
-                ) : (
-                  <X size={12} />
-                )
-              }
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.72rem',
-                flex: 1,
-                borderColor: RESOLUTION_COLOR[r],
-                color: RESOLUTION_COLOR[r],
-                ...(r === 'KEEP_CLENZY' && {
-                  bgcolor: 'transparent',
-                  border: '1px solid',
-                  '&:hover': { bgcolor: 'var(--accent-soft)', borderColor: RESOLUTION_COLOR[r] },
-                }),
-              }}
+              className="flex-1 text-[0.72rem]"
+              style={{ borderColor: RESOLUTION_COLOR[r], color: RESOLUTION_COLOR[r] }}
             >
+              {isBusy ? (
+                <Spinner className="size-3" />
+              ) : r === 'KEEP_CLENZY' || r === 'KEEP_OTA' ? (
+                <CheckCircle2 size={12} />
+              ) : (
+                <X size={12} />
+              )}
               {RESOLUTION_LABEL[r]}
             </Button>
           );
         })}
-      </Stack>
-    </Box>
+      </div>
+    </div>
   );
 }
 
@@ -282,106 +236,96 @@ export default function ChannexPriceDriftsDialog({
   }, [drifts, propertyId]);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, pb: 1 }}>
-        <Box
-          sx={{
-            width: 36,
-            height: 36,
-            borderRadius: 1,
-            bgcolor: 'var(--warn-soft)',
-            color: 'var(--warn)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            mt: 0.25,
-          }}
-        >
-          <AlertTriangle size={20} />
-        </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="h6" fontWeight={600} sx={{ lineHeight: 1.3, fontSize: '1.05rem' }}>
-            Conflits de prix Baitly ↔ Channex
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.4 }}>
-            {drifts.length === 0 && !loading
-              ? 'Aucun conflit actif'
-              : `${drifts.length} drift${drifts.length > 1 ? 's' : ''} en attente de résolution${propertyId ? ' pour cette propriete' : ''}`}
-          </Typography>
-        </Box>
-        <Tooltip title="Rafraichir" arrow placement="top">
-          <span>
-            <IconButton size="small" disabled={loading} onClick={() => void fetchDrifts()}>
-              {loading ? <CircularProgress size={14} /> : <RefreshCw size={14} />}
-            </IconButton>
-          </span>
-        </Tooltip>
-        <IconButton size="small" onClick={onClose} sx={{ color: 'text.secondary' }}>
-          <X size={18} />
-        </IconButton>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+        {/* La croix de fermeture est fournie par DialogContent : `pe-14` reserve sa place. */}
+        <DialogHeader className="flex-row items-start gap-1.5 pe-14">
+          <div className="w-[36px] h-[36px] rounded-[8px] bg-[var(--warn-soft)] text-[var(--warn)] flex items-center justify-center shrink-0 mt-0.5">
+            <AlertTriangle size={20} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <DialogTitle className="font-semibold leading-[1.3] text-[1.05rem]">
+              Conflits de prix Baitly ↔ Channex
+            </DialogTitle>
+            <DialogDescription className="cn-text-caption block mt-0.5">
+              {drifts.length === 0 && !loading
+                ? 'Aucun conflit actif'
+                : `${drifts.length} drift${drifts.length > 1 ? 's' : ''} en attente de résolution${propertyId ? ' pour cette propriete' : ''}`}
+            </DialogDescription>
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/* Un bouton desactive n'emet pas d'evenement de survol : l'enveloppe
+                  porte le declencheur a sa place. */}
+              <span className="inline-flex shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Rafraichir"
+                  disabled={loading}
+                  onClick={() => void fetchDrifts()}
+                >
+                  {loading ? <Spinner className="size-3.5" /> : <RefreshCw size={14} />}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">Rafraichir</TooltipContent>
+          </Tooltip>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 1, pb: 2 }}>
-        {loading && drifts.length === 0 && (
-          <Stack spacing={1}>
-            <Skeleton variant="rounded" height={100} />
-            <Skeleton variant="rounded" height={100} />
-          </Stack>
-        )}
+        <div>
+          {loading && drifts.length === 0 && (
+            <div className="flex flex-col gap-1.5">
+              <Skeleton className="h-[100px] rounded-lg" />
+              <Skeleton className="h-[100px] rounded-lg" />
+            </div>
+          )}
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 1.5 }} action={
-            <Button size="small" onClick={() => void fetchDrifts()} sx={{ textTransform: 'none' }}>
-              Reessayer
-            </Button>
-          }>
-            {error}
-          </Alert>
-        )}
+          {error && (
+            <Alert variant="destructive" className="mb-2">
+              <AlertTriangle />
+              <AlertDescription>{error}</AlertDescription>
+              <AlertAction>
+                <Button variant="ghost" size="sm" onClick={() => void fetchDrifts()}>
+                  Reessayer
+                </Button>
+              </AlertAction>
+            </Alert>
+          )}
 
-        {!loading && drifts.length === 0 && !error && (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <CheckCircle2 size={36} color="var(--ok)" strokeWidth={2} />
-            <Typography variant="body2" sx={{ mt: 1.5, color: 'text.secondary' }}>
-              Tous les prix sont alignes entre Baitly et Channex.
-            </Typography>
-          </Box>
-        )}
+          {!loading && drifts.length === 0 && !error && (
+            <div className="text-center py-6">
+              <CheckCircle2 size={36} color="var(--ok)" strokeWidth={2} />
+              <p className="cn-text-body2 mt-2 text-muted-foreground">
+                Tous les prix sont alignes entre Baitly et Channex.
+              </p>
+            </div>
+          )}
 
-        {drifts.length > 0 && (
-          <Stack spacing={1.25}>
-            {Object.entries(grouped).map(([groupLabel, groupDrifts]) => (
-              <Box key={groupLabel}>
-                {propertyId == null && (
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: 'block',
-                      mb: 0.75,
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      color: 'text.secondary',
-                      letterSpacing: 0.4,
-                    }}
-                  >
-                    {groupLabel} · {groupDrifts.length} drift{groupDrifts.length > 1 ? 's' : ''}
-                  </Typography>
-                )}
-                <Stack spacing={1}>
-                  {groupDrifts.map((d) => (
-                    <DriftRow
-                      key={d.id}
-                      drift={d}
-                      busyResolution={busyResolutions.get(d.id) ?? null}
-                      onResolve={(r) => void handleResolve(d, r)}
-                    />
-                  ))}
-                </Stack>
-              </Box>
-            ))}
-          </Stack>
-        )}
+          {drifts.length > 0 && (
+            <div className="flex flex-col gap-[7.5px]">
+              {Object.entries(grouped).map(([groupLabel, groupDrifts]) => (
+                <div key={groupLabel}>
+                  {propertyId == null && (
+                    <span className="cn-text-caption block mb-[4.5px] font-bold uppercase text-[var(--muted)] tracking-[0.4px]">
+                      {groupLabel} · {groupDrifts.length} drift{groupDrifts.length > 1 ? 's' : ''}
+                    </span>
+                  )}
+                  <div className="flex flex-col gap-1.5">
+                    {groupDrifts.map((d) => (
+                      <DriftRow
+                        key={d.id}
+                        drift={d}
+                        busyResolution={busyResolutions.get(d.id) ?? null}
+                        onResolve={(r) => void handleResolve(d, r)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

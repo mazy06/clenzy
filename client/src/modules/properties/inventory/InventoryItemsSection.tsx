@@ -1,23 +1,16 @@
 import React, { useMemo, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
+import { Card } from '../../../components/ui';
+import { Button } from '../../../components/ui';
 import {
-  Box,
-  Typography,
-  Button,
-  IconButton,
-  TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
+  ToggleGroup,
+  ToggleGroupItem,
   Tooltip,
-  Chip,
-  ToggleButton,
-  ToggleButtonGroup,
-  Stack,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+import { Input } from '../../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import {
   Add,
   Edit,
@@ -118,24 +111,16 @@ interface Props {
 
 // ─── Field label helper ──────────────────────────────────────────────────────
 
-const FieldLabel = ({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) => (
-  <Typography
-    variant="caption"
-    sx={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 0.5,
-      fontWeight: 700,
-      color: 'var(--faint)',
-      mb: 0.5,
-      textTransform: 'uppercase',
-      letterSpacing: '.06em',
-      fontSize: '10.5px',
-    }}
+// Libelle local (icone + texte) — homonyme du FieldLabel du kit, volontairement
+// conserve. Rendu en <label> pour porter le htmlFor quand il designe un champ.
+const FieldLabel = ({ icon, htmlFor, children }: { icon: React.ReactNode; htmlFor?: string; children: React.ReactNode }) => (
+  <label
+    htmlFor={htmlFor}
+    className="cn-text-caption flex items-center gap-0.5 font-bold text-[var(--faint)] mb-0.5 uppercase tracking-[.06em] text-[10.5px]"
   >
     {icon}
     {children}
-  </Typography>
+  </label>
 );
 
 // ─── Inline form (used both for "add" at top and "edit" inline on a row) ─────
@@ -174,7 +159,7 @@ function PhotoUpload({ photoUrl, onChange }: { photoUrl: string | null; onChange
   };
 
   return (
-    <Box>
+    <div>
       <FieldLabel icon={<PhotoCamera size={12} strokeWidth={1.75} />}>
         Photo
       </FieldLabel>
@@ -190,99 +175,46 @@ function PhotoUpload({ photoUrl, onChange }: { photoUrl: string | null; onChange
         }}
       />
       {photoUrl ? (
-        <Box
-          sx={{
-            position: 'relative',
-            width: 64,
-            height: 64,
-            borderRadius: 1.5,
-            overflow: 'hidden',
-            border: '1px solid',
-            borderColor: 'divider',
-            backgroundImage: `url(${photoUrl})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            cursor: 'pointer',
-            transition: 'border-color 150ms',
-            '&:hover': { borderColor: 'error.main' },
-            '&:hover .photo-remove': { opacity: 1 },
-          }}
+        <div
+          className="relative w-16 h-16 rounded-[12px] overflow-hidden border border-solid border-[var(--line)] bg-cover bg-center cursor-pointer transition-[border-color] duration-150 hover:border-[#C97A7A] [&:hover_.photo-remove]:opacity-100"
+          style={{ backgroundImage: `url(${photoUrl})` }}
           onClick={() => onChange(null)}
           title="Cliquer pour retirer la photo"
         >
-          <Box
-            className="photo-remove"
-            sx={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: 'color-mix(in srgb, var(--err) 75%, transparent)',
-              color: 'var(--on-accent)',
-              opacity: 0,
-              transition: 'opacity 150ms',
-            }}
-          >
+          <div className="photo-remove absolute inset-0 flex items-center justify-center bg-[color-mix(in_srgb,_var(--err)_75%,_transparent)] text-[var(--on-accent)] opacity-0" style={{ transition: 'opacity 150ms' }}>
             <Close size={20} strokeWidth={2} />
-          </Box>
-        </Box>
+          </div>
+        </div>
       ) : (
-        <Box
+        <div
           onClick={() => inputRef.current?.click()}
-          sx={{
-            width: 64,
-            height: 64,
-            borderRadius: 1.5,
-            border: '1.5px dashed',
-            borderColor: 'divider',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 0.25,
-            cursor: 'pointer',
-            color: 'text.disabled',
-            transition: 'border-color 150ms, color 150ms, background-color 150ms',
-            '&:hover': {
-              borderColor: 'var(--accent)',
-              color: 'var(--accent)',
-              bgcolor: 'var(--accent-soft)',
-            },
-          }}
+          className="w-16 h-16 rounded-[12px] border-[1.5px] border-dashed border-[var(--line)] flex flex-col items-center justify-center gap-[1.5px] cursor-pointer text-[var(--faint)] transition-[border-color,color,background-color] duration-150 hover:border-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
         >
           <PhotoCamera size={20} strokeWidth={1.75} />
-          <Typography sx={{ fontSize: '0.5625rem', fontWeight: 600, lineHeight: 1 }}>
+          <p className="cn-text-body1 text-[0.5625rem] font-semibold leading-[1]">
             Ajouter
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
       {error && (
-        <Typography sx={{ fontSize: '0.625rem', color: 'error.main', mt: 0.5 }}>
+        <p className="cn-text-body1 text-[0.625rem] text-destructive mt-0.5">
           {error}
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
   );
 }
 
 function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitting }: InlineFormProps) {
+  // Le formulaire est monte deux fois (ajout en tete + edition d'une ligne) :
+  // les identifiants doivent etre uniques par instance.
+  const uid = React.useId();
   const incrementQty = (delta: number) =>
     onChange({ ...value, quantity: Math.max(1, value.quantity + delta) });
 
   return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 2,
-        mb: 2,
-        borderRadius: '13px',
-        border: '1px solid var(--line)',
-        bgcolor: 'var(--surface-2)',
-        boxShadow: 'none',
-      }}
-    >
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '64px 1.5fr 2fr 0.9fr 1.6fr' }, gap: 2 }}>
+    <Card className="gap-0 py-0 p-3 mb-3 bg-[var(--surface-2)]">
+      <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[64px_1.5fr_2fr_0.9fr_1.6fr] gap-3">
         {/* Photo */}
         <PhotoUpload
           photoUrl={value.photoUrl}
@@ -290,15 +222,16 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
         />
 
         {/* Designation */}
-        <Box>
-          <FieldLabel icon={<Label size={12} strokeWidth={1.75} />}>Designation</FieldLabel>
-          <TextField
+        <div>
+          <FieldLabel icon={<Label size={12} strokeWidth={1.75} />} htmlFor={`${uid}-name`}>
+            Designation
+          </FieldLabel>
+          <Input
+            id={`${uid}-name`}
+            required
+            placeholder="Ex : Canape 3 places, Lave-linge Bosch..."
             value={value.name}
             onChange={(e) => onChange({ ...value, name: e.target.value })}
-            required
-            fullWidth
-            size="small"
-            placeholder="Ex : Canape 3 places, Lave-linge Bosch..."
             onKeyDown={(e) => {
               if (e.key === 'Enter' && value.name.trim()) {
                 e.preventDefault();
@@ -306,135 +239,122 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
               }
             }}
           />
-        </Box>
+        </div>
 
         {/* Categorie */}
-        <Box sx={{ minWidth: 0 }}>
+        <div className="min-w-0">
           <FieldLabel icon={<Category size={12} strokeWidth={1.75} />}>Categorie</FieldLabel>
-          <ToggleButtonGroup
+          <ToggleGroup
+            type="single"
             value={value.category}
-            exclusive
-            onChange={(_, v) => onChange({ ...value, category: v ?? '' })}
-            size="small"
-            sx={{
-              flexWrap: 'wrap',
-              gap: 0.5,
-              '& .MuiToggleButtonGroup-grouped': {
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: '6px !important',
-                textTransform: 'none',
-                px: 0.75,
-                py: 0.25,
-                fontSize: '0.75rem',
-                fontWeight: 500,
-                gap: 0.4,
-              },
-            }}
+            onValueChange={(v) => onChange({ ...value, category: v ?? '' })}
+            size="sm"
+            spacing={0.5}
+            className="flex-wrap w-full"
           >
             {CATEGORIES.map((cat) => {
               const selected = value.category === cat.value;
               return (
-                <ToggleButton
+                <ToggleGroupItem
                   key={cat.value}
                   value={cat.value}
-                  sx={{
+                  className="gap-[2.4px] rounded-[6px] border border-solid px-[4.5px] py-[1.5px] text-[0.75rem] font-medium normal-case bg-[var(--cat-bg)] hover:bg-[var(--cat-hover)]"
+                  // Les teintes viennent de la donnee (couleur de categorie) :
+                  // elles transitent par des variables CSS, une classe Tailwind
+                  // ne pouvant pas naitre d'une valeur d'execution.
+                  style={{
                     color: selected ? cat.color : 'var(--muted)',
-                    bgcolor: 'transparent',
-                    borderColor: 'var(--line-2)',
-                    '&:hover': { bgcolor: `${cat.color}15` },
-                    '&.Mui-selected': {
-                      bgcolor: `${cat.color}1F`,
-                      color: cat.color,
-                      borderColor: `${cat.color} !important`,
-                      '&:hover': { bgcolor: `${cat.color}1F` },
-                    },
-                  }}
+                    borderColor: selected ? cat.color : 'var(--line-2)',
+                    '--cat-bg': selected ? `${cat.color}1F` : 'transparent',
+                    '--cat-hover': selected ? `${cat.color}1F` : `${cat.color}15`,
+                  } as React.CSSProperties}
                 >
                   {React.cloneElement(
                     cat.icon as React.ReactElement<{ size?: number; strokeWidth?: number; color?: string }>,
                     { size: 13, strokeWidth: 1.75, color: cat.color },
                   )}
                   {cat.label}
-                </ToggleButton>
+                </ToggleGroupItem>
               );
             })}
-          </ToggleButtonGroup>
-        </Box>
+          </ToggleGroup>
+        </div>
 
         {/* Quantite */}
-        <Box>
-          <FieldLabel icon={<Numbers size={12} strokeWidth={1.75} />}>Quantite</FieldLabel>
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <IconButton
+        <div>
+          <FieldLabel icon={<Numbers size={12} strokeWidth={1.75} />} htmlFor={`${uid}-quantity`}>
+            Quantite
+          </FieldLabel>
+          <div className="flex flex-row items-center gap-[3px]">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Diminuer la quantite"
               onClick={() => incrementQty(-1)}
-              size="small"
               disabled={value.quantity <= 1}
-              sx={{ border: '1px solid var(--line-2)', bgcolor: 'var(--card)', borderRadius: '8px', width: 28, height: 28 }}
+              className="border border-solid border-[var(--line-2)] bg-[var(--card)] rounded-[8px]"
             >
               <Remove size={14} strokeWidth={1.75} />
-            </IconButton>
-            <TextField
+            </Button>
+            <Input
+              id={`${uid}-quantity`}
               type="number"
+              min={1}
+              className="w-14 text-center font-semibold tabular-nums"
               value={value.quantity}
               onChange={(e) =>
                 onChange({ ...value, quantity: Math.max(1, parseInt(e.target.value) || 1) })
               }
-              size="small"
-              inputProps={{
-                min: 1,
-                style: { textAlign: 'center', fontWeight: 600, padding: '4px 4px' },
-              }}
-              sx={{ width: 56 }}
             />
-            <IconButton
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Augmenter la quantite"
               onClick={() => incrementQty(1)}
-              size="small"
-              sx={{ border: '1px solid var(--line-2)', bgcolor: 'var(--card)', borderRadius: '8px', width: 28, height: 28 }}
+              className="border border-solid border-[var(--line-2)] bg-[var(--card)] rounded-[8px]"
             >
               <Add size={14} strokeWidth={1.75} />
-            </IconButton>
-          </Stack>
-        </Box>
+            </Button>
+          </div>
+        </div>
 
         {/* Notes */}
-        <Box>
-          <FieldLabel icon={<StickyNote2 size={12} strokeWidth={1.75} />}>
-            Notes <Box component="span" sx={{ fontWeight: 400, ml: 0.5, textTransform: 'none', letterSpacing: 0 }}>(optionnel)</Box>
+        <div>
+          <FieldLabel icon={<StickyNote2 size={12} strokeWidth={1.75} />} htmlFor={`${uid}-notes`}>
+            Notes <span className="font-normal ms-[3px] normal-case tracking-0">(optionnel)</span>
           </FieldLabel>
-          <TextField
+          <Input
+            id={`${uid}-notes`}
+            placeholder="Marque, modele, emplacement..."
             value={value.notes}
             onChange={(e) => onChange({ ...value, notes: e.target.value })}
-            size="small"
-            fullWidth
-            placeholder="Marque, modele, emplacement..."
           />
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1.5 }}>
+      <div className="flex justify-end gap-1.5 mt-2">
         {onCancel && (
           <Button
             onClick={onCancel}
-            size="small"
-            startIcon={<Close size={16} strokeWidth={1.75} />}
-            sx={{ textTransform: 'none' }}
+            variant="ghost"
+            size="sm"
           >
+            <Close size={16} strokeWidth={1.75} />
             Annuler
           </Button>
         )}
         <Button
           onClick={onSubmit}
-          variant="contained"
-          size="small"
-          startIcon={onCancel ? <Save size={16} strokeWidth={1.75} /> : <Add size={16} strokeWidth={1.75} />}
+          size="sm"
           disabled={!value.name.trim() || submitting}
-          sx={{ textTransform: 'none', fontWeight: 600 }}
         >
+          {onCancel ? <Save size={16} strokeWidth={1.75} /> : <Add size={16} strokeWidth={1.75} />}
           {submitLabel}
         </Button>
-      </Box>
-    </Paper>
+      </div>
+    </Card>
   );
 }
 
@@ -443,28 +363,14 @@ const renderCategoryChip = (categoryValue: string) => {
   if (!cat) {
     // Pilule -soft neutre (pattern baseline §2 : texte couleur + fond soft)
     return (
-      <Chip
-        label={categoryValue}
-        size="small"
-        sx={{ bgcolor: 'var(--hover)', color: 'var(--muted)', border: 'none' }}
-      />
+      <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--hover)' }} label={categoryValue} />
     );
   }
   return (
-    <Chip
-      icon={React.cloneElement(
+    <StatusChip tokens={{ color: cat.color, bg: `${cat.color}1F` }} label={cat.label} icon={React.cloneElement(
         cat.icon as React.ReactElement<{ size?: number; strokeWidth?: number; color?: string }>,
         { size: 14, strokeWidth: 1.75, color: cat.color },
-      )}
-      label={cat.label}
-      size="small"
-      sx={{
-        bgcolor: `${cat.color}1F`,
-        color: cat.color,
-        border: 'none',
-        '& .MuiChip-icon': { ml: 0.5 },
-      }}
-    />
+      )} />
   );
 };
 
@@ -527,21 +433,21 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
   }, [items]);
 
   return (
-    <Box>
+    <div>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
+      <div className="flex items-center gap-1.5 mb-3">
+        <span className="inline-flex text-[var(--accent)]">
           <Inventory2 size={22} strokeWidth={1.75} />
-        </Box>
-        <Box>
-          <Typography variant="subtitle1" fontWeight={600}>
+        </span>
+        <div>
+          <h6 className="cn-text-subtitle1 font-semibold">
             Inventaire du logement
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+          </h6>
+          <p className="cn-text-body2 text-muted-foreground text-[0.8rem]">
             Mobilier, electromenager et equipements presents dans la propriete
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
 
       {/* Inline add form */}
       {canEdit && (
@@ -556,40 +462,37 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
 
       {/* Items table — appears as soon as there is at least one item */}
       {items.length === 0 ? (
-        <Paper
-          variant="outlined"
-          sx={{ p: 4, textAlign: 'center', border: '1px dashed var(--line-2)', borderRadius: '14px', bgcolor: 'var(--card)', boxShadow: 'none' }}
-        >
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}>
+        <Card className="gap-0 py-0 p-6 text-center bg-[var(--card)]">
+          <span className="inline-flex text-muted-foreground opacity-60 mb-1.5">
             <Inventory2 size={36} strokeWidth={1.5} />
-          </Box>
-          <Typography color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+          </span>
+          <p className="cn-text-body1 text-muted-foreground text-[0.875rem]">
             Aucun objet reference pour cette propriete
-          </Typography>
-          <Typography color="text.disabled" sx={{ fontSize: '0.75rem', mt: 0.5 }}>
+          </p>
+          <p className="cn-text-body1 text-muted-foreground opacity-60 text-[0.75rem] mt-0.5">
             Remplis le formulaire ci-dessus pour ajouter ton premier objet
-          </Typography>
-        </Paper>
+          </p>
+        </Card>
       ) : (
-        <TableContainer component={Paper} variant="outlined">
-          <Table size="small">
-            <TableHead>
+        <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell sx={{ width: 64 }} />
-                <TableCell>Designation</TableCell>
-                <TableCell>Categorie</TableCell>
-                <TableCell align="center">Qte</TableCell>
-                <TableCell>Notes</TableCell>
-                {canEdit && <TableCell align="right" sx={{ width: 80 }} />}
+                <TableHead className="w-16" />
+                <TableHead>Designation</TableHead>
+                <TableHead>Categorie</TableHead>
+                <TableHead className="text-center">Qte</TableHead>
+                <TableHead>Notes</TableHead>
+                {canEdit && <TableHead className="w-20 text-end" />}
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {orderedItems.map((item) => {
                 const isEditing = editingId === item.id;
                 if (isEditing) {
                   return (
                     <TableRow key={item.id}>
-                      <TableCell colSpan={6} sx={{ p: 1, bgcolor: 'action.hover' }}>
+                      <TableCell colSpan={6} className="p-1.5 bg-[var(--hover)]">
                         <InlineForm
                           value={editForm}
                           onChange={setEditForm}
@@ -603,65 +506,64 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                   );
                 }
                 return (
-                  <TableRow key={item.id} hover>
-                    <TableCell sx={{ p: 0.75 }}>
+                  <TableRow key={item.id}>
+                    <TableCell className="p-[4.5px]">
                       {item.photoUrl ? (
-                        <Box
-                          component="a"
+                        <a
                           href={item.photoUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          sx={{
-                            display: 'block',
-                            width: 44,
-                            height: 44,
-                            borderRadius: 1,
-                            backgroundImage: `url(${item.photoUrl})`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            cursor: 'zoom-in',
-                            transition: 'border-color .14s, box-shadow .14s',
-                            '&:hover': { borderColor: 'var(--line-2)', boxShadow: 'var(--shadow-card)' },
-                          }}
+                          className="block w-11 h-11 rounded-[8px] bg-cover bg-center border border-solid border-[var(--line)] cursor-zoom-in transition-[border-color,box-shadow] duration-[140ms] hover:border-[var(--line-2)] hover:shadow-[var(--shadow-card)]"
+                          style={{ backgroundImage: `url(${item.photoUrl})` }}
                         />
                       ) : (
-                        <Box
-                          sx={{
-                            width: 44,
-                            height: 44,
-                            borderRadius: 1,
-                            border: '1px dashed',
-                            borderColor: 'divider',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'text.disabled',
-                          }}
-                        >
+                        <div className="w-11 h-11 rounded-[8px] border border-dashed border-[var(--line)] flex items-center justify-center text-[var(--faint)]">
                           <ImageIcon size={16} strokeWidth={1.5} />
-                        </Box>
+                        </div>
                       )}
                     </TableCell>
                     <TableCell>{item.name}</TableCell>
                     <TableCell>{item.category && renderCategoryChip(item.category)}</TableCell>
-                    <TableCell align="center">{item.quantity}</TableCell>
-                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+                    <TableCell className="text-center">{item.quantity}</TableCell>
+                    <TableCell className="text-[var(--muted)] text-[0.8rem]">
                       {item.notes || '—'}
                     </TableCell>
                     {canEdit && (
-                      <TableCell align="right">
-                        <Tooltip title="Modifier">
-                          <IconButton size="small" onClick={() => startEdit(item)}>
-                            <Edit size={16} strokeWidth={1.75} />
-                          </IconButton>
+                      <TableCell className="text-end">
+                        {/* Declencheur = <span> natif : les primitives du kit ne
+                            transmettent pas de ref (React 18), le tooltip
+                            n'aurait pas d'ancre. */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={`Modifier ${item.name}`}
+                                onClick={() => startEdit(item)}
+                              >
+                                <Edit size={16} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Modifier</TooltipContent>
                         </Tooltip>
-                        <Tooltip title="Supprimer">
-                          <IconButton size="small" color="error" onClick={() => onDelete(item.id)}>
-                            <DeleteOutline size={16} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={`Supprimer ${item.name}`}
+                                onClick={() => onDelete(item.id)}
+                                className="text-[var(--err)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+                              >
+                                <DeleteOutline size={16} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Supprimer</TooltipContent>
                         </Tooltip>
                       </TableCell>
                     )}
@@ -670,8 +572,8 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
               })}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }

@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import { cn } from '../../../utils/cn';
+import { Badge, Button } from '../../../components/ui';
+import { Spinner } from '../../../components/ui';
+import { Field, FieldLabel, Input, Textarea } from '../../../components/ui';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, TextField, Skeleton, ToggleButtonGroup, ToggleButton, Chip, CircularProgress } from '@mui/material';
+import { Skeleton, ToggleGroup, ToggleGroupItem } from '../../../components/ui';
 import { Plus, Globe, FileText, Sparkles, SlidersHorizontal, AlertTriangle, Trash2 } from 'lucide-react';
 import PageHeader from '../../../components/PageHeader';
 import {
@@ -110,7 +114,7 @@ export default function DesignSystemsPage() {
   );
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'var(--bg)', px: { xs: 2, md: 4 }, py: { xs: 2, md: 3 } }}>
+    <div className="min-h-[100vh] bg-[var(--bg)] px-3 min-[900px]:px-6 py-3 min-[900px]:py-[18px]">
       <PageHeader
         title="Systèmes de design"
         subtitle="Une direction réutilisable (tokens + DESIGN.md) que vos templates reprennent"
@@ -118,128 +122,150 @@ export default function DesignSystemsPage() {
       />
 
       {error && (
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, my: 2, p: 1.5, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 13, whiteSpace: 'pre-wrap' }}>
+        <div className="flex items-start gap-1.5 my-3 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[13px] whitespace-pre-wrap">
           <AlertTriangle size={16} strokeWidth={2} style={{ flexShrink: 0, marginTop: 2 }} /> {error}
-        </Box>
+        </div>
       )}
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '280px 1fr' }, gap: 2.5, mt: 2 }}>
+      <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[280px_1fr] gap-[15px] mt-3">
         {/* Colonne liste */}
-        <Box>
-          <Button fullWidth variant="contained" disableElevation startIcon={<Plus size={16} strokeWidth={2} />} onClick={startCreate} sx={{ textTransform: 'none', mb: 1.5 }}>
+        <div>
+          {/* mb-[9px] : `mb: 1.5` MUI vaut 9 px ici (spacing = 6 px). */}
+          <Button className="w-full mb-[9px] shrink" onClick={startCreate}>
+            <Plus size={16} strokeWidth={2} />
             Créer un système
           </Button>
-          <Box sx={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', px: 0.5, mb: 1 }}>
+          <div className="text-[11px] font-bold tracking-[0.08em] uppercase text-[var(--muted)] px-0.5 mb-1.5">
             Vos systèmes {systems && <span style={{ fontVariantNumeric: 'tabular-nums' }}>· {systems.length}</span>}
-          </Box>
-          {systems === null && <Skeleton variant="rounded" height={120} sx={{ borderRadius: '12px', bgcolor: 'var(--hover)' }} />}
+          </div>
+          {systems === null && <Skeleton className="h-[120px] rounded-[12px] bg-[var(--hover)]" />}
           {systems && systems.length === 0 && (
-            <Box sx={{ color: 'var(--muted)', fontSize: 13, px: 0.5, py: 2, lineHeight: 1.6 }}>
+            <div className="text-[var(--muted)] text-[13px] px-0.5 py-3 leading-[1.6]">
               Aucun système pour l'instant. Créez-en un à partir d'un site, d'une marque ou d'un DESIGN.md.
-            </Box>
+            </div>
           )}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <div className="flex flex-col gap-0.5">
             {systems?.map((s) => (
-              <Box key={s.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box
-                  component="button" type="button" onClick={() => { setSelectedId(s.id); setCreating(false); }}
-                  sx={{
-                    flex: 1, textAlign: 'left', border: '1px solid', borderColor: s.id === selectedId ? 'var(--accent)' : 'var(--line)',
-                    bgcolor: s.id === selectedId ? 'var(--hover)' : 'transparent', borderRadius: 'var(--radius-md)', px: 1.25, py: 1, cursor: 'pointer',
-                    transition: 'background 150ms ease',
-                  }}
-                >
-                  <Box sx={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{s.name}</Box>
-                  <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center', mt: 0.25 }}>
-                    {s.category && <Box sx={{ fontSize: 11, color: 'var(--muted)' }}>{s.category}</Box>}
-                    <Chip size="small" label={s.scope === 'GLOBAL' ? 'Baitly' : 'Privé'} sx={{ height: 16, fontSize: 9.5 }} />
-                  </Box>
-                </Box>
-                <Box component="button" type="button" aria-label="Supprimer" onClick={() => handleDelete(s.id)} sx={{ border: 0, bgcolor: 'transparent', color: 'var(--muted)', cursor: 'pointer', p: 0.5, display: 'grid', placeItems: 'center' }}>
+              <div className="flex items-center gap-0.5" key={s.id}>
+                <button className={cn('flex-1 text-start border border-solid rounded-[var(--radius-md)] px-[7.5px] py-1.5 cursor-pointer', s.id === selectedId ? 'border-[var(--accent)]' : 'border-[var(--line)]', s.id === selectedId ? 'bg-[var(--hover)]' : 'bg-[transparent]')} style={{ transition: 'background 150ms ease' }} type="button" onClick={() => { setSelectedId(s.id); setCreating(false); }}>
+                  <div className="text-[13.5px] font-semibold text-[var(--ink)]">{s.name}</div>
+                  <div className="flex gap-1 items-center mt-0.5">
+                    {s.category && <div className="text-[11px] text-[var(--muted)]">{s.category}</div>}
+                    <Badge variant="secondary" className="h-[16px] text-[9.5px]">{s.scope === 'GLOBAL' ? 'Baitly' : 'Privé'}</Badge>
+                  </div>
+                </button>
+                <button className="bg-[transparent] text-[var(--muted)] cursor-pointer p-[3px] grid place-items-[center]" style={{ border: 0 }} type="button" aria-label="Supprimer" onClick={() => handleDelete(s.id)}>
                   <Trash2 size={14} strokeWidth={2} />
-                </Box>
-              </Box>
+                </button>
+              </div>
             ))}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* Panneau : création OU aperçu */}
-        <Box sx={{ border: '1px solid var(--line)', borderRadius: 'var(--radius-lg, 14px)', p: 3, minHeight: 420, bgcolor: 'var(--surface, #fff)' }}>
+        <div className="border border-solid border-[var(--line)] rounded-[var(--radius-lg,_14px)] p-[18px] min-h-[420px] bg-[var(--surface,_#fff)]">
           {creating ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 720 }}>
-              <Box sx={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)' }}>Nouveau système de design</Box>
+            <div className="flex flex-col gap-3 max-w-[720px]">
+              <div className="text-[17px] font-bold text-[var(--ink)]">Nouveau système de design</div>
 
-              <ToggleButtonGroup value={source} exclusive onChange={(_, v) => v && setSource(v)} size="small" sx={{ flexWrap: 'wrap' }}>
+              <ToggleGroup
+                type="single"
+                size="sm"
+                variant="outline"
+                className="flex-wrap"
+                value={source}
+                onValueChange={(v) => v && setSource(v as DesignSystemSource)}
+              >
                 {SOURCES.map((s) => {
                   const Icon = s.icon;
                   return (
-                    <ToggleButton key={s.id} value={s.id} sx={{ textTransform: 'none', gap: 0.75, px: 1.5 }}>
+                    <ToggleGroupItem key={s.id} value={s.id} className="gap-1 px-2.5 normal-case">
                       <Icon size={15} strokeWidth={2} /> {s.label}
-                    </ToggleButton>
+                    </ToggleGroupItem>
                   );
                 })}
-              </ToggleButtonGroup>
-              <Box sx={{ fontSize: 13, color: 'var(--muted)', mt: -1 }}>{SOURCES.find((s) => s.id === source)?.hint}</Box>
+              </ToggleGroup>
+              {/* mt: -1 = -6px (theme.spacing vaut 6 dans ce projet). */}
+              <div className="text-[13px] text-[var(--muted)] -mt-1.5">{SOURCES.find((s) => s.id === source)?.hint}</div>
 
-              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-                <TextField size="small" label="Nom" value={name} onChange={(e) => setName(e.target.value)} sx={{ flex: 1, minWidth: 220 }} />
-                <TextField size="small" label="Catégorie (optionnel)" value={category} onChange={(e) => setCategory(e.target.value)} sx={{ flex: 1, minWidth: 220 }} />
-              </Box>
+              <div className="flex gap-2 flex-wrap">
+                <Field className="flex-1 min-w-[220px]">
+                  <FieldLabel htmlFor="ds-name">Nom</FieldLabel>
+                  <Input id="ds-name" value={name} onChange={(e) => setName(e.target.value)} />
+                </Field>
+                <Field className="flex-1 min-w-[220px]">
+                  <FieldLabel htmlFor="ds-category">Catégorie (optionnel)</FieldLabel>
+                  <Input id="ds-category" value={category} onChange={(e) => setCategory(e.target.value)} />
+                </Field>
+              </div>
 
               {source === 'URL' && (
-                <TextField size="small" label="URL du site" placeholder="https://…" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} />
+                <Field>
+                  <FieldLabel htmlFor="ds-website-url">URL du site</FieldLabel>
+                  <Input id="ds-website-url" placeholder="https://…" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} />
+                </Field>
               )}
               {source === 'BRAND' && (
-                <TextField multiline minRows={4} label="Description de la marque" placeholder="Ex. Riad de luxe à Marrakech, ambiance feutrée, terracotta et zelliges…" value={brandDescription} onChange={(e) => setBrandDescription(e.target.value)} />
+                <Field>
+                  <FieldLabel htmlFor="ds-brand-description">Description de la marque</FieldLabel>
+                  <Textarea id="ds-brand-description" rows={4} placeholder="Ex. Riad de luxe à Marrakech, ambiance feutrée, terracotta et zelliges…" value={brandDescription} onChange={(e) => setBrandDescription(e.target.value)} />
+                </Field>
               )}
               {(source === 'PASTE' || source === 'MANUAL') && (
-                <TextField multiline minRows={8} label="DESIGN.md" placeholder="# Design System…" value={designMarkdown} onChange={(e) => setDesignMarkdown(e.target.value)} sx={{ '& textarea': { fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12.5 } }} />
+                <Field>
+                  <FieldLabel htmlFor="ds-design-markdown">DESIGN.md</FieldLabel>
+                  {/* Pile monospace explicite : la prose DESIGN.md se relit en colonnes alignees. */}
+                  <Textarea id="ds-design-markdown" rows={8} className="text-[12.5px]" style={{ fontFamily: 'ui-monospace, Menlo, monospace' }} placeholder="# Design System…" value={designMarkdown} onChange={(e) => setDesignMarkdown(e.target.value)} />
+                </Field>
               )}
               {source === 'MANUAL' && (
-                <TextField multiline minRows={4} label="Tokens --bt-* (JSON, optionnel)" placeholder='{"--bt-color-primary":"#…"}' value={tokensJson} onChange={(e) => setTokensJson(e.target.value)} sx={{ '& textarea': { fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12.5 } }} />
+                <Field>
+                  <FieldLabel htmlFor="ds-tokens-json">Tokens --bt-* (JSON, optionnel)</FieldLabel>
+                  <Textarea id="ds-tokens-json" rows={4} className="text-[12.5px]" style={{ fontFamily: 'ui-monospace, Menlo, monospace' }} placeholder='{"--bt-color-primary":"#…"}' value={tokensJson} onChange={(e) => setTokensJson(e.target.value)} />
+                </Field>
               )}
 
-              <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                <Button variant="contained" disableElevation onClick={handleCreate} disabled={!canCreate || busy}
-                  startIcon={busy ? <CircularProgress size={15} color="inherit" /> : <Sparkles size={16} strokeWidth={2} />} sx={{ textTransform: 'none' }}>
+              <div className="flex gap-1.5 mt-1.5">
+                <Button onClick={handleCreate} disabled={!canCreate || busy}>
+                  {busy ? <Spinner className="size-[15px]" /> : <Sparkles size={16} strokeWidth={2} />}
                   {busy ? (aiSource ? 'Génération…' : 'Création…') : aiSource ? 'Générer le système' : 'Créer'}
                 </Button>
-                <Button variant="text" onClick={() => setCreating(false)} disabled={busy} sx={{ textTransform: 'none', color: 'var(--muted)' }}>Annuler</Button>
-              </Box>
-            </Box>
+                <Button variant="ghost" onClick={() => setCreating(false)} disabled={busy}>Annuler</Button>
+              </div>
+            </div>
           ) : selected ? (
-            <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2, flexWrap: 'wrap' }}>
-                <Box sx={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{selected.name}</Box>
-                {selected.category && <Chip size="small" label={selected.category} />}
-                {selected.sourceType && <Chip size="small" variant="outlined" label={selected.sourceType} />}
-              </Box>
+            <div>
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <div className="text-[18px] font-bold text-[var(--ink)]">{selected.name}</div>
+                {selected.category && <Badge variant="secondary">{selected.category}</Badge>}
+                {selected.sourceType && <Badge variant="outline">{selected.sourceType}</Badge>}
+              </div>
               {swatches.length > 0 && (
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2.5 }}>
+                <div className="flex gap-1.5 flex-wrap mb-3.5">
                   {swatches.map((sw) => (
-                    <Box key={sw.name} title={`${sw.name}: ${sw.value}`} sx={{ width: 48, height: 48, borderRadius: '10px', bgcolor: sw.value, border: '1px solid var(--line)' }} />
+                    <div className="w-[48px] h-[48px] rounded-[10px] border border-solid border-[var(--line)]" style={{ backgroundColor: sw.value }} key={sw.name} title={`${sw.name}: ${sw.value}`} />
                   ))}
-                </Box>
+                </div>
               )}
               {selected.designMarkdown ? (
-                <Box sx={{ whiteSpace: 'pre-wrap', fontSize: 13.5, lineHeight: 1.65, color: 'var(--ink)', maxHeight: '55vh', overflowY: 'auto', bgcolor: 'var(--bg)', borderRadius: 'var(--radius-md)', p: 2, border: '1px solid var(--line)' }}>
+                <div className="whitespace-pre-wrap text-[13.5px] leading-[1.65] text-[var(--ink)] max-h-[55vh] overflow-y-auto bg-[var(--bg)] rounded-[var(--radius-md)] p-3 border border-[var(--line)]">
                   {selected.designMarkdown}
-                </Box>
+                </div>
               ) : (
-                <Box sx={{ color: 'var(--muted)', fontSize: 13 }}>Pas de DESIGN.md — ce système ne porte que des tokens.</Box>
+                <div className="text-[var(--muted)] text-[13px]">Pas de DESIGN.md — ce système ne porte que des tokens.</div>
               )}
-            </Box>
+            </div>
           ) : (
-            <Box sx={{ height: '100%', minHeight: 360, display: 'grid', placeItems: 'center', textAlign: 'center', color: 'var(--muted)' }}>
-              <Box>
+            <div className="h-full min-h-[360px] grid place-items-[center] text-center text-[var(--muted)]">
+              <div>
                 <Sparkles size={28} strokeWidth={1.5} style={{ opacity: 0.5 }} />
-                <Box sx={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', mt: 1 }}>Créer un système de design</Box>
-                <Box sx={{ fontSize: 13, mt: 0.5, maxWidth: 420 }}>À partir d'un site, d'une marque ou d'un DESIGN.md — une direction réutilisable pour vos templates.</Box>
-              </Box>
-            </Box>
+                <div className="text-[15px] font-semibold text-[var(--ink)] mt-1.5">Créer un système de design</div>
+                <div className="text-[13px] mt-0.5 max-w-[420px]">À partir d'un site, d'une marque ou d'un DESIGN.md — une direction réutilisable pour vos templates.</div>
+              </div>
+            </div>
           )}
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { cn } from '../../../utils/cn';
+
 
 /**
  * Donnees attendues par {@link KpiSummaryWidget}, alignees avec le tool
@@ -39,138 +40,62 @@ export const KpiSummaryWidget: React.FC<KpiSummaryWidgetProps> = ({ data }) => {
   const kpis = data.kpis ?? [];
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5 }}>
+    <div className="mt-1.5 mb-2">
       {/* Score header — gros chiffre display + statut */}
       {scorePct !== null && (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'baseline',
-            gap: 1.5,
-            mb: 2,
-            px: 2,
-            py: 1.75,
-            borderRadius: '12px',
-            bgcolor: critical ? 'var(--err-soft)' : 'var(--accent-soft)',
-          }}
-        >
-          <Typography
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '2.25rem',
-              fontWeight: 600,
-              lineHeight: 1,
-              fontVariantNumeric: 'tabular-nums',
-              letterSpacing: '-0.02em',
-              color: critical ? 'var(--err)' : 'var(--accent)',
-            }}
-          >
+        <div className={cn('flex items-baseline gap-[9px] mb-3 px-3 py-[10.5px] rounded-[12px]', critical ? 'bg-[var(--err-soft)]' : 'bg-[var(--accent-soft)]')}>
+          <p className={cn('cn-text-body1 text-[2.25rem] font-semibold leading-[1] tabular-nums tracking-[-0.02em]', critical ? 'text-[var(--err)]' : 'text-[var(--accent)]')} style={{ fontFamily: 'var(--font-display)' }}>
             {scorePct}
-            <Box component="span" sx={{ fontSize: '1.25rem', fontWeight: 500, ml: 0.25 }}>
+            <span className="text-[1.25rem] font-medium ms-0.5">
               %
-            </Box>
-          </Typography>
-          <Box>
-            <Typography sx={{
-              display: 'block', fontWeight: 700, color: 'var(--faint)',
-              fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em',
-            }}>
+            </span>
+          </p>
+          <div>
+            <p className="cn-text-body1 block font-bold text-[var(--faint)] text-[10.5px] uppercase tracking-[.06em]">
               Readiness score
-            </Typography>
-            <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)' }}>
+            </p>
+            <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">
               {critical ? 'KPI critique en defaut' : 'Tous les KPI critiques OK'}
               {data.kpiCount !== undefined && ` · ${data.kpiCount} indicateurs`}
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
       )}
 
       {/* Grille KPI : 2 colonnes sur mobile, 3 sur desktop */}
       {kpis.length > 0 && (
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-            gap: 1,
-          }}
-        >
+        <div className="grid grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(3,_1fr)] gap-1.5">
           {kpis.map((kpi) => (
             <KpiTile key={kpi.id} kpi={kpi} />
           ))}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 
 const KpiTile: React.FC<{ kpi: NonNullable<KpiSummaryData['kpis']>[number] }> = ({ kpi }) => {
   const statusColor = statusToColor(kpi.status);
 
+  // La couleur de pastille est calculee a l'execution : elle passe par une custom
+  // property inline, car une classe Tailwind ne peut pas naitre d'une variable.
   return (
-    <Box
-      sx={{
-        position: 'relative',
-        px: 1.25,
-        py: 1,
-        borderRadius: '10px',
-        bgcolor: 'var(--card)',
-        border: '1px solid var(--line)',
-        // Pastille status en haut-droite, pas de border-stripe
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 8,
-          right: 8,
-          width: 6,
-          height: 6,
-          borderRadius: '50%',
-          bgcolor: statusColor,
-        },
-      }}
+    <div
+      className="relative px-[7.5px] py-1.5 rounded-[10px] bg-[var(--card)] border border-solid border-[var(--line)] before:content-[''] before:absolute before:top-2 before:right-2 before:w-1.5 before:h-1.5 before:rounded-full before:bg-[var(--kpi-dot)]"
+      style={{ '--kpi-dot': statusColor } as React.CSSProperties}
     >
-      <Typography
-        sx={{
-          display: 'block',
-          color: 'var(--faint)',
-          fontSize: '10.5px',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: '.05em',
-          mb: 0.25,
-          pr: 1.5,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
-      >
+      <p className="cn-text-body1 block text-[var(--faint)] text-[10.5px] font-bold uppercase tracking-[.05em] mb-0.5 pe-2 whitespace-nowrap overflow-hidden text-ellipsis">
         {kpi.name}
-      </Typography>
-      <Typography
-        sx={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '1.05rem',
-          fontWeight: 600,
-          lineHeight: 1.2,
-          fontVariantNumeric: 'tabular-nums',
-          color: 'var(--ink)',
-        }}
-      >
+      </p>
+      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.05rem] font-semibold leading-[1.2] tabular-nums text-[var(--ink)]">
         {kpi.value}
-      </Typography>
+      </p>
       {kpi.target && (
-        <Typography
-          sx={{
-            display: 'block',
-            color: 'var(--muted)',
-            fontSize: '10.5px',
-            mt: 0.25,
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
+        <p className="cn-text-body1 block text-[var(--muted)] text-[10.5px] mt-0.5 tabular-nums">
           cible {kpi.target}
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
   );
 };
 

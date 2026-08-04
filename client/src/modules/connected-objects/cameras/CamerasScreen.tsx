@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Box, Typography, Button, Paper, alpha, useTheme, Skeleton } from '@mui/material';
+import { Button, Skeleton } from '../../../components/ui';
 import { PhotoCamera, Add, Home } from '../../../icons';
 import PageHeader from '../../../components/PageHeader';
 import EmptyState from '../../../components/EmptyState';
@@ -10,15 +10,17 @@ import AddDeviceWizard from '../components/AddDeviceWizard';
 import CameraTile from './CameraTile';
 import ConfirmationModal from '../../../components/ConfirmationModal';
 
-const GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 1.25 } as const;
-const ACCENT = '#C97A7A';
+// gap: 1.25 avec theme.spacing = 6 => 7,5 px (hors echelle Tailwind).
+const GRID_CLS = 'grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-[7.5px]';
+// L'argile Baitly #C97A7A (couleur du type « caméra ») s'ecrit desormais en clair
+// dans les classes du bandeau : Tailwind n'emet pas une classe batie sur une
+// constante.
 
 /**
  * Écran de gestion des caméras — CRUD branché sur le backend. La lecture vidéo
  * en direct arrivera avec la passerelle media go2rtc (bandeau d'info).
  */
 export default function CamerasScreen() {
-  const theme = useTheme();
   const { t } = useTranslation();
   const qc = useQueryClient();
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -72,13 +74,14 @@ export default function CamerasScreen() {
   }, [cameras]);
 
   const addButton = (
-    <Button variant="contained" size="small" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>
+    <Button size="sm" onClick={() => setWizardOpen(true)}>
+      <Add size={16} strokeWidth={2} />
       Ajouter une caméra
     </Button>
   );
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={t('connectedObjects.cameras.title', 'Caméras')}
         subtitle={t('connectedObjects.cameras.subtitle', 'Supervision vidéo des logements.')}
@@ -88,22 +91,20 @@ export default function CamerasScreen() {
         actions={addButton}
       />
 
-      {/* Bandeau d'aide : lecture à la demande */}
-      <Paper
-        variant="outlined"
-        sx={{ p: 1.25, mb: 1.5, borderRadius: 'var(--radius-lg)', borderStyle: 'dashed', borderColor: alpha(ACCENT, 0.4),
-          bgcolor: alpha(ACCENT, theme.palette.mode === 'dark' ? 0.08 : 0.04), display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}
-      >
-        <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1, minWidth: 220 }}>
+      {/* Bandeau d'aide : lecture à la demande. Le fond etait plus soutenu en
+          sombre (0.08 vs 0.04) — la variante `dark:` reprend cette regle, que
+          `theme.palette.mode` portait cote MUI. */}
+      <div className="mb-[9px] flex flex-wrap items-center gap-1.5 rounded-[var(--radius-lg)] border border-dashed border-[color-mix(in_srgb,#C97A7A_40%,transparent)] bg-[color-mix(in_srgb,#C97A7A_4%,transparent)] p-[7.5px] dark:bg-[color-mix(in_srgb,#C97A7A_8%,transparent)]">
+        <p className="cn-text-body2 text-muted-foreground flex-1 min-w-[220px]">
           Cliquez sur une caméra pour lancer la <strong>lecture en direct</strong>. Une seule lecture à la fois
           (performances) : ouvrir une autre caméra arrête la précédente. <strong>RTSP recommandé</strong> pour une lecture fluide.
-        </Typography>
-      </Paper>
+        </p>
+      </div>
 
       {isLoading ? (
-        <Box sx={GRID}>
-          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} variant="rounded" height={200} sx={{ borderRadius: 'var(--radius-lg)' }} />)}
-        </Box>
+        <div className={GRID_CLS}>
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-[200px] w-full rounded-[var(--radius-lg)]" />)}
+        </div>
       ) : cameras.length === 0 ? (
         <EmptyState
           icon={<PhotoCamera />}
@@ -113,13 +114,13 @@ export default function CamerasScreen() {
         />
       ) : (
         groups.map(([propertyName, items]) => (
-          <Box key={propertyName} sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.875 }}>
-              <Box component="span" sx={{ color: 'text.secondary', display: 'inline-flex' }}><Home size={15} strokeWidth={1.75} /></Box>
-              <Typography sx={{ fontWeight: 600, fontSize: '0.9375rem', color: 'text.primary' }}>{propertyName}</Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>· {items.length} caméra{items.length > 1 ? 's' : ''}</Typography>
-            </Box>
-            <Box sx={GRID}>
+          <div className="mb-3" key={propertyName}>
+            <div className="flex items-center gap-1 mb-1.5">
+              <span className="text-muted-foreground inline-flex"><Home size={15} strokeWidth={1.75} /></span>
+              <p className="cn-text-body1 font-semibold text-[0.9375rem] text-foreground">{propertyName}</p>
+              <span className="cn-text-caption text-muted-foreground opacity-60">· {items.length} caméra{items.length > 1 ? 's' : ''}</span>
+            </div>
+            <div className={GRID_CLS}>
               {items.map((c) => (
                 <CameraTile
                   key={c.id}
@@ -130,8 +131,8 @@ export default function CamerasScreen() {
                   acting={deleting && pendingDeleteId === c.id}
                 />
               ))}
-            </Box>
-          </Box>
+            </div>
+          </div>
         ))
       )}
 
@@ -149,6 +150,6 @@ export default function CamerasScreen() {
         severity="error"
         loading={deleting}
       />
-    </Box>
+    </div>
   );
 }

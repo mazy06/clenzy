@@ -17,8 +17,10 @@
  * <p>Le badge est cliquable (curseur pointer) si {@code onClick} est fourni.</p>
  */
 import React from 'react';
-import { Box, Tooltip, Typography } from '@mui/material';
 import { Cable, AlertCircle, Pause, Clock, CheckCircle2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
+
+import { cn } from '../../../utils/cn';
 
 import type { ChannexSyncStatus, ChannexMappingDto } from '../../../services/api/channexApi';
 
@@ -74,125 +76,86 @@ export default function ChannexHealthBadge({
   const lastSyncStr = formatLastSync(mapping.lastSyncAt);
 
   const tooltipContent = (
-    <Box sx={{ maxWidth: 260 }}>
-      <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.75rem', lineHeight: 1.3, mb: 0.3 }}>
+    <div className="max-w-[260px]">
+      <p className="cn-text-body2 font-semibold text-[0.75rem] leading-[1.3] mb-0.5">
         {meta.label}
-      </Typography>
-      <Typography variant="caption" sx={{ display: 'block', lineHeight: 1.45, opacity: 0.85 }}>
+      </p>
+      <span className="cn-text-caption block leading-[1.45] opacity-85">
         Derniere sync : {lastSyncStr}
-      </Typography>
+      </span>
       {mapping.lastSyncError && mapping.syncStatus === 'ERROR' && (
-        <Typography
-          variant="caption"
-          sx={{
-            display: 'block',
-            mt: 0.5,
-            pt: 0.5,
-            borderTop: '1px solid color-mix(in srgb, var(--bg) 20%, transparent)',
-            opacity: 0.9,
-            fontStyle: 'italic',
-          }}
-        >
+        <span className="cn-text-caption block mt-[3px] pt-[3px] opacity-90 italic" style={{ borderTop: '1px solid color-mix(in srgb, var(--bg) 20%, transparent)' }}>
           {mapping.lastSyncError.slice(0, 200)}
           {mapping.lastSyncError.length > 200 && '…'}
-        </Typography>
+        </span>
       )}
       {onClick && (
-        <Typography
-          variant="caption"
-          sx={{
-            display: 'block',
-            mt: 0.5,
-            fontSize: '0.65rem',
-            opacity: 0.7,
-          }}
-        >
+        <span className="cn-text-caption block mt-0.5 text-[0.65rem] opacity-70">
           Cliquer pour ouvrir les details
-        </Typography>
+        </span>
       )}
-    </Box>
+    </div>
   );
 
-  return (
-    <Tooltip title={tooltipContent} arrow placement="top">
-      <Box
-        component={onClick ? 'button' : 'span'}
-        onClick={onClick ? (e: React.MouseEvent) => { e.stopPropagation(); onClick(); } : undefined}
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 0.5,
-          padding: 0,
-          border: 'none',
-          background: 'transparent',
-          cursor: onClick ? 'pointer' : 'default',
-          color: meta.color,
-          lineHeight: 0,
-          ...(onClick && {
-            transition: 'transform 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-            '&:hover': { transform: 'scale(1.12)' },
-            '&:focus-visible': {
-              outline: `2px solid ${meta.color}`,
-              outlineOffset: 2,
-              borderRadius: '50%',
-            },
-          }),
-        }}
-        aria-label={meta.label}
-      >
-        {variant === 'icon' ? (
-          <Box
-            sx={{
-              position: 'relative',
-              width: size + 8,
-              height: size + 8,
-              borderRadius: '50%',
-              bgcolor: `color-mix(in srgb, ${meta.color} 10%, transparent)`,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
+  // Couleur du statut (runtime) : reste en `style` — une classe Tailwind ne peut
+  // pas naitre d'une variable. `outlineColor` est inerte tant que le focus-visible
+  // n'a pas pose la largeur d'outline.
+  const badgeStyle: React.CSSProperties = { color: meta.color, outlineColor: meta.color };
+  const badgeClass = cn(
+    'inline-flex items-center gap-[3px] p-0 border-none bg-transparent leading-[0]',
+    onClick
+      ? 'cursor-pointer transition-transform duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-[1.12] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:rounded-[50%]'
+      : 'cursor-default',
+  );
+
+  // Le clignotement d'erreur passe par `animate-pulse` (2s, meme cadence que
+  // l'ancien keyframe local), neutralise si l'utilisateur refuse le mouvement.
+  const pulseClass = mapping.syncStatus === 'ERROR' ? 'animate-pulse motion-reduce:animate-none' : '';
+
+  const badgeContent = (
+    <>
+      {variant === 'icon' ? (
+          <span className="relative rounded-[50%] inline-flex items-center justify-center" style={{ width: size + 8, height: size + 8, backgroundColor: `color-mix(in srgb, ${meta.color} 10%, transparent)` }}>
             <Cable size={size} strokeWidth={2.2} />
             {/* Dot exposant en bas a droite */}
-            <Box
-              sx={{
-                position: 'absolute',
-                bottom: -1,
-                right: -1,
-                width: size * 0.5,
-                height: size * 0.5,
-                borderRadius: '50%',
-                bgcolor: meta.color,
-                border: '1.5px solid white',
-                animation: mapping.syncStatus === 'ERROR' ? 'pulse 2s infinite' : undefined,
-                '@keyframes pulse': {
-                  '0%, 100%': { opacity: 1 },
-                  '50%': { opacity: 0.55 },
-                },
-                '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-              }}
+            <span
+              className={cn('absolute -bottom-px -right-px rounded-[50%] border-[1.5px] border-solid border-white', pulseClass)}
+              style={{ width: size * 0.5, height: size * 0.5, backgroundColor: meta.color }}
             />
-          </Box>
+          </span>
         ) : (
-          <Box
-            sx={{
+          <span
+            className={cn('inline-block shrink-0 rounded-[50%]', pulseClass)}
+            style={{
               width: size,
               height: size,
-              borderRadius: '50%',
-              bgcolor: meta.color,
-              flexShrink: 0,
+              backgroundColor: meta.color,
               boxShadow: `0 0 0 2px color-mix(in srgb, ${meta.color} 15%, transparent)`,
-              animation: mapping.syncStatus === 'ERROR' ? 'pulse 2s infinite' : undefined,
-              '@keyframes pulse': {
-                '0%, 100%': { opacity: 1 },
-                '50%': { opacity: 0.55 },
-              },
-              '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
             }}
           />
         )}
-      </Box>
+    </>
+  );
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {onClick ? (
+          <button
+            className={badgeClass}
+            style={badgeStyle}
+            onClick={(e: React.MouseEvent) => { e.stopPropagation(); onClick(); }}
+            aria-label={meta.label}
+          >
+            {badgeContent}
+          </button>
+        ) : (
+          <span className={badgeClass} style={badgeStyle} aria-label={meta.label}>
+            {badgeContent}
+          </span>
+        )}
+      </TooltipTrigger>
+      <TooltipContent side="top">{tooltipContent}</TooltipContent>
     </Tooltip>
   );
 }

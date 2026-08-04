@@ -1,7 +1,7 @@
 import { createElement, useEffect, useMemo, useRef, useState } from 'react';
+import { Spinner } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Box, CircularProgress } from '@mui/material';
 import { AlertTriangle, Star } from 'lucide-react';
 import { BaitlyWidget } from '../sdk/BaitlyWidget';
 import BaitlyBooking from '../sdk';
@@ -228,21 +228,21 @@ export default function PublicBookingPage() {
   if (error) {
     return (
       <Centered>
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, color: 'var(--muted)' }}>
+        <div className="flex flex-col items-center gap-2 text-[var(--muted)]">
           <AlertTriangle size={32} strokeWidth={1.75} />
-          <Box sx={{ fontSize: 'var(--text-md)' }}>{error}</Box>
-        </Box>
+          <div className="text-[var(--text-md)]">{error}</div>
+        </div>
       </Centered>
     );
   }
 
   if (!config) {
-    return <Centered><CircularProgress size={28} sx={{ color: 'var(--accent)' }} /></Centered>;
+    return <Centered><Spinner className="size-7 text-[var(--accent)]" /></Centered>;
   }
 
   return (
-    <Box style={themeVars(config.primaryColor, config.fontFamily, tokens)}
-      sx={{ minHeight: '100vh', bgcolor: 'var(--card)', color: 'var(--ink)', containerType: 'inline-size' }}>
+    <div style={themeVars(config.primaryColor, config.fontFamily, tokens)}
+      className="min-h-[100vh] bg-[var(--card)] text-[var(--ink)] [container-type:inline-size]">
       {config.customCss && <style>{config.customCss}</style>}
 
       {/* Page composée HOME (GrapesJS) : CSS scopé brut (assaini) + HTML assaini injecté.
@@ -265,53 +265,53 @@ export default function PublicBookingPage() {
       {/* Section de réservation de repli : widget monolithe (Shadow DOM, styles isolés). Masquée si la
           HOME GrapesJS embarque déjà ses propres marqueurs hydratés (évite le doublon bookable). */}
       {!homeHasWidgets && (
-        <Box id="reserver" sx={{ maxWidth: 1040, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 4, md: 6 } }}>
-          <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', fontWeight: 'var(--fw-bold)', textAlign: 'center', mb: 3 }}>
+        <div className="max-w-[1040px] mx-auto px-3 min-[900px]:px-6 py-6 min-[900px]:py-9" id="reserver">
+          <div className="font-[family-name:var(--font-display)] text-[var(--text-2xl)] font-[family-name:var(--fw-bold)] text-center mb-4">
             Réservez votre séjour
-          </Box>
-          <Box ref={widgetHostRef} />
-        </Box>
+          </div>
+          <div ref={widgetHostRef} />
+        </div>
       )}
 
       {/* Concierge IA (2.13) — bulle flottante, affichée seulement si l'org a activé l'IA. */}
       {apiKey && <PublicConcierge apiKey={apiKey} />}
-    </Box>
+    </div>
   );
 }
 
 function ReviewsSection({ data }: { data: PublicReviews }) {
   return (
-    <Box sx={{ maxWidth: 1040, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 4, md: 6 } }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 3 }}>
+    <div className="max-w-[1040px] mx-auto px-3 min-[900px]:px-6 py-6 min-[900px]:py-9">
+      <div className="flex items-center justify-center gap-1.5 mb-4">
         <Star size={22} fill="var(--accent)" color="var(--accent)" />
-        <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', fontWeight: 'var(--fw-bold)', color: 'var(--ink)' }}>
+        <div className="font-[family-name:var(--font-display)] text-[var(--text-2xl)] font-[family-name:var(--fw-bold)] text-[var(--ink)]">
           {data.stats.averageRating.toFixed(1)}
-        </Box>
-        <Box sx={{ color: 'var(--muted)', fontSize: 'var(--text-md)' }}>· {data.stats.totalCount} avis</Box>
-      </Box>
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
+        </div>
+        <div className="text-[var(--muted)] text-[var(--text-md)]">· {data.stats.totalCount} avis</div>
+      </div>
+      <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_1fr)] min-[1200px]:grid-cols-[repeat(3,_1fr)] gap-3">
         {data.reviews.map((r, i) => (
-          <Box key={i} sx={{ p: 2, border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)', bgcolor: 'var(--bg)' }}>
-            <Box sx={{ display: 'flex', gap: 0.25, mb: 1 }}>
+          <div className="p-3 border border-[var(--line)] rounded-[var(--radius-lg)] bg-[var(--bg)]" key={i}>
+            <div className="flex gap-0.5 mb-1.5">
               {Array.from({ length: 5 }).map((_, s) => (
                 <Star key={s} size={14} color="var(--accent)" fill={s < r.rating ? 'var(--accent)' : 'none'} />
               ))}
-            </Box>
+            </div>
             {r.reviewText && (
-              <Box sx={{ fontSize: 'var(--text-md)', color: 'var(--body)', lineHeight: 1.5, mb: 1 }}>{r.reviewText}</Box>
+              <div className="text-[var(--text-md)] text-[var(--body)] leading-[1.5] mb-1.5">{r.reviewText}</div>
             )}
-            <Box sx={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>{r.guestName}</Box>
-          </Box>
+            <div className="text-[var(--text-sm)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">{r.guestName}</div>
+          </div>
         ))}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'var(--bg)', p: 3 }}>
+    <div className="min-h-[100vh] flex items-center justify-center bg-[var(--bg)] p-4">
       {children}
-    </Box>
+    </div>
   );
 }

@@ -41,6 +41,7 @@ class GuestMessageExecutorsTest {
     private static final Long ORG_ID = 1L;
 
     @Mock private GuestMessagingService messagingService;
+    @Mock private com.clenzy.service.messaging.QuietHoursService quietHoursService;
     @Mock private WelcomeGuideService welcomeGuideService;
     @Mock private GuestReviewRepository guestReviewRepository;
 
@@ -55,11 +56,11 @@ class GuestMessageExecutorsTest {
 
     @BeforeEach
     void setUp() {
-        sendMessage = new SendMessageExecutor(messagingService);
-        sendCheckinLink = new SendCheckinLinkExecutor(messagingService);
-        sendGuide = new SendGuideExecutor(messagingService, welcomeGuideService);
+        sendMessage = new SendMessageExecutor(messagingService, quietHoursService);
+        sendCheckinLink = new SendCheckinLinkExecutor(messagingService, quietHoursService);
+        sendGuide = new SendGuideExecutor(messagingService, quietHoursService, welcomeGuideService);
         sendReviewRequest = new SendReviewRequestExecutor(
-            messagingService, welcomeGuideService, guestReviewRepository);
+            messagingService, quietHoursService, welcomeGuideService, guestReviewRepository);
 
         template = new MessageTemplate();
         template.setId(5L);
@@ -219,5 +220,34 @@ class GuestMessageExecutorsTest {
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("RESERVATION");
         verify(messagingService, never()).sendForReservationViaChannel(any(), any(), any(), any(), anyMap());
+    }
+
+    // ─── M10 — heures calmes ─────────────────────────────────────────────────
+
+    @Test
+    void whenQuietHours_thenNonUrgentSendIsRescheduledAndFeedTagged() {
+        AutomationRule rule = rule(AutomationAction.SEND_MESSAGE, AutomationTrigger.CHECK_IN_DAY);
+        java.time.LocalDateTime resumeAt = java.time.LocalDateTime.of(2026, 7, 3, 8, 0);
+        when(quietHoursService.deferUntilIfQuiet(ORG_ID, reservation)).thenReturn(resumeAt);
+
+        ExecutionResult result = sendMessage.execute(rule, context);
+
+        assertThat(result.rescheduledAt()).isEqualTo(resumeAt);
+        verify(quietHoursService).recordDeferred(ORG_ID, reservation, "com", "Regle test", resumeAt);
+        verify(messagingService, never()).sendForReservationViaChannel(any(), any(), any(), any(), anyMap());
+    }
+
+    @Test
+    void whenQuietHours_thenCheckinLinkStillSendsImmediately() {
+        // Les codes d'acces ne doivent JAMAIS attendre la fin des heures calmes :
+        // un voyageur qui arrive a 23h a besoin de son code maintenant.
+        AutomationRule rule = rule(AutomationAction.SEND_CHECKIN_LINK, AutomationTrigger.CHECK_IN_APPROACHING);
+
+        ExecutionResult result = sendCheckinLink.execute(rule, context);
+
+        assertThat(result.rescheduledAt()).isNull();
+        verify(quietHoursService, never()).deferUntilIfQuiet(any(), any());
+        verify(messagingService).sendForReservationViaChannel(
+            eq(reservation), eq(template), eq(ORG_ID), any(), anyMap());
     }
 }

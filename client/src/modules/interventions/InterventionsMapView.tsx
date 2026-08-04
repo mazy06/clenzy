@@ -1,5 +1,14 @@
 import React from 'react';
-import { Box, Paper, Typography, Chip, Tooltip, IconButton, LinearProgress } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
+import {
+  Card,
+  Button,
+  Progress,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '../../components/ui';
+import { cn } from '../../utils/cn';
 import type { NavigateFunction } from 'react-router-dom';
 import { Build, LocationOn, Visibility as VisibilityIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -12,7 +21,11 @@ import {
   getInterventionTypeLabel,
 } from '../../utils/statusUtils';
 import { getStatusTokens, getPriorityTokens, getTypeTokens } from './interventionUtils';
-import { LIST_PAPER_SX, stripPropertySuffix, getProgress } from './interventionsListConstants';
+import { stripPropertySuffix, getProgress } from './interventionsListConstants';
+
+/** Report en classes de `LIST_PAPER_SX` (hairline plate r14). */
+const LIST_SURFACE_CLS =
+  'border border-solid border-[var(--line)] shadow-none rounded-[14px] bg-[var(--card)]';
 
 interface InterventionsMapViewProps {
   mapMarkers: PropertyMarker[];
@@ -29,9 +42,9 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
 
   return (
     /* ─── Vue carte (sticky) + liste viewport (scrollable) ─── */
-    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Carte fixe en haut */}
-      <Paper sx={{ ...LIST_PAPER_SX, p: 0, overflow: 'hidden', flexShrink: 0 }}>
+      <div className={cn(LIST_SURFACE_CLS, 'p-0 overflow-hidden shrink-0')}>
         {mapMarkers.length > 0 ? (
           <MapboxPropertyMap
             properties={mapMarkers}
@@ -42,168 +55,129 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
             onBoundsChange={onBoundsChange}
           />
         ) : (
-          <Box sx={{ height: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", opacity: 0.5 }}><Build size={36} strokeWidth={1.5} /></Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+          <div className="h-[400px] flex flex-col items-center justify-center gap-1.5">
+            <span className="inline-flex text-muted-foreground opacity-50"><Build size={36} strokeWidth={1.5} /></span>
+            <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
               Aucune intervention avec coordonnées GPS
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
-      </Paper>
+      </div>
 
       {/* Liste scrollable en dessous */}
       {mapMarkers.length > 0 && (
-        <Box sx={{ mt: 1.5, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-          <Typography
-            variant="subtitle2"
-            sx={{ mb: 1, fontSize: '0.8125rem', fontWeight: 600, color: 'text.secondary', flexShrink: 0 }}
-          >
+        <div className="mt-2 flex-1 min-h-0 flex flex-col">
+          <h6 className="cn-text-subtitle2 mb-1.5 text-[0.8125rem] font-semibold text-muted-foreground shrink-0">
             {viewportInterventions.length} {viewportInterventions.length > 1 ? 'interventions' : 'intervention'} dans la zone visible
-          </Typography>
+          </h6>
 
           {viewportInterventions.length === 0 ? (
-            <Paper sx={{ border: '1px solid', borderColor: 'var(--line)', boxShadow: 'none', borderRadius: '14px', p: 2, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+            <Card className="gap-0 py-0 border-[var(--line)] p-3 text-center">
+              <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
                 Aucune intervention dans cette zone. Déplacez ou dézoomez la carte.
-              </Typography>
-            </Paper>
+              </p>
+            </Card>
           ) : (
-            <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1, pr: 0.5 }}>
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 pe-0.5">
               {viewportInterventions.map((intervention) => {
                 const statusTokens = getStatusTokens(intervention.status);
                 const typeTokens = getTypeTokens(intervention.type);
                 const priorityTokens = getPriorityTokens(intervention.priority);
+                const progress = getProgress(intervention);
                 return (
-                  <Paper
+                  <div
                     key={intervention.id}
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'var(--line)',
-                      boxShadow: 'none',
-                      borderRadius: '14px',
-                      p: 1.5,
-                      cursor: 'pointer',
-                      transition: 'border-color .15s, box-shadow .15s',
-                      flexShrink: 0,
-                      '&:hover': {
-                        borderColor: 'var(--line-2)',
-                        boxShadow: 'var(--shadow-card)',
-                      },
-                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                    }}
+                    role="button"
+                    tabIndex={0}
+                    className={cn(
+                      LIST_SURFACE_CLS,
+                      'p-[9px] cursor-pointer shrink-0',
+                      'transition-[border-color,box-shadow] duration-150 motion-reduce:transition-none',
+                      'hover:border-[var(--line-2)] hover:shadow-[var(--shadow-card)]',
+                    )}
                     onClick={() => navigate(`/interventions/${intervention.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(`/interventions/${intervention.id}`);
+                      }
+                    }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <div className="flex items-center gap-2">
                       {/* Titre + adresse */}
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography
-                          variant="body2"
-                          fontWeight={600}
-                          sx={{ fontSize: '0.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                        >
+                      <div className="flex-1 min-w-0">
+                        <p className="cn-text-body2 font-semibold text-[0.84rem] overflow-hidden text-ellipsis whitespace-nowrap">
                           {stripPropertySuffix(intervention.title, intervention.propertyName)}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                          <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", flexShrink: 0 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ fontSize: '0.72rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                          >
+                        </p>
+                        <div className="flex items-center gap-0.5 mt-0.5">
+                          <span className="inline-flex text-muted-foreground shrink-0"><LocationOn size={13} strokeWidth={1.75} /></span>
+                          <span className="cn-text-caption text-muted-foreground text-[0.72rem] overflow-hidden text-ellipsis whitespace-nowrap">
                             {intervention.propertyName} — {intervention.propertyAddress}
-                          </Typography>
-                        </Box>
-                      </Box>
+                          </span>
+                        </div>
+                      </div>
 
                       {/* Type + Statut + Priorité chips */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-                        <Chip
-                          label={getInterventionTypeLabel(intervention.type, t)}
-                          size="small"
-                          sx={{
-                            backgroundColor: typeTokens.bg,
-                            color: typeTokens.color,
-                            borderRadius: '6px',
-                            fontWeight: 600,
-                            fontSize: '0.62rem',
-                            height: 22,
-                            '& .MuiChip-label': { px: 0.75 },
-                          }}
-                        />
-                        <Chip
-                          label={getInterventionStatusLabel(intervention.status, t)}
-                          size="small"
-                          sx={{
-                            backgroundColor: statusTokens.bg,
-                            color: statusTokens.color,
-                            borderRadius: '6px',
-                            fontWeight: 600,
-                            fontSize: '0.62rem',
-                            height: 22,
-                            '& .MuiChip-label': { px: 0.75 },
-                          }}
-                        />
-                        <Chip
-                          label={getInterventionPriorityLabel(intervention.priority, t)}
-                          size="small"
-                          sx={{
-                            backgroundColor: priorityTokens.bg,
-                            color: priorityTokens.color,
-                            borderRadius: '6px',
-                            fontWeight: 600,
-                            fontSize: '0.62rem',
-                            height: 22,
-                            '& .MuiChip-label': { px: 0.75 },
-                          }}
-                        />
-                      </Box>
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        <StatusChip tokens={{ color: typeTokens.color, bg: typeTokens.bg }} label={getInterventionTypeLabel(intervention.type, t)} className="text-[0.62rem]" />
+                        <StatusChip tokens={{ color: statusTokens.color, bg: statusTokens.bg }} label={getInterventionStatusLabel(intervention.status, t)} className="text-[0.62rem]" />
+                        <StatusChip tokens={{ color: priorityTokens.color, bg: priorityTokens.bg }} label={getInterventionPriorityLabel(intervention.priority, t)} className="text-[0.62rem]" />
+                      </div>
 
                       {/* Progression + Assigné + Action */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 70 }}>
-                          <LinearProgress
-                            variant="determinate"
-                            value={getProgress(intervention)}
-                            sx={{
-                              flex: 1,
-                              height: 5,
-                              borderRadius: 3,
-                              bgcolor: 'var(--hover)',
-                              '& .MuiLinearProgress-bar': {
-                                borderRadius: 3,
-                                bgcolor: getProgress(intervention) === 100 ? 'var(--ok)'
-                                  : getProgress(intervention) >= 50 ? 'var(--info)' : 'var(--warn)',
-                              },
-                            }}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-1 min-w-[70px]">
+                          {/* La teinte de la barre vit sur l'indicateur interne :
+                              on la vise par son data-slot, en branches litterales
+                              (une classe Tailwind ne naît pas d'une variable). */}
+                          <Progress
+                            value={progress}
+                            className={cn(
+                              'flex-1 h-[5px] rounded-[24px] bg-[var(--hover)]',
+                              '[&_[data-slot=progress-indicator]]:rounded-[24px]',
+                              progress === 100
+                                ? '[&_[data-slot=progress-indicator]]:bg-[var(--ok)]'
+                                : progress >= 50
+                                  ? '[&_[data-slot=progress-indicator]]:bg-[var(--info)]'
+                                  : '[&_[data-slot=progress-indicator]]:bg-[var(--warn)]',
+                            )}
                           />
-                          <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.68rem', minWidth: 24, fontVariantNumeric: 'tabular-nums' }}>
-                            {getProgress(intervention)}%
-                          </Typography>
-                        </Box>
+                          <span className="cn-text-caption font-semibold text-[0.68rem] min-w-[24px] tabular-nums">
+                            {progress}%
+                          </span>
+                        </div>
                         {intervention.assignedToName && (
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span className="cn-text-caption text-muted-foreground text-[0.72rem] max-w-[90px] overflow-hidden text-ellipsis whitespace-nowrap">
                             {intervention.assignedToName}
-                          </Typography>
+                          </span>
                         )}
-                        <Tooltip title="Détails">
-                          <IconButton
-                            size="small"
-                            onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
-                            sx={{ p: 0.5 }}
-                          >
-                            <VisibilityIcon size={16} strokeWidth={1.75} />
-                          </IconButton>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            {/* Le span porte la ref que Radix pose : le kit n'en
+                                transmet pas (React 18). */}
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="Détails"
+                                onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
+                              >
+                                <VisibilityIcon size={16} strokeWidth={1.75} />
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Détails</TooltipContent>
                         </Tooltip>
-                      </Box>
-                    </Box>
-                  </Paper>
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

@@ -1,18 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { Badge } from '../../components/ui';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, Info, X } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Card } from '../../components/ui';
+import { Field, FieldError, FieldLabel, Input } from '../../components/ui';
 import { useSearchParams } from 'react-router-dom';
 import { accountingApi } from '../../services/api/accountingApi';
-import {
-  Box,
-  Typography,
-  Paper,
-  TextField,
-  Button,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  Chip,
-  Divider,
-} from '@mui/material';
+import { useNotification } from '../../hooks/useNotification';
 import {
   AccountBalance,
   Save,
@@ -84,10 +79,10 @@ export default function MyPayoutSettings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const { notify } = useNotification();
 
-  const showSnackbar = (message: string, severity: 'success' | 'error') => {
-    setSnackbar({ open: true, message, severity });
+  const showMessage = (message: string, severity: 'success' | 'error') => {
+    notify[severity](message);
   };
 
   // ─── SEPA handlers ──────────────────────────────────────────────────────
@@ -108,9 +103,9 @@ export default function MyPayoutSettings() {
       setSepaIban('');
       setSepaBic('');
       setSepaHolder('');
-      showSnackbar(t('settings.myPayout.sepaSuccess', 'Coordonnees bancaires enregistrees'), 'success');
+      showMessage(t('settings.myPayout.sepaSuccess', 'Coordonnees bancaires enregistrees'), 'success');
     } catch {
-      showSnackbar(t('settings.myPayout.sepaError', "Erreur lors de l'enregistrement"), 'error');
+      showMessage(t('settings.myPayout.sepaError', "Erreur lors de l'enregistrement"), 'error');
     }
   };
 
@@ -121,7 +116,7 @@ export default function MyPayoutSettings() {
       const result = await initStripeMutation.mutateAsync();
       window.location.href = result.onboardingUrl;
     } catch {
-      showSnackbar(t('settings.myPayout.stripeError', 'Erreur lors de la connexion Stripe'), 'error');
+      showMessage(t('settings.myPayout.stripeError', 'Erreur lors de la connexion Stripe'), 'error');
     }
   };
 
@@ -130,7 +125,7 @@ export default function MyPayoutSettings() {
       const result = await onboardingLinkMutation.mutateAsync();
       window.location.href = result.url;
     } catch {
-      showSnackbar(t('settings.myPayout.stripeError', 'Erreur lors de la connexion Stripe'), 'error');
+      showMessage(t('settings.myPayout.stripeError', 'Erreur lors de la connexion Stripe'), 'error');
     }
   };
 
@@ -138,17 +133,18 @@ export default function MyPayoutSettings() {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-        <CircularProgress size={32} />
-      </Box>
+      <div className="flex justify-center py-6">
+        <Spinner className="size-8" />
+      </div>
     );
   }
 
   if (isError) {
     return (
-      <Alert severity="error" sx={{ mt: 2 }}>
-        {t('common.loadingError', 'Erreur lors du chargement des donnees. Veuillez reessayer.')}
-      </Alert>
+      <BuiAlert variant="destructive" className="mt-3">
+        <TriangleAlert />
+        <AlertDescription>{t('common.loadingError', 'Erreur lors du chargement des donnees. Veuillez reessayer.')}</AlertDescription>
+      </BuiAlert>
     );
   }
 
@@ -158,54 +154,49 @@ export default function MyPayoutSettings() {
   const isStripeInProgress = hasStripeConnect && !config?.stripeOnboardingComplete && config?.stripeConnectedAccountId;
 
   return (
-    <Box>
+    <div>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+      <div className="flex items-center gap-1.5 mb-0.5">
         <AccountBalance size={20} strokeWidth={1.75} color='var(--info)' />
-        <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
+        <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
           {t('settings.myPayout.title', 'Mes coordonnees de reversement')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('settings.myPayout.subtitle', 'Renseignez vos coordonnees bancaires pour recevoir vos reversements.')}
-      </Typography>
+      </p>
 
       {/* Status */}
       {config && config.id && (
-        <Box sx={{ mb: 2.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8125rem' }}>
+        <div className="mb-3.5 flex items-center gap-2">
+          <p className="cn-text-body2 font-semibold text-[0.8125rem]">
             {t('settings.myPayout.statusLabel', 'Statut')} :
-          </Typography>
+          </p>
           {config.verified ? (
-            <Chip
-              icon={<VerifiedUser size={12} strokeWidth={1.75} />}
-              label={t('settings.myPayout.verified', 'Verifie')}
-              size="small"
-              color="success"
-              sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600 }}
-            />
+            <Badge variant="success" className="text-[0.625rem] h-[20px] font-semibold"><VerifiedUser size={12} strokeWidth={1.75} />{t('settings.myPayout.verified', 'Verifie')}</Badge>
           ) : (
-            <Chip
-              icon={<Warning size={12} strokeWidth={1.75} />}
-              label={t('settings.myPayout.pendingVerification', 'En attente de verification')}
-              size="small"
-              color="warning"
-              sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600 }}
-            />
+            <Badge variant="warning" className="text-[0.625rem] h-[20px] font-semibold"><Warning size={12} strokeWidth={1.75} />{t('settings.myPayout.pendingVerification', 'En attente de verification')}</Badge>
           )}
-        </Box>
+        </div>
       )}
 
       {/* ── Banner retour Open Banking SCA ── */}
       {obProcessing && (
-        <Alert severity="info" sx={{ mb: 2, fontSize: '0.85rem', borderRadius: 2 }}>
-          {t('settings.myPayout.obProcessing', 'Validation du consent Open Banking en cours…')}
-        </Alert>
+        <BuiAlert variant="info" className="mb-3 text-[0.85rem]">
+          <Info />
+          <AlertDescription>{t('settings.myPayout.obProcessing', 'Validation du consent Open Banking en cours…')}</AlertDescription>
+        </BuiAlert>
       )}
       {obError && (
-        <Alert severity="error" sx={{ mb: 2, fontSize: '0.85rem', borderRadius: 2 }} onClose={() => setObError(null)}>
-          {obError}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-3 text-[0.85rem]">
+          <TriangleAlert />
+          <AlertDescription>{obError}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setObError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ── Bannière proactive expiration consent Open Banking ── */}
@@ -215,203 +206,171 @@ export default function MyPayoutSettings() {
       />
 
       {/* ── Bannière Méthodes avancées (Wise, Open Banking) ── */}
-      <Paper
-        variant="outlined"
-        sx={{
-          p: 2,
-          mb: 2.5,
-          borderRadius: 2,
-          backgroundColor: 'var(--accent-soft)',
-          borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          flexWrap: 'wrap',
-        }}
+      {/* `color-mix()` reste en style inline : la syntaxe arbitraire de Tailwind
+          n'accepte pas les espaces, et l'echapper la rendrait illisible. */}
+      <Card
+        className="mb-4 flex flex-row flex-wrap items-center justify-between gap-3 bg-[var(--accent-soft)] p-3"
+        style={{ borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)' }}
       >
-        <Box sx={{ flex: 1, minWidth: 200 }}>
-          <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent)', mb: 0.25 }}>
+        <div className="flex-1 min-w-[200px]">
+          <p className="cn-text-body1 text-[0.85rem] font-bold text-[var(--accent)] mb-0.5">
             {t('settings.myPayout.advancedTitle', 'Méthodes avancées disponibles')}
-          </Typography>
-          <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', lineHeight: 1.45 }}>
+          </p>
+          <p className="cn-text-body1 text-[0.78rem] text-muted-foreground leading-[1.45]">
             {t(
               'settings.myPayout.advancedSubtitle',
               'Wise Business pour les virements internationaux (Maroc, Arabie Saoudite, 80+ pays) ou Open Banking PIS pour des virements SEPA automatiques sans upload manuel.',
             )}
-          </Typography>
-        </Box>
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<SettingsIcon size={14} strokeWidth={1.75} />}
+          </p>
+        </div>
+        <BuiButton
+          variant="outline"
+          size="sm"
+          className="text-[var(--accent)] border-[var(--accent)] hover:bg-[var(--accent-soft)]"
           onClick={() => setMethodDialogOpen(true)}
-          sx={{
-            textTransform: 'none',
-            fontWeight: 600,
-            fontSize: '0.78rem',
-            borderRadius: '8px',
-            borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
-            color: 'var(--accent)',
-            '&:hover': { borderColor: 'var(--accent)', backgroundColor: 'var(--accent-soft)' },
-          }}
         >
+          <SettingsIcon size={14} strokeWidth={1.75} />
           {t('settings.myPayout.changeMethodBtn', 'Choisir une autre méthode')}
-        </Button>
-      </Paper>
+        </BuiButton>
+      </Card>
 
       {/* ── Section SEPA ── */}
-      <Paper variant="outlined" sx={{ p: 2.5, mb: 2.5, borderRadius: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+      <Card className="gap-0 py-0 p-3.5 mb-3.5">
+        <div className="flex items-center gap-1.5 mb-2">
           <AccountBalance size={18} strokeWidth={1.75} color='var(--info)' />
-          <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.875rem' }}>
+          <h6 className="cn-text-subtitle2 font-bold text-[0.875rem]">
             {t('settings.myPayout.sepaSection', 'Virement bancaire (SEPA)')}
-          </Typography>
-        </Box>
+          </h6>
+        </div>
 
         {hasSepaConfig && (
-          <Alert severity="info" sx={{ mb: 2, fontSize: '0.8125rem' }} icon={<CheckCircle size={18} strokeWidth={1.75} />}>
-            {t('settings.myPayout.currentIban', 'IBAN actuel')} : <strong>{config.maskedIban}</strong>
-            {config.bic ? ` — BIC : ${config.bic}` : ''}
-            {config.bankAccountHolder ? ` — ${config.bankAccountHolder}` : ''}
-          </Alert>
+          <BuiAlert variant="info" className="mb-3 text-[0.8125rem]">
+            <CheckCircle size={18} strokeWidth={1.75} />
+            <AlertDescription>
+              {t('settings.myPayout.currentIban', 'IBAN actuel')} : <strong>{config.maskedIban}</strong>
+              {config.bic ? ` — BIC : ${config.bic}` : ''}
+              {config.bankAccountHolder ? ` — ${config.bankAccountHolder}` : ''}
+            </AlertDescription>
+          </BuiAlert>
         )}
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          <TextField
-            label={t('settings.myPayout.ibanLabel', 'IBAN')}
-            value={sepaIban}
-            onChange={(e) => {
-              setSepaIban(e.target.value);
-              setIbanError('');
-            }}
-            error={!!ibanError}
-            helperText={ibanError}
-            placeholder="FR76 3000 6000 0112 3456 7890 189"
-            size="small"
-            fullWidth
-            InputProps={{ sx: { fontFamily: 'monospace', fontSize: '0.875rem' } }}
-            InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-          />
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
-            <TextField
-              label={t('settings.myPayout.bicLabel', 'BIC / SWIFT')}
-              value={sepaBic}
-              onChange={(e) => setSepaBic(e.target.value)}
-              placeholder="AGRIFRPP"
-              size="small"
-              sx={{ flex: 1 }}
-              InputProps={{ sx: { fontSize: '0.875rem' } }}
-              InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
+        <div className="flex flex-col gap-2">
+          <Field>
+            <FieldLabel htmlFor="payout-sepa-iban" className="text-[0.8125rem]">
+              {t('settings.myPayout.ibanLabel', 'IBAN')}
+            </FieldLabel>
+            <Input
+              id="payout-sepa-iban"
+              className="w-full font-mono text-[0.875rem]"
+              value={sepaIban}
+              onChange={(e) => {
+                setSepaIban(e.target.value);
+                setIbanError('');
+              }}
+              aria-invalid={!!ibanError}
+              placeholder="FR76 3000 6000 0112 3456 7890 189"
             />
-            <TextField
-              label={t('settings.myPayout.holderLabel', 'Titulaire du compte')}
-              value={sepaHolder}
-              onChange={(e) => setSepaHolder(e.target.value)}
-              placeholder="Jean Dupont"
-              size="small"
-              sx={{ flex: 2 }}
-              InputProps={{ sx: { fontSize: '0.875rem' } }}
-              InputLabelProps={{ sx: { fontSize: '0.8125rem' } }}
-            />
-          </Box>
+            <FieldError>{ibanError}</FieldError>
+          </Field>
+          <div className="flex gap-2">
+            <Field className="flex-1">
+              <FieldLabel htmlFor="payout-sepa-bic" className="text-[0.8125rem]">
+                {t('settings.myPayout.bicLabel', 'BIC / SWIFT')}
+              </FieldLabel>
+              <Input
+                id="payout-sepa-bic"
+                className="w-full text-[0.875rem]"
+                value={sepaBic}
+                onChange={(e) => setSepaBic(e.target.value)}
+                placeholder="AGRIFRPP"
+              />
+            </Field>
+            <Field className="flex-[2]">
+              <FieldLabel htmlFor="payout-sepa-holder" className="text-[0.8125rem]">
+                {t('settings.myPayout.holderLabel', 'Titulaire du compte')}
+              </FieldLabel>
+              <Input
+                id="payout-sepa-holder"
+                className="w-full text-[0.875rem]"
+                value={sepaHolder}
+                onChange={(e) => setSepaHolder(e.target.value)}
+                placeholder="Jean Dupont"
+              />
+            </Field>
+          </div>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 0.5 }}>
-            <Button
-              variant="contained"
-              size="small"
+          <div className="flex items-center gap-2 mt-0.5">
+            <BuiButton
+              size="sm"
               onClick={handleSaveSepa}
               disabled={updateSepaMutation.isPending || !sepaIban.trim() || !sepaHolder.trim()}
-              startIcon={updateSepaMutation.isPending ? <CircularProgress size={14} /> : <Save />}
-              sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
             >
+              {updateSepaMutation.isPending ? <Spinner className="size-3.5" /> : <Save />}
               {t('settings.myPayout.saveSepa', 'Enregistrer')}
-            </Button>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+            </BuiButton>
+            <span className="cn-text-caption text-muted-foreground text-[0.6875rem]">
               {t('settings.myPayout.verificationNote', 'Apres modification, vos coordonnees seront verifiees par Baitly avant activation.')}
-            </Typography>
-          </Box>
-        </Box>
-      </Paper>
+            </span>
+          </div>
+        </div>
+      </Card>
 
       {/* ── Section Stripe Connect ── */}
-      <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+      <Card className="gap-0 py-0 p-3.5">
+        <div className="flex items-center gap-1.5 mb-2">
           <CreditCard size={18} strokeWidth={1.75} color='#635bff' />
-          <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.875rem' }}>
+          <h6 className="cn-text-subtitle2 font-bold text-[0.875rem]">
             {t('settings.myPayout.stripeSection', 'Stripe Connect')}
-          </Typography>
-        </Box>
+          </h6>
+        </div>
 
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.8125rem' }}>
+        <p className="cn-text-body2 text-muted-foreground mb-3 text-[0.8125rem]">
           {t('settings.myPayout.stripeDescription', 'Connectez votre compte Stripe pour recevoir vos reversements automatiquement.')}
-        </Typography>
+        </p>
 
         {isStripeComplete && (
-          <Alert severity="success" sx={{ fontSize: '0.8125rem' }} icon={<CheckCircle size={18} strokeWidth={1.75} />}>
-            {t('settings.myPayout.stripeConnected', 'Votre compte Stripe est connecte et actif.')}
-          </Alert>
+          <BuiAlert variant="success" className="text-[0.8125rem]">
+            <CheckCircle size={18} strokeWidth={1.75} />
+            <AlertDescription>
+              {t('settings.myPayout.stripeConnected', 'Votre compte Stripe est connecte et actif.')}
+            </AlertDescription>
+          </BuiAlert>
         )}
 
         {isStripeInProgress && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            <Alert severity="warning" sx={{ fontSize: '0.8125rem' }}>
-              {t('settings.myPayout.stripeOnboardingPending', "Votre inscription Stripe n'est pas terminee. Veuillez la completer.")}
-            </Alert>
-            <Button
-              variant="outlined"
-              size="small"
+          <div className="flex flex-col gap-2">
+            <BuiAlert variant="warning" className="text-[0.8125rem]">
+              <TriangleAlert />
+              <AlertDescription>{t('settings.myPayout.stripeOnboardingPending', "Votre inscription Stripe n'est pas terminee. Veuillez la completer.")}</AlertDescription>
+            </BuiAlert>
+            {/* Violet Stripe conserve : c'est la couleur de marque du fournisseur,
+                pas une teinte semantique — elle identifie l'action au premier coup d'oeil. */}
+            <BuiButton
+              variant="outline"
+              size="sm"
+              className="self-start text-[#635bff] border-[#635bff] hover:bg-[#635bff]/5"
               onClick={handleResumeOnboarding}
               disabled={onboardingLinkMutation.isPending}
-              startIcon={onboardingLinkMutation.isPending ? <CircularProgress size={14} /> : <OpenInNew />}
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.8125rem',
-                color: '#635bff',
-                borderColor: '#635bff',
-                '&:hover': { borderColor: '#4b45c6', backgroundColor: 'rgba(99, 91, 255, 0.04)' },
-                alignSelf: 'flex-start',
-              }}
             >
+              {onboardingLinkMutation.isPending ? <Spinner className="size-3.5" /> : <OpenInNew />}
               {t('settings.myPayout.stripeResumeBtn', "Reprendre l'inscription Stripe")}
-            </Button>
-          </Box>
+            </BuiButton>
+          </div>
         )}
 
         {!hasStripeConnect && (
-          <Button
-            variant="outlined"
-            size="small"
+          <BuiButton
+            variant="outline"
+            size="sm"
+            className="self-start text-[#635bff] border-[#635bff] hover:bg-[#635bff]/5"
             onClick={handleInitStripeConnect}
             disabled={initStripeMutation.isPending}
-            startIcon={initStripeMutation.isPending ? <CircularProgress size={14} /> : <CreditCard />}
-            sx={{
-              textTransform: 'none',
-              fontSize: '0.8125rem',
-              color: '#635bff',
-              borderColor: '#635bff',
-              '&:hover': { borderColor: '#4b45c6', backgroundColor: 'rgba(99, 91, 255, 0.04)' },
-            }}
           >
+            {initStripeMutation.isPending ? <Spinner className="size-3.5" /> : <CreditCard />}
             {t('settings.myPayout.stripeConnectBtn', 'Connecter mon compte Stripe')}
-          </Button>
+          </BuiButton>
         )}
-      </Paper>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-      >
-        <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      </Card>
 
       <PayoutMethodEditDialog
         open={methodDialogOpen}
@@ -419,14 +378,10 @@ export default function MyPayoutSettings() {
         mode="self"
         onClose={() => setMethodDialogOpen(false)}
         onSaved={() => {
-          setSnackbar({
-            open: true,
-            message: t('settings.myPayout.methodSaved', 'Méthode de reversement mise à jour'),
-            severity: 'success',
-          });
+          notify.success(t('settings.myPayout.methodSaved', 'Méthode de reversement mise à jour'));
           queryClient.invalidateQueries({ queryKey: ownerPayoutConfigKeys.me });
         }}
       />
-    </Box>
+    </div>
   );
 }

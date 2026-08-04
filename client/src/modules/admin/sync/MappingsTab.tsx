@@ -1,17 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  Skeleton,
-  Alert,
-} from '@mui/material';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Skeleton, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
+import StatusChip from '../../../components/StatusChip';
 import { syncAdminApi, MappingSummary } from '../../../services/api/syncAdminApi';
 import PagePagination from '../../../components/PagePagination';
 
@@ -52,63 +43,56 @@ const MappingsTab: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <div className="flex flex-col gap-1.5">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+          <Skeleton key={i} className="h-[36px] w-full rounded-[9px]" />
         ))}
-      </Box>
+      </div>
     );
   }
 
   if (error) {
-    return <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>;
+    return <Alert variant="destructive" className="mb-3">
+      <TriangleAlert />
+      <AlertDescription>{error}</AlertDescription>
+    </Alert>;
   }
 
   return (
-    <Box>
-      <TableContainer
-        component={Paper}
-        variant="outlined"
-        sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}
-      >
-        <Table size="small">
-          <TableHead>
+    <div>
+      <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Channel</TableCell>
-              <TableCell>Entity Type</TableCell>
-              <TableCell>Internal ID</TableCell>
-              <TableCell>External ID</TableCell>
-              <TableCell>Sync Enabled</TableCell>
-              <TableCell>Last Sync</TableCell>
-              <TableCell>Status</TableCell>
+              <TableHead>ID</TableHead>
+              <TableHead>Channel</TableHead>
+              <TableHead>Entity Type</TableHead>
+              <TableHead>Internal ID</TableHead>
+              <TableHead>External ID</TableHead>
+              <TableHead>Sync Enabled</TableHead>
+              <TableHead>Last Sync</TableHead>
+              <TableHead>Status</TableHead>
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {mappings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ color: 'var(--muted)', py: 3 }}>
+                <TableCell colSpan={8} className="text-center text-[var(--muted)] py-[18px]">
                   Aucun mapping
                 </TableCell>
               </TableRow>
             ) : (
               mappings.map((m) => (
                 <TableRow key={m.id}>
-                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{m.id}</TableCell>
+                  <TableCell className="tabular-nums">{m.id}</TableCell>
                   <TableCell>{m.channel || '—'}</TableCell>
                   <TableCell>{m.entityType}</TableCell>
-                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{m.internalId}</TableCell>
-                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{m.externalId}</TableCell>
+                  <TableCell className="tabular-nums">{m.internalId}</TableCell>
+                  <TableCell className="tabular-nums">{m.externalId}</TableCell>
                   <TableCell>
-                    {/* Chip -soft : actif --ok, désactivé neutre muted */}
-                    <Chip
+                    <StatusChip
+                      tone={m.syncEnabled ? 'ok' : 'neutral'}
                       label={m.syncEnabled ? 'Active' : 'Disabled'}
-                      size="small"
-                      sx={
-                        m.syncEnabled
-                          ? { color: 'var(--ok)', backgroundColor: 'var(--ok-soft)' }
-                          : { color: 'var(--muted)', backgroundColor: 'var(--hover)' }
-                      }
                     />
                   </TableCell>
                   <TableCell>
@@ -120,7 +104,7 @@ const MappingsTab: React.FC = () => {
             )}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
       <PagePagination
         count={totalElements}
         page={page}
@@ -129,7 +113,7 @@ const MappingsTab: React.FC = () => {
         rowsPerPageOptions={[10, 20, 50]}
         onRowsPerPageChange={handleChangeRowsPerPage}
       />
-    </Box>
+    </div>
   );
 };
 

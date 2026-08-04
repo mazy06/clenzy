@@ -1,24 +1,27 @@
 import React, { useCallback, useState } from 'react';
 import {
-  Box,
-  Typography,
-  TextField,
-  Grid,
-  InputAdornment,
   Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
   Table,
+  TableHeader,
   TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
   TableRow,
-  Chip,
-} from '@mui/material';
+  TableHead,
+  TableCell,
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  InputGroup,
+  InputGroupInput,
+  InputGroupAddon,
+  InputGroupText,
+} from '../../components/ui';
+import StatusChip from '../../components/StatusChip';
 import {
   Euro,
-  ExpandMore,
   AutoAwesome,
   Bolt,
   CleaningServices,
@@ -44,19 +47,19 @@ interface TabEntretienProps {
 }
 
 const FORFAIT_ICONS = [
-  <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AutoAwesome key="s" size={20} strokeWidth={1.75} /></Box>,
-  <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Bolt key="e" size={20} strokeWidth={1.75} /></Box>,
-  <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><CleaningServices key="d" size={20} strokeWidth={1.75} /></Box>,
+  <span className="inline-flex text-primary"><AutoAwesome key="s" size={20} strokeWidth={1.75} /></span>,
+  <span className="inline-flex text-[var(--bui-warning-ink)]"><Bolt key="e" size={20} strokeWidth={1.75} /></span>,
+  <span className="inline-flex text-[var(--mui-secondary)]"><CleaningServices key="d" size={20} strokeWidth={1.75} /></span>,
 ];
+
+// Peau d'un panneau : le primitif du kit ne pose qu'un filet bas entre items,
+// la version MUI etait une surface encadree. On la reconstitue une seule fois.
+const PANEL_CLASS = 'rounded-[var(--radius-md)] border border-solid border-[var(--line)] bg-[var(--card)] px-3';
 
 export default function TabEntretien({ config, teams, canEdit, onUpdate, currencySymbol }: TabEntretienProps) {
   const { t } = useTranslation();
   const { currency } = useCurrency();
   const [expandedSection, setExpandedSection] = useState<string | false>('basePrices');
-
-  const handleAccordionChange = (panel: string) => (_: React.SyntheticEvent, isExpanded: boolean) => {
-    setExpandedSection(isExpanded ? panel : false);
-  };
 
   const updateNumericField = (field: keyof PricingConfig, value: string) => {
     const num = parseInt(value, 10);
@@ -110,60 +113,96 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
   }, [config.commissionConfigs, onUpdate]);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pt: 1 }}>
-      {/* ─── Prix de base ───────────────────────────────────────────── */}
-      <Accordion expanded={expandedSection === 'basePrices'} onChange={handleAccordionChange('basePrices')} sx={{ '&:before': { display: 'none' } }}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Euro size={20} strokeWidth={1.75} /></Box>
-            <Box>
-              <Typography variant="subtitle1" fontWeight={600}>{t('tarification.basePrices.title')}</Typography>
-              <Typography variant="body2" color="text.secondary">{t('tarification.basePrices.subtitle')}</Typography>
-            </Box>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Grid container spacing={1.5}>
-            <Grid item xs={6}>
-              <TextField label={t('tarification.basePrices.essentiel')} type="number" size="small" fullWidth value={config.basePriceEssentiel} onChange={(e) => updateNumericField('basePriceEssentiel', e.target.value)} disabled={!canEdit} InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }} />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField label={t('tarification.basePrices.confort')} type="number" size="small" fullWidth value={config.basePriceConfort} onChange={(e) => updateNumericField('basePriceConfort', e.target.value)} disabled={!canEdit} InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }} />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField label={t('tarification.basePrices.premium')} type="number" size="small" fullWidth value={config.basePricePremium} onChange={(e) => updateNumericField('basePricePremium', e.target.value)} disabled={!canEdit} InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }} />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField label={t('tarification.basePrices.minPrice')} type="number" size="small" fullWidth value={config.minPrice} onChange={(e) => updateNumericField('minPrice', e.target.value)} disabled={!canEdit} helperText={t('tarification.basePrices.minPriceHelp')} InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }} />
-            </Grid>
-          </Grid>
-        </AccordionDetails>
-      </Accordion>
+    <div className="flex flex-col gap-1.5 pt-1.5">
+      {/* Les panneaux MUI etaient des accordeons independants rendus exclusifs
+          par `expandedSection` : un seul Accordion `type="single"` porte
+          desormais cette exclusivite nativement. */}
+      <Accordion
+        type="single"
+        collapsible
+        value={expandedSection === false ? '' : expandedSection}
+        onValueChange={(next) => setExpandedSection(next === '' ? false : next)}
+        className="flex flex-col gap-1.5"
+      >
+        {/* ─── Prix de base ───────────────────────────────────────────── */}
+        <AccordionItem value="basePrices" className={PANEL_CLASS}>
+          <AccordionTrigger>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex text-primary"><Euro size={20} strokeWidth={1.75} /></span>
+              <div className="text-start">
+                <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.basePrices.title')}</h6>
+                <p className="cn-text-body2 text-muted-foreground">{t('tarification.basePrices.subtitle')}</p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+          <div className="grid grid-cols-12 gap-[9px]">
+            <div className="col-span-6">
+              <Field>
+                <FieldLabel htmlFor="base-price-essentiel">{t('tarification.basePrices.essentiel')}</FieldLabel>
+                <InputGroup>
+                  <InputGroupInput id="base-price-essentiel" type="number" className="tabular-nums" value={config.basePriceEssentiel} onChange={(e) => updateNumericField('basePriceEssentiel', e.target.value)} disabled={!canEdit} />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
+            </div>
+            <div className="col-span-6">
+              <Field>
+                <FieldLabel htmlFor="base-price-confort">{t('tarification.basePrices.confort')}</FieldLabel>
+                <InputGroup>
+                  <InputGroupInput id="base-price-confort" type="number" className="tabular-nums" value={config.basePriceConfort} onChange={(e) => updateNumericField('basePriceConfort', e.target.value)} disabled={!canEdit} />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
+            </div>
+            <div className="col-span-6">
+              <Field>
+                <FieldLabel htmlFor="base-price-premium">{t('tarification.basePrices.premium')}</FieldLabel>
+                <InputGroup>
+                  <InputGroupInput id="base-price-premium" type="number" className="tabular-nums" value={config.basePricePremium} onChange={(e) => updateNumericField('basePricePremium', e.target.value)} disabled={!canEdit} />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
+            </div>
+            <div className="col-span-6">
+              <Field>
+                <FieldLabel htmlFor="base-price-min">{t('tarification.basePrices.minPrice')}</FieldLabel>
+                <InputGroup>
+                  <InputGroupInput id="base-price-min" type="number" className="tabular-nums" value={config.minPrice} onChange={(e) => updateNumericField('minPrice', e.target.value)} disabled={!canEdit} />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+                  </InputGroupAddon>
+                </InputGroup>
+                <FieldDescription>{t('tarification.basePrices.minPriceHelp')}</FieldDescription>
+              </Field>
+            </div>
+          </div>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* ─── Forfaits nettoyage ─────────────────────────────────────── */}
-      {(config.forfaitConfigs || []).map((forfait, index) => {
-        const panelKey = `forfait-${forfait.key}`;
-        return (
-          <Accordion
-            key={forfait.key}
-            expanded={expandedSection === panelKey}
-            onChange={handleAccordionChange(panelKey)}
-            sx={{ '&:before': { display: 'none' } }}
-          >
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {/* ─── Forfaits nettoyage ─────────────────────────────────────── */}
+        {(config.forfaitConfigs || []).map((forfait, index) => (
+          <AccordionItem key={forfait.key} value={`forfait-${forfait.key}`} className={PANEL_CLASS}>
+            <AccordionTrigger>
+              <div className="flex items-center gap-1.5">
                 {FORFAIT_ICONS[index] || FORFAIT_ICONS[0]}
-                <Box>
-                  <Typography variant="subtitle1" fontWeight={600}>
+                <div className="text-start">
+                  <h6 className="cn-text-subtitle1 font-semibold">
                     {t(`tarification.forfaits.${forfait.key}.title`, `Forfait ${forfait.label}`)}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  </h6>
+                  <p className="cn-text-body2 text-muted-foreground">
                     {t(`tarification.forfaits.${forfait.key}.subtitle`, `Configuration du forfait ${forfait.label.toLowerCase()}`)}
-                  </Typography>
-                </Box>
-              </Box>
-            </AccordionSummary>
-            <AccordionDetails>
+                  </p>
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
               <ForfaitAccordionSection
                 forfait={forfait}
                 teams={teams}
@@ -175,200 +214,196 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
                 onAddSurcharge={handleAddSurcharge}
                 currencySymbol={currencySymbol}
               />
-            </AccordionDetails>
-          </Accordion>
-        );
-      })}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
 
-      {/* ─── Coefficients type de logement ──────────────────────────── */}
-      <Accordion expanded={expandedSection === 'propertyType'} onChange={handleAccordionChange('propertyType')} sx={{ '&:before': { display: 'none' } }}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><Home size={20} strokeWidth={1.75} /></Box>
-            <Box>
-              <Typography variant="subtitle1" fontWeight={600}>{t('tarification.propertyType.title')}</Typography>
-              <Typography variant="body2" color="text.secondary">{t('tarification.propertyType.subtitle')}</Typography>
-            </Box>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('tarification.tableHeaders.type')}</TableCell>
-                  <TableCell align="right">{t('tarification.tableHeaders.coefficient')}</TableCell>
+        {/* ─── Coefficients type de logement ──────────────────────────── */}
+        <AccordionItem value="propertyType" className={PANEL_CLASS}>
+          <AccordionTrigger>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex text-[var(--mui-secondary)]"><Home size={20} strokeWidth={1.75} /></span>
+              <div className="text-start">
+                <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.propertyType.title')}</h6>
+                <p className="cn-text-body2 text-muted-foreground">{t('tarification.propertyType.subtitle')}</p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+          {/* Le primitif Table pose deja son propre conteneur overflow-x-auto :
+              un TableContainer supplementaire n'ajouterait qu'un div en double. */}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('tarification.tableHeaders.type')}</TableHead>
+                <TableHead className="text-end">{t('tarification.tableHeaders.coefficient')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(config.propertyTypeCoeffs).map(([key, value]) => (
+                <TableRow key={key}>
+                  <TableCell>{t(`tarification.propertyType.${key}`) || key}</TableCell>
+                  <TableCell className="text-end w-[120px]">
+                    {/* Champ sans libelle visible : la premiere colonne porte le
+                        libelle, l'aria-label le rend au lecteur d'ecran. */}
+                    <Input id={`coeff-property-type-${key}`} aria-label={t(`tarification.propertyType.${key}`) || key} type="number" step={0.05} min={0.1} max={5.0} className="w-[100px] text-end tabular-nums" value={value} onChange={(e) => updateCoeff('propertyTypeCoeffs', key, e.target.value)} disabled={!canEdit} />
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {Object.entries(config.propertyTypeCoeffs).map(([key, value]) => (
-                  <TableRow key={key}>
-                    <TableCell>{t(`tarification.propertyType.${key}`) || key}</TableCell>
-                    <TableCell align="right" sx={{ width: 120 }}>
-                      <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('propertyTypeCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </AccordionDetails>
-      </Accordion>
+              ))}
+            </TableBody>
+          </Table>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* ─── Coefficients nombre de logements ───────────────────────── */}
-      <Accordion expanded={expandedSection === 'propertyCount'} onChange={handleAccordionChange('propertyCount')} sx={{ '&:before': { display: 'none' } }}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Home size={20} strokeWidth={1.75} /></Box>
-            <Box>
-              <Typography variant="subtitle1" fontWeight={600}>{t('tarification.propertyCount.title')}</Typography>
-              <Typography variant="body2" color="text.secondary">{t('tarification.propertyCount.subtitle')}</Typography>
-            </Box>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('tarification.tableHeaders.count')}</TableCell>
-                  <TableCell align="right">{t('tarification.tableHeaders.coefficient')}</TableCell>
+        {/* ─── Coefficients nombre de logements ───────────────────────── */}
+        <AccordionItem value="propertyCount" className={PANEL_CLASS}>
+          <AccordionTrigger>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex text-[var(--bui-success-ink)]"><Home size={20} strokeWidth={1.75} /></span>
+              <div className="text-start">
+                <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.propertyCount.title')}</h6>
+                <p className="cn-text-body2 text-muted-foreground">{t('tarification.propertyCount.subtitle')}</p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('tarification.tableHeaders.count')}</TableHead>
+                <TableHead className="text-end">{t('tarification.tableHeaders.coefficient')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(config.propertyCountCoeffs).map(([key, value]) => (
+                <TableRow key={key}>
+                  <TableCell>{t(`tarification.propertyCount.${key}`) || key}</TableCell>
+                  <TableCell className="text-end w-[120px]">
+                    <Input id={`coeff-property-count-${key}`} aria-label={t(`tarification.propertyCount.${key}`) || key} type="number" step={0.05} min={0.1} max={5.0} className="w-[100px] text-end tabular-nums" value={value} onChange={(e) => updateCoeff('propertyCountCoeffs', key, e.target.value)} disabled={!canEdit} />
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {Object.entries(config.propertyCountCoeffs).map(([key, value]) => (
-                  <TableRow key={key}>
-                    <TableCell>{t(`tarification.propertyCount.${key}`) || key}</TableCell>
-                    <TableCell align="right" sx={{ width: 120 }}>
-                      <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('propertyCountCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </AccordionDetails>
-      </Accordion>
+              ))}
+            </TableBody>
+          </Table>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* ─── Coefficients capacité voyageurs ─────────────────────────── */}
-      <Accordion expanded={expandedSection === 'guestCapacity'} onChange={handleAccordionChange('guestCapacity')} sx={{ '&:before': { display: 'none' } }}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><People size={20} strokeWidth={1.75} /></Box>
-            <Box>
-              <Typography variant="subtitle1" fontWeight={600}>{t('tarification.guestCapacity.title')}</Typography>
-              <Typography variant="body2" color="text.secondary">{t('tarification.guestCapacity.subtitle')}</Typography>
-            </Box>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('tarification.tableHeaders.capacity')}</TableCell>
-                  <TableCell align="right">{t('tarification.tableHeaders.coefficient')}</TableCell>
+        {/* ─── Coefficients capacité voyageurs ─────────────────────────── */}
+        <AccordionItem value="guestCapacity" className={PANEL_CLASS}>
+          <AccordionTrigger>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex text-primary"><People size={20} strokeWidth={1.75} /></span>
+              <div className="text-start">
+                <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.guestCapacity.title')}</h6>
+                <p className="cn-text-body2 text-muted-foreground">{t('tarification.guestCapacity.subtitle')}</p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('tarification.tableHeaders.capacity')}</TableHead>
+                <TableHead className="text-end">{t('tarification.tableHeaders.coefficient')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(config.guestCapacityCoeffs).map(([key, value]) => (
+                <TableRow key={key}>
+                  <TableCell>{t(`tarification.guestCapacity.${key}`) || key}</TableCell>
+                  <TableCell className="text-end w-[120px]">
+                    <Input id={`coeff-guest-capacity-${key}`} aria-label={t(`tarification.guestCapacity.${key}`) || key} type="number" step={0.05} min={0.1} max={5.0} className="w-[100px] text-end tabular-nums" value={value} onChange={(e) => updateCoeff('guestCapacityCoeffs', key, e.target.value)} disabled={!canEdit} />
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {Object.entries(config.guestCapacityCoeffs).map(([key, value]) => (
-                  <TableRow key={key}>
-                    <TableCell>{t(`tarification.guestCapacity.${key}`) || key}</TableCell>
-                    <TableCell align="right" sx={{ width: 120 }}>
-                      <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('guestCapacityCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </AccordionDetails>
-      </Accordion>
+              ))}
+            </TableBody>
+          </Table>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* ─── Coefficients fréquence ──────────────────────────────────── */}
-      <Accordion expanded={expandedSection === 'frequency'} onChange={handleAccordionChange('frequency')} sx={{ '&:before': { display: 'none' } }}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Speed size={20} strokeWidth={1.75} /></Box>
-            <Box>
-              <Typography variant="subtitle1" fontWeight={600}>{t('tarification.frequency.title')}</Typography>
-              <Typography variant="body2" color="text.secondary">{t('tarification.frequency.subtitle')}</Typography>
-            </Box>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('tarification.tableHeaders.frequency')}</TableCell>
-                  <TableCell align="right">{t('tarification.tableHeaders.coefficient')}</TableCell>
+        {/* ─── Coefficients fréquence ──────────────────────────────────── */}
+        <AccordionItem value="frequency" className={PANEL_CLASS}>
+          <AccordionTrigger>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex text-[var(--bui-warning-ink)]"><Speed size={20} strokeWidth={1.75} /></span>
+              <div className="text-start">
+                <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.frequency.title')}</h6>
+                <p className="cn-text-body2 text-muted-foreground">{t('tarification.frequency.subtitle')}</p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('tarification.tableHeaders.frequency')}</TableHead>
+                <TableHead className="text-end">{t('tarification.tableHeaders.coefficient')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(config.frequencyCoeffs).map(([key, value]) => (
+                <TableRow key={key}>
+                  <TableCell>{t(`tarification.frequency.${key}`) || key}</TableCell>
+                  <TableCell className="text-end w-[120px]">
+                    <Input id={`coeff-frequency-${key}`} aria-label={t(`tarification.frequency.${key}`) || key} type="number" step={0.05} min={0.1} max={5.0} className="w-[100px] text-end tabular-nums" value={value} onChange={(e) => updateCoeff('frequencyCoeffs', key, e.target.value)} disabled={!canEdit} />
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {Object.entries(config.frequencyCoeffs).map(([key, value]) => (
-                  <TableRow key={key}>
-                    <TableCell>{t(`tarification.frequency.${key}`) || key}</TableCell>
-                    <TableCell align="right" sx={{ width: 120 }}>
-                      <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('frequencyCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </AccordionDetails>
-      </Accordion>
+              ))}
+            </TableBody>
+          </Table>
+          </AccordionContent>
+        </AccordionItem>
 
-      {/* ─── Paliers surface ─────────────────────────────────────────── */}
-      <Accordion expanded={expandedSection === 'surfaceTiers'} onChange={handleAccordionChange('surfaceTiers')} sx={{ '&:before': { display: 'none' } }}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><SquareFoot size={20} strokeWidth={1.75} /></Box>
-            <Box>
-              <Typography variant="subtitle1" fontWeight={600}>{t('tarification.surface.title')}</Typography>
-              <Typography variant="body2" color="text.secondary">{t('tarification.surface.subtitle')}</Typography>
-            </Box>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('tarification.tableHeaders.tier')}</TableCell>
-                  <TableCell align="center">{t('tarification.tableHeaders.maxThreshold')}</TableCell>
-                  <TableCell align="right">{t('tarification.tableHeaders.coefficient')}</TableCell>
+        {/* ─── Paliers surface ─────────────────────────────────────────── */}
+        <AccordionItem value="surfaceTiers" className={PANEL_CLASS}>
+          <AccordionTrigger>
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex text-destructive"><SquareFoot size={20} strokeWidth={1.75} /></span>
+              <div className="text-start">
+                <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.surface.title')}</h6>
+                <p className="cn-text-body2 text-muted-foreground">{t('tarification.surface.subtitle')}</p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('tarification.tableHeaders.tier')}</TableHead>
+                <TableHead className="text-center">{t('tarification.tableHeaders.maxThreshold')}</TableHead>
+                <TableHead className="text-end">{t('tarification.tableHeaders.coefficient')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {config.surfaceTiers.map((tier, index) => (
+                <TableRow key={tier.label}>
+                  <TableCell>
+                    <StatusChip label={tier.label} tone={index === config.surfaceTiers.length - 1 ? 'err' : 'neutral'} />
+                  </TableCell>
+                  <TableCell className="text-center">{tier.maxSurface !== null ? `${tier.maxSurface} m²` : '—'}</TableCell>
+                  <TableCell className="text-end w-[120px]">
+                    {/* Pas d'id ici : le libelle du palier ("0-50 m²") ferait un
+                        id invalide, et aucun FieldLabel ne le vise. */}
+                    <Input aria-label={tier.label} type="number" step={0.05} min={0.1} max={5.0} className="w-[100px] text-end tabular-nums" value={tier.coeff} onChange={(e) => updateSurfaceTier(index, e.target.value)} disabled={!canEdit} />
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {config.surfaceTiers.map((tier, index) => (
-                  <TableRow key={tier.label}>
-                    <TableCell>
-                      <Chip label={tier.label} size="small" variant="outlined" color={index === config.surfaceTiers.length - 1 ? 'error' : 'default'} />
-                    </TableCell>
-                    <TableCell align="center">{tier.maxSurface !== null ? `${tier.maxSurface} m²` : '—'}</TableCell>
-                    <TableCell align="right" sx={{ width: 120 }}>
-                      <TextField type="number" size="small" value={tier.coeff} onChange={(e) => updateSurfaceTier(index, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </AccordionDetails>
+              ))}
+            </TableBody>
+          </Table>
+          </AccordionContent>
+        </AccordionItem>
       </Accordion>
 
       {/* ─── Commission entretien ────────────────────────────────────── */}
       {commission && (
-        <Box sx={{ px: 1 }}>
+        <div className="px-1.5">
           <CommissionSection
             commission={commission}
             canEdit={canEdit}
             onChange={handleCommissionChange}
           />
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }

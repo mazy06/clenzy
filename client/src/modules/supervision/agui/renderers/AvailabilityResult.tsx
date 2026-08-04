@@ -8,7 +8,7 @@
      colorée (vert=libre, ambre=bloqué/maintenance, rouge=réservé).
    ============================================================ */
 import React from 'react';
-import { Box, Typography, Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../../../components/ui';
 import { SurfaceCard, Overline } from './shared';
 
 interface Day {
@@ -61,65 +61,54 @@ export const AvailabilityResult: React.FC<{ data: AvailabilityData }> = ({ data 
   return (
     <SurfaceCard>
       {/* Bandeau résumé */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.25, flexWrap: 'wrap' }}>
-        <Box>
+      <div className="flex items-center gap-3 mb-2 flex-wrap">
+        <div>
           <Overline>Disponibilité</Overline>
-          <Typography sx={{ fontSize: '12px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+          <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
             {data.fullyAvailable
               ? 'Entièrement disponible'
               : `${available} nuit${available > 1 ? 's' : ''} libre${available > 1 ? 's' : ''} · ${unavailable} occupée${unavailable > 1 ? 's' : ''}`}
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1.25, ml: 'auto', flexWrap: 'wrap' }}>
+          </p>
+        </div>
+        <div className="flex gap-2 ms-auto flex-wrap">
           {[
             { c: 'var(--ok)', l: 'Libre' },
             { c: 'var(--err)', l: 'Réservé' },
             { c: 'var(--warn)', l: 'Bloqué' },
           ].map((legend) => (
-            <Box key={legend.l} sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: legend.c }} />
-              <Typography sx={{ fontSize: '10.5px', color: 'var(--faint)' }}>{legend.l}</Typography>
-            </Box>
+            <div className="inline-flex items-center gap-0.5" key={legend.l}>
+              <div className="w-[8px] h-[8px] rounded-[2px]" style={{ backgroundColor: legend.c }} />
+              <p className="cn-text-body1 text-[10.5px] text-[var(--faint)]">{legend.l}</p>
+            </div>
           ))}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Mini-grille des jours */}
       {visible.length > 0 && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+        <div className="flex flex-wrap gap-1">
           {visible.map((day) => {
             const color = dayColor(day);
             const d = new Date(day.date);
             const dayNum = Number.isNaN(d.getTime()) ? '?' : d.getDate();
             return (
-              <Tooltip key={day.date} title={`${day.date} · ${statusLabel(day)}`} arrow disableInteractive>
-                <Box
-                  sx={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: '6px',
-                    bgcolor: color.bg,
-                    color: color.fg,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                >
-                  {dayNum}
-                </Box>
+              <Tooltip key={day.date}>
+                <TooltipTrigger asChild>
+                  <div className="w-[26px] h-[26px] rounded-[6px] inline-flex items-center justify-center text-[11px] font-semibold tabular-nums" style={{ backgroundColor: color.bg, color: color.fg }}>
+                    {dayNum}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>{`${day.date} · ${statusLabel(day)}`}</TooltipContent>
               </Tooltip>
             );
           })}
-        </Box>
+        </div>
       )}
 
       {hidden > 0 && (
-        <Typography sx={{ display: 'block', mt: 0.75, fontSize: '11px', color: 'var(--faint)', fontStyle: 'italic' }}>
+        <p className="cn-text-body1 block mt-1 text-[11px] text-[var(--faint)] italic">
           + {hidden} jour{hidden > 1 ? 's' : ''} non affiché{hidden > 1 ? 's' : ''}
-        </Typography>
+        </p>
       )}
     </SurfaceCard>
   );

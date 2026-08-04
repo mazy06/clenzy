@@ -1,33 +1,23 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  Skeleton,
-  Alert,
-  Typography,
-  TextField,
-} from '@mui/material';
+import { Alert, AlertDescription, Field, FieldLabel, Input } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Skeleton } from '../../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { syncAdminApi, CalendarCommand, CalendarConflict } from '../../../services/api/syncAdminApi';
 import { useSyncAdminHeader } from '../SyncAdminPage';
 import PagePagination from '../../../components/PagePagination';
+import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 
 // Types de commande → tokens sémantiques (chips -soft : texte couleur + fond -soft)
-const COMMAND_TOKEN: Record<string, { fg: string; bg: string }> = {
-  BOOK: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  CANCEL: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  BLOCK: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  UNBLOCK: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-  UPDATE_PRICE: { fg: 'var(--accent)', bg: 'var(--accent-soft)' },
+const COMMAND_TOKEN: Record<string, ToneTokens> = {
+  BOOK: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
+  CANCEL: { color: 'var(--err)', bg: 'var(--err-soft)' },
+  BLOCK: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
+  UNBLOCK: { color: 'var(--info)', bg: 'var(--info-soft)' },
+  UPDATE_PRICE: { color: 'var(--accent)', bg: 'var(--accent-soft)' },
 };
 
-const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
+const NEUTRAL_TOKEN: ToneTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
 
 const CalendarAuditTab: React.FC = () => {
   const [commands, setCommands] = useState<CalendarCommand[]>([]);
@@ -80,14 +70,15 @@ const CalendarAuditTab: React.FC = () => {
   // Register Property ID filter into the page header.
   useEffect(() => {
     setHeaderFilters(
-      <TextField
-        size="small"
-        label="Property ID"
-        type="number"
-        value={propertyId}
-        onChange={(e) => { setPropertyId(e.target.value); setPage(0); }}
-        sx={{ width: 160 }}
-      />,
+      <Field className="w-[160px]">
+        <FieldLabel htmlFor="calendar-audit-property">Property ID</FieldLabel>
+        <Input
+          id="calendar-audit-property"
+          type="number"
+          value={propertyId}
+          onChange={(e) => { setPropertyId(e.target.value); setPage(0); }}
+        />
+      </Field>,
     );
     return () => setHeaderFilters(null);
   }, [setHeaderFilters, propertyId]);
@@ -102,89 +93,82 @@ const CalendarAuditTab: React.FC = () => {
   };
 
   return (
-    <Box>
+    <div>
       {/* Conflicts Alert */}
       {conflicts.length > 0 && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" gutterBottom>
+        <Alert variant="warning" className="mb-4">
+          <TriangleAlert />
+          <AlertDescription><h6 className="cn-text-subtitle2 mb-[0.35em]">
             {conflicts.length} conflit(s) calendrier detecte(s)
-          </Typography>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Property ID</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Organization</TableCell>
+          </h6><Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Property ID</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Organization</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {conflicts.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell>{c.id}</TableCell>
+                  <TableCell>{c.propertyId ?? '—'}</TableCell>
+                  <TableCell>{c.date ? new Date(c.date).toLocaleDateString() : '—'}</TableCell>
+                  <TableCell>{c.status ?? '—'}</TableCell>
+                  <TableCell>{c.organizationId}</TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {conflicts.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell>{c.id}</TableCell>
-                    <TableCell>{c.propertyId ?? '—'}</TableCell>
-                    <TableCell>{c.date ? new Date(c.date).toLocaleDateString() : '—'}</TableCell>
-                    <TableCell>{c.status ?? '—'}</TableCell>
-                    <TableCell>{c.organizationId}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              ))}
+            </TableBody>
+          </Table></AlertDescription>
         </Alert>
       )}
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <Alert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       {loading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="flex flex-col gap-1.5">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} variant="rounded" height={36} sx={{ borderRadius: '9px' }} />
+            <Skeleton key={i} className="h-9 w-full rounded-[9px]" />
           ))}
-        </Box>
+        </div>
       ) : (
         <>
-          <TableContainer
-            component={Paper}
-            variant="outlined"
-            sx={{ borderRadius: '14px', borderColor: 'var(--line)' }}
-          >
-            <Table size="small">
-              <TableHead>
+          <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Property ID</TableCell>
-                  <TableCell>Command Type</TableCell>
-                  <TableCell>From</TableCell>
-                  <TableCell>To</TableCell>
-                  <TableCell>Source</TableCell>
-                  <TableCell>Reservation ID</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Executed At</TableCell>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Property ID</TableHead>
+                  <TableHead>Command Type</TableHead>
+                  <TableHead>From</TableHead>
+                  <TableHead>To</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Reservation ID</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Executed At</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {commands.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} align="center" sx={{ color: 'var(--muted)', py: 3 }}>
+                    <TableCell colSpan={9} className="text-center text-[var(--muted)] py-[18px]">
                       Aucune commande
                     </TableCell>
                   </TableRow>
                 ) : (
                   commands.map((cmd) => (
                     <TableRow key={cmd.id}>
-                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{cmd.id}</TableCell>
-                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{cmd.propertyId}</TableCell>
+                      <TableCell className="tabular-nums">{cmd.id}</TableCell>
+                      <TableCell className="tabular-nums">{cmd.propertyId}</TableCell>
                       <TableCell>
-                        <Chip
+                        <StatusChip
                           label={cmd.commandType}
-                          size="small"
-                          sx={(() => {
-                            const tk = COMMAND_TOKEN[cmd.commandType] ?? NEUTRAL_TOKEN;
-                            return { color: tk.fg, backgroundColor: tk.bg };
-                          })()}
+                          tokens={COMMAND_TOKEN[cmd.commandType] ?? NEUTRAL_TOKEN}
                         />
                       </TableCell>
                       <TableCell>
@@ -204,7 +188,7 @@ const CalendarAuditTab: React.FC = () => {
                 )}
               </TableBody>
             </Table>
-          </TableContainer>
+          </div>
           <PagePagination
             count={totalElements}
             page={page}
@@ -215,7 +199,7 @@ const CalendarAuditTab: React.FC = () => {
           />
         </>
       )}
-    </Box>
+    </div>
   );
 };
 

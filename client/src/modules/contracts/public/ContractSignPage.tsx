@@ -1,9 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { Info, TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../../components/ui';
+import { Card } from '../../../components/ui';
+import { Button } from '../../../components/ui';
+import { Field, FieldLabel, Input } from '../../../components/ui';
+import { Checkbox } from '../../../components/ui';
 import { useParams } from 'react-router-dom';
-import {
-  Box, Typography, Paper, Button, TextField, Checkbox, FormControlLabel,
-  CircularProgress, Alert,
-} from '@mui/material';
+import { cn } from '../../../utils/cn';
 import { Handshake, CheckCircle, Download, Warning } from '../../../icons';
 import { API_CONFIG } from '../../../config/api';
 import { SIGN_LABELS, detectSignLang, type SignLabels } from './signLabels';
@@ -23,6 +27,10 @@ interface SignView {
   startDate: string | null;
   endDate: string | null;
   paymentModel: string | null;
+  /** Mandat déclaratif : AGENCY | OWNER. Ce que le propriétaire délègue — ou garde. */
+  policeDeclarationBy: string | null;
+  touristTaxBy: string | null;
+  licenceHeldBy: string | null;
   documentAvailable: boolean;
   signedAt: string | null;
   signedByName: string | null;
@@ -35,6 +43,11 @@ type PageState = 'loading' | 'ready' | 'notfound' | 'error';
 // Page publique : on consomme les tokens Signature (tokens.css importé global).
 // Défaut visiteur = thème clair, accent émeraude.
 const BRAND = 'var(--accent)';
+
+// Report du `<Paper variant="outlined">` : surface carte, hairline --line, r14.
+// Padding MUI p={{ xs: 2, md: 3 }} = 12 px / 18 px, md MUI = 900 px.
+const PANEL_CLASS =
+  'rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)] p-3 min-[900px]:p-[18px]';
 
 async function fetchView(token: string): Promise<SignView | null> {
   const response = await fetch(`${API_BASE}/public/contract-signature/${token}`, {
@@ -138,47 +151,34 @@ const ContractSignPage: React.FC = () => {
   // ─── Rendu ─────────────────────────────────────────────────────────────────
 
   return (
-    <Box
+    // md MUI = 900px ; py 3/6 = 18px/36px et px 2 = 12px (theme.spacing vaut 6).
+    <div
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
-      sx={{
-        minHeight: '100vh',
-        bgcolor: 'var(--bg)',
-        py: { xs: 3, md: 6 },
-        px: 2,
-        display: 'flex',
-        justifyContent: 'center',
-      }}
+      className="min-h-screen flex justify-center bg-[var(--bg)] px-3 py-[18px] min-[900px]:py-9"
     >
-      <Box sx={{ width: '100%', maxWidth: 760, display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <div className="w-full max-w-[760px] flex flex-col gap-4">
         {/* ── En-tête marque ── */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-          <Box
-            component="span"
-            sx={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 36, height: 36, borderRadius: '10px',
-              bgcolor: BRAND, color: 'var(--on-accent)', flexShrink: 0,
-            }}
-          >
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center justify-center w-[36px] h-[36px] rounded-[10px] text-[var(--on-accent)] shrink-0" style={{ backgroundColor: BRAND }}>
             <Handshake size={20} strokeWidth={1.75} />
-          </Box>
-          <Box>
-            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 600, lineHeight: 1.2, color: 'var(--ink)' }}>
-              Clenzy
-            </Typography>
-            <Typography sx={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+          </span>
+          <div>
+            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1rem] font-semibold leading-[1.2] text-[var(--ink)]">
+              Baitly
+            </p>
+            <p className="cn-text-body1 text-[0.75rem] text-[var(--muted)]">
               {L.brandTagline}
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
 
         {state === 'loading' && (
-          <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', p: 6, textAlign: 'center' }}>
-            <CircularProgress size={28} sx={{ color: BRAND }} />
-            <Typography sx={{ mt: 2, fontSize: '0.875rem', color: 'var(--muted)' }}>
+          <Card className="gap-0 py-0 border-[var(--line)] p-9 text-center">
+            <Spinner className="size-7 mx-auto text-[var(--accent)]" />
+            <p className="cn-text-body1 mt-3 text-[0.875rem] text-[var(--muted)]">
               {L.loadingText}
-            </Typography>
-          </Paper>
+            </p>
+          </Card>
         )}
 
         {(state === 'notfound' || state === 'error') && (
@@ -217,20 +217,20 @@ const ContractSignPage: React.FC = () => {
             )}
 
             {/* ── Titre + récapitulatif (toujours visibles si contrat lisible) ── */}
-            <Box>
-              <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1.375rem', fontWeight: 600, color: 'var(--ink)', textWrap: 'balance' }}>
-                {L.title} <Box component="span" sx={{ fontFamily: 'monospace', fontSize: '1.05rem', color: BRAND }}>{view.contractNumber}</Box>
-              </Typography>
+            <div>
+              <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.375rem] font-semibold text-[var(--ink)] text-balance">
+                {L.title} <span className="text-[1.05rem]" style={{ fontFamily: 'monospace', color: BRAND }}>{view.contractNumber}</span>
+              </p>
               {view.status === 'PENDING' && (
-                <Typography sx={{ mt: 0.5, fontSize: '0.875rem', color: 'var(--muted)' }}>
+                <p className="cn-text-body1 mt-0.5 text-[0.875rem] text-[var(--muted)]">
                   {L.subtitle}
-                </Typography>
+                </p>
               )}
-            </Box>
+            </div>
 
-            <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', p: { xs: 2, md: 3 } }}>
+            <div className={PANEL_CLASS}>
               <SectionLabel>{L.summaryTitle}</SectionLabel>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, columnGap: 3 }}>
+              <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-x-[18px]">
                 <SummaryRow label={L.property} value={view.propertyName || '—'} />
                 <SummaryRow label={L.owner} value={view.ownerName || '—'} />
                 <SummaryRow
@@ -251,175 +251,167 @@ const ContractSignPage: React.FC = () => {
                   label={L.collection}
                   value={(view.paymentModel && L.paymentModels[view.paymentModel]) || view.paymentModel || '—'}
                 />
-              </Box>
-            </Paper>
+              </div>
+            </div>
+
+            {/* ── Obligations réglementaires ──
+                 Le mandat de gestion délègue l'exploitation ; celles-ci disent
+                 qui DÉCLARE. Elles s'affichent avant la signature parce que
+                 c'est ce que le propriétaire autorise — un champ qu'il n'aurait
+                 pas lu ne l'engagerait pas. */}
+            <div className={PANEL_CLASS}>
+              <SectionLabel>{L.obligationsTitle}</SectionLabel>
+              <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-x-[18px]">
+                <SummaryRow
+                  label={L.policeDeclaration}
+                  value={(view.policeDeclarationBy && L.obligationBearers[view.policeDeclarationBy])
+                    || L.obligationBearers.AGENCY}
+                />
+                <SummaryRow
+                  label={L.touristTax}
+                  value={(view.touristTaxBy && L.obligationBearers[view.touristTaxBy])
+                    || L.obligationBearers.AGENCY}
+                />
+                <SummaryRow
+                  label={L.licence}
+                  value={(view.licenceHeldBy && L.obligationBearers[view.licenceHeldBy])
+                    || L.obligationBearers.AGENCY}
+                />
+              </div>
+            </div>
 
             {/* ── Document ── */}
             {(view.status === 'PENDING' || view.status === 'SIGNED') && (
-              <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', p: { xs: 2, md: 3 } }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-                  <SectionLabel sx={{ mb: 0 }}>{L.documentTitle}</SectionLabel>
+              <div className={PANEL_CLASS}>
+                <div className="flex items-center justify-between mb-2">
+                  <SectionLabel className="mb-0">{L.documentTitle}</SectionLabel>
                   {pdfUrl && (
-                    <Button
-                      size="small"
-                      startIcon={<Download size={15} strokeWidth={1.75} />}
-                      component="a"
-                      href={pdfUrl}
-                      download={`Mandat_${view.contractNumber}.pdf`}
-                      sx={{ textTransform: 'none', color: BRAND, fontWeight: 600 }}
-                    >
-                      {L.download}
+                    <Button asChild variant="ghost" size="sm">
+                      <a href={pdfUrl} download={`Mandat_${view.contractNumber}.pdf`}>
+                        <Download size={15} strokeWidth={1.75} />
+                        {L.download}
+                      </a>
                     </Button>
                   )}
-                </Box>
+                </div>
                 {pdfUrl ? (
-                  <Box
-                    component="iframe"
-                    src={pdfUrl}
-                    title={`${L.title} ${view.contractNumber}`}
-                    sx={{
-                      width: '100%',
-                      height: { xs: 380, md: 520 },
-                      border: '1px solid',
-                      borderColor: 'var(--line-2)',
-                      borderRadius: '12px',
-                      bgcolor: 'var(--card)',
-                    }}
-                  />
+                  <iframe className="w-full h-[380px] min-[900px]:h-[520px] border border-solid border-[var(--line-2)] rounded-[12px] bg-[var(--card)]" src={pdfUrl} title={`${L.title} ${view.contractNumber}`} />
                 ) : view.documentAvailable ? (
-                  <Box sx={{ py: 4, textAlign: 'center' }}>
-                    <CircularProgress size={22} sx={{ color: BRAND }} />
-                  </Box>
+                  <div className="py-6 text-center">
+                    <Spinner className="size-[22px] mx-auto text-[var(--accent)]" />
+                  </div>
                 ) : (
-                  <Alert severity="info" sx={{ borderRadius: 2, fontSize: '0.8125rem' }}>
-                    {L.documentUnavailable}
+                  <Alert variant="info" className="text-[0.8125rem]">
+                    <Info />
+                    <AlertDescription>{L.documentUnavailable}</AlertDescription>
                   </Alert>
                 )}
                 {view.status === 'PENDING' && (
-                  <Typography sx={{ mt: 1, fontSize: '0.75rem', color: 'var(--faint)' }}>
+                  <p className="cn-text-body1 mt-1.5 text-[0.75rem] text-[var(--faint)]">
                     {L.documentHint}
-                  </Typography>
+                  </p>
                 )}
-              </Paper>
+              </div>
             )}
 
             {/* ── Bloc signature ── */}
             {view.status === 'PENDING' && (
-              <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', p: { xs: 2, md: 3 }, borderColor: BRAND }}>
+              <div className={cn(PANEL_CLASS, 'border-[var(--accent)]')}>
                 <SectionLabel>{L.signTitle}</SectionLabel>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <TextField
-                    label={L.signerNameLabel}
-                    placeholder={L.signerNamePlaceholder}
-                    value={signerName}
-                    onChange={(e) => setSignerName(e.target.value)}
-                    fullWidth
-                    size="small"
-                    autoComplete="name"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={consent}
-                        onChange={(e) => setConsent(e.target.checked)}
-                        sx={{ alignSelf: 'flex-start', mt: -0.75, color: BRAND, '&.Mui-checked': { color: BRAND } }}
-                      />
-                    }
-                    label={
-                      <Typography sx={{ fontSize: '0.78rem', color: 'var(--muted)', lineHeight: 1.55 }}>
-                        {view.consentText}
-                      </Typography>
-                    }
-                    sx={{ alignItems: 'flex-start', mx: 0 }}
-                  />
+                <div className="flex flex-col gap-3">
+                  <Field>
+                    <FieldLabel htmlFor="contract-signer-name">{L.signerNameLabel}</FieldLabel>
+                    <Input
+                      id="contract-signer-name"
+                      className="w-full"
+                      placeholder={L.signerNamePlaceholder}
+                      value={signerName}
+                      onChange={(e) => setSignerName(e.target.value)}
+                      autoComplete="name"
+                    />
+                  </Field>
+                  <Field orientation="horizontal" className="items-start">
+                    <Checkbox
+                      id="contract-consent"
+                      className="mt-[3px]"
+                      checked={consent}
+                      onCheckedChange={(checked) => setConsent(checked === true)}
+                    />
+                    <FieldLabel
+                      htmlFor="contract-consent"
+                      className="text-[0.78rem] font-normal text-[var(--muted)] leading-[1.55]"
+                    >
+                      {view.consentText}
+                    </FieldLabel>
+                  </Field>
                   {signError && (
-                    <Alert severity="error" sx={{ borderRadius: 2, fontSize: '0.8125rem' }}>
-                      {signError}
+                    <Alert variant="destructive" className="text-[0.8125rem]">
+                      <TriangleAlert />
+                      <AlertDescription>{signError}</AlertDescription>
                     </Alert>
                   )}
+                  {/* CTA principal de la page : l'aplat accent maison cede la place a
+                      l'encre pleine du kit. `sm` MUI = 600px cote Tailwind. */}
                   <Button
-                    variant="contained"
-                    size="large"
+                    variant="default"
+                    size="lg"
                     onClick={handleSign}
                     disabled={!formValid || signing}
-                    startIcon={signing
-                      ? <CircularProgress size={16} color="inherit" />
-                      : <CheckCircle size={18} strokeWidth={1.75} />}
-                    sx={{
-                      // Exception page publique : CTA de signature en aplat accent
-                      // (langage propre aux pages publiques, cf. send messagerie).
-                      py: 1.1,
-                      bgcolor: BRAND,
-                      color: 'var(--on-accent)',
-                      borderColor: BRAND,
-                      '&:hover': { bgcolor: 'var(--accent-deep)', borderColor: 'var(--accent-deep)', color: 'var(--on-accent)' },
-                      alignSelf: { sm: 'flex-start' },
-                      px: 4,
-                    }}
+                    className="px-6 min-[600px]:self-start"
                   >
+                    {signing
+                      ? <Spinner className="size-4" />
+                      : <CheckCircle size={18} strokeWidth={1.75} />}
                     {signing ? L.signing : L.signButton}
                   </Button>
-                </Box>
-              </Paper>
+                </div>
+              </div>
             )}
           </>
         )}
 
         {/* ── Pied de page légal ── */}
-        <Typography sx={{ fontSize: '0.6875rem', color: 'var(--faint)', textAlign: 'center', pb: 2 }}>
+        <p className="cn-text-body1 text-[0.6875rem] text-[var(--faint)] text-center pb-3">
           {L.footer}
-        </Typography>
-      </Box>
-    </Box>
+        </p>
+      </div>
+    </div>
   );
 };
 
 // ─── Sous-composants ──────────────────────────────────────────────────────────
 
-const SectionLabel: React.FC<{ children: React.ReactNode; sx?: object }> = ({ children, sx }) => (
-  <Typography
-    sx={{
-      fontSize: '10.5px',
-      fontWeight: 700,
-      textTransform: 'uppercase',
-      letterSpacing: '0.06em',
-      color: 'var(--faint)',
-      mb: 1.5,
-      ...sx,
-    }}
-  >
+// L'ancien surcharge par `sx` devient une surcharge par `className` : le seul
+// appelant passait `mb: 0`, que tailwind-merge resout contre le mb-[9px] de base.
+const SectionLabel: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
+  <p className={cn('cn-text-body1 text-[10.5px] font-bold uppercase tracking-[0.06em] text-[var(--faint)] mb-[9px]', className)}>
     {children}
-  </Typography>
+  </p>
 );
 
 const SummaryRow: React.FC<{ label: string; value: string; tabular?: boolean }> = ({ label, value, tabular }) => (
-  <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: 0.875, borderBottom: '1px solid', borderColor: 'var(--line)' }}>
-    <Typography sx={{ fontSize: '0.8125rem', color: 'var(--muted)', flexShrink: 0 }}>{label}</Typography>
-    <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink)', textAlign: 'end', ...(tabular ? { fontVariantNumeric: 'tabular-nums' } : {}) }}>
+  <div className="flex justify-between gap-3 py-1.5 border-b border-[var(--line)]">
+    <p className="cn-text-body1 text-[0.8125rem] text-[var(--muted)] shrink-0">{label}</p>
+    <p className={cn('cn-text-body1 text-[0.8125rem] font-semibold text-[var(--ink)] text-end', tabular && 'tabular-nums')}>
       {value}
-    </Typography>
-  </Box>
+    </p>
+  </div>
 );
 
 const StatusCard: React.FC<{ icon: React.ReactNode; iconColor: string; iconSoft: string; title: string; text: string }> = ({
   icon, iconColor, iconSoft, title, text,
 }) => (
-  <Paper variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', p: { xs: 2.5, md: 3 }, display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-    <Box
-      component="span"
-      sx={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        width: 44, height: 44, borderRadius: '12px', flexShrink: 0,
-        bgcolor: iconSoft, color: iconColor,
-      }}
-    >
+  // p={{ xs: 2.5, md: 3 }} = 15 px / 18 px : padding propre a cette carte, donc
+  // pas PANEL_CLASS.
+  <div className="rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)] p-[15px] min-[900px]:p-[18px] flex gap-3 items-start">
+    <span className="inline-flex items-center justify-center w-[44px] h-[44px] rounded-[12px] shrink-0" style={{ backgroundColor: iconSoft, color: iconColor }}>
       {icon}
-    </Box>
-    <Box>
-      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '1rem', fontWeight: 600, color: 'var(--ink)', textWrap: 'balance' }}>{title}</Typography>
-      <Typography sx={{ mt: 0.5, fontSize: '0.85rem', color: 'var(--muted)', lineHeight: 1.55 }}>{text}</Typography>
-    </Box>
-  </Paper>
+    </span>
+    <div>
+      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1rem] font-semibold text-[var(--ink)] text-balance">{title}</p>
+      <p className="cn-text-body1 mt-0.5 text-[0.85rem] text-[var(--muted)] leading-[1.55]">{text}</p>
+    </div>
+  </div>
 );
 
 export default ContractSignPage;

@@ -1,19 +1,26 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 import {
-  Box,
-  Grid,
-  Typography,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
-  FormControlLabel,
   Checkbox,
-  Divider,
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  NativeSelect,
+  NativeSelectOption,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Separator,
   Switch,
-} from '@mui/material';
+  Textarea,
+} from '../../components/ui';
 import {
   Person,
   Schedule,
@@ -27,23 +34,12 @@ import type { Control, FieldErrors } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { PropertyFormValues } from '../../schemas';
 
-// ─── Stable sx constants ────────────────────────────────────────────────────
+// ─── Stable class constants ─────────────────────────────────────────────────
 
-const SECTION_TITLE_SX = {
-  fontSize: '0.6875rem',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  color: 'text.secondary',
-  mb: 1.5,
-} as const;
+const SECTION_TITLE_CLASS = 'text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-[var(--muted)] mb-[9px]';
 
-const SECTION_TITLE_ICON_SX = {
-  ...SECTION_TITLE_SX,
-  display: 'flex',
-  alignItems: 'center',
-  gap: 0.5,
-} as const;
+/** Variante avec icone en tete de titre (gap 0.5 de l'ancien spacing MUI = 3 px). */
+const SECTION_TITLE_ICON_CLASS = `${SECTION_TITLE_CLASS} flex items-center gap-[3px]`;
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -72,515 +68,507 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
     const { t } = useTranslation();
 
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <div className="flex flex-col gap-4">
         {/* ── Configuration ────────────────────────────────────────────── */}
-        <Box>
-          <Typography sx={SECTION_TITLE_SX}>
+        <div>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
             {t('properties.configuration')}
-          </Typography>
+          </p>
 
-          <Grid container spacing={1.5}>
-            <Grid item xs={12}>
+          <div className="grid grid-cols-12 gap-[9px]">
+            <div className="col-span-12">
               <Controller
                 name="ownerId"
                 control={control}
                 render={({ field, fieldState }) => (
-                  <FormControl fullWidth required error={!!fieldState.error}>
-                    <InputLabel>{t('properties.owner')} *</InputLabel>
+                  <Field>
+                    <FieldLabel htmlFor="property-owner">{t('properties.owner')} *</FieldLabel>
+                    {/* Select riche (et non NativeSelect) : chaque entree porte une
+                        icone, qu'une <option> native ne saurait rendre. Radix ne
+                        manipule que des chaines : la valeur est recastee en nombre. */}
                     <Select
-                      {...field}
-                      label={`${t('properties.owner')} *`}
+                      value={field.value != null ? String(field.value) : ''}
+                      onValueChange={(v) => field.onChange(v === '' ? undefined : Number(v))}
                       disabled={!isAdmin() && !isManager()}
-                      size="small"
                     >
-                      {users.map((user) => (
-                        <MenuItem key={user.id} value={user.id}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={14} strokeWidth={1.75} /></Box>
-                            <Typography sx={{ fontSize: '0.8125rem' }}>
-                              {user.firstName} {user.lastName} ({user.role})
-                            </Typography>
-                          </Box>
-                        </MenuItem>
-                      ))}
+                      <SelectTrigger
+                        id="property-owner"
+                        size="sm"
+                        className="w-full"
+                        aria-invalid={!!fieldState.error}
+                      >
+                        <SelectValue placeholder={t('properties.owner')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {users.map((user) => (
+                          <SelectItem key={user.id} value={String(user.id)}>
+                            <span className="inline-flex items-center gap-1">
+                              <span className="inline-flex text-muted-foreground"><Person size={14} strokeWidth={1.75} /></span>
+                              <span className="text-[0.8125rem]">
+                                {user.firstName} {user.lastName} ({user.role})
+                              </span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
-                    {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
-                  </FormControl>
+                    {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                  </Field>
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <Controller
                 name="status"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <FormControl fullWidth required error={!!fieldState.error}>
-                    <InputLabel>{t('properties.status')}</InputLabel>
-                    <Select {...field} label={t('properties.status')} size="small">
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <Field>
+                    <FieldLabel htmlFor="property-status">{t('properties.status')}</FieldLabel>
+                    <NativeSelect
+                      {...field}
+                      id="property-status"
+                      className="w-full"
+                      required
+                      value={field.value ?? ''}
+                      aria-invalid={!!fieldState.error}
+                    >
                       {propertyStatuses.map(status => (
-                        <MenuItem key={status.value} value={status.value}>
+                        <NativeSelectOption key={status.value} value={status.value}>
                           {status.label}
-                        </MenuItem>
+                        </NativeSelectOption>
                       ))}
-                    </Select>
-                    {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
-                  </FormControl>
+                    </NativeSelect>
+                    {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                  </Field>
                 )}
               />
-            </Grid>
+            </div>
 
             {/* Booking Engine Visibility */}
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <Controller
                 name="bookingEngineVisible"
                 control={control}
                 render={({ field }) => (
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.5,
-                      py: 1,
-                      px: 1.5,
-                      borderRadius: '11px',
-                      bgcolor: field.value ? 'var(--ok-soft)' : 'var(--field)',
-                      border: '1px solid',
-                      borderColor: field.value ? 'color-mix(in srgb, var(--ok) 30%, transparent)' : 'var(--field-line)',
-                      transition: 'background-color .14s, border-color .14s',
-                    }}
-                  >
-                    <Box component="span" sx={{ display: 'inline-flex', color: field.value ? 'var(--ok)' : 'var(--muted)' }}><Language size={18} strokeWidth={1.75} /></Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                  <div className={cn('flex items-center gap-[9px] py-1.5 px-[9px] rounded-[11px] border border-solid', field.value ? 'bg-[var(--ok-soft)]' : 'bg-[var(--field)]', field.value ? 'border-[color-mix(in_srgb,_var(--ok)_30%,_transparent)]' : 'border-[var(--field-line)]')} style={{ transition: 'background-color .14s, border-color .14s' }}>
+                    <span className={cn('inline-flex', field.value ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}><Language size={18} strokeWidth={1.75} /></span>
+                    <label className="flex-1 cursor-pointer" htmlFor="property-booking-engine-visible">
+                      <span className="cn-text-body1 text-[0.8125rem] font-semibold block">
                         {t('properties.bookingEngineVisible')}
-                      </Typography>
-                      <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                      </span>
+                      <span className="cn-text-body1 text-[0.6875rem] text-muted-foreground block">
                         {t('properties.bookingEngineVisibleHelper')}
-                      </Typography>
-                    </Box>
+                      </span>
+                    </label>
+                    {/* color="success" de MUI : le kit n'a qu'une teinte d'encre par
+                        defaut, la couleur « actif » se pose en classe data-checked. */}
                     <Switch
+                      id="property-booking-engine-visible"
+                      size="sm"
                       checked={field.value ?? false}
-                      onChange={(e) => field.onChange(e.target.checked)}
-                      size="small"
-                      color="success"
+                      onCheckedChange={(checked) => field.onChange(checked)}
+                      className="data-checked:bg-[var(--ok)]"
                     />
-                  </Box>
+                  </div>
                 )}
               />
-            </Grid>
+            </div>
 
             {/* Org Voucher Consent — autorise la conciergerie a creer des
                 vouchers sur ce logement (combine avec organization.has_voucher_contract
                 cote backend). Default false : le host garde le controle. */}
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <Controller
                 name="orgCanCreateVouchers"
                 control={control}
                 render={({ field }) => (
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.5,
-                      py: 1,
-                      px: 1.5,
-                      borderRadius: '11px',
-                      bgcolor: field.value ? 'var(--ok-soft)' : 'var(--field)',
-                      border: '1px solid',
-                      borderColor: field.value ? 'color-mix(in srgb, var(--ok) 30%, transparent)' : 'var(--field-line)',
-                      transition: 'background-color .14s, border-color .14s',
-                    }}
-                  >
-                    <Box component="span" sx={{ display: 'inline-flex', color: field.value ? 'var(--ok)' : 'var(--muted)' }}>
+                  <div className={cn('flex items-center gap-[9px] py-1.5 px-[9px] rounded-[11px] border border-solid', field.value ? 'bg-[var(--ok-soft)]' : 'bg-[var(--field)]', field.value ? 'border-[color-mix(in_srgb,_var(--ok)_30%,_transparent)]' : 'border-[var(--field-line)]')} style={{ transition: 'background-color .14s, border-color .14s' }}>
+                    <span className={cn('inline-flex', field.value ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}>
                       <Language size={18} strokeWidth={1.75} />
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                    </span>
+                    <label className="flex-1 cursor-pointer" htmlFor="property-org-can-create-vouchers">
+                      <span className="cn-text-body1 text-[0.8125rem] font-semibold block">
                         {t('properties.orgCanCreateVouchers')}
-                      </Typography>
-                      <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                      </span>
+                      <span className="cn-text-body1 text-[0.6875rem] text-muted-foreground block">
                         {t('properties.orgCanCreateVouchersHelper')}
-                      </Typography>
-                    </Box>
+                      </span>
+                    </label>
                     <Switch
+                      id="property-org-can-create-vouchers"
+                      size="sm"
                       checked={field.value ?? false}
-                      onChange={(e) => field.onChange(e.target.checked)}
-                      size="small"
-                      color="success"
+                      onCheckedChange={(checked) => field.onChange(checked)}
+                      className="data-checked:bg-[var(--ok)]"
                     />
-                  </Box>
+                  </div>
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={6}>
+            <div className="col-span-6">
               <Controller
                 name="defaultCheckInTime"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    type="time"
-                    label={t('properties.checkInTime')}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                    InputLabelProps={{ shrink: true }}
-                    InputProps={{
-                      startAdornment: <Schedule size={16} strokeWidth={1.75} style={{ marginRight: 6, color: 'var(--muted)' }} />,
-                    }}
-                    inputProps={{ step: 900 }}
-                  />
+                // Le ref de react-hook-form est ecarte : les primitives du kit sont des
+                // composants fonction sans forwardRef (React 18 refuserait le ref).
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <Field>
+                    <FieldLabel htmlFor="property-check-in-time">{t('properties.checkInTime')}</FieldLabel>
+                    <InputGroup>
+                      <InputGroupAddon>
+                        <span className="inline-flex text-[var(--muted)]"><Schedule size={16} strokeWidth={1.75} /></span>
+                      </InputGroupAddon>
+                      <InputGroupInput
+                        {...field}
+                        id="property-check-in-time"
+                        type="time"
+                        step={900}
+                        aria-invalid={!!fieldState.error}
+                      />
+                    </InputGroup>
+                    {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                  </Field>
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={6}>
+            <div className="col-span-6">
               <Controller
                 name="defaultCheckOutTime"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    type="time"
-                    label={t('properties.checkOutTime')}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                    InputLabelProps={{ shrink: true }}
-                    InputProps={{
-                      startAdornment: <Schedule size={16} strokeWidth={1.75} style={{ marginRight: 6, color: 'var(--muted)' }} />,
-                    }}
-                    inputProps={{ step: 900 }}
-                  />
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <Field>
+                    <FieldLabel htmlFor="property-check-out-time">{t('properties.checkOutTime')}</FieldLabel>
+                    <InputGroup>
+                      <InputGroupAddon>
+                        <span className="inline-flex text-[var(--muted)]"><Schedule size={16} strokeWidth={1.75} /></span>
+                      </InputGroupAddon>
+                      <InputGroupInput
+                        {...field}
+                        id="property-check-out-time"
+                        type="time"
+                        step={900}
+                        aria-invalid={!!fieldState.error}
+                      />
+                    </InputGroup>
+                    {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                  </Field>
                 )}
               />
-            </Grid>
-          </Grid>
-        </Box>
+            </div>
+          </div>
+        </div>
 
-        <Divider />
+        <Separator />
 
         {/* ── Tarification ménage ──────────────────────────────────────── */}
-        <Box>
-          <Typography sx={SECTION_TITLE_ICON_SX}>
+        <div>
+          <p className={cn(SECTION_TITLE_ICON_CLASS, 'cn-text-body1')}>
             <CleaningServices size={14} strokeWidth={1.75} />
             {t('properties.cleaningPricing')}
-          </Typography>
+          </p>
 
-          <Grid container spacing={1.5}>
-            <Grid item xs={12}>
+          <div className="grid grid-cols-12 gap-[9px]">
+            <div className="col-span-12">
               <Controller
                 name="cleaningFrequency"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <FormControl fullWidth required error={!!fieldState.error}>
-                    <InputLabel>{t('properties.cleaningFrequency')}</InputLabel>
-                    <Select {...field} label={t('properties.cleaningFrequency')} size="small">
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <Field>
+                    <FieldLabel htmlFor="property-cleaning-frequency">{t('properties.cleaningFrequency')}</FieldLabel>
+                    <NativeSelect
+                      {...field}
+                      id="property-cleaning-frequency"
+                      className="w-full"
+                      required
+                      value={field.value ?? ''}
+                      aria-invalid={!!fieldState.error}
+                    >
                       {cleaningFrequencies.map(freq => (
-                        <MenuItem key={freq.value} value={freq.value}>
+                        <NativeSelectOption key={freq.value} value={freq.value}>
                           {freq.label}
-                        </MenuItem>
+                        </NativeSelectOption>
                       ))}
-                    </Select>
-                    {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
-                  </FormControl>
+                    </NativeSelect>
+                    {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                  </Field>
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <Controller
                 name="cleaningBasePrice"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    value={field.value ?? ''}
-                    fullWidth
-                    type="number"
-                    label={t('properties.cleaningBasePrice')}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      field.onChange(val === '' ? undefined : Number(val));
-                    }}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message || t('properties.cleaningBasePriceHelper')}
-                    inputProps={{ step: '0.01', min: '0' }}
-                  />
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <Field>
+                    <FieldLabel htmlFor="property-cleaning-base-price">{t('properties.cleaningBasePrice')}</FieldLabel>
+                    <Input
+                      {...field}
+                      id="property-cleaning-base-price"
+                      value={field.value ?? ''}
+                      className="w-full tabular-nums"
+                      type="number"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        field.onChange(val === '' ? undefined : Number(val));
+                      }}
+                      aria-invalid={!!fieldState.error}
+                      step="0.01"
+                      min="0"
+                    />
+                    {fieldState.error ? (
+                      <FieldError>{fieldState.error.message}</FieldError>
+                    ) : (
+                      <FieldDescription>{t('properties.cleaningBasePriceHelper')}</FieldDescription>
+                    )}
+                  </Field>
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={4}>
+            <div className="col-span-4">
               <Controller
                 name="numberOfFloors"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    value={field.value ?? ''}
-                    fullWidth
-                    type="number"
-                    label={t('properties.numberOfFloors')}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      field.onChange(val === '' ? undefined : Number(val));
-                    }}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                    inputProps={{ min: '0' }}
-                  />
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <Field>
+                    <FieldLabel htmlFor="property-number-of-floors">{t('properties.numberOfFloors')}</FieldLabel>
+                    <Input
+                      {...field}
+                      id="property-number-of-floors"
+                      value={field.value ?? ''}
+                      className="w-full tabular-nums"
+                      type="number"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        field.onChange(val === '' ? undefined : Number(val));
+                      }}
+                      aria-invalid={!!fieldState.error}
+                      min="0"
+                    />
+                    {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
+                  </Field>
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={4}>
+            <div className="col-span-4">
               <Controller
                 name="hasExterior"
                 control={control}
                 render={({ field }) => (
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={field.value ?? false}
-                        onChange={(e) => field.onChange(e.target.checked)}
-                        size="small"
-                      />
-                    }
-                    label={
-                      <Typography sx={{ fontSize: '0.8125rem' }}>
-                        {t('properties.hasExterior')}
-                      </Typography>
-                    }
-                  />
+                  <Field orientation="horizontal" className="gap-1.5">
+                    <Checkbox
+                      id="property-has-exterior"
+                      checked={field.value ?? false}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                    <FieldLabel htmlFor="property-has-exterior" className="text-[0.8125rem] font-normal">
+                      {t('properties.hasExterior')}
+                    </FieldLabel>
+                  </Field>
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={4}>
+            <div className="col-span-4">
               <Controller
                 name="hasLaundry"
                 control={control}
                 render={({ field }) => (
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={field.value ?? true}
-                        onChange={(e) => field.onChange(e.target.checked)}
-                        size="small"
-                      />
-                    }
-                    label={
-                      <Typography sx={{ fontSize: '0.8125rem' }}>
-                        {t('properties.hasLaundry')}
-                      </Typography>
-                    }
-                  />
+                  <Field orientation="horizontal" className="gap-1.5">
+                    <Checkbox
+                      id="property-has-laundry"
+                      checked={field.value ?? true}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                    <FieldLabel htmlFor="property-has-laundry" className="text-[0.8125rem] font-normal">
+                      {t('properties.hasLaundry')}
+                    </FieldLabel>
+                  </Field>
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <Controller
                 name="cleaningNotes"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <Box sx={{
-                    display: 'flex',
-                    gap: 1,
-                    py: 1.25,
-                    px: 1.5,
-                    borderRadius: '11px',
-                    bgcolor: 'var(--accent-soft)',
-                    border: '1px solid',
-                    borderColor: fieldState.error ? 'var(--err)' : 'color-mix(in srgb, var(--accent) 30%, transparent)',
-                    minHeight: 80,
-                    transition: 'border-color 0.15s ease',
-                  }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mt: 0.125, flexShrink: 0 }}><Checklist size={16} strokeWidth={1.75} /></Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--accent)', mb: 0.5 }}>
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <div className={cn('flex gap-1.5 py-[7.5px] px-[9px] rounded-[11px] bg-[var(--accent-soft)] border border-solid min-h-[80px]', fieldState.error ? 'border-[var(--err)]' : 'border-[color-mix(in_srgb,_var(--accent)_30%,_transparent)]')} style={{ transition: 'border-color 0.15s ease' }}>
+                    <span className="inline-flex text-[var(--accent)] mt-0 shrink-0"><Checklist size={16} strokeWidth={1.75} /></span>
+                    <div className="flex-1">
+                      <FieldLabel
+                        htmlFor="property-cleaning-notes"
+                        className="text-[0.625rem] font-bold uppercase tracking-[0.05em] text-[var(--accent)] mb-0.5"
+                      >
                         {t('properties.cleaningNotes')}
-                      </Typography>
-                      <TextField
+                      </FieldLabel>
+                      {/* Ancien TextField variant="standard" + disableUnderline : le
+                          champ est nu, seul le panneau teinte l'encadre. min-h/max-h
+                          en `lh` remplacent minRows/maxRows, que field-sizing annule. */}
+                      <Textarea
                         {...field}
+                        id="property-cleaning-notes"
                         value={field.value ?? ''}
-                        fullWidth
-                        multiline
-                        minRows={2}
-                        maxRows={6}
                         placeholder={t('properties.cleaningNotesPlaceholder')}
-                        size="small"
-                        variant="standard"
-                        InputProps={{ disableUnderline: true }}
-                        sx={{
-                          '& .MuiInputBase-root': { fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.4, p: 0 },
-                          '& .MuiInputBase-input::placeholder': { fontSize: '0.75rem', color: 'text.disabled' },
-                        }}
+                        aria-invalid={!!fieldState.error}
+                        className="w-full border-0 bg-transparent p-0 rounded-none min-h-[2lh] max-h-[6lh] overflow-y-auto text-[0.75rem] leading-[1.4] text-[var(--muted)] placeholder:text-[0.75rem] placeholder:text-[var(--faint)] focus-visible:ring-0"
                       />
                       {fieldState.error && (
-                        <FormHelperText error sx={{ mx: 0, mt: 0.5 }}>{fieldState.error.message}</FormHelperText>
+                        <FieldError className="mt-0.5">{fieldState.error.message}</FieldError>
                       )}
-                    </Box>
-                  </Box>
+                    </div>
+                  </div>
                 )}
               />
-            </Grid>
-          </Grid>
-        </Box>
+            </div>
+          </div>
+        </div>
 
-        <Divider />
+        <Separator />
 
         {/* ── Prestations à la carte ─────────────────────────────────────── */}
-        <Box>
-          <Typography sx={SECTION_TITLE_ICON_SX}>
+        <div>
+          <p className={cn(SECTION_TITLE_ICON_CLASS, 'cn-text-body1')}>
             <Window width={14} />
             {t('properties.addOnServices.title')}
-          </Typography>
+          </p>
 
-          <Grid container spacing={1.5}>
+          <div className="grid grid-cols-12 gap-[9px]">
             {/* Vitres */}
-            <Grid item xs={4}>
+            <div className="col-span-4">
               <Controller
                 name="windowCount"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    value={field.value ?? 0}
-                    fullWidth
-                    type="number"
-                    label={t('properties.addOnServices.windowCount')}
-                    onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={t('properties.addOnServices.windowCountHelper')}
-                    inputProps={{ min: '0' }}
-                  />
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <Field>
+                    <FieldLabel htmlFor="property-window-count">{t('properties.addOnServices.windowCount')}</FieldLabel>
+                    <Input
+                      {...field}
+                      id="property-window-count"
+                      value={field.value ?? 0}
+                      className="w-full tabular-nums"
+                      type="number"
+                      onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+                      aria-invalid={!!fieldState.error}
+                      min="0"
+                    />
+                    <FieldDescription>{t('properties.addOnServices.windowCountHelper')}</FieldDescription>
+                  </Field>
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={4}>
+            <div className="col-span-4">
               <Controller
                 name="frenchDoorCount"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    value={field.value ?? 0}
-                    fullWidth
-                    type="number"
-                    label={t('properties.addOnServices.frenchDoorCount')}
-                    onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={t('properties.addOnServices.frenchDoorCountHelper')}
-                    inputProps={{ min: '0' }}
-                  />
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <Field>
+                    <FieldLabel htmlFor="property-french-door-count">{t('properties.addOnServices.frenchDoorCount')}</FieldLabel>
+                    <Input
+                      {...field}
+                      id="property-french-door-count"
+                      value={field.value ?? 0}
+                      className="w-full tabular-nums"
+                      type="number"
+                      onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+                      aria-invalid={!!fieldState.error}
+                      min="0"
+                    />
+                    <FieldDescription>{t('properties.addOnServices.frenchDoorCountHelper')}</FieldDescription>
+                  </Field>
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={4}>
+            <div className="col-span-4">
               <Controller
                 name="slidingDoorCount"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    value={field.value ?? 0}
-                    fullWidth
-                    type="number"
-                    label={t('properties.addOnServices.slidingDoorCount')}
-                    onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={t('properties.addOnServices.slidingDoorCountHelper')}
-                    inputProps={{ min: '0' }}
-                  />
+                render={({ field: { ref: _ref, ...field }, fieldState }) => (
+                  <Field>
+                    <FieldLabel htmlFor="property-sliding-door-count">{t('properties.addOnServices.slidingDoorCount')}</FieldLabel>
+                    <Input
+                      {...field}
+                      id="property-sliding-door-count"
+                      value={field.value ?? 0}
+                      className="w-full tabular-nums"
+                      type="number"
+                      onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+                      aria-invalid={!!fieldState.error}
+                      min="0"
+                    />
+                    <FieldDescription>{t('properties.addOnServices.slidingDoorCountHelper')}</FieldDescription>
+                  </Field>
                 )}
               />
-            </Grid>
+            </div>
 
             {/* Checkboxes prestations */}
-            <Grid item xs={4}>
+            <div className="col-span-4">
               <Controller
                 name="hasIroning"
                 control={control}
                 render={({ field }) => (
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={field.value ?? false}
-                        onChange={(e) => field.onChange(e.target.checked)}
-                        size="small"
-                      />
-                    }
-                    label={
-                      <Typography sx={{ fontSize: '0.8125rem' }}>
-                        {t('properties.addOnServices.hasIroning')}
-                      </Typography>
-                    }
-                  />
+                  <Field orientation="horizontal" className="gap-1.5">
+                    <Checkbox
+                      id="property-has-ironing"
+                      checked={field.value ?? false}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                    <FieldLabel htmlFor="property-has-ironing" className="text-[0.8125rem] font-normal">
+                      {t('properties.addOnServices.hasIroning')}
+                    </FieldLabel>
+                  </Field>
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={4}>
+            <div className="col-span-4">
               <Controller
                 name="hasDeepKitchen"
                 control={control}
                 render={({ field }) => (
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={field.value ?? false}
-                        onChange={(e) => field.onChange(e.target.checked)}
-                        size="small"
-                      />
-                    }
-                    label={
-                      <Typography sx={{ fontSize: '0.8125rem' }}>
-                        {t('properties.addOnServices.hasDeepKitchen')}
-                      </Typography>
-                    }
-                  />
+                  <Field orientation="horizontal" className="gap-1.5">
+                    <Checkbox
+                      id="property-has-deep-kitchen"
+                      checked={field.value ?? false}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                    <FieldLabel htmlFor="property-has-deep-kitchen" className="text-[0.8125rem] font-normal">
+                      {t('properties.addOnServices.hasDeepKitchen')}
+                    </FieldLabel>
+                  </Field>
                 )}
               />
-            </Grid>
+            </div>
 
-            <Grid item xs={4}>
+            <div className="col-span-4">
               <Controller
                 name="hasDisinfection"
                 control={control}
                 render={({ field }) => (
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={field.value ?? false}
-                        onChange={(e) => field.onChange(e.target.checked)}
-                        size="small"
-                      />
-                    }
-                    label={
-                      <Typography sx={{ fontSize: '0.8125rem' }}>
-                        {t('properties.addOnServices.hasDisinfection')}
-                      </Typography>
-                    }
-                  />
+                  <Field orientation="horizontal" className="gap-1.5">
+                    <Checkbox
+                      id="property-has-disinfection"
+                      checked={field.value ?? false}
+                      onCheckedChange={(checked) => field.onChange(checked === true)}
+                    />
+                    <FieldLabel htmlFor="property-has-disinfection" className="text-[0.8125rem] font-normal">
+                      {t('properties.addOnServices.hasDisinfection')}
+                    </FieldLabel>
+                  </Field>
                 )}
               />
-            </Grid>
-          </Grid>
-        </Box>
-      </Box>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 );

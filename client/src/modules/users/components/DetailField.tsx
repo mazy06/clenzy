@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Box, IconButton, Tooltip, Typography } from '@mui/material';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { ContentCopy, Check } from '../../../icons';
+import { cn } from '../../../utils/cn';
 
 interface DetailFieldProps {
   /** Small uppercase label rendered above the value (Baitly product register). */
@@ -55,74 +56,69 @@ const DetailField: React.FC<DetailFieldProps> = ({
     }
   };
 
-  const valueColor = isEmpty
-    ? 'text.disabled'
+  // Couleur portee par une CLASSE et non par `style` : le lien a un hover, et un
+  // style inline battrait la regle de survol.
+  const valueColorClass = isEmpty
+    ? 'text-[var(--faint)]'
     : tone === 'muted'
-      ? 'text.secondary'
-      : 'text.primary';
+      ? 'text-[var(--muted)]'
+      : 'text-[var(--ink)]';
+
+  const isLink = !!href && !isEmpty;
+
+  const valueClass = cn(
+    'cn-text-body1 min-w-0 truncate text-[0.875rem] font-medium',
+    '[transition:color_150ms_ease] motion-reduce:transition-none',
+    valueColorClass,
+    monospace && 'tabular-nums',
+    isLink && 'no-underline hover:text-[var(--accent)] hover:underline',
+  );
 
   return (
-    <Box sx={{ minWidth: 0 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+    <div className="min-w-0">
+      <div className="flex items-center gap-0.5 mb-0.5">
         {icon && (
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+          <span className="inline-flex text-muted-foreground opacity-60">
             {icon}
-          </Box>
+          </span>
         )}
-        <Typography
-          variant="caption"
-          sx={{
-            fontSize: '0.6875rem',
-            fontWeight: 600,
-            letterSpacing: '0.04em',
-            textTransform: 'uppercase',
-            color: 'text.secondary',
-          }}
-        >
+        <span className="cn-text-caption text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-muted-foreground">
           {label}
-        </Typography>
-      </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
-        <Typography
-          component={href && !isEmpty ? 'a' : 'span'}
-          href={href && !isEmpty ? href : undefined}
-          sx={{
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            color: valueColor,
-            minWidth: 0,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            fontVariantNumeric: monospace ? 'tabular-nums' : undefined,
-            textDecoration: href && !isEmpty ? 'none' : undefined,
-            transition: 'color 150ms ease',
-            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            ...(href && !isEmpty && {
-              '&:hover': { color: 'var(--accent)', textDecoration: 'underline' },
-            }),
-          }}
-        >
-          {isEmpty ? '—' : value}
-        </Typography>
+        </span>
+      </div>
+      <div className="flex items-center gap-0.5 min-w-0">
+        {isLink ? (
+          <a href={href} className={valueClass}>
+            {value}
+          </a>
+        ) : (
+          <span className={valueClass}>{isEmpty ? '—' : value}</span>
+        )}
         {canCopy && (
-          <Tooltip title={copied ? 'Copié' : 'Copier'} arrow>
-            <IconButton
-              size="small"
-              onClick={handleCopy}
-              sx={{ p: 0.25, color: copied ? 'var(--ok)' : 'text.disabled' }}
-              aria-label={copied ? 'Copié' : `Copier ${label}`}
-            >
-              {copied ? (
-                <Check size={14} strokeWidth={2} />
-              ) : (
-                <ContentCopy size={13} strokeWidth={1.75} />
-              )}
-            </IconButton>
+          <Tooltip>
+            {/* Le Button du kit ne transmet pas de ref : span intermediaire pour l'ancrage du tooltip. */}
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className={cn('size-5', copied ? 'text-[var(--ok)]' : 'text-[var(--faint)]')}
+                  onClick={handleCopy}
+                  aria-label={copied ? 'Copié' : `Copier ${label}`}
+                >
+                  {copied ? (
+                    <Check size={14} strokeWidth={2} />
+                  ) : (
+                    <ContentCopy size={13} strokeWidth={1.75} />
+                  )}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{copied ? 'Copié' : 'Copier'}</TooltipContent>
           </Tooltip>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ThemeProvider, createTheme } from '@mui/material';
 import PlanningBar from '../PlanningBar';
 import type { BarLayout, PlanningEvent } from '../types';
 
@@ -47,7 +46,6 @@ vi.mock('../../../hooks/useCurrency', () => ({
 
 // ─── Test fixtures ──────────────────────────────────────────────────────────
 
-const theme = createTheme();
 
 const baseEvent: PlanningEvent = {
   id: 'res-1',
@@ -71,7 +69,6 @@ const baseLayout: BarLayout = {
 
 function renderBar(props?: Partial<React.ComponentProps<typeof PlanningBar>>) {
   return render(
-    <ThemeProvider theme={theme}>
       <PlanningBar
         layout={baseLayout}
         zoom="week"
@@ -83,7 +80,6 @@ function renderBar(props?: Partial<React.ComponentProps<typeof PlanningBar>>) {
         onClick={vi.fn()}
         {...props}
       />
-    </ThemeProvider>,
   );
 }
 
@@ -100,9 +96,11 @@ describe('PlanningBar', () => {
     const { container } = renderBar();
     const barElement = container.querySelector('[data-planning-bar]') as HTMLElement;
     expect(barElement).toBeTruthy();
-    // MUI sx applies styles as inline or class-based — check computed style
-    const style = window.getComputedStyle(barElement);
-    expect(style.touchAction).toBe('none');
+    // Le style vient desormais de la classe Tailwind `touch-none`, plus d'un sx
+    // inline. jsdom ne charge aucune feuille de style : `getComputedStyle` y
+    // renverrait toujours vide. On verifie donc la classe, qui EST la
+    // declaration. (Rendu reel controle au navigateur : touch-action = none.)
+    expect(barElement.className).toContain('touch-none');
   });
 
   it('shows pointer cursor on the bar (drag reste actif via dnd-kit)', () => {
@@ -111,7 +109,7 @@ describe('PlanningBar', () => {
     const { container } = renderBar();
     const barElement = container.querySelector('[data-planning-bar]') as HTMLElement;
     expect(barElement).toBeTruthy();
-    expect(window.getComputedStyle(barElement).cursor).toBe('pointer');
+    expect(barElement.className).toContain('cursor-pointer');
   });
 
   it('displays the event label when bar is wide enough', () => {
@@ -145,6 +143,6 @@ describe('PlanningBar', () => {
   it('renders with position: absolute for absolute positioning in row', () => {
     const { container } = renderBar();
     const barElement = container.querySelector('[data-planning-bar]') as HTMLElement;
-    expect(window.getComputedStyle(barElement).position).toBe('absolute');
+    expect(barElement.className).toContain('absolute');
   });
 });

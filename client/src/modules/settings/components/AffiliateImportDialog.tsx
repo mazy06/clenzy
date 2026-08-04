@@ -1,16 +1,17 @@
 import React, { useRef, useState } from "react";
+import { Spinner } from '../../../components/ui';
 import {
   Alert,
-  Box,
+  AlertDescription,
   Button,
-  CircularProgress,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  Stack,
-  Typography,
-} from "@mui/material";
+} from '../../../components/ui';
+import { cn } from "../../../utils/cn";
 import { activitiesApi } from "../../../services/api/activitiesApi";
 import type {
   ActivityProvider,
@@ -105,30 +106,30 @@ export default function AffiliateImportDialog({
   const providerLabel = provider ? PROVIDER_LABELS[provider] ?? provider : "";
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ pb: 1 }}>
-        <Typography sx={{ fontSize: "0.95rem", fontWeight: 600, lineHeight: 1.25 }}>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent className="sm:max-w-[444px]">
+      <DialogHeader className="pb-1">
+        <DialogTitle className="text-[0.95rem] font-semibold leading-[1.25]">
           {t("settings.services.importTitle", "Importer un rapport")}
-        </Typography>
-        <Typography sx={{ fontSize: "0.72rem", color: "text.secondary", lineHeight: 1.4 }}>
+        </DialogTitle>
+        <DialogDescription className="text-[0.72rem] leading-[1.4]">
           {providerLabel}
-        </Typography>
-      </DialogTitle>
+        </DialogDescription>
+      </DialogHeader>
 
-      <DialogContent dividers>
+      {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
+      <div className="border-y border-solid border-[var(--line)] py-3">
         {result === null ? (
           <>
-            <Typography
-              sx={{ fontSize: "0.78rem", color: "text.secondary", lineHeight: 1.55, mb: 1.75 }}
-            >
+            <p className="cn-text-body1 text-[0.78rem] text-muted-foreground leading-[1.55] mb-2.5">
               {t(
                 "settings.services.importHint",
                 "Exportez vos conversions depuis le tableau de bord du programme, puis déposez le fichier ici. Les colonnes de référence de réservation et de montant de commission suffisent ; le séparateur et le format des montants sont détectés automatiquement.",
               )}
-            </Typography>
+            </p>
 
-            <Box
-              component="input"
+            {/* ::file-selector-button = variante `file:` ; mr/px 1.25 = 7.5px, py 0.625 = 3.75px */}
+            <input
               ref={inputRef}
               type="file"
               accept=".csv,text/csv"
@@ -136,48 +137,36 @@ export default function AffiliateImportDialog({
                 setFile(e.target.files?.[0] ?? null);
                 setError(null);
               }}
-              sx={{
-                width: "100%",
-                fontSize: "0.8125rem",
-                color: "text.secondary",
-                "&::file-selector-button": {
-                  font: "inherit",
-                  mr: 1.25,
-                  px: 1.25,
-                  py: 0.625,
-                  borderRadius: "7px",
-                  border: "1px solid",
-                  borderColor: "divider",
-                  bgcolor: "transparent",
-                  color: "text.primary",
-                  cursor: "pointer",
-                },
-              }}
+              className="w-full text-[0.8125rem] text-[var(--muted)] file:[font:inherit] file:mr-[7.5px] file:px-[7.5px] file:py-[3.75px] file:rounded-[7px] file:border file:border-solid file:border-[var(--line)] file:bg-transparent file:text-[var(--ink)] file:cursor-pointer"
             />
 
             {error && (
-              <Alert severity="error" sx={{ mt: 1.75, borderRadius: "8px" }}>
-                {error}
+              <Alert variant="destructive" className="mt-[10.5px]">
+                <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
           </>
         ) : (
           <>
             {result.length === 0 ? (
-              <Alert severity="warning" sx={{ borderRadius: "8px" }}>
-                {t(
-                  "settings.services.importEmpty",
-                  "Aucune commission exploitable dans ce fichier : les lignes sans référence ni montant sont ignorées.",
-                )}
+              <Alert variant="warning">
+                <AlertDescription>
+                  {t(
+                    "settings.services.importEmpty",
+                    "Aucune commission exploitable dans ce fichier : les lignes sans référence ni montant sont ignorées.",
+                  )}
+                </AlertDescription>
               </Alert>
             ) : (
               <>
-                <Alert severity="success" sx={{ borderRadius: "8px", mb: 1.75 }}>
-                  {t("settings.services.importDone", "{{count}} commission(s) enregistrée(s).", {
-                    count: result.length,
-                  })}
+                <Alert variant="success" className="mb-[10.5px]">
+                  <AlertDescription>
+                    {t("settings.services.importDone", "{{count}} commission(s) enregistrée(s).", {
+                      count: result.length,
+                    })}
+                  </AlertDescription>
                 </Alert>
-                <Stack spacing={0.875}>
+                <div className="flex flex-col gap-[5.25px]">
                   {[
                     {
                       key: "gross",
@@ -198,64 +187,53 @@ export default function AffiliateImportDialog({
                       strong: true,
                     },
                   ].map((line) => (
-                    <Box
-                      key={line.key}
-                      sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}
-                    >
-                      <Typography sx={{ fontSize: "0.78rem", color: "text.secondary" }}>
+                    <div className="flex justify-between gap-3" key={line.key}>
+                      <p className="cn-text-body1 text-[0.78rem] text-muted-foreground">
                         {line.label}
-                      </Typography>
-                      <Typography
-                        sx={{
-                          fontSize: "0.78rem",
-                          fontVariantNumeric: "tabular-nums",
-                          fontWeight: line.strong ? 700 : 500,
-                          color: line.strong ? "text.primary" : "text.secondary",
-                        }}
+                      </p>
+                      <p
+                        className={cn(
+                          "cn-text-body1 text-[0.78rem] tabular-nums",
+                          line.strong
+                            ? "font-bold text-[var(--ink)]"
+                            : "font-medium text-[var(--muted)]",
+                        )}
                       >
                         {formatMoney(line.value)}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                   ))}
-                </Stack>
-                <Typography
-                  sx={{
-                    fontSize: "0.72rem",
-                    color: "text.secondary",
-                    mt: 1.5,
-                    lineHeight: 1.5,
-                  }}
-                >
+                </div>
+                <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-2 leading-[1.5]">
                   {t(
                     "settings.services.importIdempotent",
                     "Les références déjà importées sont renvoyées sans être créditées une seconde fois.",
                   )}
-                </Typography>
+                </p>
               </>
             )}
           </>
         )}
-      </DialogContent>
+      </div>
 
-      <DialogActions>
-        <Button onClick={handleClose} size="small">
+      <DialogFooter>
+        <Button variant="ghost" size="sm" onClick={handleClose}>
           {result === null
             ? t("common.cancel", "Annuler")
             : t("common.close", "Fermer")}
         </Button>
         {result === null && (
           <Button
-            variant="contained"
-            disableElevation
-            size="small"
+            size="sm"
             onClick={handleImport}
             disabled={!file || busy}
-            startIcon={busy ? <CircularProgress size={14} color="inherit" /> : undefined}
           >
+            {busy && <Spinner className="size-3.5" />}
             {t("settings.services.importAction", "Importer")}
           </Button>
         )}
-      </DialogActions>
+      </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

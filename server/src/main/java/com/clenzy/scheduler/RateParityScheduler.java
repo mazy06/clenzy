@@ -160,11 +160,12 @@ public class RateParityScheduler {
     }
 
     /**
-     * Fait remonter l'écart de parité dans la CONSTELLATION du logement (agent Revenue « rev »), en plus
-     * du trigger d'automatisation : le propertyId provient du rapport (une occurrence = un logement), l'org
-     * est celle du mapping en cours. Deux effets complémentaires — le feed « En direct » = historique, la
-     * carte HITL = todo actionnable (dédup intégrée sur le titre côté service). Best-effort : chaque appel
-     * est lui-même best-effort côté service, et un échec ne doit JAMAIS interrompre le scan.
+     * Fait remonter l'écart de parité dans la CONSTELLATION du logement (agent Synchronisation
+     * « sync » — constellation métiers Phase 2), en plus du trigger d'automatisation : le propertyId
+     * provient du rapport (une occurrence = un logement), l'org est celle du mapping en cours. Deux
+     * effets complémentaires — le feed « En direct » = historique, la carte HITL = todo ACTIONNABLE
+     * (« Republier » re-pousse l'ARI vers Channex, cf. {@code PARITY_REPUBLISH} ; dédup intégrée sur
+     * le titre côté service). Best-effort : un échec ne doit JAMAIS interrompre le scan.
      */
     private void recordConstellationActivity(Long orgId, RateParityReport report) {
         try {
@@ -172,17 +173,20 @@ public class RateParityScheduler {
             if (propertyId == null) {
                 return;
             }
-            String summary = "Écart de parité tarifaire détecté sur ce logement"
-                    + (report.maxDeviationPercent() != null
+            String detail = (report.maxDeviationPercent() != null
                         ? " (jusqu'à " + report.maxDeviationPercent().toPlainString() + " %)" : "")
                     + (report.channelsInDisparity() != null && !report.channelsInDisparity().isEmpty()
                         ? " · canaux : " + String.join(", ", report.channelsInDisparity()) : "");
             supervisionActivityService.recordModuleAct(
-                    orgId, propertyId, "rev", "rate_parity_issue", summary);
-            supervisionSuggestionService.record(
-                    orgId, propertyId, "rev", "rate_parity_issue",
+                    orgId, propertyId, "sync", "rate_parity_issue",
+                    "Écart de parité tarifaire détecté sur ce logement" + detail);
+            supervisionSuggestionService.recordActionable(
+                    orgId, propertyId, "sync",
                     "Écart de parité tarifaire",
-                    "Prix incohérents entre canaux — corriger la parité sur le canal concerné.");
+                    "Prix incohérents entre canaux" + detail + ". « Republier » re-pousse les tarifs "
+                            + "résolus par le moteur de prix vers Channex sur la fenêtre de contrôle.",
+                    com.clenzy.service.agent.supervision.SupervisionActionType.PARITY_REPUBLISH,
+                    "{\"days\":" + RateParityService.DEFAULT_DAYS + "}", null, "warning");
         } catch (Exception e) {
             log.debug("RateParity: activite constellation non enregistree (property={} org={}): {}",
                     report.propertyId(), orgId, e.getMessage());

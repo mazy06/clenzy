@@ -1,26 +1,21 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import StatusChip from '../../components/StatusChip';
+import { Alert as UiAlert, AlertAction, AlertDescription } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
-  Box,
-  Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  IconButton,
-  Tooltip,
-  TextField,
-  Button,
-  CircularProgress,
-  Alert,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-} from '@mui/material';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { Button } from '../../components/ui';
+import { Field, FieldError, FieldLabel, Input } from '../../components/ui';
 import {
   Visibility as VisibilityIcon,
   CheckCircle as CheckCircleIcon,
@@ -82,12 +77,6 @@ const chipSx = (fg: string, bg: string) => ({
   backgroundColor: bg,
   color: fg,
   '& .MuiChip-icon': { color: fg, marginLeft: '6px' },
-});
-
-/** Row styling — status passe par le chip dans la colonne dédiée, pas un side-stripe.
- *  Le hover --hover vient du thème global MuiTableRow. */
-const getRowSx = (_status: PaymentRecord['status']) => ({
-  cursor: 'pointer',
 });
 
 const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = false }) => {
@@ -317,7 +306,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
 
   const getStatusChip = (status: PaymentRecord['status']) => {
     const tk = STATUS_TOKEN[status] ?? STATUS_TOKEN.CANCELLED;
-    return <Chip label={STATUS_LABEL[status] || status} size="small" sx={chipSx(tk.fg, tk.bg)} />;
+    return <StatusChip tokens={{ color: tk.fg, bg: tk.bg }} label={STATUS_LABEL[status] || status} />;
   };
 
   /** Type → accent palette Clenzy (fond soft dérivé du hex, sans border) */
@@ -326,31 +315,16 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
   const getTypeChip = (payment: PaymentRecord) => {
     if (payment.type === 'RESERVATION') {
       return (
-        <Chip
-          icon={<HotelIcon size={14} strokeWidth={1.75} />}
-          label="Reservation"
-          size="small"
-          sx={typeChipSx('#7BA3C2')}
-        />
+        <StatusChip color={'#7BA3C2'} label="Reservation" icon={<HotelIcon size={14} strokeWidth={1.75} />} />
       );
     }
     if (payment.type === 'SERVICE_REQUEST') {
       return (
-        <Chip
-          icon={<AssignmentIcon size={14} strokeWidth={1.75} />}
-          label="Demande"
-          size="small"
-          sx={typeChipSx('#D4A574')}
-        />
+        <StatusChip color={'#D4A574'} label="Demande" icon={<AssignmentIcon size={14} strokeWidth={1.75} />} />
       );
     }
     return (
-      <Chip
-        icon={<SparkleIcon size={14} strokeWidth={1.75} />}
-        label="Intervention"
-        size="small"
-        sx={typeChipSx('#6B8A9A')}
-      />
+      <StatusChip color={'#6B8A9A'} label="Intervention" icon={<SparkleIcon size={14} strokeWidth={1.75} />} />
     );
   };
 
@@ -410,7 +384,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <Box>
+    <div>
       {/* Header + Filters */}
       {!embedded && (
         <PageHeader
@@ -453,7 +427,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                 } : {}),
               }}
               counter={{
-                label: t('payments.history.payment') || 'paiement',
+                label: t('payments.history.payment', 'paiement'),
                 count: totalElements,
                 singular: '',
                 plural: 's',
@@ -464,26 +438,19 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
       )}
 
       {payError && (
-        <Alert
-          severity="error"
-          sx={{
-            mb: 2,
-            // Alerte -soft hairline (pattern .rm-conflict)
-            bgcolor: 'var(--err-soft)',
-            border: '1px solid color-mix(in srgb, var(--err) 30%, transparent)',
-            borderRadius: '12px',
-            color: 'var(--body)',
-            fontSize: '12.5px',
-            '& .MuiAlert-icon': { color: 'var(--err)' },
-          }}
-          onClose={() => setPayError(null)}
-        >
-          {payError}
-        </Alert>
+        <UiAlert variant="destructive" className="mb-3 text-[12.5px]">
+          <TriangleAlert />
+          <AlertDescription>{payError}</AlertDescription>
+          <AlertAction>
+            <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setPayError(null)}>
+              <X />
+            </Button>
+          </AlertAction>
+        </UiAlert>
       )}
 
       {/* KPIs (StatTile baseline) */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 1, mb: 2 }}>
+      <div className="grid grid-cols-[repeat(auto-fit,_minmax(160px,_1fr))] gap-1.5 mb-3">
         {summaryCards.map((card) => (
           <StatTile
             key={card.label}
@@ -494,7 +461,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
             loading={loading}
           />
         ))}
-      </Box>
+      </div>
 
       {/* Data table */}
       <DataFetchWrapper
@@ -512,30 +479,23 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
           />
         }
       >
-        <TableContainer
-          component={Paper}
-          variant="outlined"
-          sx={{
-            borderRadius: 'var(--radius-lg)',
-            borderColor: 'var(--line)',
-            boxShadow: 'none',
-            '& .MuiTableCell-head': { py: 1.25, whiteSpace: 'nowrap' },
-            '& .MuiTableCell-body': { py: 1.25 },
-          }}
-        >
+        {/* Le `sx` d'origine posait le padding vertical par selecteur descendant sur
+            toutes les cellules : garde tel quel en variantes arbitraires, plutot que
+            de repeter la classe sur chacune des seize cellules. */}
+        <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)] [&_th]:py-[7.5px] [&_th]:whitespace-nowrap [&_td]:py-[7.5px]">
           <Table>
-            <TableHead>
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('payments.history.date')}</TableCell>
-                <TableCell>Nom Prenom</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>{t('payments.history.property')}</TableCell>
-                <TableCell align="right">{t('payments.history.amount')}</TableCell>
-                <TableCell>{t('payments.history.status')}</TableCell>
-                <TableCell align="center">{t('payments.history.actions')}</TableCell>
+                <TableHead>{t('payments.history.date')}</TableHead>
+                <TableHead>Nom Prenom</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>{t('payments.history.property')}</TableHead>
+                <TableHead className="text-end">{t('payments.history.amount')}</TableHead>
+                <TableHead>{t('payments.history.status')}</TableHead>
+                <TableHead className="text-center">{t('payments.history.actions')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {payments.map((payment) => {
                 const detailPath = payment.type === 'RESERVATION'
@@ -546,153 +506,149 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                 return (
                 <TableRow
                   key={`${payment.type}-${payment.id}`}
-                  sx={getRowSx(payment.status)}
+                  className="cursor-pointer"
                   onClick={() => navigate(detailPath)}
                 >
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontSize: '12.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                    <p className="cn-text-body2 text-[12.5px] text-[var(--muted)] tabular-nums">
                       {formatDate(payment.transactionDate)}
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '12.5px', color: 'var(--ink)' }}>
+                    <p className="cn-text-body2 font-semibold text-[12.5px] text-[var(--ink)]">
                       {payment.hostName || '\u2014'}
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell>{getTypeChip(payment)}</TableCell>
                   <TableCell>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.125 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: 600, fontSize: '12.5px', color: 'var(--ink)', lineHeight: 1.3 }}
-                      >
+                    <div className="flex flex-col gap-0">
+                      <p className="cn-text-body2 font-semibold text-[12.5px] text-[var(--ink)] leading-[1.3]">
                         {payment.description}
-                      </Typography>
+                      </p>
                       {payment.subDescription && (
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontSize: '11px',
-                            color: 'var(--muted)',
-                            fontVariantNumeric: 'tabular-nums',
-                            lineHeight: 1.2,
-                          }}
-                        >
+                        <span className="cn-text-caption text-[11px] text-[var(--muted)] tabular-nums leading-[1.2]">
                           {payment.subDescription}
-                        </Typography>
+                        </span>
                       )}
-                    </Box>
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
+                    <p className="cn-text-body2 text-[12.5px] text-[var(--body)]">
                       {payment.propertyName}
-                    </Typography>
+                    </p>
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell className="text-end">
                     {/* Montant : display tabular-nums, encre \u2014 jamais proportional */}
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontFamily: 'var(--font-display)',
-                        fontVariantNumeric: 'tabular-nums',
-                        fontWeight: 600,
-                        fontSize: '0.8125rem',
-                        color: 'var(--ink)',
-                      }}
-                    >
+                    <p className="cn-text-body2 font-[family-name:var(--font-display)] tabular-nums font-semibold text-[0.8125rem] text-[var(--ink)]">
                       <Money value={payment.amount} from={payment.currency ?? 'EUR'} />
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell>{getStatusChip(payment.status)}</TableCell>
-                  <TableCell align="center">
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-                      <Tooltip title={payment.type === 'RESERVATION' ? 'Voir la reservation' : payment.type === 'SERVICE_REQUEST' ? 'Voir la demande' : t('payments.history.viewIntervention')}>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(detailPath);
-                          }}
-                        >
-                          <VisibilityIcon size={18} strokeWidth={1.75} />
-                        </IconButton>
-                      </Tooltip>
-                      {payment.type === 'RESERVATION' && (payment.status === 'PENDING' || payment.status === 'PROCESSING') && (
-                        <Tooltip title="Envoyer le lien de paiement par email">
-                          <span>
-                            <IconButton
-                              size="small"
+                  <TableCell className="text-center">
+                    {/* Chaque declencheur de tooltip passe par un span : les primitives
+                        du kit ne transmettent pas la ref attendue par Radix. */}
+                    <div className="flex items-center justify-center gap-0.5">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={payment.type === 'RESERVATION' ? 'Voir la reservation' : payment.type === 'SERVICE_REQUEST' ? 'Voir la demande' : t('payments.history.viewIntervention')}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleSendPaymentLink(payment);
-                              }}
-                              disabled={sendingPaymentLink === payment.referenceId}
-                              sx={{
-                                color: 'var(--info)',
-                                '&:hover': { bgcolor: 'var(--info-soft)', color: 'var(--info)' },
-                                '&.Mui-disabled': { opacity: 0.45 },
+                                navigate(detailPath);
                               }}
                             >
-                              {sendingPaymentLink === payment.referenceId ? (
-                                <CircularProgress size={14} sx={{ color: 'var(--info)' }} />
-                              ) : (
-                                <SendIcon size={16} strokeWidth={1.75} />
-                              )}
-                            </IconButton>
+                              <VisibilityIcon size={18} strokeWidth={1.75} />
+                            </Button>
                           </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {payment.type === 'RESERVATION' ? 'Voir la reservation' : payment.type === 'SERVICE_REQUEST' ? 'Voir la demande' : t('payments.history.viewIntervention')}
+                        </TooltipContent>
+                      </Tooltip>
+                      {payment.type === 'RESERVATION' && (payment.status === 'PENDING' || payment.status === 'PROCESSING') && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="Envoyer le lien de paiement par email"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSendPaymentLink(payment);
+                                }}
+                                disabled={sendingPaymentLink === payment.referenceId}
+                                className="text-[var(--info)] hover:bg-[var(--info-soft)] hover:text-[var(--info)] disabled:opacity-45"
+                              >
+                                {sendingPaymentLink === payment.referenceId ? (
+                                  <Spinner className="size-3.5 text-[var(--info)]" />
+                                ) : (
+                                  <SendIcon size={16} strokeWidth={1.75} />
+                                )}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Envoyer le lien de paiement par email</TooltipContent>
                         </Tooltip>
                       )}
                       {payment.type !== 'RESERVATION' && (payment.status === 'PENDING' || payment.status === 'PROCESSING') && (
-                        <Tooltip title={payment.type === 'SERVICE_REQUEST' ? 'Payer cette demande' : 'Payer cette intervention'}>
-                          <span>
-                            <IconButton
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handlePay(payment);
-                              }}
-                              disabled={processingPayment === payment.referenceId}
-                              sx={{
-                                color: 'var(--accent)',
-                                '&:hover': { bgcolor: 'var(--accent-soft)', color: 'var(--accent)' },
-                                '&.Mui-disabled': { opacity: 0.45 },
-                              }}
-                            >
-                              {processingPayment === payment.referenceId ? (
-                                <CircularProgress size={14} sx={{ color: 'var(--accent)' }} />
-                              ) : (
-                                <PaymentIcon size={16} strokeWidth={1.75} />
-                              )}
-                            </IconButton>
-                          </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={payment.type === 'SERVICE_REQUEST' ? 'Payer cette demande' : 'Payer cette intervention'}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePay(payment);
+                                }}
+                                disabled={processingPayment === payment.referenceId}
+                                className="text-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] disabled:opacity-45"
+                              >
+                                {processingPayment === payment.referenceId ? (
+                                  <Spinner className="size-3.5 text-[var(--accent)]" />
+                                ) : (
+                                  <PaymentIcon size={16} strokeWidth={1.75} />
+                                )}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {payment.type === 'SERVICE_REQUEST' ? 'Payer cette demande' : 'Payer cette intervention'}
+                          </TooltipContent>
                         </Tooltip>
                       )}
                       {isAdminOrManager && payment.type === 'INTERVENTION' && payment.status === 'PAID' && (
-                        <Tooltip title="Rembourser">
-                          <span>
-                            <IconButton
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRefundClick(payment);
-                              }}
-                              disabled={refundingPayment === payment.referenceId}
-                              sx={{
-                                color: 'var(--err)',
-                                '&:hover': { bgcolor: 'var(--err-soft)', color: 'var(--err)' },
-                                '&.Mui-disabled': { opacity: 0.45 },
-                              }}
-                            >
-                              {refundingPayment === payment.referenceId ? (
-                                <CircularProgress size={14} sx={{ color: 'var(--err)' }} />
-                              ) : (
-                                <MoneyOffIcon size={16} strokeWidth={1.75} />
-                              )}
-                            </IconButton>
-                          </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label="Rembourser"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRefundClick(payment);
+                                }}
+                                disabled={refundingPayment === payment.referenceId}
+                                className="text-[var(--err)] hover:bg-[var(--err-soft)] hover:text-[var(--err)] disabled:opacity-45"
+                              >
+                                {refundingPayment === payment.referenceId ? (
+                                  <Spinner className="size-3.5 text-[var(--err)]" />
+                                ) : (
+                                  <MoneyOffIcon size={16} strokeWidth={1.75} />
+                                )}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Rembourser</TooltipContent>
                         </Tooltip>
                       )}
-                    </Box>
+                    </div>
                   </TableCell>
                 </TableRow>
                 );
@@ -707,7 +663,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
             rowsPerPageOptions={[5, 10, 25, 50]}
             onRowsPerPageChange={handleChangeRowsPerPage}
           />
-        </TableContainer>
+        </div>
       </DataFetchWrapper>
 
       {/* Modal de paiement Stripe Embedded */}
@@ -726,94 +682,101 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
       {/* Dialog de confirmation de remboursement */}
       <Dialog
         open={refundDialogOpen}
-        onClose={() => { setRefundDialogOpen(false); setRefundTarget(null); setRefundError(null); }}
-        maxWidth="xs"
-        fullWidth
+        onOpenChange={(next) => {
+          if (!next) { setRefundDialogOpen(false); setRefundTarget(null); setRefundError(null); }
+        }}
       >
-        <DialogTitle>
-          Confirmer le remboursement
-        </DialogTitle>
-        <DialogContent>
-          {refundTarget && (
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              Voulez-vous rembourser <strong><Money value={refundTarget.amount} from={refundTarget.currency ?? 'EUR'} /></strong> pour
-              <strong> {refundTarget.description}</strong> ?
-            </Typography>
-          )}
-          <Typography variant="caption" color="text.secondary">
-            Cette action est irréversible. Le montant sera remboursé via Stripe.
-          </Typography>
-          {refundError && (
-            <Alert severity="error" sx={{ mt: 1.5, py: 0.5 }}>
-              {refundError}
-            </Alert>
-          )}
+        <DialogContent className="sm:max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>Confirmer le remboursement</DialogTitle>
+          </DialogHeader>
+          <div>
+            {refundTarget && (
+              <p className="cn-text-body2 mb-1.5">
+                Voulez-vous rembourser <strong><Money value={refundTarget.amount} from={refundTarget.currency ?? 'EUR'} /></strong> pour
+                <strong> {refundTarget.description}</strong> ?
+              </p>
+            )}
+            <span className="cn-text-caption text-muted-foreground">
+              Cette action est irréversible. Le montant sera remboursé via Stripe.
+            </span>
+            {refundError && (
+              <UiAlert variant="destructive" className="mt-2 py-0.5">
+                <TriangleAlert />
+                <AlertDescription>{refundError}</AlertDescription>
+              </UiAlert>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => { setRefundDialogOpen(false); setRefundTarget(null); setRefundError(null); }}
+              size="sm"
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleRefundConfirm}
+              variant="destructive"
+              size="sm"
+              disabled={refundingPayment !== null}
+            >
+              {refundingPayment !== null ? <Spinner className="size-[18px]" /> : 'Rembourser'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => { setRefundDialogOpen(false); setRefundTarget(null); setRefundError(null); }}
-            size="small"
-          >
-            Annuler
-          </Button>
-          <Button
-            onClick={handleRefundConfirm}
-            variant="contained"
-            color="error"
-            size="small"
-            disabled={refundingPayment !== null}
-          >
-            {refundingPayment !== null ? <CircularProgress size={18} /> : 'Rembourser'}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Dialog de saisie d'email pour envoi du lien de paiement */}
       <Dialog
         open={emailDialogOpen}
-        onClose={() => { setEmailDialogOpen(false); emailDialogTargetRef.current = null; setEmailError(null); }}
-        maxWidth="xs"
-        fullWidth
+        onOpenChange={(next) => {
+          if (!next) { setEmailDialogOpen(false); emailDialogTargetRef.current = null; setEmailError(null); }
+        }}
       >
-        <DialogTitle>
-          Email du client
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
-            Aucune adresse email n'est renseignée pour cette réservation. Veuillez saisir l'email du client pour envoyer le lien de paiement.
-          </Typography>
-          <TextField
-            autoFocus
-            fullWidth
-            size="small"
-            type="email"
-            label="Adresse email"
-            placeholder="guest@example.com"
-            value={emailInput}
-            onChange={(e) => { setEmailInput(e.target.value); setEmailError(null); }}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleEmailDialogConfirm(); }}
-            error={!!emailError}
-            helperText={emailError}
-          />
+        <DialogContent className="sm:max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>Email du client</DialogTitle>
+          </DialogHeader>
+          <div>
+            <p className="cn-text-body2 mb-3 text-muted-foreground">
+              Aucune adresse email n'est renseignée pour cette réservation. Veuillez saisir l'email du client pour envoyer le lien de paiement.
+            </p>
+            <Field>
+              <FieldLabel htmlFor="payment-guest-email">Adresse email</FieldLabel>
+              <Input
+                id="payment-guest-email"
+                className="w-full"
+                autoFocus
+                type="email"
+                placeholder="guest@example.com"
+                value={emailInput}
+                onChange={(e) => { setEmailInput(e.target.value); setEmailError(null); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleEmailDialogConfirm(); }}
+                aria-invalid={!!emailError}
+              />
+              <FieldError>{emailError}</FieldError>
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => { setEmailDialogOpen(false); emailDialogTargetRef.current = null; setEmailError(null); }}
+              size="sm"
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleEmailDialogConfirm}
+              size="sm"
+              disabled={sendingPaymentLink !== null}
+            >
+              {sendingPaymentLink !== null ? <Spinner className="size-[18px]" /> : 'Envoyer'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => { setEmailDialogOpen(false); emailDialogTargetRef.current = null; setEmailError(null); }}
-            size="small"
-          >
-            Annuler
-          </Button>
-          <Button
-            onClick={handleEmailDialogConfirm}
-            variant="contained"
-            size="small"
-            disabled={sendingPaymentLink !== null}
-          >
-            {sendingPaymentLink !== null ? <CircularProgress size={18} /> : 'Envoyer'}
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

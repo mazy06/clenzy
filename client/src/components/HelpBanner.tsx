@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { Box, Typography, IconButton } from '@mui/material';
+import { cn } from '../utils/cn';
+import { Button } from './ui';
 import { Close as CloseIcon } from '../icons';
 import { useUserPreference } from '../hooks/useUserPreference';
 
@@ -59,82 +60,43 @@ const ACCENT_TOKENS: Record<HelpStepAccent, { color: string; soft: string }> = {
 export const HelpStepsGrid: React.FC<{ steps: HelpStep[]; columns?: number }> = ({ steps, columns }) => {
   if (steps.length === 0) return null;
   const maxCols = columns ?? Math.min(steps.length, 4);
+  // Le gabarit de colonnes depend du nombre d'etapes (donc de l'execution) : il
+  // passe par des custom properties, les ruptures restent des variantes statiques.
+  const smCols = maxCols >= 2 && steps.length === 2 ? 'repeat(2, 1fr)' : '1fr';
+  const mdCols = `repeat(${Math.max(1, Math.min(steps.length, maxCols))}, 1fr)`;
   return (
-    <Box
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: {
-          xs: '1fr',
-          sm: maxCols >= 2 && steps.length === 2 ? 'repeat(2, 1fr)' : '1fr',
-          md: `repeat(${Math.max(1, Math.min(steps.length, maxCols))}, 1fr)`,
-        },
-        gap: { xs: 1.5, md: 2 },
-      }}
+    <div
+      className="grid grid-cols-1 gap-[9px] min-[600px]:grid-cols-[var(--help-sm-cols)] min-[900px]:grid-cols-[var(--help-md-cols)] min-[900px]:gap-3"
+      style={{ '--help-sm-cols': smCols, '--help-md-cols': mdCols } as React.CSSProperties}
     >
       {steps.map((step, i) => {
         const accentKey: HelpStepAccent
           = step.accent ?? DEFAULT_ACCENT_CYCLE[i % DEFAULT_ACCENT_CYCLE.length];
         const accent = ACCENT_TOKENS[accentKey];
         return (
-          <Box
-            key={step.title}
-            sx={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 1.125,
-              minWidth: 0,
-            }}
-          >
+          <div className="flex items-start gap-1.5 min-w-0" key={step.title}>
             {/* Small square icon — no big round badge over each heading */}
-            <Box
-              sx={{
-                width: 28,
-                height: 28,
-                borderRadius: '8px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: accent.soft,
-                color: accent.color,
-                flexShrink: 0,
-                mt: 0.125,
-              }}
-              aria-hidden
-            >
+            <div className="w-[28px] h-[28px] rounded-[8px] inline-flex items-center justify-center shrink-0 mt-[0.75px]" style={{ backgroundColor: accent.soft, color: accent.color }} aria-hidden>
               {step.icon}
-            </Box>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography
-                sx={{
-                  fontSize: '12.5px',
-                  fontWeight: 700,
-                  color: 'var(--ink)',
-                  lineHeight: 1.25,
-                  mb: 0.25,
-                  textWrap: 'balance',
-                  // Thin colored underline keeps each step's identity without a side-stripe.
-                  display: 'inline-block',
-                  borderBottom: `2px solid color-mix(in srgb, ${accent.color} 45%, transparent)`,
-                  pb: 0.125,
-                }}
+            </div>
+            <div className="min-w-0">
+              {/* Thin colored underline keeps each step's identity without a side-stripe.
+                  Le filet depend de l'accent resolu a l'execution : une classe Tailwind ne
+                  peut pas en naitre, il reste donc en style inline. */}
+              <p
+                className="cn-text-body1 text-[12.5px] font-bold text-[var(--ink)] leading-[1.25] mb-[1.5px] [text-wrap:balance] inline-block pb-[0.75px]"
+                style={{ borderBottom: `2px solid color-mix(in srgb, ${accent.color} 45%, transparent)` }}
               >
                 {step.title}
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: '11.5px',
-                  color: 'var(--muted)',
-                  lineHeight: 1.45,
-                  mt: 0.25,
-                }}
-              >
+              </p>
+              <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] leading-[1.45] mt-0.5">
                 {step.description}
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
         );
       })}
-    </Box>
+    </div>
   );
 };
 
@@ -216,103 +178,41 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
 
   if (dismissed) return null;
 
+  // before:* — le seul filet autorise, accent 1 px en haut (<=1px : pas un side-stripe).
   return (
-    <Box
+    <div
       role="region"
       aria-label={title}
-      sx={{
-        position: 'relative',
-        borderRadius: '14px',
-        border: '1px solid var(--line)',
-        mb: 1.5,
-        p: { xs: 1.75, sm: 2.25 },
-        overflow: 'hidden',
-        bgcolor: 'var(--card)',
-        // Single allowed filet — 1 px top accent (≤1px : pas un side-stripe).
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0, left: 0, right: 0,
-          height: '1px',
-          bgcolor: 'var(--accent)',
-          opacity: 0.5,
-        },
-      }}
+      className="relative rounded-[14px] border border-solid border-[var(--line)] mb-[9px] p-[10.5px] min-[600px]:p-[13.5px] overflow-hidden bg-[var(--card)] before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-px before:bg-[var(--accent)] before:opacity-50"
     >
       {/* Header row — accent chip + title + dismiss button */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 1,
-          mb: 0.75,
-        }}
-      >
-        <Box
-          sx={{
-            fontSize: '10.5px',
-            fontWeight: 700,
-            letterSpacing: '.06em',
-            textTransform: 'uppercase',
-            color: 'var(--accent)',
-            bgcolor: 'var(--accent-soft)',
-            border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
-            borderRadius: '8px',
-            px: 0.75,
-            py: 0.25,
-            mt: 0.25,
-            flexShrink: 0,
-            lineHeight: 1.2,
-          }}
-          aria-hidden
-        >
+      <div className="flex items-start gap-1.5 mb-1">
+        <div className="text-[10.5px] font-bold tracking-[.06em] uppercase text-[var(--accent)] bg-[var(--accent-soft)] border border-solid border-[color-mix(in_srgb,_var(--accent)_25%,_transparent)] rounded-[8px] px-[4.5px] py-[1.5px] mt-[1.5px] shrink-0 leading-[1.2]" aria-hidden>
           AIDE
-        </Box>
-        <Typography
-          sx={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 15,
-            fontWeight: 600,
-            color: 'var(--ink)',
-            lineHeight: 1.3,
-            letterSpacing: '-.01em',
-            flex: 1,
-            textWrap: 'balance',
-          }}
-        >
+        </div>
+        <p className="cn-text-body1 [font-family:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] leading-[1.3] tracking-[-.01em] flex-1 [text-wrap:balance]">
           {title}
-        </Typography>
-        <IconButton
-          size="small"
+        </p>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
           onClick={handleDismiss}
           aria-label={dismissLabel}
-          sx={{
-            color: 'var(--faint)',
-            p: 0.5,
-            flexShrink: 0,
-            '&:hover': { color: 'var(--ink)', bgcolor: 'var(--hover)' },
-          }}
+          className="text-[var(--faint)] hover:text-[var(--ink)] hover:bg-[var(--hover)]"
         >
           <CloseIcon size={16} strokeWidth={1.75} />
-        </IconButton>
-      </Box>
+        </Button>
+      </div>
 
       {/* Description */}
-      <Typography
-        sx={{
-          fontSize: '12.5px',
-          color: 'var(--muted)',
-          lineHeight: 1.55,
-          mb: steps.length > 0 ? 2 : 0,
-          maxWidth: '80ch',
-        }}
-      >
+      <p className={cn('cn-text-body1 text-[12.5px] text-[var(--muted)] leading-[1.55] max-w-[80ch]', steps.length > 0 ? 'mb-3' : 'mb-0')}>
         {description}
-      </Typography>
+      </p>
 
       {/* Steps — responsive grid, per-step accent breaks templating */}
       <HelpStepsGrid steps={steps} />
-    </Box>
+    </div>
   );
 };
 

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography, Checkbox } from '@mui/material';
+import { cn } from '../utils/cn';
+import { Checkbox } from './ui';
 import {
   Description,
   Checklist,
@@ -34,21 +35,21 @@ interface VariantConfig {
 const VARIANT_CONFIG: Record<ConsigneVariant, VariantConfig> = {
   cleaning: {
     title: 'Consignes de ménage',
-    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mt: 0.125, flexShrink: 0 }}><Checklist size={16} strokeWidth={1.75} /></Box>,
+    icon: <span className="inline-flex text-[var(--accent)] mt-0 shrink-0"><Checklist size={16} strokeWidth={1.75} /></span>,
     bgColor: 'var(--accent-soft)',
     borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)',
     accentColor: 'var(--accent)',
   },
   maintenance: {
     title: 'Consignes de travaux',
-    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)', mt: 0.125, flexShrink: 0 }}><Build size={16} strokeWidth={1.75} /></Box>,
+    icon: <span className="inline-flex text-[var(--warn)] mt-0 shrink-0"><Build size={16} strokeWidth={1.75} /></span>,
     bgColor: 'var(--warn-soft)',
     borderColor: 'color-mix(in srgb, var(--warn) 25%, transparent)',
     accentColor: 'var(--warn)',
   },
   other: {
     title: 'Consignes diverses',
-    icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)', mt: 0.125, flexShrink: 0 }}><MoreHoriz size={16} strokeWidth={1.75} /></Box>,
+    icon: <span className="inline-flex text-[var(--muted)] mt-0 shrink-0"><MoreHoriz size={16} strokeWidth={1.75} /></span>,
     bgColor: 'var(--surface-2)',
     borderColor: 'var(--line)',
     accentColor: 'var(--muted)',
@@ -78,18 +79,10 @@ function parseNotes(notes: string): ChecklistItem[] {
     .filter(item => item.text.length > 0);
 }
 
-// ─── Shared box sx ──────────────────────────────────────────────────────────
+// ─── Shared box classes ─────────────────────────────────────────────────────
 
-const BOX_BASE_SX = {
-  flex: 1,
-  display: 'flex',
-  gap: 1,
-  py: 1.25,
-  px: 1.5,
-  borderRadius: '12px',
-  border: '1px solid',
-  minHeight: 80,
-} as const;
+const BOX_BASE_CLASS =
+  'flex-1 flex gap-1.5 py-[7.5px] px-[9px] rounded-[12px] border border-solid min-h-[80px]';
 
 const TITLE_SX = {
   fontSize: '10.5px',
@@ -99,12 +92,18 @@ const TITLE_SX = {
   mb: 0.5,
 } as const;
 
+/** Report en classes de `TITLE_SX`. */
+const TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.06em] mb-[3px]';
+
 const TEXT_SX = {
   fontSize: '11.5px',
   color: 'var(--muted)',
   lineHeight: 1.4,
   whiteSpace: 'pre-line',
 } as const;
+
+/** Report en classes de `TEXT_SX`. */
+const TEXT_CLASS = 'text-[11.5px] text-[var(--muted)] leading-[1.4] whitespace-pre-line';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -117,105 +116,74 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
     const hasNotes = items.length > 0;
 
     return (
-      <Box sx={{ display: 'flex', gap: 1.5 }}>
+      <div className="flex gap-2">
         {/* Description du logement */}
-        <Box sx={{
-          ...BOX_BASE_SX,
-          bgcolor: 'var(--surface-2)',
-          borderColor: 'var(--line)',
-        }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)', mt: 0.125, flexShrink: 0 }}><Description size={16} strokeWidth={1.75} /></Box>
-          <Box sx={{ flex: 1 }}>
-            <Typography sx={{ ...TITLE_SX, color: 'var(--faint)' }}>
+        <div className={`${BOX_BASE_CLASS} bg-[var(--surface-2)] border-[var(--line)]`}>
+          <span className="inline-flex text-[var(--faint)] mt-0 shrink-0"><Description size={16} strokeWidth={1.75} /></span>
+          <div className="flex-1">
+            <p className={cn(TITLE_CLASS, 'cn-text-body1 text-[var(--faint)]')}>
               Description du logement
-            </Typography>
+            </p>
             {hasDescription ? (
-              <Typography sx={TEXT_SX}>
+              <p className={cn(TEXT_CLASS, 'cn-text-body1')}>
                 {description}
-              </Typography>
+              </p>
             ) : (
-              <Typography sx={{ ...TEXT_SX, fontStyle: 'italic', color: 'var(--faint)' }}>
+              <p className={cn(TEXT_CLASS, 'cn-text-body1 italic text-[var(--faint)]')}>
                 Aucune description renseignée
-              </Typography>
+              </p>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
-        {/* Consignes — variant-driven */}
-        <Box sx={{
-          ...BOX_BASE_SX,
-          bgcolor: config.bgColor,
-          borderColor: config.borderColor,
-        }}>
+        {/* Consignes — variant-driven : couleurs choisies a l'execution, donc via style. */}
+        <div
+          className={BOX_BASE_CLASS}
+          style={{ backgroundColor: config.bgColor, borderColor: config.borderColor }}
+        >
           {config.icon}
-          <Box sx={{ flex: 1 }}>
-            <Typography sx={{ ...TITLE_SX, color: config.accentColor }}>
+          <div className="flex-1">
+            <p className={cn(TITLE_CLASS, 'cn-text-body1')} style={{ color: config.accentColor }}>
               {config.title}
-            </Typography>
+            </p>
 
             {hasNotes ? (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              <div className="flex flex-col gap-0">
                 {items.map((item, i) => {
                   if (item.isTitle) {
                     return (
-                      <Typography
-                        key={i}
-                        sx={{
-                          fontSize: '11.5px',
-                          fontWeight: 700,
-                          color: 'var(--body)',
-                          mt: i > 0 ? 0.75 : 0,
-                          mb: 0.25,
-                        }}
-                      >
+                      <p className={cn('cn-text-body1 text-[11.5px] font-bold text-[var(--body)] mb-[1.5px]', i > 0 ? 'mt-[4.5px]' : 'mt-0')} key={i}>
                         {item.text}
-                      </Typography>
+                      </p>
                     );
                   }
 
                   return (
-                    <Box
-                      key={i}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 0.25,
-                        py: 0.125,
-                      }}
-                    >
+                    <div className="flex items-start gap-0.5 py-0" key={i}>
+                      {/* Puce purement decorative (liste en lecture seule) :
+                          retiree de l'ordre de tabulation et de l'arbre a11y. */}
                       <Checkbox
                         checked={false}
                         disabled
-                        size="small"
-                        sx={{
-                          p: 0.25,
-                          mt: -0.125,
-                          color: 'var(--line-2)',
-                        }}
+                        aria-hidden
+                        tabIndex={-1}
+                        className="mt-[3px] shrink-0 border-[var(--line-2)]"
                       />
-                      <Typography
-                        sx={{
-                          fontSize: '11.5px',
-                          color: 'var(--muted)',
-                          lineHeight: 1.4,
-                          flex: 1,
-                          pt: 0.25,
-                        }}
-                      >
+                      <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] leading-[1.4] flex-1 pt-0.5">
                         {item.text}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                   );
                 })}
-              </Box>
+              </div>
             ) : (
-              <Typography sx={{ ...TEXT_SX, fontStyle: 'italic', color: 'var(--faint)' }}>
+              <p className={cn(TEXT_CLASS, 'cn-text-body1 italic text-[var(--faint)]')}>
                 Aucune consigne renseignée
-              </Typography>
+              </p>
             )}
-          </Box>
-        </Box>
-      </Box>
+          </div>
+        </div>
+      </div>
     );
   }
 );

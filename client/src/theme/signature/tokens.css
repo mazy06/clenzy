@@ -104,6 +104,19 @@
   --duration-fast: .14s;  --duration-base: .2s;
   --ease-out: cubic-bezier(.16, 1, .3, 1);
   /* Signature tactile : les boutons pressent à scale(.97) en 120ms. */
+
+  /* ── Ponts vers la palette MUI ────────────────────────────────────────────
+     Certains ecrans heritent encore de `primary.main`, `secondary.main`… du
+     theme MUI. Ces chemins ne sont PAS du CSS : recopies dans une classe, ils
+     produisent une declaration invalide que le navigateur jette en silence.
+     Ces variables donnent la valeur reelle, et suivent le mode — ce qu'un hex
+     fige ne saurait faire, `theme.ts` et `darkTheme.ts` divergeant. */
+  --mui-primary:   #6B8A9A;
+  --mui-primary-d: #5A7684;
+  --mui-secondary: #A6C0CE;
+  --mui-info:      #7BA3C2;
+  --mui-success-l: #6BB5A8;
+  --mui-warning-d: #B88A5A;
 }
 
 [data-theme="dark"] {
@@ -150,6 +163,14 @@
   --shadow-pop:    0 22px 50px -16px rgba(0,0,0,.55);
   --shadow-drawer: -20px 0 50px -20px rgba(0,0,0,.6);
   --scroll: #33414C;
+
+  /* Ponts MUI — valeurs de darkTheme.ts, eclaircies pour le contraste. */
+  --mui-primary:   #7FA0B4;
+  --mui-primary-d: #5A7B8F;
+  --mui-secondary: #94B5C7;
+  --mui-info:      #8DB6D4;
+  --mui-success-l: #82D0C4;
+  --mui-warning-d: #C4935E;
 }
 
 /* ============================================================

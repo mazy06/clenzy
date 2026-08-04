@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Box, CircularProgress, Alert } from '@mui/material';
+import { Alert, AlertDescription } from '../../components/ui';
+import { Info, TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import {
   Euro as EuroIcon,
   Schedule as ScheduleIcon,
@@ -110,7 +112,7 @@ const PERIOD_OPTIONS: DateFilterOption<DashboardPeriod>[] = [
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
-const TAB_PANEL_SX = { pt: 1.5 } as const;
+const TAB_PANEL_CLASS = 'pt-[9px]';
 
 // La metadata par tab (breadcrumb + subtitle) est construite dans le composant
 // via t() pour reagir au changement de langue (cf. reportsTabMeta plus bas).
@@ -146,17 +148,17 @@ const Reports: React.FC = () => {
 
   if (!permissionsLoaded) {
     return (
-      <Box>
+      <div>
         <PageHeader
           title={t('reports.title')}
           subtitle={t('reports.subtitle')}
           backPath="/dashboard"
           showBackButton={false}
         />
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-          <CircularProgress />
-        </Box>
-      </Box>
+        <div className="flex justify-center p-6">
+          <Spinner className="size-10" />
+        </div>
+      </div>
     );
   }
 
@@ -164,17 +166,18 @@ const Reports: React.FC = () => {
   const hasAnyAccess = allowedTabs.some(Boolean);
   if (!hasAnyAccess) {
     return (
-      <Box>
+      <div>
         <PageHeader
           title={t('reports.title')}
           subtitle={t('reports.subtitle')}
           backPath="/dashboard"
           showBackButton={false}
         />
-        <Alert severity="info" sx={{ mt: 1 }}>
-          {t('reports.noPermissions')}
+        <Alert variant="info" className="mt-1.5">
+          <Info />
+          <AlertDescription>{t('reports.noPermissions')}</AlertDescription>
         </Alert>
-      </Box>
+      </div>
     );
   }
 
@@ -222,7 +225,7 @@ const Reports: React.FC = () => {
 
   return (
     <PageHeaderActionsProvider slot={headerActionsSlot}>
-      <Box>
+      <div>
         <PageHeader
           title={title}
           subtitle={subtitle}
@@ -248,7 +251,7 @@ const Reports: React.FC = () => {
           onChange={setActiveTab}
         />
 
-        <Box sx={TAB_PANEL_SX}>
+        <div className={TAB_PANEL_CLASS}>
           {allowedTabs[activeTab] ? (
             currentTab.hasPeriodFilter ? (
               <CurrentComponent period={period} onPeriodChange={setPeriod} />
@@ -256,12 +259,13 @@ const Reports: React.FC = () => {
               <CurrentComponent />
             )
           ) : (
-            <Alert severity="warning">
-              {t('reports.noPermission')}
+            <Alert variant="warning">
+              <TriangleAlert />
+              <AlertDescription>{t('reports.noPermission')}</AlertDescription>
             </Alert>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
     </PageHeaderActionsProvider>
   );
 };

@@ -1,17 +1,18 @@
 import React from 'react';
+import { Spinner } from '../../components/ui';
 import {
-  Box,
-  Paper,
-  Typography,
   Button,
-  CircularProgress,
+  Collapsible,
+  CollapsibleContent,
+  Field,
+  FieldLabel,
+  Separator,
   Switch,
-  FormControlLabel,
-  Divider,
-  IconButton,
   Tooltip,
-  Collapse,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { cn } from '../../utils/cn';
 import {
   LinkOff as LinkOffIcon,
   Link as LinkIcon,
@@ -23,7 +24,11 @@ import {
 } from '../../icons';
 import type { AirbnbListingMapping } from '../../services/api/airbnbApi';
 import type { Property } from '../../services/api/propertiesApi';
-import { CARD_SX } from './channelsPageConstants';
+
+// Equivalent classes de CARD_SX (hairline r14 sur --card) : la constante etait un
+// objet `sx`, elle n'a plus de porteur maintenant que le Paper est un <div>.
+const CARD_CLS =
+  'border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] p-3 mb-[9px]';
 
 interface LinkFormState {
   airbnbListingId: string;
@@ -73,30 +78,35 @@ const AirbnbListingsSection: React.FC<AirbnbListingsSectionProps> = ({
   onCancelLink,
   t,
 }) => (
-  <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
-    <Box
-      sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
-      onClick={onToggleExpand}
-    >
-      <Typography sx={{ fontSize: '0.875rem', fontWeight: 700 }}>
+  <div className={CARD_CLS}>
+    <div className="flex items-center justify-between cursor-pointer" onClick={onToggleExpand}>
+      <p className="cn-text-body1 text-[0.875rem] font-bold">
         {t('channels.listings.title')} ({listings.length})
-      </Typography>
-      <IconButton size="small">
+      </p>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        type="button"
+        aria-label={expanded
+          ? t('common.collapse', { defaultValue: 'Réduire' })
+          : t('common.expand', { defaultValue: 'Développer' })}
+      >
         {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-      </IconButton>
-    </Box>
+      </Button>
+    </div>
 
-    <Collapse in={expanded}>
+    <Collapsible open={expanded}>
+      <CollapsibleContent>
       {listingsLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-          <CircularProgress size={24} />
-        </Box>
+        <div className="flex justify-center py-3">
+          <Spinner className="size-6" />
+        </div>
       ) : listings.length === 0 ? (
-        <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 1 }}>
+        <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mt-1.5">
           {t('channels.listings.noListings')}
-        </Typography>
+        </p>
       ) : (
-        <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="mt-1.5 flex flex-col gap-1.5">
           {listings.map((listing) => (
             <ListingCard
               key={listing.id}
@@ -108,21 +118,21 @@ const AirbnbListingsSection: React.FC<AirbnbListingsSectionProps> = ({
               t={t}
             />
           ))}
-        </Box>
+        </div>
       )}
 
       {/* Link new property */}
       {unlinkableProperties.length > 0 && (
-        <Box sx={{ mt: 1.5 }}>
-          <Divider sx={{ mb: 1.5 }} />
+        <div className="mt-3">
+          <Separator className="mb-[9px]" />
           {linkingPropertyId === null ? (
             <Button
-              size="small"
-              variant="outlined"
-              startIcon={<LinkIcon />}
+              size="sm"
+              variant="outline"
               onClick={onStartLink}
-              sx={{ fontSize: '0.75rem' }}
+              className="text-[0.75rem]"
             >
+              <LinkIcon />
               {t('channels.listings.linkProperty')}
             </Button>
           ) : (
@@ -138,10 +148,11 @@ const AirbnbListingsSection: React.FC<AirbnbListingsSectionProps> = ({
               t={t}
             />
           )}
-        </Box>
+        </div>
       )}
-    </Collapse>
-  </Paper>
+      </CollapsibleContent>
+    </Collapsible>
+  </div>
 );
 
 export default AirbnbListingsSection;
@@ -164,90 +175,101 @@ function ListingCard({
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   return (
-    <Box
-      sx={{
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        p: 1.5,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 1,
-      }}
-    >
-      <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+    <div className="border border-[var(--line)] rounded-[8px] p-2 flex items-center justify-between flex-wrap gap-1.5">
+      <div className="min-w-0 flex-1">
+        <p className="cn-text-body1 text-[0.8125rem] font-semibold flex items-center gap-0.5">
           {listing.airbnbListingTitle || `Listing ${listing.airbnbListingId}`}
           {listing.airbnbListingUrl && (
-            <Tooltip title={t('channels.listings.viewOnAirbnb')}>
-              <IconButton
-                size="small"
-                href={listing.airbnbListingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                component="a"
-                sx={{ p: 0.25 }}
-              >
-                <OpenInNewIcon size={'0.875rem'} strokeWidth={1.75} />
-              </IconButton>
+            <Tooltip>
+              {/* Le declencheur est un <span> natif : les primitives du kit sont des
+                  fonctions sans forwardRef, le tooltip n'aurait pas d'ancre (React 18). */}
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button variant="ghost" size="icon-xs" asChild aria-label={t('channels.listings.viewOnAirbnb')}>
+                    <a
+                      href={listing.airbnbListingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <OpenInNewIcon size={'0.875rem'} strokeWidth={1.75} />
+                    </a>
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('channels.listings.viewOnAirbnb')}</TooltipContent>
             </Tooltip>
           )}
-        </Typography>
-        <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+        </p>
+        <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
           ID: {listing.airbnbListingId} · Propriété #{listing.propertyId}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <FormControlLabel
-          control={
-            <Switch
-              size="small"
-              checked={listing.syncEnabled}
-              onChange={(_, checked) => onToggleSync(listing.propertyId, checked)}
-            />
-          }
-          label={<Typography sx={{ fontSize: '0.6875rem' }}>{t('channels.listings.sync')}</Typography>}
-        />
-        <FormControlLabel
-          control={
-            <Switch
-              size="small"
-              checked={listing.autoCreateInterventions}
-              onChange={(_, checked) => onToggleAutoInterventions(listing.propertyId, checked)}
-            />
-          }
-          label={
-            <Typography sx={{ fontSize: '0.6875rem', display: 'flex', alignItems: 'center', gap: 0.25 }}>
-              <CleaningIcon size={'0.75rem'} strokeWidth={1.75} /> {t('channels.listings.autoClean')}
-            </Typography>
-          }
-        />
-        <FormControlLabel
-          control={
-            <Switch
-              size="small"
-              checked={listing.autoPushPricing ?? false}
-              onChange={(_, checked) => onToggleAutoPushPricing(listing.propertyId, checked)}
-            />
-          }
-          label={
-            <Typography sx={{ fontSize: '0.6875rem', display: 'flex', alignItems: 'center', gap: 0.25 }}>
-              <PricingIcon size={'0.75rem'} strokeWidth={1.75} /> {t('channels.listings.autoPushPricing')}
-            </Typography>
-          }
-        />
-        <Tooltip title={t('channels.listings.unlink')}>
-          <IconButton size="small" color="error" onClick={() => onUnlink(listing.propertyId)}>
-            <LinkOffIcon size={'1rem'} strokeWidth={1.75} />
-          </IconButton>
+      <div className="flex items-center gap-2">
+        <Field orientation="horizontal" className="w-auto gap-1.5">
+          <Switch
+            size="sm"
+            id={`airbnb-sync-${listing.propertyId}`}
+            checked={listing.syncEnabled}
+            onCheckedChange={(checked) => onToggleSync(listing.propertyId, checked)}
+          />
+          <FieldLabel htmlFor={`airbnb-sync-${listing.propertyId}`} className="text-[0.6875rem] font-normal">
+            {t('channels.listings.sync')}
+          </FieldLabel>
+        </Field>
+        <Field orientation="horizontal" className="w-auto gap-1.5">
+          <Switch
+            size="sm"
+            id={`airbnb-autoclean-${listing.propertyId}`}
+            checked={listing.autoCreateInterventions}
+            onCheckedChange={(checked) => onToggleAutoInterventions(listing.propertyId, checked)}
+          />
+          <FieldLabel
+            htmlFor={`airbnb-autoclean-${listing.propertyId}`}
+            className="flex items-center gap-0.5 text-[0.6875rem] font-normal"
+          >
+            <CleaningIcon size={'0.75rem'} strokeWidth={1.75} /> {t('channels.listings.autoClean')}
+          </FieldLabel>
+        </Field>
+        <Field orientation="horizontal" className="w-auto gap-1.5">
+          <Switch
+            size="sm"
+            id={`airbnb-autopricing-${listing.propertyId}`}
+            checked={listing.autoPushPricing ?? false}
+            onCheckedChange={(checked) => onToggleAutoPushPricing(listing.propertyId, checked)}
+          />
+          <FieldLabel
+            htmlFor={`airbnb-autopricing-${listing.propertyId}`}
+            className="flex items-center gap-0.5 text-[0.6875rem] font-normal"
+          >
+            <PricingIcon size={'0.75rem'} strokeWidth={1.75} /> {t('channels.listings.autoPushPricing')}
+          </FieldLabel>
+        </Field>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                type="button"
+                aria-label={t('channels.listings.unlink')}
+                className="text-[var(--err)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
+                onClick={() => onUnlink(listing.propertyId)}
+              >
+                <LinkOffIcon size={'1rem'} strokeWidth={1.75} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('channels.listings.unlink')}</TooltipContent>
         </Tooltip>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
+
+/** Champ du formulaire de liaison (select + inputs) — meme habillage pour les quatre. */
+const AIRBNB_FIELD_CLS =
+  'text-[0.8125rem] px-1.5 py-[4.5px] rounded-[11px] border border-solid border-[var(--field-line)] bg-[var(--field)] text-[var(--body)] focus:outline-none focus:border-[var(--accent)]';
 
 function LinkPropertyForm({
   properties,
@@ -271,59 +293,51 @@ function LinkPropertyForm({
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-      <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
+    <div className="flex flex-col gap-1.5">
+      <p className="cn-text-body1 text-[0.75rem] font-semibold">
         {t('channels.listings.linkNewProperty')}
-      </Typography>
-      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <Box component="select"
+      </p>
+      <div className="flex gap-1.5 flex-wrap items-end">
+        {/* px: 1 = 6px et py: 0.75 = 4.5px (theme.spacing vaut 6 dans ce projet). */}
+        <select
           value={selectedPropertyId}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onPropertyChange(Number(e.target.value))}
-          sx={{
-            fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: '11px',
-            border: '1px solid', borderColor: 'var(--field-line)', minWidth: 160, bgcolor: 'var(--field)',
-            color: 'var(--body)',
-            '&:focus': { outline: 'none', borderColor: 'var(--accent)' },
-          }}
+          onChange={(e) => onPropertyChange(Number(e.target.value))}
+          className={cn(AIRBNB_FIELD_CLS, 'min-w-[160px]')}
         >
           {properties.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
-        </Box>
-        <Box
-          component="input"
+        </select>
+        <input
           placeholder="Airbnb Listing ID"
           value={form.airbnbListingId}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFormChange({ ...form, airbnbListingId: e.target.value })}
-          sx={{ fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: '11px', border: '1px solid', borderColor: 'var(--field-line)', bgcolor: 'var(--field)', color: 'var(--body)', '&:focus': { outline: 'none', borderColor: 'var(--accent)' }, minWidth: 140 }}
+          onChange={(e) => onFormChange({ ...form, airbnbListingId: e.target.value })}
+          className={cn(AIRBNB_FIELD_CLS, 'min-w-[140px]')}
         />
-        <Box
-          component="input"
+        <input
           placeholder={t('channels.listings.listingTitle')}
           value={form.airbnbListingTitle}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFormChange({ ...form, airbnbListingTitle: e.target.value })}
-          sx={{ fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: '11px', border: '1px solid', borderColor: 'var(--field-line)', bgcolor: 'var(--field)', color: 'var(--body)', '&:focus': { outline: 'none', borderColor: 'var(--accent)' }, minWidth: 180, flex: 1 }}
+          onChange={(e) => onFormChange({ ...form, airbnbListingTitle: e.target.value })}
+          className={cn(AIRBNB_FIELD_CLS, 'min-w-[180px] flex-1')}
         />
-        <Box
-          component="input"
+        <input
           placeholder="URL Airbnb"
           value={form.airbnbListingUrl}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFormChange({ ...form, airbnbListingUrl: e.target.value })}
-          sx={{ fontSize: '0.8125rem', px: 1, py: 0.75, borderRadius: '11px', border: '1px solid', borderColor: 'var(--field-line)', bgcolor: 'var(--field)', color: 'var(--body)', '&:focus': { outline: 'none', borderColor: 'var(--accent)' }, minWidth: 200, flex: 1 }}
+          onChange={(e) => onFormChange({ ...form, airbnbListingUrl: e.target.value })}
+          className={cn(AIRBNB_FIELD_CLS, 'min-w-[200px] flex-1')}
         />
         <Button
-          size="small"
-          variant="contained"
+          size="sm"
           onClick={onSubmit}
           disabled={loading || !form.airbnbListingId}
-          sx={{ fontSize: '0.75rem' }}
+          className="text-[0.75rem]"
         >
-          {loading ? <CircularProgress size={14} /> : t('channels.listings.link')}
+          {loading ? <Spinner className="size-3.5" /> : t('channels.listings.link')}
         </Button>
-        <Button size="small" variant="outlined" onClick={onCancel} sx={{ fontSize: '0.75rem' }}>
+        <Button size="sm" variant="outline" onClick={onCancel} className="text-[0.75rem]">
           {t('common.cancel')}
         </Button>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

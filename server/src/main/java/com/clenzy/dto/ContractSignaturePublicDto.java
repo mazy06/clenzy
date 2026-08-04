@@ -18,6 +18,14 @@ public record ContractSignaturePublicDto(
     String startDate,
     String endDate,
     String paymentModel,
+    /**
+     * Mandat DÉCLARATIF — AGENCY ou OWNER. Affiché AVANT signature : le
+     * propriétaire doit savoir ce qu il délègue, et ce qu il garde. Sans cet
+     * affichage, le champ serait un réglage interne, pas une autorisation.
+     */
+    String policeDeclarationBy,
+    String touristTaxBy,
+    String licenceHeldBy,
     Boolean documentAvailable,
     String signedAt,
     String signedByName,

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Box, Chip, Button, CircularProgress } from '@mui/material';
+import { cn } from '../../../utils/cn';
+import { Spinner } from '../../../components/ui';
+import { Button } from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
 import { VerifiedUser, Replay, HourglassEmpty, Check } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -8,7 +10,7 @@ import {
   type DeclarationSummary,
   type DeclarationStatus,
 } from '../../../services/api/complianceConnectionApi';
-import { toneTokensSx, STATUS_TONES } from '../../../components/StatusChip';
+import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
 
 // ─── Encart « Fiche de police / conformité » (Baitly) ─────────────────────────
 //
@@ -18,13 +20,7 @@ import { toneTokensSx, STATUS_TONES } from '../../../components/StatusChip';
 // Un provider gouvernemental en attente (501) affiche un message clair plutôt
 // qu'une erreur brute.
 
-const OVERLINE_SX = {
-  fontSize: '0.625rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.08em',
-  color: 'var(--faint)',
-};
+const OVERLINE_CLASS = 'text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)]';
 
 const PROVIDER_LABELS: Record<string, string> = {
   CHEKIN: 'Chekin',
@@ -109,18 +105,18 @@ const PanelReservationCompliance: React.FC<PanelReservationComplianceProps> = ({
   };
 
   return (
-    <Box>
+    <div>
       {/* Header overline + icône bouclier */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}>
+      <div className="flex items-center gap-1 mb-1.5">
+        <span className="inline-flex text-[var(--faint)]">
           <VerifiedUser size={13} strokeWidth={1.75} />
-        </Box>
-        <Box component="span" sx={{ ...OVERLINE_SX, flex: 1 }}>
+        </span>
+        <span className={cn(OVERLINE_CLASS, 'flex-1')}>
           {t('reservations.compliance.title', 'Fiche de police')}
-        </Box>
-      </Box>
+        </span>
+      </div>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+      <div className="flex flex-col gap-1">
         {declarations.map((d, idx) => {
           // Numérotation des accompagnants (1, 2, …), indépendante de l'index brut.
           const companionIndex = declarations.slice(0, idx + 1).filter((x) => !x.primary).length;
@@ -130,105 +126,64 @@ const PanelReservationCompliance: React.FC<PanelReservationComplianceProps> = ({
           const providerLabel = d.providerType ? PROVIDER_LABELS[d.providerType] ?? d.providerType : null;
 
           return (
-            <Box
-              key={d.id}
-              sx={{
-                backgroundColor: 'var(--field)',
-                borderRadius: '10px',
-                px: 1.5,
-                py: 1,
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box
-                  component="span"
-                  sx={{
-                    flex: 1,
-                    minWidth: 0,
-                    fontSize: '0.8125rem',
-                    fontWeight: 600,
-                    color: 'var(--ink)',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
+            <div className="bg-[var(--field)] rounded-[10px] px-2 py-1.5" key={d.id}>
+              <div className="flex items-center gap-1.5">
+                <span className="flex-1 min-w-0 text-[0.8125rem] font-semibold text-[var(--ink)] overflow-hidden text-ellipsis whitespace-nowrap">
                   {travelerLabel(d, companionIndex)}
-                </Box>
-                <Chip
+                </span>
+                <StatusChip
+                  pill
+                  size="sm"
+                  tokens={tokens}
                   icon={submitted ? <Check size={11} strokeWidth={2} /> : undefined}
                   label={statusLabel(d.status)}
-                  size="small"
-                  sx={{ ...toneTokensSx(tokens, 'sm'), borderRadius: 'var(--radius-pill)', flexShrink: 0 }}
+                  className="shrink-0"
                 />
-              </Box>
+              </div>
 
               {/* Ligne détail : provider + date (transmise) OU bouton resoumettre */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.625 }}>
+              <div className="flex items-center gap-1.5 mt-1">
                 {submitted ? (
-                  <Box component="span" sx={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>
+                  <span className="text-[0.6875rem] text-[var(--muted)]">
                     {providerLabel && (
-                      <Box component="span" sx={{ fontWeight: 600 }}>{providerLabel}</Box>
+                      <span className="font-semibold">{providerLabel}</span>
                     )}
                     {providerLabel && d.submittedAt && ' · '}
                     {d.submittedAt && (
-                      <Box component="span" sx={{ fontVariantNumeric: 'tabular-nums' }}>{fmtDate(d.submittedAt)}</Box>
+                      <span className="tabular-nums">{fmtDate(d.submittedAt)}</span>
                     )}
-                  </Box>
+                  </span>
                 ) : (
+                  // `xs` et non `sm` : action de ligne dans une liste tres dense
+                  // (libelles a 11 px), le gabarit h24 du kit s'y aligne.
                   <Button
-                    size="small"
-                    variant="text"
+                    variant="ghost"
+                    size="xs"
                     onClick={() => handleRetry(d.id)}
                     disabled={row?.loading}
-                    startIcon={
-                      row?.loading ? <CircularProgress size={12} /> : <Replay size={13} strokeWidth={1.75} />
-                    }
-                    sx={{
-                      fontSize: '0.6875rem',
-                      textTransform: 'none',
-                      color: 'var(--accent)',
-                      py: 0.25,
-                      px: 0.75,
-                      minWidth: 0,
-                      cursor: 'pointer',
-                      '&:hover': { backgroundColor: 'var(--accent-soft)' },
-                      '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-                      transition: 'background-color var(--duration-fast) var(--ease-out)',
-                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                    }}
                   >
+                    {row?.loading ? <Spinner className="size-3" /> : <Replay size={13} strokeWidth={1.75} />}
                     {t('reservations.compliance.resubmit', 'Resoumettre')}
                   </Button>
                 )}
-              </Box>
+              </div>
 
               {/* Retour après action (succès / pending / erreur) */}
               {row?.message && (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    mt: 0.625,
-                    fontSize: '0.6875rem',
-                    color:
-                      row.tone === 'ok' ? 'var(--ok)' : row.tone === 'err' ? 'var(--err)' : 'var(--warn)',
-                  }}
-                >
+                <div className={cn('flex items-center gap-[3px] mt-[3.75px] text-[0.6875rem]', row.tone === 'ok' ? 'text-[var(--ok)]' : row.tone === 'err' ? 'text-[var(--err)]' : 'text-[var(--warn)]')}>
                   {row.tone === 'warn' && (
-                    <Box component="span" sx={{ display: 'inline-flex' }}>
+                    <span className="inline-flex">
                       <HourglassEmpty size={12} strokeWidth={1.75} />
-                    </Box>
+                    </span>
                   )}
-                  <Box component="span">{row.message}</Box>
-                </Box>
+                  <span>{row.message}</span>
+                </div>
               )}
-            </Box>
+            </div>
           );
         })}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

@@ -1,7 +1,22 @@
 import React from 'react';
-import { Autocomplete, Box, Chip, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
+  Field,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  useComboboxAnchor,
+} from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
-import { usePropertiesList } from '../../hooks/usePropertiesList';
+import { usePropertiesList, type PropertyListItem } from '../../hooks/usePropertiesList';
 import {
   parseConditions,
   stringifyConditions,
@@ -14,6 +29,9 @@ const LANGUAGE_OPTIONS: { value: GuestLanguage; key: string; fallback: string }[
   { value: 'en', key: 'automation.form.langEn', fallback: 'Anglais' },
   { value: 'ar', key: 'automation.form.langAr', fallback: 'Arabe' },
 ];
+
+/** Libellé d'un logement dans les puces et la liste déroulante. */
+const propertyLabel = (p: PropertyListItem) => p.name || `#${p.id}`;
 
 interface ConditionsEditorProps {
   /** Valeur JSON brute (champ `conditions` de la règle). */
@@ -31,6 +49,9 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
   const { t } = useTranslation();
   const { properties } = usePropertiesList();
   const conditions = parseConditions(value);
+  // Les puces servent d'ancre au popup : sans elle il se positionnerait sur le
+  // champ de saisie interne, qui se déplace à chaque puce ajoutée.
+  const propertiesAnchor = useComboboxAnchor();
 
   const update = (patch: Partial<AutomationConditions>) => {
     const next = stringifyConditions({ ...conditions, ...patch });
@@ -43,106 +64,119 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
   );
 
   return (
-    <Box
-      sx={{
-        border: '1px solid var(--line)',
-        borderRadius: '12px',
-        p: 1.5,
-      }}
-    >
+    <div className="border border-[var(--line)] rounded-[12px] p-2">
       {/* Section overline (pattern .rm-sec des modales) */}
-      <Typography
-        variant="caption"
-        sx={{
-          color: 'var(--faint)',
-          fontWeight: 700,
-          fontSize: '10.5px',
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          display: 'block',
-          mb: 1.25,
-        }}
-      >
+      <span className="cn-text-caption text-[var(--faint)] font-bold text-[10.5px] uppercase tracking-[0.06em] block mb-2">
         {t('automation.form.conditionsSection', 'Conditions (optionnel)')}
-      </Typography>
+      </span>
 
-      <Stack spacing={1.5}>
-        <Autocomplete
-          multiple
-          size="small"
-          options={properties}
-          getOptionLabel={(p) => p.name || `#${p.id}`}
-          value={selectedProperties}
-          onChange={(_, sel) => update({ propertyIds: sel.map((p) => Number(p.id)) })}
-          renderTags={(val, getTagProps) =>
-            val.map((option, index) => {
-              const { key, ...tagProps } = getTagProps({ index });
-              return (
-                <Chip
-                  key={key}
-                  variant="outlined"
-                  size="small"
-                  label={option.name}
-                  {...tagProps}
-                />
-              );
-            })
-          }
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label={t('automation.form.properties', 'Logements concernés')}
-              placeholder={t('automation.form.propertiesPlaceholder', 'Tous les logements si vide')}
+      <div className="flex flex-col gap-[9px]">
+        <Field>
+          <FieldLabel htmlFor="automation-cond-properties">
+            {t('automation.form.properties', 'Logements concernés')}
+          </FieldLabel>
+          <Combobox
+            multiple
+            items={properties}
+            itemToStringLabel={propertyLabel}
+            itemToStringValue={propertyLabel}
+            isItemEqualToValue={(a: PropertyListItem, b: PropertyListItem) => a.id === b.id}
+            value={selectedProperties}
+            onValueChange={(sel: PropertyListItem[]) =>
+              update({ propertyIds: sel.map((p) => Number(p.id)) })
+            }
+          >
+            <ComboboxChips ref={propertiesAnchor} className="w-full">
+              <ComboboxValue>
+                {(values: PropertyListItem[]) => (
+                  <React.Fragment>
+                    {values.map((p) => (
+                      <ComboboxChip key={p.id}>{propertyLabel(p)}</ComboboxChip>
+                    ))}
+                    <ComboboxChipsInput
+                      id="automation-cond-properties"
+                      placeholder={t(
+                        'automation.form.propertiesPlaceholder',
+                        'Tous les logements si vide',
+                      )}
+                    />
+                  </React.Fragment>
+                )}
+              </ComboboxValue>
+            </ComboboxChips>
+            {/* Le popup est porté hors du DialogContent (Radix y coupe les
+                pointer-events du reste du document) : sans `pointer-events-auto`
+                les options ne seraient pas cliquables. */}
+            <ComboboxContent anchor={propertiesAnchor} className="pointer-events-auto">
+              <ComboboxEmpty>
+                {t('automation.form.propertiesEmpty', 'Aucun logement')}
+              </ComboboxEmpty>
+              <ComboboxList>
+                {(p: PropertyListItem) => (
+                  <ComboboxItem key={p.id} value={p}>
+                    {propertyLabel(p)}
+                  </ComboboxItem>
+                )}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
+        </Field>
+
+        <div className="flex flex-row gap-[9px]">
+          <Field>
+            <FieldLabel htmlFor="automation-cond-min-nights">
+              {t('automation.form.minNights', 'Nuits min.')}
+            </FieldLabel>
+            <Input
+              id="automation-cond-min-nights"
+              type="number"
+              min={1}
+              value={conditions.minNights ?? ''}
+              onChange={(e) =>
+                update({ minNights: e.target.value === '' ? undefined : Number(e.target.value) })
+              }
             />
-          )}
-        />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="automation-cond-max-nights">
+              {t('automation.form.maxNights', 'Nuits max.')}
+            </FieldLabel>
+            <Input
+              id="automation-cond-max-nights"
+              type="number"
+              min={1}
+              value={conditions.maxNights ?? ''}
+              onChange={(e) =>
+                update({ maxNights: e.target.value === '' ? undefined : Number(e.target.value) })
+              }
+            />
+          </Field>
+        </div>
 
-        <Stack direction="row" spacing={1.5}>
-          <TextField
-            label={t('automation.form.minNights', 'Nuits min.')}
-            type="number"
-            size="small"
-            fullWidth
-            value={conditions.minNights ?? ''}
+        <Field>
+          <FieldLabel htmlFor="automation-cond-language">
+            {t('automation.form.guestLanguage', 'Langue du voyageur')}
+          </FieldLabel>
+          <NativeSelect
+            id="automation-cond-language"
+            className="w-full"
+            value={conditions.guestLanguage ?? ''}
             onChange={(e) =>
-              update({ minNights: e.target.value === '' ? undefined : Number(e.target.value) })
+              update({ guestLanguage: (e.target.value || undefined) as GuestLanguage | undefined })
             }
-            inputProps={{ min: 1 }}
-          />
-          <TextField
-            label={t('automation.form.maxNights', 'Nuits max.')}
-            type="number"
-            size="small"
-            fullWidth
-            value={conditions.maxNights ?? ''}
-            onChange={(e) =>
-              update({ maxNights: e.target.value === '' ? undefined : Number(e.target.value) })
-            }
-            inputProps={{ min: 1 }}
-          />
-        </Stack>
-
-        <TextField
-          select
-          label={t('automation.form.guestLanguage', 'Langue du voyageur')}
-          size="small"
-          fullWidth
-          value={conditions.guestLanguage ?? ''}
-          onChange={(e) =>
-            update({ guestLanguage: (e.target.value || undefined) as GuestLanguage | undefined })
-          }
-        >
-          <MenuItem value="">
-            {t('automation.form.guestLanguageAny', 'Toutes les langues')}
-          </MenuItem>
-          {LANGUAGE_OPTIONS.map((opt) => (
-            <MenuItem key={opt.value} value={opt.value}>
-              {t(opt.key, opt.fallback)}
-            </MenuItem>
-          ))}
-        </TextField>
-      </Stack>
-    </Box>
+          >
+            <option value="">
+              {t('automation.form.guestLanguageAny', 'Toutes les langues')}
+            </option>
+            {LANGUAGE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {t(opt.key, opt.fallback)}
+              </option>
+            ))}
+          </NativeSelect>
+        </Field>
+      </div>
+    </div>
   );
 };
 

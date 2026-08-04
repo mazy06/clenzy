@@ -1,26 +1,21 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
+import { Button, Spinner } from '../../components/ui';
+import { Field, FieldLabel, FieldDescription, FieldError, Input } from '../../components/ui';
 import {
-  Box,
-  Typography,
-  TextField,
-  Button,
   Alert,
-  Snackbar,
-  CircularProgress,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Tooltip,
+  AlertDescription,
+  AlertTitle,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-} from '@mui/material';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   AccountBalance,
   Save,
@@ -31,6 +26,7 @@ import {
   Settings as SettingsIcon,
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useNotification } from '../../hooks/useNotification';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useAllOwnerPayoutConfigs,
@@ -62,19 +58,20 @@ const PAYOUT_METHOD_COLORS: Record<PayoutMethod, string> = {
   OPEN_BANKING: 'var(--accent)', // accent Baitly (Open Banking = approche maison)
 };
 
-const CELL_SX = { fontSize: '0.8125rem', py: 1.25 } as const;
-const HEAD_CELL_SX = {
-  fontSize: '0.7rem',
-  fontWeight: 700,
-  py: 1,
-  color: 'text.secondary',
-  letterSpacing: '0.06em',
-  textTransform: 'uppercase' as const,
-} as const;
+// Ecarts assumes vs le gabarit du kit (12.5px / 8px pour le corps, 10.5px
+// --faint .05em pour l'en-tete) : cet ecran etait deja regle plus dense.
+const CELL_CLASS = 'text-[0.8125rem] py-[7.5px]';
+const HEAD_CELL_CLASS = 'text-[0.7rem] tracking-[0.06em] text-[var(--muted)]';
+
+/** Bouton d'action de ligne : 28px hairline, hover teinte accent (report du sx). */
+const ROW_ACTION_CLASS =
+  'rounded-[7px] text-[var(--muted)] transition-[color,border-color,background-color] duration-150 '
+  + 'hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] '
+  + 'hover:border-[color-mix(in_srgb,_var(--accent)_40%,_transparent)]';
 
 const IBAN_REGEX = /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/;
 
-/** Estimated row height in px (py: 1.25 = 10px * 2 + ~21px content) */
+/** Estimated row height in px (py-[7.5px] * 2 + ~26px content) */
 const ROW_HEIGHT = 41;
 /** Table header + pagination footer overhead */
 const TABLE_OVERHEAD = 100;
@@ -85,6 +82,7 @@ const MIN_ROWS = 3;
 
 export default function OwnerPayoutSettings() {
   const { t } = useTranslation();
+  const { notify } = useNotification();
   const queryClient = useQueryClient();
   const { data: configs = [], isLoading } = useAllOwnerPayoutConfigs();
   const updateSepaMutation = useUpdateSepaDetails();
@@ -135,8 +133,6 @@ export default function OwnerPayoutSettings() {
     setMethodDialogOpen(true);
   };
 
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
-
   const openSepaDialog = (config: OwnerPayoutConfig) => {
     setSepaTarget(config);
     // Pré-remplit avec le mask serveur (ex: FR76 **** **** **** **** *** 0189).
@@ -178,18 +174,18 @@ export default function OwnerPayoutSettings() {
         data: { iban: cleanIban, bic: sepaBic.trim(), bankAccountHolder: sepaHolder.trim() },
       });
       setSepaOpen(false);
-      setSnackbar({ open: true, message: t('settings.ownerPayout.sepaSaved', 'Coordonnées SEPA enregistrées'), severity: 'success' });
+      notify.success(t('settings.ownerPayout.sepaSaved', 'Coordonnées SEPA enregistrées'));
     } catch {
-      setSnackbar({ open: true, message: t('settings.ownerPayout.sepaError', "Erreur lors de l'enregistrement"), severity: 'error' });
+      notify.error(t('settings.ownerPayout.sepaError', "Erreur lors de l'enregistrement"));
     }
   };
 
   const handleVerify = async (ownerId: number) => {
     try {
       await verifyMutation.mutateAsync(ownerId);
-      setSnackbar({ open: true, message: t('settings.ownerPayout.verified', 'Configuration vérifiée'), severity: 'success' });
+      notify.success(t('settings.ownerPayout.verified', 'Configuration vérifiée'));
     } catch {
-      setSnackbar({ open: true, message: t('settings.ownerPayout.verifyError', 'Erreur lors de la vérification'), severity: 'error' });
+      notify.error(t('settings.ownerPayout.verifyError', 'Erreur lors de la vérification'));
     }
   };
 
@@ -200,15 +196,15 @@ export default function OwnerPayoutSettings() {
         icon={AccountBalance}
         accent="accent"
       >
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-          <CircularProgress size={24} />
-        </Box>
+        <div className="flex justify-center py-3">
+          <Spinner className="size-6" />
+        </div>
       </SettingsSection>
     );
   }
 
   return (
-    <Box ref={containerRef}>
+    <div ref={containerRef}>
       <SettingsSection
         title={t('settings.ownerPayout.title', 'Configuration des reversements propriétaires')}
         icon={AccountBalance}
@@ -237,262 +233,145 @@ export default function OwnerPayoutSettings() {
 
           const isCritical = expired.length > 0;
           return (
-            <Alert
-              severity={isCritical ? 'error' : 'warning'}
-              sx={{ mb: 2, fontSize: '0.85rem', borderRadius: 2 }}
-            >
-              <Box>
-                <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, mb: 0.25 }}>
-                  Open Banking — {expired.length} consent{expired.length > 1 ? 's' : ''} expiré{expired.length > 1 ? 's' : ''}
-                  {expired.length > 0 && expiringSoon.length > 0 ? ', ' : ''}
-                  {expiringSoon.length > 0 && `${expiringSoon.length} expirant dans 7 jours`}
-                </Typography>
-                <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
-                  Les propriétaires concernés doivent refaire l'authentification bancaire (SCA) depuis leur page
-                  <strong> Mes reversements </strong>
-                  pour réactiver les virements automatiques. Vous pouvez aussi initier le SCA pour eux via l'icône
-                  engrenage (Configurer la méthode).
-                </Typography>
-              </Box>
+            <Alert variant={isCritical ? 'destructive' : 'warning'} className="mb-3 text-[0.85rem]">
+              <Warning size={16} strokeWidth={1.75} />
+              <AlertTitle className="text-[0.85rem] font-semibold">
+                Open Banking — {expired.length} consent{expired.length > 1 ? 's' : ''} expiré{expired.length > 1 ? 's' : ''}
+                {expired.length > 0 && expiringSoon.length > 0 ? ', ' : ''}
+                {expiringSoon.length > 0 && `${expiringSoon.length} expirant dans 7 jours`}
+              </AlertTitle>
+              <AlertDescription className="text-[0.78rem]">
+                Les propriétaires concernés doivent refaire l'authentification bancaire (SCA) depuis leur page
+                <strong> Mes reversements </strong>
+                pour réactiver les virements automatiques. Vous pouvez aussi initier le SCA pour eux via l'icône
+                engrenage (Configurer la méthode).
+              </AlertDescription>
             </Alert>
           );
         })()}
 
         {configs.length === 0 ? (
-          <Box
-            sx={{
-              p: 4,
-              borderRadius: '8px',
-              border: '1px dashed',
-              borderColor: 'divider',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 1,
-            }}
-          >
-            <Box
-              sx={{
-                width: 48,
-                height: 48,
-                borderRadius: '12px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'var(--ok-soft)',
-                color: 'var(--ok)',
-                border: '1px solid color-mix(in srgb, var(--ok) 20%, transparent)',
-              }}
-            >
+          <div className="p-6 rounded-[8px] border border-dashed border-[var(--line)] text-center flex flex-col items-center gap-1.5">
+            <div className="w-[48px] h-[48px] rounded-[12px] inline-flex items-center justify-center bg-[var(--ok-soft)] text-[var(--ok)] border border-solid border-[color-mix(in_srgb,_var(--ok)_20%,_transparent)]">
               <AccountBalance size={22} strokeWidth={1.75} />
-            </Box>
-            <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary', maxWidth: 480 }}>
+            </div>
+            <p className="cn-text-body1 text-[0.85rem] text-muted-foreground max-w-[480px]">
               {t(
                 'settings.ownerPayout.empty',
                 'Aucune configuration trouvée. Les configurations sont créées automatiquement lors de la première génération de payout.',
               )}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         ) : (
-          <TableContainer sx={{ overflowX: 'hidden' }}>
-            <Table size="small" sx={{ width: '100%' }}>
-              <TableHead>
+          <div className="overflow-x-hidden">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell sx={HEAD_CELL_SX}>{t('settings.ownerPayout.col.owner', 'Propriétaire')}</TableCell>
-                  <TableCell sx={HEAD_CELL_SX}>{t('settings.ownerPayout.col.method', 'Méthode')}</TableCell>
-                  <TableCell sx={HEAD_CELL_SX}>{t('settings.ownerPayout.col.details', 'Détails')}</TableCell>
-                  <TableCell sx={HEAD_CELL_SX} align="center">{t('settings.ownerPayout.col.status', 'Statut')}</TableCell>
-                  <TableCell sx={{ ...HEAD_CELL_SX, pr: 1.25 }} align="right">{t('common.actions', 'Actions')}</TableCell>
+                  <TableHead className={HEAD_CELL_CLASS}>{t('settings.ownerPayout.col.owner', 'Propriétaire')}</TableHead>
+                  <TableHead className={HEAD_CELL_CLASS}>{t('settings.ownerPayout.col.method', 'Méthode')}</TableHead>
+                  <TableHead className={HEAD_CELL_CLASS}>{t('settings.ownerPayout.col.details', 'Détails')}</TableHead>
+                  <TableHead className={`${HEAD_CELL_CLASS} text-center`}>{t('settings.ownerPayout.col.status', 'Statut')}</TableHead>
+                  <TableHead className={`${HEAD_CELL_CLASS} text-end pe-[7.5px]`}>{t('common.actions', 'Actions')}</TableHead>
                 </TableRow>
-              </TableHead>
+              </TableHeader>
               <TableBody>
                 {paginatedConfigs.map((config) => {
                   const methodColor = PAYOUT_METHOD_COLORS[config.payoutMethod];
                   return (
-                    <TableRow key={config.id} hover>
-                      <TableCell sx={CELL_SX}>
-                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: 'text.primary' }}>
+                    <TableRow key={config.id}>
+                      <TableCell className={CELL_CLASS}>
+                        <p className="cn-text-body1 text-[0.82rem] font-semibold text-foreground">
                           {t('settings.ownerPayout.ownerLabel', 'Propriétaire')} #{config.ownerId}
-                        </Typography>
+                        </p>
                       </TableCell>
-                      <TableCell sx={CELL_SX}>
-                        <Chip
-                          label={PAYOUT_METHOD_LABELS[config.payoutMethod]}
-                          size="small"
-                          sx={{
-                            height: 22,
-                            fontSize: '0.6875rem',
-                            fontWeight: 600,
-                            letterSpacing: '0.01em',
-                            backgroundColor: `color-mix(in srgb, ${methodColor} 8%, transparent)`,
-                            color: methodColor,
-                            border: `1px solid color-mix(in srgb, ${methodColor} 20%, transparent)`,
-                            borderRadius: '6px',
-                            '& .MuiChip-label': { px: 0.875 },
-                          }}
-                        />
+                      <TableCell className={CELL_CLASS}>
+                        <StatusChip tokens={{ color: methodColor, bg: `color-mix(in srgb, ${methodColor} 8%, transparent)` }} label={PAYOUT_METHOD_LABELS[config.payoutMethod]} className="tracking-[0.01em]" />
                       </TableCell>
-                      <TableCell sx={CELL_SX}>
+                      <TableCell className={CELL_CLASS}>
                         {config.payoutMethod === 'SEPA_TRANSFER' && config.maskedIban && (
-                          <Typography
-                            component="span"
-                            sx={{
-                              fontFamily: 'monospace',
-                              fontSize: '0.75rem',
-                              fontVariantNumeric: 'tabular-nums',
-                              color: 'text.primary',
-                            }}
-                          >
+                          <span className="font-mono text-[0.75rem] tabular-nums text-foreground">
                             {config.maskedIban}
                             {config.bic ? ` / ${config.bic}` : ''}
-                          </Typography>
+                          </span>
                         )}
                         {config.payoutMethod === 'STRIPE_CONNECT' && (
-                          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
                             {config.stripeOnboardingComplete
                               ? t('settings.ownerPayout.stripeConnected', 'Compte connecté')
                               : t('settings.ownerPayout.stripeNotConnected', 'Onboarding en cours...')}
-                          </Typography>
+                          </p>
                         )}
                         {config.payoutMethod === 'MANUAL' && (
-                          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
                             {t('settings.ownerPayout.manualNote', 'Virement manuel')}
-                          </Typography>
+                          </p>
                         )}
                       </TableCell>
-                      <TableCell sx={CELL_SX} align="center">
+                      <TableCell className={`${CELL_CLASS} text-center`}>
                         {config.verified ? (
-                          <Chip
-                            icon={<VerifiedUser size={11} strokeWidth={2} />}
-                            label={t('settings.ownerPayout.verifiedLabel', 'Vérifié')}
-                            size="small"
-                            sx={{
-                              height: 22,
-                              fontSize: '0.6875rem',
-                              fontWeight: 600,
-                              letterSpacing: '0.01em',
-                              backgroundColor: 'var(--ok-soft)',
-                              color: 'var(--ok)',
-                              border: '1px solid color-mix(in srgb, var(--ok) 20%, transparent)',
-                              borderRadius: '6px',
-                              px: 0.25,
-                              '& .MuiChip-icon': {
-                                color: 'var(--ok) !important',
-                                ml: '6px',
-                                mr: '-2px',
-                              },
-                              '& .MuiChip-label': { px: 0.875 },
-                            }}
-                          />
+                          <StatusChip tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label={t('settings.ownerPayout.verifiedLabel', 'Vérifié')} icon={<VerifiedUser size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
                         ) : (
-                          <Chip
-                            icon={<Warning size={11} strokeWidth={2} />}
-                            label={t('settings.ownerPayout.pendingLabel', 'En attente')}
-                            size="small"
-                            sx={{
-                              height: 22,
-                              fontSize: '0.6875rem',
-                              fontWeight: 600,
-                              letterSpacing: '0.01em',
-                              backgroundColor: 'var(--warn-soft)',
-                              color: 'var(--warn)',
-                              border: '1px solid color-mix(in srgb, var(--warn) 20%, transparent)',
-                              borderRadius: '6px',
-                              px: 0.25,
-                              '& .MuiChip-icon': {
-                                color: 'var(--warn) !important',
-                                ml: '6px',
-                                mr: '-2px',
-                              },
-                              '& .MuiChip-label': { px: 0.875 },
-                            }}
-                          />
+                          <StatusChip tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }} label={t('settings.ownerPayout.pendingLabel', 'En attente')} icon={<Warning size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
                         )}
                       </TableCell>
-                      <TableCell sx={{ ...CELL_SX, pr: 1.25 }} align="right">
-                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, justifyContent: 'flex-end' }}>
-                          <Tooltip title={t('settings.ownerPayout.changeMethod', 'Changer la méthode de reversement')}>
-                            <IconButton
-                              size="small"
-                              onClick={() => openMethodDialog(config)}
-                              aria-label={t('settings.ownerPayout.changeMethod', 'Changer la méthode')}
-                              sx={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: '7px',
-                                color: 'text.secondary',
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                transition:
-                                  'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-                                '&:hover': {
-                                  color: 'var(--accent)',
-                                  borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
-                                  backgroundColor: 'var(--accent-soft)',
-                                },
-                                '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                              }}
-                            >
-                              <SettingsIcon size={13} strokeWidth={1.75} />
-                            </IconButton>
+                      <TableCell className={`${CELL_CLASS} text-end pe-[7.5px]`}>
+                        <div className="inline-flex items-center gap-0.5 justify-end">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="outline"
+                                  size="icon-sm"
+                                  onClick={() => openMethodDialog(config)}
+                                  aria-label={t('settings.ownerPayout.changeMethod', 'Changer la méthode')}
+                                  className={ROW_ACTION_CLASS}
+                                >
+                                  <SettingsIcon size={13} strokeWidth={1.75} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {t('settings.ownerPayout.changeMethod', 'Changer la méthode de reversement')}
+                            </TooltipContent>
                           </Tooltip>
                           {config.payoutMethod === 'SEPA_TRANSFER' && (
-                            <Tooltip title={t('settings.ownerPayout.editSepa', 'Modifier SEPA')}>
-                              <IconButton
-                                size="small"
-                                onClick={() => openSepaDialog(config)}
-                                aria-label={t('settings.ownerPayout.editSepa', 'Modifier SEPA')}
-                                sx={{
-                                  width: 28,
-                                  height: 28,
-                                  borderRadius: '7px',
-                                  color: 'text.secondary',
-                                  border: '1px solid',
-                                  borderColor: 'divider',
-                                  transition:
-                                    'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-                                  '&:hover': {
-                                    color: 'var(--accent)',
-                                    borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
-                                    backgroundColor: 'var(--accent-soft)',
-                                  },
-                                  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                                }}
-                              >
-                                <EditIcon size={13} strokeWidth={1.75} />
-                              </IconButton>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                  <Button
+                                    variant="outline"
+                                    size="icon-sm"
+                                    onClick={() => openSepaDialog(config)}
+                                    aria-label={t('settings.ownerPayout.editSepa', 'Modifier SEPA')}
+                                    className={ROW_ACTION_CLASS}
+                                  >
+                                    <EditIcon size={13} strokeWidth={1.75} />
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>{t('settings.ownerPayout.editSepa', 'Modifier SEPA')}</TooltipContent>
                             </Tooltip>
                           )}
                           {!config.verified && (
-                            <Tooltip title={t('settings.ownerPayout.verify', 'Vérifier')}>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleVerify(config.ownerId)}
-                                disabled={verifyMutation.isPending}
-                                aria-label={t('settings.ownerPayout.verify', 'Vérifier')}
-                                sx={{
-                                  width: 28,
-                                  height: 28,
-                                  borderRadius: '7px',
-                                  color: 'text.secondary',
-                                  border: '1px solid',
-                                  borderColor: 'divider',
-                                  transition:
-                                    'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-                                  '&:hover': {
-                                    color: 'var(--accent)',
-                                    borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
-                                    backgroundColor: 'var(--accent-soft)',
-                                  },
-                                  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                                }}
-                              >
-                                <CheckCircle size={13} strokeWidth={1.75} />
-                              </IconButton>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                  <Button
+                                    variant="outline"
+                                    size="icon-sm"
+                                    onClick={() => handleVerify(config.ownerId)}
+                                    disabled={verifyMutation.isPending}
+                                    aria-label={t('settings.ownerPayout.verify', 'Vérifier')}
+                                    className={ROW_ACTION_CLASS}
+                                  >
+                                    <CheckCircle size={13} strokeWidth={1.75} />
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>{t('settings.ownerPayout.verify', 'Vérifier')}</TooltipContent>
                             </Tooltip>
                           )}
-                        </Box>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -505,88 +384,82 @@ export default function OwnerPayoutSettings() {
               onPageChange={(newPage) => setPage(newPage)}
               rowsPerPage={rowsPerPage}
             />
-          </TableContainer>
+          </div>
         )}
       </SettingsSection>
 
       {/* ── SEPA Edit Dialog ── */}
-      <Dialog
-        open={sepaOpen}
-        onClose={() => setSepaOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: '12px' } }}
-      >
-        <DialogTitle sx={{ fontSize: '0.95rem', fontWeight: 700, letterSpacing: '-0.005em' }}>
-          {t('settings.ownerPayout.editSepaTitle', 'Coordonnées bancaires SEPA')}
-        </DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: '16px !important' }}>
-          <TextField
-            label={t('settings.ownerPayout.iban', 'IBAN')}
-            value={sepaIban}
-            onChange={(e) => {
-              setSepaIban(e.target.value);
-              setIbanError('');
-            }}
-            onFocus={(e) => {
-              // Si le champ contient encore le mask, on selectionne tout :
-              // l'utilisateur peut taper un nouvel IBAN directement, ou
-              // cliquer ailleurs pour conserver l'existant.
-              if (isSepaIbanUnchanged) {
-                e.target.select();
-              }
-            }}
-            error={!!ibanError}
-            helperText={
-              ibanError ||
-              (sepaTarget?.maskedIban
-                ? (isSepaIbanUnchanged
+      <Dialog open={sepaOpen} onOpenChange={(next) => { if (!next) setSepaOpen(false); }}>
+        <DialogContent className="sm:max-w-[444px] rounded-[12px]">
+          <DialogHeader>
+            <DialogTitle className="text-[0.95rem] font-bold tracking-[-0.005em]">
+              {t('settings.ownerPayout.editSepaTitle', 'Coordonnées bancaires SEPA')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-[9px]">
+          <Field>
+            <FieldLabel htmlFor="sepa-iban">{t('settings.ownerPayout.iban', 'IBAN')}</FieldLabel>
+            <Input
+              id="sepa-iban"
+              className="w-full font-mono text-[0.875rem] tabular-nums"
+              value={sepaIban}
+              onChange={(e) => {
+                setSepaIban(e.target.value);
+                setIbanError('');
+              }}
+              onFocus={(e) => {
+                // Si le champ contient encore le mask, on selectionne tout :
+                // l'utilisateur peut taper un nouvel IBAN directement, ou
+                // cliquer ailleurs pour conserver l'existant.
+                if (isSepaIbanUnchanged) {
+                  e.target.select();
+                }
+              }}
+              aria-invalid={!!ibanError}
+            />
+            {ibanError ? (
+              <FieldError>{ibanError}</FieldError>
+            ) : (
+              <FieldDescription>
+                {sepaTarget?.maskedIban
+                  ? (isSepaIbanUnchanged
                     ? t('settings.ownerPayout.ibanPreserved', 'IBAN actuel conservé. Tapez un nouvel IBAN pour le remplacer.')
                     : t('settings.ownerPayout.ibanNewFormat', 'Nouvel IBAN. Format : FR76 1234 5678 9012 3456 7890 123'))
-                : t('settings.ownerPayout.ibanFormat', 'Format : FR76 1234 5678 9012 3456 7890 123'))
-            }
-            size="small"
-            fullWidth
-            InputProps={{
-              sx: { fontFamily: 'monospace', fontSize: '0.875rem', fontVariantNumeric: 'tabular-nums' },
-            }}
-          />
-          <TextField
-            label={t('settings.ownerPayout.bic', 'BIC/SWIFT')}
-            value={sepaBic}
-            onChange={(e) => setSepaBic(e.target.value)}
-            size="small"
-            fullWidth
-            InputProps={{
-              sx: { fontVariantNumeric: 'tabular-nums', letterSpacing: '0.04em', textTransform: 'uppercase' },
-            }}
-          />
-          <TextField
-            label={t('settings.ownerPayout.holder', 'Titulaire du compte')}
-            value={sepaHolder}
-            onChange={(e) => setSepaHolder(e.target.value)}
-            size="small"
-            fullWidth
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+                  : t('settings.ownerPayout.ibanFormat', 'Format : FR76 1234 5678 9012 3456 7890 123')}
+              </FieldDescription>
+            )}
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="sepa-bic">{t('settings.ownerPayout.bic', 'BIC/SWIFT')}</FieldLabel>
+            <Input
+              id="sepa-bic"
+              className="w-full tabular-nums tracking-[0.04em] uppercase"
+              value={sepaBic}
+              onChange={(e) => setSepaBic(e.target.value)}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="sepa-holder">{t('settings.ownerPayout.holder', 'Titulaire du compte')}</FieldLabel>
+            <Input
+              id="sepa-holder"
+              className="w-full"
+              value={sepaHolder}
+              onChange={(e) => setSepaHolder(e.target.value)}
+            />
+          </Field>
+          </div>
+          <DialogFooter>
           <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setSepaOpen(false)}
-            size="small"
-            sx={{
-              textTransform: 'none',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              borderRadius: '8px',
-              color: 'text.secondary',
-            }}
+            className="text-[var(--muted)]"
           >
             {t('common.cancel', 'Annuler')}
           </Button>
           <Button
-            variant="contained"
-            disableElevation
-            size="small"
+            variant="default"
+            size="sm"
             onClick={handleSaveSepa}
             disabled={
               updateSepaMutation.isPending
@@ -598,17 +471,16 @@ export default function OwnerPayoutSettings() {
               //   - cas 3 : pas de mask + champ vide → bouton désactivé (premier setup)
               || (!sepaIban.trim() && !sepaTarget?.maskedIban)
             }
-            startIcon={
-              updateSepaMutation.isPending ? (
-                <CircularProgress size={14} color="inherit" />
-              ) : (
-                <Save size={14} strokeWidth={1.75} />
-              )
-            }
->
+          >
+            {updateSepaMutation.isPending ? (
+              <Spinner className="size-3.5" />
+            ) : (
+              <Save size={14} strokeWidth={1.75} />
+            )}
             {t('common.save', 'Enregistrer')}
           </Button>
-        </DialogActions>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
       <PayoutMethodEditDialog
@@ -618,28 +490,10 @@ export default function OwnerPayoutSettings() {
         ownerId={methodDialogTarget?.ownerId}
         onClose={() => setMethodDialogOpen(false)}
         onSaved={() => {
-          setSnackbar({
-            open: true,
-            message: t('settings.ownerPayout.methodSaved', 'Méthode de reversement mise à jour'),
-            severity: 'success',
-          });
+          notify.success(t('settings.ownerPayout.methodSaved', 'Méthode de reversement mise à jour'));
           queryClient.invalidateQueries({ queryKey: ownerPayoutConfigKeys.all });
         }}
       />
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-      >
-        <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          sx={{ borderRadius: '8px' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+    </div>
   );
 }

@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Skeleton,
-  Alert,
-  Button,
-} from '@mui/material';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Button, Skeleton } from '../../components/ui';
 import {
   Edit,
   Assignment,
@@ -47,38 +44,40 @@ const ServiceRequestDetails: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-        <Skeleton variant="rounded" height={64} sx={{ borderRadius: '14px' }} />
-        <Box sx={{ display: 'flex', gap: 1 }}>
+      <div className="p-3 flex flex-col gap-2">
+        <Skeleton className="h-[64px] rounded-[14px]" />
+        <div className="flex gap-1.5">
           {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} variant="rounded" height={72} sx={{ borderRadius: '14px', flex: 1 }} />
+            <Skeleton key={i} className="h-[72px] flex-1 rounded-[14px]" />
           ))}
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1.5 }}>
-          <Skeleton variant="rounded" height={260} sx={{ borderRadius: '14px', flex: 7 }} />
-          <Skeleton variant="rounded" height={260} sx={{ borderRadius: '14px', flex: 5 }} />
-        </Box>
-      </Box>
+        </div>
+        <div className="flex gap-2">
+          <Skeleton className="h-[260px] flex-[7] rounded-[14px]" />
+          <Skeleton className="h-[260px] flex-[5] rounded-[14px]" />
+        </div>
+      </div>
     );
   }
 
   if (isError) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="error" sx={{ py: 0.75, fontSize: '0.8125rem' }}>
-          {error || t('serviceRequests.loadError')}
+      <div className="p-3">
+        <Alert variant="destructive" className="py-1 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{error || t('serviceRequests.loadError')}</AlertDescription>
         </Alert>
-      </Box>
+      </div>
     );
   }
 
   if (!serviceRequest) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="warning" sx={{ py: 0.75, fontSize: '0.8125rem' }}>
-          {t('serviceRequests.notFound')}
+      <div className="p-3">
+        <Alert variant="warning" className="py-1 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{t('serviceRequests.notFound')}</AlertDescription>
         </Alert>
-      </Box>
+      </div>
     );
   }
 
@@ -151,9 +150,9 @@ const ServiceRequestDetails: React.FC = () => {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+    <div className="flex flex-col h-full min-h-0">
       {/* ─── Header ──────────────────────────────────────────────────────── */}
-      <Box sx={{ flexShrink: 0 }}>
+      <div className="shrink-0">
         <PageHeader
           title={sr.title}
           subtitle={`${t('serviceRequests.detail.contextLabel', 'Demande de service')} · ${sr.propertyName}`}
@@ -162,33 +161,36 @@ const ServiceRequestDetails: React.FC = () => {
           actions={
             canEdit ? (
               <Button
-                variant="outlined"
-                startIcon={<Edit size={18} strokeWidth={1.75} />}
+                variant="outline"
                 onClick={() => navigate(`/service-requests/${id}/edit`)}
-                size="small"
+                size="sm"
                 title={t('serviceRequests.modify')}
               >
+                <Edit size={18} strokeWidth={1.75} />
                 {t('serviceRequests.modify')}
               </Button>
             ) : undefined
           }
         />
-      </Box>
+      </div>
 
       {/* ─── Content ─────────────────────────────────────────────────────── */}
       <WorkOrderDetailLayout
         vm={vm}
         propertyAction={
+          // Taille xs (h24) et non sm : le `sx` d'origine bridait deja le
+          // bouton a 24 px de haut — c'est le gabarit que le kit nomme xs.
           <Button
-            size="small"
+            variant="ghost"
+            size="xs"
             onClick={() => navigate(`/properties/${sr.propertyId}`)}
-            sx={{ fontSize: '0.6875rem', textTransform: 'none', py: 0, minHeight: 24 }}
+            className="text-[0.6875rem]"
           >
             {t('serviceRequests.details.viewProperty')}
           </Button>
         }
       />
-    </Box>
+    </div>
   );
 };
 

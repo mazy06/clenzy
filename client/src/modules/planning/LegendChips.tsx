@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Tooltip } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import { Public as GlobeIcon, BroomFill, WrenchFill } from '../../icons';
 import type { ReservationStatus } from '../../services/api';
 import { RESERVATION_STATUS_TOKEN_COLORS, INTERVENTION_TYPE_TOKEN_COLORS } from './constants';
@@ -95,8 +96,32 @@ export const legendChipSx = (selected: boolean) => ({
  *  - `legend` (toolbar) : opacity .4 quand masqué.
  *  - `toggle` (modale)  : accent-soft quand actif. */
 export type LegendChipVariant = 'legend' | 'toggle';
-const chipSxFor = (variant: LegendChipVariant, selected: boolean) =>
-  variant === 'toggle' ? sigButtonSx(selected) : legendChipSx(selected);
+
+/** Equivalent en classes de `sigChipSx` + `BUTTON_RESET`, hors couleurs et transition.
+ *  gap: 0.75 = 4.5px (theme.spacing vaut 6 dans ce projet, pas 8). */
+const CHIP_BASE_CLS =
+  'inline-flex items-center gap-[4.5px] min-h-[27px] px-2.5 py-[5px] rounded-[8px] border border-solid text-[0.71875rem] font-semibold leading-none font-[inherit] appearance-none box-border cursor-pointer select-none whitespace-nowrap motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]';
+const CHIP_IDLE_COLORS_CLS = 'text-[var(--body)] bg-[var(--card)] border-[var(--line-2)] hover:border-[var(--faint)]';
+const CHIP_TOGGLE_TRANSITION_CLS =
+  'transition-[border-color,background-color,color] duration-[160ms] ease-[cubic-bezier(.16,1,.3,1)]';
+
+/** Pendant en classes de `chipSxFor` : `toggle` colore l'etat actif, `legend` l'attenue. */
+const chipClsFor = (variant: LegendChipVariant, selected: boolean) =>
+  cn(
+    CHIP_BASE_CLS,
+    variant === 'toggle'
+      ? cn(
+          CHIP_TOGGLE_TRANSITION_CLS,
+          selected
+            ? 'text-[var(--accent)] bg-[var(--accent-soft)] border-[var(--accent)]'
+            : CHIP_IDLE_COLORS_CLS,
+        )
+      : cn(
+          CHIP_IDLE_COLORS_CLS,
+          'transition-[opacity,border-color] duration-[120ms]',
+          selected ? 'opacity-100' : 'opacity-40',
+        ),
+  );
 
 // ─── Chips légende (source unique : toolbar ET modale) ───────────────────────
 
@@ -118,28 +143,27 @@ export const ChannelLegendChips: React.FC<{
     {CHANNEL_LEGEND.filter((ch) => !presentChannels || presentChannels.has(ch.key)).map((ch) => {
       const selected = activeChannels.has(ch.key);
       return (
-        <Tooltip key={ch.key} title={selected ? `Masquer le canal ${ch.label}` : `Afficher le canal ${ch.label}`} arrow>
-          <Box
-            component="button"
-            type="button"
-            aria-pressed={selected}
-            onClick={() => onToggleChannel(ch.key)}
-            sx={chipSxFor(variant, selected)}
-          >
-            {ch.logo ? (
-              <Box
-                component="img"
-                src={ch.logo}
-                alt=""
-                sx={{ width: 15, height: 15, objectFit: 'contain', display: 'block', flexShrink: 0 }}
-              />
-            ) : (
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
-                <GlobeIcon size={15} strokeWidth={1.75} />
-              </Box>
-            )}
-            {ch.label}
-          </Box>
+        <Tooltip key={ch.key}>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-pressed={selected}
+              onClick={() => onToggleChannel(ch.key)}
+              className={chipClsFor(variant, selected)}
+            >
+              {ch.logo ? (
+                <img className="w-[15px] h-[15px] object-contain block shrink-0" src={ch.logo} alt="" />
+              ) : (
+                <span className="inline-flex text-[var(--accent)]">
+                  <GlobeIcon size={15} strokeWidth={1.75} />
+                </span>
+              )}
+              {ch.label}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {selected ? `Masquer le canal ${ch.label}` : `Afficher le canal ${ch.label}`}
+          </TooltipContent>
         </Tooltip>
       );
     })}
@@ -157,27 +181,17 @@ export const StatusLegendChips: React.FC<{
     {STATUS_OPTIONS.map((opt) => {
       const selected = activeStatuses.has(opt.value);
       return (
-        <Box
+        <button
           key={opt.value}
-          component="button"
           type="button"
           aria-pressed={selected}
           onClick={() => onToggleStatus(opt.value)}
-          sx={chipSxFor(variant, selected)}
+          className={chipClsFor(variant, selected)}
         >
           {/* Puce 9px radius 3 (spec .s-dot) = couleur exacte du statut. */}
-          <Box
-            component="span"
-            sx={{
-              width: 9,
-              height: 9,
-              borderRadius: '3px',
-              flexShrink: 0,
-              backgroundColor: RESERVATION_STATUS_TOKEN_COLORS[opt.value] ?? 'var(--faint)',
-            }}
-          />
+          <span className="w-[9px] h-[9px] rounded-[3px] shrink-0" style={{ backgroundColor: RESERVATION_STATUS_TOKEN_COLORS[opt.value] ?? 'var(--faint)' }} />
           {opt.label}
-        </Box>
+        </button>
       );
     })}
   </>
@@ -189,20 +203,19 @@ export const InterventionLegendChip: React.FC<{
   onToggle: () => void;
   variant?: LegendChipVariant;
 }> = ({ active, onToggle, variant = 'legend' }) => (
-  <Box
-    component="button"
+  <button
     type="button"
     aria-pressed={active}
     onClick={onToggle}
-    sx={chipSxFor(variant, active)}
+    className={chipClsFor(variant, active)}
   >
     {/* Balai (ménage) + outil (maintenance) : la chip couvre les DEUX types. */}
-    <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.cleaning }}>
+    <span className="inline-flex" style={{ color: INTERVENTION_TYPE_TOKEN_COLORS.cleaning }}>
       <BroomFill size={16} />
-    </Box>
-    <Box component="span" sx={{ display: 'inline-flex', color: INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
+    </span>
+    <span className="inline-flex" style={{ color: INTERVENTION_TYPE_TOKEN_COLORS.maintenance }}>
       <WrenchFill size={15} />
-    </Box>
+    </span>
     Interventions
-  </Box>
+  </button>
 );

@@ -1,18 +1,24 @@
 import React, { useState } from 'react';
+import { cn } from '../../utils/cn';
+import { Alert, AlertDescription, Button } from '../../components/ui';
+import {
+  Field,
+  FieldLabel,
+  FieldSeparator,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+  Textarea,
+} from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  MenuItem,
-  Box,
-  Typography,
-  Alert,
-  CircularProgress,
-  Divider,
-} from '@mui/material';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui';
 import { CloudUpload } from '../../icons';
 import { useDocumentTypes, useUploadTemplate } from './hooks/useDocuments';
 
@@ -91,108 +97,117 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
   const loading = uploadMutation.isPending;
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Nouveau template de document</DialogTitle>
-      <DialogContent>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Nouveau template de document</DialogTitle>
+        </DialogHeader>
+        {error && <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>}
 
-        <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="mt-1.5 flex flex-col gap-3">
           {/* Upload zone — tokens Signature (pas encore de pattern dropzone baseline) */}
-          <Box
-            sx={{
-              border: '2px dashed',
-              borderColor: file ? 'var(--ok)' : 'var(--line-2)',
-              borderRadius: '12px',
-              p: 3,
-              textAlign: 'center',
-              cursor: 'pointer',
-              bgcolor: file ? 'var(--ok-soft)' : 'var(--field)',
-              transition: 'border-color .15s, background-color .15s',
-              '&:hover': { borderColor: 'var(--accent)', bgcolor: 'var(--accent-soft)' },
-              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            }}
-            component="label"
+          <label
+            className={cn(
+              'border-2 border-dashed rounded-[12px] p-[18px] text-center cursor-pointer',
+              'transition-[border-color,background-color] duration-150 motion-reduce:transition-none',
+              'hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]',
+              file ? 'border-[var(--ok)] bg-[var(--ok-soft)]' : 'border-[var(--line-2)] bg-[var(--field)]',
+            )}
           >
             <input type="file" accept=".odt" hidden onChange={handleFileChange} aria-label="Sélectionner un fichier template ODT" />
-            <Box component="span" sx={{ display: 'inline-flex', color: file ? 'var(--ok)' : 'var(--faint)', mb: 1 }}><CloudUpload size={40} strokeWidth={1.75} /></Box>
-            <Typography variant="body1" fontWeight={500}>
+            <span className={cn('inline-flex mb-1.5', file ? 'text-[var(--ok)]' : 'text-[var(--faint)]')}><CloudUpload size={40} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 font-medium">
               {file ? file.name : 'Cliquez pour sélectionner un fichier .odt'}
-            </Typography>
+            </p>
             {file && (
-              <Typography variant="caption" color="text.secondary">
+              <span className="cn-text-caption text-muted-foreground">
                 {(file.size / 1024).toFixed(1)} KB
-              </Typography>
+              </span>
             )}
-          </Box>
+          </label>
 
-          <TextField
-            label="Nom du template *"
-            size="small"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            fullWidth
-          />
+          <Field>
+            <FieldLabel htmlFor="template-name">Nom du template *</FieldLabel>
+            <Input
+              id="template-name"
+              className="w-full"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </Field>
 
-          <TextField
-            label="Type de document *"
-            select
-            size="small"
-            value={documentType}
-            onChange={(e) => setDocumentType(e.target.value)}
-            fullWidth
+          <Field>
+            <FieldLabel htmlFor="template-document-type">Type de document *</FieldLabel>
+            <NativeSelect
+              className="w-full"
+              id="template-document-type"
+              value={documentType}
+              onChange={(e) => setDocumentType(e.target.value)}
+            >
+              {/* Option vide explicite : un select natif afficherait sinon le
+                  premier type alors que l'etat vaut encore '' (submit desactive). */}
+              <NativeSelectOption value="">—</NativeSelectOption>
+              {documentTypes.map((t) => (
+                <NativeSelectOption key={t.value} value={t.value}>{t.label}</NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="template-description">Description</FieldLabel>
+            <Textarea
+              id="template-description"
+              className="w-full"
+              rows={2}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </Field>
+
+          {/* FieldSeparator = le primitif « filet a legende centree » du kit,
+              equivalent direct du <Divider> a enfant. */}
+          <FieldSeparator className="my-1.5">
+            <span className="cn-text-caption text-muted-foreground">Configuration email (optionnel)</span>
+          </FieldSeparator>
+
+          <Field>
+            <FieldLabel htmlFor="template-email-subject">Objet de l'email</FieldLabel>
+            <Input
+              id="template-email-subject"
+              className="w-full"
+              value={emailSubject}
+              onChange={(e) => setEmailSubject(e.target.value)}
+              placeholder="Ex: Votre facture Baitly"
+            />
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="template-email-body">Corps de l'email (HTML)</FieldLabel>
+            <Textarea
+              id="template-email-body"
+              className="w-full"
+              rows={3}
+              value={emailBody}
+              onChange={(e) => setEmailBody(e.target.value)}
+              placeholder="HTML du corps de l'email..."
+            />
+          </Field>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" size="sm" onClick={handleClose} disabled={loading}>Annuler</Button>
+          <Button
+            size="sm"
+            onClick={handleSubmit}
+            disabled={loading || !file || !name || !documentType}
           >
-            {documentTypes.map((t) => (
-              <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
-            ))}
-          </TextField>
-
-          <TextField
-            label="Description"
-            size="small"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            fullWidth
-            multiline
-            rows={2}
-          />
-
-          <Divider sx={{ my: 1 }}>
-            <Typography variant="caption" color="text.secondary">Configuration email (optionnel)</Typography>
-          </Divider>
-
-          <TextField
-            label="Objet de l'email"
-            size="small"
-            value={emailSubject}
-            onChange={(e) => setEmailSubject(e.target.value)}
-            fullWidth
-            placeholder="Ex: Votre facture Baitly"
-          />
-
-          <TextField
-            label="Corps de l'email (HTML)"
-            size="small"
-            value={emailBody}
-            onChange={(e) => setEmailBody(e.target.value)}
-            fullWidth
-            multiline
-            rows={3}
-            placeholder="HTML du corps de l'email..."
-          />
-        </Box>
+            {loading ? <Spinner className="size-4" /> : <CloudUpload />}
+            {loading ? 'Upload...' : 'Uploader & scanner'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} disabled={loading} size="small">Annuler</Button>
-        <Button
-          variant="contained"
-          size="small"
-          onClick={handleSubmit}
-          disabled={loading || !file || !name || !documentType}
-          startIcon={loading ? <CircularProgress size={16} /> : <CloudUpload />}
-        >
-          {loading ? 'Upload...' : 'Uploader & scanner'}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };

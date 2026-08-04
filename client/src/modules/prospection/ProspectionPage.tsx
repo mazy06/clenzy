@@ -1,28 +1,24 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import StatusChip from '../../components/StatusChip';
+import { Badge, Button } from '../../components/ui';
+import { Spinner } from '../../components/ui';
+import { Card } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import {
-  Box,
-  Typography,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Collapse,
-  IconButton,
-  MenuItem,
+  Collapsible,
+  CollapsibleContent,
+  Field,
+  FieldLabel,
   Select,
-  FormControl,
-  InputLabel,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Tooltip,
-  useTheme,
-  Button,
-  CircularProgress,
-  SelectChangeEvent,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import {
   ExpandMore,
   ExpandLess,
@@ -90,9 +86,6 @@ interface ProspectionPageProps {
 // ─── Component ──────────────────────────────────────────────────────────────────
 
 const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsContainer }) => {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
-
   const [search, setSearch] = useState('');
   // Recherche de l'écran → champ UNIQUE du PageHeader (cf. ScreenChrome).
   useScreenSearch(search, setSearch, 'Rechercher un prospect…');
@@ -170,35 +163,26 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
 
   // ── Action buttons (portal into PageHeader when embedded) ──
   const actionButtons = (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      <Button
-        variant="contained"
-        size="small"
-        startIcon={<CloudUpload />}
-        onClick={() => setImportOpen(true)}
-        sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
-      >
+    <div className="flex items-center gap-1.5">
+      <Button size="sm" onClick={() => setImportOpen(true)}>
+        <CloudUpload />
         Importer CSV
       </Button>
-      <Chip
-        label={`${totalProspects} prospect${totalProspects > 1 ? 's' : ''}`}
-        size="small"
-        sx={{ fontWeight: 600, fontSize: '0.75rem' }}
-      />
-    </Box>
+      <Badge variant="secondary" className="font-semibold text-[0.75rem]">{`${totalProspects} prospect${totalProspects > 1 ? 's' : ''}`}</Badge>
+    </div>
   );
 
   // ── Loading state ──
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center py-12">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
 
       {/* ── Header standalone (hors Annuaire multi-tabs) ── */}
@@ -217,49 +201,54 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
       <ProspectImportModal open={importOpen} onClose={() => setImportOpen(false)} />
 
       {/* ── Filters bar ── */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel sx={{ fontSize: '0.8125rem' }}>
-              <Box component="span" sx={{ display: 'inline-flex', mr: 0.5, verticalAlign: 'middle' }}><FilterList size={14} strokeWidth={1.75} /></Box>
+      <Card className="gap-0 py-0 p-3 mb-3">
+        <div className="flex gap-3 flex-wrap items-center">
+          <Field className="w-auto min-w-[160px]">
+            <FieldLabel htmlFor="prospection-filter-category" className="items-center text-[0.8125rem]">
+              <span className="inline-flex me-[3px]"><FilterList size={14} strokeWidth={1.75} /></span>
               Categorie
-            </InputLabel>
-            <Select
-              value={categoryFilter}
-              label="Categorie"
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              sx={{ fontSize: '0.8125rem' }}
-            >
-              <MenuItem value="all">Toutes</MenuItem>
-              {CATEGORY_ORDER.map((key) => (
-                <MenuItem key={key} value={key}>
-                  {CATEGORY_CONFIG[key]?.label || key}
-                </MenuItem>
-              ))}
+            </FieldLabel>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger id="prospection-filter-category" size="sm" className="w-full text-[0.8125rem]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes</SelectItem>
+                {CATEGORY_ORDER.map((key) => (
+                  <SelectItem key={key} value={key}>
+                    {CATEGORY_CONFIG[key]?.label || key}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
-          </FormControl>
+          </Field>
 
-          <FormControl size="small" sx={{ minWidth: 140 }}>
-            <InputLabel sx={{ fontSize: '0.8125rem' }}>Statut</InputLabel>
+          <Field className="w-auto min-w-[140px]">
+            <FieldLabel htmlFor="prospection-filter-status" className="text-[0.8125rem]">Statut</FieldLabel>
             <Select
               value={statusFilter}
-              label="Statut"
-              onChange={(e) => setStatusFilter(e.target.value as ProspectStatus | 'all')}
-              sx={{ fontSize: '0.8125rem' }}
+              onValueChange={(v) => setStatusFilter(v as ProspectStatus | 'all')}
             >
-              <MenuItem value="all">Tous</MenuItem>
-              {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-                <MenuItem key={key} value={key}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: cfg.color }} />
-                    {cfg.label}
-                  </Box>
-                </MenuItem>
-              ))}
+              <SelectTrigger id="prospection-filter-status" size="sm" className="w-full text-[0.8125rem]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous</SelectItem>
+                {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+                  <SelectItem key={key} value={key}>
+                    <span className="inline-flex items-center gap-1.5">
+                      {/* La couleur vient de la donnee : style inline, une classe
+                          Tailwind ne peut pas naitre d'une variable. */}
+                      <span className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: cfg.color }} />
+                      {cfg.label}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
-          </FormControl>
-        </Box>
-      </Paper>
+          </Field>
+        </div>
+      </Card>
 
       {/* ── Empty state ── */}
       {prospects.length === 0 && !isLoading ? (
@@ -268,12 +257,8 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
           title="Aucun prospect pour le moment"
           description="Importez un fichier CSV depuis Vibe Prospecting pour commencer."
           action={(
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<CloudUpload size={16} strokeWidth={1.75} />}
-              onClick={() => setImportOpen(true)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+              <CloudUpload size={16} strokeWidth={1.75} />
               Importer des prospects
             </Button>
           )}
@@ -285,203 +270,210 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
           variant="plain"
         />
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="flex flex-col gap-3">
           {filteredCategories.map((cat) => {
             const isExpanded = expandedCategories.has(cat.key);
             return (
-              <Paper key={cat.key} sx={{ overflow: 'hidden' }}>
-                {/* Category header */}
-                <Box
+              <Card className="gap-0 py-0 overflow-hidden" key={cat.key}>
+                {/* Category header — la teinte derive de la couleur de categorie
+                    (valeur d'execution) : passee en variables CSS, pas en style
+                    inline, sinon le style l'emporterait sur la classe hover:. */}
+                <div
                   onClick={() => toggleCategory(cat.key)}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    px: 2,
-                    py: 1.5,
-                    cursor: 'pointer',
-                    backgroundColor: isDark ? `${cat.color}12` : `${cat.color}08`,
-                    '&:hover': { backgroundColor: isDark ? `${cat.color}1A` : `${cat.color}10` },
-                    transition: 'background-color 0.15s',
-                  }}
+                  className="flex items-center gap-[9px] px-3 py-[9px] cursor-pointer transition-colors duration-150 bg-[var(--cat-bg)] hover:bg-[var(--cat-bg-hover)] dark:bg-[var(--cat-bg-dark)] dark:hover:bg-[var(--cat-bg-hover-dark)]"
+                  style={{
+                    '--cat-bg': `${cat.color}08`,
+                    '--cat-bg-hover': `${cat.color}10`,
+                    '--cat-bg-dark': `${cat.color}12`,
+                    '--cat-bg-hover-dark': `${cat.color}1A`,
+                  } as React.CSSProperties}
                 >
-                  <Box sx={{ color: cat.color, display: 'flex', alignItems: 'center' }}>
+                  <div className="flex items-center" style={{ color: cat.color }}>
                     {cat.icon}
-                  </Box>
-                  <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', flex: 1 }}>
+                  </div>
+                  <p className="cn-text-body1 font-bold text-[0.875rem] flex-1">
                     {cat.label}
-                  </Typography>
-                  <Chip
-                    label={`${cat.prospects.length}`}
-                    size="small"
-                    sx={{
-                      fontWeight: 700,
-                      fontSize: '0.6875rem',
-                      height: 22,
-                      backgroundColor: `${cat.color}18`,
-                      color: cat.color,
-                      fontVariantNumeric: 'tabular-nums',
-                    }}
-                  />
-                  <IconButton size="small" sx={{ ml: 0.5 }}>
+                  </p>
+                  <StatusChip tokens={{ color: cat.color, bg: `${cat.color}18` }} label={`${cat.prospects.length}`} className="tabular-nums" />
+                  {/* Le chevron porte l'action au clavier (l'entete n'est qu'une
+                      surface de clic) : stopPropagation evite le double toggle. */}
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="ms-[3px]"
+                    aria-expanded={isExpanded}
+                    aria-label={isExpanded ? `Replier ${cat.label}` : `Deplier ${cat.label}`}
+                    onClick={(e) => { e.stopPropagation(); toggleCategory(cat.key); }}
+                  >
                     {isExpanded ? <ExpandLess size={18} strokeWidth={1.75} /> : <ExpandMore size={18} strokeWidth={1.75} />}
-                  </IconButton>
-                </Box>
+                  </Button>
+                </div>
 
                 {/* Prospects table */}
-                <Collapse in={isExpanded}>
-                  <TableContainer>
-                    <Table size="small">
-                      <TableHead>
+                <Collapsible open={isExpanded}>
+                  <CollapsibleContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Nom</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Ville</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Specialite</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Taille</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>CA</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Liens</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Statut</TableCell>
-                          <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>Notes</TableCell>
+                          <TableHead className="text-[0.75rem]">Nom</TableHead>
+                          <TableHead className="text-[0.75rem]">Ville</TableHead>
+                          <TableHead className="text-[0.75rem]">Specialite</TableHead>
+                          <TableHead className="text-[0.75rem]">Taille</TableHead>
+                          <TableHead className="text-[0.75rem]">CA</TableHead>
+                          <TableHead className="text-[0.75rem]">Liens</TableHead>
+                          <TableHead className="text-[0.75rem]">Statut</TableHead>
+                          <TableHead className="text-[0.75rem]">Notes</TableHead>
                         </TableRow>
-                      </TableHead>
+                      </TableHeader>
                       <TableBody>
                         {cat.prospects.map((p) => {
                           const sc = STATUS_CONFIG[(p.status as ProspectStatus) || 'TO_CONTACT'] || STATUS_CONFIG.TO_CONTACT;
+                          // le filet de derniere ligne est deja absent cote kit : pas de sx a reporter
                           return (
-                            <TableRow
-                              key={p.id}
-                              hover
-                              sx={{ '&:last-child td': { borderBottom: 0 } }}
-                            >
+                            <TableRow key={p.id}>
                               <TableCell>
-                                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                                <p className="cn-text-body1 text-[0.8125rem] font-semibold">
                                   {p.name}
-                                </Typography>
-                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, mt: 0.25 }}>
+                                </p>
+                                <div className="flex flex-col gap-0.5 mt-0.5">
                                   {p.email && (
-                                    <Tooltip title={p.email}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><Email size={11} strokeWidth={1.75} /></Box>
-                                        <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
-                                          {p.email}
-                                        </Typography>
-                                      </Box>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div className="flex items-center gap-0.5 w-fit">
+                                          <span className="inline-flex text-muted-foreground opacity-60"><Email size={11} strokeWidth={1.75} /></span>
+                                          <p className="cn-text-body1 text-[0.625rem] text-muted-foreground">
+                                            {p.email}
+                                          </p>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent>{p.email}</TooltipContent>
                                     </Tooltip>
                                   )}
                                   {p.phone && (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><Phone size={11} strokeWidth={1.75} /></Box>
-                                      <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
+                                    <div className="flex items-center gap-0.5">
+                                      <span className="inline-flex text-muted-foreground opacity-60"><Phone size={11} strokeWidth={1.75} /></span>
+                                      <p className="cn-text-body1 text-[0.625rem] text-muted-foreground">
                                         {p.phone}
-                                      </Typography>
-                                    </Box>
+                                      </p>
+                                    </div>
                                   )}
-                                </Box>
+                                </div>
                               </TableCell>
                               <TableCell>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LocationOn size={12} strokeWidth={1.75} /></Box>
-                                  <Typography sx={{ fontSize: '0.75rem' }}>{p.city || '\u2014'}</Typography>
-                                </Box>
+                                <div className="flex items-center gap-0.5">
+                                  <span className="inline-flex text-muted-foreground"><LocationOn size={12} strokeWidth={1.75} /></span>
+                                  <p className="cn-text-body1 text-[0.75rem]">{p.city || '\u2014'}</p>
+                                </div>
                               </TableCell>
                               <TableCell>
-                                <Typography sx={{ fontSize: '0.75rem' }}>{p.specialty || '\u2014'}</Typography>
+                                <p className="cn-text-body1 text-[0.75rem]">{p.specialty || '\u2014'}</p>
                               </TableCell>
                               <TableCell>
-                                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
                                   {p.employees || '\u2014'}
-                                </Typography>
+                                </p>
                               </TableCell>
                               <TableCell>
-                                <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground whitespace-nowrap">
                                   {p.revenue ? `${p.revenue} \u20AC` : '\u2014'}
-                                </Typography>
+                                </p>
                               </TableCell>
                               <TableCell>
-                                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                <div className="flex gap-0.5">
                                   {p.website && (
-                                    <Tooltip title={p.website}>
-                                      <IconButton
-                                        size="small"
-                                        component="a"
-                                        href={p.website.startsWith('http') ? p.website : `https://${p.website}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        sx={{ p: 0.25 }}
-                                      >
-                                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Language size={16} strokeWidth={1.75} /></Box>
-                                      </IconButton>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        {/* span : TooltipTrigger asChild pose une ref DOM, que le
+                                            Button du kit (fonction, React 18) ne transmet pas. */}
+                                        <span className="inline-flex">
+                                          <Button
+                                            asChild
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            className="text-muted-foreground"
+                                            aria-label={`Site web de ${p.name}`}
+                                          >
+                                            <a
+                                              href={p.website.startsWith('http') ? p.website : `https://${p.website}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                            >
+                                              <Language size={16} strokeWidth={1.75} />
+                                            </a>
+                                          </Button>
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>{p.website}</TooltipContent>
                                     </Tooltip>
                                   )}
                                   {p.linkedIn && (
-                                    <Tooltip title="LinkedIn">
-                                      <IconButton
-                                        size="small"
-                                        component="a"
-                                        href={p.linkedIn}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        sx={{ p: 0.25 }}
-                                      >
-                                        <LinkedIn size={16} strokeWidth={1.75} color='#0A66C2' />
-                                      </IconButton>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="inline-flex">
+                                          <Button
+                                            asChild
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            aria-label={`LinkedIn de ${p.name}`}
+                                          >
+                                            <a href={p.linkedIn} target="_blank" rel="noopener noreferrer">
+                                              <LinkedIn size={16} strokeWidth={1.75} color="#0A66C2" />
+                                            </a>
+                                          </Button>
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>LinkedIn</TooltipContent>
                                     </Tooltip>
                                   )}
-                                </Box>
+                                </div>
                               </TableCell>
                               <TableCell>
                                 <Select
                                   value={p.status || 'TO_CONTACT'}
-                                  size="small"
-                                  onChange={(e: SelectChangeEvent) => handleStatusChange(p.id, e.target.value)}
-                                  sx={{
-                                    fontSize: '0.625rem',
-                                    height: 24,
-                                    '& .MuiSelect-select': { py: 0.25, px: 0.75 },
-                                    backgroundColor: `${sc.color}18`,
-                                    color: sc.color,
-                                    fontWeight: 600,
-                                    borderRadius: '999px',
-                                    '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                                  }}
+                                  onValueChange={(v) => handleStatusChange(p.id, v)}
                                 >
-                                  {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-                                    <MenuItem key={key} value={key} sx={{ fontSize: '0.75rem' }}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: cfg.color }} />
-                                        {cfg.label}
-                                      </Box>
-                                    </MenuItem>
-                                  ))}
+                                  {/* Pastille de statut : la teinte vient de la donnee,
+                                      donc en style inline ; le gabarit reste en classes. */}
+                                  <SelectTrigger
+                                    size="sm"
+                                    aria-label={`Statut de ${p.name}`}
+                                    className="h-[24px] w-auto gap-1 rounded-full border-none px-1.5 py-0.5 text-[0.625rem] font-semibold shadow-none"
+                                    style={{ backgroundColor: `${sc.color}18`, color: sc.color }}
+                                  >
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+                                      <SelectItem key={key} value={key} className="text-[0.75rem]">
+                                        <span className="inline-flex items-center gap-1">
+                                          <span className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: cfg.color }} />
+                                          {cfg.label}
+                                        </span>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
                                 </Select>
                               </TableCell>
                               <TableCell>
-                                <Typography
-                                  sx={{
-                                    fontSize: '0.6875rem',
-                                    color: 'text.secondary',
-                                    maxWidth: 220,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                >
+                                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">
                                   {p.notes || '\u2014'}
-                                </Typography>
+                                </p>
                               </TableCell>
                             </TableRow>
                           );
                         })}
                       </TableBody>
                     </Table>
-                  </TableContainer>
-                </Collapse>
-              </Paper>
+                  </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
             );
           })}
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

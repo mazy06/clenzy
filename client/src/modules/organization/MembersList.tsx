@@ -1,20 +1,18 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import StatusChip from '../../components/StatusChip';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import {
-  Box,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  IconButton,
-  Tooltip,
-  CircularProgress,
-  Alert,
   Avatar,
-} from '@mui/material';
+  AvatarFallback,
+  AvatarImage,
+  Button,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Edit as EditIcon,
   PersonRemove as PersonRemoveIcon,
@@ -48,12 +46,16 @@ const getMemberName = (member: OrganizationMemberDto): string => {
   return `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email;
 };
 
-const CELL_NOWRAP_SX = { whiteSpace: 'nowrap' as const, py: 0.75, px: 1 };
+const CELL_NOWRAP_CLASS = 'whitespace-nowrap py-[4.5px] px-1.5';
+// Cellule Actions : `pe` (padding-inline-end) et non `pr`, pour suivre les proprietes
+// logiques du kit et rester correct en RTL. `ps`/`pe` explicites plutot que `px` + `pe` :
+// deux utilitaires du meme groupe se departageraient sur l'ordre de la feuille generee.
+const CELL_ACTIONS_CLASS = 'whitespace-nowrap py-[4.5px] ps-1.5 pe-[7.5px] text-end';
 // Membre cell : shrinkable + ellipsis. `maxWidth: 0` + `width: '100%'` est le trick CSS pour
 // qu'une cellule <td> accepte text-overflow:ellipsis sur ses enfants tout en remplissant
 // l'espace disponible. Sans ça, l'email long pousse la table et la colonne Actions se fait
 // clipper par le `overflow: hidden` du SettingsSection.
-const CELL_MEMBER_SX = { py: 0.75, px: 1, maxWidth: 0, width: '100%' };
+const CELL_MEMBER_CLASS = 'py-[4.5px] px-1.5 max-w-0 w-full';
 
 export default function MembersList({ organizationId, refreshTrigger, onMemberChanged }: Props) {
   const { hasAnyRole, user } = useAuth();
@@ -108,25 +110,26 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-        <CircularProgress size={32} />
-      </Box>
+      <div className="flex justify-center py-4">
+        <Spinner className="size-8" />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Alert severity="error" sx={{ mb: 2 }}>
-        {error}
+      <Alert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
   }
 
   if (members.length === 0) {
     return (
-      <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+      <p className="cn-text-body2 text-muted-foreground py-3 text-center">
         Aucun membre dans cette organisation
-      </Typography>
+      </p>
     );
   }
 
@@ -139,16 +142,16 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
 
   return (
     <>
-      <TableContainer sx={{ overflowX: 'hidden' }}>
-        <Table size="small" sx={{ tableLayout: 'auto', width: '100%' }}>
-          <TableHead>
+      <div className="overflow-x-hidden">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell sx={CELL_NOWRAP_SX}>Membre</TableCell>
-              <TableCell sx={CELL_NOWRAP_SX}>Role</TableCell>
-              <TableCell sx={CELL_NOWRAP_SX}>Depuis</TableCell>
-              {canManage && <TableCell align="right" sx={{ ...CELL_NOWRAP_SX, pr: 1.25 }}>Actions</TableCell>}
+              <TableHead className={CELL_NOWRAP_CLASS}>Membre</TableHead>
+              <TableHead className={CELL_NOWRAP_CLASS}>Role</TableHead>
+              <TableHead className={CELL_NOWRAP_CLASS}>Depuis</TableHead>
+              {canManage && <TableHead className={CELL_ACTIONS_CLASS}>Actions</TableHead>}
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {paginatedMembers.map((member) => {
               const isOwner = member.roleInOrg === 'OWNER';
@@ -156,177 +159,119 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
               const RoleIcon = getOrgRoleIcon(member.roleInOrg);
 
               return (
-                <TableRow key={member.id} hover>
+                <TableRow key={member.id}>
                   {/* Membre (avatar + nom + email) */}
-                  <TableCell sx={CELL_MEMBER_SX}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
-                      <Avatar
-                        src={usersApi.profilePictureUrl(member.userId)}
-                        alt={`${member.firstName} ${member.lastName}`.trim() || member.email}
-                        sx={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: '10px',
-                          fontSize: '0.78rem',
-                          fontFamily: 'var(--font-display)',
-                          fontWeight: 600,
-                          letterSpacing: '0.02em',
-                          bgcolor: `${roleColor}1F`,
-                          color: roleColor,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {getInitials(member)}
+                  <TableCell className={CELL_MEMBER_CLASS}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Avatar className="size-8 shrink-0 rounded-[10px]">
+                        <AvatarImage
+                          src={usersApi.profilePictureUrl(member.userId)}
+                          alt={`${member.firstName} ${member.lastName}`.trim() || member.email}
+                          className="rounded-[10px]"
+                        />
+                        {/* La teinte derive du role (valeur runtime) : elle ne peut
+                            pas naitre d'une classe, d'ou le style inline. */}
+                        <AvatarFallback
+                          className="rounded-[10px] text-[0.78rem] font-[family-name:var(--font-display)] font-semibold tracking-[0.02em]"
+                          style={{ backgroundColor: `${roleColor}1F`, color: roleColor }}
+                        >
+                          {getInitials(member)}
+                        </AvatarFallback>
                       </Avatar>
-                      <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Typography
-                          sx={{
-                            fontSize: '0.82rem',
-                            fontWeight: 600,
-                            color: 'text.primary',
-                            lineHeight: 1.25,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                          title={getMemberName(member)}
-                        >
+                      <div className="min-w-0 flex-1">
+                        <p className="cn-text-body1 text-[0.82rem] font-semibold text-foreground leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap" title={getMemberName(member)}>
                           {getMemberName(member)}
-                        </Typography>
-                        <Typography
-                          sx={{
-                            fontSize: '0.7rem',
-                            color: 'text.secondary',
-                            lineHeight: 1.3,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                          title={member.email}
-                        >
+                        </p>
+                        <p className="cn-text-body1 text-[0.7rem] text-muted-foreground leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap" title={member.email}>
                           {member.email}
-                        </Typography>
-                      </Box>
-                    </Box>
+                        </p>
+                      </div>
+                    </div>
                   </TableCell>
 
                   {/* Role : org + plateforme (les deux, parite avec l'Annuaire) */}
-                  <TableCell sx={CELL_NOWRAP_SX}>
-                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                      <Tooltip title="Rôle dans l'organisation">
-                        <Chip
-                          icon={<RoleIcon size={11} strokeWidth={2} />}
-                          label={getOrgRoleLabel(member.roleInOrg)}
-                          size="small"
-                          sx={{
-                            backgroundColor: `${roleColor}18`,
-                            color: roleColor,
-                            '& .MuiChip-icon': { color: roleColor, ml: '6px', mr: '-2px' },
-                          }}
-                        />
+                  <TableCell className={CELL_NOWRAP_CLASS}>
+                    <div className="flex gap-0.5 flex-wrap">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* Le `span` porte la ref que Tooltip pose sur son enfant :
+                              StatusChip est une fonction et n'en transmet pas. */}
+                          <span className="inline-flex">
+                            <StatusChip tokens={{ color: roleColor, bg: `${roleColor}18` }} label={getOrgRoleLabel(member.roleInOrg)} icon={<RoleIcon size={11} strokeWidth={2} />} />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Rôle dans l'organisation</TooltipContent>
                       </Tooltip>
                       {member.userRole && member.userRole !== member.roleInOrg && (() => {
                         const pHex = getPlatformRoleHex(member.userRole);
                         const PlatformIcon = getPlatformRoleIcon(member.userRole);
                         return (
-                          <Tooltip title="Rôle sur la plateforme">
-                            <Chip
-                              icon={<PlatformIcon size={11} strokeWidth={2} />}
-                              label={getPlatformRoleLabel(member.userRole)}
-                              size="small"
-                              variant="outlined"
-                              sx={{
-                                backgroundColor: 'transparent',
-                                color: pHex,
-                                borderColor: `${pHex}55`,
-                                '& .MuiChip-icon': { color: pHex, ml: '6px', mr: '-2px' },
-                              }}
-                            />
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <StatusChip
+                                  color={pHex}
+                                  icon={<PlatformIcon size={11} strokeWidth={2} />}
+                                  label={getPlatformRoleLabel(member.userRole)}
+                                />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Rôle sur la plateforme</TooltipContent>
                           </Tooltip>
                         );
                       })()}
-                    </Box>
+                    </div>
                   </TableCell>
 
                   {/* Depuis */}
-                  <TableCell sx={CELL_NOWRAP_SX}>
-                    <Typography
-                      sx={{
-                        fontSize: '0.72rem',
-                        color: 'text.secondary',
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
+                  <TableCell className={CELL_NOWRAP_CLASS}>
+                    <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums">
                       {member.joinedAt
                         ? new Date(member.joinedAt).toLocaleDateString('fr-FR')
                         : '—'}
-                    </Typography>
+                    </p>
                   </TableCell>
 
                   {/* Actions — visible uniquement pour staff plateforme ou admin org */}
                   {canManage && (
-                    <TableCell align="right" sx={{ ...CELL_NOWRAP_SX, pr: 1.25 }}>
+                    <TableCell className={CELL_ACTIONS_CLASS}>
                       {!isOwner && (
-                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-                          <Tooltip title="Changer le rôle">
-                            <IconButton
-                              size="small"
-                              onClick={() => setChangeRoleMember(member)}
-                              aria-label="Changer le rôle"
-                              sx={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: '7px',
-                                color: 'var(--muted)',
-                                border: '1px solid var(--line-2)',
-                                backgroundColor: 'var(--card)',
-                                transition:
-                                  'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-                                '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                                '&:hover': {
-                                  color: 'var(--accent)',
-                                  borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
-                                  backgroundColor: 'var(--accent-soft)',
-                                },
-                                '&:focus-visible': {
-                                  outline: '2px solid var(--accent)',
-                                  outlineOffset: 2,
-                                },
-                              }}
-                            >
-                              <EditIcon size={13} strokeWidth={1.75} />
-                            </IconButton>
+                        <div className="inline-flex items-center gap-0.5">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon-sm"
+                                  onClick={() => setChangeRoleMember(member)}
+                                  aria-label="Changer le rôle"
+                                  className="rounded-[7px] border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] transition-[border-color,background-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none hover:text-[var(--accent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] hover:bg-[var(--accent-soft)]"
+                                >
+                                  <EditIcon size={13} strokeWidth={1.75} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Changer le rôle</TooltipContent>
                           </Tooltip>
-                          <Tooltip title="Retirer de l'organisation">
-                            <IconButton
-                              size="small"
-                              onClick={() => setRemoveMember(member)}
-                              aria-label="Retirer de l'organisation"
-                              sx={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: '7px',
-                                color: 'var(--muted)',
-                                border: '1px solid var(--line-2)',
-                                backgroundColor: 'var(--card)',
-                                transition:
-                                  'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-                                '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                                '&:hover': {
-                                  color: 'var(--err)',
-                                  borderColor: 'color-mix(in srgb, var(--err) 40%, transparent)',
-                                  backgroundColor: 'var(--err-soft)',
-                                },
-                                '&:focus-visible': {
-                                  outline: '2px solid var(--err)',
-                                  outlineOffset: 2,
-                                },
-                              }}
-                            >
-                              <PersonRemoveIcon size={13} strokeWidth={1.75} />
-                            </IconButton>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon-sm"
+                                  onClick={() => setRemoveMember(member)}
+                                  aria-label="Retirer de l'organisation"
+                                  className="rounded-[7px] border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] transition-[border-color,background-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none hover:text-[var(--err)] hover:border-[color-mix(in_srgb,var(--err)_40%,transparent)] hover:bg-[var(--err-soft)]"
+                                >
+                                  <PersonRemoveIcon size={13} strokeWidth={1.75} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Retirer de l'organisation</TooltipContent>
                           </Tooltip>
-                        </Box>
+                        </div>
                       )}
                     </TableCell>
                   )}
@@ -335,7 +280,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
             })}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
 
       {members.length > ROWS_PER_PAGE && (
         <PagePagination

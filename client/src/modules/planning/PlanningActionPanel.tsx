@@ -1,10 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
-import {
-  Drawer,
-  Box,
-  IconButton,
-  useTheme,
-} from '@mui/material';
+import { createPortal } from 'react-dom';
+import { cn } from '../../utils/cn';
+import { Button } from '../../components/ui';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import {
@@ -185,7 +182,6 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
   autoOpenGuestCardForReservationId,
   onGuestCardAutoOpenHandled,
 }) => {
-  const theme = useTheme();
   const { currentView, isSubView, pushView, popView } = usePanelNavigation(event?.id ?? null);
 
   // Auto-reset to valid tab when event type changes
@@ -340,96 +336,52 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
     ? `Réservation · ${formatGuestShort(event.label)}`
     : `${EVENT_TYPE_LABELS[event.type]} · ${event.label}`;
 
-  return (
-    <Drawer
-      anchor="right"
-      open={open}
-      onClose={onClose}
-      variant="persistent"
-      sx={{
-        // Keep drawer overlay (not push content) in all modes
-        position: 'relative',
-        zIndex: theme.zIndex.drawer + 1,
-        '& .MuiDrawer-paper': {
-          // Maquette Signature : drawer droite ~480px, full-screen sur mobile.
-          width: { xs: '100vw', sm: 480 },
-          maxWidth: '100vw',
-          position: 'fixed',
-          borderLeft: '1px solid var(--line)',
-          // Filet accent en haut du drawer (2px).
-          borderTop: '2px solid var(--accent)',
-          backgroundColor: 'var(--card)',
-          backgroundImage: 'none',
-          boxShadow: 'var(--shadow-drawer)',
-        },
-      }}
+  // Panneau non modal : il recouvre le planning sans voile ni piege de focus,
+  // le calendrier derriere reste manipulable pendant qu'il est ouvert. Porte
+  // dans <body> comme le faisait le Drawer MUI : un ancetre transforme
+  // redefinirait le bloc conteneur d'un `position: fixed` et decalerait tout.
+  return createPortal(
+    <aside
+      aria-hidden={!open}
+      className={cn(
+        'fixed top-0 bottom-0 end-0 z-[1201] flex flex-col',
+        // Maquette Signature : drawer droite ~480px (palier `sm` MUI = 600),
+        // plein ecran en dessous. Filet accent 2px en haut.
+        'w-screen max-w-[100vw] min-[600px]:w-[480px]',
+        'border-s border-t-2 border-solid border-s-[color:var(--line)] border-t-[color:var(--accent)]',
+        'bg-[var(--card)] shadow-[var(--shadow-drawer)]',
+        'transition-transform duration-200 ease-[var(--ease-out)] motion-reduce:transition-none',
+        open
+          ? 'translate-x-0'
+          : 'translate-x-full rtl:-translate-x-full invisible pointer-events-none',
+      )}
     >
       {/* ─── Entête : titre display + sous-titre séjour + ✕ pastille ──── */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 1,
-          px: 2,
-          py: 1.5,
-          borderBottom: '1px solid var(--line)',
-        }}
-      >
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Box
-            component="span"
-            sx={{
-              display: 'block',
-              fontFamily: 'var(--font-display)',
-              fontSize: '0.9375rem',
-              fontWeight: 700,
-              color: 'var(--ink)',
-              lineHeight: 1.25,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
+      <div className="flex items-center justify-between gap-1.5 px-3 py-2 border-b border-[var(--line)]">
+        <div className="min-w-0 flex-1">
+          <span className="block font-[family-name:var(--font-display)] text-[0.9375rem] font-bold text-[var(--ink)] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">
             {headerTitle}
-          </Box>
-          <Box
-            component="span"
-            sx={{
-              display: 'block',
-              fontSize: '0.75rem',
-              color: 'var(--muted)',
-              mt: '2px',
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
+          </span>
+          <span className="block text-[0.75rem] text-[var(--muted)] mt-0.5 tabular-nums">
             {formatStayRange(event.startDate, event.endDate)}
-          </Box>
-        </Box>
-        <IconButton
-          size="small"
+          </span>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={onClose}
           aria-label="Fermer"
-          sx={{
-            flexShrink: 0,
-            width: 30,
-            height: 30,
-            border: '1px solid var(--line-2)',
-            borderRadius: '50%',
-            color: 'var(--muted)',
-            transition: 'color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out)',
-            '&:hover': { color: 'var(--ink)', backgroundColor: 'var(--hover)' },
-          }}
+          className="size-[30px] rounded-full border border-solid border-[var(--line-2)] text-[var(--muted)] transition-[color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:text-[var(--ink)] hover:bg-[var(--hover)]"
         >
           <Close size={14} strokeWidth={1.75} />
-        </IconButton>
-      </Box>
+        </Button>
+      </div>
 
       {/* ─── Onglets niveau 1 (soulignés accent, style PageTabs) ──────── */}
       {isSubView ? (
         <PanelSubViewHeader title={getSubViewTitle(currentView)} onBack={popView} />
       ) : (
-        <Box sx={{ px: 1 }}>
+        <div className="px-1.5">
           <PageTabs<PanelTab>
             options={tabConfig.map((tab) => ({ value: tab.value, label: tab.label, icon: tab.icon }))}
             value={activeTab}
@@ -439,13 +391,13 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
             mb={0}
             ariaLabel="Onglets du détail"
           />
-        </Box>
+        </div>
       )}
 
       {/* Content */}
-      <Box sx={{ flex: 1, overflow: 'auto', p: 2, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
+      <div className="flex-1 overflow-auto p-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {isSubView ? renderSubView() : renderTabContent()}
-      </Box>
+      </div>
 
       {/* ─── Pied sticky : actions réservation (grille 2×2) ───────────── */}
       {isReservation && !isSubView && (
@@ -460,7 +412,8 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
           onGuestCardAutoOpenHandled={onGuestCardAutoOpenHandled}
         />
       )}
-    </Drawer>
+    </aside>,
+    document.body,
   );
 };
 

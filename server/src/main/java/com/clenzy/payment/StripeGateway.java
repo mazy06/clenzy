@@ -68,6 +68,17 @@ public class StripeGateway {
         return Session.retrieve(sessionId, requestOptions(null));
     }
 
+    /**
+     * Dépose les preuves d'un litige ({@code CHARGEBACK_SUBMIT}) — retrieve puis update
+     * avec RequestOptions par appel (jamais de clé statique) et idempotency key.
+     */
+    public com.stripe.model.Dispute updateDispute(String disputeId,
+                                                  com.stripe.param.DisputeUpdateParams params,
+                                                  String idempotencyKey) throws StripeException {
+        com.stripe.model.Dispute dispute = com.stripe.model.Dispute.retrieve(disputeId, requestOptions(null));
+        return dispute.update(params, requestOptions(idempotencyKey));
+    }
+
     public Refund createRefund(RefundCreateParams params, String idempotencyKey) throws StripeException {
         return Refund.create(params, requestOptions(idempotencyKey));
     }

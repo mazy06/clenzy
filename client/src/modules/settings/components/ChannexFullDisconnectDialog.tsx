@@ -20,20 +20,23 @@
  * </ol>
  */
 import React, { useState } from 'react';
+import { cn } from '../../../utils/cn';
+import { Alert as UiAlert, AlertDescription, Button } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../../components/ui';
 import {
+  Checkbox,
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogHeader,
   DialogTitle,
-  Box,
-  Typography,
-  Button,
-  CircularProgress,
-  Alert,
-  Checkbox,
-  FormControlLabel,
-  Stack,
-  Chip,
-} from '@mui/material';
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+} from '../../../components/ui';
+import StatusChip from '../../../components/StatusChip';
 import {
   AlertCircle,
   CheckCircle2,
@@ -93,51 +96,29 @@ function StepRow({ step }: { step: ChannexFullDisconnectStep }) {
         ? 'color-mix(in srgb, var(--err) 20%, transparent)'
         : 'var(--line-2)';
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        gap: 1.5,
-        p: 1.25,
-        borderRadius: 1,
-        border: `1px solid ${borderColor}`,
-        bgcolor: bg,
-        alignItems: 'flex-start',
-      }}
-    >
-      <Box sx={{ mt: 0.2 }}>
+    <div className="flex gap-[9px] p-[7.5px] rounded-[8px] items-start" style={{ border: `1px solid ${borderColor}`, backgroundColor: bg }}>
+      <div className="mt-0.5">
         <StepIcon status={step.status} />
-      </Box>
-      <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
-          <Typography
-            variant="body2"
-            fontWeight={600}
-            sx={{ lineHeight: 1.3, color: 'text.primary' }}
-          >
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1 mb-0.5">
+          <p className="cn-text-body2 font-semibold leading-[1.3] text-foreground">
             {STEP_LABEL_FR[step.code] ?? step.label}
-          </Typography>
+          </p>
           {step.targetId && (
-            <Chip
-              size="small"
+            <StatusChip
+              size="sm"
+              tone="neutral"
               label={step.targetId.slice(0, 8)}
-              sx={{
-                height: 18,
-                fontSize: '0.65rem',
-                fontFamily: 'monospace',
-                bgcolor: 'var(--hover)',
-              }}
+              className="text-[0.65rem] font-mono"
             />
           )}
-        </Box>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ display: 'block', lineHeight: 1.45 }}
-        >
+        </div>
+        <span className="cn-text-caption text-muted-foreground block leading-[1.45]">
           {step.detail}
-        </Typography>
-      </Box>
-    </Box>
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -189,228 +170,169 @@ export default function ChannexFullDisconnectDialog({
   const skippedCount = result?.steps.filter((s) => s.status === 'SKIPPED').length ?? 0;
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-      // Bloque la fermeture par ESC/backdrop pendant le RUNNING
-      disableEscapeKeyDown={phase === 'RUNNING'}
-    >
+    // La fermeture par ESC/backdrop est deja neutralisee pendant le RUNNING :
+    // `handleClose` sort sans appeler `onClose`, et `open` est pilote par le parent.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent className="max-w-[600px] max-h-[85vh] overflow-y-auto" showCloseButton={false}>
       {/* ─── Phase CONFIRM ─────────────────────────────────────────────── */}
       {phase === 'CONFIRM' && (
         <>
-          <DialogTitle
-            sx={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 1.5,
-              pb: 1,
-            }}
-          >
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: 1,
-                bgcolor: 'var(--err-soft)',
-                color: 'var(--err)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                mt: 0.25,
-              }}
-            >
-              <ShieldAlert size={20} />
-            </Box>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography variant="h6" fontWeight={600} sx={{ lineHeight: 1.3, fontSize: '1.05rem' }}>
-                Deconnexion complete de « {propertyName} »
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                Smart Disconnect orchestre · libere les OTA + nettoie le hub
-              </Typography>
-            </Box>
-          </DialogTitle>
+          <DialogHeader>
+            <div className="flex items-start gap-2">
+              <div className="w-[36px] h-[36px] rounded-[8px] bg-[var(--err-soft)] text-[var(--err)] flex items-center justify-center shrink-0 mt-0.5">
+                <ShieldAlert size={20} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <DialogTitle className="cn-text-h6 font-semibold leading-[1.3] text-[1.05rem]">
+                  Deconnexion complete de « {propertyName} »
+                </DialogTitle>
+                <DialogDescription className="cn-text-caption mt-0.5">
+                  Smart Disconnect orchestre · libere les OTA + nettoie le hub
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
 
-          <DialogContent sx={{ pt: 1, pb: 1.5 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <div>
+            <p className="cn-text-body2 text-muted-foreground mb-3">
               Cette operation va executer en sequence&nbsp;:
-            </Typography>
-            <Stack
-              spacing={0.75}
-              sx={{
-                mb: 2,
-                pl: 2,
-                borderLeft: '2px solid var(--line-2)',
+            </p>
+            <div className="flex flex-col gap-[4.5px] mb-3 ps-3 border-s-2 border-solid border-[var(--line-2)]">
+              <p className="cn-text-body2 text-foreground">
+                1. <b>Detecter</b> tous les channels OTA actifs sur cette property
+              </p>
+              <p className="cn-text-body2 text-foreground">
+                2. <b>Desactiver</b> chaque channel (les hosts reprennent la main immediatement)
+              </p>
+              <p className="cn-text-body2 text-foreground">
+                3. <b>Supprimer</b> chaque channel du hub (tokens OAuth detruits)
+              </p>
+              <p className="cn-text-body2 text-foreground">
+                4. <b>Nettoyer</b> le mapping local Baitly
+              </p>
+            </div>
+
+            <Field
+              orientation="horizontal"
+              className="items-start gap-2 rounded-[8px] border border-solid p-[7.5px]"
+              style={{
+                borderColor: 'color-mix(in srgb, var(--err) 20%, transparent)',
+                backgroundColor: 'color-mix(in srgb, var(--err) 4%, transparent)',
               }}
             >
-              <Typography variant="body2" color="text.primary">
-                1. <b>Detecter</b> tous les channels OTA actifs sur cette property
-              </Typography>
-              <Typography variant="body2" color="text.primary">
-                2. <b>Desactiver</b> chaque channel (les hosts reprennent la main immediatement)
-              </Typography>
-              <Typography variant="body2" color="text.primary">
-                3. <b>Supprimer</b> chaque channel du hub (tokens OAuth detruits)
-              </Typography>
-              <Typography variant="body2" color="text.primary">
-                4. <b>Nettoyer</b> le mapping local Baitly
-              </Typography>
-            </Stack>
-
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={deletePivot}
-                  onChange={(e) => setDeletePivot(e.target.checked)}
-                  sx={{ py: 0.25, '&.Mui-checked': { color: 'var(--err)' } }}
-                />
-              }
-              label={
-                <Box>
-                  <Typography variant="body2" fontWeight={600}>
-                    Reset complet : supprimer aussi la property cote hub
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    Plus de trace dans le dashboard Channex. Irreversible : il faudra recreer la
-                    property pour reconnecter.
-                  </Typography>
-                </Box>
-              }
-              sx={{
-                m: 0,
-                alignItems: 'flex-start',
-                p: 1.25,
-                border: '1px solid color-mix(in srgb, var(--err) 20%, transparent)',
-                borderRadius: 1,
-                bgcolor: 'color-mix(in srgb, var(--err) 4%, transparent)',
-              }}
-            />
+              <Checkbox
+                id="channex-delete-pivot"
+                checked={deletePivot}
+                onCheckedChange={(checked) => setDeletePivot(checked === true)}
+                className="mt-0.5 data-checked:border-[var(--err)] data-checked:bg-[var(--err)]"
+              />
+              <FieldContent>
+                <FieldLabel htmlFor="channex-delete-pivot" className="cn-text-body2 font-semibold">
+                  Reset complet : supprimer aussi la property cote hub
+                </FieldLabel>
+                <FieldDescription className="cn-text-caption">
+                  Plus de trace dans le dashboard Channex. Irreversible : il faudra recreer la
+                  property pour reconnecter.
+                </FieldDescription>
+              </FieldContent>
+            </Field>
 
             {submitError && (
-              <Alert severity="error" sx={{ mt: 2 }}>
-                {submitError}
-              </Alert>
+              <UiAlert variant="destructive" className="mt-3">
+                <TriangleAlert />
+                <AlertDescription>{submitError}</AlertDescription>
+              </UiAlert>
             )}
-          </DialogContent>
+          </div>
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, px: 3, pb: 2 }}>
-            <Button
-              onClick={handleClose}
-              size="small"
-              sx={{ textTransform: 'none', color: 'text.secondary' }}
-            >
+          <div className="flex justify-end gap-1.5">
+            <Button variant="ghost" size="sm" onClick={handleClose}>
               Annuler
             </Button>
-            <Button
-              onClick={handleConfirm}
-              size="small"
-              variant="contained"
-              startIcon={<Sparkles size={16} />}
-              color="error"
-              sx={{ textTransform: 'none' }}
-            >
+            <Button variant="destructive" size="sm" onClick={handleConfirm}>
+              <Sparkles size={16} />
               {deletePivot ? 'Reset complet' : 'Deconnecter'}
             </Button>
-          </Box>
+          </div>
         </>
       )}
 
       {/* ─── Phase RUNNING ─────────────────────────────────────────────── */}
       {phase === 'RUNNING' && (
-        <DialogContent sx={{ py: 5 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <CircularProgress size={42} sx={{ color: 'var(--err)' }} />
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 0.5 }}>
+        <div className="py-[30px]">
+          <div className="flex flex-col items-center gap-3">
+            <Spinner className="size-[42px] text-[var(--err)]" />
+            <div className="text-center">
+              {/* Radix exige un titre par contenu de modale : celui de la phase
+                  RUNNING est le libelle deja affiche a l'ecran. */}
+              <DialogTitle className="cn-text-subtitle1 font-semibold mb-0.5">
                 Deconnexion en cours…
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
+              </DialogTitle>
+              <DialogDescription className="cn-text-caption">
                 Le hub libere les OTA et nettoie les channels. 5 a 10 secondes selon le nombre
                 d'OTA connectes.
-              </Typography>
-            </Box>
-          </Box>
-        </DialogContent>
+              </DialogDescription>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ─── Phase RESULT ──────────────────────────────────────────────── */}
       {phase === 'RESULT' && result && (
         <>
-          <DialogTitle
-            sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, pb: 1 }}
-          >
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: 1,
-                bgcolor: result.overallSuccess
-                  ? 'var(--ok-soft)'
-                  : 'var(--warn-soft)',
-                color: result.overallSuccess ? 'var(--ok)' : 'var(--warn)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                mt: 0.25,
-              }}
-            >
-              {result.overallSuccess ? (
-                <CheckCircle2 size={20} />
-              ) : (
-                <AlertCircle size={20} />
-              )}
-            </Box>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography variant="h6" fontWeight={600} sx={{ lineHeight: 1.3, fontSize: '1.05rem' }}>
-                {result.overallSuccess
-                  ? 'Deconnexion reussie'
-                  : 'Deconnexion partielle'}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                {successCount} reussie{successCount > 1 ? 's' : ''}
-                {failedCount > 0 && ` · ${failedCount} echec${failedCount > 1 ? 's' : ''}`}
-                {skippedCount > 0 && ` · ${skippedCount} ignoree${skippedCount > 1 ? 's' : ''}`}
-              </Typography>
-            </Box>
-          </DialogTitle>
+          <DialogHeader>
+            <div className="flex items-start gap-2">
+              <div className={cn('w-[36px] h-[36px] rounded-[8px] flex items-center justify-center shrink-0 mt-[1.5px]', result.overallSuccess ? 'bg-[var(--ok-soft)]' : 'bg-[var(--warn-soft)]', result.overallSuccess ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
+                {result.overallSuccess ? (
+                  <CheckCircle2 size={20} />
+                ) : (
+                  <AlertCircle size={20} />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <DialogTitle className="cn-text-h6 font-semibold leading-[1.3] text-[1.05rem]">
+                  {result.overallSuccess
+                    ? 'Deconnexion reussie'
+                    : 'Deconnexion partielle'}
+                </DialogTitle>
+                <DialogDescription className="cn-text-caption mt-0.5">
+                  {successCount} reussie{successCount > 1 ? 's' : ''}
+                  {failedCount > 0 && ` · ${failedCount} echec${failedCount > 1 ? 's' : ''}`}
+                  {skippedCount > 0 && ` · ${skippedCount} ignoree${skippedCount > 1 ? 's' : ''}`}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
 
-          <DialogContent sx={{ pt: 1, pb: 2 }}>
+          <div>
             {!result.overallSuccess && (
-              <Alert
-                severity="warning"
-                icon={<AlertCircle size={18} />}
-                sx={{ mb: 2 }}
-              >
-                Certaines etapes ont echoue. Tant que <b>DEACTIVATE_CHANNEL</b> est OK pour
-                chaque OTA, vos hosts ont repris la main — le reste peut etre nettoye plus
-                tard manuellement.
-              </Alert>
+              <UiAlert variant="warning" className="mb-3">
+                <AlertCircle />
+                <AlertDescription>
+                  Certaines etapes ont echoue. Tant que <b>DEACTIVATE_CHANNEL</b> est OK pour
+                  chaque OTA, vos hosts ont repris la main — le reste peut etre nettoye plus
+                  tard manuellement.
+                </AlertDescription>
+              </UiAlert>
             )}
 
-            <Stack spacing={1}>
+            <div className="flex flex-col gap-1.5">
               {result.steps.map((step, idx) => (
                 <StepRow key={`${step.code}-${step.targetId ?? idx}`} step={step} />
               ))}
-            </Stack>
-          </DialogContent>
+            </div>
+          </div>
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, px: 3, pb: 2 }}>
-            <Button
-              onClick={handleClose}
-              size="small"
-              variant="contained"
-              color={result.overallSuccess ? 'success' : 'inherit'}
-              sx={{ textTransform: 'none' }}
-            >
+          <div className="flex justify-end gap-1.5">
+            {/* Seule action de la phase RESULT → `default`. L'issue (succes / partiel)
+                est deja portee par l'icone et le titre, pas par la couleur du bouton. */}
+            <Button size="sm" onClick={handleClose}>
               Fermer
             </Button>
-          </Box>
+          </div>
         </>
       )}
+      </DialogContent>
     </Dialog>
   );
 }

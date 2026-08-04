@@ -1,5 +1,20 @@
 import React, { useMemo, useState } from 'react';
-import { Autocomplete, Box, Chip, CircularProgress, TextField, Typography } from '@mui/material';
+import { cn } from '../../../utils/cn';
+import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
+  Field,
+  FieldError,
+  Spinner,
+  useComboboxAnchor,
+} from '../../../components/ui';
 import { AlertTriangle, BellRing } from 'lucide-react';
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -24,10 +39,23 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
   // remount via `key` chez le parent (LaunchSettingsSection) — plus d'effet miroir.
   const [emails, setEmails] = useState<string[]>(value);
   const [inputError, setInputError] = useState<string | null>(null);
+  const [inputValue, setInputValue] = useState('');
+  const anchor = useComboboxAnchor();
 
   const hasSelfSend = useMemo(
     () => emails.some((e) => e.trim().toLowerCase() === SENDER),
     [emails],
+  );
+
+  // Saisie libre : la seule proposition de la liste est ce que l'utilisateur est
+  // en train de taper. Entree la selectionne, ce qui reproduit exactement le
+  // comportement free-solo de l'ancien champ (aucune option n'a jamais existe).
+  const candidate = inputValue.trim();
+  const items = useMemo(
+    () => (candidate && !emails.some((e) => e.toLowerCase() === candidate.toLowerCase())
+      ? [candidate]
+      : []),
+    [candidate, emails],
   );
 
   const commit = (next: string[]) => {
@@ -39,86 +67,101 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
     if (cleaned.length > 0) onSave(cleaned);
   };
 
+  const handleValueChange = (next: string[]) => {
+    const invalid = next.find((e) => !EMAIL_RE.test(e.trim()));
+    if (invalid) {
+      setInputError(`Adresse invalide : ${invalid}`);
+      return;
+    }
+    setInputError(null);
+    commit(next);
+    setInputValue('');
+  };
+
   return (
-    <Box sx={{ py: 1.25 }}>
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.25, mb: 0.75 }}>
-        <Box sx={{ color: 'text.secondary', display: 'inline-flex', flexShrink: 0, mt: '1px' }}>
+    <div className="py-2">
+      <div className="flex items-start gap-2 mb-1">
+        <span className="mt-px inline-flex shrink-0 text-[var(--muted)]">
           <BellRing size={18} />
-        </Box>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.primary' }}>
+        </span>
+        <div className="min-w-0">
+          <p className="cn-text-body1 text-[0.8125rem] font-medium text-foreground">
             Destinataires des notifications internes
-          </Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+          </p>
+          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
             Reçoivent les nouvelles demandes de devis, les copies de devis envoyés, la liste
             d'attente et les demandes de maintenance. L'expéditeur reste toujours info@clenzy.fr.
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
 
-      <Autocomplete
-        multiple
-        freeSolo
-        size="small"
-        options={[]}
-        value={emails}
-        onChange={(_, newVal) => {
-          const next = newVal as string[];
-          const invalid = next.find((e) => !EMAIL_RE.test(e.trim()));
-          if (invalid) {
-            setInputError(`Adresse invalide : ${invalid}`);
-            return;
-          }
-          setInputError(null);
-          commit(next);
-        }}
-        renderTags={(val: readonly string[], getTagProps) =>
-          val.map((option, index) => {
-            const isSelf = option.trim().toLowerCase() === SENDER;
-            const { key, ...tagProps } = getTagProps({ index });
-            return (
-              <Chip
-                key={key}
-                {...tagProps}
-                label={option}
-                size="small"
-                color={isSelf ? 'warning' : 'default'}
-                variant={isSelf ? 'outlined' : 'filled'}
-              />
-            );
-          })
-        }
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            placeholder={emails.length === 0 ? 'ajouter un email puis Entrée' : ''}
-            error={!!inputError}
-            helperText={inputError ?? undefined}
-            sx={{ '& .MuiInputBase-input': { fontSize: '0.8rem' } }}
-          />
-        )}
-        sx={{ ml: { sm: '30px' } }}
-      />
+      <Field className="min-[600px]:ms-[30px]">
+        <Combobox
+          multiple
+          autoHighlight
+          items={items}
+          value={emails}
+          onValueChange={handleValueChange}
+          inputValue={inputValue}
+          onInputValueChange={setInputValue}
+        >
+          <ComboboxChips ref={anchor} className="w-full">
+            <ComboboxValue>
+              {(values) => (
+                <React.Fragment>
+                  {values.map((email: string) => (
+                    <ComboboxChip
+                      key={email}
+                      className={cn(
+                        email.trim().toLowerCase() === SENDER
+                          && 'border-[var(--warn)] text-[var(--warn)] bg-[var(--warn-soft)]',
+                      )}
+                    >
+                      {email}
+                    </ComboboxChip>
+                  ))}
+                  <ComboboxChipsInput
+                    className="text-[0.8rem]"
+                    aria-invalid={!!inputError}
+                    placeholder={values.length === 0 ? 'ajouter un email puis Entrée' : ''}
+                  />
+                </React.Fragment>
+              )}
+            </ComboboxValue>
+          </ComboboxChips>
+          <ComboboxContent anchor={anchor}>
+            <ComboboxEmpty>Saisissez une adresse email.</ComboboxEmpty>
+            <ComboboxList>
+              {(item: string) => (
+                <ComboboxItem key={item} value={item}>
+                  Ajouter « {item} »
+                </ComboboxItem>
+              )}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
+        {inputError && <FieldError>{inputError}</FieldError>}
+      </Field>
 
       {hasSelfSend && (
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, mt: 0.75, ml: { sm: '30px' } }}>
-          <Box sx={{ color: 'warning.main', display: 'inline-flex', mt: '1px', flexShrink: 0 }}>
+        <div className="flex items-start gap-[4.5px] mt-[4.5px] min-[600px]:ms-[30px]">
+          <span className="mt-px inline-flex shrink-0 text-[#D4A574]">
             <AlertTriangle size={14} />
-          </Box>
-          <Typography sx={{ fontSize: '0.72rem', color: 'warning.main' }}>
+          </span>
+          <p className="cn-text-body1 text-[0.72rem] text-[var(--bui-warning-ink)]">
             info@clenzy.fr est l'expéditeur : se l'envoyer à soi-même provoque des soft bounces
             intermittents. Préférez une autre adresse (ex. votre boîte perso).
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
 
       {saving && (
-        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 0.5, ml: { sm: '30px' } }}>
-          <CircularProgress size={11} />
-          <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>Enregistrement…</Typography>
-        </Box>
+        <div className="inline-flex items-center gap-[3px] mt-[3px] min-[600px]:ms-[30px]">
+          <Spinner className="size-[11px]" />
+          <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Enregistrement…</p>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Box, Paper, Typography, Button, Chip } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+import { Card } from '../../../components/ui';
+import { Button } from '../../../components/ui';
+import { cn } from '../../../utils/cn';
 import { useNavigate } from 'react-router-dom';
 import { ArrowForward as ArrowRightIcon } from '../../../icons';
 import { OTA_CHANNELS, type OtaChannel } from '../../../services/channels/otaChannels';
@@ -8,11 +11,7 @@ import { useAirbnbConnectionStatus } from '../../../hooks/useAirbnb';
 import { CONNECTABLE_CHANNELS, type ChannelId } from '../../../services/api/channelConnectionApi';
 import OtaInfoDialog from './OtaInfoDialog';
 import ServiceGridCard from './ServiceGridCard';
-import {
-  COMING_SOON_CHIP_SX,
-  DISABLED_CARDS_SX,
-  blockInteraction,
-} from './disabledIntegration';
+import { blockInteraction } from './disabledIntegration';
 
 /**
  * Vitrine visuelle des OTAs dans l'onglet Integrations.
@@ -26,7 +25,26 @@ import {
  * horizontal logo+texte+chip, minHeight 56px.</p>
  */
 
-const ACCENT = 'var(--ok)';
+// Transcription du COMING_SOON_CHIP_SX de disabledIntegration.ts, encore
+// utilise par les puces MUI restantes ailleurs — d'ou la copie plutot que
+// l'ajout d'un export cote constantes.
+const COMING_SOON_TOKENS = {
+  color: 'var(--muted)',
+  bg: 'color-mix(in srgb, var(--muted) 8%, transparent)',
+};
+const COMING_SOON_BORDER = 'color-mix(in srgb, var(--muted) 20%, transparent)';
+
+// Transcription du DISABLED_CARDS_SX (meme copie que ServiceCatalogSection) :
+// on ne touche pas au .ts, qui reste la source des sections encore en MUI.
+// `pointer-events: none` est volontairement absent — il tuerait le survol,
+// donc les tooltips d'info. theme.palette.divider -> var(--line).
+const DISABLED_GRID_CLASS =
+  'opacity-[0.55] grayscale-[0.7] select-none '
+  + '[&_[role=radio]]:cursor-not-allowed [&_[role=button]]:cursor-not-allowed '
+  + '[&_[role=radio]:hover]:border-[var(--line)]! [&_[role=button]:hover]:border-[var(--line)]! '
+  + '[&_[role=radio]:hover]:bg-transparent! [&_[role=button]:hover]:bg-transparent! '
+  + '[&_[role=radio]:hover]:shadow-none! [&_[role=button]:hover]:shadow-none! '
+  + '[&_[role=radio]:focus-visible]:shadow-none! [&_[role=button]:focus-visible]:shadow-none!';
 
 interface OtaShowcaseSectionProps {
   /**
@@ -65,66 +83,47 @@ export default function OtaShowcaseSection({ serviceFilter = null, disabled = fa
 
   return (
     <>
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: '12px',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-          mt: 3,
-          mb: 2,
-          px: 2,
-          py: 1.75,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 0.5 }}>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-              <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+      <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5">
+        <div className="flex items-start justify-between gap-3 mb-0.5">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <p className="cn-text-body1 text-[0.82rem] font-semibold">
                 Canaux de réservation (OTAs)
-              </Typography>
+              </p>
               {disabled && (
-                <Chip label="Bientôt disponible" size="small" sx={COMING_SOON_CHIP_SX} />
+                <StatusChip
+                  size="sm"
+                  tokens={COMING_SOON_TOKENS}
+                  label="Bientôt disponible"
+                  className="rounded-[5px] border border-solid text-[0.62rem] tracking-[0.01em]"
+                  sx={{ borderColor: COMING_SOON_BORDER }}
+                />
               )}
-            </Box>
-            <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>
+            </div>
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground">
               Connectez vos OTAs ici ou depuis l'onglet <strong>Channels</strong> dédié. Les modifications sont synchronisées entre les deux vues.
-            </Typography>
-          </Box>
+            </p>
+          </div>
           <Button
-            variant="outlined"
-            size="small"
+            variant="outline"
+            size="sm"
             onClick={() => navigate('/channels')}
-            endIcon={<ArrowRightIcon size={14} strokeWidth={2} />}
-            sx={{
-              flexShrink: 0,
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: '0.74rem',
-              borderRadius: '8px',
-              py: 0.5,
-              px: 1.25,
-              borderColor: 'divider',
-              color: 'text.primary',
-              '&:hover': { borderColor: 'color-mix(in srgb, var(--ok) 40%, transparent)', backgroundColor: 'var(--ok-soft)', color: ACCENT },
-            }}
+            className="shrink-0"
           >
             Voir dans Channels
+            <ArrowRightIcon size={14} strokeWidth={2} />
           </Button>
-        </Box>
+        </div>
 
-        <Box
+        <div
           aria-disabled={disabled || undefined}
           onClickCapture={disabled ? blockInteraction : undefined}
           onKeyDownCapture={disabled ? blockInteraction : undefined}
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 1.5,
-            mt: 1,
-            ...(disabled && DISABLED_CARDS_SX),
-          }}
+          // gap: 1.5 et mt: 1 = 9 px et 6 px (spacing MUI du projet = 6 px).
+          className={cn(
+            'grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-[9px] mt-1.5',
+            disabled && DISABLED_GRID_CLASS,
+          )}
         >
           {visibleChannels.map((ota) => {
             const connected = isOtaConnected(ota);
@@ -138,39 +137,21 @@ export default function OtaShowcaseSection({ serviceFilter = null, disabled = fa
                 status={connected ? 'connected' : ota.available ? 'idle' : 'comingSoon'}
                 onClick={() => setOpenOta(ota)}
                 logo={
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: '8px',
-                      backgroundColor: ota.logo ? 'transparent' : ota.brandColor,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      overflow: 'hidden',
-                      flexShrink: 0,
-                    }}
-                    aria-hidden="true"
-                  >
+                  <div className="w-[40px] h-[40px] rounded-[8px] inline-flex items-center justify-center overflow-hidden shrink-0" style={{ backgroundColor: ota.logo ? 'transparent' : ota.brandColor }} aria-hidden="true">
                     {ota.logo ? (
-                      <Box
-                        component="img"
-                        src={ota.logo}
-                        alt=""
-                        sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                      />
+                      <img className="max-w-full max-h-[100%] object-contain" src={ota.logo} alt="" />
                     ) : (
-                      <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--on-accent)', letterSpacing: '-0.02em' }}>
+                      <p className="cn-text-body1 text-[0.85rem] font-bold text-[var(--on-accent)] tracking-[-0.02em]">
                         {ota.name.slice(0, 2).toUpperCase()}
-                      </Typography>
+                      </p>
                     )}
-                  </Box>
+                  </div>
                 }
               />
             );
           })}
-        </Box>
-      </Paper>
+        </div>
+      </Card>
 
       {/* Modal unifie — gere les 4 cas (coming-soon, connecte, Airbnb OAuth,
           form-based). Strictement le meme format visuel que les autres

@@ -1,22 +1,22 @@
 import React from 'react';
+import { Alert, AlertDescription, Button } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Separator,
+} from '../../components/ui';
 import { createPortal } from 'react-dom';
 import {
-  Box,
-  Grid,
-  Typography,
-  Button,
-  Chip,
-  Alert,
-  CircularProgress,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../components/ui';
 import {
   Add,
   Edit,
@@ -34,6 +34,11 @@ import TeamCard from '../../components/TeamCard';
 import { useTeamsList } from './useTeamsList';
 import PagePagination from '../../components/PagePagination';
 import { useScreenSearch } from '../../components/ScreenChrome';
+import StatusChip from '../../components/StatusChip';
+
+// Teinte d'une puce de filtre choisie — identique pour toutes les catégories,
+// seule la bordure au repos distingue la catégorie.
+const FILTER_SELECTED_TOKENS = { color: 'var(--accent)', bg: 'var(--accent-soft)' };
 
 // Catégories de filtrage pour la liste des équipes
 const TEAM_FILTER_CATEGORIES = [
@@ -83,33 +88,46 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
   } = useTeamsList();
 
   // Recherche de l'écran → champ UNIQUE du PageHeader (cf. ScreenChrome).
-  useScreenSearch(searchTerm, setSearchTerm, t('teams.searchPlaceholder') || 'Rechercher une équipe…');
+  useScreenSearch(searchTerm, setSearchTerm, t('teams.searchPlaceholder', 'Rechercher une équipe…'));
+
+  // Radix ferme le menu de lui-meme apres chaque selection. Sans ce drapeau, la
+  // fermeture rappellerait handleMenuClose, qui remet selectedTeam a null — or
+  // la modale de suppression en a besoin juste apres le clic sur « Supprimer ».
+  const selectionEnCours = React.useRef(false);
+  const surSelection = (action: () => void) => {
+    selectionEnCours.current = true;
+    action();
+  };
+
+  // Le declencheur reel du menu vit dans TeamCard, hors de cet arbre : on
+  // reporte sa position d'ecran sur une ancre invisible pour que Radix ait un
+  // point d'ancrage. Le menu etant modal, la page ne defile pas tant qu'il est
+  // ouvert, donc la position mesuree reste valide.
+  const anchorRect = anchorEl?.getBoundingClientRect();
+  // Memorise pour rendre le focus au bouton d'options a la fermeture : Radix le
+  // rendrait a l'ancre invisible, qui n'est pas focalisable.
+  const dernierDeclencheur = React.useRef<HTMLElement | null>(null);
+  if (anchorEl) dernierDeclencheur.current = anchorEl;
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress size={32} />
-      </Box>
+      <div className="flex justify-center items-center h-[50vh]">
+        <Spinner className="size-8" />
+      </div>
     );
   }
 
   const totalPages = Math.ceil(filteredTeams.length / ITEMS_PER_PAGE);
 
   const actionButtons = canCreateTeams ? (
-    <Button
-      variant="contained"
-      color="primary"
-      startIcon={<Add />}
-      onClick={() => navigate('/teams/new')}
-      size="small"
-      title={t('teams.create')}
-    >
+    <Button size="sm" onClick={() => navigate('/teams/new')} title={t('teams.create')}>
+      <Add />
       {t('teams.create')}
     </Button>
   ) : null;
 
   return (
-    <Box>
+    <div>
       {/* Portal actions into parent's PageHeader when embedded */}
       {embedded && actionsContainer && actionButtons && createPortal(actionButtons, actionsContainer)}
 
@@ -126,64 +144,55 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
 
       {/* Message d'erreur */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
-          {error}
+        <Alert variant="destructive" className="mb-3 py-1.5">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {/* ─── Barre de recherche + filtres ─── */}
-      <Box sx={{ mb: 2 }}>
+      <div className="mb-3">
 
         {/* Filtres par catégorie de service */}
-        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.5 }}>
-          <Chip
+        <div className="flex gap-1 flex-wrap mb-2">
+          <StatusChip
             label={t('teams.allTypes')}
+            outlined
+            selected={selectedType === 'all'}
+            pressed={selectedType === 'all'}
             onClick={() => setSelectedType('all')}
-            variant="outlined"
-            size="small"
-            aria-pressed={selectedType === 'all'}
-            sx={{
-              cursor: 'pointer',
-              fontSize: '0.72rem',
-              height: 26,
-              fontWeight: 600,
-              ...(selectedType === 'all'
-                ? { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', borderColor: 'var(--accent)' }
-                : { color: 'var(--body)', borderColor: 'var(--line-2)' }),
-              '&:hover': { backgroundColor: 'var(--hover)' },
-            }}
+            tokens={FILTER_SELECTED_TOKENS}
+            className="h-[26px] border-solid text-[0.72rem] font-semibold"
           />
-          {TEAM_FILTER_CATEGORIES.map((cat) => (
-            <Chip
-              key={cat.value}
-              icon={cat.icon}
-              label={cat.label}
-              onClick={() => setSelectedType(cat.value)}
-              variant="outlined"
-              size="small"
-              aria-pressed={selectedType === cat.value}
-              sx={{
-                cursor: 'pointer',
-                fontSize: '0.72rem',
-                height: 26,
-                fontWeight: selectedType === cat.value ? 600 : 400,
-                ...(selectedType === cat.value
-                  ? { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', borderColor: 'var(--accent)' }
-                  : { color: 'var(--body)', borderColor: cat.borderColor }),
-                '&:hover': { backgroundColor: 'var(--hover)' },
-              }}
-            />
-          ))}
-        </Box>
+          {TEAM_FILTER_CATEGORIES.map((cat) => {
+            const actif = selectedType === cat.value;
+            return (
+              <StatusChip
+                key={cat.value}
+                icon={cat.icon}
+                label={cat.label}
+                outlined
+                selected={actif}
+                pressed={actif}
+                onClick={() => setSelectedType(cat.value)}
+                tokens={FILTER_SELECTED_TOKENS}
+                // Au repos la bordure porte l'identite de la categorie : couleur
+                // connue a l'execution seulement, donc style inline.
+                sx={actif ? undefined : { borderColor: cat.borderColor }}
+                className={`h-[26px] border-solid text-[0.72rem] ${actif ? 'font-semibold' : 'font-normal'}`}
+              />
+            );
+          })}
+        </div>
 
         {/* Compteur d'équipes */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Divider sx={{ flex: 1 }} />
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+        <div className="flex items-center gap-2">
+          <Separator className="flex-1" />
+          <span className="cn-text-caption text-muted-foreground text-[0.75rem]">
             {filteredTeams.length} {filteredTeams.length > 1 ? t('teams.teams') : t('teams.team')} {t('teams.available')}
-          </Typography>
-        </Box>
-      </Box>
+          </span>
+        </div>
+      </div>
 
       {/* ─── Liste des équipes ─── */}
       {filteredTeams.length === 0 ? (
@@ -192,92 +201,108 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
           title={t('teams.noTeamFound')}
           description={t('teams.noTeamCreated')}
           action={canCreateTeams && (
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<Add size={16} strokeWidth={1.75} />}
-              onClick={() => navigate('/teams/new')}
-            >
+            <Button variant="outline" size="sm" onClick={() => navigate('/teams/new')}>
+              <Add size={16} strokeWidth={1.75} />
               {t('teams.createFirst')}
             </Button>
           )}
         />
       ) : (
         <>
-          <Grid container spacing={2}>
+          <div className="grid grid-cols-12 gap-3">
             {paginatedTeams.map((team) => (
-              <Grid item xs={12} md={6} lg={4} key={team.id}>
+              <div className="col-span-12 min-[900px]:col-span-6 min-[1200px]:col-span-4" key={team.id}>
                 <TeamCard
                   team={team}
                   onMenuOpen={handleMenuOpen}
                   activeInterventionsCount={teamWorkloadCounts[team.name] || 0}
                   canEdit={canEditTeams}
                 />
-              </Grid>
+              </div>
             ))}
-          </Grid>
+          </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+            <div className="flex justify-center mt-4">
               <PagePagination
                 totalPages={totalPages}
                 page={page}
                 onPageChange={(newPage) => setPage(newPage)}
               />
-            </Box>
+            </div>
           )}
         </>
       )}
 
       {/* Menu contextuel */}
-      <Menu
-        anchorEl={anchorEl}
+      <DropdownMenu
         open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        onOpenChange={(next) => {
+          if (next) return;
+          if (selectionEnCours.current) {
+            selectionEnCours.current = false;
+            return;
+          }
+          handleMenuClose();
+        }}
       >
-        <MenuItem onClick={handleViewDetails} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-          <ListItemIcon>
-            <Visibility fontSize="small" size={18} strokeWidth={1.75} />
-          </ListItemIcon>
-          {t('teams.viewDetails')}
-        </MenuItem>
-        {canEditTeams && (
-          <MenuItem onClick={handleEdit} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-            <ListItemIcon>
-              <Edit fontSize="small" size={18} strokeWidth={1.75} />
-            </ListItemIcon>
-            {t('teams.modify')}
-          </MenuItem>
-        )}
-        {canDeleteTeams && (
-          <MenuItem onClick={handleDelete} sx={{ color: 'var(--err)', fontSize: '0.85rem', py: 0.75 }}>
-            <ListItemIcon>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Delete fontSize="small" size={18} strokeWidth={1.75} /></Box>
-            </ListItemIcon>
-            Supprimer
-          </MenuItem>
-        )}
-      </Menu>
+        <DropdownMenuTrigger asChild>
+          <span
+            aria-hidden
+            className="fixed pointer-events-none"
+            style={anchorRect
+              ? { top: anchorRect.top, left: anchorRect.left, width: anchorRect.width, height: anchorRect.height }
+              : { top: 0, left: 0, width: 0, height: 0 }}
+          />
+        </DropdownMenuTrigger>
+        {/* Le contenu du kit calque sa largeur sur celle du declencheur : notre
+            ancre etant reduite au bouton d'options, on la relache ici. */}
+        <DropdownMenuContent
+          align="end"
+          className="w-auto min-w-[11rem] text-[0.85rem]"
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            dernierDeclencheur.current?.focus();
+          }}
+        >
+          <DropdownMenuItem onSelect={() => surSelection(handleViewDetails)}>
+            <Visibility size={18} strokeWidth={1.75} />
+            {t('teams.viewDetails')}
+          </DropdownMenuItem>
+          {canEditTeams && (
+            <DropdownMenuItem onSelect={() => surSelection(handleEdit)}>
+              <Edit size={18} strokeWidth={1.75} />
+              {t('teams.modify')}
+            </DropdownMenuItem>
+          )}
+          {canDeleteTeams && (
+            <DropdownMenuItem variant="destructive" onSelect={() => surSelection(handleDelete)}>
+              <Delete size={18} strokeWidth={1.75} />
+              Supprimer
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Dialog de confirmation de suppression */}
-      <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog}>
-        <DialogTitle sx={{ pb: 1 }}>{t('teams.confirmDelete')}</DialogTitle>
-        <DialogContent sx={{ pt: 1.5 }}>
-          <Typography variant="body2">
+      <Dialog open={deleteDialogOpen} onOpenChange={(next) => { if (!next) handleCloseDeleteDialog(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('teams.confirmDelete')}</DialogTitle>
+          </DialogHeader>
+          <p className="cn-text-body2">
             {t('teams.confirmDeleteMessage', { name: selectedTeam?.name })}
-          </Typography>
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={handleCloseDeleteDialog}>{t('teams.cancel')}</Button>
+            <Button variant="destructive" size="sm" onClick={confirmDelete}>
+              {t('teams.delete')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={handleCloseDeleteDialog} size="small">{t('teams.cancel')}</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained" size="small">
-            {t('teams.delete')}
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

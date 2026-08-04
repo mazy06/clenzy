@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import { Box } from '@mui/material';
 import { MessageBubble } from './MessageBubble';
 import type { DisplayMessage } from '../../../hooks/useAgent';
 
@@ -41,42 +40,24 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, emptyState }
   }, [messages]);
 
   if (messages.length === 0 && emptyState) {
-    return <Box sx={{ flex: 1, overflow: 'auto', bgcolor: 'var(--bg)' }}>{emptyState}</Box>;
+    return <div className="flex-1 overflow-auto bg-[var(--bg)]">{emptyState}</div>;
   }
 
   return (
-    <Box
+    <div
       ref={containerRef}
-      sx={{
-        flex: 1,
-        overflow: 'auto',
-        // Fond du fil (réf .mg-thread) : --bg pour faire ressortir les bulles carte.
-        bgcolor: 'var(--bg)',
-        // Smooth scrollbar styling
-        scrollbarWidth: 'thin',
-        '&::-webkit-scrollbar': { width: 8 },
-        '&::-webkit-scrollbar-thumb': {
-          backgroundColor: 'var(--line-2)',
-          borderRadius: 4,
-        },
-      }}
+      // Fond du fil (ref .mg-thread) : --bg pour faire ressortir les bulles carte.
+      className="flex-1 overflow-auto bg-[var(--bg)] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-[var(--line-2)] [&::-webkit-scrollbar-thumb]:rounded-[4px]"
     >
       {/* Centered reading column — pattern Claude.ai/ChatGPT : conversation
           contrainte en largeur (max ~760px) pour preserver la longueur de
           ligne optimale (60-80 caracteres). Hors-zone: bg L1 du Paper. */}
-      <Box
-        sx={{
-          maxWidth: 760,
-          mx: 'auto',
-          px: { xs: 2, md: 3 },
-          py: 3,
-        }}
-      >
+      <div className="max-w-[760px] mx-auto px-3 min-[900px]:px-[18px] py-[18px]">
         {messages.map((m, idx) => (
           <MessageBubble key={m.id ?? `pending-${idx}`} message={m} />
         ))}
         <div ref={bottomRef} />
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };

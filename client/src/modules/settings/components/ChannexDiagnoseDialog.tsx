@@ -21,19 +21,21 @@
  * </ul>
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { cn } from '../../../utils/cn';
+import StatusChip from '../../../components/StatusChip';
 import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  Button,
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogHeader,
   DialogTitle,
-  Box,
-  Typography,
-  Button,
-  CircularProgress,
-  Alert,
-  Stack,
   Skeleton,
-  Chip,
-} from '@mui/material';
+  Spinner,
+} from '../../../components/ui';
 import {
   CheckCircle2,
   AlertCircle,
@@ -100,75 +102,44 @@ function formatRelative(iso: string | null): string {
 function SyncSnapshotPanel({ snapshot }: { snapshot: ChannexSyncSnapshot }) {
   const meta = CHANNEX_STATUS_META[snapshot.status];
   return (
-    <Box
-      sx={{
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        p: 1.5,
-        bgcolor: 'var(--surface-2)',
-      }}
-    >
-      <Stack spacing={0.85}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 110, fontWeight: 500 }}>
+    <div className="border border-solid border-[var(--line)] rounded-[8px] p-2 bg-[var(--surface-2)]">
+      <div className="flex flex-col gap-[5px]">
+        <div className="flex items-center gap-2">
+          <span className="cn-text-caption text-muted-foreground min-w-[110px] font-medium">
             Statut sync
-          </Typography>
-          <Chip
-            size="small"
-            label={meta.label}
-            sx={{
-              height: 20,
-              fontSize: '0.7rem',
-              fontWeight: 600,
-              bgcolor: `${meta.color}1A`,
-              color: meta.color,
-              border: `1px solid ${meta.color}40`,
-            }}
-          />
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 110, fontWeight: 500 }}>
+          </span>
+          <StatusChip tokens={{ color: meta.color, bg: `${meta.color}1A` }} label={meta.label} className="h-[20px] text-[0.7rem]" />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="cn-text-caption text-muted-foreground min-w-[110px] font-medium">
             Derniere sync
-          </Typography>
-          <Typography variant="body2">{formatRelative(snapshot.lastSyncAt)}</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 110, fontWeight: 500 }}>
+          </span>
+          <p className="cn-text-body2">{formatRelative(snapshot.lastSyncAt)}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="cn-text-caption text-muted-foreground min-w-[110px] font-medium">
             OTAs actifs
-          </Typography>
-          <Typography
-            variant="body2"
-            color={snapshot.otaCountKnown ? undefined : 'text.secondary'}
-          >
+          </span>
+          <p className={cn('cn-text-body2', !snapshot.otaCountKnown && 'text-[var(--muted)]')}>
             {!snapshot.otaCountKnown
               ? 'inconnu — hub injoignable'
               : snapshot.activeOtaCount > 0
                 ? `${snapshot.activeOtaCount} OTA${snapshot.activeOtaCount > 1 ? 's' : ''} actif${snapshot.activeOtaCount > 1 ? 's' : ''}`
                 : 'aucun'}
-          </Typography>
-        </Box>
+          </p>
+        </div>
         {snapshot.lastSyncError && snapshot.status === 'ERROR' && (
-          <Box sx={{ pt: 0.5, mt: 0.25, borderTop: '1px dashed', borderTopColor: 'divider' }}>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.3, fontWeight: 500 }}>
+          <div className="pt-[3px] mt-[1.5px] border-t border-dashed border-t-[var(--line)]">
+            <span className="cn-text-caption text-muted-foreground block mb-0.5 font-medium">
               Derniere erreur
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                fontSize: '0.78rem',
-                color: 'var(--err)',
-                fontFamily: 'monospace',
-                wordBreak: 'break-word',
-                lineHeight: 1.45,
-              }}
-            >
+            </span>
+            <p className="cn-text-body2 text-[0.78rem] text-[var(--err)] font-mono break-words leading-[1.45]">
               {snapshot.lastSyncError}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
-      </Stack>
-    </Box>
+      </div>
+    </div>
   );
 }
 
@@ -184,52 +155,35 @@ function ActionButton({
   const Icon = ACTION_ICONS[action.code];
   const isPrimary = action.priority === 'PRIMARY';
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        gap: 1.25,
-        p: 1.25,
-        borderRadius: 1,
-        border: '1px solid',
-        borderColor: isPrimary ? 'color-mix(in srgb, var(--accent) 25%, transparent)' : 'divider',
-        bgcolor: isPrimary ? 'var(--accent-soft)' : 'transparent',
-        alignItems: 'flex-start',
-      }}
+    <div
+      className={cn(
+        'flex gap-[7.5px] p-[7.5px] rounded-[8px] border border-solid items-start',
+        isPrimary
+          ? 'border-[color-mix(in_srgb,var(--accent)_25%,transparent)] bg-[var(--accent-soft)]'
+          : 'border-[var(--line)] bg-transparent',
+      )}
     >
-      <Box
-        sx={{
-          width: 32,
-          height: 32,
-          borderRadius: 0.75,
-          bgcolor: isPrimary ? 'var(--accent-soft)' : 'var(--hover)',
-          color: isPrimary ? 'var(--accent)' : 'var(--muted)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
+      <div className={cn('w-[32px] h-[32px] rounded-[6px] flex items-center justify-center shrink-0', isPrimary ? 'bg-[var(--accent-soft)]' : 'bg-[var(--hover)]', isPrimary ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}>
         <Icon size={16} strokeWidth={2.2} />
-      </Box>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3, mb: 0.3 }}>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="cn-text-body2 font-semibold leading-[1.3] mb-0.5">
           {action.label}
-        </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.45, mb: 1 }}>
+        </p>
+        <span className="cn-text-caption text-muted-foreground block leading-[1.45] mb-1.5">
           {action.detail}
-        </Typography>
+        </span>
         <Button
-          size="small"
-          variant={isPrimary ? 'contained' : 'outlined'}
-          startIcon={busy ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : <Icon size={14} />}
+          size="sm"
+          variant={isPrimary ? 'default' : 'outline'}
           disabled={busy}
           onClick={onClick}
-          sx={{ textTransform: 'none', fontSize: '0.78rem' }}
         >
+          {busy ? <Spinner className="size-3.5" /> : <Icon size={14} />}
           {busy ? 'En cours…' : action.label}
         </Button>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 
@@ -324,92 +278,72 @@ export default function ChannexDiagnoseDialog({
     : 'var(--accent)';
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 1.5,
-          pb: 1,
-        }}
-      >
-        <Box
-          sx={{
-            width: 36,
-            height: 36,
-            borderRadius: 1,
-            bgcolor: `${accent}1A`,
-            color: accent,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            mt: 0.25,
-          }}
-        >
-          <StatusIcon size={20} />
-        </Box>
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography variant="h6" fontWeight={600} sx={{ lineHeight: 1.3, fontSize: '1.05rem' }}>
-            Diagnostic Channex
-          </Typography>
-          {report && (
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ display: 'block', mt: 0.4, lineHeight: 1.5 }}
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="max-w-[600px] max-h-[85vh] overflow-y-auto" showCloseButton={false}>
+        <DialogHeader>
+          <div className="flex items-start gap-[9px]">
+            <div className="w-[36px] h-[36px] rounded-[8px] flex items-center justify-center shrink-0 mt-[1.5px]" style={{ backgroundColor: `${accent}1A`, color: accent }}>
+              <StatusIcon size={20} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="font-semibold leading-[1.3] text-[1.05rem]">
+                Diagnostic Channex
+              </DialogTitle>
+              {report && (
+                <DialogDescription className="mt-0.5 leading-[1.5]">
+                  « {report.propertyName} » · {report.summary}
+                </DialogDescription>
+              )}
+            </div>
+            {/* Icone seule : taille carree du kit, jamais une taille texte. */}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-[var(--muted)]"
+              onClick={onClose}
+              aria-label="Fermer"
             >
-              « {report.propertyName} » · {report.summary}
-            </Typography>
-          )}
-        </Box>
-        <Button
-          onClick={onClose}
-          size="small"
-          sx={{ minWidth: 0, p: 0.5, color: 'text.secondary' }}
-          aria-label="Fermer"
-        >
-          <X size={18} />
-        </Button>
-      </DialogTitle>
+              <X size={18} />
+            </Button>
+          </div>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 1, pb: 2 }}>
         {loading && (
-          <Stack spacing={1.25} sx={{ mt: 1 }}>
-            <Skeleton variant="rounded" height={120} />
-            <Skeleton variant="rounded" height={80} />
-            <Skeleton variant="rounded" height={80} />
-          </Stack>
+          <div className="flex flex-col gap-[7.5px] mt-1.5">
+            <Skeleton className="h-[120px]" />
+            <Skeleton className="h-[80px]" />
+            <Skeleton className="h-[80px]" />
+          </div>
         )}
 
         {error && !loading && (
-          <Alert severity="error" sx={{ mt: 1 }} action={
-            <Button size="small" onClick={() => void fetchReport()} sx={{ textTransform: 'none' }}>
-              Reessayer
-            </Button>
-          }>
-            {error}
+          <Alert variant="destructive" className="mt-1.5">
+            <AlertCircle />
+            <AlertDescription>{error}</AlertDescription>
+            <AlertAction>
+              <Button variant="outline" size="sm" onClick={() => void fetchReport()}>
+                Reessayer
+              </Button>
+            </AlertAction>
           </Alert>
         )}
 
         {report && !loading && (
-          <Stack spacing={1.5} sx={{ mt: 1 }}>
+          <div className="flex flex-col gap-[9px] mt-1.5">
             <SyncSnapshotPanel snapshot={report.sync} />
 
             {actionResult && (
-              <Alert severity={actionResult.ok ? 'success' : 'warning'}>
-                {actionResult.message}
+              <Alert variant={actionResult.ok ? 'success' : 'warning'}>
+                {actionResult.ok ? <CheckCircle2 /> : <AlertCircle />}
+                <AlertDescription>{actionResult.message}</AlertDescription>
               </Alert>
             )}
 
-            <Box>
-              <Typography
-                variant="caption"
-                sx={{ display: 'block', mb: 0.85, fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}
-              >
+            <div>
+              <span className="cn-text-caption block mb-1.5 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
                 Actions recommandees
-              </Typography>
-              <Stack spacing={1}>
+              </span>
+              <div className="flex flex-col gap-1.5">
                 {report.recommendedActions.map((action) => (
                   <ActionButton
                     key={action.code}
@@ -418,12 +352,12 @@ export default function ChannexDiagnoseDialog({
                     onClick={() => void handleAction(action)}
                   />
                 ))}
-              </Stack>
-            </Box>
+              </div>
+            </div>
 
             {/* Phase 3 : historique de sync replie par defaut. Fetch lazy au deplie. */}
             <ChannexSyncLogsList propertyId={propertyId} defaultCollapsed />
-          </Stack>
+          </div>
         )}
       </DialogContent>
     </Dialog>

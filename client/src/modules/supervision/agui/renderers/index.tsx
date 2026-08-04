@@ -15,7 +15,8 @@
    ajouter une entrée, aucun branchement à modifier ailleurs.
    ============================================================ */
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { cn } from '../../../../utils/cn';
+
 import { parseToolResult } from './parseToolResult';
 import { humanizeKey, ErrorCard } from './shared';
 
@@ -143,9 +144,9 @@ const KeyValueFallback: React.FC<{ data: unknown }> = ({ data }) => {
   // Chaîne brute (tool non-JSON) → petite note texte.
   if (typeof data === 'string') {
     return (
-      <Box sx={{ mt: 1, mb: 1.5, px: 1.5, py: 1.25, borderRadius: '10px', border: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
-        <Typography sx={{ fontSize: '12.5px', color: 'var(--body)', whiteSpace: 'pre-wrap' }}>{data}</Typography>
-      </Box>
+      <div className="mt-1.5 mb-2 px-2 py-2 rounded-[10px] border border-[var(--line)] bg-[var(--card)]">
+        <p className="cn-text-body1 text-[12.5px] text-[var(--body)] whitespace-pre-wrap">{data}</p>
+      </div>
     );
   }
 
@@ -164,20 +165,17 @@ const KeyValueFallback: React.FC<{ data: unknown }> = ({ data }) => {
   if (entries.length === 0) return null;
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5, p: 1.5, borderRadius: '10px', border: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
+    <div className="mt-1.5 mb-2 p-2 rounded-[10px] border border-[var(--line)] bg-[var(--card)]">
       {entries.map(([k, v], idx) => (
-        <Box
-          key={k}
-          sx={{ display: 'flex', gap: 1.5, py: 0.5, alignItems: 'baseline', borderTop: idx > 0 ? '1px solid var(--line)' : 'none' }}
-        >
-          <Typography sx={{ flex: '0 0 38%', color: 'var(--muted)', fontSize: '11.5px' }}>
+        <div className="flex gap-[9px] py-[3px] items-baseline" style={{ borderTop: idx > 0 ? '1px solid var(--line)' : 'none' }} key={k}>
+          <p className="cn-text-body1 flex-[0_0_38%] text-[var(--muted)] text-[11.5px]">
             {humanizeKey(k)}
-          </Typography>
-          <Typography sx={{ flex: 1, fontSize: '12.5px', color: 'var(--body)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
+          </p>
+          <p className="cn-text-body1 flex-1 text-[12.5px] text-[var(--body)] font-medium tabular-nums">
             {String(v)}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       ))}
-    </Box>
+    </div>
   );
 };

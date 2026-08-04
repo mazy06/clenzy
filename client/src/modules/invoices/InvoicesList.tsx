@@ -1,28 +1,22 @@
 import React, { useState, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
+import { Button, Spinner } from '../../components/ui';
+import { Card } from '../../components/ui';
 import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Chip,
-  IconButton,
-  Tooltip,
-  MenuItem,
-  CircularProgress,
   Alert,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
+  AlertDescription,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-} from '@mui/material';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Skeleton,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '../../components/ui';
+import { Field, FieldLabel, NativeSelect, NativeSelectOption } from '../../components/ui';
 import {
   Receipt as ReceiptIcon,
   Download as DownloadIcon,
@@ -30,7 +24,6 @@ import {
   CheckCircle as PaidIcon,
   Cancel as CancelIcon,
   Clear as ClearIcon,
-  HourglassEmpty as DraftIcon,
   AttachMoney as MoneyIcon,
   PictureAsPdf as PdfIcon,
   ContentCopy as DuplicateIcon,
@@ -39,7 +32,11 @@ import {
   Build as BuildIcon,
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
-import StatTile from '../../components/StatTile';
+import StatTile from '../../components/baitly/StatTile';
+import FilterChipRow from '../../components/baitly/FilterChipRow';
+import DateRangePicker from '../../components/baitly/DateRangePicker';
+import ExportButton from '../../components/baitly/ExportButton';
+import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -58,17 +55,6 @@ import { getAccessToken } from '../../keycloak';
 import { useHighlightParam, useHighlightTarget } from '../../hooks/useHighlight';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
-
-const STATUS_OPTIONS: { value: InvoiceStatus | ''; label: string }[] = [
-  { value: '', label: 'Tous' },
-  { value: 'DRAFT', label: 'Brouillon' },
-  { value: 'SENT', label: 'Envoyee' },
-  { value: 'ISSUED', label: 'Emise' },
-  { value: 'PAID', label: 'Payee' },
-  { value: 'OVERDUE', label: 'En retard' },
-  { value: 'CANCELLED', label: 'Annulee' },
-  { value: 'CREDIT_NOTE', label: 'Avoir' },
-];
 
 const STATUS_LABELS: Record<InvoiceStatus, string> = {
   DRAFT: 'Brouillon',
@@ -101,18 +87,19 @@ const STATUS_TOKEN: Record<InvoiceStatus, { fg: string; bg: string }> = {
   CREDIT_NOTE: { fg: 'var(--info)', bg: 'var(--info-soft)' },
 };
 
-/** Chip -soft : texte couleur + fond -soft (pilule/typo via th\u00e8me global MuiChip) */
-const chipSoftSx = (fg: string, bg: string) => ({
-  backgroundColor: bg,
-  color: fg,
-  '& .MuiChip-icon': { color: fg, marginLeft: '6px' },
-});
+/** Statut → ton semantique du chip a point (dessin de la projection). */
+const STATUS_TONE: Record<InvoiceStatus, 'ok' | 'warn' | 'err' | 'info' | 'neutral'> = {
+  DRAFT: 'neutral',
+  SENT: 'info',
+  ISSUED: 'warn',
+  PAID: 'ok',
+  OVERDUE: 'err',
+  CANCELLED: 'neutral',
+  CREDIT_NOTE: 'info',
+};
 
 /** Montants : display tabular-nums (jamais proportional) */
-const moneySx = {
-  fontFamily: 'var(--font-display)',
-  fontVariantNumeric: 'tabular-nums',
-};
+const MONEY_CLASS = 'font-[family-name:var(--font-display)] tabular-nums';
 
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('fr-FR') : '\u2014';
@@ -135,15 +122,44 @@ const handleDownloadPdf = async (id: number, invoiceNumber: string) => {
 
 /** Determine le type de source : Reservation ou Intervention (accents palette Clenzy) */
 const getSourceType = (inv: Invoice) => {
-  if (inv.reservationId) return { label: 'Reservation', icon: <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><HomeIcon size={14} strokeWidth={1.75} /></Box>, color: '#7BA3C2' };
-  if (inv.interventionId) return { label: 'Intervention', icon: <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><BuildIcon size={14} strokeWidth={1.75} /></Box>, color: '#D4A574' };
+  if (inv.reservationId) return { label: 'Reservation', icon: <span className="inline-flex me-0.5"><HomeIcon size={14} strokeWidth={1.75} /></span>, color: '#7BA3C2' };
+  if (inv.interventionId) return { label: 'Intervention', icon: <span className="inline-flex me-0.5"><BuildIcon size={14} strokeWidth={1.75} /></span>, color: '#D4A574' };
   return null;
 };
 
-const inputSx = {
-  '& .MuiOutlinedInput-root': { fontSize: '12.5px' },
-  '& .MuiInputLabel-root': { fontSize: '12.5px' },
-};
+/**
+ * Bouton-icone d'une ligne de tableau, muni de son infobulle.
+ *
+ * <p>Le `span` intermediaire n'est pas decoratif : `TooltipTrigger asChild`
+ * transmet une ref, or les primitives du kit sont des fonctions simples qui
+ * n'en acceptent pas. Il garde aussi l'infobulle vivante quand le bouton est
+ * desactive.</p>
+ */
+const RowAction: React.FC<{
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}> = ({ label, onClick, disabled, className, children }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span className="inline-flex">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={label}
+          disabled={disabled}
+          className={className}
+          onClick={onClick}
+        >
+          {children}
+        </Button>
+      </span>
+    </TooltipTrigger>
+    <TooltipContent>{label}</TooltipContent>
+  </Tooltip>
+);
 
 interface InvoicesListProps {
   embedded?: boolean;
@@ -160,17 +176,24 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
 
+  // Seule la periode reste un filtre serveur. Le statut passe cote client :
+  // la rangee de chips de la projection affiche le compte de CHAQUE statut,
+  // ce qu'un filtre serveur rendrait faux (il ne rapporterait que le statut
+  // demande). Meme logique que le filtre par nature, deja client.
   const filters = useMemo(() => ({
-    ...(statusFilter ? { status: statusFilter } : {}),
     ...(dateFrom ? { from: dateFrom } : {}),
     ...(dateTo ? { to: dateTo } : {}),
-  }), [statusFilter, dateFrom, dateTo]);
+  }), [dateFrom, dateTo]);
 
   const { data: invoices, isLoading, error } = useInvoices(filters);
-  // Filtre par nature (séjour / commission) appliqué côté client sur la liste déjà chargée.
-  const displayedInvoices = useMemo(
+  // Liste par nature (sejour / commission) — assiette des comptes de chips.
+  const typedInvoices = useMemo(
     () => (invoices ?? []).filter((i) => !typeFilter || i.invoiceType === typeFilter),
     [invoices, typeFilter],
+  );
+  const displayedInvoices = useMemo(
+    () => typedInvoices.filter((i) => !statusFilter || i.status === statusFilter),
+    [typedInvoices, statusFilter],
   );
   // Deep-link notification (?highlight=<invoiceId>) — surligne la ligne ciblee.
   const highlightId = useHighlightParam();
@@ -221,32 +244,63 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
 
   const hasActiveFilters = statusFilter || typeFilter || dateFrom || dateTo;
 
-  // ─── Stats ──────────────────────────────────────────────────────────────
+  // L'export de la projection, portale dans l'en-tete du hub Facturation
+  // (pattern PageHeaderActionsContext). Exporte les lignes AFFICHEES.
+  const headerActions = usePageHeaderActions(
+    <ExportButton
+      data={displayedInvoices.map((i) => ({
+        number: i.invoiceNumber,
+        date: fmtDate(i.invoiceDate),
+        client: i.buyerName,
+        ht: i.totalHt,
+        tax: i.totalTax,
+        ttc: i.totalTtc,
+        status: STATUS_LABELS[i.status],
+      }))}
+      columns={[
+        { key: 'number', label: t('invoices.columns.number', 'N°') },
+        { key: 'date', label: t('invoices.columns.date', 'Date') },
+        { key: 'client', label: t('invoices.columns.buyer', 'Client') },
+        { key: 'ht', label: t('invoices.columns.ht', 'HT') },
+        { key: 'tax', label: t('invoices.columns.tax', 'TVA') },
+        { key: 'ttc', label: t('invoices.columns.ttc', 'TTC') },
+        { key: 'status', label: t('common.status', 'Statut') },
+      ]}
+      fileName="factures"
+      variant="menu"
+    />,
+  );
+
+  // ─── Stats — les trois tuiles monetaires de la projection ────────────────
+  // L'assiette est la liste par nature AVANT filtre de statut : cliquer un chip
+  // filtre le tableau sans faire mentir les tuiles. Les comptes par statut
+  // (brouillons, emises…) vivent desormais sur les chips, plus en tuiles.
   const stats = useMemo(() => {
     if (!invoices) return null;
-    const list = displayedInvoices;
-    const total = list.length;
-    const draft = list.filter(i => i.status === 'DRAFT').length;
-    const issued = list.filter(i => i.status === 'ISSUED').length;
-    const paid = list.filter(i => i.status === 'PAID').length;
-    const totalTtc = list.reduce((sum, i) => sum + i.totalTtc, 0);
+    const list = typedInvoices;
+    const somme = (pred: (i: Invoice) => boolean) =>
+      list.filter(pred).reduce((sum, i) => sum + i.totalTtc, 0);
+    const emis = somme(() => true);
+    const encaisse = somme((i) => i.status === 'PAID');
+    const enRetard = list.filter((i) => i.status === 'OVERDUE');
+    const parStatut = Object.fromEntries(
+      (Object.keys(STATUS_LABELS) as InvoiceStatus[]).map((st) => [st, list.filter((i) => i.status === st).length]),
+    ) as Record<InvoiceStatus, number>;
     const currency = list[0]?.currency ?? 'EUR';
-    return { total, draft, issued, paid, totalTtc, currency };
-  }, [invoices, displayedInvoices]);
-
-  // KPI StatTile — couleurs = palette accents Clenzy validée
-  const summaryCards = stats
-    ? [
-        { label: t('invoices.stats.total', 'Total'), value: String(stats.total), color: '#6B8A9A', icon: <ReceiptIcon /> },
-        { label: t('invoices.stats.draft', 'Brouillons'), value: String(stats.draft), color: '#D4A574', icon: <DraftIcon /> },
-        { label: t('invoices.stats.issued', 'Emises'), value: String(stats.issued), color: '#7BA3C2', icon: <SendIcon /> },
-        { label: t('invoices.stats.paid', 'Payees'), value: String(stats.paid), color: '#4A9B8E', icon: <PaidIcon /> },
-        { label: t('invoices.stats.totalTtc', 'Total TTC'), value: <Money value={stats.totalTtc} from={stats.currency} />, color: '#6B8A9A', icon: <MoneyIcon /> },
-      ]
-    : [];
+    return {
+      total: list.length,
+      emis,
+      encaisse,
+      tauxEncaisse: emis > 0 ? Math.round((encaisse / emis) * 100) : 0,
+      retardMontant: enRetard.reduce((sum, i) => sum + i.totalTtc, 0),
+      retardNb: enRetard.length,
+      parStatut,
+      currency,
+    };
+  }, [invoices, typedInvoices]);
 
   return (
-    <Box>
+    <div>
       {!embedded && (
         <PageHeader
           title={t('invoices.title', 'Factures')}
@@ -258,145 +312,121 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
       )}
 
       {/* ─── Template warning ──────────────────────────────────────────── */}
+      {/* Le look -soft hairline de l'ancien `sx` est deja le gabarit de la
+          variante `warning` du kit : il ne reste que la taille de texte. */}
       {templateStatus && !templateStatus.hasTemplate && (
-        <Alert
-          severity="warning"
-          icon={<WarningIcon size={20} strokeWidth={1.75} />}
-          sx={{
-            mb: 2,
-            // Alerte -soft hairline (pattern .rm-conflict)
-            bgcolor: 'var(--warn-soft)',
-            border: '1px solid color-mix(in srgb, var(--warn) 30%, transparent)',
-            borderRadius: '12px',
-            color: 'var(--body)',
-            fontSize: '12.5px',
-            '& .MuiAlert-icon': { color: 'var(--warn)' },
-            '& .MuiAlert-message': { fontSize: '12.5px' },
-          }}
-        >
-          {t(
-            'invoices.noTemplateWarning',
-            'Aucun template FACTURE actif configure. Les PDF ne seront pas generes automatiquement lors des paiements. Veuillez configurer un template dans les parametres.'
-          )}
+        <Alert variant="warning" className="mb-3 text-[12.5px]">
+          <WarningIcon />
+          <AlertDescription>
+            {t(
+              'invoices.noTemplateWarning',
+              'Aucun template FACTURE actif configure. Les PDF ne seront pas generes automatiquement lors des paiements. Veuillez configurer un template dans les parametres.'
+            )}
+          </AlertDescription>
         </Alert>
       )}
 
-      {/* ─── KPIs (StatTile baseline) ──────────────────────────────────── */}
+      {headerActions}
+
+      {/* ─── KPIs — les trois tuiles monetaires de la projection ─────────── */}
       {stats && (
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 1, mb: 2 }}>
-          {summaryCards.map((card) => (
-            <StatTile
-              key={card.label}
-              icon={card.icon}
-              label={card.label}
-              value={card.value}
-              color={card.color}
-              loading={isLoading}
-            />
-          ))}
-        </Box>
+        <div className="grid grid-cols-1 gap-3 mb-3 sm:grid-cols-3">
+          <StatTile
+            icon={<ReceiptIcon />}
+            label={t('invoices.stats.issuedTotal', 'Émis')}
+            value={<Money value={stats.emis} from={stats.currency} />}
+            hint={t('invoices.stats.count', { count: stats.total, defaultValue: '{{count}} factures' })}
+            loading={isLoading}
+          />
+          <StatTile
+            icon={<PaidIcon />}
+            label={t('invoices.stats.collected', 'Encaissé')}
+            value={<Money value={stats.encaisse} from={stats.currency} />}
+            iconClassName="text-success"
+            hint={t('invoices.stats.collectedShare', { rate: stats.tauxEncaisse, defaultValue: '{{rate}} % du montant émis' })}
+            loading={isLoading}
+          />
+          <StatTile
+            icon={<WarningIcon />}
+            label={t('invoices.stats.overdue', 'En retard')}
+            value={<Money value={stats.retardMontant} from={stats.currency} />}
+            iconClassName="text-destructive"
+            hint={t('invoices.stats.overdueCount', { count: stats.retardNb, defaultValue: '{{count}} factures' })}
+            loading={isLoading}
+          />
+        </div>
+      )}
+
+      {/* ─── Chips de statut — comptes par statut, couleurs semantiques ──── */}
+      {stats && (
+        <FilterChipRow
+          className="mb-3"
+          allLabel={t('common.all', 'Toutes')}
+          allCount={stats.total}
+          value={statusFilter}
+          onChange={(v) => setStatusFilter(v as InvoiceStatus | '')}
+          options={(Object.keys(STATUS_LABELS) as InvoiceStatus[])
+            .filter((st) => stats.parStatut[st] > 0)
+            .map((st) => ({
+              value: st,
+              label: STATUS_LABELS[st],
+              color: STATUS_TOKEN[st].fg,
+              count: stats.parStatut[st],
+            }))}
+        />
       )}
 
       {/* ─── Filters (panneau hairline plat) ─────────────────────────────── */}
-      <Paper
-        variant="outlined"
-        sx={{
-          p: 1.5,
-          mb: 2,
-          display: 'flex',
-          gap: 1.5,
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          borderRadius: 'var(--radius-lg)',
-          borderColor: 'var(--line)',
-          bgcolor: 'var(--card)',
-          boxShadow: 'none',
-        }}
-      >
-        <TextField
-          select
-          size="small"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as InvoiceStatus | '')}
-          label={t('common.status', 'Statut')}
-          sx={{ minWidth: 150, ...inputSx }}
-        >
-          {STATUS_OPTIONS.map((opt) => (
-            <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.8125rem' }}>
-              {opt.label}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          size="small"
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value as InvoiceType | '')}
-          label={t('invoices.type.label', 'Type')}
-          sx={{ minWidth: 150, ...inputSx }}
-        >
-          {TYPE_OPTIONS.map((opt) => (
-            <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.8125rem' }}>
-              {opt.label}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          size="small"
-          type="date"
-          label={t('invoices.from', 'Du')}
-          value={dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 140, ...inputSx }}
-        />
-        <TextField
-          size="small"
-          type="date"
-          label={t('invoices.to', 'Au')}
-          value={dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 140, ...inputSx }}
+      {/* Le statut vit desormais dans la rangee de chips ci-dessus : ne
+          restent ici que la nature et la periode. */}
+      {/* `flex-row` explicite : la base du Card est flex-col, ou `items-center`
+          devient un centrage horizontal des champs. */}
+      <Card className="gap-0 py-0 p-2 mb-3 flex flex-row gap-2 flex-wrap items-end border-[var(--line)] bg-[var(--card)]">
+        <Field className="w-auto min-w-[150px]">
+          <FieldLabel htmlFor="invoices-filter-type">{t('invoices.type.label', 'Type')}</FieldLabel>
+          <NativeSelect
+            id="invoices-filter-type"
+            className="w-full"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value as InvoiceType | '')}
+          >
+            {TYPE_OPTIONS.map((opt) => (
+              <NativeSelectOption key={opt.value} value={opt.value}>
+                {opt.label}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </Field>
+        <DateRangePicker
+          startDate={dateFrom}
+          endDate={dateTo}
+          onChangeStart={setDateFrom}
+          onChangeEnd={setDateTo}
+          isFrench
         />
         {hasActiveFilters && (
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<ClearIcon size={16} strokeWidth={1.75} />}
-            onClick={handleClearFilters}
-          >
+          <Button variant="outline" size="sm" onClick={handleClearFilters}>
+            <ClearIcon size={16} strokeWidth={1.75} />
             {t('payments.history.clearFilters')}
           </Button>
         )}
-      </Paper>
+      </Card>
 
       {/* ─── Table ───────────────────────────────────────────────────────── */}
       {isLoading ? (
         /* Skeleton de table (carte hairline plate, lignes Skeleton) */
-        <Paper
-          variant="outlined"
-          sx={{ borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none', p: 2 }}
-        >
-          <Skeleton variant="text" width="30%" height={18} sx={{ mb: 1.5 }} />
+        <Card className="gap-0 py-0 border-[var(--line)] p-3">
+          <Skeleton className="mb-1.5 h-[18px] w-[30%] rounded-[4px]" />
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} variant="rectangular" height={36} sx={{ borderRadius: 1, mb: 1 }} />
+            <Skeleton key={i} className="mb-1.5 h-9 rounded-[8px]" />
           ))}
-        </Paper>
+        </Card>
       ) : error ? (
-        <Alert
-          severity="error"
-          sx={{
-            mb: 2,
-            bgcolor: 'var(--err-soft)',
-            border: '1px solid color-mix(in srgb, var(--err) 30%, transparent)',
-            borderRadius: '12px',
-            color: 'var(--body)',
-            fontSize: '12.5px',
-            '& .MuiAlert-icon': { color: 'var(--err)' },
-          }}
-        >
-          {t('invoices.loadError', 'Erreur lors du chargement des factures')}
+        <Alert variant="destructive" className="mb-3 text-[12.5px]">
+          <WarningIcon />
+          <AlertDescription>
+            {t('invoices.loadError', 'Erreur lors du chargement des factures')}
+          </AlertDescription>
         </Alert>
       ) : !displayedInvoices.length ? (
         <EmptyState
@@ -405,31 +435,23 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
           variant="plain"
         />
       ) : (
-        <TableContainer
-          component={Paper}
-          variant="outlined"
-          sx={{
-            borderRadius: 'var(--radius-lg)',
-            borderColor: 'var(--line)',
-            boxShadow: 'none',
-            '& .MuiTableCell-head': { py: 1.25, whiteSpace: 'nowrap' },
-            '& .MuiTableCell-body': { py: 1.25 },
-          }}
-        >
-          <Table size="small">
-            <TableHead>
+        <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]">
+          {/* py-[7.5px] : le `sx` d'origine resserrait les cellules (py: 1.25) par
+              rapport au gabarit du kit (6px en-tete / 8px corps). */}
+          <Table className="[&_th]:py-[7.5px] [&_td]:py-[7.5px]">
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('invoices.columns.number', 'N\u00B0')}</TableCell>
-                <TableCell>{t('invoices.columns.date', 'Date')}</TableCell>
-                <TableCell>{t('invoices.columns.type', 'Type')}</TableCell>
-                <TableCell>{t('invoices.columns.buyer', 'Client')}</TableCell>
-                <TableCell align="right">{t('invoices.columns.ht', 'HT')}</TableCell>
-                <TableCell align="right">{t('invoices.columns.tax', 'TVA')}</TableCell>
-                <TableCell align="right">{t('invoices.columns.ttc', 'TTC')}</TableCell>
-                <TableCell>{t('common.status', 'Statut')}</TableCell>
-                <TableCell align="right">{t('common.actions', 'Actions')}</TableCell>
+                <TableHead>{t('invoices.columns.number', 'N\u00B0')}</TableHead>
+                <TableHead>{t('invoices.columns.date', 'Date')}</TableHead>
+                <TableHead>{t('invoices.columns.type', 'Type')}</TableHead>
+                <TableHead>{t('invoices.columns.buyer', 'Client')}</TableHead>
+                <TableHead className="text-end">{t('invoices.columns.ht', 'HT')}</TableHead>
+                <TableHead className="text-end">{t('invoices.columns.tax', 'TVA')}</TableHead>
+                <TableHead className="text-end">{t('invoices.columns.ttc', 'TTC')}</TableHead>
+                <TableHead>{t('common.status', 'Statut')}</TableHead>
+                <TableHead className="text-end">{t('common.actions', 'Actions')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {displayedInvoices.map((inv: Invoice) => {
                 const source = getSourceType(inv);
@@ -438,176 +460,147 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                   <TableRow key={inv.id} data-highlight-id={String(inv.id)}>
                     {/* ─── N° + DUPLICATA badge ─── */}
                     <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '12.5px', color: 'var(--ink)', ...moneySx }}>
+                      <div className="flex items-center gap-1">
+                        {/* Litteral et non `cn()` : tailwind-merge considere `font-[...]` et
+                            `font-semibold` comme un meme groupe et supprimerait la police display. */}
+                        <p className={`cn-text-body2 ${MONEY_CLASS} text-[12.5px] font-semibold text-[var(--ink)]`}>
                           {inv.invoiceNumber}
-                        </Typography>
+                        </p>
                         {inv.duplicateOfId && (
-                          <Chip
-                            label="DUP"
-                            size="small"
-                            sx={{
-                              height: 18,
-                              ...chipSoftSx('var(--info)', 'var(--info-soft)'),
-                              '& .MuiChip-label': { px: 0.75 },
-                            }}
-                          />
+                          <StatusChip tone="info" size="sm" label="DUP" />
                         )}
-                      </Box>
+                      </div>
                     </TableCell>
 
                     {/* ─── Date ─── */}
-                    <TableCell sx={{ color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>{fmtDate(inv.invoiceDate)}</TableCell>
+                    <TableCell className="text-[var(--muted)] tabular-nums">{fmtDate(inv.invoiceDate)}</TableCell>
 
                     {/* ─── Type (Commission / Reservation / Intervention) ─── */}
                     <TableCell>
                       {inv.invoiceType === 'COMMISSION' ? (
-                        <Chip
-                          label={t('invoices.type.commission', 'Commission')}
-                          size="small"
-                          icon={<Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><MoneyIcon size={14} strokeWidth={1.75} /></Box>}
-                          sx={chipSoftSx(COMMISSION_COLOR, `${COMMISSION_COLOR}18`)}
-                        />
+                        <StatusChip tokens={{ color: COMMISSION_COLOR, bg: `${COMMISSION_COLOR}18` }} label={t('invoices.type.commission', 'Commission')} icon={<span className="inline-flex me-0.5"><MoneyIcon size={14} strokeWidth={1.75} /></span>} />
                       ) : source ? (
-                        <Chip
-                          label={source.label}
-                          size="small"
-                          icon={source.icon}
-                          sx={chipSoftSx(source.color, `${source.color}18`)}
-                        />
+                        <StatusChip tokens={{ color: source.color, bg: `${source.color}18` }} label={source.label} icon={source.icon} />
                       ) : (
-                        <Typography variant="body2" sx={{ color: 'var(--muted)', fontSize: '12.5px' }}>
+                        <p className="cn-text-body2 text-[var(--muted)] text-[12.5px]">
                           —
-                        </Typography>
+                        </p>
                       )}
                     </TableCell>
 
                     {/* ─── Client ─── */}
-                    <TableCell sx={{ fontWeight: 600, color: 'var(--ink)' }}>{inv.buyerName}</TableCell>
+                    <TableCell className="font-semibold text-[var(--ink)]">{inv.buyerName}</TableCell>
 
                     {/* ─── Montants (display tabular-nums) ─── */}
-                    <TableCell align="right" sx={moneySx}><Money value={inv.totalHt} from={inv.currency} /></TableCell>
-                    <TableCell align="right" sx={moneySx}><Money value={inv.totalTax} from={inv.currency} /></TableCell>
-                    <TableCell align="right" sx={{ ...moneySx, fontWeight: 600, color: 'var(--ink)' }}><Money value={inv.totalTtc} from={inv.currency} /></TableCell>
+                    <TableCell className={`text-end ${MONEY_CLASS}`}><Money value={inv.totalHt} from={inv.currency} /></TableCell>
+                    <TableCell className={`text-end ${MONEY_CLASS}`}><Money value={inv.totalTax} from={inv.currency} /></TableCell>
+                    <TableCell className={`text-end ${MONEY_CLASS} font-semibold text-[var(--ink)]`}><Money value={inv.totalTtc} from={inv.currency} /></TableCell>
 
-                    {/* ─── Statut (chip -soft sémantique) ─── */}
+                    {/* ─── Statut — ton semantique a point (projection) ─── */}
                     <TableCell>
-                      <Chip
-                        label={STATUS_LABELS[inv.status]}
-                        size="small"
-                        sx={chipSoftSx(statusToken.fg, statusToken.bg)}
-                      />
+                      <StatusChip tone={STATUS_TONE[inv.status]} label={STATUS_LABELS[inv.status]} dot size="sm" />
                     </TableCell>
 
                     {/* ─── Actions ─── */}
-                    <TableCell align="right">
-                      <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+                    <TableCell className="text-end">
+                      <div className="flex gap-0.5 justify-end">
                         {/* Voir PDF (document genere) */}
                         {inv.documentGenerationId && (
-                          <Tooltip title={t('invoices.actions.viewPdf', 'Voir PDF')}>
-                            <IconButton
-                              size="small"
-                              sx={{ color: 'var(--err)', '&:hover': { bgcolor: 'var(--err-soft)', color: 'var(--err)' } }}
-                              onClick={() => handleViewDocumentPdf(inv.documentGenerationId!)}
-                            >
-                              <PdfIcon size={18} strokeWidth={1.75} />
-                            </IconButton>
-                          </Tooltip>
+                          <RowAction
+                            label={t('invoices.actions.viewPdf', 'Voir PDF')}
+                            className="text-[var(--err)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
+                            onClick={() => handleViewDocumentPdf(inv.documentGenerationId!)}
+                          >
+                            <PdfIcon size={18} strokeWidth={1.75} />
+                          </RowAction>
                         )}
 
                         {/* Emettre */}
                         {inv.status === 'DRAFT' && (
-                          <Tooltip title={t('invoices.actions.issue', 'Emettre')}>
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => issueMutation.mutate(inv.id)}
-                              disabled={issueMutation.isPending}
-                            >
-                              <SendIcon size={18} strokeWidth={1.75} />
-                            </IconButton>
-                          </Tooltip>
+                          <RowAction
+                            label={t('invoices.actions.issue', 'Emettre')}
+                            className="text-[var(--mui-primary)] hover:text-[var(--mui-primary)]"
+                            onClick={() => issueMutation.mutate(inv.id)}
+                            disabled={issueMutation.isPending}
+                          >
+                            <SendIcon size={18} strokeWidth={1.75} />
+                          </RowAction>
                         )}
 
                         {/* Marquer payee */}
                         {inv.status === 'ISSUED' && (
-                          <Tooltip title={t('invoices.actions.markPaid', 'Marquer payee')}>
-                            <IconButton
-                              size="small"
-                              color="success"
-                              onClick={() => markPaidMutation.mutate(inv.id)}
-                              disabled={markPaidMutation.isPending}
-                            >
-                              <PaidIcon size={18} strokeWidth={1.75} />
-                            </IconButton>
-                          </Tooltip>
+                          <RowAction
+                            label={t('invoices.actions.markPaid', 'Marquer payee')}
+                            className="text-[var(--ok)] hover:bg-[var(--ok-soft)] hover:text-[var(--ok)]"
+                            onClick={() => markPaidMutation.mutate(inv.id)}
+                            disabled={markPaidMutation.isPending}
+                          >
+                            <PaidIcon size={18} strokeWidth={1.75} />
+                          </RowAction>
                         )}
 
                         {/* Annuler */}
                         {(inv.status === 'DRAFT' || inv.status === 'ISSUED') && (
-                          <Tooltip title={t('invoices.actions.cancel', 'Annuler')}>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => cancelMutation.mutate(inv.id)}
-                              disabled={cancelMutation.isPending}
-                            >
-                              <CancelIcon size={18} strokeWidth={1.75} />
-                            </IconButton>
-                          </Tooltip>
+                          <RowAction
+                            label={t('invoices.actions.cancel', 'Annuler')}
+                            className="text-[var(--err)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
+                            onClick={() => cancelMutation.mutate(inv.id)}
+                            disabled={cancelMutation.isPending}
+                          >
+                            <CancelIcon size={18} strokeWidth={1.75} />
+                          </RowAction>
                         )}
 
                         {/* Duplicata */}
                         {(inv.status === 'ISSUED' || inv.status === 'PAID') && !inv.duplicateOfId && (
-                          <Tooltip title={t('invoices.actions.duplicate', 'Generer duplicata')}>
-                            <IconButton
-                              size="small"
-                              sx={{ color: 'var(--info)', '&:hover': { bgcolor: 'var(--info-soft)', color: 'var(--info)' } }}
-                              onClick={() => duplicateMutation.mutate(inv.id)}
-                              disabled={duplicateMutation.isPending}
-                            >
-                              <DuplicateIcon size={18} strokeWidth={1.75} />
-                            </IconButton>
-                          </Tooltip>
+                          <RowAction
+                            label={t('invoices.actions.duplicate', 'Generer duplicata')}
+                            className="text-[var(--info)] hover:bg-[var(--info-soft)] hover:text-[var(--info)]"
+                            onClick={() => duplicateMutation.mutate(inv.id)}
+                            disabled={duplicateMutation.isPending}
+                          >
+                            <DuplicateIcon size={18} strokeWidth={1.75} />
+                          </RowAction>
                         )}
 
                         {/* Telecharger PDF */}
-                        <Tooltip title={t('invoices.actions.downloadPdf', 'Telecharger PDF')}>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
-                          >
-                            <DownloadIcon size={18} strokeWidth={1.75} />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
+                        <RowAction
+                          label={t('invoices.actions.downloadPdf', 'Telecharger PDF')}
+                          onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
+                        >
+                          <DownloadIcon size={18} strokeWidth={1.75} />
+                        </RowAction>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
               })}
             </TableBody>
+            <TableFooter>
+              <TableRow>
+                <TableCell colSpan={6}>{t('invoices.totalPeriod', 'Total période')}</TableCell>
+                <TableCell className={`text-end font-semibold ${MONEY_CLASS}`}>
+                  <Money value={displayedInvoices.reduce((sum, i) => sum + i.totalTtc, 0)} from={stats?.currency ?? 'EUR'} />
+                </TableCell>
+                <TableCell colSpan={2} />
+              </TableRow>
+            </TableFooter>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       {/* ─── PDF Preview Dialog ──────────────────────────────────────────── */}
-      <Dialog
-        open={pdfDialogOpen}
-        onClose={handleClosePdfDialog}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: { height: '85vh' },
-        }}
-      >
-        <DialogTitle>
-          {t('invoices.pdfPreview', 'Apercu du document')}
-        </DialogTitle>
-        <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      <Dialog open={pdfDialogOpen} onOpenChange={(open) => { if (!open) handleClosePdfDialog(); }}>
+        <DialogContent className="flex h-[85vh] max-w-3xl flex-col overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>
+              {t('invoices.pdfPreview', 'Apercu du document')}
+            </DialogTitle>
+          </DialogHeader>
           {pdfLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
-              <CircularProgress thickness={3.5} sx={{ color: 'var(--accent)' }} />
-            </Box>
+            <div className="flex justify-center items-center flex-1">
+              <Spinner className="size-10 text-[var(--accent)]" />
+            </div>
           ) : pdfUrl ? (
             <object
               data={pdfUrl}
@@ -615,45 +608,36 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
               width="100%"
               style={{ flex: 1, border: 'none', minHeight: 0 }}
             >
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="body2" sx={{ color: 'var(--muted)', mb: 2 }}>
+              <div className="p-4 text-center">
+                <p className="cn-text-body2 text-[var(--muted)] mb-3">
                   {t('invoices.pdfNotSupported', 'Votre navigateur ne supporte pas la visualisation PDF.')}
-                </Typography>
-                <Button
-                  variant="contained"
-                  href={pdfUrl}
-                  download="facture.pdf"
-                  startIcon={<DownloadIcon />}
-                >
-                  {t('invoices.actions.downloadPdf', 'Telecharger PDF')}
+                </p>
+                <Button asChild>
+                  <a href={pdfUrl} download="facture.pdf">
+                    <DownloadIcon />
+                    {t('invoices.actions.downloadPdf', 'Telecharger PDF')}
+                  </a>
                 </Button>
-              </Box>
+              </div>
             </object>
           ) : (
-            <Box sx={{ p: 3, textAlign: 'center' }}>
-              <Alert
-                severity="error"
-                sx={{
-                  bgcolor: 'var(--err-soft)',
-                  border: '1px solid color-mix(in srgb, var(--err) 30%, transparent)',
-                  borderRadius: '12px',
-                  color: 'var(--body)',
-                  fontSize: '12.5px',
-                  '& .MuiAlert-icon': { color: 'var(--err)' },
-                }}
-              >
-                {t('invoices.pdfLoadError', 'Erreur lors du chargement du PDF')}
+            <div className="p-4 text-center">
+              <Alert variant="destructive" className="text-[12.5px]">
+                <WarningIcon />
+                <AlertDescription>
+                  {t('invoices.pdfLoadError', 'Erreur lors du chargement du PDF')}
+                </AlertDescription>
               </Alert>
-            </Box>
+            </div>
           )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={handleClosePdfDialog}>
+              {t('common.close', 'Fermer')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClosePdfDialog}>
-            {t('common.close', 'Fermer')}
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

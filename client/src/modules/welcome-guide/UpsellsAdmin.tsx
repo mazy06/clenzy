@@ -1,28 +1,33 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import StatusChip from '../../components/StatusChip';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { Info } from 'lucide-react';
 import {
-  Alert,
-  Box,
+  Spinner,
   Button,
+  buttonVariants,
   Card,
   CardContent,
-  Chip,
-  CircularProgress,
+  Checkbox,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  FormControlLabel,
-  InputAdornment,
-  Menu,
-  MenuItem,
-  Snackbar,
-  Stack,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Input,
+  NativeSelect,
   Switch,
-  TextField,
-  Typography,
-} from '@mui/material';
-import type { AlertColor, SxProps, Theme } from '@mui/material';
+  Textarea,
+} from '../../components/ui';
+import { useQuery } from '@tanstack/react-query';
+import { cn } from '../../utils/cn';
 import { Add, Save, Edit, Delete } from '../../icons';
 import {
   Receipt, Percent, Wallet, Tag, Sparkles, ImagePlus,
@@ -35,6 +40,7 @@ import '../booking-engine/studio/studioHome.css';
 import ServicesCatalog from './marketplace/ServicesCatalog';
 import { type MarketplaceExperience } from './marketplace/marketplaceData';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useNotification, type NotificationSeverity } from '../../hooks/useNotification';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import { useCurrency } from '../../hooks/useCurrency';
 import { softChipSx, semanticToHex } from '../../utils/statusUtils';
@@ -44,7 +50,6 @@ import { SectionHeading } from './formPrimitives';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { upsellApi, type UpsellOffer, type UpsellOrder } from '../../services/api/upsellApi';
 import { activitiesApi } from '../../services/api/activitiesApi';
-import { monetizationConfigApi } from '../../services/api/monetizationConfigApi';
 import { useScreenSearch } from '../../components/ScreenChrome';
 
 const TYPE_FALLBACK: Record<string, string> = {
@@ -62,37 +67,9 @@ const TYPES = Object.keys(TYPE_FALLBACK);
 const DEFAULT_CURRENCY = 'EUR';
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
-// Actions d'en-tête uniformes (même hauteur / rayon / typo). Deux secondaires
-// « ghost » (Commissions, Ventes) + une primaire pleine (Nouveau service).
-const HEADER_ACTION_BASE = {
-  height: 34, textTransform: 'none', fontWeight: 600, fontSize: 13,
-  borderRadius: '10px', px: 1.75, whiteSpace: 'nowrap',
-  '& .MuiButton-startIcon': { mr: 0.625 },
-} satisfies SxProps<Theme>;
-const headerSecondarySx: SxProps<Theme> = {
-  ...HEADER_ACTION_BASE,
-  color: 'var(--body)', borderColor: 'var(--line-2)', bgcolor: 'transparent',
-  '&:hover': { borderColor: 'var(--faint)', bgcolor: 'var(--hover)' },
-};
-const headerPrimarySx: SxProps<Theme> = {
-  ...HEADER_ACTION_BASE,
-  boxShadow: 'none',
-  '&:hover': { boxShadow: 'none' },
-};
-// Filtres dans le PageHeader (Canal / Catégorie) : boutons étiquetés (icône en
-// enfant, PAS startIcon → non repliés en icon-only par PageHeaderActions).
-const headerFilterSx = {
-  height: 34, textTransform: 'none', fontWeight: 600, fontSize: 13,
-  borderRadius: '10px', px: 1.5, gap: 0.75, whiteSpace: 'nowrap',
-  color: 'var(--body)', borderColor: 'var(--line-2)', bgcolor: 'transparent',
-  '& svg': { color: 'var(--muted)' },
-  '&:hover': { borderColor: 'var(--faint)', bgcolor: 'var(--hover)' },
-} satisfies SxProps<Theme>;
-const headerFilterActiveSx: SxProps<Theme> = {
-  ...headerFilterSx,
-  color: 'var(--accent)', borderColor: 'var(--accent)', bgcolor: 'var(--accent-soft)',
-  '& svg': { color: 'var(--accent)' },
-};
+// Filtre du PageHeader actif (Canal / Catégorie) : seule la teinte accent reste
+// a porter, le gabarit (hauteur, rayon, graisse) vient du bouton du kit.
+const HEADER_FILTER_ACTIVE = 'text-[var(--accent)] border-[var(--accent)] bg-[var(--accent-soft)]';
 
 // Icône lucide par type de service.
 const TYPE_ICON: Record<string, typeof Tag> = {
@@ -186,6 +163,7 @@ const onActivate = (fn: () => void) => (e: React.KeyboardEvent) => {
 
 const UpsellsAdmin: React.FC = () => {
   const { t } = useTranslation();
+  const { showNotification } = useNotification();
   const { properties } = usePropertiesList();
   const { convert } = useCurrency();
 
@@ -207,8 +185,6 @@ const UpsellsAdmin: React.FC = () => {
   useScreenSearch(search, setSearch, t('upsells.search.placeholder', 'Rechercher un service…'));
   const [canalFilter, setCanalFilter] = useState<CanalFilter>('all');
   const [catFilter, setCatFilter] = useState<string | null>(null);
-  const [canalAnchor, setCanalAnchor] = useState<HTMLElement | null>(null);
-  const [catAnchor, setCatAnchor] = useState<HTMLElement | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
   const [previewOffer, setPreviewOffer] = useState<PreviewData | null>(null);
 
@@ -217,48 +193,14 @@ const UpsellsAdmin: React.FC = () => {
   const [ordersOpen, setOrdersOpen] = useState(false);
   const [commissionsOpen, setCommissionsOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<UpsellOffer | null>(null);
-  // Menu « … » d'actions par ligne (table « Mes services », parité Booking Engine / Welcome guide).
-  const [rowMenu, setRowMenu] = useState<{ el: HTMLElement; offer: UpsellOffer } | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: AlertColor }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
-  const notify = (message: string, severity: AlertColor = 'success') =>
-    setSnackbar({ open: true, message, severity });
+  const notify = (message: string, severity: NotificationSeverity = 'success') =>
+    showNotification(message, severity);
 
   const { data: commissionSummary } = useQuery({
     queryKey: ['activity-commission-summary'],
     queryFn: () => activitiesApi.commissionSummary(),
   });
-
-  // Commission org/conciergerie (éditable par l'org) — la commission plateforme est en lecture seule.
-  const { data: monetConfig, refetch: refetchMonet } = useQuery({
-    queryKey: ['monetization-config'],
-    queryFn: () => monetizationConfigApi.get(),
-  });
-  const [orgUpsellPct, setOrgUpsellPct] = useState('');
-  const [savingOrg, setSavingOrg] = useState(false);
-  useEffect(() => {
-    if (monetConfig) {
-      setOrgUpsellPct(String(monetConfig.upsellOrgCommissionPct ?? 0));
-    }
-  }, [monetConfig]);
-  const saveOrgCommission = async () => {
-    setSavingOrg(true);
-    try {
-      await monetizationConfigApi.updateOrg({
-        upsellOrgCommissionPct: parseFloat(orgUpsellPct) || 0,
-      });
-      await refetchMonet();
-      notify(t('upsells.orgCommission.saved', 'Commission enregistrée'));
-    } catch {
-      notify(t('upsells.messages.error', 'Une erreur est survenue'), 'error');
-    } finally {
-      setSavingOrg(false);
-    }
-  };
 
   const typeLabel = (id: string) => t(`upsells.types.${id}`, TYPE_FALLBACK[id] ?? id);
 
@@ -492,17 +434,22 @@ const UpsellsAdmin: React.FC = () => {
   const orderStatusLabel = (status: string) => t(`upsells.status.${status}`, status);
 
   const editingOffer = edit.id != null ? offers.find((o) => o.id === edit.id) ?? null : null;
+  // Offres eligibles au bundle : toutes sauf celle en cours d'edition.
+  const bundleCandidates = useMemo(() => offers.filter((o) => o.id !== edit.id), [offers, edit.id]);
 
   // Actions portées dans le PageHeader (slot multi-tabs partagé) — comme l'onglet Livret.
   const headerActions = usePageHeaderActions(
     <>
-      <Button variant="outlined" sx={headerSecondarySx} startIcon={<Percent size={15} strokeWidth={2} />} onClick={() => setCommissionsOpen(true)}>
+      <Button variant="outline" onClick={() => setCommissionsOpen(true)}>
+        <Percent size={15} strokeWidth={2} />
         {t('upsells.actions.commissions', 'Commissions')}
       </Button>
-      <Button variant="outlined" sx={headerSecondarySx} startIcon={<Receipt size={15} strokeWidth={2} />} onClick={() => setOrdersOpen(true)}>
+      <Button variant="outline" onClick={() => setOrdersOpen(true)}>
+        <Receipt size={15} strokeWidth={2} />
         {t('upsells.actions.orders', 'Ventes')}
       </Button>
-      <Button variant="contained" disableElevation sx={headerPrimarySx} startIcon={<Add size={15} strokeWidth={2} />} onClick={() => openCreate()}>
+      <Button onClick={() => openCreate()}>
+        <Add size={15} strokeWidth={2} />
         {t('upsells.actions.new', 'Nouveau service')}
       </Button>
     </>,
@@ -510,15 +457,50 @@ const UpsellsAdmin: React.FC = () => {
 
   // Filtres portés dans le PageHeader (recherche + Canal + Catégorie). Uniquement
   // en vue catalogue (masqués sur l'écran détaillé d'un service).
+  // Les declencheurs portent eux-memes le gabarit de bouton : passer par
+  // `Button` en asChild casserait la ref dont Radix a besoin pour ancrer le menu.
   const headerFilters = usePageHeaderFilters(
     selected ? null : (
       <>
-        <Button variant="outlined" size="small" sx={canalFilter !== 'all' ? headerFilterActiveSx : headerFilterSx} onClick={(e) => setCanalAnchor(e.currentTarget)}>
-          <SlidersHorizontal size={15} strokeWidth={2} /> {canalFilter === 'livret' ? t('upsells.channel.guide', 'Livret') : canalFilter === 'booking' ? t('upsells.channel.booking', 'Booking') : t('upsells.filters.channel', 'Canal')}
-        </Button>
-        <Button variant="outlined" size="small" sx={catFilter ? headerFilterActiveSx : headerFilterSx} onClick={(e) => setCatAnchor(e.currentTarget)}>
-          <Tag size={15} strokeWidth={2} /> {catFilter ? typeLabel(catFilter) : t('upsells.filters.category', 'Catégorie')}
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={cn(
+              buttonVariants({ variant: 'outline' }),
+              'cursor-pointer',
+              canalFilter !== 'all' ? HEADER_FILTER_ACTIVE : undefined,
+            )}
+          >
+            <SlidersHorizontal size={15} strokeWidth={2} /> {canalFilter === 'livret' ? t('upsells.channel.guide', 'Livret') : canalFilter === 'booking' ? t('upsells.channel.booking', 'Booking') : t('upsells.filters.channel', 'Canal')}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-auto min-w-[180px]">
+            {(['all', 'livret', 'booking'] as CanalFilter[]).map((v) => (
+              <DropdownMenuItem key={v} onSelect={() => setCanalFilter(v)}>
+                {v === 'all' ? t('upsells.filters.allChannels', 'Tous les canaux') : v === 'livret' ? t('upsells.channel.guide', 'Livret') : t('upsells.channel.booking', 'Booking')}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={cn(
+              buttonVariants({ variant: 'outline' }),
+              'cursor-pointer',
+              catFilter ? HEADER_FILTER_ACTIVE : undefined,
+            )}
+          >
+            <Tag size={15} strokeWidth={2} /> {catFilter ? typeLabel(catFilter) : t('upsells.filters.category', 'Catégorie')}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-auto min-w-[180px]">
+            <DropdownMenuItem onSelect={() => setCatFilter(null)}>
+              {t('upsells.filters.allCategories', 'Toutes les catégories')}
+            </DropdownMenuItem>
+            {presentTypes.map((tp) => (
+              <DropdownMenuItem key={tp} onSelect={() => setCatFilter(tp)}>
+                {typeLabel(tp)}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </>
     ),
   );
@@ -536,7 +518,29 @@ const UpsellsAdmin: React.FC = () => {
         typeLabel={typeLabel}
         onAdd={handleMarketplaceAdd}
         onOpenInternal={openInternalDetail}
-        onMenuInternal={(el, o) => setRowMenu({ el, offer: o })}
+        renderRowMenu={(o) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className="mp-imenu"
+              aria-label={t('upsells.actions.menu', 'Actions')}
+              onClick={(ev) => ev.stopPropagation()}
+            >
+              <MoreHorizontal size={18} strokeWidth={2} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-auto min-w-[180px]">
+              <DropdownMenuItem disabled={togglingId === o.id} onSelect={() => toggleActive(o)}>
+                <Power size={16} strokeWidth={2} />
+                {o.active ? t('upsells.actions.deactivate', 'Désactiver') : t('upsells.actions.activate', 'Activer')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => openEdit(o)}>
+                <Edit size={16} strokeWidth={2} /> {t('upsells.actions.edit', 'Modifier')}
+              </DropdownMenuItem>
+              <DropdownMenuItem variant="destructive" onSelect={() => handleDelete(o)}>
+                <Delete size={16} strokeWidth={2} /> {t('upsells.actions.delete', 'Supprimer')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         kpis={(
           <div className="svc-band">
             <div className="kpis">
@@ -548,37 +552,6 @@ const UpsellsAdmin: React.FC = () => {
         )}
       />
 
-      <Menu anchorEl={canalAnchor} open={!!canalAnchor} onClose={() => setCanalAnchor(null)}>
-        {(['all', 'livret', 'booking'] as CanalFilter[]).map((v) => (
-          <MenuItem key={v} selected={canalFilter === v} onClick={() => { setCanalFilter(v); setCanalAnchor(null); }}>
-            {v === 'all' ? t('upsells.filters.allChannels', 'Tous les canaux') : v === 'livret' ? t('upsells.channel.guide', 'Livret') : t('upsells.channel.booking', 'Booking')}
-          </MenuItem>
-        ))}
-      </Menu>
-      <Menu anchorEl={catAnchor} open={!!catAnchor} onClose={() => setCatAnchor(null)}>
-        <MenuItem selected={!catFilter} onClick={() => { setCatFilter(null); setCatAnchor(null); }}>
-          {t('upsells.filters.allCategories', 'Toutes les catégories')}
-        </MenuItem>
-        {presentTypes.map((tp) => (
-          <MenuItem key={tp} selected={catFilter === tp} onClick={() => { setCatFilter(tp); setCatAnchor(null); }}>
-            {typeLabel(tp)}
-          </MenuItem>
-        ))}
-      </Menu>
-      {/* Menu d'actions par ligne — toggle actif / modifier / supprimer (aucune action perdue). */}
-      <Menu anchorEl={rowMenu?.el ?? null} open={!!rowMenu} onClose={() => setRowMenu(null)}>
-        {rowMenu && ([
-          <MenuItem key="toggle" disabled={togglingId === rowMenu.offer.id} onClick={() => { toggleActive(rowMenu.offer); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
-            <Power size={16} strokeWidth={2} /> {rowMenu.offer.active ? t('upsells.actions.deactivate', 'Désactiver') : t('upsells.actions.activate', 'Activer')}
-          </MenuItem>,
-          <MenuItem key="edit" onClick={() => { openEdit(rowMenu.offer); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
-            <Edit size={16} strokeWidth={2} /> {t('upsells.actions.edit', 'Modifier')}
-          </MenuItem>,
-          <MenuItem key="del" onClick={() => { handleDelete(rowMenu.offer); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1, color: 'error.main' }}>
-            <Delete size={16} strokeWidth={2} /> {t('upsells.actions.delete', 'Supprimer')}
-          </MenuItem>,
-        ])}
-      </Menu>
     </>
   );
 
@@ -612,7 +585,8 @@ const UpsellsAdmin: React.FC = () => {
             </div>
             <div className="dhead__act">
               <button type="button" className="btn-ghost" onClick={() => handlePreview({ title: offer.title, description: offer.description, price: offer.price, currency: offer.currency, imageUrl: offer.imageUrl })}><Eye size={16} strokeWidth={2} /> {t('upsells.detail.preview', 'Aperçu')}</button>
-              <Button variant="contained" size="small" startIcon={<Edit size={16} strokeWidth={2} />} onClick={() => openEdit(offer)}>
+              <Button size="sm" onClick={() => openEdit(offer)}>
+                <Edit size={16} strokeWidth={2} />
                 {t('upsells.detail.edit', 'Modifier')}
               </Button>
             </div>
@@ -626,7 +600,8 @@ const UpsellsAdmin: React.FC = () => {
                 <div className="gallery">
                   {offer.imageUrl
                     ? [0, 1, 2].map((i) => (
-                        <Box key={i} component="i" sx={{ backgroundImage: `url(${offer.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: i === 0 ? 1 : 0.55 }} />
+                        // L'URL vient de la donnee : style inline, pas de classe generee.
+                        <i key={i} style={{ backgroundImage: `url(${offer.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: i === 0 ? 1 : 0.55 }} />
                       ))
                     : [0, 1, 2].map((i) => (
                         <i key={i} style={{ background: 'linear-gradient(150deg,#c7c6ee,#a9a8e0)', opacity: 0.85 }} />
@@ -692,313 +667,340 @@ const UpsellsAdmin: React.FC = () => {
   };
 
   return (
-    <Box>
+    <div>
       {headerActions}
       {headerFilters}
 
       {/* Aperçu guest d'un service : carte telle que le voyageur la voit (livret / booking engine). */}
-      <Dialog open={!!previewOffer} onClose={() => setPreviewOffer(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>{t('upsells.preview.title', 'Aperçu côté voyageur')}</DialogTitle>
-        <DialogContent dividers>
+      <Dialog open={!!previewOffer} onOpenChange={(next) => !next && setPreviewOffer(null)}>
+        <DialogContent className="sm:max-w-[444px]">
+          <DialogHeader className="border-b pb-2">
+            <DialogTitle>{t('upsells.preview.title', 'Aperçu côté voyageur')}</DialogTitle>
+          </DialogHeader>
           {previewOffer && (
-            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden', maxWidth: 320, mx: 'auto' }}>
-              <Box sx={{
-                height: 150, bgcolor: 'action.hover',
-                backgroundImage: previewOffer.imageUrl ? `url(${previewOffer.imageUrl})` : 'none',
-                backgroundSize: 'cover', backgroundPosition: 'center',
-              }} />
-              <Box sx={{ p: 2 }}>
-                <Box sx={{ fontWeight: 600 }}>{previewOffer.title}</Box>
+            <div className="border border-solid border-[var(--line)] rounded-[16px] overflow-hidden max-w-[320px] mx-auto">
+              <div
+                className="h-[150px] bg-[var(--hover)] bg-cover bg-center"
+                style={{ backgroundImage: previewOffer.imageUrl ? `url(${previewOffer.imageUrl})` : 'none' }}
+              />
+              <div className="p-3">
+                <div className="font-semibold">{previewOffer.title}</div>
                 {previewOffer.description ? (
-                  <Box sx={{ fontSize: 14, color: 'text.secondary', mt: 0.5 }}>{previewOffer.description}</Box>
+                  <div className="text-[14px] text-muted-foreground mt-0.5">{previewOffer.description}</div>
                 ) : null}
-                <Box sx={{ fontWeight: 700, mt: 1 }}><Money value={previewOffer.price} from={previewOffer.currency} /></Box>
-                <Button variant="contained" fullWidth sx={{ mt: 1.5 }} disabled>
+                <div className="font-bold mt-1.5"><Money value={previewOffer.price} from={previewOffer.currency} /></div>
+                <Button className="w-full mt-[9px] shrink" disabled>
                   {t('upsells.preview.add', 'Ajouter')}
                 </Button>
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPreviewOffer(null)}>{t('common.close', 'Fermer')}</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPreviewOffer(null)}>{t('common.close', 'Fermer')}</Button>
-        </DialogActions>
       </Dialog>
 
       {/* Commissions (résumé activités + ma part conciergerie) — dans un dialog pour libérer l'écran. */}
-      <Dialog open={commissionsOpen} onClose={() => setCommissionsOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('upsells.commissions.dialogTitle', 'Commissions & ma part')}</DialogTitle>
-        <DialogContent dividers>
+      <Dialog open={commissionsOpen} onOpenChange={(next) => !next && setCommissionsOpen(false)}>
+        <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="border-b pb-2">
+            <DialogTitle>{t('upsells.commissions.dialogTitle', 'Commissions & ma part')}</DialogTitle>
+          </DialogHeader>
+          <div>
       {commissionSummary ? (
-        <Card variant="outlined" sx={{ mb: 2 }}>
-          <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+        <Card className="mb-3">
+          <CardContent>
             <SectionHeading
               icon={<Percent size={17} strokeWidth={1.75} />}
               title={t('upsells.commissions.title', 'Commissions activités')}
               actions={
-                <Box sx={{ textAlign: 'right' }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--ok)', lineHeight: 1.15 }}>
+                <div className="text-end">
+                  <h6 className="cn-text-subtitle1 font-bold tabular-nums text-[var(--ok)] leading-[1.15]">
                     <Money value={commissionSummary.totalHostShare} from={commissionSummary.currency} />
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  </h6>
+                  <span className="cn-text-caption text-muted-foreground block">
                     {commissionSummary.count} {t('upsells.commissions.bookings', 'réservation(s)')}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               }
             />
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+            <span className="cn-text-caption text-muted-foreground block">
               {t('upsells.commissions.note', "Votre part sur les réservations d'activités, reversée via vos paiements. Active dès qu'un fournisseur d'activités est connecté.")}
-            </Typography>
+            </span>
           </CardContent>
         </Card>
       ) : null}
 
-      {monetConfig ? (
-        <Card variant="outlined" sx={{ mb: 2 }}>
-          <CardContent sx={{ '&:last-child': { pb: 2 } }}>
-            <SectionHeading
-              icon={<Wallet size={17} strokeWidth={1.75} />}
-              title={t('upsells.orgCommission.title', 'Ma commission (conciergerie)')}
-            />
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-              {t('upsells.orgCommission.note', 'Votre part sur le reste après la commission plateforme. Le propriétaire reçoit le solde.')}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-              {t('upsells.orgCommission.platformInfo', 'Commission plateforme (fixée par la plateforme)')} : {monetConfig.upsellPlatformFeePct}%
-            </Typography>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
-              <TextField
-                type="number"
-                size="small"
-                fullWidth
-                label={t('upsells.orgCommission.upsell', 'Ma part (upsells)')}
-                value={orgUpsellPct}
-                onChange={(e) => setOrgUpsellPct(e.target.value)}
-                InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment>, inputProps: { min: 0, max: 100, step: 0.5 } }}
-              />
-            </Stack>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1.25 }}>
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={savingOrg ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
-                disabled={savingOrg}
-                onClick={saveOrgCommission}
-              >
-                {t('upsells.actions.save', 'Enregistrer')}
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
-      ) : null}
+      {/* La part conciergerie sur les upsells se regle desormais dans
+          Parametres > Paiement, avec les autres repartitions. La garder ici
+          aussi donnait deux champs pour une meme valeur, chacun affichant
+          l'ancienne tant que l'autre n'etait pas recharge. */}
+      <UiAlert variant="info">
+        <Info />
+        <AlertDescription>{t(
+          'upsells.orgCommission.movedToPayment',
+          'Votre part sur les upsells se règle dans Paramètres › Paiement, onglet « Services & activités ».',
+        )}</AlertDescription>
+      </UiAlert>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCommissionsOpen(false)}>{t('upsells.actions.close', 'Fermer')}</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCommissionsOpen(false)}>{t('upsells.actions.close', 'Fermer')}</Button>
-        </DialogActions>
       </Dialog>
 
       {/* ── Catalogue des services distribués aux canaux (liste ↔ détail) ──── */}
-      <Box className="be-home" data-accent="indigo">
+      <div className="be-home" data-accent="indigo">
         <div className="canvas" style={{ paddingTop: 8, maxWidth: 1160 }}>
           {selected ? renderDetail() : renderList()}
         </div>
-      </Box>
+      </div>
 
       {/* Éditeur d'offre */}
-      <Dialog open={edit.open} onClose={() => setEdit(emptyEdit)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {edit.id == null ? t('upsells.form.createTitle', 'Nouveau service') : t('upsells.form.editTitle', 'Modifier le service')}
-        </DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2} sx={{ mt: 0.5 }}>
-            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-              <TextField
-                select
-                label={t('upsells.fields.type', 'Catégorie')}
-                value={edit.type}
-                onChange={(e) => setEdit((s) => ({ ...s, type: e.target.value }))}
-                size="small"
-                sx={{ minWidth: 180 }}
-              >
-                {TYPES.map((id) => (
-                  <MenuItem key={id} value={id}>
-                    {typeLabel(id)}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                label={t('upsells.fields.title', 'Titre')}
-                value={edit.title}
-                onChange={(e) => setEdit((s) => ({ ...s, title: e.target.value }))}
-                size="small"
-                sx={{ flex: 1, minWidth: 200 }}
+      <Dialog open={edit.open} onOpenChange={(next) => !next && setEdit(emptyEdit)}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader className="border-b pb-2">
+            <DialogTitle>
+              {edit.id == null ? t('upsells.form.createTitle', 'Nouveau service') : t('upsells.form.editTitle', 'Modifier le service')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="-mx-4 max-h-[60vh] overflow-y-auto px-4">
+          <div className="flex flex-col gap-3 mt-[3px]">
+            <div className="flex gap-2 flex-wrap">
+              <Field className="w-auto min-w-[180px]">
+                <FieldLabel htmlFor="upsell-type">{t('upsells.fields.type', 'Catégorie')}</FieldLabel>
+                <NativeSelect
+                  id="upsell-type"
+                  className="w-full"
+                  value={edit.type}
+                  onChange={(e) => setEdit((s) => ({ ...s, type: e.target.value }))}
+                >
+                  {TYPES.map((id) => (
+                    <option key={id} value={id}>
+                      {typeLabel(id)}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </Field>
+              <Field className="w-auto flex-1 min-w-[200px]">
+                <FieldLabel htmlFor="upsell-title">{t('upsells.fields.title', 'Titre')}</FieldLabel>
+                <Input
+                  id="upsell-title"
+                  value={edit.title}
+                  onChange={(e) => setEdit((s) => ({ ...s, title: e.target.value }))}
+                />
+              </Field>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Field className="w-[140px]">
+                <FieldLabel htmlFor="upsell-price">{t('upsells.fields.price', 'Prix')}</FieldLabel>
+                <Input
+                  id="upsell-price"
+                  value={edit.price}
+                  onChange={(e) => setEdit((s) => ({ ...s, price: e.target.value }))}
+                  type="number"
+                  min={0}
+                  step="0.01"
+                />
+              </Field>
+              <Field className="w-[100px]">
+                <FieldLabel htmlFor="upsell-currency">{t('upsells.fields.currency', 'Devise')}</FieldLabel>
+                <Input
+                  id="upsell-currency"
+                  value={edit.currency}
+                  onChange={(e) => setEdit((s) => ({ ...s, currency: e.target.value.toUpperCase() }))}
+                  maxLength={3}
+                />
+              </Field>
+              <Field className="w-auto flex-1 min-w-[180px]">
+                <FieldLabel htmlFor="upsell-property">{t('upsells.fields.property', 'Propriété')}</FieldLabel>
+                <NativeSelect
+                  id="upsell-property"
+                  className="w-full"
+                  value={edit.propertyId}
+                  onChange={(e) => setEdit((s) => ({ ...s, propertyId: e.target.value }))}
+                >
+                  <option value="">{t('upsells.allProperties', 'Toutes les propriétés')}</option>
+                  {properties.map((p) => (
+                    <option key={p.id} value={String(p.id)}>
+                      {p.name}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </Field>
+            </div>
+            <Field>
+              <FieldLabel htmlFor="upsell-description">
+                {t('upsells.fields.description', 'Description (optionnel)')}
+              </FieldLabel>
+              <Textarea
+                id="upsell-description"
+                rows={2}
+                value={edit.description}
+                onChange={(e) => setEdit((s) => ({ ...s, description: e.target.value }))}
               />
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-              <TextField
-                label={t('upsells.fields.price', 'Prix')}
-                value={edit.price}
-                onChange={(e) => setEdit((s) => ({ ...s, price: e.target.value }))}
-                size="small"
-                type="number"
-                sx={{ width: 140 }}
-                inputProps={{ min: 0, step: '0.01' }}
-              />
-              <TextField
-                label={t('upsells.fields.currency', 'Devise')}
-                value={edit.currency}
-                onChange={(e) => setEdit((s) => ({ ...s, currency: e.target.value.toUpperCase() }))}
-                size="small"
-                sx={{ width: 100 }}
-                inputProps={{ maxLength: 3 }}
-              />
-              <TextField
-                select
-                label={t('upsells.fields.property', 'Propriété')}
-                value={edit.propertyId}
-                onChange={(e) => setEdit((s) => ({ ...s, propertyId: e.target.value }))}
-                size="small"
-                sx={{ flex: 1, minWidth: 180 }}
-              >
-                <MenuItem value="">{t('upsells.allProperties', 'Toutes les propriétés')}</MenuItem>
-                {properties.map((p) => (
-                  <MenuItem key={p.id} value={String(p.id)}>
-                    {p.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Box>
-            <TextField
-              label={t('upsells.fields.description', 'Description (optionnel)')}
-              value={edit.description}
-              onChange={(e) => setEdit((s) => ({ ...s, description: e.target.value }))}
-              size="small"
-              fullWidth
-              multiline
-              minRows={2}
-            />
+            </Field>
             {/* Productisation (2.10) : conditionnel + fenêtre horaire de commande. */}
-            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-              <TextField
-                label={t('upsells.fields.minNights', 'Séjour min. (nuits)')}
-                helperText={t('upsells.fields.minNightsHelp', 'Proposé si le séjour atteint ce nb de nuits. Vide = toujours.')}
-                value={edit.minNights}
-                onChange={(e) => setEdit((s) => ({ ...s, minNights: e.target.value }))}
-                size="small"
-                type="number"
-                sx={{ width: 200 }}
-                inputProps={{ min: 0, step: 1 }}
-              />
-              <TextField
-                label={t('upsells.fields.leadTimeHours', 'Délai mini avant arrivée (h)')}
-                helperText={t('upsells.fields.leadTimeHoursHelp', 'Commandable seulement si l’arrivée est ≥ X h. Vide = aucun délai.')}
-                value={edit.leadTimeHours}
-                onChange={(e) => setEdit((s) => ({ ...s, leadTimeHours: e.target.value }))}
-                size="small"
-                type="number"
-                sx={{ flex: 1, minWidth: 220 }}
-                inputProps={{ min: 0, step: 1 }}
-              />
-            </Box>
-            <TextField
-              select
-              label={t('upsells.fields.bundle', 'Offres incluses (bundle)')}
-              helperText={t('upsells.fields.bundleHelp', 'Sélectionne des offres → celle-ci devient un bundle (prix combiné, défini ci-dessus).')}
-              value={edit.bundleOfferIds}
-              onChange={(e) => {
-                const v = e.target.value as unknown as string[];
-                setEdit((s) => ({ ...s, bundleOfferIds: typeof v === 'string' ? (v as string).split(',') : v }));
-              }}
-              size="small"
-              fullWidth
-              SelectProps={{ multiple: true }}
-            >
-              {offers.flatMap((o) =>
-                o.id !== edit.id ? [<MenuItem key={o.id} value={String(o.id)}>{o.title}</MenuItem>] : [],
-              )}
-            </TextField>
-            <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>
+            <div className="flex gap-2 flex-wrap">
+              <Field className="w-[200px]">
+                <FieldLabel htmlFor="upsell-min-nights">
+                  {t('upsells.fields.minNights', 'Séjour min. (nuits)')}
+                </FieldLabel>
+                <Input
+                  id="upsell-min-nights"
+                  value={edit.minNights}
+                  onChange={(e) => setEdit((s) => ({ ...s, minNights: e.target.value }))}
+                  type="number"
+                  min={0}
+                  step={1}
+                />
+                <FieldDescription>
+                  {t('upsells.fields.minNightsHelp', 'Proposé si le séjour atteint ce nb de nuits. Vide = toujours.')}
+                </FieldDescription>
+              </Field>
+              <Field className="w-auto flex-1 min-w-[220px]">
+                <FieldLabel htmlFor="upsell-lead-time">
+                  {t('upsells.fields.leadTimeHours', 'Délai mini avant arrivée (h)')}
+                </FieldLabel>
+                <Input
+                  id="upsell-lead-time"
+                  value={edit.leadTimeHours}
+                  onChange={(e) => setEdit((s) => ({ ...s, leadTimeHours: e.target.value }))}
+                  type="number"
+                  min={0}
+                  step={1}
+                />
+                <FieldDescription>
+                  {t('upsells.fields.leadTimeHoursHelp', 'Commandable seulement si l’arrivée est ≥ X h. Vide = aucun délai.')}
+                </FieldDescription>
+              </Field>
+            </div>
+            {/* Bundle : liste a cocher rendue en place, et non un menu deroulant.
+                Un menu portalise sur document.body serait inerte au pointeur a
+                l'interieur de ce Dialog Radix, et son clic serait compris comme
+                une interaction exterieure — le dialog se refermerait. */}
+            <Field>
+              <FieldLabel>{t('upsells.fields.bundle', 'Offres incluses (bundle)')}</FieldLabel>
+              <div className="flex flex-col gap-1.5 max-h-[132px] overflow-y-auto rounded-[6px] border border-solid border-[var(--line)] p-1.5">
+                {bundleCandidates.length === 0 ? (
+                  <span className="cn-text-caption text-muted-foreground">
+                    {t('upsells.fields.bundleEmpty', 'Aucune autre offre disponible.')}
+                  </span>
+                ) : (
+                  bundleCandidates.map((o) => {
+                    const optionId = String(o.id);
+                    return (
+                      <Field key={optionId} orientation="horizontal" className="gap-1.5">
+                        <Checkbox
+                          id={`upsell-bundle-${optionId}`}
+                          checked={edit.bundleOfferIds.includes(optionId)}
+                          onCheckedChange={(checked) =>
+                            setEdit((s) => ({
+                              ...s,
+                              bundleOfferIds: checked === true
+                                ? [...s.bundleOfferIds, optionId]
+                                : s.bundleOfferIds.filter((x) => x !== optionId),
+                            }))
+                          }
+                        />
+                        <FieldLabel htmlFor={`upsell-bundle-${optionId}`} className="font-normal">
+                          {o.title}
+                        </FieldLabel>
+                      </Field>
+                    );
+                  })
+                )}
+              </div>
+              <FieldDescription>
+                {t('upsells.fields.bundleHelp', 'Sélectionne des offres → celle-ci devient un bundle (prix combiné, défini ci-dessus).')}
+              </FieldDescription>
+            </Field>
+            <div>
+              <span className="cn-text-caption text-muted-foreground block mb-1">
                 {t('upsells.fields.image', 'Image (optionnel)')}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+              </span>
+              <div className="flex items-center gap-2 flex-wrap">
                 {edit.imageUrl ? (
-                  <Box
-                    component="img"
-                    src={edit.imageUrl}
-                    alt=""
-                    sx={{ width: 72, height: 72, borderRadius: 1.5, objectFit: 'cover', display: 'block', border: '1px solid', borderColor: 'divider' }}
-                  />
+                  <img className="w-[72px] h-[72px] rounded-[12px] object-cover block border border-[var(--line)]" src={edit.imageUrl} alt="" />
                 ) : null}
-                <Button component="label" variant="outlined" size="small" startIcon={<ImagePlus size={15} strokeWidth={1.75} />}>
-                  {edit.imageUrl ? t('upsells.fields.imageChange', 'Changer') : t('upsells.fields.imageUpload', 'Choisir une image')}
-                  <input type="file" accept="image/*" hidden onChange={onImageFile} />
+                {/* asChild : le declencheur reste un <label> pour ouvrir l'input fichier masque.
+                    cursor-pointer explicite : la regle globale du kit ne vise que button/[role=button]. */}
+                <Button asChild variant="outline" size="sm" className="cursor-pointer">
+                  <label>
+                    <ImagePlus size={15} strokeWidth={1.75} />
+                    {edit.imageUrl ? t('upsells.fields.imageChange', 'Changer') : t('upsells.fields.imageUpload', 'Choisir une image')}
+                    <input type="file" accept="image/*" hidden onChange={onImageFile} />
+                  </label>
                 </Button>
                 {edit.imageUrl ? (
-                  <Button size="small" color="error" onClick={() => setEdit((s) => ({ ...s, imageUrl: '' }))}>
+                  <Button variant="destructive" size="sm" onClick={() => setEdit((s) => ({ ...s, imageUrl: '' }))}>
                     {t('upsells.fields.imageRemove', 'Retirer')}
                   </Button>
                 ) : null}
-              </Box>
-            </Box>
-            <FormControlLabel
-              control={<Switch checked={edit.active} onChange={(e) => setEdit((s) => ({ ...s, active: e.target.checked }))} />}
-              label={t('upsells.fields.active', 'Service actif (visible sur le livret)')}
-            />
-          </Stack>
+              </div>
+            </div>
+            <Field orientation="horizontal" className="gap-1.5">
+              <Switch
+                id="upsell-active"
+                checked={edit.active}
+                onCheckedChange={(checked) => setEdit((s) => ({ ...s, active: checked }))}
+              />
+              <FieldLabel htmlFor="upsell-active" className="font-normal">
+                {t('upsells.fields.active', 'Service actif (visible sur le livret)')}
+              </FieldLabel>
+            </Field>
+          </div>
+          </div>
+          <DialogFooter className="sm:justify-between">
+            {editingOffer ? (
+              <Button variant="destructive" onClick={() => { const o = editingOffer; setEdit(emptyEdit); handleDelete(o); }}>
+                <Delete size={15} strokeWidth={1.75} />
+                {t('upsells.actions.delete', 'Supprimer')}
+              </Button>
+            ) : <span />}
+            <div className="flex gap-1.5">
+              <Button variant="ghost" onClick={() => setEdit(emptyEdit)}>{t('upsells.actions.cancel', 'Annuler')}</Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
+                {t('upsells.actions.save', 'Enregistrer')}
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ justifyContent: 'space-between' }}>
-          {editingOffer ? (
-            <Button color="error" startIcon={<Delete size={15} strokeWidth={1.75} />} onClick={() => { const o = editingOffer; setEdit(emptyEdit); handleDelete(o); }}>
-              {t('upsells.actions.delete', 'Supprimer')}
-            </Button>
-          ) : <span />}
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button onClick={() => setEdit(emptyEdit)}>{t('upsells.actions.cancel', 'Annuler')}</Button>
-            <Button
-              variant="contained"
-              startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
-              onClick={handleSave}
-              disabled={saving}
-            >
-              {t('upsells.actions.save', 'Enregistrer')}
-            </Button>
-          </Box>
-        </DialogActions>
       </Dialog>
 
       {/* Ventes */}
-      <Dialog open={ordersOpen} onClose={() => setOrdersOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('upsells.orders.title', 'Ventes de services')}</DialogTitle>
-        <DialogContent dividers>
+      <Dialog open={ordersOpen} onOpenChange={(next) => !next && setOrdersOpen(false)}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader className="border-b pb-2">
+            <DialogTitle>{t('upsells.orders.title', 'Ventes de services')}</DialogTitle>
+          </DialogHeader>
+          <div className="-mx-4 max-h-[60vh] overflow-y-auto px-4">
           {ordersLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-              <CircularProgress />
-            </Box>
+            <div className="flex justify-center py-4">
+              <Spinner className="size-10" />
+            </div>
           ) : orders.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
+            <p className="cn-text-body2 text-muted-foreground">
               {t('upsells.orders.empty', 'Aucune vente pour le moment.')}
-            </Typography>
+            </p>
           ) : (
-            <Stack spacing={1.25}>
+            <div className="flex flex-col gap-[7.5px]">
               {orders.map((order: UpsellOrder) => (
-                <Box key={order.id} sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 1 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                <div className="border-b border-[var(--line)] pb-1.5" key={order.id}>
+                  <div className="flex justify-between items-center gap-1.5">
+                    <p className="cn-text-body2 font-semibold">
                       {order.title}
-                    </Typography>
-                    <Chip
-                      size="small"
-                      label={orderStatusLabel(order.status)}
-                      sx={softChipSx(semanticToHex(order.status === 'PAID' ? 'success' : 'default'))}
-                    />
-                  </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.25 }}>
-                    <Typography variant="caption" color="text.secondary">
+                    </p>
+                    <StatusChip color={semanticToHex(order.status === 'PAID' ? 'success' : 'default')} label={orderStatusLabel(order.status)} />
+                  </div>
+                  <div className="flex justify-between mt-0.5">
+                    <span className="cn-text-caption text-muted-foreground">
                       {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}
                       {order.guestEmail ? ` · ${order.guestEmail}` : ''}
-                    </Typography>
-                    <Typography variant="caption" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    </span>
+                    <span className="cn-text-caption tabular-nums">
                       <Money value={order.amount} from={order.currency} />
                       {order.hostAmount != null ? (
                         <>
@@ -1006,16 +1008,17 @@ const UpsellsAdmin: React.FC = () => {
                           <Money value={order.hostAmount} from={order.currency} />
                         </>
                       ) : null}
-                    </Typography>
-                  </Box>
-                </Box>
+                    </span>
+                  </div>
+                </div>
               ))}
-            </Stack>
+            </div>
           )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOrdersOpen(false)}>{t('upsells.actions.close', 'Fermer')}</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOrdersOpen(false)}>{t('upsells.actions.close', 'Fermer')}</Button>
-        </DialogActions>
       </Dialog>
 
       <ConfirmationModal
@@ -1034,18 +1037,7 @@ const UpsellsAdmin: React.FC = () => {
         severity="error"
         loading={deleting}
       />
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3500}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} variant="filled">
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+    </div>
   );
 };
 

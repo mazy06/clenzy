@@ -1,7 +1,19 @@
 import React from 'react';
-import { Avatar, Box, Paper, Tooltip, Typography } from '@mui/material';
 import { Info } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+import { cn } from '../../../utils/cn';
 
 export type SettingsSectionAccent = 'primary' | 'accent' | 'info' | 'warm' | 'danger' | 'neutral';
 
@@ -33,10 +45,8 @@ interface SettingsSectionProps {
   children: React.ReactNode;
   /**
    * Alternative a l'icone : affiche une photo de profil en haut a gauche de la
-   * section. Si `src` est absent ou que l'image fail a charger, MUI Avatar
-   * fallback automatiquement sur `initials` (puis sur `icon` si initials vides).
-   * Utile pour la section "Mon compte" qui doit montrer la photo de l'utilisateur
-   * connecte plutot qu'une icone generique.
+   * section. Si `src` est absent ou que l'image echoue a charger, le fallback
+   * prend le relais (`initials`, puis `icon` si les initiales sont vides).
    */
   avatar?: {
     src?: string;
@@ -45,6 +55,15 @@ interface SettingsSectionProps {
   };
 }
 
+/**
+ * Carte de section des Parametres (kit Baitly UI).
+ *
+ * Toutes les sections de tous les onglets passent par ici : c'est le seul
+ * endroit ou se decide leur allure. La pastille d'accent reste teintee par
+ * `color-mix` plutot que par une classe, parce que la teinte est une DONNEE
+ * (`accent`) et non un etat — une table de classes Tailwind par accent serait
+ * a re-synchroniser a chaque nouvelle couleur.
+ */
 const SettingsSection: React.FC<SettingsSectionProps> = ({
   title,
   icon: Icon,
@@ -56,142 +75,78 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
   avatar,
 }) => {
   const color = ACCENT_HEX[accent];
+  const badgeStyle = {
+    backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
+    color,
+    borderColor: `color-mix(in srgb, ${color} 20%, transparent)`,
+  };
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        height: '100%',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid',
-        borderColor: 'divider',
-        boxShadow: 'none',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        transition: 'border-color 200ms cubic-bezier(0.16, 1, 0.3, 1)',
-        '&:hover': {
-          borderColor: `color-mix(in srgb, ${color} 40%, transparent)`,
-        },
-      }}
+    <Card
+      className={cn(
+        'h-full gap-0 overflow-hidden py-0 transition-colors duration-200',
+        'hover:border-[color-mix(in_srgb,var(--section-accent)_40%,transparent)]',
+      )}
+      style={{ '--section-accent': color } as React.CSSProperties}
     >
-      <Box
-        sx={{
-          px: 2,
-          py: 1.5,
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          gap: 1,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0, flex: 1 }}>
-          {avatar ? (
-            <Avatar
-              src={avatar.src}
-              alt={avatar.alt ?? title}
-              sx={{
-                width: 32,
-                height: 32,
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                bgcolor: `color-mix(in srgb, ${color} 8%, transparent)`,
-                color,
-                border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-                flexShrink: 0,
-              }}
-            >
+      {/* `CardHeader` est une grille prevue pour titre / description / action.
+          Ici une pastille precede le titre : on repasse en flex, sinon le media
+          occupe sa propre rangee et l'en-tete se lit sur deux lignes. */}
+      <CardHeader className="flex items-center gap-2.5 border-b px-3 py-2.5 [.border-b]:pb-2.5">
+        {avatar ? (
+          <Avatar className="size-8 shrink-0 rounded-lg border text-[0.75rem] font-semibold" style={badgeStyle}>
+            <AvatarImage src={avatar.src} alt={avatar.alt ?? title} />
+            <AvatarFallback className="rounded-lg bg-transparent text-inherit">
               {avatar.initials || <Icon size={16} strokeWidth={1.75} />}
-            </Avatar>
-          ) : (
-            <Box
-              sx={{
-                width: 32,
-                height: 32,
-                borderRadius: '8px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: `color-mix(in srgb, ${color} 8%, transparent)`,
-                color,
-                border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-                flexShrink: 0,
-              }}
-              aria-hidden="true"
-            >
-              <Icon size={16} strokeWidth={1.75} />
-            </Box>
-          )}
-          <Box sx={{ minWidth: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, minWidth: 0 }}>
-              <Typography
-                fontWeight={600}
-                sx={{
-                  fontSize: '0.9rem',
-                  lineHeight: 1.25,
-                  color: 'text.primary',
-                  letterSpacing: '-0.005em',
-                }}
-              >
-                {title}
-              </Typography>
-              {help && (
-                <Tooltip
-                  title={help}
-                  placement="top"
-                  componentsProps={{
-                    tooltip: { sx: { maxWidth: 320, fontSize: '0.72rem', lineHeight: 1.45 } },
-                  }}
-                >
-                  {/* tabIndex : le tooltip s'ouvre aussi au clavier, sinon
-                      l'explication est inaccessible sans souris. */}
-                  <Box
-                    component="span"
+            </AvatarFallback>
+          </Avatar>
+        ) : (
+          <span
+            aria-hidden
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg border"
+            style={badgeStyle}
+          >
+            <Icon size={16} strokeWidth={1.75} />
+          </span>
+        )}
+
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <div className="flex min-w-0 items-center gap-1">
+            <h3 className="m-0 truncate text-[0.9rem] font-semibold leading-[1.25] tracking-[-0.005em] text-foreground">
+              {title}
+            </h3>
+            {help && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {/* Element focusable : sans lui l'explication reste inaccessible
+                      au clavier, le survol etant le seul declencheur. */}
+                  <span
                     tabIndex={0}
                     role="note"
                     aria-label={help}
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      flexShrink: 0,
-                      color: 'text.disabled',
-                      cursor: 'help',
-                      borderRadius: '4px',
-                      transition: 'color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-                      '&:hover': { color: 'text.secondary' },
-                      '&:focus-visible': {
-                        outline: '2px solid var(--accent)',
-                        outlineOffset: 2,
-                        color: 'text.secondary',
-                      },
-                    }}
+                    className={cn(
+                      'inline-flex shrink-0 cursor-help items-center rounded-sm text-muted-foreground/70',
+                      'transition-colors duration-150 hover:text-muted-foreground',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                    )}
                   >
                     <Info size={13} strokeWidth={2} />
-                  </Box>
-                </Tooltip>
-              )}
-            </Box>
-            {description && (
-              <Typography
-                sx={{
-                  fontSize: '0.72rem',
-                  color: 'text.secondary',
-                  lineHeight: 1.35,
-                  mt: 0.125,
-                }}
-              >
-                {description}
-              </Typography>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-80">{help}</TooltipContent>
+              </Tooltip>
             )}
-          </Box>
-        </Box>
-        {action && <Box sx={{ flexShrink: 0 }}>{action}</Box>}
-      </Box>
+          </div>
+          {description && (
+            <p className="m-0 text-[0.72rem] leading-[1.35] text-muted-foreground">{description}</p>
+          )}
+        </div>
 
-      <Box sx={{ flex: 1, p: 2 }}>{children}</Box>
-    </Paper>
+        {action && <CardAction className="self-center">{action}</CardAction>}
+      </CardHeader>
+
+      <CardContent className="flex-1 px-3 py-3">{children}</CardContent>
+    </Card>
   );
 };
 

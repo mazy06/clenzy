@@ -1,12 +1,12 @@
 import React from 'react';
 import {
-  Box,
-  Drawer,
-  Typography,
-  IconButton,
   Button,
-  Divider,
-} from '@mui/material';
+  Separator,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+} from '../../components/ui';
 import {
   Close,
   Add,
@@ -52,328 +52,168 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
   const isEmpty = cartItems.length === 0;
 
   return (
-    <Drawer
-      anchor="right"
-      open={open}
-      onClose={onClose}
-      PaperProps={{
-        sx: { width: { xs: '100%', sm: 420 }, maxWidth: '100vw' },
-      }}
-    >
-      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <Sheet open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      {/* Le panneau porte deja son propre bouton Fermer dans l'en-tete. */}
+      <SheetContent side="right" showCloseButton={false} className="w-full min-[600px]:w-[420px] max-w-[100vw] p-0 gap-0">
+      <div className="flex flex-col h-full">
         {/* Header */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            px: 2.5,
-            py: 2,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="h6" fontWeight={600} sx={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', letterSpacing: '-0.01em', color: 'var(--ink)' }}>
+        <div className="flex items-center justify-between px-3.5 py-3 border-b border-solid border-[var(--line)]">
+          <div className="flex items-center gap-1.5">
+            <SheetTitle className="cn-text-h6 font-semibold font-[family-name:var(--font-display)] text-[1.05rem] tracking-[-0.01em] text-[var(--ink)]">
               {t('shop.cart')}
-            </Typography>
+            </SheetTitle>
+            <SheetDescription className="sr-only">{t('shop.cart')}</SheetDescription>
             {totalItems > 0 && (
-              <Box
-                sx={{
-                  fontSize: '0.6875rem',
-                  fontWeight: 700,
-                  px: 0.875,
-                  py: 0.125,
-                  borderRadius: '5px',
-                  backgroundColor: 'var(--accent-soft)',
-                  color: 'var(--accent)',
-                  fontVariantNumeric: 'tabular-nums',
-                  letterSpacing: '0.02em',
-                }}
-              >
+              <div className="text-[0.6875rem] font-bold px-1.5 py-0 rounded-[5px] bg-[var(--accent-soft)] text-[var(--accent)] tabular-nums tracking-[0.02em]">
                 {totalItems}
-              </Box>
+              </div>
             )}
-          </Box>
-          <IconButton
+          </div>
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={onClose}
-            size="small"
             aria-label="Fermer"
-            sx={{
-              color: 'text.secondary',
-              '&:hover': { color: 'text.primary' },
-            }}
+            className="text-[var(--muted)] hover:text-[var(--ink)]"
           >
             <Close size={18} strokeWidth={1.75} />
-          </IconButton>
-        </Box>
+          </Button>
+        </div>
 
         {/* Cart items */}
-        <Box sx={{ flex: 1, overflowY: 'auto', px: 2.5, py: 2 }}>
+        <div className="flex-1 overflow-y-auto px-3.5 py-3">
           {isEmpty ? (
-            <Box sx={{ textAlign: 'center', py: 6 }}>
-              <Box
-                sx={{
-                  width: 64,
-                  height: 64,
-                  mx: 'auto',
-                  mb: 2,
-                  borderRadius: '14px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: 'var(--accent-soft)',
-                  color: 'var(--accent)',
-                }}
-              >
+            <div className="text-center py-9">
+              <div className="w-[64px] h-[64px] mx-auto mb-3 rounded-[14px] inline-flex items-center justify-center bg-[var(--accent-soft)] text-[var(--accent)]">
                 <ShoppingCartOutlined size={28} strokeWidth={1.5} />
-              </Box>
-              <Typography fontWeight={600} sx={{ fontSize: '0.95rem', mb: 0.5 }}>
+              </div>
+              <p className="cn-text-body1 font-semibold text-[0.95rem] mb-0.5">
                 {t('shop.cartEmpty')}
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: '0.78rem',
-                  color: 'text.secondary',
-                  lineHeight: 1.5,
-                  maxWidth: 240,
-                  mx: 'auto',
-                }}
-              >
+              </p>
+              <p className="cn-text-body1 text-[0.78rem] text-muted-foreground leading-[1.5] max-w-[240px] mx-auto">
                 {t('shop.cartEmptyDesc')}
-              </Typography>
-            </Box>
+              </p>
+            </div>
           ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+            <div className="flex flex-col gap-2">
               {cartItems.map(({ product, quantity }) => (
-                <Box
+                <div
                   key={product.id}
-                  sx={{
-                    display: 'flex',
-                    gap: 1.25,
-                    p: 1,
-                    borderRadius: '10px',
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    transition: 'border-color 0.18s cubic-bezier(.16,1,.3,1)',
-                    '&:hover': { borderColor: 'var(--line-2)' },
-                  }}
+                  className="flex gap-[7.5px] p-1.5 rounded-[10px] border border-solid border-[var(--line)] hover:border-[var(--line-2)]"
+                  style={{ transition: 'border-color 0.18s cubic-bezier(.16,1,.3,1)' }}
                 >
                   {/* Thumbnail */}
-                  <Box
-                    sx={{
-                      width: 64,
-                      height: 64,
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      flexShrink: 0,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                    }}
-                  >
+                  <div className="w-[64px] h-[64px] rounded-[8px] overflow-hidden shrink-0 border border-[var(--line)]">
                     <ProductHero product={product} height={62} />
-                  </Box>
+                  </div>
 
                   {/* Info + controls */}
-                  <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.5 }}>
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography
-                          fontWeight={600}
-                          sx={{
-                            fontSize: '0.82rem',
-                            lineHeight: 1.25,
-                            color: 'text.primary',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                          title={product.name}
-                        >
+                  <div className="flex-1 min-w-0 flex flex-col">
+                    <div className="flex items-start gap-0.5">
+                      <div className="flex-1 min-w-0">
+                        <p className="cn-text-body1 font-semibold text-[0.82rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={product.name}>
                           {product.name}
-                        </Typography>
-                        <Typography
-                          sx={{
-                            fontSize: '0.6875rem',
-                            color: 'text.disabled',
-                            letterSpacing: '0.04em',
-                            fontVariantNumeric: 'tabular-nums',
-                            textTransform: 'uppercase',
-                          }}
-                        >
+                        </p>
+                        <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60 tracking-[0.04em] tabular-nums uppercase">
                           {product.sku}
-                        </Typography>
-                      </Box>
-                      <IconButton
-                        size="small"
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
                         onClick={() => onRemoveItem(product.id)}
                         aria-label="Retirer du panier"
-                        sx={{
-                          color: 'text.disabled',
-                          p: 0.25,
-                          '&:hover': { color: 'var(--err)', backgroundColor: 'var(--err-soft)' },
-                        }}
+                        className="text-[var(--faint)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
                       >
                         <Delete size={14} strokeWidth={1.75} />
-                      </IconButton>
-                    </Box>
+                      </Button>
+                    </div>
 
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        mt: 'auto',
-                        pt: 0.5,
-                      }}
-                    >
+                    <div className="flex items-center justify-between mt-auto pt-0.5">
                       {/* Quantity controls */}
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <IconButton
-                          size="small"
+                      <div className="flex items-center gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
                           onClick={() => onUpdateQuantity(product.id, -1)}
                           aria-label="Diminuer"
-                          sx={{
-                            width: 24,
-                            height: 24,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            borderRadius: '6px',
-                            color: 'text.primary',
-                            '&:hover': { borderColor: 'var(--faint)', backgroundColor: 'var(--hover)' },
-                          }}
+                          className="size-6 rounded-[6px] border border-solid border-[var(--line)] text-[var(--ink)] hover:border-[var(--faint)] hover:bg-[var(--hover)]"
                         >
                           <Remove size={12} strokeWidth={2} />
-                        </IconButton>
-                        <Typography
-                          fontWeight={700}
-                          sx={{
-                            minWidth: 22,
-                            textAlign: 'center',
-                            fontSize: '0.78rem',
-                            color: 'text.primary',
-                            fontVariantNumeric: 'tabular-nums',
-                          }}
-                        >
+                        </Button>
+                        <p className="cn-text-body1 font-bold min-w-[22px] text-center text-[0.78rem] text-foreground tabular-nums">
                           {quantity}
-                        </Typography>
-                        <IconButton
-                          size="small"
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
                           onClick={() => onUpdateQuantity(product.id, 1)}
                           aria-label="Augmenter"
-                          sx={{
-                            width: 24,
-                            height: 24,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            borderRadius: '6px',
-                            color: 'text.primary',
-                            '&:hover': { borderColor: 'var(--faint)', backgroundColor: 'var(--hover)' },
-                          }}
+                          className="size-6 rounded-[6px] border border-solid border-[var(--line)] text-[var(--ink)] hover:border-[var(--faint)] hover:bg-[var(--hover)]"
                         >
                           <Add size={12} strokeWidth={2} />
-                        </IconButton>
-                      </Box>
+                        </Button>
+                      </div>
 
                       {/* Line total */}
-                      <Typography
-                        fontWeight={700}
-                        sx={{
-                          fontSize: '0.85rem',
-                          color: 'text.primary',
-                          fontVariantNumeric: 'tabular-nums',
-                          letterSpacing: '-0.01em',
-                        }}
-                      >
+                      <p className="cn-text-body1 font-bold text-[0.85rem] text-foreground tabular-nums tracking-[-0.01em]">
                         {formatPrice(product.price * quantity)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Box>
+                      </p>
+                    </div>
+                  </div>
+                </div>
               ))}
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
 
         {/* Footer */}
         {!isEmpty && (
-          <Box
-            sx={{
-              borderTop: '1px solid',
-              borderColor: 'divider',
-              px: 2.5,
-              py: 2,
-              backgroundColor: 'background.paper',
-            }}
-          >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-              <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
+          <div className="border-t border-[var(--line)] px-3.5 py-3 bg-[var(--card)]">
+            <div className="flex justify-between mb-0.5">
+              <p className="cn-text-body1 text-[0.8rem] text-muted-foreground">
                 {t('shop.subtotal')}
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  color: 'text.primary',
-                  fontVariantNumeric: 'tabular-nums',
-                }}
-              >
+              </p>
+              <p className="cn-text-body1 text-[0.85rem] font-semibold text-foreground tabular-nums">
                 {formatPrice(subtotal)}
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.25 }}>
-              <Box sx={{ color: 'var(--ok)', display: 'inline-flex' }}>
+            <div className="flex items-center gap-0.5 mb-2">
+              <div className="text-[var(--ok)] inline-flex">
                 <CheckCircleOutline size={12} strokeWidth={2} />
-              </Box>
-              <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+              </div>
+              <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">
                 {t('shop.shipping')}
-              </Typography>
-            </Box>
-            <Typography
-              sx={{
-                fontSize: '0.66rem',
-                color: 'text.disabled',
-                display: 'block',
-                mb: 1.5,
-                ml: 2.25,
-              }}
-            >
+              </p>
+            </div>
+            <p className="cn-text-body1 text-[0.66rem] text-muted-foreground opacity-60 block mb-2 ms-3.5">
               {t('shop.shippingIntl')}
-            </Typography>
+            </p>
 
-            <Divider sx={{ mb: 1.25, borderColor: 'divider' }} />
+            <Separator className="mb-[7.5px]" />
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 2 }}>
-              <Typography fontWeight={700} sx={{ fontSize: '0.95rem' }}>
+            <div className="flex justify-between items-baseline mb-3">
+              <p className="cn-text-body1 font-bold text-[0.95rem]">
                 {t('shop.total')}
-              </Typography>
-              <Typography
-                fontWeight={600}
-                sx={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: '1.15rem',
-                  color: 'var(--ink)',
-                  fontVariantNumeric: 'tabular-nums',
-                  letterSpacing: '-0.01em',
-                }}
-              >
+              </p>
+              <p className="cn-text-body1 font-semibold font-[family-name:var(--font-display)] text-[1.15rem] text-[var(--ink)] tabular-nums tracking-[-0.01em]">
                 {formatPrice(subtotal)}
-              </Typography>
-            </Box>
+              </p>
+            </div>
 
             <Button
-              variant="contained"
-              fullWidth
-              size="large"
+              className="w-full shrink"
+              size="lg"
               onClick={onCheckout}
             >
               {t('shop.checkout')}
             </Button>
-          </Box>
+          </div>
         )}
-      </Box>
-    </Drawer>
+      </div>
+      </SheetContent>
+    </Sheet>
   );
 };
 

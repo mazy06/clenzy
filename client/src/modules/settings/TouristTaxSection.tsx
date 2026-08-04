@@ -1,21 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  IconButton,
-  TextField,
-  Alert,
-  CircularProgress,
-  Tooltip,
-} from '@mui/material';
+import { Badge } from '../../components/ui';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X, Info } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { Card, Field, FieldLabel, Input } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import StatusChip from '../../components/StatusChip';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Gavel, Add, Edit, Delete, Download, Receipt } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -27,6 +18,7 @@ import {
   type TouristTaxReport,
 } from '../../services/api/touristTaxApi';
 import TouristTaxBaremeDialog from './TouristTaxBaremeDialog';
+import { taxFilingsApi, type TaxFiling } from '../../services/api/taxFilingsApi';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -159,92 +151,92 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
   };
 
   return (
-    <Box sx={{ pt: 2 }}>
+    <div className="pt-3">
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ─── Section barèmes ─────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}>
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <span className="inline-flex text-primary">
           <Gavel size={20} strokeWidth={1.75} />
-        </Box>
-        <Typography variant="subtitle1" fontWeight={600}>
+        </span>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {t('touristTax.baremes.title', 'Barèmes de taxe de séjour')}
-        </Typography>
-        <Box sx={{ flex: 1 }} />
+        </h6>
+        <div className="flex-1" />
         {canEdit && (
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<Add size={16} strokeWidth={1.75} />}
+          <BuiButton
+            size="sm"
+            variant="outline"
             onClick={() => {
               setEditing(null);
               setDialogOpen(true);
             }}
           >
+            <Add strokeWidth={1.75} />
             {t('touristTax.baremes.add', 'Ajouter un barème')}
-          </Button>
+          </BuiButton>
         )}
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t(
           'touristTax.baremes.subtitle',
           'Saisis tes barèmes communaux : un barème par défaut pour l’organisation, et des barèmes spécifiques par logement si besoin.'
         )}
-      </Typography>
+      </p>
 
       {configsQuery.isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={24} />
-        </Box>
+        <div className="flex justify-center py-6">
+          <Spinner className="size-6" />
+        </div>
       ) : (configsQuery.data ?? []).length === 0 ? (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          {t(
+        <BuiAlert variant="info" className="mb-4">
+          <Info />
+          <AlertDescription>{t(
             'touristTax.baremes.empty',
             'Aucun barème configuré : la taxe de séjour n’est calculée pour aucune réservation.'
-          )}
-        </Alert>
+          )}</AlertDescription>
+        </BuiAlert>
       ) : (
-        <Paper variant="outlined" sx={{ mb: 3, overflowX: 'auto' }}>
-          <Table size="small">
-            <TableHead>
+        <Card className="gap-0 py-0 mb-4 overflow-x-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('touristTax.baremes.property', 'Logement')}</TableCell>
-                <TableCell>{t('touristTax.baremes.commune', 'Commune')}</TableCell>
-                <TableCell>{t('touristTax.baremes.mode', 'Mode')}</TableCell>
-                <TableCell>{t('touristTax.baremes.rate', 'Tarif')}</TableCell>
-                <TableCell>{t('touristTax.baremes.surcharges', 'Surtaxes')}</TableCell>
-                <TableCell>{t('touristTax.baremes.status', 'Statut')}</TableCell>
-                {canEdit && <TableCell align="right" />}
+                <TableHead>{t('touristTax.baremes.property', 'Logement')}</TableHead>
+                <TableHead>{t('touristTax.baremes.commune', 'Commune')}</TableHead>
+                <TableHead>{t('touristTax.baremes.mode', 'Mode')}</TableHead>
+                <TableHead>{t('touristTax.baremes.rate', 'Tarif')}</TableHead>
+                <TableHead>{t('touristTax.baremes.surcharges', 'Surtaxes')}</TableHead>
+                <TableHead>{t('touristTax.baremes.status', 'Statut')}</TableHead>
+                {canEdit && <TableHead className="text-end" />}
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {(configsQuery.data ?? []).map((config) => (
-                <TableRow key={config.id} hover>
+                <TableRow key={config.id}>
                   <TableCell>
                     {config.propertyId == null ? (
-                      <Chip
-                        size="small"
-                        variant="outlined"
-                        color="primary"
-                        label={t('touristTax.baremes.orgDefault', 'Défaut organisation')}
-                      />
+                      <Badge variant="default">{t('touristTax.baremes.orgDefault', 'Défaut organisation')}</Badge>
                     ) : (
                       propertyNames.get(config.propertyId) ?? `#${config.propertyId}`
                     )}
                   </TableCell>
                   <TableCell>{config.communeName}</TableCell>
                   <TableCell>{modeLabel(config)}</TableCell>
-                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{rateSummary(config)}</TableCell>
-                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{surchargeSummary(config)}</TableCell>
+                  <TableCell className="tabular-nums">{rateSummary(config)}</TableCell>
+                  <TableCell className="tabular-nums">{surchargeSummary(config)}</TableCell>
                   <TableCell>
-                    <Chip
-                      size="small"
-                      color={config.enabled ? 'success' : 'default'}
-                      variant="outlined"
+                    <StatusChip
+                      tone={config.enabled ? 'ok' : 'neutral'}
                       label={
                         config.enabled
                           ? t('touristTax.baremes.active', 'Actif')
@@ -253,26 +245,45 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
                     />
                   </TableCell>
                   {canEdit && (
-                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                      <Tooltip title={t('common.edit', 'Modifier')}>
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            setEditing(config);
-                            setDialogOpen(true);
-                          }}
-                        >
-                          <Edit size={16} strokeWidth={1.75} />
-                        </IconButton>
+                    <TableCell className="text-end whitespace-nowrap">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* Le span porte la ref que Radix pose sur son enfant :
+                              Button est une fonction, il n'en transmet pas. */}
+                          <span className="inline-flex">
+                            <BuiButton
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={t('common.edit', 'Modifier')}
+                              onClick={() => {
+                                setEditing(config);
+                                setDialogOpen(true);
+                              }}
+                            >
+                              <Edit size={16} strokeWidth={1.75} />
+                            </BuiButton>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('common.edit', 'Modifier')}</TooltipContent>
                       </Tooltip>
-                      <Tooltip title={t('common.delete', 'Supprimer')}>
-                        <IconButton
-                          size="small"
-                          onClick={() => deleteMutation.mutate(config.id)}
-                          disabled={deleteMutation.isPending}
-                        >
-                          <Delete size={16} strokeWidth={1.75} />
-                        </IconButton>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <BuiButton
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={t('common.delete', 'Supprimer')}
+                              onClick={() => deleteMutation.mutate(config.id)}
+                              disabled={deleteMutation.isPending}
+                              className="hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+                            >
+                              <Delete size={16} strokeWidth={1.75} />
+                            </BuiButton>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('common.delete', 'Supprimer')}</TooltipContent>
                       </Tooltip>
                     </TableCell>
                   )}
@@ -280,118 +291,126 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
               ))}
             </TableBody>
           </Table>
-        </Paper>
+        </Card>
       )}
 
+      {/* ─── Registre des déclarations (vague M-A) ─────────────────────── */}
+      <TaxFilingsRegistry canEdit={canEdit} />
+
       {/* ─── Section rapport / export ─────────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}>
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <span className="inline-flex text-primary">
           <Receipt size={20} strokeWidth={1.75} />
-        </Box>
-        <Typography variant="subtitle1" fontWeight={600}>
+        </span>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {t('touristTax.report.title', 'Rapport par période')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t(
           'touristTax.report.subtitle',
           'Taxe de séjour des réservations confirmées dont le départ tombe dans la période (pour ta déclaration).'
         )}
-      </Typography>
+      </p>
 
-      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', mb: 2 }}>
-        <TextField
-          size="small"
-          type="date"
-          label={t('touristTax.report.from', 'Du')}
-          value={from}
-          onChange={(e) => setFrom(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-        />
-        <TextField
-          size="small"
-          type="date"
-          label={t('touristTax.report.to', 'Au')}
-          value={to}
-          onChange={(e) => setTo(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-        />
-        <Button size="small" variant="contained" onClick={loadReport} disabled={!validRange || reportLoading}>
-          {reportLoading ? <CircularProgress size={16} color="inherit" /> : t('touristTax.report.generate', 'Générer')}
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<Download size={16} strokeWidth={1.75} />}
+      <div className="flex gap-2 items-center flex-wrap mb-3">
+        {/* Largeur bornee : le Field du kit est w-full, il pousserait les boutons
+            de la rangee a la ligne suivante. */}
+        <Field className="w-[160px]">
+          <FieldLabel htmlFor="tourist-tax-report-from">{t('touristTax.report.from', 'Du')}</FieldLabel>
+          <Input
+            id="tourist-tax-report-from"
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+          />
+        </Field>
+        <Field className="w-[160px]">
+          <FieldLabel htmlFor="tourist-tax-report-to">{t('touristTax.report.to', 'Au')}</FieldLabel>
+          <Input
+            id="tourist-tax-report-to"
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+          />
+        </Field>
+        <BuiButton size="sm" onClick={loadReport} disabled={!validRange || reportLoading}>
+          {reportLoading ? <Spinner className="size-4" /> : t('touristTax.report.generate', 'Générer')}
+        </BuiButton>
+        <BuiButton
+          size="sm"
+          variant="outline"
           onClick={exportCsv}
           disabled={!validRange || exporting}
         >
+          <Download strokeWidth={1.75} />
           {t('touristTax.report.exportCsv', 'Exporter CSV')}
-        </Button>
-      </Box>
+        </BuiButton>
+      </div>
 
       {report && (
         <>
           {report.missingConfigCount > 0 && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              {t(
+            <BuiAlert variant="warning" className="mb-3">
+              <TriangleAlert />
+              <AlertDescription>{t(
                 'touristTax.report.missingConfigs',
                 'Certaines réservations de la période n’ont aucun barème applicable et ne sont pas comptées :'
-              )}{' '}
-              {report.missingConfigCount}
-            </Alert>
+              )}{' '}{report.missingConfigCount}</AlertDescription>
+            </BuiAlert>
           )}
           {report.lines.length === 0 ? (
-            <Alert severity="info">
-              {t('touristTax.report.empty', 'Aucune réservation taxable sur la période.')}
-            </Alert>
+            <BuiAlert variant="info">
+              <Info />
+              <AlertDescription>{t('touristTax.report.empty', 'Aucune réservation taxable sur la période.')}</AlertDescription>
+            </BuiAlert>
           ) : (
-            <Paper variant="outlined" sx={{ overflowX: 'auto' }}>
-              <Table size="small">
-                <TableHead>
+            <Card className="gap-0 py-0 overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell>{t('touristTax.report.property', 'Logement')}</TableCell>
-                    <TableCell>{t('touristTax.report.guest', 'Voyageur')}</TableCell>
-                    <TableCell>{t('touristTax.report.checkOut', 'Départ')}</TableCell>
-                    <TableCell align="right">{t('touristTax.report.nights', 'Nuits')}</TableCell>
-                    <TableCell align="right">{t('touristTax.report.persons', 'Pers.')}</TableCell>
-                    <TableCell>{t('touristTax.report.commune', 'Commune')}</TableCell>
-                    <TableCell align="right">{t('touristTax.report.tax', 'Taxe')}</TableCell>
+                    <TableHead>{t('touristTax.report.property', 'Logement')}</TableHead>
+                    <TableHead>{t('touristTax.report.guest', 'Voyageur')}</TableHead>
+                    <TableHead>{t('touristTax.report.checkOut', 'Départ')}</TableHead>
+                    <TableHead className="text-end">{t('touristTax.report.nights', 'Nuits')}</TableHead>
+                    <TableHead className="text-end">{t('touristTax.report.persons', 'Pers.')}</TableHead>
+                    <TableHead>{t('touristTax.report.commune', 'Commune')}</TableHead>
+                    <TableHead className="text-end">{t('touristTax.report.tax', 'Taxe')}</TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {report.lines.map((line) => (
-                    <TableRow key={line.reservationId} hover>
+                    <TableRow key={line.reservationId}>
                       <TableCell>{line.propertyName ?? `#${line.propertyId ?? '—'}`}</TableCell>
                       <TableCell>{line.guestName ?? '—'}</TableCell>
-                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{line.checkOut}</TableCell>
-                      <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                      <TableCell className="tabular-nums">{line.checkOut}</TableCell>
+                      <TableCell className="text-end tabular-nums">
                         {line.nights}
                       </TableCell>
-                      <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                      <TableCell className="text-end tabular-nums">
                         {line.taxablePersons}
                       </TableCell>
                       <TableCell>{line.communeName}</TableCell>
-                      <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                      <TableCell className="text-end tabular-nums">
                         {num(line.taxAmount)} {line.currency}
                       </TableCell>
                     </TableRow>
                   ))}
                   <TableRow>
                     <TableCell colSpan={6}>
-                      <Typography variant="body2" fontWeight={600}>
+                      <p className="cn-text-body2 font-semibold">
                         {t('touristTax.report.total', 'Total collecté')}
-                      </Typography>
+                      </p>
                     </TableCell>
-                    <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                      <Typography variant="body2" fontWeight={600}>
+                    <TableCell className="text-end tabular-nums">
+                      <p className="cn-text-body2 font-semibold">
                         {num(report.totalTax)} EUR
-                      </Typography>
+                      </p>
                     </TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
-            </Paper>
+            </Card>
           )}
         </>
       )}
@@ -404,6 +423,137 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
         onClose={() => setDialogOpen(false)}
         onSave={(request) => saveMutation.mutate(request)}
       />
-    </Box>
+    </div>
+  );
+}
+
+/**
+ * Registre des déclarations trimestrielles (vague M-A des modèles métier) : les
+ * entrées DUE sont créées par le scan trimestriel de la constellation — ici on
+ * trace le dépôt (FILED) puis le paiement (PAID), avec référence facultative.
+ * Registre vide = rien à afficher (aucun trimestre clôturé taxable).
+ */
+function TaxFilingsRegistry({ canEdit }: { canEdit: boolean }) {
+  const { t } = useTranslation();
+  const [filings, setFilings] = useState<TaxFiling[] | null>(null);
+  const [pendingRef, setPendingRef] = useState<{ id: number; action: 'filed' | 'paid'; reference: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const reload = React.useCallback(() => {
+    taxFilingsApi.list().then(setFilings).catch(() => setFilings([]));
+  }, []);
+  React.useEffect(() => { reload(); }, [reload]);
+
+  if (!filings || filings.length === 0) {
+    return null;
+  }
+
+  const confirm = async () => {
+    if (!pendingRef) return;
+    setBusy(true);
+    try {
+      if (pendingRef.action === 'filed') {
+        await taxFilingsApi.markFiled(pendingRef.id, pendingRef.reference || undefined);
+      } else {
+        await taxFilingsApi.markPaid(pendingRef.id, pendingRef.reference || undefined);
+      }
+      setPendingRef(null);
+      reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const statusBadge = (status: TaxFiling['status']) => {
+    if (status === 'DUE') {
+      return <Badge variant="warning">{t('touristTax.filings.due', 'À déclarer')}</Badge>;
+    }
+    if (status === 'FILED') {
+      return <Badge variant="secondary">{t('touristTax.filings.filed', 'Déclarée')}</Badge>;
+    }
+    return <Badge variant="secondary">{t('touristTax.filings.paid', 'Payée')}</Badge>;
+  };
+
+  return (
+    <>
+      <div className="flex items-center gap-1.5 mb-0.5 mt-5">
+        <span className="inline-flex text-primary">
+          <Gavel size={20} strokeWidth={1.75} />
+        </span>
+        <h6 className="cn-text-subtitle1 font-semibold">
+          {t('touristTax.filings.title', 'Registre des déclarations')}
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
+        {t('touristTax.filings.subtitle',
+          'Un trimestre clôturé = une entrée. Après ton dépôt auprès de l’autorité, marque la déclaration (référence facultative) — la carte de l’agent Conformité se résout.')}
+      </p>
+      <Card className="p-0 mb-5">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('touristTax.filings.period', 'Période')}</TableHead>
+              <TableHead>{t('touristTax.filings.amount', 'Montant')}</TableHead>
+              <TableHead>{t('touristTax.filings.status', 'Statut')}</TableHead>
+              <TableHead>{t('touristTax.filings.reference', 'Référence')}</TableHead>
+              {canEdit && <TableHead aria-label="actions" />}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filings.map((filing) => (
+              <React.Fragment key={filing.id}>
+                <TableRow>
+                  <TableCell className="tabular-nums">
+                    {filing.periodStart} → {filing.periodEnd}
+                  </TableCell>
+                  <TableCell className="tabular-nums">
+                    {filing.amount} {filing.currency}
+                  </TableCell>
+                  <TableCell>{statusBadge(filing.status)}</TableCell>
+                  <TableCell className="tabular-nums">{filing.paymentReference ?? '—'}</TableCell>
+                  {canEdit && (
+                    <TableCell className="text-right">
+                      {filing.status === 'DUE' && (
+                        <BuiButton size="sm" variant="outline"
+                          onClick={() => setPendingRef({ id: filing.id, action: 'filed', reference: '' })}>
+                          {t('touristTax.filings.markFiled', 'Marquer déclarée')}
+                        </BuiButton>
+                      )}
+                      {filing.status === 'FILED' && (
+                        <BuiButton size="sm" variant="outline"
+                          onClick={() => setPendingRef({ id: filing.id, action: 'paid', reference: '' })}>
+                          {t('touristTax.filings.markPaid', 'Marquer payée')}
+                        </BuiButton>
+                      )}
+                    </TableCell>
+                  )}
+                </TableRow>
+                {pendingRef?.id === filing.id && (
+                  <TableRow>
+                    <TableCell colSpan={canEdit ? 5 : 4}>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          className="max-w-[280px]"
+                          placeholder={t('touristTax.filings.referenceHint', 'Référence de dépôt/paiement (facultatif)')}
+                          value={pendingRef.reference}
+                          onChange={(e) => setPendingRef({ ...pendingRef, reference: e.target.value })}
+                        />
+                        <BuiButton size="sm" disabled={busy} onClick={confirm}>
+                          {busy ? <Spinner className="size-4" /> : t('common.confirm', 'Confirmer')}
+                        </BuiButton>
+                        <BuiButton size="sm" variant="ghost" disabled={busy}
+                          onClick={() => setPendingRef(null)}>
+                          {t('common.cancel', 'Annuler')}
+                        </BuiButton>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </React.Fragment>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </>
   );
 }

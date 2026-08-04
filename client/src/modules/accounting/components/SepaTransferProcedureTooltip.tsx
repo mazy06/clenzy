@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Tooltip, Typography } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import {
   Article as FileTextIcon,
   Download as DownloadIcon,
@@ -77,166 +77,68 @@ export default function SepaTransferProcedureTooltip({
   placement = 'top',
 }: SepaTransferProcedureTooltipProps) {
   return (
-    <Tooltip
-      arrow
-      placement={placement}
-      enterDelay={300}
-      leaveDelay={100}
-      title={
-        <Box sx={{ minWidth: 280, maxWidth: 360 }}>
+    <Tooltip delayDuration={300}>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      {/* Tooltip riche = pattern Menus/Popovers Signature : surface --card,
+          hairline --line, r12, --shadow-pop (tokens → dark auto). La fleche est
+          l'enfant direct SVG du contenu : on la reteinte au meme jeton. */}
+      <TooltipContent
+        side={placement}
+        className="max-w-[380px] p-[9px] rounded-[12px] text-[0.75rem] bg-[var(--card)] text-[var(--body)] border border-solid border-[var(--line)] shadow-[var(--shadow-pop)] [&>svg]:bg-[var(--card)] [&>svg]:fill-[var(--card)]"
+      >
+        <div className="min-w-[280px] max-w-[360px]">
           {/* Header */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625, mb: 0.75 }}>
-            <Typography
-              component="span"
-              sx={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--ink)' }}
-            >
+          <div className="flex items-center gap-1 mb-1">
+            <span className="text-[0.78rem] font-bold text-[var(--ink)]">
               Virement SEPA — Procédure
-            </Typography>
-            <Box
-              component="span"
-              sx={{
-                fontSize: '0.58rem',
-                fontWeight: 700,
-                letterSpacing: '0.02em',
-                px: 0.5,
-                py: 0.125,
-                borderRadius: '3px',
-                border: '1px solid currentColor',
-                opacity: 0.7,
-              }}
-            >
+            </span>
+            <span className="text-[0.58rem] font-bold tracking-[0.02em] px-0.5 py-0 rounded-[24px] border border-[currentColor] opacity-70">
               MANUEL
-            </Box>
-          </Box>
+            </span>
+          </div>
 
-          <Typography
-            component="span"
-            sx={{
-              display: 'block',
-              fontSize: '0.68rem',
-              color: 'inherit',
-              opacity: 0.82,
-              lineHeight: 1.45,
-              mb: 1,
-            }}
-          >
+          <span className="block text-[0.68rem] text-inherit opacity-82 leading-[1.45] mb-1.5">
             4 étapes pour exécuter un virement groupé. L'automatisation
             arrivera via Wise (hors EU) et Open Banking (auto-SEPA) — voir
             roadmap.
-          </Typography>
+          </span>
 
           {/* Steps */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.875 }}>
+          <div className="flex flex-col gap-1.5">
             {STEPS.map((step) => (
-              <Box
-                key={step.index}
-                sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75 }}
-              >
+              <div className="flex items-start gap-1" key={step.index}>
                 {/* Pastille numérotée */}
-                <Box
-                  sx={{
-                    flexShrink: 0,
-                    width: 18,
-                    height: 18,
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--accent-soft)',
-                    color: 'var(--accent)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.62rem',
-                    fontWeight: 700,
-                    lineHeight: 1,
-                    mt: '1px',
-                  }}
-                  aria-hidden="true"
-                >
+                <div className="shrink-0 w-[18px] h-[18px] rounded-[50%] bg-[var(--accent-soft)] text-[var(--accent)] inline-flex items-center justify-center text-[0.62rem] font-bold leading-[1] mt-px" aria-hidden="true">
                   {step.index}
-                </Box>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box
-                      component="span"
-                      sx={{ display: 'inline-flex', color: 'inherit', opacity: 0.7 }}
-                      aria-hidden="true"
-                    >
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-0.5">
+                    <span className="inline-flex text-inherit opacity-70" aria-hidden="true">
                       {step.icon}
-                    </Box>
-                    <Typography
-                      component="span"
-                      sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--ink)' }}
-                    >
+                    </span>
+                    <span className="text-[0.7rem] font-bold text-[var(--ink)]">
                       {step.title}
-                    </Typography>
-                  </Box>
-                  <Typography
-                    component="span"
-                    sx={{
-                      display: 'block',
-                      fontSize: '0.66rem',
-                      color: 'inherit',
-                      opacity: 0.78,
-                      lineHeight: 1.45,
-                      mt: 0.125,
-                    }}
-                  >
+                    </span>
+                  </div>
+                  <span className="block text-[0.66rem] text-inherit opacity-78 leading-[1.45] mt-0">
                     {step.body}
-                  </Typography>
-                </Box>
-              </Box>
+                  </span>
+                </div>
+              </div>
             ))}
-          </Box>
+          </div>
 
           {/* Footer note */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 0.5,
-              mt: 1.25,
-              pt: 1,
-              borderTop: '1px solid',
-              borderColor: 'var(--line)',
-              opacity: 0.78,
-            }}
-          >
+          <div className="flex items-start gap-0.5 mt-2 pt-1.5 border-t border-[var(--line)] opacity-78">
             <InfoIcon size={11} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
-            <Typography
-              component="span"
-              sx={{ fontSize: '0.64rem', color: 'inherit', lineHeight: 1.4 }}
-            >
+            <span className="text-[0.64rem] text-inherit leading-[1.4]">
               Tant que vous n'avez pas marqué comme payé, le propriétaire ne
               reçoit pas de notification. Pensez à le faire pour fermer la
               boucle.
-            </Typography>
-          </Box>
-        </Box>
-      }
-      // Tooltip riche = pattern Menus/Popovers Signature : surface --card,
-      // hairline --line, r12, --shadow-pop (tokens → dark auto).
-      slotProps={{
-        tooltip: {
-          sx: {
-            bgcolor: 'var(--card)',
-            color: 'var(--body)',
-            border: '1px solid var(--line)',
-            borderRadius: '12px',
-            maxWidth: 380,
-            p: 1.5,
-            fontSize: '0.75rem',
-            boxShadow: 'var(--shadow-pop)',
-            '& .MuiTooltip-arrow': {
-              color: 'var(--card)',
-              '&::before': {
-                border: '1px solid var(--line)',
-                backgroundColor: 'var(--card)',
-              },
-            },
-          },
-        },
-      }}
-    >
-      {children}
+            </span>
+          </div>
+        </div>
+      </TooltipContent>
     </Tooltip>
   );
 }

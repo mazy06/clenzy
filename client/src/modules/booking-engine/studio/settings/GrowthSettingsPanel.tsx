@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Box, Skeleton } from '@mui/material';
+import { Skeleton } from '../../../../components/ui';
 import { AlertTriangle, Users, ShoppingCart, Info } from 'lucide-react';
 import { growthSettingsApi, type GrowthSettings } from '../../../../services/api/growthSettingsApi';
 import { SettingsPage, SettingCard, SettingRow, SaveBar, ToggleControl, NumberControl } from './settingsControls';
@@ -62,17 +62,18 @@ export default function GrowthSettingsPanel() {
 
   if (!loaded && !error) {
     return (
-      <Box sx={{ maxWidth: 720, mx: 'auto', px: 4, py: 4 }}>
-        {[0, 1].map((i) => <Skeleton key={i} variant="rounded" height={140} sx={{ mb: 2.5, borderRadius: 'var(--radius-lg)', bgcolor: 'var(--hover)' }} />)}
-      </Box>
+      <div className="max-w-[720px] mx-auto px-6 py-6">
+        {/* mb: 2.5 = 15 px (spacing MUI 6). */}
+        {[0, 1].map((i) => <Skeleton key={i} className="h-[140px] mb-[15px] rounded-[var(--radius-lg)] bg-[var(--hover)]" />)}
+      </div>
     );
   }
 
   if (!loaded) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, m: 4, p: 2, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 'var(--text-sm)' }}>
+      <div className="flex items-center gap-1.5 m-6 p-3 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
         <AlertTriangle size={18} strokeWidth={2} /> {error}
-      </Box>
+      </div>
     );
   }
 
@@ -82,10 +83,10 @@ export default function GrowthSettingsPanel() {
       description="Capture de leads et relance de panier — réellement appliquées côté serveur."
       footer={<SaveBar dirty={dirty} saving={saving} onSave={save} error={error} />}
       intro={
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 2.5, p: 1.5, borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent-soft)', color: 'var(--body)', fontSize: 'var(--text-sm)', lineHeight: 1.5 }}>
-          <Box component="span" sx={{ color: 'var(--accent)', mt: 0.1 }}><Info size={16} strokeWidth={2} /></Box>
+        <div className="flex items-start gap-1.5 mb-3.5 p-2 rounded-[var(--radius-md)] bg-[var(--accent-soft)] text-[var(--body)] text-[var(--text-sm)] leading-[1.5]">
+          <span className="text-[var(--accent)] mt-0"><Info size={16} strokeWidth={2} /></span>
           Ces réglages s’appliquent à <b>toute l’organisation</b> — donc à l’ensemble de vos booking engines.
-        </Box>
+        </div>
       }
     >
       <SettingCard title="Capture de leads" description="Newsletter / liste d’attente avec consentement RGPD.">
@@ -126,10 +127,10 @@ export default function GrowthSettingsPanel() {
       </SettingCard>
 
       <SettingCard title="Impact" description="Mesures cumulées sur votre organisation.">
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, py: 1.5 }}>
+        <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-3 py-[9px]">
           <StatTile icon={Users} label="Contacts captés" value={loaded.contactsCaptured} />
           <StatTile icon={ShoppingCart} label="Paniers relancés" value={loaded.cartsRecovered} />
-        </Box>
+        </div>
       </SettingCard>
     </SettingsPage>
   );
@@ -137,14 +138,14 @@ export default function GrowthSettingsPanel() {
 
 function StatTile({ icon: Icon, label, value }: { icon: typeof Users; label: string; value: number }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.75, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--field)' }}>
-      <Box sx={{ width: 38, height: 38, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent-soft)', color: 'var(--accent)' }}>
+    <div className="flex items-center gap-2 p-2.5 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--field)]">
+      <div className="w-[38px] h-[38px] shrink-0 flex items-center justify-center rounded-[var(--radius-md)] bg-[var(--accent-soft)] text-[var(--accent)]">
         <Icon size={19} strokeWidth={1.9} />
-      </Box>
-      <Box>
-        <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', fontWeight: 'var(--fw-bold)', color: 'var(--ink)', fontVariantNumeric: 'tabular-nums', lineHeight: 1.1 }}>{value}</Box>
-        <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)' }}>{label}</Box>
-      </Box>
-    </Box>
+      </div>
+      <div>
+        <div className="font-[family-name:var(--font-display)] text-[var(--text-2xl)] font-[family-name:var(--fw-bold)] text-[var(--ink)] tabular-nums leading-[1.1]">{value}</div>
+        <div className="text-[var(--text-sm)] text-[var(--muted)]">{label}</div>
+      </div>
+    </div>
   );
 }

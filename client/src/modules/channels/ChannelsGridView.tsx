@@ -1,11 +1,7 @@
 import React from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  Chip,
-  CircularProgress,
-} from '@mui/material';
+import StatusChip, { STATUS_TONES } from '../../components/StatusChip';
+import { Button, Spinner } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import {
   LinkOff as LinkOffIcon,
   Link as LinkIcon,
@@ -15,7 +11,7 @@ import type { AirbnbConnectionStatus } from '../../services/api/airbnbApi';
 import { CHANNEL_BACKEND_MAP } from '../../services/api/channelConnectionApi';
 import type { ChannelId, ChannelConnectionStatus } from '../../services/api/channelConnectionApi';
 import { type OtaChannel } from '../../services/channels/otaChannels';
-import { OTA_CARD_SX, OTA_CARD_CONTENT_SX, STATUS_CHIP_SX, channelSoftBg } from './channelsPageConstants';
+import { STATUS_CHIP_TOKENS, STATUS_CHIP_CLASS, channelSoftBg } from './channelsPageConstants';
 
 interface ChannelsGridViewProps {
   isConnected: boolean;
@@ -53,12 +49,7 @@ const ChannelsGridView: React.FC<ChannelsGridViewProps> = ({
   onOtaDisconnectRequest,
   t,
 }) => (
-  <Box sx={{
-    display: 'grid',
-    gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' },
-    gap: 1.5,
-    mb: 1.5,
-  }}>
+  <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] min-[900px]:grid-cols-[repeat(3,_1fr)] gap-[9px] mb-[9px]">
     {channels.map((ota) => {
       const isAirbnb = ota.id === 'airbnb';
       const isOtaChannel = (ota.id as string) in CHANNEL_BACKEND_MAP;
@@ -79,7 +70,7 @@ const ChannelsGridView: React.FC<ChannelsGridViewProps> = ({
         />
       );
     })}
-  </Box>
+  </div>
 );
 
 export default ChannelsGridView;
@@ -92,40 +83,15 @@ export default ChannelsGridView;
  */
 function OtaLogo({ channel }: { channel: OtaChannel }) {
   return (
-    <Box
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: 44,
-        px: 1.5,
-        borderRadius: '10px',
-        bgcolor: channelSoftBg(channel.id),
-        flexShrink: 0,
-      }}
-    >
+    <div className="inline-flex items-center justify-center h-[44px] px-[9px] rounded-[10px] shrink-0" style={{ backgroundColor: channelSoftBg(channel.id) }}>
       {channel.logo ? (
-        <Box
-          component="img"
-          src={channel.logo}
-          alt={channel.name}
-          sx={{ height: 24, objectFit: 'contain', maxWidth: 120 }}
-        />
+        <img className="h-[24px] object-contain max-w-[120px]" src={channel.logo} alt={channel.name} />
       ) : (
-        <Typography
-          sx={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '1rem',
-            fontWeight: 700,
-            color: channel.brandColor,
-            letterSpacing: '-0.02em',
-            lineHeight: 1,
-          }}
-        >
+        <p className="cn-text-body1 text-[1rem] font-bold tracking-[-0.02em] leading-[1]" style={{ fontFamily: 'var(--font-display)', color: channel.brandColor }}>
           {channel.name}
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
   );
 }
 
@@ -155,100 +121,82 @@ function OtaChannelCard({
   const isError = (connectionStatus?.status ?? '').toUpperCase() === 'ERROR';
 
   return (
-    <Box
-      sx={{
-        ...OTA_CARD_SX,
-        opacity: isAvailable ? 1 : 0.6,
-      }}
+    <div
+      className={cn(
+        'flex flex-col overflow-hidden rounded-[14px] bg-[var(--card)] cursor-default',
+        'border border-solid border-[var(--line)] hover:border-[var(--line-2)]',
+        'transition-[border-color] duration-[180ms] ease-[cubic-bezier(.16,1,.3,1)]',
+        isAvailable ? 'opacity-100' : 'opacity-60',
+      )}
     >
       {/* Entête : pastille logo (marque) + chip de statut -soft */}
-      <Box
-        sx={{
-          px: 2.5,
-          py: 2,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 1,
-          borderBottom: '1px solid',
-          borderBottomColor: 'var(--line)',
-        }}
-      >
+      <div className="flex items-center justify-between gap-[6px] px-[15px] py-3 border-b border-solid border-b-[var(--line)]">
         <OtaLogo channel={channel} />
         {connectionLoading && isAvailable ? (
-          <CircularProgress size={14} sx={{ color: 'var(--muted)' }} />
+          <Spinner className="size-3.5 text-[var(--muted)]" />
         ) : isAvailable && isConnected ? (
-          <Chip
+          <StatusChip
             label={connectionStatus?.status ?? 'ACTIVE'}
-            size="small"
-            sx={isError ? STATUS_CHIP_SX.err : STATUS_CHIP_SX.ok}
+            tokens={isError ? STATUS_CHIP_TOKENS.err : STATUS_CHIP_TOKENS.ok} className={STATUS_CHIP_CLASS}
             icon={<CheckCircleIcon size={12} strokeWidth={1.75} />}
           />
         ) : isAvailable ? (
-          <Chip
+          <StatusChip
             label={t('channels.ota.disconnected')}
-            size="small"
-            sx={STATUS_CHIP_SX.warn}
+            tokens={STATUS_CHIP_TOKENS.warn} className={STATUS_CHIP_CLASS}
           />
         ) : (
-          <Chip
+          <StatusChip
             label={t('channels.ota.comingSoon')}
-            size="small"
-            sx={STATUS_CHIP_SX.muted}
+            tokens={STATUS_CHIP_TOKENS.muted} className={STATUS_CHIP_CLASS}
           />
         )}
-      </Box>
+      </div>
 
       {/* Card content */}
-      <Box sx={OTA_CARD_CONTENT_SX}>
+      <div className="flex flex-col flex-1 gap-[9px] p-[15px]">
         {/* Channel name */}
-        <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.875rem', fontWeight: 600, color: 'var(--ink)' }}>
+        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.875rem] font-semibold text-[var(--ink)]">
           {channel.name}
-        </Typography>
+        </p>
 
         {/* Description */}
-        <Typography sx={{
-          fontSize: '0.71875rem',
-          color: 'var(--muted)',
-          lineHeight: 1.5,
-          flex: 1,
-          minHeight: 32,
-        }}>
+        <p className="cn-text-body1 text-[0.71875rem] text-[var(--muted)] leading-[1.5] flex-1 min-h-[32px]">
           {t(channel.descriptionKey)}
-        </Typography>
+        </p>
 
         {/* Action button */}
-        <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'flex-end' }}>
+        <div className="mt-auto flex justify-end">
           {isAvailable && !isConnected && (
             <Button
-              size="small"
-              variant="contained"
-              startIcon={<LinkIcon size={'0.8rem'} strokeWidth={1.75} />}
+              size="sm"
+              variant="default"
               onClick={onConnect}
               disabled={connecting || connectionLoading}
             >
-              {connecting ? <CircularProgress size={12} color="inherit" /> : `Connecter ${channel.name}`}
+              <LinkIcon size={'0.8rem'} strokeWidth={1.75} />
+              {connecting ? <Spinner className="size-3" /> : `Connecter ${channel.name}`}
             </Button>
           )}
           {isAvailable && isConnected && (
+            // Rompre une connexion OTA est l'action destructrice de la carte.
             <Button
-              size="small"
-              variant="outlined"
-              color="error"
-              startIcon={<LinkOffIcon size={'0.8rem'} strokeWidth={1.75} />}
+              size="sm"
+              variant="destructive"
               onClick={onDisconnect}
               disabled={disconnecting}
             >
-              {disconnecting ? <CircularProgress size={12} /> : `Déconnecter ${channel.name}`}
+              <LinkOffIcon size={'0.8rem'} strokeWidth={1.75} />
+              {disconnecting ? <Spinner className="size-3" /> : `Déconnecter ${channel.name}`}
             </Button>
           )}
           {!isAvailable && (
-            <Button size="small" variant="outlined" disabled>
+            <Button size="sm" variant="outline" disabled>
               {t('channels.ota.comingSoon')}
             </Button>
           )}
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }

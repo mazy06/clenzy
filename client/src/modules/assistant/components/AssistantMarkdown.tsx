@@ -1,8 +1,8 @@
 import React from 'react';
+import { cn } from '../../../utils/cn';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Typography } from '@mui/material';
 import { isArabicHeavy, arabicTextSx, arabicDirProp } from '../../../utils/textDirection';
 
 interface AssistantMarkdownProps {
@@ -11,21 +11,16 @@ interface AssistantMarkdownProps {
 }
 
 /** Style commun des liens (internes + externes) — accent + soulignement doux. */
-const linkSx = {
-  color: 'var(--accent)',
-  fontWeight: 600,
-  textDecoration: 'none',
-  borderBottom: '1px solid color-mix(in srgb, var(--accent) 35%, transparent)',
-  transition: 'border-color .15s',
-  '&:hover': { borderBottomColor: 'var(--accent)' },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-} as const;
+const LINK_CLASS =
+  'text-[var(--accent)] font-semibold no-underline border-b border-solid ' +
+  'border-b-[color-mix(in_srgb,var(--accent)_35%,transparent)] ' +
+  'transition-[border-color] duration-150 hover:border-b-[var(--accent)] motion-reduce:transition-none';
 
 /**
  * Renderer markdown pour le texte des messages assistant.
  *
- * <p>Compose les elements MUI au lieu des HTML par defaut pour heriter du
- * theme (typo, tokens Signature, espacement). Particularite : les liens
+ * <p>Compose des balises HTML habillees par les tokens Signature (typo,
+ * couleurs, espacement). Particularite : les liens
  * relatifs ({@code /xxx}) sont rendus comme {@code <Link>} React Router pour
  * une navigation SPA sans full reload — c'est ce qui permet au LLM de
  * proposer "[Settings IA](/settings?tab=ai)" et que le clic atterrisse
@@ -35,22 +30,13 @@ const linkSx = {
  * {@code rel="noopener noreferrer"} pour la securite.</p>
  */
 export const AssistantMarkdown: React.FC<AssistantMarkdownProps> = ({ text }) => {
-  // Memo des components MUI pour eviter de les recreer a chaque render
+  // Memo des renderers pour eviter de les recreer a chaque render
   const components: Components = React.useMemo(() => ({
     // Paragraphes : corps 13px aligne avec la bulle assistant
     p: ({ children }) => (
-      <Typography
-        component="p"
-        sx={{
-          fontSize: 13,
-          lineHeight: 1.6,
-          color: 'var(--body)',
-          mb: 1,
-          '&:last-child': { mb: 0 },
-        }}
-      >
+      <p className="cn-text-body1 text-[13px] leading-[1.6] text-[var(--body)] mb-1.5 last:mb-0">
         {children}
-      </Typography>
+      </p>
     ),
 
     // Liens : Router pour les routes internes, target="_blank" pour les externes
@@ -59,128 +45,96 @@ export const AssistantMarkdown: React.FC<AssistantMarkdownProps> = ({ text }) =>
       const isInternal = href.startsWith('/');
       if (isInternal) {
         return (
-          <Box component={RouterLink} to={href} sx={linkSx}>
+          <RouterLink to={href} className={LINK_CLASS}>
             {children}
-          </Box>
+          </RouterLink>
         );
       }
       return (
-        <Box
-          component="a"
+        <a
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          sx={linkSx}
+          className={LINK_CLASS}
         >
           {children}
-        </Box>
+        </a>
       );
     },
 
     // Listes : tight, bullets discrets
+    // `ps-` (logique) et non `pl-` : les classes Tailwind ne passent pas par le
+    // plugin RTL d'Emotion qui retournait le `pl` du sx d'origine en arabe.
     ul: ({ children }) => (
-      <Box component="ul" sx={{
-        pl: 2.5, my: 1,
-        '& li': { mb: 0.25 },
-      }}>
+      <ul className="ps-[15px] my-1.5 [&_li]:mb-[1.5px]">
         {children}
-      </Box>
+      </ul>
     ),
     ol: ({ children }) => (
-      <Box component="ol" sx={{
-        pl: 2.5, my: 1,
-        '& li': { mb: 0.25 },
-      }}>
+      <ol className="ps-[15px] my-1.5 [&_li]:mb-[1.5px]">
         {children}
-      </Box>
+      </ol>
     ),
     li: ({ children }) => (
-      <Box component="li" sx={{
-        fontSize: 13,
-        lineHeight: 1.55,
-        color: 'var(--body)',
-      }}>
+      <li className="text-[13px] leading-[1.55] text-[var(--body)]">
         {children}
-      </Box>
+      </li>
     ),
 
     // Emphase
     strong: ({ children }) => (
-      <Box component="strong" sx={{ fontWeight: 600, color: 'var(--ink)' }}>
+      <strong className="font-semibold text-[var(--ink)]">
         {children}
-      </Box>
+      </strong>
     ),
     em: ({ children }) => (
-      <Box component="em" sx={{ fontStyle: 'italic' }}>{children}</Box>
+      <em className="italic">{children}</em>
     ),
 
     // Code inline : fond champ dé-bleui
     code: ({ children }) => (
-      <Box component="code" sx={{
-        px: 0.5, py: 0.125,
-        borderRadius: '5px',
-        bgcolor: 'var(--field)',
-        border: '1px solid var(--line)',
-        fontFamily: 'monospace',
-        fontSize: '0.85em',
-      }}>
+      <code className="px-0.5 py-0 rounded-[5px] bg-[var(--field)] border border-[var(--line)] font-mono text-[0.85em]">
         {children}
-      </Box>
+      </code>
     ),
 
     // Headings : display, poids et taille adaptes au flow inline
     h1: ({ children }) => (
-      <Typography component="h2" sx={{
-        fontFamily: 'var(--font-display)',
-        fontSize: 16, fontWeight: 600, mt: 1.5, mb: 0.5,
-        color: 'var(--ink)',
-      }}>{children}</Typography>
+      <h2 className="font-[family-name:var(--font-display)] text-[16px] font-semibold mt-2 mb-0.5 text-[var(--ink)]">{children}</h2>
     ),
     h2: ({ children }) => (
-      <Typography component="h3" sx={{
-        fontFamily: 'var(--font-display)',
-        fontSize: 14.5, fontWeight: 600, mt: 1.5, mb: 0.5,
-        color: 'var(--ink)',
-      }}>{children}</Typography>
+      <h3 className="font-[family-name:var(--font-display)] text-[14.5px] font-semibold mt-2 mb-0.5 text-[var(--ink)]">{children}</h3>
     ),
     h3: ({ children }) => (
-      <Typography component="h4" sx={{
-        fontSize: 13.5, fontWeight: 600, mt: 1.25, mb: 0.25,
-        color: 'var(--ink)',
-      }}>{children}</Typography>
+      <h4 className="text-[13.5px] font-semibold mt-2 mb-0.5 text-[var(--ink)]">{children}</h4>
     ),
 
     // Blockquote (citation)
     blockquote: ({ children }) => (
-      <Box sx={{
-        my: 1,
-        pl: 1.5,
-        py: 0.5,
-        borderRadius: '6px',
-        bgcolor: 'var(--hover)',
-      }}>
+      <div className="my-1.5 ps-2 py-0.5 rounded-[6px] bg-[var(--hover)]">
         {children}
-      </Box>
+      </div>
     ),
   }), []);
 
   // Adaptation typographique RTL : si le contenu est majoritairement arabe,
-  // wrap dans un container dir="rtl" + sx augmente (+18% fontSize, line-height
-  // 1.85, font-family priorisant Tahoma/Geeza Pro). Sinon LTR par defaut.
+  // wrap dans un container dir="rtl" + taille augmentee (fontSize, line-height,
+  // font-family priorisant Tajawal/Tahoma/Geeza Pro). Sinon LTR par defaut.
+  // `arabicTextSx` est un objet CSS plat : il s'applique tel quel en style inline.
   const arabic = isArabicHeavy(text);
   if (arabic) {
     return (
-      <Box dir="rtl" sx={{ ...arabicTextSx, textAlign: 'right' }}>
+      <div dir="rtl" style={{ ...arabicTextSx, textAlign: 'right' }}>
         <ReactMarkdown components={components}>{text}</ReactMarkdown>
-      </Box>
+      </div>
     );
   }
   // Texte avec quelques mots arabes au milieu (ex: nom propre) : pas de wrap
   // global, mais le navigateur applique l'isolation bidirectionnelle unicode
   // automatiquement sur les caracteres arabes detectes.
   return (
-    <Box dir={arabicDirProp(text)}>
+    <div dir={arabicDirProp(text)}>
       <ReactMarkdown components={components}>{text}</ReactMarkdown>
-    </Box>
+    </div>
   );
 };

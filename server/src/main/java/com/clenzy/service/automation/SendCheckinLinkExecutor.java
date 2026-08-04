@@ -2,6 +2,7 @@ package com.clenzy.service.automation;
 
 import com.clenzy.model.AutomationAction;
 import com.clenzy.service.messaging.GuestMessagingService;
+import com.clenzy.service.messaging.QuietHoursService;
 import org.springframework.stereotype.Service;
 
 /**
@@ -17,12 +18,19 @@ import org.springframework.stereotype.Service;
 @Service
 public class SendCheckinLinkExecutor extends AbstractGuestMessageExecutor {
 
-    public SendCheckinLinkExecutor(GuestMessagingService messagingService) {
-        super(messagingService);
+    public SendCheckinLinkExecutor(GuestMessagingService messagingService,
+                                   QuietHoursService quietHoursService) {
+        super(messagingService, quietHoursService);
     }
 
     @Override
     public AutomationAction action() {
         return AutomationAction.SEND_CHECKIN_LINK;
+    }
+
+    /** Codes d'acces et instructions d'arrivee : JAMAIS reportes par les heures calmes. */
+    @Override
+    protected boolean deferrableInQuietHours() {
+        return false;
     }
 }

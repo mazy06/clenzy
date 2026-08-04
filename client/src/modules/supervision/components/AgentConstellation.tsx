@@ -42,14 +42,28 @@ export interface AgentConstellationProps {
   hitlCount?: number;
   /** Rendu pleine-cellule (accordéon Planning) : canvas sans arrondi ni ombre. */
   flush?: boolean;
+  /** Agent stabilisé à l'emplacement de tête (cf. ConstellationRendererProps). */
+  onHeadAgentSettled?: (id: AgentId | null) => void;
 }
 
-interface NormalizedView {
+export interface NormalizedView {
   agents: ConstellationAgentView[];
   hud: ConstellationHud;
 }
 
-function normalize(snapshot: SupervisionSnapshot): NormalizedView {
+/** Nb d'actions HITL par agent — libellé « N en attente » sous les nœuds. */
+function pendingCounts(snapshot: SupervisionSnapshot): Map<AgentId, number> {
+  const counts = new Map<AgentId, number>();
+  for (const action of snapshot.pending) {
+    counts.set(action.agentId, (counts.get(action.agentId) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/** Vue normalisée d'un snapshot — partagée avec la mise à plat de SupervisionPanel. */
+export function normalizeSnapshot(snapshot: SupervisionSnapshot): NormalizedView {
+  const counts = pendingCounts(snapshot);
+
   if (snapshot.scope === 'portfolio') {
     const portfolio: PortfolioSnapshot = snapshot;
     const agents: ConstellationAgentView[] = portfolio.agents.map((a) => ({
@@ -58,6 +72,7 @@ function normalize(snapshot: SupervisionSnapshot): NormalizedView {
       autonomy: a.autonomy,
       task: a.task,
       badge: a.propertyCount, // badge = nb de logements concernés
+      pendingCount: counts.get(a.id) ?? 0,
     }));
     return {
       agents,
@@ -76,6 +91,7 @@ function normalize(snapshot: SupervisionSnapshot): NormalizedView {
     autonomy: a.autonomy,
     task: a.task,
     thinkingProgress: a.thinkingProgress,
+    pendingCount: counts.get(a.id) ?? 0,
   }));
   return {
     agents,
@@ -101,9 +117,10 @@ export function AgentConstellation({
   hitl,
   hitlCount,
   flush,
+  onHeadAgentSettled,
 }: AgentConstellationProps) {
   const [focused, setFocused] = useState(false);
-  const { agents, hud } = useMemo(() => normalize(snapshot), [snapshot]);
+  const { agents, hud } = useMemo(() => normalizeSnapshot(snapshot), [snapshot]);
   // Handler stable : une lambda inline casserait le memo du renderer
   // (FramerConstellation) à chaque render.
   const handleToggleFocus = useCallback(() => setFocused((f) => !f), []);
@@ -126,6 +143,8 @@ export function AgentConstellation({
       hitl={hitl}
       hitlCount={hitlCount}
       flush={flush}
+      onHeadAgentSettled={onHeadAgentSettled}
+      pendingItems={snapshot.pending}
     />
   );
 }

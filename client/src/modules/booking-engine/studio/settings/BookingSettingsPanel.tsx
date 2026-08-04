@@ -1,4 +1,4 @@
-import { Box, Skeleton } from '@mui/material';
+import { Skeleton } from '../../../../components/ui';
 import { AlertTriangle } from 'lucide-react';
 import type { BookingEngineConfig } from '../../../../services/api/bookingEngineApi';
 import {
@@ -45,17 +45,17 @@ export interface BookingSettingsPanelProps {
 export default function BookingSettingsPanel({ config, loading, error, saving, dirty, patch, onSave }: BookingSettingsPanelProps) {
   if (loading) {
     return (
-      <Box sx={{ maxWidth: 720, mx: 'auto', px: 4, py: 4 }}>
-        {[0, 1, 2].map((i) => <Skeleton key={i} variant="rounded" height={160} sx={{ mb: 2.5, borderRadius: 'var(--radius-lg)', bgcolor: 'var(--hover)' }} />)}
-      </Box>
+      <div className="max-w-[720px] mx-auto px-6 py-6">
+        {[0, 1, 2].map((i) => <Skeleton key={i} className="h-[160px] mb-4 rounded-[var(--radius-lg)] bg-[var(--hover)]" />)}
+      </div>
     );
   }
 
   if (!config) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, m: 4, p: 2, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 'var(--text-sm)' }}>
+      <div className="flex items-center gap-1.5 m-6 p-3 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
         <AlertTriangle size={18} strokeWidth={2} /> {error ?? 'Config introuvable.'}
-      </Box>
+      </div>
     );
   }
 

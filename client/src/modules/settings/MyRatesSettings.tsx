@@ -1,18 +1,20 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { cn } from '../../utils/cn';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Card, Button, Skeleton } from '../../components/ui';
 import {
-  Box,
-  Typography,
-  Paper,
-  TextField,
-  Button,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  InputAdornment,
-  Skeleton,
-} from '@mui/material';
+  Field,
+  FieldLabel,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from '../../components/ui';
 import { Euro, Save, CheckCircle } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
 import { housekeeperRatesApi } from '../../services/api/housekeeperRatesApi';
 import type { HousekeeperRates, HousekeeperPropertyRate } from '../../services/api/housekeeperRatesApi';
@@ -24,10 +26,6 @@ import type { HousekeeperRates, HousekeeperPropertyRate } from '../../services/a
 
 const ratesKeys = { my: ['housekeeper-rates', 'me'] as const };
 
-const NUM_SX = {
-  '& .MuiOutlinedInput-input': { fontVariantNumeric: 'tabular-nums' },
-} as const;
-
 const SECTION_TITLE_SX = {
   fontSize: '10.5px',
   fontWeight: 700,
@@ -37,6 +35,9 @@ const SECTION_TITLE_SX = {
   mb: 1.5,
 } as const;
 
+/** Report en classes de `SECTION_TITLE_SX`. */
+const SECTION_TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-[9px]';
+
 /** Chip d'état du nudge — vert doux si dans la fourchette, neutre sinon. */
 function NudgeBadge({ amount, rate }: { amount: number | null; rate: HousekeeperPropertyRate }) {
   const { t } = useTranslation();
@@ -45,50 +46,24 @@ function NudgeBadge({ amount, rate }: { amount: number | null; rate: Housekeeper
   const inMarket = amount >= rate.advisoryMin && amount <= rate.advisoryMax;
   if (inMarket) {
     return (
-      <Box
-        component="span"
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '4px',
-          fontSize: '10.5px',
-          fontWeight: 700,
-          color: 'var(--ok, #4A9B8E)',
-          backgroundColor: 'color-mix(in srgb, var(--ok, #4A9B8E) 12%, transparent)',
-          borderRadius: '7px',
-          padding: '2px 7px',
-          whiteSpace: 'nowrap',
-        }}
-      >
+      <span className="inline-flex items-center gap-[4px] text-[10.5px] font-bold whitespace-nowrap rounded-[7px] px-[7px] py-[2px] text-[var(--ok,#4A9B8E)] bg-[color-mix(in_srgb,var(--ok,#4A9B8E)_12%,transparent)]">
         <CheckCircle size={11} strokeWidth={2} />
         {t('settings.myRates.inMarket')}
-      </Box>
+      </span>
     );
   }
 
   const deltaPct = Math.round(((amount - rate.advisoryRecommended) / rate.advisoryRecommended) * 100);
   return (
-    <Box
-      component="span"
-      sx={{
-        fontSize: '10.5px',
-        fontWeight: 700,
-        color: 'var(--muted)',
-        backgroundColor: 'var(--field)',
-        border: '1px solid var(--field-line)',
-        borderRadius: '7px',
-        padding: '2px 7px',
-        whiteSpace: 'nowrap',
-        fontVariantNumeric: 'tabular-nums',
-      }}
-    >
+    <span className="text-[10.5px] font-bold whitespace-nowrap tabular-nums rounded-[7px] px-[7px] py-[2px] text-[var(--muted)] bg-[var(--field)] border border-solid border-[var(--field-line)]">
       {deltaPct > 0 ? '+' : ''}{deltaPct} % {t('settings.myRates.vsAdvisory')}
-    </Box>
+    </span>
   );
 }
 
 export default function MyRatesSettings() {
   const { t } = useTranslation();
+  const { notify } = useNotification();
   const queryClient = useQueryClient();
 
   const ratesQuery = useQuery({
@@ -102,9 +77,6 @@ export default function MyRatesSettings() {
   const [flats, setFlats] = useState<Record<number, string>>({});
   // Gate d'hydratation one-shot (jamais lu au render) : ref, pas de re-render.
   const hydratedRef = useRef(false);
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false, message: '', severity: 'success',
-  });
 
   useEffect(() => {
     const data = ratesQuery.data;
@@ -123,10 +95,10 @@ export default function MyRatesSettings() {
       housekeeperRatesApi.updateMy(payload),
     onSuccess: (updated: HousekeeperRates) => {
       queryClient.setQueryData(ratesKeys.my, updated);
-      setSnackbar({ open: true, message: t('settings.myRates.saveSuccess'), severity: 'success' });
+      notify.success(t('settings.myRates.saveSuccess'));
     },
     onError: () => {
-      setSnackbar({ open: true, message: t('settings.myRates.saveError'), severity: 'error' });
+      notify.error(t('settings.myRates.saveError'));
     },
   });
 
@@ -145,150 +117,146 @@ export default function MyRatesSettings() {
 
   if (ratesQuery.isLoading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Skeleton variant="rounded" height={120} sx={{ borderRadius: '13px' }} />
-        <Skeleton variant="rounded" height={260} sx={{ borderRadius: '13px' }} />
-      </Box>
+      <div className="flex flex-col gap-3">
+        <Skeleton className="h-[120px] w-full rounded-[13px]" />
+        <Skeleton className="h-[260px] w-full rounded-[13px]" />
+      </div>
     );
   }
 
   if (ratesQuery.isError) {
-    return <Alert severity="error">{t('settings.myRates.loadError')}</Alert>;
+    return <UiAlert variant="destructive">
+      <TriangleAlert />
+      <AlertDescription>{t('settings.myRates.loadError')}</AlertDescription>
+    </UiAlert>;
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div className="flex flex-col gap-3">
       {/* ── Score qualité 30 jours (MM-3D) ───────────────────────────────── */}
       {score != null && (
-        <Paper sx={{ border: '1px solid var(--line)', boxShadow: 'none', borderRadius: '13px', p: 2.5 }}>
-          <Typography sx={SECTION_TITLE_SX}>{t('settings.myRates.scoreSection')}</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, flexWrap: 'wrap' }}>
-            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '26px', fontWeight: 600, color: 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>
-              {score.score}<Box component="span" sx={{ fontSize: '14px', color: 'var(--muted)', fontWeight: 500 }}>/100</Box>
-            </Typography>
-            <Typography sx={{ fontSize: '12px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+        <Card className="gap-0 py-0 p-3.5">
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('settings.myRates.scoreSection')}</p>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[26px] font-semibold text-[var(--accent)] tabular-nums">
+              {score.score}<span className="text-[14px] text-[var(--muted)] font-medium">/100</span>
+            </p>
+            <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
               {t('settings.myRates.scoreDetail', {
                 count: score.completedCount,
                 proof: Math.round(score.proofRate * 100),
               })}
-            </Typography>
-          </Box>
-          <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', mt: 1 }}>
+            </p>
+          </div>
+          <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mt-1.5">
             {t('settings.myRates.scoreHint')}
-          </Typography>
-        </Paper>
+          </p>
+        </Card>
       )}
 
       {/* ── Taux horaire général ─────────────────────────────────────────── */}
-      <Paper sx={{ border: '1px solid var(--line)', boxShadow: 'none', borderRadius: '13px', p: 2.5 }}>
-        <Typography sx={SECTION_TITLE_SX}>{t('settings.myRates.hourlySection')}</Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-          <TextField
-            label={t('settings.myRates.hourlyRate')}
-            type="number"
-            size="small"
-            value={hourly}
-            onChange={(e) => setHourly(e.target.value)}
-            inputProps={{ min: 0, step: 0.5 }}
-            InputProps={{ endAdornment: <InputAdornment position="end">€/h</InputAdornment> }}
-            InputLabelProps={{ shrink: true }}
-            sx={{ ...NUM_SX, width: 220 }}
-          />
+      <Card className="gap-0 py-0 p-3.5">
+        <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('settings.myRates.hourlySection')}</p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <Field className="w-[220px]">
+            <FieldLabel htmlFor="my-rates-hourly">{t('settings.myRates.hourlyRate')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="my-rates-hourly"
+                type="number"
+                min={0}
+                step={0.5}
+                className="tabular-nums"
+                value={hourly}
+                onChange={(e) => setHourly(e.target.value)}
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupText>€/h</InputGroupText>
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
           {referenceRate != null && (
-            <Typography sx={{ fontSize: '12px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+            <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
               {t('settings.myRates.referenceRate')} : {referenceRate} €/h
-            </Typography>
+            </p>
           )}
-        </Box>
-        <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', mt: 1 }}>
+        </div>
+        <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mt-1.5">
           {t('settings.myRates.hourlyHint')}
-        </Typography>
-      </Paper>
+        </p>
+      </Card>
 
       {/* ── Forfaits par logement ────────────────────────────────────────── */}
-      <Paper sx={{ border: '1px solid var(--line)', boxShadow: 'none', borderRadius: '13px', p: 2.5 }}>
-        <Typography sx={SECTION_TITLE_SX}>{t('settings.myRates.flatSection')}</Typography>
-        <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', mb: 2 }}>
+      <Card className="gap-0 py-0 p-3.5">
+        <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('settings.myRates.flatSection')}</p>
+        <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mb-3">
           {t('settings.myRates.flatHint')}
-        </Typography>
+        </p>
 
         {properties.length === 0 ? (
-          <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)', fontStyle: 'italic' }}>
+          <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] italic">
             {t('settings.myRates.noProperties')}
-          </Typography>
+          </p>
         ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+          <div className="flex flex-col">
             {properties.map((property) => {
               const raw = flats[property.propertyId] ?? '';
               const amount = raw.trim() !== '' && !isNaN(parseFloat(raw)) ? parseFloat(raw) : null;
               return (
-                <Box
+                // Le `& + &` d'origine ne separait que les lignes suivantes :
+                // filet sur toutes, puis annule sur la premiere.
+                <div
                   key={property.propertyId}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 2,
-                    py: 1.25,
-                    flexWrap: 'wrap',
-                    '& + &': { borderTop: '1px solid var(--line)' },
-                  }}
+                  className="flex items-start flex-wrap gap-3 py-[7.5px] border-t border-solid border-t-[var(--line)] first:border-t-0"
                 >
-                  <Typography sx={{ flex: 1, minWidth: 160, fontSize: '13px', fontWeight: 600, color: 'var(--ink)', pt: 1 }}>
+                  <p className="cn-text-body1 flex-1 min-w-[160px] text-[13px] font-semibold text-[var(--ink)] pt-1.5">
                     {property.propertyName}
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <TextField
-                        type="number"
-                        size="small"
-                        placeholder={String(property.advisoryRecommended)}
-                        value={raw}
-                        onChange={(e) => setFlats((prev) => ({ ...prev, [property.propertyId]: e.target.value }))}
-                        inputProps={{ min: 0, step: 5, 'aria-label': t('settings.myRates.flatFieldAria', { name: property.propertyName }) }}
-                        InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
-                        sx={{ ...NUM_SX, width: 150 }}
-                      />
+                  </p>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-1.5">
+                      {/* Champ sans libelle visible (le nom du logement est a
+                          gauche) : l'aria-label reste la seule etiquette. */}
+                      <InputGroup className="w-[150px]">
+                        <InputGroupInput
+                          id={`my-rates-flat-${property.propertyId}`}
+                          type="number"
+                          min={0}
+                          step={5}
+                          className="tabular-nums"
+                          aria-label={t('settings.myRates.flatFieldAria', { name: property.propertyName })}
+                          placeholder={String(property.advisoryRecommended)}
+                          value={raw}
+                          onChange={(e) => setFlats((prev) => ({ ...prev, [property.propertyId]: e.target.value }))}
+                        />
+                        <InputGroupAddon align="inline-end">
+                          <InputGroupText>€</InputGroupText>
+                        </InputGroupAddon>
+                      </InputGroup>
                       <NudgeBadge amount={amount} rate={property} />
-                    </Box>
+                    </div>
                     {/* Nudge : fourchette conseil, ancre médiane */}
-                    <Typography sx={{ fontSize: '11px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                    <p className="cn-text-body1 text-[11px] text-[var(--muted)] tabular-nums">
                       {t('settings.myRates.advisoryLine', {
                         min: property.advisoryMin,
                         max: property.advisoryMax,
                       })}{' '}
                       · {t('settings.myRates.advisoryMedian')} <b>{property.advisoryRecommended} €</b>
-                    </Typography>
-                  </Box>
-                </Box>
+                    </p>
+                  </div>
+                </div>
               );
             })}
-          </Box>
+          </div>
         )}
-      </Paper>
+      </Card>
 
       {/* ── Enregistrer ──────────────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={saveMutation.isPending ? <CircularProgress size={16} color="inherit" /> : <Save size={16} strokeWidth={1.75} />}
-          onClick={handleSave}
-          disabled={saveMutation.isPending}
-        >
+      <div className="flex justify-end">
+        <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending}>
+          {saveMutation.isPending ? <Spinner className="size-4" /> : <Save size={16} strokeWidth={1.75} />}
           {t('settings.myRates.save')}
         </Button>
-      </Box>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity={snackbar.severity} variant="filled" onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+      </div>
+    </div>
   );
 }

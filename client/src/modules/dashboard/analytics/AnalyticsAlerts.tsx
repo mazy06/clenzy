@@ -1,5 +1,7 @@
 import React from 'react';
-import { Box, Typography, Card, CardContent, Chip, Grid } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+import { cn } from '../../../utils/cn';
+import { Card, CardContent } from '../../../components/ui';
 import {
   ErrorOutline, WarningAmber, InfoOutlined,
 } from '../../../icons';
@@ -33,11 +35,10 @@ const SEVERITY_LABELS: Record<AlertSeverity, string> = {
   info: 'Info',
 };
 
-const CARD_SX = {
-  width: '100%',
-  transition: 'border-color 0.15s ease',
-  '&:hover': { borderColor: 'text.secondary' },
-} as const;
+// Le `py` du gabarit Card est neutralise : la carte d'alerte porte tout son
+// espacement dans son CardContent (7,5 px), comme le `p: 1.25` d'origine.
+const CARD_CLASS = 'w-full py-0 transition-[border-color] duration-150';
+const CARD_CONTENT_CLASS = 'p-[7.5px]';
 
 interface Props {
   data: BusinessAlert[] | null;
@@ -56,132 +57,91 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
       subtitle={t('dashboard.analytics.alertsDesc')}
       badge={criticalCount}
     >
-      <Grid container spacing={1.5}>
+      <div className="grid grid-cols-12 gap-[9px]">
         {loading ? (
           Array.from({ length: 2 }).map((_, i) => (
-            <Grid item xs={12} key={i}>
-              <Card sx={{ ...CARD_SX, opacity: 0.5 }}>
-                <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
-                  <Box sx={{ height: 60 }} />
+            <div className="col-span-12" key={i}>
+              <Card className={cn(CARD_CLASS, 'opacity-50')}>
+                <CardContent className={CARD_CONTENT_CLASS}>
+                  <div className="h-[60px]" />
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
           ))
         ) : alerts.length === 0 ? (
-          <Grid item xs={12}>
-            <Card sx={CARD_SX}>
-              <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 1 }}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      minWidth: 28,
-                      height: 28,
-                      borderRadius: 0.75,
-                      bgcolor: 'rgba(74, 155, 142, 0.08)',
-                      color: '#4A9B8E',
-                      '& .MuiSvgIcon-root': { fontSize: 16 },
-                    }}
-                  >
+          <div className="col-span-12">
+            <Card className={CARD_CLASS}>
+              <CardContent className={CARD_CONTENT_CLASS}>
+                <div className="flex items-center gap-1 py-1.5">
+                  <div className="flex items-center justify-center min-w-[28px] h-[28px] rounded-[6px] bg-[rgba(74,_155,_142,_0.08)] text-[#4A9B8E] [&_.MuiSvgIcon-root]:text-[16px]">
                     <InfoOutlined />
-                  </Box>
-                  <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                  </div>
+                  <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
                     {t('dashboard.analytics.noAlerts')}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
         ) : (
           alerts.map((alert) => (
-            <Grid item xs={12} key={alert.id}>
+            <div className="col-span-12" key={alert.id}>
+              {/* Le liseré porte la couleur de sévérité, choisie a l'execution :
+                  style inline obligatoire (une classe Tailwind ne nait pas d'une variable). */}
               <Card
-                sx={{
-                  ...CARD_SX,
-                  borderLeft: `3px solid ${SEVERITY_COLORS[alert.severity]}`,
+                className={CARD_CLASS}
+                style={{
+                  // Largeur et style dans le meme `style` que la couleur : poser
+                  // `border-solid` en classe donnerait un style `solid` aux QUATRE
+                  // cotes, dont la largeur par defaut (`medium`) n'est pas nulle
+                  // faute de preflight Tailwind — soit un cadre complet non voulu.
+                  borderInlineStartWidth: 3,
+                  borderInlineStartStyle: 'solid',
+                  borderInlineStartColor: SEVERITY_COLORS[alert.severity],
                 }}
               >
-                <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
+                <CardContent className={CARD_CONTENT_CLASS}>
                   {/* Header */}
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, mb: 0.5 }}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minWidth: 28,
-                        height: 28,
-                        borderRadius: 0.75,
-                        bgcolor: SEVERITY_BG[alert.severity],
-                        color: SEVERITY_COLORS[alert.severity],
-                        '& .MuiSvgIcon-root': { fontSize: 16 },
-                      }}
+                  <div className="flex items-start gap-1 mb-0.5">
+                    {/* bg et couleur dependent de la severite a l'execution : style inline obligatoire */}
+                    <div
+                      className="flex items-center justify-center min-w-[28px] h-[28px] rounded-[6px] [&_.MuiSvgIcon-root]:text-[16px]"
+                      style={{ backgroundColor: SEVERITY_BG[alert.severity], color: SEVERITY_COLORS[alert.severity] }}
                     >
                       {SEVERITY_ICONS[alert.severity]}
-                    </Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
-                        <Typography
-                          sx={{
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            color: 'text.primary',
-                            lineHeight: 1.3,
-                            flex: 1,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-0.5 mb-0.5">
+                        <p className="cn-text-body1 text-[0.75rem] font-bold text-foreground leading-[1.3] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                           {alert.title}
-                        </Typography>
-                        <Chip
-                          label={SEVERITY_LABELS[alert.severity]}
-                          size="small"
-                          sx={{
-                            height: 16,
-                            fontSize: '0.5rem',
-                            fontWeight: 700,
-                            bgcolor: SEVERITY_BG[alert.severity],
-                            color: SEVERITY_COLORS[alert.severity],
-                            '& .MuiChip-label': { px: 0.5 },
-                          }}
-                        />
-                      </Box>
-                      <Typography
-                        sx={{
-                          fontSize: '0.625rem',
-                          color: 'text.secondary',
-                          lineHeight: 1.4,
-                        }}
-                      >
+                        </p>
+                        <StatusChip tokens={{ color: SEVERITY_COLORS[alert.severity], bg: SEVERITY_BG[alert.severity] }} label={SEVERITY_LABELS[alert.severity]} className="h-[16px] text-[0.5rem]" />
+                      </div>
+                      <p className="cn-text-body1 text-[0.625rem] text-muted-foreground leading-[1.4]">
                         {alert.description}
-                      </Typography>
-                    </Box>
-                  </Box>
+                      </p>
+                    </div>
+                  </div>
 
                   {/* Action */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-                    <Typography
-                      sx={{
-                        fontSize: '0.5625rem',
-                        fontWeight: 600,
-                        color: SEVERITY_COLORS[alert.severity],
-                        cursor: alert.route ? 'pointer' : 'default',
-                        '&:hover': alert.route ? { textDecoration: 'underline' } : {},
-                      }}
+                  <div className="flex items-center gap-0.5 mt-0.5">
+                    {/* couleur dependante de la severite a l'execution : style inline obligatoire */}
+                    <p
+                      className={cn(
+                        'cn-text-body1 text-[0.5625rem] font-semibold',
+                        alert.route ? 'cursor-pointer hover:underline' : 'cursor-default',
+                      )}
+                      style={{ color: SEVERITY_COLORS[alert.severity] }}
                     >
                       {alert.action}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
-            </Grid>
+            </div>
           ))
         )}
-      </Grid>
+      </div>
     </GridSection>
   );
 });

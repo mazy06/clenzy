@@ -1,38 +1,24 @@
 import React, { useState, useMemo } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Card } from '../../components/ui';
+import { Button, Field, FieldLabel, Input, NativeSelect, NativeSelectOption, Textarea } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
-  Box,
-  Paper,
-  TextField,
-  Button,
-  Typography,
-  Stack,
-  Alert,
-  CircularProgress,
-  MenuItem,
-  ThemeProvider,
-  CssBaseline,
-} from '@mui/material';
 import { ArrowBack, CheckCircle } from '../../icons';
-import { createBaitlyTheme } from '../../theme/createBaitlyTheme';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
 import apiClient from '../../services/apiClient';
 
-const textFieldSx = {
-  '& .MuiOutlinedInput-root': {
-    '&:hover fieldset': { borderColor: 'secondary.main' },
-    '&.Mui-focused fieldset': { borderColor: 'secondary.main' },
-  },
-  '& .MuiInputLabel-root.Mui-focused': { color: 'secondary.main' },
-};
-
 export default function Support() {
   const { t } = useTranslation();
-  // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en
-  const { isRtl } = useGeoAuthLanguage();
-  const theme = useMemo(() => createBaitlyTheme({ isRtl }), [isRtl]);
+  // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en.
+  // Le hook change la langue i18n GLOBALE : la racine de l'app recalcule alors
+  // son propre theme (Tajawal + RTL) et sa direction. Le ThemeProvider local
+  // qui vivait ici n'habillait plus aucun composant depuis que l'ecran est
+  // passe aux primitives Baitly UI, qui lisent les jetons CSS.
+  useGeoAuthLanguage();
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
@@ -78,192 +64,155 @@ export default function Support() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-    <Box sx={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)',
-      p: 2
-    }}>
-      <Paper elevation={0} sx={{
-        p: 2.5,
-        width: '100%',
-        maxWidth: 440,
-        borderRadius: 2,
-        backgroundColor: 'background.paper',
-        border: '1px solid',
-        borderColor: 'divider',
-      }}>
+    <div className="min-h-[100vh] flex items-center justify-center p-3" style={{ background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)' }}>
+      <Card className="gap-0 py-0 p-3.5 w-full max-w-[440px] bg-[var(--card)] border-border">
         {/* Header avec logo */}
-        <Box sx={{ textAlign: 'center', mb: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
+        <div className="text-center mb-3">
+          <div className="flex justify-center mb-2">
             <BaitlyMarkLogo variant="full" size={42} />
-          </Box>
-          <Typography variant="body2" sx={{
-            fontWeight: 500,
-            color: 'secondary.main',
-            fontSize: '0.85rem'
-          }}>
+          </div>
+          <p className="cn-text-body2 font-medium text-[var(--mui-secondary)] text-[0.85rem]">
             {t('auth.support.headerSubtitle', 'Contactez notre support')}
-          </Typography>
-        </Box>
+          </p>
+        </div>
 
         {submitted ? (
           /* Message de confirmation */
-          <Box sx={{ textAlign: 'center', py: 3 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main', mb: 1.5 }}><CheckCircle size={56} strokeWidth={1.75} /></Box>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, fontSize: '1rem' }}>
+          <div className="text-center py-4">
+            <span className="inline-flex text-[var(--bui-success-ink)] mb-2"><CheckCircle size={56} strokeWidth={1.75} /></span>
+            <h6 className="cn-text-h6 font-semibold mb-1.5 text-[1rem]">
               {t('auth.support.submittedTitle', 'Message envoyé !')}
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5, fontSize: '0.85rem' }}>
+            </h6>
+            <p className="cn-text-body2 text-muted-foreground mb-3.5 text-[0.85rem]">
               {t('auth.support.submittedBody', 'Notre équipe vous contactera dans les 24 heures.')}
-            </Typography>
+            </p>
+            {/* Teintes en dur : cette page construit TOUJOURS le theme clair, ou
+                palette.secondary vaut main #A6C0CE / dark #8BA3B3 (contrastText
+                #1e293b) — il n'existe pas de jeton CSS pour la variante dark. */}
             <Button
-              variant="contained"
-              size="medium"
               onClick={() => navigate('/login')}
-              sx={{
-                py: 1,
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                backgroundColor: 'secondary.main',
-                '&:hover': { backgroundColor: 'secondary.dark' },
-                borderRadius: 1.5,
-                boxShadow: 'none',
-              }}
+              className="rounded-[12px] bg-[#A6C0CE] text-[#1e293b] shadow-none hover:bg-[#8BA3B3]"
             >
               {t('auth.support.backToLogin', 'Retour à la connexion')}
             </Button>
-          </Box>
+          </div>
         ) : (
           /* Formulaire de contact */
           <form onSubmit={handleSubmit}>
-            <Stack spacing={1.5}>
-              <TextField
-                fullWidth
-                size="small"
-                label={t('auth.support.fields.nameLabel', 'Nom complet')}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                disabled={loading}
-                sx={textFieldSx}
-              />
+            <div className="flex flex-col gap-[9px]">
+              <Field>
+                <FieldLabel htmlFor="support-name">{t('auth.support.fields.nameLabel', 'Nom complet')}</FieldLabel>
+                <Input
+                  id="support-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </Field>
 
-              <TextField
-                fullWidth
-                size="small"
-                label={t('auth.support.fields.emailLabel', 'Email')}
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-                sx={textFieldSx}
-              />
+              <Field>
+                <FieldLabel htmlFor="support-email">{t('auth.support.fields.emailLabel', 'Email')}</FieldLabel>
+                <Input
+                  id="support-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </Field>
 
-              <TextField
-                fullWidth
-                size="small"
-                label={t('auth.support.fields.phoneLabel', 'Téléphone (optionnel)')}
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                disabled={loading}
-                sx={textFieldSx}
-              />
+              <Field>
+                <FieldLabel htmlFor="support-phone">{t('auth.support.fields.phoneLabel', 'Téléphone (optionnel)')}</FieldLabel>
+                <Input
+                  id="support-phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  disabled={loading}
+                />
+              </Field>
 
-              <TextField
-                fullWidth
-                size="small"
-                select
-                label={t('auth.support.fields.subjectLabel', 'Sujet')}
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                required
-                disabled={loading}
-                sx={textFieldSx}
-              >
-                {subjects.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <Field>
+                <FieldLabel htmlFor="support-subject">{t('auth.support.fields.subjectLabel', 'Sujet')}</FieldLabel>
+                <NativeSelect
+                  id="support-subject"
+                  className="w-full"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  required
+                  disabled={loading}
+                >
+                  {/* Option vide obligatoire : un select natif sans valeur vide
+                      selectionnerait le 1er sujet a l'affichage alors que l'etat
+                      reste '', et `required` ne bloquerait plus l'envoi. */}
+                  <NativeSelectOption value="">
+                    {t('auth.support.fields.subjectPlaceholder', 'Choisissez un sujet')}
+                  </NativeSelectOption>
+                  {subjects.map((option) => (
+                    <NativeSelectOption key={option.value} value={option.value}>
+                      {option.label}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </Field>
 
-              <TextField
-                fullWidth
-                size="small"
-                label={t('auth.support.fields.messageLabel', 'Votre message')}
-                multiline
-                rows={4}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                required
-                disabled={loading}
-                placeholder={t('auth.support.fields.messagePlaceholder', 'Décrivez votre problème ou votre demande...')}
-                sx={textFieldSx}
-              />
+              <Field>
+                <FieldLabel htmlFor="support-message">{t('auth.support.fields.messageLabel', 'Votre message')}</FieldLabel>
+                <Textarea
+                  id="support-message"
+                  rows={4}
+                  // field-sizing:content neutralise `rows` : la hauteur de
+                  // depart se garantit en min-h.
+                  className="min-h-[4lh]"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  required
+                  disabled={loading}
+                  placeholder={t('auth.support.fields.messagePlaceholder', 'Décrivez votre problème ou votre demande...')}
+                />
+              </Field>
 
               {error && (
-                <Alert severity="error" sx={{ py: 0.75 }}>
-                  <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{error}</Typography>
+                <Alert variant="destructive" className="py-1">
+                  <TriangleAlert />
+                  <AlertDescription><p className="cn-text-body2 text-[0.85rem]">{error}</p></AlertDescription>
                 </Alert>
               )}
 
+              {/* `shrink` neutralise le shrink-0 du gabarit : le bouton doit
+                  occuper toute la largeur de la colonne, comme dans le Stack. */}
               <Button
                 type="submit"
-                variant="contained"
-                size="medium"
                 disabled={loading}
-                sx={{
-                  py: 1,
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  backgroundColor: 'secondary.main',
-                  '&:hover': { backgroundColor: 'secondary.dark' },
-                  '&:active': { backgroundColor: 'primary.main' },
-                  '&:disabled': { backgroundColor: 'secondary.light' },
-                  borderRadius: 1.5,
-                  boxShadow: 'none',
-                  transition: 'all 0.3s ease',
-                }}
+                className="w-full shrink rounded-[12px] bg-[#A6C0CE] text-[#1e293b] shadow-none hover:bg-[#8BA3B3] active:bg-[#6B8A9A] disabled:bg-[#C5D5E0]"
               >
                 {loading ? (
-                  <CircularProgress size={20} color="inherit" />
+                  <Spinner className="size-5" />
                 ) : (
                   t('auth.support.submit', 'Envoyer')
                 )}
               </Button>
-            </Stack>
+            </div>
           </form>
         )}
 
         {/* Lien retour */}
         {!submitted && (
-          <Box sx={{ mt: 2, textAlign: 'center' }}>
+          <div className="mt-3 text-center">
             <Button
-              variant="text"
-              size="small"
-              startIcon={<ArrowBack size={'0.9rem'} strokeWidth={1.75} />}
+              variant="ghost"
+              size="sm"
               onClick={() => navigate('/login')}
-              sx={{
-                color: 'secondary.main',
-                fontWeight: 500,
-                fontSize: '0.75rem',
-                textTransform: 'none',
-                '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
-              }}
+              className="text-[0.75rem] font-medium text-[#A6C0CE] hover:bg-transparent hover:text-[#6B8A9A]"
             >
+              <ArrowBack size={'0.9rem'} strokeWidth={1.75} />
               {t('auth.support.backToLogin', 'Retour à la connexion')}
             </Button>
-          </Box>
+          </div>
         )}
-      </Paper>
-    </Box>
-    </ThemeProvider>
+      </Card>
+    </div>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Box, Typography } from '@mui/material';
+import { cn } from '../../../utils/cn';
 
 type DataItem = Record<string, unknown>;
 
@@ -45,131 +45,69 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
 
   if (items.length === 0) {
     return (
-      <Box
-        sx={{
-          mt: 1, mb: 1.5,
-          px: 2, py: 2,
-          borderRadius: '12px',
-          border: '1px solid var(--line)',
-          bgcolor: 'var(--card)',
-          textAlign: 'center',
-        }}
-      >
-        <Typography sx={{ fontSize: '12.5px', color: 'var(--muted)' }}>
+      <div className="mt-1.5 mb-2 px-3 py-3 rounded-[12px] border border-[var(--line)] bg-[var(--card)] text-center">
+        <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
           Aucun resultat
           {data.from && data.to && ` sur la periode ${formatDate(data.from)} → ${formatDate(data.to)}`}.
-        </Typography>
-      </Box>
+        </p>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ mt: 1, mb: 1.5 }}>
+    <div className="mt-1.5 mb-2">
       {/* Header avec range de dates si fournie */}
       {data.from && data.to && (
-        <Typography
-          sx={{
-            display: 'block',
-            mb: 0.75,
-            fontSize: '11.5px',
-            color: 'var(--muted)',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
+        <p className="cn-text-body1 block mb-1 text-[11.5px] text-[var(--muted)] tabular-nums">
           Periode : {formatDate(data.from)} → {formatDate(data.to)}
-        </Typography>
+        </p>
       )}
 
       {/* Table hairline */}
-      <Box
-        sx={{
-          borderRadius: '12px',
-          overflow: 'hidden',
-          border: '1px solid var(--line)',
-          bgcolor: 'var(--card)',
-        }}
-      >
+      <div className="rounded-[12px] overflow-hidden border border-[var(--line)] bg-[var(--card)]">
         {/* Header row */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
-            gap: 1,
-            px: 1.5,
-            py: 0.75,
-            bgcolor: 'var(--surface-2)',
-            borderBottom: '1px solid var(--line)',
-          }}
-        >
+        <div className="grid gap-1.5 px-[9px] py-[4.5px] bg-[var(--surface-2)]" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`, borderBottom: '1px solid var(--line)' }}>
           {columns.map((col) => (
-            <Typography
-              key={col.key}
-              sx={{
-                fontSize: '10.5px',
-                fontWeight: 700,
-                letterSpacing: '.05em',
-                textTransform: 'uppercase',
-                color: 'var(--faint)',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
+            <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)] whitespace-nowrap overflow-hidden text-ellipsis" key={col.key}>
               {col.label}
-            </Typography>
+            </p>
           ))}
-        </Box>
+        </div>
 
         {/* Data rows */}
         {visibleItems.map((item, idx) => (
-          <Box
+          // Le gabarit de grille depend du nombre de colonnes (execution) → style.
+          // gap 1 = 6px, px 1.5 = 9px, py 1 = 6px (theme.spacing = 6).
+          <div
             key={String(item.id ?? idx)}
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
-              gap: 1,
-              px: 1.5,
-              py: 1,
-              borderTop: idx > 0 ? '1px solid var(--line)' : 'none',
-              transition: 'background .12s',
-              '&:hover': { bgcolor: 'var(--hover)' },
-              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            }}
+            style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
+            className={cn(
+              'grid gap-1.5 px-[9px] py-1.5 transition-[background] duration-[120ms] motion-reduce:transition-none hover:bg-[var(--hover)]',
+              idx > 0 ? 'border-t border-solid border-[var(--line)]' : 'border-t-0',
+            )}
           >
             {columns.map((col) => (
-              <Typography
+              <p
                 key={col.key}
-                sx={{
-                  fontSize: '12.5px',
-                  color: 'var(--body)',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  ...(col.numeric && { fontVariantNumeric: 'tabular-nums', fontWeight: 500 }),
-                }}
+                className={cn(
+                  'cn-text-body1 text-[12.5px] text-[var(--body)] whitespace-nowrap overflow-hidden text-ellipsis',
+                  col.numeric && 'tabular-nums font-medium',
+                )}
               >
                 {formatCell(item[col.key], col)}
-              </Typography>
+              </p>
             ))}
-          </Box>
+          </div>
         ))}
-      </Box>
+      </div>
 
       {/* Footer truncation */}
       {hiddenCount > 0 && (
-        <Typography
-          sx={{
-            display: 'block',
-            mt: 0.75,
-            fontSize: '11.5px',
-            color: 'var(--muted)',
-            fontStyle: 'italic',
-          }}
-        >
+        <p className="cn-text-body1 block mt-1 text-[11.5px] text-[var(--muted)] italic">
           + {hiddenCount} de plus (demande "tous" pour la liste complete)
-        </Typography>
+        </p>
       )}
-    </Box>
+    </div>
   );
 };
 

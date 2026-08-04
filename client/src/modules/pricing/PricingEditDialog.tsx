@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
+import { Button, Spinner } from '../../components/ui';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  Typography,
-  Box,
-  CircularProgress,
-} from '@mui/material';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  FieldError,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -66,48 +70,54 @@ const PricingEditDialog: React.FC<PricingEditDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
-      <DialogTitle>{t('dynamicPricing.calendar.editPrice')}</DialogTitle>
-      <DialogContent>
-        <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Typography variant="body2" color="text.secondary">
+    // maxWidth="xs" MUI = 444 px.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent className="sm:max-w-[444px]">
+        <DialogHeader>
+          <DialogTitle>{t('dynamicPricing.calendar.editPrice')}</DialogTitle>
+        </DialogHeader>
+        <div className="pt-1.5 flex flex-col gap-3">
+          <p className="cn-text-body2 text-muted-foreground">
             {formatDateRange(selectedDates)}
             {selectedDates.length > 1 && (
-              <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+              <span className="cn-text-body2 text-muted-foreground ms-1.5">
                 ({selectedDates.length} {t('common.date')}s)
-              </Typography>
+              </span>
             )}
-          </Typography>
+          </p>
 
-          <TextField
-            label={t('dynamicPricing.calendar.pricePerNight')}
-            type="number"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            error={!!error}
-            helperText={error}
-            fullWidth
-            autoFocus
-            InputProps={{
-              endAdornment: <Typography color="text.secondary">{currency}</Typography>,
-            }}
-            inputProps={{ min: 0, step: 1 }}
-          />
-        </Box>
+          <Field>
+            <FieldLabel htmlFor="pricing-price-per-night">
+              {t('dynamicPricing.calendar.pricePerNight')}
+            </FieldLabel>
+            <InputGroup className="w-full">
+              <InputGroupInput
+                id="pricing-price-per-night"
+                type="number"
+                min={0}
+                step={1}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                autoFocus
+                aria-invalid={!!error}
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupText className="text-muted-foreground">{currency}</InputGroupText>
+              </InputGroupAddon>
+            </InputGroup>
+            {error && <FieldError>{error}</FieldError>}
+          </Field>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={handleClose} disabled={loading}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={handleApply} disabled={loading || !price}>
+            {loading && <Spinner className="size-4" />}
+            {t('dynamicPricing.calendar.applyRange')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} disabled={loading}>
-          {t('common.cancel')}
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleApply}
-          disabled={loading || !price}
-          startIcon={loading ? <CircularProgress size={16} /> : undefined}
-        >
-          {t('dynamicPricing.calendar.applyRange')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };

@@ -49,17 +49,32 @@ public class ComplianceSubmissionService {
     private final ComplianceSubmissionStrategyRegistry strategyRegistry;
     private final OrganizationAccessGuard accessGuard;
     private final ObjectProvider<ComplianceSubmissionService> self;
+    private final com.clenzy.service.compliance.ObligationOwnership obligationOwnership;
 
     public ComplianceSubmissionService(GuestDeclarationRepository declarationRepository,
                                        ComplianceConnectionService connectionService,
                                        ComplianceSubmissionStrategyRegistry strategyRegistry,
                                        OrganizationAccessGuard accessGuard,
-                                       ObjectProvider<ComplianceSubmissionService> self) {
+                                       ObjectProvider<ComplianceSubmissionService> self,
+                                       com.clenzy.service.compliance.ObligationOwnership obligationOwnership) {
         this.declarationRepository = declarationRepository;
         this.connectionService = connectionService;
         this.strategyRegistry = strategyRegistry;
         this.accessGuard = accessGuard;
         this.self = self;
+        this.obligationOwnership = obligationOwnership;
+    }
+
+    /** Mandat actif du logement de la réservation déclarée — null si aucun. */
+    private Long activeMandateOf(GuestDeclaration declaration) {
+        try {
+            final var reservation = declaration.getReservation();
+            final var property = reservation != null ? reservation.getProperty() : null;
+            return property == null ? null : obligationOwnership.activeContractId(
+                    declaration.getOrganizationId(), property.getId());
+        } catch (Exception e) {
+            return null; // la traçabilité ne doit jamais faire échouer une soumission acceptée
+        }
     }
 
     /**
@@ -194,6 +209,10 @@ public class ComplianceSubmissionService {
             declaration.setSubmittedToProvider(true);
             declaration.setProviderType(provider.name());
             declaration.setSubmittedAt(LocalDateTime.now());
+            // AU TITRE DE QUOI on déclare : le mandat actif du logement. C'est la
+            // pièce qui rend la déclaration opposable quand elle est faite pour le
+            // compte d'un propriétaire tiers, avec les identifiants de l'agence.
+            declaration.setManagementContractId(activeMandateOf(declaration));
             declarationRepository.save(declaration);
             log.info("Déclaration {} transmise à {} (ref={})",
                     declarationId, provider, result.externalReference());

@@ -42,7 +42,8 @@ class InterventionOptimisticLockingTest {
         service = new InterventionLifecycleService(
                 interventionRepository, interventionMapper, accessPolicy,
                 notificationService, outboxPublisher, objectMapper, tenantContext,
-                housekeeperPayoutService);
+                housekeeperPayoutService,
+                org.mockito.Mockito.mock(com.clenzy.service.PropertyStockService.class));
     }
 
     private Jwt mockJwtWithRole(String role) {

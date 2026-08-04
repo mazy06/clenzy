@@ -20,6 +20,18 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
   });
 }
 
+// Polyfill ResizeObserver : jsdom ne l'implemente pas, et les primitives Radix
+// (Tooltip, Popover, Select — tout ce qui positionne une fleche) le lisent au
+// montage via @radix-ui/react-use-size. MUI n'en avait pas besoin, si bien que
+// le manque n'apparait qu'une fois l'ecran passe a Baitly UI.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+}
+
 // Initialise i18next pour que les composants qui appellent `t('key')` retournent
 // les traductions reelles (FR par defaut) plutot que la cle brute. Sans cela,
 // les assertions sur du texte traduit (ex: "WiFi" au lieu de "WIFI") echouent.

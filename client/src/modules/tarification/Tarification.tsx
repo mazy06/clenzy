@@ -1,11 +1,8 @@
-import React from 'react';
-import {
-  Box,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  Button,
-} from '@mui/material';
+import React, { useEffect } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { Info } from 'lucide-react';
+import { Button, Spinner } from '../../components/ui';
+import { useNotification } from '../../hooks/useNotification';
 import {
   Save,
   Refresh,
@@ -70,6 +67,16 @@ export default function Tarification() {
     closeSnackbar,
   } = useTarification();
 
+  // L'etat du snackbar vit dans useTarification (fichier .ts, hors perimetre de
+  // cette migration) : on le draine vers le toast sonner puis on le referme,
+  // ce qui evite d'avoir deux mecanismes de notification en parallele.
+  const { notify } = useNotification();
+  useEffect(() => {
+    if (!snackbar.open) return;
+    notify[snackbar.severity](snackbar.message);
+    closeSnackbar();
+  }, [snackbar, notify, closeSnackbar]);
+
   // TAB_DEFS porte deja les `key` stables : on le passe directement au hook (URL ?tab=<key>).
   const [activeTab, setActiveTab] = useTabKeyParam(TAB_DEFS);
 
@@ -117,55 +124,56 @@ export default function Tarification() {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
   return (
     <PageHeaderActionsProvider slot={headerActionsSlot}>
-      <Box>
+      <div>
         <PageHeader
           title={title}
           subtitle={subtitle}
           iconBadge={<Euro />}
           backPath="/dashboard"
           actions={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <div className="flex items-center gap-1.5">
               {headerActionsPortal}
               {canEdit && (
                 <>
                   <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<Refresh />}
+                    variant="outline"
+                    size="sm"
                     onClick={resetConfig}
                     disabled={isSaving}
                     title={t('tarification.reset')}
                   >
+                    <Refresh />
                     {t('tarification.reset')}
                   </Button>
                   <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={isSaving ? <CircularProgress size={16} color="inherit" /> : <Save />}
+                    variant="default"
+                    size="sm"
                     onClick={saveConfig}
                     disabled={isSaving}
                     title={t('tarification.save')}
                   >
+                    {isSaving ? <Spinner className="size-4" /> : <Save />}
                     {t('tarification.save')}
                   </Button>
                 </>
               )}
-            </Box>
+            </div>
           }
         />
 
         {!canEdit && (
-          <Alert severity="info" sx={{ mb: 2 }}>
-            {t('tarification.readOnly')}
-          </Alert>
+          <UiAlert variant="info" className="mb-3">
+            <Info />
+            <AlertDescription>{t('tarification.readOnly')}</AlertDescription>
+          </UiAlert>
         )}
 
         {/* ─── Tabs ──────────────────────────────────────────────────── */}
@@ -176,7 +184,7 @@ export default function Tarification() {
         />
 
         {/* ─── Tab Content ───────────────────────────────────────────── */}
-        <Box sx={{ pt: 1 }}>
+        <div className="pt-1.5">
           {activeTab === 0 && (
             <TabPMS config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
           )}
@@ -210,20 +218,8 @@ export default function Tarification() {
           {activeTab === 6 && (
             <TabMonitoring config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
           )}
-        </Box>
-
-        {/* ─── Snackbar ────────────────────────────────────────────────── */}
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={4000}
-          onClose={closeSnackbar}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        >
-          <Alert onClose={closeSnackbar} severity={snackbar.severity} variant="filled">
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
-      </Box>
+        </div>
+      </div>
     </PageHeaderActionsProvider>
   );
 }

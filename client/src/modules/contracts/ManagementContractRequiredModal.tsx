@@ -1,9 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, AlertDescription, Button } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  Box, Button, Typography, Alert, CircularProgress,
-} from '@mui/material';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui';
 import { Handshake, Check } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -86,42 +93,40 @@ const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalP
   };
 
   return (
-    <Dialog
-      open={open}
-      maxWidth="md"
-      fullWidth
-      disableEscapeKeyDown
-    >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 1 }}>
-        <Box
-          component="span"
-          sx={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 28, height: 28, borderRadius: '8px',
-            bgcolor: 'var(--accent-soft)', color: 'var(--accent)',
-          }}
-        >
-          <Handshake size={16} strokeWidth={2} />
-        </Box>
-        <Box>
-          <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 600, lineHeight: 1.2, color: 'var(--ink)' }}>
-            {t('contracts.required.title', 'Contrat de gestion requis')}
-          </Typography>
-          {property && (
-            <Typography sx={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
-              {property.name}
-            </Typography>
-          )}
-        </Box>
-      </DialogTitle>
+    // Modale non fermable : `open` est controle sans onOpenChange, donc Radix
+    // ne peut pas la refermer (Echap et clic exterieur sont neutralises aussi).
+    <Dialog open={open}>
+      <DialogContent
+        className="max-w-[900px] max-h-[88vh] overflow-y-auto"
+        showCloseButton={false}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
+        <DialogHeader>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-[8px] bg-[var(--accent-soft)] text-[var(--accent)] shrink-0">
+              <Handshake size={16} strokeWidth={2} />
+            </span>
+            <div className="min-w-0">
+              <DialogTitle className="text-[16px] font-semibold leading-[1.2] text-[var(--ink)]">
+                {t('contracts.required.title', 'Contrat de gestion requis')}
+              </DialogTitle>
+              {property && (
+                <DialogDescription className="text-[0.75rem] text-[var(--muted)]">
+                  {property.name}
+                </DialogDescription>
+              )}
+            </div>
+          </div>
+        </DialogHeader>
 
-      <DialogContent dividers sx={{ px: 3, py: 3 }}>
-        <Typography sx={{ fontSize: '0.8125rem', color: 'var(--muted)', mb: 3 }}>
+        <div className="border-y border-solid border-[var(--line)] py-4">
+        <p className="cn-text-body1 text-[0.8125rem] text-[var(--muted)] mb-4">
           {t(
             'contracts.required.intro',
             "Avant d'exploiter ce logement, définissez le contrat de gestion : il fixe le modèle d'encaissement (taxonomie OTA) et la commission qui pilotent la répartition des paiements. Choisissez un modèle pour préremplir, puis ajustez les détails.",
           )}
-        </Typography>
+        </p>
 
         <ManagementContractFormFields
           form={form}
@@ -132,24 +137,25 @@ const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalP
         />
 
         {error && (
-          <Alert severity="error" sx={{ mt: 1.5, fontSize: '0.8125rem' }}>
-            {error}
+          <Alert variant="destructive" className="mt-2 text-[0.8125rem]">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-      </DialogContent>
+        </div>
 
-      <DialogActions sx={{ px: 3, py: 1.5 }}>
-        <Button
-          variant="contained"
-          onClick={handleSubmit}
-          disabled={!formValid || saving}
-          startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Check size={16} strokeWidth={2} />}
-        >
-          {saving
-            ? t('contracts.required.saving', 'Enregistrement…')
-            : t('contracts.required.submit', 'Valider le contrat')}
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <Button
+            onClick={handleSubmit}
+            disabled={!formValid || saving}
+          >
+            {saving ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={2} />}
+            {saving
+              ? t('contracts.required.saving', 'Enregistrement…')
+              : t('contracts.required.submit', 'Valider le contrat')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

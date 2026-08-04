@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, ButtonBase, InputBase, Skeleton } from '@mui/material';
+import { Button, Input, Skeleton, Textarea } from '../../../../components/ui';
 import { Plus, Wand2, Trash2, ArrowLeft, Check, AlertTriangle, FileText, Languages } from 'lucide-react';
 import { sitesApi, type BlogPost, type BlogPostUpsert } from '../../../../services/api/sitesApi';
 import { useNotification } from '../../../../hooks/useNotification';
@@ -99,9 +99,9 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
 
   if (error) {
     return (
-      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1, color: 'var(--err)', fontSize: 'var(--text-sm)' }}>
+      <div className="p-4 flex items-center gap-1.5 text-[var(--err)] text-[var(--text-sm)]">
         <AlertTriangle size={16} strokeWidth={2} /> {error}
-      </Box>
+      </div>
     );
   }
 
@@ -117,82 +117,86 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
   }
 
   return (
-    <Box sx={{ maxWidth: 1080, mx: 'auto', px: { xs: 2, md: 3 }, py: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 2, mb: 3 }}>
-        <Box>
-          <Box sx={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-xl)', fontWeight: 'var(--fw-bold)' }}>Articles de blog</Box>
-          <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', mt: 0.25 }}>Rédige ou génère des articles ; les articles publiés apparaissent sur ton site.</Box>
-        </Box>
-        <Box sx={{ flex: 1 }} />
-        <ButtonBase onClick={() => setEditing('new')} disabled={siteId == null} sx={primaryBtnSx}>
+    <div className="max-w-[1080px] mx-auto px-3 min-[900px]:px-[18px] py-[18px]">
+      <div className="flex items-end gap-3 mb-4">
+        <div>
+          <div className="font-[family-name:var(--font-display)] text-[var(--text-xl)] font-[family-name:var(--fw-bold)]">Articles de blog</div>
+          <div className="text-[var(--text-sm)] text-[var(--muted)] mt-0.5">Rédige ou génère des articles ; les articles publiés apparaissent sur ton site.</div>
+        </div>
+        <div className="flex-1" />
+        <Button size="lg" onClick={() => setEditing('new')} disabled={siteId == null} className={PRIMARY_BTN_CLASS}>
           <Plus size={16} strokeWidth={2.2} /> Nouvel article
-        </ButtonBase>
-      </Box>
+        </Button>
+      </div>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, p: 1.25, borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 'var(--text-2xs)', lineHeight: 1.4 }}>
+      <div className="flex items-center gap-1.5 mb-3 p-2 rounded-[var(--radius-md)] bg-[var(--accent-soft)] text-[var(--accent)] text-[var(--text-2xs)] leading-[1.4]">
         <AlertTriangle size={15} strokeWidth={2} style={{ flexShrink: 0 }} />
         La publication est soumise à <strong>validation manuelle</strong> : un article (surtout s'il est généré par IA) doit être relu puis approuvé. Les relecteurs de l'organisation sont alertés à chaque soumission.
-      </Box>
+      </div>
 
       {posts === null && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          {[0, 1, 2].map((i) => <Skeleton key={i} variant="rounded" height={64} sx={{ borderRadius: 'var(--radius-md)', bgcolor: 'var(--hover)' }} />)}
-        </Box>
+        <div className="flex flex-col gap-1.5">
+          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-16 w-full rounded-[var(--radius-md)] bg-[var(--hover)]" />)}
+        </div>
       )}
 
       {posts?.length === 0 && (
-        <Box sx={{ textAlign: 'center', py: 7, color: 'var(--muted)' }}>
-          <Box sx={{ width: 52, height: 52, mx: 'auto', mb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-lg)', bgcolor: 'var(--accent-soft)', color: 'var(--accent)' }}>
+        <div className="text-center py-10 text-[var(--muted)]">
+          <div className="w-[52px] h-[52px] mx-auto mb-2 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--accent-soft)] text-[var(--accent)]">
             <FileText size={24} strokeWidth={1.8} />
-          </Box>
-          <Box sx={{ fontSize: 'var(--text-md)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)', mb: 0.5 }}>Aucun article</Box>
-          <Box sx={{ fontSize: 'var(--text-sm)' }}>Crée ton premier article ou laisse l'IA t'en proposer un.</Box>
-        </Box>
+          </div>
+          <div className="text-[var(--text-md)] font-[family-name:var(--fw-semibold)] text-[var(--ink)] mb-0.5">Aucun article</div>
+          <div className="text-[var(--text-sm)]">Crée ton premier article ou laisse l'IA t'en proposer un.</div>
+        </div>
       )}
 
       {posts && posts.length > 0 && (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 1.5 }}>
+        <div className="grid grid-cols-[1fr] min-[1200px]:grid-cols-[1fr_1fr] gap-[9px]">
           {posts.map((p) => {
             const meta = STATUS_META[p.status] ?? STATUS_META.DRAFT;
             const pending = p.status === 'PENDING_REVIEW';
             return (
-              <Box key={p.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
-                    <Box sx={{ fontSize: 'var(--text-md)', fontWeight: 'var(--fw-semibold)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.title || '(sans titre)'}</Box>
-                    {p.aiGenerated && <Box component="span" sx={aiChipSx}>IA</Box>}
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25, fontSize: 'var(--text-2xs)', color: meta.color }}>
-                    <Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: meta.color, flexShrink: 0 }} />
+              <div className="flex items-center gap-1.5 p-2 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--card)]" key={p.id}>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1 min-w-0">
+                    <div className="text-[var(--text-md)] font-[family-name:var(--fw-semibold)] whitespace-nowrap overflow-hidden text-ellipsis">{p.title || '(sans titre)'}</div>
+                    {p.aiGenerated && <span className="shrink-0 inline-flex items-center px-[4.5px] h-[17px] rounded-full bg-[var(--accent-soft)] text-[var(--accent)] text-[var(--text-2xs)] font-bold tracking-[.04em]">IA</span>}
+                  </div>
+                  <div className="flex items-center gap-[3px] mt-[1.5px] text-[var(--text-2xs)]" style={{ color: meta.color }}>
+                    <span className="w-[6px] h-[6px] rounded-[50%] shrink-0" style={{ backgroundColor: meta.color }} />
                     {meta.label} · /{p.slug}
-                  </Box>
-                </Box>
+                  </div>
+                </div>
                 {pending && (
                   <>
-                    <ButtonBase onClick={async () => { if (siteId != null) { await sitesApi.approvePost(siteId, p.id); reload(); } }} sx={{ ...primaryBtnSx, height: 32, px: 1.25 }}>
+                    <Button onClick={async () => { if (siteId != null) { await sitesApi.approvePost(siteId, p.id); reload(); } }} className={PRIMARY_BTN_CLASS}>
                       <Check size={14} strokeWidth={2.4} /> Valider &amp; publier
-                    </ButtonBase>
-                    <ButtonBase onClick={async () => { if (siteId != null) { await sitesApi.rejectPost(siteId, p.id); reload(); } }} sx={ghostBtnSx}>Brouillon</ButtonBase>
+                    </Button>
+                    <Button variant="outline" onClick={async () => { if (siteId != null) { await sitesApi.rejectPost(siteId, p.id); reload(); } }} className={GHOST_BTN_CLASS}>Brouillon</Button>
                   </>
                 )}
-                <ButtonBase
+                <Button
+                  variant="outline"
                   onClick={() => setTranslatingPost(p)}
                   disabled={postTargets(p).length === 0}
                   aria-label={t('bookingEngine.studio.ai.translate.postAction', 'Traduire (IA)')}
                   title={t('bookingEngine.studio.ai.translate.postTooltip', 'Traduire cet article (IA) — crée des variantes en brouillon')}
-                  sx={{ ...ghostBtnSx, gap: 0.5, color: 'var(--accent)', borderColor: 'var(--accent)' }}>
+                  className={GHOST_ACCENT_BTN_CLASS}>
                   <Languages size={14} strokeWidth={2.2} /> {t('bookingEngine.studio.ai.translate.postAction', 'Traduire (IA)')}
-                </ButtonBase>
-                <ButtonBase onClick={() => setEditing(p)} sx={ghostBtnSx}>Éditer</ButtonBase>
-                <ButtonBase
+                </Button>
+                <Button variant="outline" onClick={() => setEditing(p)} className={GHOST_BTN_CLASS}>Éditer</Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={async () => { if (siteId != null) { await sitesApi.deletePost(siteId, p.id); reload(); } }}
-                  aria-label="Supprimer" sx={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', color: 'var(--muted)', cursor: 'pointer', flexShrink: 0, '&:hover': { bgcolor: 'var(--err-soft)', color: 'var(--err)' } }}>
+                  aria-label="Supprimer"
+                  className="text-[var(--muted)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]">
                   <Trash2 size={15} strokeWidth={2} />
-                </ButtonBase>
-              </Box>
+                </Button>
+              </div>
             );
           })}
-        </Box>
+        </div>
       )}
 
       <TranslateModal
@@ -202,7 +206,7 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
         availableTargets={translatingPost ? postTargets(translatingPost) : []}
         onTranslate={handleAutoTranslatePost}
       />
-    </Box>
+    </div>
   );
 }
 
@@ -264,94 +268,82 @@ function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: 
   };
 
   return (
-    <Box sx={{ maxWidth: 760, mx: 'auto', px: { xs: 2, md: 3 }, py: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <ButtonBase onClick={onClose} aria-label="Retour" sx={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', color: 'var(--muted)', cursor: 'pointer', '&:hover': { bgcolor: 'var(--hover)', color: 'var(--ink)' } }}>
+    <div className="max-w-[760px] mx-auto px-3 min-[900px]:px-[18px] py-[18px] flex flex-col gap-3">
+      <div className="flex items-center gap-1.5">
+        <Button variant="ghost" size="icon" onClick={onClose} aria-label="Retour" className="text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]">
           <ArrowLeft size={17} strokeWidth={2} />
-        </ButtonBase>
-        <Box sx={{ flex: 1, fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-bold)' }}>{post ? "Éditer l'article" : 'Nouvel article'}</Box>
-        <ButtonBase onClick={save} disabled={saving || !draft.title.trim()} sx={primaryBtnSx}>
+        </Button>
+        <div className="flex-1 font-[family-name:var(--font-display)] text-[var(--text-lg)] font-[family-name:var(--fw-bold)]">{post ? "Éditer l'article" : 'Nouvel article'}</div>
+        <Button size="lg" onClick={save} disabled={saving || !draft.title.trim()} className={PRIMARY_BTN_CLASS}>
           <Check size={15} strokeWidth={2.4} /> {saving ? 'Enregistrement…' : 'Enregistrer'}
-        </ButtonBase>
-      </Box>
+        </Button>
+      </div>
 
       {/* Génération IA */}
-      <Box sx={{ p: 1.5, borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--accent-soft)', display: 'flex', gap: 1, alignItems: 'center' }}>
+      <div className="p-2 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--accent-soft)] flex gap-1.5 items-center">
         <Wand2 size={16} strokeWidth={2} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-        <InputBase value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Sujet de l'article (ex. « Que faire à Lyon en hiver »)"
+        {/* Champ nu : la boite qui l'entoure porte deja bordure et fond. */}
+        <Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Sujet de l'article (ex. « Que faire à Lyon en hiver »)"
+          aria-label="Sujet de l'article"
           onKeyDown={(e) => { if (e.key === 'Enter') generate(); }}
-          sx={{ flex: 1, fontSize: 'var(--text-sm)', color: 'var(--ink)' }} />
-        <ButtonBase onClick={generate} disabled={generating || !topic.trim()} sx={{ ...ghostBtnSx, color: 'var(--accent)', borderColor: 'var(--accent)' }}>
+          className="flex-1 border-0 bg-transparent px-0 text-[var(--text-sm)] text-[var(--ink)] focus-visible:ring-0" />
+        <Button variant="outline" onClick={generate} disabled={generating || !topic.trim()} className={GHOST_ACCENT_BTN_CLASS}>
           {generating ? 'Génération…' : 'Générer (IA)'}
-        </ButtonBase>
-      </Box>
+        </Button>
+      </div>
 
-      {err && <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--err)' }}>{err}</Box>}
+      {err && <div className="text-[var(--text-sm)] text-[var(--err)]">{err}</div>}
 
-      <Field label="Titre"><InputBase value={draft.title} onChange={(e) => set('title', e.target.value)} sx={inputSx} placeholder="Titre de l'article" /></Field>
-      <Box sx={{ display: 'flex', gap: 1.5 }}>
-        <Field label="Chemin (slug)"><InputBase value={draft.slug} onChange={(e) => set('slug', e.target.value)} sx={inputSx} placeholder="auto depuis le titre" /></Field>
+      <Field label="Titre"><Input value={draft.title} onChange={(e) => set('title', e.target.value)} className={FIELD_CLASS} placeholder="Titre de l'article" /></Field>
+      <div className="flex gap-2">
+        <Field label="Chemin (slug)"><Input value={draft.slug} onChange={(e) => set('slug', e.target.value)} className={FIELD_CLASS} placeholder="auto depuis le titre" /></Field>
         <Field label="Statut">
-          <Box component="select" value={draft.status} onChange={(e) => set('status', (e.target as HTMLSelectElement).value)} sx={selectSx}>
+          <select
+            value={draft.status}
+            onChange={(e) => set('status', e.target.value)}
+            className="w-full h-[38px] px-1.5 text-[var(--text-md)] text-[var(--ink)] bg-[var(--field)] border border-solid border-[var(--line)] rounded-[var(--radius-md)] cursor-pointer"
+          >
             <option value="DRAFT">Brouillon</option>
             <option value="PENDING_REVIEW">Soumettre à validation</option>
             {draft.status === 'PUBLISHED' && <option value="PUBLISHED">Publié — en ligne</option>}
-          </Box>
+          </select>
         </Field>
-        <Field label="Langue"><InputBase value={draft.locale} onChange={(e) => set('locale', e.target.value)} sx={inputSx} placeholder="fr, en… (vide = toutes)" /></Field>
-      </Box>
+        <Field label="Langue"><Input value={draft.locale} onChange={(e) => set('locale', e.target.value)} className={FIELD_CLASS} placeholder="fr, en… (vide = toutes)" /></Field>
+      </div>
       {draft.status === 'PUBLISHED' && (
-        <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--warn, #B26B00)' }}>
+        <div className="text-[var(--text-2xs)] text-[var(--warn,_#B26B00)]">
           Toute modification enregistrée repassera par la validation avant une nouvelle mise en ligne.
-        </Box>
+        </div>
       )}
-      <Field label="Extrait"><InputBase value={draft.excerpt} onChange={(e) => set('excerpt', e.target.value)} sx={inputSx} multiline minRows={2} placeholder="Résumé court (listes, SEO)" /></Field>
-      <Field label="Contenu (markdown)"><InputBase value={draft.body} onChange={(e) => set('body', e.target.value)} sx={{ ...inputSx, '& textarea': { lineHeight: 1.6, fontFamily: 'var(--font-mono, monospace)' } }} multiline minRows={12} placeholder="Corps de l'article en markdown…" /></Field>
-      <Field label="Image de couverture (URL)"><InputBase value={draft.coverImageUrl} onChange={(e) => set('coverImageUrl', e.target.value)} sx={inputSx} placeholder="https://…" /></Field>
-      <Field label="Titre SEO"><InputBase value={draft.seoTitle} onChange={(e) => set('seoTitle', e.target.value)} sx={inputSx} placeholder="≤ 60 caractères" /></Field>
-      <Field label="Meta description SEO"><InputBase value={draft.seoDescription} onChange={(e) => set('seoDescription', e.target.value)} sx={inputSx} multiline minRows={2} placeholder="≤ 155 caractères" /></Field>
-    </Box>
+      {/* min-h-[Nlh] et pas `rows` : le Textarea du kit pose field-sizing:content,
+          qui neutralise l'attribut rows. */}
+      <Field label="Extrait"><Textarea value={draft.excerpt} onChange={(e) => set('excerpt', e.target.value)} className={`${FIELD_CLASS} min-h-[2lh]`} placeholder="Résumé court (listes, SEO)" /></Field>
+      <Field label="Contenu (markdown)"><Textarea value={draft.body} onChange={(e) => set('body', e.target.value)} className={`${FIELD_CLASS} min-h-[12lh]`} style={{ lineHeight: 1.6, fontFamily: 'var(--font-mono, monospace)' }} placeholder="Corps de l'article en markdown…" /></Field>
+      <Field label="Image de couverture (URL)"><Input value={draft.coverImageUrl} onChange={(e) => set('coverImageUrl', e.target.value)} className={FIELD_CLASS} placeholder="https://…" /></Field>
+      <Field label="Titre SEO"><Input value={draft.seoTitle} onChange={(e) => set('seoTitle', e.target.value)} className={FIELD_CLASS} placeholder="≤ 60 caractères" /></Field>
+      <Field label="Meta description SEO"><Textarea value={draft.seoDescription} onChange={(e) => set('seoDescription', e.target.value)} className={`${FIELD_CLASS} min-h-[2lh]`} placeholder="≤ 155 caractères" /></Field>
+    </div>
   );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <Box sx={{ flex: 1, minWidth: 0 }}>
-      <Box component="label" sx={{ display: 'block', mb: 0.5, fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-medium)', color: 'var(--body)' }}>{label}</Box>
+    <div className="flex-1 min-w-0">
+      <label className="block mb-0.5 text-[var(--text-sm)] font-[family-name:var(--fw-medium)] text-[var(--body)]">{label}</label>
       {children}
-    </Box>
+    </div>
   );
 }
 
-const inputSx = {
-  width: '100%', px: 1.25, py: 0.75, fontSize: 'var(--text-md)', color: 'var(--ink)',
-  bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)',
-  '&.Mui-focused': { borderColor: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-soft)' },
-} as const;
+// Peau des champs et des boutons du Studio : l'accent y est celui du site en
+// cours d'edition (--accent), pas la primaire du kit. Seules ces couleurs sont
+// reportees ; hauteurs, rayons et graisses viennent des gabarits du kit.
+const FIELD_CLASS = 'w-full border-[var(--line)] bg-[var(--field)] text-[var(--ink)]';
 
-const selectSx = {
-  width: '100%', height: 38, px: 1, fontSize: 'var(--text-md)', color: 'var(--ink)',
-  bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)', cursor: 'pointer',
-} as const;
+const PRIMARY_BTN_CLASS = 'bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-deep)]';
 
-const primaryBtnSx = {
-  display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 36, px: 1.75, flexShrink: 0,
-  borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)',
-  fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-sm)', cursor: 'pointer',
-  '&:hover': { bgcolor: 'var(--accent-deep)' }, '&.Mui-disabled': { opacity: 0.5 },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-} as const;
+const GHOST_BTN_CLASS =
+  'border-[var(--line)] bg-transparent text-[var(--body)] hover:bg-transparent hover:border-[var(--accent)] hover:text-[var(--ink)]';
 
-const ghostBtnSx = {
-  display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 32, px: 1.5, flexShrink: 0,
-  borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', color: 'var(--body)',
-  fontWeight: 'var(--fw-medium)', fontSize: 'var(--text-sm)', cursor: 'pointer',
-  '&:hover': { borderColor: 'var(--accent)', color: 'var(--ink)' }, '&.Mui-disabled': { opacity: 0.5 },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-} as const;
-
-const aiChipSx = {
-  flexShrink: 0, display: 'inline-flex', alignItems: 'center', px: 0.75, height: 17,
-  borderRadius: 999, bgcolor: 'var(--accent-soft)', color: 'var(--accent)',
-  fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '.04em',
-} as const;
+const GHOST_ACCENT_BTN_CLASS =
+  'border-[var(--accent)] bg-transparent text-[var(--accent)] hover:bg-transparent hover:text-[var(--ink)]';

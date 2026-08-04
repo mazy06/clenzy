@@ -1,15 +1,15 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { Button, Spinner } from './ui';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  Box,
-  Typography,
-  IconButton,
-  Button,
-  CircularProgress,
   Alert,
-} from '@mui/material';
+  AlertAction,
+  AlertDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from './ui';
+import { TriangleAlert, X } from 'lucide-react';
 import {
   Close as CloseIcon,
   Lock as LockIcon,
@@ -149,216 +149,115 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
   return (
     <Dialog
       open={open}
-      onClose={paymentSuccess ? undefined : onClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        // r18 + hairline + ombre profonde : peau modale du thème global
-        sx: {
-          overflow: 'hidden',
-          maxHeight: '90vh',
-        },
-      }}
+      onOpenChange={(next) => { if (!next && !paymentSuccess) onClose(); }}
     >
-      {/* ── Success screen ─────────────────────────────────────────── */}
-      {paymentSuccess ? (
-        <DialogContent sx={{ p: 0 }}>
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              py: 6,
-              px: 4,
-              gap: 2,
-            }}
-          >
-            <Box
-              component="span"
-              sx={{
-                display: 'inline-flex',
-                color: 'var(--ok)',
-              }}
-            >
+      {/* r18 + hairline + ombre profonde : peau modale du kit. */}
+      <DialogContent
+        className="sm:max-w-[600px] overflow-hidden max-h-[90vh] p-0"
+        showCloseButton={false}
+      >
+        {paymentSuccess ? (
+          <div className="flex flex-col items-center justify-center py-9 px-6 gap-3">
+            <span className="inline-flex text-[var(--ok)]">
               <CheckCircleIcon size={64} strokeWidth={1.5} />
-            </Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontFamily: 'var(--font-display)',
-                fontWeight: 600,
-                fontSize: 20,
-                letterSpacing: '-.01em',
-                color: 'var(--ink)',
-                textAlign: 'center',
-              }}
-            >
+            </span>
+            <DialogTitle className="font-[family-name:var(--font-display)] font-semibold text-[20px] tracking-[-.01em] text-[var(--ink)] text-center">
               Paiement reussi !
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: 'var(--muted)',
-                fontSize: '13px',
-                textAlign: 'center',
-                maxWidth: 360,
-              }}
-            >
+            </DialogTitle>
+            <p className="cn-text-body2 text-[var(--muted)] text-[13px] text-center max-w-[360px]">
               Le paiement de <Money value={amount} from="EUR" /> pour{' '}
               <strong>{interventionTitle || 'l\'intervention'}</strong> a ete traite avec succes.
-            </Typography>
-            <Button
-              variant="contained"
-              color="success"
-              onClick={onClose}
-              sx={{ mt: 2, minWidth: 120 }}
-            >
+            </p>
+            {/* Seule action de l'ecran de succes : elle est principale (default).
+                Le kit n'a pas de variante « success » et la reussite est deja portee
+                par la coche verte au-dessus. */}
+            <Button className="mt-3 min-w-[120px]" onClick={onClose}>
               Fermer
             </Button>
-          </Box>
-        </DialogContent>
-      ) : (
-        <>
-          {/* ── Header ──────────────────────────────────────────── */}
-          <DialogTitle
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 1.5,
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', flexShrink: 0 }}>
-                <LockIcon size={18} strokeWidth={1.75} />
-              </Box>
-              <Box sx={{ minWidth: 0 }}>
-                <Box component="span" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  Paiement securise
-                </Box>
-                {interventionTitle && (
-                  <Typography variant="body2" sx={{ fontFamily: 'var(--font-sans)', fontSize: '11.5px', fontWeight: 400, color: 'var(--muted)' }}>
-                    {interventionTitle}
-                  </Typography>
-                )}
-              </Box>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: '1.125rem',
-                  fontWeight: 600,
-                  fontVariantNumeric: 'tabular-nums',
-                  color: 'var(--accent)',
-                }}
-              >
-                <Money value={amount} from="EUR" />
-              </Typography>
-              {/* ✕ — pattern .rm-x : 34px r10 hairline, hover --err */}
-              <IconButton
-                onClick={onClose}
-                aria-label="Fermer"
-                sx={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: '10px',
-                  border: '1px solid var(--line-2)',
-                  backgroundColor: 'var(--card)',
-                  color: 'var(--muted)',
-                  flexShrink: 0,
-                  '&:hover': { color: 'var(--err)', borderColor: 'var(--err)', backgroundColor: 'var(--card)' },
-                  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-                }}
-              >
-                <CloseIcon size={16} strokeWidth={1.75} />
-              </IconButton>
-            </Box>
-          </DialogTitle>
+          </div>
+        ) : (
+          <>
+            {/* ── Header ──────────────────────────────────────────── */}
+            <DialogHeader className="flex-row items-center justify-between gap-[9px] px-6 pt-6 pb-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="inline-flex text-[var(--accent)] shrink-0">
+                  <LockIcon size={18} strokeWidth={1.75} />
+                </span>
+                <div className="min-w-0">
+                  <DialogTitle className="block overflow-hidden text-ellipsis whitespace-nowrap">
+                    Paiement securise
+                  </DialogTitle>
+                  {interventionTitle && (
+                    <p className="cn-text-body2 font-[family-name:var(--font-sans)] text-[11.5px] font-normal text-[var(--muted)]">
+                      {interventionTitle}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <h6 className="cn-text-h6 font-[family-name:var(--font-display)] text-[1.125rem] font-semibold tabular-nums text-[var(--accent)]">
+                  <Money value={amount} from="EUR" />
+                </h6>
+                {/* ✕ — pattern .rm-x : 34px r10 hairline, hover --err */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={onClose}
+                  aria-label="Fermer"
+                  className="size-[34px] rounded-[10px] border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] hover:text-[var(--err)] hover:border-[var(--err)] hover:bg-[var(--card)]"
+                >
+                  <CloseIcon size={16} strokeWidth={1.75} />
+                </Button>
+              </div>
+            </DialogHeader>
 
-          {/* ── Content ─────────────────────────────────────────── */}
-          <DialogContent sx={{ p: 0 }}>
+            {/* ── Content ─────────────────────────────────────────── */}
             {/* Loading state */}
             {loading && (
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  py: 8,
-                  gap: 2,
-                }}
-              >
-                <CircularProgress size={32} thickness={3.5} sx={{ color: 'var(--accent)' }} />
-                <Typography variant="body2" sx={{ color: 'var(--muted)', fontSize: '12.5px' }}>
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Spinner className="size-8 text-[var(--accent)]" />
+                <p className="cn-text-body2 text-[var(--muted)] text-[12.5px]">
                   Chargement du formulaire de paiement...
-                </Typography>
-              </Box>
+                </p>
+              </div>
             )}
 
             {/* Error state */}
             {error && (
-              <Box sx={{ p: 3 }}>
-                <Alert
-                  severity="error"
-                  sx={{
-                    // Alerte -soft hairline (pattern .rm-conflict)
-                    bgcolor: 'var(--err-soft)',
-                    border: '1px solid color-mix(in srgb, var(--err) 30%, transparent)',
-                    borderRadius: '12px',
-                    color: 'var(--body)',
-                    fontSize: '12.5px',
-                    '& .MuiAlert-icon': { color: 'var(--err)' },
-                  }}
-                  onClose={() => setError(null)}
-                >
-                  {error}
+              <div className="p-4">
+                <Alert variant="destructive" className="text-[12.5px]">
+                  <TriangleAlert />
+                  <AlertDescription>{error}</AlertDescription>
+                  <AlertAction>
+                    <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+                      <X />
+                    </Button>
+                  </AlertAction>
                 </Alert>
-              </Box>
+              </div>
             )}
 
             {/* Stripe Embedded Checkout */}
             {clientSecret && embeddedOptions && (
-              <Box
-                sx={{
-                  p: 0,
-                  '& .StripeEmbeddedCheckout': {
-                    minHeight: 400,
-                  },
-                }}
-              >
+              <div className="p-0 [&_.StripeEmbeddedCheckout]:min-h-[400px]">
                 <EmbeddedCheckoutProvider stripe={stripePromise} options={embeddedOptions}>
                   <EmbeddedCheckout />
                 </EmbeddedCheckoutProvider>
-              </Box>
+              </div>
             )}
 
             {/* Footer security note */}
             {!loading && !error && clientSecret && (
-              <Box
-                sx={{
-                  px: 3,
-                  py: 1.5,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 0.5,
-                  borderTop: '1px solid var(--line)',
-                  bgcolor: 'var(--surface-2)',
-                }}
-              >
-                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><LockIcon size={12} strokeWidth={1.75} /></Box>
-                <Typography variant="caption" sx={{ color: 'var(--faint)', fontSize: '11.5px' }}>
+              <div className="px-4 py-2 flex items-center justify-center gap-0.5 border-t border-[var(--line)] bg-[var(--surface-2)]">
+                <span className="inline-flex text-[var(--faint)]"><LockIcon size={12} strokeWidth={1.75} /></span>
+                <span className="cn-text-caption text-[var(--faint)] text-[11.5px]">
                   Paiement securise par Stripe. Vos donnees sont chiffrees.
-                </Typography>
-              </Box>
+                </span>
+              </div>
             )}
-          </DialogContent>
-        </>
-      )}
+          </>
+        )}
+      </DialogContent>
     </Dialog>
   );
 };

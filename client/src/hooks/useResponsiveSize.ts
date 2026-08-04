@@ -1,4 +1,4 @@
-import { useTheme, useMediaQuery } from '@mui/material';
+import { useMediaQuery } from './use-media-query';
 
 /**
  * Roles d'icones standardises dans le PMS.
@@ -44,9 +44,11 @@ const ICON_SIZE_TABLE: Record<IconRole, { base: number; md: number; xl: number }
  * suit automatiquement.
  */
 export function useIconSize(role: IconRole): number {
-  const theme = useTheme();
-  const isMd = useMediaQuery(theme.breakpoints.up('lg'));   // 1200px+
-  const isXl = useMediaQuery(theme.breakpoints.up('xl'));   // 1536px+
+  // Les seuils sont ecrits en clair : ce sont ceux des paliers `lg` et `xl` du
+  // theme MUI d'origine, que les media queries de ce fichier reprenaient. Les
+  // ecrire ici evite de les faire dependre d'un theme pour deux nombres.
+  const isMd = useMediaQuery('(min-width:1200px)');
+  const isXl = useMediaQuery('(min-width:1536px)');
   const tier = ICON_SIZE_TABLE[role];
   if (isXl) return tier.xl;
   if (isMd) return tier.md;

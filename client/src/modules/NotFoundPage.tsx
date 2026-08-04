@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Button, useTheme, alpha } from '@mui/material';
+import { Button } from '../components/ui';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home as HomeIcon, ArrowBack as ArrowLeftIcon } from '../icons';
 
@@ -10,75 +10,41 @@ import { Home as HomeIcon, ArrowBack as ArrowLeftIcon } from '../icons';
  * (ex: /assitant au lieu de /assistant) — au lieu d'un ecran blanc silencieux.</p>
  */
 const NotFoundPage: React.FC = () => {
-  const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 3,
-        py: 8,
-        px: 3,
-        minHeight: 480,
-        textAlign: 'center',
-      }}
-    >
-      <Box
-        sx={{
-          fontSize: '5rem',
-          fontWeight: 600,
-          color: alpha(theme.palette.primary.main, 0.4),
-          fontVariantNumeric: 'tabular-nums',
-          lineHeight: 1,
-        }}
-      >
+    <div className="flex flex-col items-center justify-center gap-4 py-12 px-4 min-h-[480px] text-center">
+      {/* alpha(primary.main, .4) et alpha(text.primary, .06) deviennent des
+          color-mix : les deux teintes sont statiques, donc des classes. */}
+      <div className="text-[5rem] font-semibold tabular-nums leading-[1] text-[color-mix(in_srgb,var(--mui-primary)_40%,transparent)]">
         404
-      </Box>
+      </div>
 
-      <Box>
-        <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+      <div>
+        <h6 className="cn-text-h6 mb-1.5 font-semibold">
           Page introuvable
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 480 }}>
+        </h6>
+        <p className="cn-text-body2 text-muted-foreground max-w-[480px]">
           L&apos;adresse{' '}
-          <Box component="code" sx={{
-            px: 0.75,
-            py: 0.25,
-            borderRadius: 0.5,
-            bgcolor: alpha(theme.palette.text.primary, 0.06),
-            fontFamily: 'monospace',
-            fontSize: '0.85em',
-          }}>
+          <code className="px-[4.5px] py-[1.5px] rounded-[4px] text-[0.85em] font-mono bg-[color-mix(in_srgb,var(--ink)_6%,transparent)]">
             {location.pathname}
-          </Box>{' '}
+          </code>{' '}
           ne correspond a aucune page. Verifie l&apos;orthographe ou retourne au dashboard.
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
-      <Box sx={{ display: 'flex', gap: 1.5, mt: 1 }}>
-        <Button
-          variant="outlined"
-          startIcon={<ArrowLeftIcon size={16} />}
-          onClick={() => navigate(-1)}
-          sx={{ cursor: 'pointer' }}
-        >
+      <div className="flex gap-2 mt-1.5">
+        <Button variant="outline" onClick={() => navigate(-1)}>
+          <ArrowLeftIcon size={16} />
           Retour
         </Button>
-        <Button
-          variant="contained"
-          startIcon={<HomeIcon size={16} />}
-          onClick={() => navigate('/dashboard')}
-          sx={{ cursor: 'pointer' }}
-        >
+        <Button onClick={() => navigate('/dashboard')}>
+          <HomeIcon size={16} />
           Aller au dashboard
         </Button>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

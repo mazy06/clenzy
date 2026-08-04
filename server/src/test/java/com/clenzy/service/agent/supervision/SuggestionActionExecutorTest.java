@@ -1,5 +1,7 @@
 package com.clenzy.service.agent.supervision;
 
+import com.clenzy.model.Guest;
+import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.SecurityDeposit;
 import com.clenzy.model.SecurityDepositStatus;
@@ -32,6 +34,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -69,10 +72,53 @@ class SuggestionActionExecutorTest {
     @Mock private BookingBalanceService bookingBalanceService;
     @Mock private EmailService emailService;
     @Mock private ReviewReplyDraftService reviewReplyDraftService;
+    @Mock private com.clenzy.service.ICalImportService icalImportService;
+    @Mock private com.clenzy.integration.channex.service.ChannexSyncService channexSyncService;
+    @Mock private com.clenzy.repository.NoiseAlertRepository noiseAlertRepository;
+    @Mock private com.clenzy.service.NoiseAlertNotificationService noiseAlertNotificationService;
+    @Mock private com.clenzy.scheduler.AbandonedBookingRecoveryScheduler cartRecoveryScheduler;
+    @Mock private com.clenzy.service.WelcomeGuideService welcomeGuideService;
+    @Mock private com.clenzy.service.payout.HousekeeperPayoutService housekeeperPayoutService;
+    @Mock private com.clenzy.service.ReservationService reservationService;
+    @Mock private com.clenzy.integration.compliance.submission.ComplianceSubmissionService complianceSubmissionService;
+    @Mock private com.clenzy.repository.ManagementContractRepository managementContractRepository;
+    @Mock private com.clenzy.service.signature.ContractSignatureService contractSignatureService;
+    @Mock private com.clenzy.repository.UserRepository userRepository;
+    @Mock private com.clenzy.repository.OrganizationRepository organizationRepository;
+    @Mock private com.clenzy.service.OwnerStatementService ownerStatementService;
+    @Mock private com.clenzy.repository.MinNightsOverrideRepository minNightsOverrideRepository;
+    @Mock private com.clenzy.repository.RatePlanRepository ratePlanRepository;
+    @Mock private com.clenzy.repository.UpsellOfferRepository upsellOfferRepository;
+    @Mock private com.clenzy.service.automation.CreateMaintenanceInterventionExecutor maintenanceInterventionExecutor;
+    @Mock private com.clenzy.repository.InterventionRepository interventionRepository;
+    @Mock private com.clenzy.service.ReservationRefundService reservationRefundService;
+    @Mock private com.clenzy.service.AccountingService accountingService;
+    @Mock private com.clenzy.booking.service.ContentTranslationService contentTranslationService;
+    @Mock private com.clenzy.booking.repository.SiteRepository siteRepository;
+    @Mock private com.clenzy.booking.repository.SitePageRepository sitePageRepository;
+    @Mock private com.clenzy.repository.ConversationRepository conversationRepository;
+    @Mock private com.clenzy.service.messaging.ConversationService conversationService;
+    @Mock private com.clenzy.service.PrivacyRequestService privacyRequestServiceMock;
+    @Mock private com.clenzy.service.StayTransferService stayTransferServiceMock;
+    @Mock private com.clenzy.service.StayModificationService stayModificationServiceMock;
+    @Mock private com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository channexMappingRepositoryMock;
+    @Mock private com.clenzy.integration.channex.service.ChannexConnectService channexConnectServiceMock;
+    @Mock private com.clenzy.integration.channex.service.ChannexContentPushService channexContentPushServiceMock;
+    @Mock private com.clenzy.service.TaxFilingService taxFilingService;
+    @Mock private com.clenzy.service.DisputeEvidenceService disputeEvidenceService;
+    @Mock private com.clenzy.service.ServiceQuoteService serviceQuoteService;
+    @Mock private com.clenzy.repository.PropertyStockItemRepository propertyStockItemRepository;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-02T10:00:00Z"), ZoneId.of("UTC"));
 
     private SuggestionActionExecutor executor;
+
+    /** ObjectProvider minimal (les vrais beans sont injectés paresseusement pour casser les cycles). */
+    private static <T> org.springframework.beans.factory.ObjectProvider<T> provider(T bean) {
+        return new org.springframework.beans.factory.ObjectProvider<>() {
+            @Override public T getObject() { return bean; }
+        };
+    }
 
     @BeforeEach
     void setUp() {
@@ -80,7 +126,27 @@ class SuggestionActionExecutorTest {
                 propertyRepository, searchCacheInvalidator, securityDepositRepository,
                 securityDepositPaymentService, calendarEngine, calendarDayRepository,
                 yieldAdjustmentRepository, serviceRequestService, reservationRepository,
-                bookingBalanceService, emailService, reviewReplyDraftService, new ObjectMapper(), clock);
+                bookingBalanceService, emailService, reviewReplyDraftService,
+                provider(icalImportService), provider(channexSyncService),
+                noiseAlertRepository, provider(noiseAlertNotificationService),
+                provider(cartRecoveryScheduler), provider(welcomeGuideService),
+                provider(housekeeperPayoutService), provider(reservationService),
+                provider(complianceSubmissionService), managementContractRepository,
+                provider(contractSignatureService), provider(userRepository),
+                provider(organizationRepository), provider(ownerStatementService),
+                minNightsOverrideRepository, ratePlanRepository, upsellOfferRepository,
+                provider(maintenanceInterventionExecutor),
+                provider(interventionRepository), provider(reservationRefundService),
+                provider(accountingService), provider(contentTranslationService),
+                provider(siteRepository), provider(sitePageRepository),
+                provider(conversationRepository), provider(conversationService),
+                provider(privacyRequestServiceMock), provider(stayTransferServiceMock),
+                provider(stayModificationServiceMock), provider(channexMappingRepositoryMock),
+                provider(channexConnectServiceMock), provider(channexContentPushServiceMock),
+                provider(taxFilingService),
+                provider(disputeEvidenceService), provider(serviceQuoteService),
+                propertyStockItemRepository,
+                new ObjectMapper(), clock);
     }
 
     private static SupervisionSuggestion suggestion(String actionType, String params) {
@@ -296,5 +362,812 @@ class SuggestionActionExecutorTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("email de paiement");
         verifyNoInteractions(emailService);
+    }
+
+    @Test
+    @DisplayName("relance iCal : delegue a ICalImportService avec l'org de la suggestion")
+    void icalRetry_delegatesWithSuggestionOrg() {
+        executor.execute(suggestion(SupervisionActionType.ICAL_RETRY, "{\"feedId\":42}"));
+        verify(icalImportService).retryFeedForSupervision(42L, ORG_ID);
+    }
+
+    @Test
+    @DisplayName("relance iCal : feedId manquant -> echec explicite (rien de relance)")
+    void icalRetry_throwsWithoutFeedId() {
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.ICAL_RETRY, "{}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("feedId");
+        verifyNoInteractions(icalImportService);
+    }
+
+    @Test
+    @DisplayName("republication parite : pousse l'ARI sur la fenetre bornee via ChannexSyncService")
+    void parityRepublish_pushesBoundedWindow() {
+        when(channexSyncService.pushProperty(eq(PROPERTY_ID), eq(ORG_ID), any(), any()))
+                .thenReturn(new com.clenzy.integration.channex.service.ChannexSyncService
+                        .ChannexSyncResult(true, "ok", 0, 12));
+
+        executor.execute(suggestion(SupervisionActionType.PARITY_REPUBLISH, "{\"days\":30}"));
+
+        LocalDate today = LocalDate.now(clock);
+        verify(channexSyncService).pushProperty(PROPERTY_ID, ORG_ID, today, today.plusDays(30));
+    }
+
+    @Test
+    @DisplayName("republication parite : echec Channex -> l'apply echoue (carte reste PENDING)")
+    void parityRepublish_throwsOnChannexFailure() {
+        when(channexSyncService.pushProperty(eq(PROPERTY_ID), eq(ORG_ID), any(), any()))
+                .thenReturn(new com.clenzy.integration.channex.service.ChannexSyncService
+                        .ChannexSyncResult(false, "mapping disabled", 0, 0));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.PARITY_REPUBLISH, "{\"days\":30}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Republication Channex");
+    }
+
+    @Test
+    @DisplayName("avertissement bruit : org validee puis envoi delegue au service de notification")
+    void noiseWarningSend_validatesOrgAndSends() {
+        com.clenzy.model.NoiseAlert alert = new com.clenzy.model.NoiseAlert();
+        alert.setOrganizationId(ORG_ID);
+        when(noiseAlertRepository.findById(66L)).thenReturn(Optional.of(alert));
+        when(noiseAlertNotificationService.sendGuestWarning(alert)).thenReturn(
+                new com.clenzy.service.NoiseAlertNotificationService.GuestWarningOutcome(
+                        true, "whatsapp", null));
+
+        executor.execute(suggestion(SupervisionActionType.NOISE_WARNING_SEND, "{\"alertId\":66}"));
+
+        verify(noiseAlertNotificationService).sendGuestWarning(alert);
+    }
+
+    @Test
+    @DisplayName("avertissement bruit : alerte d'une autre org -> echec explicite, rien d'envoye")
+    void noiseWarningSend_rejectsForeignOrg() {
+        com.clenzy.model.NoiseAlert alert = new com.clenzy.model.NoiseAlert();
+        alert.setOrganizationId(999L);
+        when(noiseAlertRepository.findById(66L)).thenReturn(Optional.of(alert));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.NOISE_WARNING_SEND, "{\"alertId\":66}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("organisation");
+        verifyNoInteractions(noiseAlertNotificationService);
+    }
+
+    @Test
+    @DisplayName("avertissement bruit : envoi ignore par le service -> echec explicite (carte PENDING)")
+    void noiseWarningSend_throwsWhenSkipped() {
+        com.clenzy.model.NoiseAlert alert = new com.clenzy.model.NoiseAlert();
+        alert.setOrganizationId(ORG_ID);
+        when(noiseAlertRepository.findById(66L)).thenReturn(Optional.of(alert));
+        when(noiseAlertNotificationService.sendGuestWarning(alert)).thenReturn(
+                new com.clenzy.service.NoiseAlertNotificationService.GuestWarningOutcome(
+                        false, null, "deja averti sous 24 h"));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.NOISE_WARNING_SEND, "{\"alertId\":66}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("deja averti");
+    }
+
+    @Test
+    @DisplayName("relance panier : delegue au scheduler avec l'org de la suggestion")
+    void cartRecoverySend_delegatesWithSuggestionOrg() {
+        executor.execute(suggestion(SupervisionActionType.CART_RECOVERY_SEND,
+                "{\"abandonedBookingId\":31}"));
+        verify(cartRecoveryScheduler).sendRecoveryForSupervision(31L, ORG_ID);
+    }
+
+    private Reservation guestReservation(String email) {
+        Reservation reservation = mock(Reservation.class);
+        when(reservation.getOrganizationId()).thenReturn(ORG_ID);
+        // lenient : le nom n'est lu que sur le chemin d'envoi réussi.
+        org.mockito.Mockito.lenient().when(reservation.getGuestName()).thenReturn("Amina Benali");
+        Guest guest = mock(Guest.class);
+        when(guest.getEmail()).thenReturn(email);
+        when(reservation.getGuest()).thenReturn(guest);
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+        return reservation;
+    }
+
+    @Test
+    @DisplayName("envoi livret : genere le lien borne au sejour et envoie l'email au voyageur")
+    void guideSend_generatesLinkAndSendsEmail() {
+        Reservation reservation = guestReservation("amina@example.com");
+        when(welcomeGuideService.linkForReservation(reservation))
+                .thenReturn(Optional.of("https://app/guide/tok-1"));
+
+        executor.execute(suggestion(SupervisionActionType.GUIDE_SEND, "{\"reservationId\":100}"));
+
+        verify(emailService).sendSimpleHtmlEmail(eq("amina@example.com"), anyString(),
+                contains("https://app/guide/tok-1"));
+    }
+
+    @Test
+    @DisplayName("envoi livret : aucun livret publie -> echec explicite, rien d'envoye")
+    void guideSend_throwsWithoutPublishedGuide() {
+        Reservation reservation = guestReservation("amina@example.com");
+        when(welcomeGuideService.linkForReservation(reservation)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.GUIDE_SEND, "{\"reservationId\":100}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("livret");
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    @DisplayName("demande d'avis : genere le lien d'avis borne et envoie l'email au voyageur")
+    void reviewRequestSend_generatesReviewLinkAndSendsEmail() {
+        Reservation reservation = guestReservation("amina@example.com");
+        when(welcomeGuideService.reviewLinkForReservation(reservation))
+                .thenReturn(Optional.of("https://app/guide/tok-review"));
+
+        executor.execute(suggestion(SupervisionActionType.REVIEW_REQUEST_SEND,
+                "{\"reservationId\":100}"));
+
+        verify(emailService).sendSimpleHtmlEmail(eq("amina@example.com"), anyString(),
+                contains("https://app/guide/tok-review"));
+    }
+
+    @Test
+    @DisplayName("versement menage : delegue a retryPayout (re-gate complet cote service)")
+    void cleaningPayout_delegatesToRetryPayout() {
+        executor.execute(suggestion(SupervisionActionType.CLEANING_PAYOUT, "{\"recordId\":12}"));
+        verify(housekeeperPayoutService).retryPayout(12L, ORG_ID);
+    }
+
+    @Test
+    @DisplayName("blocage fraude : reservation pending -> annulation via ReservationService")
+    void fraudBlock_cancelsPendingReservation() {
+        Reservation reservation = mock(Reservation.class);
+        when(reservation.getOrganizationId()).thenReturn(ORG_ID);
+        when(reservation.getStatus()).thenReturn("pending");
+        when(reservation.getId()).thenReturn(RESERVATION_ID);
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+
+        executor.execute(suggestion(SupervisionActionType.FRAUD_BLOCK, "{\"reservationId\":100}"));
+
+        verify(reservationService).cancel(RESERVATION_ID);
+    }
+
+    @Test
+    @DisplayName("blocage fraude : reservation deja confirmee -> refus explicite, pas d'annulation")
+    void fraudBlock_refusesConfirmedReservation() {
+        Reservation reservation = mock(Reservation.class);
+        when(reservation.getOrganizationId()).thenReturn(ORG_ID);
+        when(reservation.getStatus()).thenReturn("confirmed");
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.FRAUD_BLOCK, "{\"reservationId\":100}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("fiche réservation");
+        verifyNoInteractions(reservationService);
+    }
+
+    @Test
+    @DisplayName("fiche police : org validee puis soumission de toutes les fiches du sejour")
+    void policeDeclare_submitsForReservation() {
+        Reservation reservation = mock(Reservation.class);
+        when(reservation.getOrganizationId()).thenReturn(ORG_ID);
+        when(reservation.getId()).thenReturn(RESERVATION_ID);
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+
+        executor.execute(suggestion(SupervisionActionType.POLICE_DECLARE, "{\"reservationId\":100}"));
+
+        verify(complianceSubmissionService).submitForReservation(RESERVATION_ID, ORG_ID);
+    }
+
+    @Test
+    @DisplayName("mandat : proprietaire sans email -> echec explicite, aucune demande emise")
+    void mandateSignSend_throwsWithoutOwnerEmail() {
+        com.clenzy.model.ManagementContract contract = new com.clenzy.model.ManagementContract();
+        contract.setOwnerId(9L);
+        when(managementContractRepository.findByIdAndOrgId(5L, ORG_ID))
+                .thenReturn(Optional.of(contract));
+        when(userRepository.findById(9L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.MANDATE_SIGN_SEND, "{\"contractId\":5}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("email");
+        verifyNoInteractions(contractSignatureService);
+    }
+
+    @Test
+    @DisplayName("releve proprietaire : periode parsee puis delegation a sendStatement")
+    void ownerStatementSend_delegatesWithPeriod() {
+        when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.empty());
+
+        executor.execute(suggestion(SupervisionActionType.OWNER_STATEMENT_SEND,
+                "{\"ownerId\":9,\"from\":\"2026-07-01\",\"to\":\"2026-07-31\"}"));
+
+        verify(ownerStatementService).sendStatement(9L, ORG_ID,
+                LocalDate.parse("2026-07-01"), LocalDate.parse("2026-07-31"), "Votre conciergerie");
+    }
+
+    @Test
+    @DisplayName("min-stay : ecrit les vendredis/samedis de la fenetre, jamais par-dessus une autre source")
+    void minStayRestriction_writesWeekendsOnly_respectsForeignSources() {
+        Property property = new Property();
+        property.setId(PROPERTY_ID);
+        property.setOrganizationId(ORG_ID);
+        when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
+        // ven 2026-07-03 : override MANUAL existant → jamais écrasé.
+        com.clenzy.model.MinNightsOverride manual = new com.clenzy.model.MinNightsOverride(
+                property, LocalDate.parse("2026-07-03"), 3, "MANUAL", ORG_ID);
+        when(minNightsOverrideRepository.findByPropertyIdAndDate(
+                eq(PROPERTY_ID), any(), eq(ORG_ID))).thenReturn(Optional.empty());
+        when(minNightsOverrideRepository.findByPropertyIdAndDate(
+                PROPERTY_ID, LocalDate.parse("2026-07-03"), ORG_ID)).thenReturn(Optional.of(manual));
+
+        executor.execute(suggestion(SupervisionActionType.MIN_STAY_RESTRICTION,
+                "{\"from\":\"2026-07-03\",\"to\":\"2026-07-10\",\"minNights\":2,\"weekendsOnly\":true}"));
+
+        // Fenêtre 03→10 : ven 03 (MANUAL, sauté), sam 04, ven 10 exclu → 1 seule écriture (04).
+        verify(minNightsOverrideRepository, org.mockito.Mockito.times(1))
+                .save(any(com.clenzy.model.MinNightsOverride.class));
+    }
+
+    @Test
+    @DisplayName("desactivation promo : org validee puis isActive=false")
+    void promoDeactivate_validatesOrgAndDisables() {
+        com.clenzy.model.RatePlan plan = new com.clenzy.model.RatePlan();
+        org.springframework.test.util.ReflectionTestUtils.setField(plan, "organizationId", ORG_ID);
+        when(ratePlanRepository.findById(4L)).thenReturn(Optional.of(plan));
+
+        executor.execute(suggestion(SupervisionActionType.PROMO_DEACTIVATE, "{\"ratePlanId\":4}"));
+
+        verify(ratePlanRepository).save(plan);
+        assertThat(plan.getIsActive()).isFalse();
+    }
+
+    @Test
+    @DisplayName("upsell : offre re-validee puis email avec le lien du livret (jamais de debit direct)")
+    void upsellOffer_sendsOfferEmailWithGuideLink() {
+        Reservation reservation = guestReservation("amina@example.com");
+        when(reservation.getId()).thenReturn(RESERVATION_ID);
+        com.clenzy.model.UpsellOffer offer = new com.clenzy.model.UpsellOffer();
+        org.springframework.test.util.ReflectionTestUtils.setField(offer, "title", "Early check-in");
+        org.springframework.test.util.ReflectionTestUtils.setField(offer, "price", new BigDecimal("15"));
+        when(upsellOfferRepository.findByIdAndOrganizationId(8L, ORG_ID))
+                .thenReturn(Optional.of(offer));
+        when(welcomeGuideService.linkForReservation(reservation))
+                .thenReturn(Optional.of("https://app/guide/tok-upsell"));
+
+        executor.execute(suggestion(SupervisionActionType.UPSELL_OFFER,
+                "{\"reservationId\":100,\"offerId\":8}"));
+
+        verify(emailService).sendSimpleHtmlEmail(eq("amina@example.com"), anyString(),
+                contains("https://app/guide/tok-upsell"));
+    }
+
+    @Test
+    @DisplayName("upsell : offre inactive -> echec explicite, rien d'envoye")
+    void upsellOffer_throwsWhenOfferInactive() {
+        Reservation reservation = mock(Reservation.class);
+        when(reservation.getOrganizationId()).thenReturn(ORG_ID);
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+        com.clenzy.model.UpsellOffer offer = new com.clenzy.model.UpsellOffer();
+        org.springframework.test.util.ReflectionTestUtils.setField(offer, "active", false);
+        when(upsellOfferRepository.findByIdAndOrganizationId(8L, ORG_ID))
+                .thenReturn(Optional.of(offer));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.UPSELL_OFFER,
+                        "{\"reservationId\":100,\"offerId\":8}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("inactive");
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    @DisplayName("batterie serrure : delegue au chemin F7a partage ; episode couvert -> echec explicite")
+    void lockBatteryReplace_delegatesAndSurfacesCoveredEpisode() {
+        when(maintenanceInterventionExecutor.createForLockBattery(3L, ORG_ID)).thenReturn(true);
+        executor.execute(suggestion(SupervisionActionType.LOCK_BATTERY_REPLACE, "{\"deviceId\":3}"));
+        verify(maintenanceInterventionExecutor).createForLockBattery(3L, ORG_ID);
+
+        when(maintenanceInterventionExecutor.createForLockBattery(3L, ORG_ID)).thenReturn(false);
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.LOCK_BATTERY_REPLACE, "{\"deviceId\":3}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("déjà ouverte");
+    }
+
+    @Test
+    @DisplayName("entretien preventif : cree la tournee sur le logement de la carte")
+    void preventiveMaintenance_createsForCardProperty() {
+        when(maintenanceInterventionExecutor.createPreventive(PROPERTY_ID, ORG_ID)).thenReturn(true);
+        executor.execute(suggestion(SupervisionActionType.PREVENTIVE_MAINTENANCE, "{}"));
+        verify(maintenanceInterventionExecutor).createPreventive(PROPERTY_ID, ORG_ID);
+    }
+
+    @Test
+    @DisplayName("retenue caution : montant RE-resolu depuis l'intervention, borne par la caution")
+    void depositWithhold_capturesReResolvedBoundedAmount() {
+        SecurityDeposit heldDeposit = deposit(SecurityDepositStatus.HELD);
+        heldDeposit.setAmount(new BigDecimal("120.00"));
+        when(securityDepositRepository.findByIdAndOrganizationId(DEPOSIT_ID, ORG_ID))
+                .thenReturn(Optional.of(heldDeposit));
+        com.clenzy.model.Intervention damage = new com.clenzy.model.Intervention();
+        damage.setOrganizationId(ORG_ID);
+        damage.setEstimatedCost(new BigDecimal("450.00"));
+        when(interventionRepository.findById(77L)).thenReturn(Optional.of(damage));
+
+        executor.execute(suggestion(SupervisionActionType.DEPOSIT_WITHHOLD,
+                "{\"depositId\":9,\"interventionId\":77}"));
+
+        // 450 € de dégât mais 120 € de caution → capture bornée à 120 €.
+        verify(securityDepositPaymentService).captureHold(
+                eq(ORG_ID), eq(DEPOSIT_ID), eq(new BigDecimal("120.00")), anyString());
+    }
+
+    @Test
+    @DisplayName("geste commercial : pourcentage borne applique au total, motif GESTURE")
+    void goodwillRefund_computesBoundedPercentOfTotal() {
+        Reservation reservation = mock(Reservation.class);
+        when(reservation.getOrganizationId()).thenReturn(ORG_ID);
+        when(reservation.getId()).thenReturn(RESERVATION_ID);
+        when(reservation.getTotalPrice()).thenReturn(new BigDecimal("300.00"));
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+
+        executor.execute(suggestion(SupervisionActionType.GOODWILL_REFUND,
+                "{\"reservationId\":100,\"percent\":15}"));
+
+        // 15 % de 300 € = 45 € = 4500 cents, motif GESTURE.
+        verify(reservationRefundService).initiateRefund(RESERVATION_ID, 4500L,
+                com.clenzy.service.ReservationRefundService.REASON_GESTURE, ORG_ID);
+    }
+
+    @Test
+    @DisplayName("reversement proprietaire : delegue a approvePayout (jamais de transfert direct)")
+    void ownerPayout_delegatesToApprove() {
+        executor.execute(suggestion(SupervisionActionType.OWNER_PAYOUT, "{\"payoutId\":21}"));
+        verify(accountingService).approvePayout(21L, ORG_ID);
+    }
+
+    @Test
+    @DisplayName("accord travaux : email adresse au proprietaire du logement de l'intervention")
+    void ownerWorksApproval_emailsPropertyOwner() {
+        Property property = new Property();
+        property.setId(PROPERTY_ID);
+        property.setName("Villa Palmeraie");
+        com.clenzy.model.User owner = new com.clenzy.model.User();
+        owner.setEmail("owner@example.com");
+        property.setOwner(owner);
+        com.clenzy.model.Intervention works = new com.clenzy.model.Intervention();
+        works.setOrganizationId(ORG_ID);
+        works.setProperty(property);
+        works.setTitle("Étanchéité terrasse");
+        works.setEstimatedCost(new BigDecimal("780.00"));
+        when(interventionRepository.findById(55L)).thenReturn(Optional.of(works));
+
+        executor.execute(suggestion(SupervisionActionType.OWNER_WORKS_APPROVAL,
+                "{\"interventionId\":55}"));
+
+        verify(emailService).sendSimpleHtmlEmail(eq("owner@example.com"), anyString(),
+                contains("780.00"));
+    }
+
+    @Test
+    @DisplayName("traduction site : brouillons generes pour les pages publiees de la langue source")
+    void siteTranslationDraft_translatesPublishedSourcePages() {
+        com.clenzy.booking.model.Site site = new com.clenzy.booking.model.Site();
+        org.springframework.test.util.ReflectionTestUtils.setField(site, "organizationId", ORG_ID);
+        org.springframework.test.util.ReflectionTestUtils.setField(site, "defaultLocale", "fr");
+        when(siteRepository.findById(6L)).thenReturn(Optional.of(site));
+        com.clenzy.booking.model.SitePage page = new com.clenzy.booking.model.SitePage();
+        org.springframework.test.util.ReflectionTestUtils.setField(page, "id", 40L);
+        org.springframework.test.util.ReflectionTestUtils.setField(page, "locale", "fr");
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                page, "status", com.clenzy.booking.model.SiteStatus.PUBLISHED);
+        when(sitePageRepository.findBySiteIdOrderBySortOrderAsc(6L)).thenReturn(List.of(page));
+        when(contentTranslationService.autoTranslatePage(ORG_ID, 6L, 40L, List.of("ar")))
+                .thenReturn(com.clenzy.booking.dto.AutoTranslateResultDto.forPages(
+                        List.of(mock(com.clenzy.booking.dto.SitePageDto.class)), List.of()));
+
+        executor.execute(suggestion(SupervisionActionType.SITE_TRANSLATION_DRAFT,
+                "{\"siteId\":6,\"targetLocale\":\"ar\"}"));
+
+        verify(contentTranslationService).autoTranslatePage(ORG_ID, 6L, 40L, List.of("ar"));
+    }
+
+    @Test
+    @DisplayName("chevauchement : garde re-verifiee, sejour futur annule via le chemin canonique")
+    void overbookingResolve_cancelsFutureReservation() {
+        Reservation keep = mock(Reservation.class);
+        when(keep.getOrganizationId()).thenReturn(ORG_ID);
+        when(keep.getStatus()).thenReturn("confirmed");
+        Reservation cancel = mock(Reservation.class);
+        when(cancel.getOrganizationId()).thenReturn(ORG_ID);
+        when(cancel.getStatus()).thenReturn("confirmed");
+        when(cancel.getCheckIn()).thenReturn(LocalDate.parse("2026-07-10")); // clock = 2026-07-02
+        when(reservationRepository.findById(200L)).thenReturn(Optional.of(keep));
+        when(reservationRepository.findById(201L)).thenReturn(Optional.of(cancel));
+
+        executor.execute(suggestion(SupervisionActionType.OVERBOOKING_RESOLVE,
+                "{\"cancelReservationId\":201,\"keepReservationId\":200}"));
+
+        verify(reservationService).cancel(201L);
+    }
+
+    @Test
+    @DisplayName("chevauchement : la reservation a garder annulee entre-temps -> echec explicite")
+    void overbookingResolve_refusesWhenKeepCancelled() {
+        Reservation keep = mock(Reservation.class);
+        when(keep.getOrganizationId()).thenReturn(ORG_ID);
+        when(keep.getStatus()).thenReturn("cancelled");
+        Reservation cancel = mock(Reservation.class);
+        when(cancel.getOrganizationId()).thenReturn(ORG_ID);
+        when(reservationRepository.findById(200L)).thenReturn(Optional.of(keep));
+        when(reservationRepository.findById(201L)).thenReturn(Optional.of(cancel));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.OVERBOOKING_RESOLVE,
+                        "{\"cancelReservationId\":201,\"keepReservationId\":200}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("GARDER");
+        verifyNoInteractions(reservationService);
+    }
+
+    @Test
+    @DisplayName("reprise en main : assigne la conversation a l'operateur porte par appliedBy")
+    void conversationTakeover_assignsApplyingOperator() {
+        com.clenzy.model.Conversation conversation = new com.clenzy.model.Conversation();
+        org.springframework.test.util.ReflectionTestUtils.setField(conversation, "organizationId", ORG_ID);
+        when(conversationRepository.findById(14L)).thenReturn(Optional.of(conversation));
+
+        SupervisionSuggestion s = suggestion(SupervisionActionType.CONVERSATION_TAKEOVER,
+                "{\"conversationId\":14}");
+        s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-123");
+        executor.execute(s);
+
+        assertThat(conversation.getAssignedToKeycloakId()).isEqualTo("kc-123");
+        verify(conversationRepository).save(conversation);
+    }
+
+    @Test
+    @DisplayName("reprise en main : conversation deja reprise par un autre -> echec, jamais volee")
+    void conversationTakeover_refusesStealingAssignment() {
+        com.clenzy.model.Conversation conversation = new com.clenzy.model.Conversation();
+        org.springframework.test.util.ReflectionTestUtils.setField(conversation, "organizationId", ORG_ID);
+        conversation.setAssignedToKeycloakId("kc-other");
+        when(conversationRepository.findById(14L)).thenReturn(Optional.of(conversation));
+
+        SupervisionSuggestion s = suggestion(SupervisionActionType.CONVERSATION_TAKEOVER,
+                "{\"conversationId\":14}");
+        s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-123");
+
+        assertThatThrownBy(() -> executor.execute(s))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("autre opérateur");
+    }
+
+    @Test
+    @DisplayName("note de revenus : chiffres RE-calcules a l'envoi puis email factuel au proprietaire")
+    void ownerRevenueNote_recomputesAndEmailsOwner() {
+        Property property = new Property();
+        property.setId(PROPERTY_ID);
+        property.setOrganizationId(ORG_ID);
+        property.setName("Studio Anfa");
+        com.clenzy.model.User owner = new com.clenzy.model.User();
+        owner.setEmail("owner@example.com");
+        property.setOwner(owner);
+        when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
+        when(reservationRepository.sumRevenueByPropertyAndCheckInBetween(
+                PROPERTY_ID, ORG_ID, LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01")))
+                .thenReturn(new BigDecimal("820.00"));
+        when(reservationRepository.sumRevenueByPropertyAndCheckInBetween(
+                PROPERTY_ID, ORG_ID, LocalDate.parse("2025-06-01"), LocalDate.parse("2025-07-01")))
+                .thenReturn(new BigDecimal("2340.00"));
+
+        executor.execute(suggestion(SupervisionActionType.OWNER_REVENUE_NOTE,
+                "{\"month\":\"2026-06\"}"));
+
+        verify(emailService).sendSimpleHtmlEmail(eq("owner@example.com"), anyString(),
+                contains("820.00"));
+    }
+
+    @Test
+    @DisplayName("taxe declaree : delegue au registre (transition CAS DUE -> FILED cote service)")
+    void taxMarkFiled_delegatesToRegistry() {
+        executor.execute(suggestion(SupervisionActionType.TAX_MARK_FILED, "{\"filingId\":3}"));
+        verify(taxFilingService).markFiled(3L, ORG_ID, null);
+    }
+
+    @Test
+    @DisplayName("relogement v2 : l'apply PROPOSE (rien de deplace sans accord voyageur)")
+    void relodgeTransfer_proposesInsteadOfMoving() {
+        // v2 (M11) : l'apply ne deplace plus rien — il PROPOSE (StayTransferService
+        // porte les re-verifications, l'email et le lien de confirmation voyageur).
+        Reservation reservation = mock(Reservation.class);
+        when(reservation.getOrganizationId()).thenReturn(ORG_ID);
+        when(reservation.getId()).thenReturn(RESERVATION_ID);
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+        when(stayTransferServiceMock.propose(any(), any(), any(), any(), any()))
+                .thenReturn(new com.clenzy.model.StayTransfer());
+
+        SupervisionSuggestion s = suggestion(SupervisionActionType.RELODGE_TRANSFER,
+                "{\"reservationId\":100,\"targetPropertyId\":2}");
+        s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-9");
+        executor.execute(s);
+
+        verify(stayTransferServiceMock).propose(ORG_ID, RESERVATION_ID, 2L, "motif",
+                SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-9");
+        verifyNoInteractions(reservationService);
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    @DisplayName("relogement : reservation hors organisation -> refus, aucune proposition")
+    void relodgeTransfer_refusesCrossOrgReservation() {
+        Reservation reservation = mock(Reservation.class);
+        when(reservation.getOrganizationId()).thenReturn(999L);
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.RELODGE_TRANSFER,
+                        "{\"reservationId\":100,\"targetPropertyId\":2}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("hors organisation");
+        verifyNoInteractions(stayTransferServiceMock);
+    }
+
+    @Test
+    @DisplayName("no-show : flag + liberation des nuits restantes ; deja marque = idempotent")
+    void noShowMark_flagsAndReleasesRemainingNights() {
+        Reservation reservation = new Reservation();
+        reservation.setId(RESERVATION_ID);
+        reservation.setOrganizationId(ORG_ID);
+        reservation.setStatus("confirmed");
+        reservation.setCheckOut(LocalDate.parse("2026-07-08")); // clock = 02/07
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+
+        SupervisionSuggestion s = suggestion(SupervisionActionType.NOSHOW_MARK,
+                "{\"reservationId\":100}");
+        s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-1");
+        executor.execute(s);
+
+        assertThat(reservation.isNoShow()).isTrue();
+        verify(reservationRepository).save(reservation);
+        verify(calendarEngine).cancel(RESERVATION_ID, ORG_ID,
+                SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-1");
+
+        // Deja marque : aucun nouvel effet.
+        executor.execute(s);
+        verify(calendarEngine, org.mockito.Mockito.times(1)).cancel(anyLong(), anyLong(), anyString());
+    }
+
+    @Test
+    @DisplayName("litige : delegue au dossier de preuves avec l'org de la suggestion")
+    void chargebackSubmit_delegatesToEvidenceService() {
+        executor.execute(suggestion(SupervisionActionType.CHARGEBACK_SUBMIT, "{\"disputeId\":17}"));
+        verify(disputeEvidenceService).submitEvidence(17L, ORG_ID);
+    }
+
+    @Test
+    @DisplayName("devis : delegue a l'approbation CAS avec l'auteur de l'apply")
+    void quoteApproval_delegatesWithAppliedBy() {
+        SupervisionSuggestion s = suggestion(SupervisionActionType.QUOTE_APPROVAL, "{\"quoteId\":23}");
+        s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-4");
+        executor.execute(s);
+        verify(serviceQuoteService).approve(23L, ORG_ID,
+                SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-4");
+    }
+
+    @Test
+    @DisplayName("commande stock : quantites re-lues, bon de commande envoye au fournisseur")
+    void stockOrder_sendsPurchaseOrderToSupplier() {
+        com.clenzy.model.PropertyStockItem item = new com.clenzy.model.PropertyStockItem();
+        item.setPropertyId(PROPERTY_ID);
+        item.setName("Parure de lit");
+        item.setQuantity(2);
+        item.setReorderThreshold(4);
+        item.setReorderQuantity(12);
+        item.setSupplierName("Linge Pro");
+        item.setSupplierEmail("supplier@example.com");
+        when(propertyStockItemRepository.findByIdAndOrganizationId(6L, ORG_ID))
+                .thenReturn(Optional.of(item));
+        Property property = new Property();
+        property.setId(PROPERTY_ID);
+        property.setName("Riad Yasmine");
+        when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
+
+        executor.execute(suggestion(SupervisionActionType.LINEN_STOCK_ORDER, "{\"stockItemId\":6}"));
+
+        verify(emailService).sendSimpleHtmlEmail(eq("supplier@example.com"), anyString(),
+                contains("Parure de lit"));
+    }
+
+    @Test
+    @DisplayName("commande stock : repasse au-dessus du seuil -> refus explicite, rien d'envoye")
+    void stockOrder_refusesWhenBackAboveThreshold() {
+        com.clenzy.model.PropertyStockItem item = new com.clenzy.model.PropertyStockItem();
+        item.setQuantity(9);
+        item.setReorderThreshold(4);
+        when(propertyStockItemRepository.findByIdAndOrganizationId(6L, ORG_ID))
+                .thenReturn(Optional.of(item));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.LINEN_STOCK_ORDER, "{\"stockItemId\":6}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("seuil");
+        verifyNoInteractions(emailService);
+    }
+
+    // ─── M8 — late check-out & modification de séjour ────────────────────────
+
+    private com.clenzy.model.Conversation orgConversation(long id) {
+        com.clenzy.model.Conversation conversation = new com.clenzy.model.Conversation();
+        org.springframework.test.util.ReflectionTestUtils.setField(conversation, "organizationId", ORG_ID);
+        when(conversationRepository.findById(id)).thenReturn(Optional.of(conversation));
+        return conversation;
+    }
+
+    private Reservation stayReservation(LocalDate checkOut) {
+        Property property = new Property();
+        property.setId(PROPERTY_ID);
+        Reservation reservation = new Reservation();
+        reservation.setId(RESERVATION_ID);
+        reservation.setOrganizationId(ORG_ID);
+        reservation.setProperty(property);
+        reservation.setCheckOut(checkOut);
+        when(reservationRepository.findById(RESERVATION_ID)).thenReturn(Optional.of(reservation));
+        return reservation;
+    }
+
+    @Test
+    @DisplayName("late check-out : jour du depart RE-verifie libre -> reponse envoyee + note tracee")
+    void lateCheckout_rechecksCalendarThenRepliesAndNotes() {
+        com.clenzy.model.Conversation conversation = orgConversation(14L);
+        Reservation reservation = stayReservation(LocalDate.parse("2026-07-05")); // clock = 02/07
+        when(calendarDayRepository.findByPropertyAndDateRange(
+                PROPERTY_ID, LocalDate.parse("2026-07-05"), LocalDate.parse("2026-07-05"), ORG_ID))
+                .thenReturn(List.of());
+
+        executor.execute(suggestion(SupervisionActionType.LATE_CHECKOUT_APPROVAL,
+                "{\"conversationId\":14,\"reservationId\":100,\"requestedTime\":\"14:00\"}"));
+
+        verify(conversationService).sendAutonomousMessage(eq(conversation), contains("14:00"));
+        assertThat(reservation.getNotes())
+                .contains(SuggestionActionExecutor.LATE_CHECKOUT_NOTE_MARKER)
+                .contains("14:00");
+        verify(reservationRepository).save(reservation);
+    }
+
+    @Test
+    @DisplayName("late check-out : arrivee apparue le jour du depart -> refus, aucun message")
+    void lateCheckout_refusesWhenArrivalAppeared() {
+        orgConversation(14L);
+        stayReservation(LocalDate.parse("2026-07-05"));
+        com.clenzy.model.CalendarDay busy = new com.clenzy.model.CalendarDay();
+        Reservation other = new Reservation();
+        other.setId(999L);
+        busy.setReservation(other);
+        when(calendarDayRepository.findByPropertyAndDateRange(
+                PROPERTY_ID, LocalDate.parse("2026-07-05"), LocalDate.parse("2026-07-05"), ORG_ID))
+                .thenReturn(List.of(busy));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.LATE_CHECKOUT_APPROVAL,
+                        "{\"conversationId\":14,\"reservationId\":100}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("arrivée ou un blocage");
+        verifyNoInteractions(conversationService);
+    }
+
+    @Test
+    @DisplayName("late check-out : deja accorde (note presente) -> idempotent, pas de second message")
+    void lateCheckout_alreadyGrantedIsIdempotent() {
+        orgConversation(14L);
+        Reservation reservation = stayReservation(LocalDate.parse("2026-07-05"));
+        reservation.setNotes(SuggestionActionExecutor.LATE_CHECKOUT_NOTE_MARKER + " le 2026-07-01.");
+
+        executor.execute(suggestion(SupervisionActionType.LATE_CHECKOUT_APPROVAL,
+                "{\"conversationId\":14,\"reservationId\":100}"));
+
+        verifyNoInteractions(conversationService);
+        verify(reservationRepository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    @DisplayName("modification sejour v2 : PROPOSE l'avenant puis reponse chiffree avec lien annonce")
+    void stayModification_proposesThenSendsQuotedReply() {
+        com.clenzy.model.Conversation conversation = orgConversation(14L);
+        stayReservation(LocalDate.parse("2026-07-05"));
+        com.clenzy.model.StayModification modification = new com.clenzy.model.StayModification();
+        modification.setNewTotal(new java.math.BigDecimal("360"));
+        modification.setPriceDelta(new java.math.BigDecimal("60"));
+        when(stayModificationServiceMock.propose(eq(ORG_ID), eq(RESERVATION_ID),
+                eq(LocalDate.parse("2026-07-06")), eq(LocalDate.parse("2026-07-09")), any()))
+                .thenReturn(modification);
+
+        executor.execute(suggestion(SupervisionActionType.STAY_MODIFICATION,
+                "{\"conversationId\":14,\"reservationId\":100,"
+                        + "\"newCheckIn\":\"2026-07-06\",\"newCheckOut\":\"2026-07-09\"}"));
+
+        verify(conversationService).sendAutonomousMessage(eq(conversation), contains("360"));
+        verify(conversationService).sendAutonomousMessage(eq(conversation), contains("+60"));
+        verify(conversationService).sendAutonomousMessage(eq(conversation),
+                contains("rien ne sera modifié sans votre accord"));
+    }
+
+    @Test
+    @DisplayName("modification sejour v2 : proposition refusee par le service -> aucun message")
+    void stayModification_refusesWhenProposalRejected() {
+        orgConversation(14L);
+        stayReservation(LocalDate.parse("2026-07-05"));
+        when(stayModificationServiceMock.propose(any(), any(), any(), any(), any()))
+                .thenThrow(new IllegalStateException("Les dates ne sont pas disponibles"));
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.STAY_MODIFICATION,
+                        "{\"conversationId\":14,\"reservationId\":100,"
+                                + "\"newCheckIn\":\"2026-07-06\",\"newCheckOut\":\"2026-07-09\"}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("disponibles");
+        verifyNoInteractions(conversationService);
+    }
+
+    // ─── M-D — publication canal ─────────────────────────────────────────────
+
+    @Test
+    @DisplayName("publication canal : mapping PENDING -> resync go-live puis contenu pousse")
+    void channelPublish_resyncsThenPushesContent() {
+        com.clenzy.integration.channex.model.ChannexPropertyMapping mapping =
+                new com.clenzy.integration.channex.model.ChannexPropertyMapping();
+        mapping.setSyncStatus(com.clenzy.integration.channex.model.ChannexSyncStatus.PENDING);
+        when(channexMappingRepositoryMock.findByClenzyPropertyId(PROPERTY_ID, ORG_ID))
+                .thenReturn(Optional.of(mapping));
+        when(channexConnectServiceMock.resync(PROPERTY_ID, ORG_ID, 0))
+                .thenReturn(new com.clenzy.integration.channex.service.ChannexSyncService
+                        .ChannexSyncResult(true, "ok", 500, 500));
+
+        executor.execute(suggestion(SupervisionActionType.CHANNEL_PUBLISH, "{}"));
+
+        verify(channexConnectServiceMock).resync(PROPERTY_ID, ORG_ID, 0);
+        verify(channexContentPushServiceMock).pushContent(PROPERTY_ID, ORG_ID);
+    }
+
+    @Test
+    @DisplayName("publication canal : aucun mapping -> refus, rien d'appele")
+    void channelPublish_refusesWithoutMapping() {
+        when(channexMappingRepositoryMock.findByClenzyPropertyId(PROPERTY_ID, ORG_ID))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.CHANNEL_PUBLISH, "{}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Intégrations");
+        verifyNoInteractions(channexConnectServiceMock);
+        verifyNoInteractions(channexContentPushServiceMock);
+    }
+
+    // ─── M9 — effacement RGPD ────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("effacement RGPD : opere par un humain identifie -> delegue au service (verrou CAS)")
+    void gdprErase_delegatesForIdentifiedOperator() {
+        SupervisionSuggestion s = suggestion(SupervisionActionType.GDPR_ERASE,
+                "{\"requestId\":31}");
+        s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-9");
+        executor.execute(s);
+
+        verify(privacyRequestServiceMock).executeErasure(31L, ORG_ID,
+                SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-9");
+    }
+
+    @Test
+    @DisplayName("effacement RGPD : pas d'operateur humain identifie -> refus, rien d'efface")
+    void gdprErase_refusesWithoutHumanOperator() {
+        assertThatThrownBy(() -> executor.execute(
+                suggestion(SupervisionActionType.GDPR_ERASE, "{\"requestId\":31}")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("humain");
+        verifyNoInteractions(privacyRequestServiceMock);
     }
 }

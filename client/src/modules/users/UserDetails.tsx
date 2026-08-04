@@ -1,14 +1,10 @@
-import React from 'react';
-import {
-  Box,
-  CircularProgress,
-  Alert,
-  Button,
-  Typography,
-  Snackbar,
-} from '@mui/material';
+import React, { useEffect } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { Info, TriangleAlert } from 'lucide-react';
+import { Spinner, Button } from '../../components/ui';
 import { Edit } from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useNotification } from '../../hooks/useNotification';
 import PageHeader from '../../components/PageHeader';
 import type { RoleInfo, StatusInfo } from './components/userDetailsTypes';
 import { useUserDetails } from './components/useUserDetails';
@@ -59,49 +55,65 @@ const UserDetails: React.FC = () => {
     handleUnlockUser,
   } = useUserDetails(id);
 
+  const { notify } = useNotification();
+  // Le message vit encore dans useUserDetails (hook .ts, hors perimetre de la
+  // migration) : on le deverse dans le toast puis on vide l'etat, ce qui remplace
+  // exactement l'ancien Snackbar neutre (auto-hide 4 s, bas centre).
+  useEffect(() => {
+    if (!snackMessage) return;
+    notify.info(snackMessage);
+    setSnackMessage('');
+  }, [snackMessage, setSnackMessage, notify]);
+
   if (!canManageUsers) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="info" sx={{ p: 2, py: 1 }}>
-          <Typography variant="subtitle1" gutterBottom sx={{ mb: 1 }}>
+      <div className="p-3">
+        <Alert variant="info" className="p-3 py-1.5">
+          <Info />
+          <AlertDescription><h6 className="cn-text-subtitle1 mb-1.5">
             Acces non autorise
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+          </h6><p className="cn-text-body2 text-[0.85rem]">
             Vous n'avez pas les permissions necessaires pour visualiser les details des utilisateurs.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
-          </Typography>
+          </p></AlertDescription>
         </Alert>
-      </Box>
+      </div>
     );
   }
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress size={32} />
-      </Box>
+      <div className="flex justify-center items-center h-[50vh]">
+        <Spinner className="size-8" />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="error" sx={{ p: 2, py: 1 }}>{error}</Alert>
-      </Box>
+      <div className="p-3">
+        <Alert variant="destructive" className="p-3 py-1.5">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
   if (!user) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="warning" sx={{ p: 2, py: 1 }}>Utilisateur non trouve</Alert>
-      </Box>
+      <div className="p-3">
+        <Alert variant="warning" className="p-3 py-1.5">
+          <TriangleAlert />
+          <AlertDescription>Utilisateur non trouve</AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ p: 2 }}>
+    <div className="p-3">
       <PageHeader
         title="Détails de l'utilisateur"
         subtitle={`${user.firstName} ${user.lastName}`}
@@ -109,12 +121,10 @@ const UserDetails: React.FC = () => {
         showBackButton={true}
         actions={
           <Button
-            variant="contained"
-            size="small"
-            startIcon={<Edit size={16} strokeWidth={1.75} />}
+            size="sm"
             onClick={() => navigate(`/users/${user.id}/edit`)}
-            sx={{ fontSize: '0.8125rem', textTransform: 'none', fontWeight: 600 }}
           >
+            <Edit size={16} strokeWidth={1.75} />
             Modifier
           </Button>
         }
@@ -124,15 +134,9 @@ const UserDetails: React.FC = () => {
       <UserProfileCard user={user} roles={userRoles} statuses={userStatuses} />
 
       {/* Body — two-column on >=md to avoid a single tall column of identical cards */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 7fr) minmax(0, 5fr)' },
-          gap: 1.5,
-          alignItems: 'start',
-        }}
-      >
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0 }}>
+      {/* md MUI = 900px (breakpoints non configures) et gap: 1.5 = 9px (spacing 6). */}
+      <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] gap-[9px] items-start">
+        <div className="flex flex-col gap-2 min-w-0">
           {/* Personal + Contact + System dates */}
           <UserSystemInfoCard user={user} />
 
@@ -149,9 +153,9 @@ const UserDetails: React.FC = () => {
             paymentLinkLoading={paymentLinkLoading}
             onSendPaymentLink={handleSendPaymentLink}
           />
-        </Box>
+        </div>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0 }}>
+        <div className="flex flex-col gap-2 min-w-0">
           {/* Organisation + Role & Status */}
           <UserRoleStatusCard user={user} roles={userRoles} statuses={userStatuses} />
 
@@ -162,17 +166,9 @@ const UserDetails: React.FC = () => {
             unlocking={unlocking}
             onUnlockUser={handleUnlockUser}
           />
-        </Box>
-      </Box>
-
-      <Snackbar
-        open={!!snackMessage}
-        autoHideDuration={4000}
-        onClose={() => setSnackMessage('')}
-        message={snackMessage}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      />
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 };
 

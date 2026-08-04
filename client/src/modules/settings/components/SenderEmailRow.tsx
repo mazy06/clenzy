@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Button, TextField, Typography } from '@mui/material';
+import { Button, Field, FieldLabel, Input } from '../../../components/ui';
 import { Info, Send } from 'lucide-react';
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -33,61 +33,68 @@ const SenderEmailRow: React.FC<Props> = ({ email, name, onSave, saving }) => {
   const foreignDomain = emailValid && domain.length > 0 && domain !== AUTHENTICATED_DOMAIN;
 
   return (
-    <Box sx={{ py: 1.25 }}>
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.25, mb: 0.75 }}>
-        <Box sx={{ color: 'text.secondary', display: 'inline-flex', flexShrink: 0, mt: '1px' }}>
+    <div className="py-2">
+      <div className="flex items-start gap-2 mb-1">
+        <span className="text-[var(--muted)] inline-flex shrink-0 mt-px">
           <Send size={18} />
-        </Box>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.primary' }}>
+        </span>
+        <div className="min-w-0">
+          <p className="cn-text-body1 text-[0.8125rem] font-medium text-foreground">
             Adresse d'expédition
-          </Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+          </p>
+          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
             Le « From » de tous les emails de la plateforme. Le nom d'affichage précède l'adresse
             (ex. Baitly &lt;info@clenzy.fr&gt;).
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
 
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, ml: { sm: '30px' } }}>
-        <TextField
-          size="small"
-          label="Adresse email"
-          value={localEmail}
-          onChange={(e) => setLocalEmail(e.target.value)}
-          error={localEmail.length > 0 && !emailValid}
-          sx={{ flex: '1 1 220px', '& .MuiInputBase-input': { fontSize: '0.8rem' } }}
-        />
-        <TextField
-          size="small"
-          label="Nom d'affichage"
-          value={localName}
-          onChange={(e) => setLocalName(e.target.value)}
-          sx={{ flex: '1 1 160px', '& .MuiInputBase-input': { fontSize: '0.8rem' } }}
-        />
+      {/* items-end : le libelle est passe au-dessus du champ, le bouton doit
+          rester aligne sur la ligne de saisie et non s'etirer sur toute la hauteur. */}
+      <div className="flex flex-wrap items-end gap-1.5 min-[600px]:ms-[30px]">
+        <Field className="flex-[1_1_220px]">
+          <FieldLabel htmlFor="sender-email">Adresse email</FieldLabel>
+          <Input
+            id="sender-email"
+            className="w-full text-[0.8rem]"
+            value={localEmail}
+            onChange={(e) => setLocalEmail(e.target.value)}
+            aria-invalid={localEmail.length > 0 && !emailValid}
+          />
+        </Field>
+        <Field className="flex-[1_1_160px]">
+          <FieldLabel htmlFor="sender-display-name">Nom d'affichage</FieldLabel>
+          <Input
+            id="sender-display-name"
+            className="w-full text-[0.8rem]"
+            value={localName}
+            onChange={(e) => setLocalName(e.target.value)}
+          />
+        </Field>
+        {/* Seule action de la rangee, elle valide les deux champs : action
+            principale de la zone, d'ou l'encre pleine. */}
         <Button
-          variant="outlined"
-          size="small"
+          size="sm"
           disabled={!emailValid || !dirty || saving}
           onClick={() => onSave(localEmail.trim(), localName.trim())}
-          sx={{ textTransform: 'none', fontSize: '0.78rem', flexShrink: 0 }}
         >
           {saving ? 'Enregistrement…' : 'Enregistrer'}
         </Button>
-      </Box>
+      </div>
 
       {foreignDomain && (
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, mt: 0.75, ml: { sm: '30px' } }}>
-          <Box sx={{ color: 'warning.main', display: 'inline-flex', mt: '1px', flexShrink: 0 }}>
+        <div className="flex items-start gap-[4.5px] mt-[4.5px] min-[600px]:ms-[30px]">
+          {/* `warning.main` du theme MUI = #D4A574 (palette accents Baitly). */}
+          <span className="text-[#D4A574] inline-flex mt-px shrink-0">
             <Info size={14} />
-          </Box>
-          <Typography sx={{ fontSize: '0.72rem', color: 'warning.main' }}>
+          </span>
+          <p className="cn-text-body1 text-[0.72rem] text-[var(--bui-warning-ink)]">
             Domaine «&nbsp;{domain}&nbsp;» : authentifiez-le d'abord dans Brevo (SPF&nbsp;+&nbsp;DKIM)
             avant de l'utiliser, sinon les emails partiront en spam / soft bounce.
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

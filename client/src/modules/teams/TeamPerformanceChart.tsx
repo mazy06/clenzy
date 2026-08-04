@@ -1,12 +1,6 @@
 import React from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  CircularProgress,
-} from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Spinner, Card, CardContent } from '../../components/ui';
 import {
   TrendingUp,
   CalendarMonth,
@@ -46,9 +40,9 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
 
   if (loading) {
     return (
-      <Card sx={{ height: '100%' }}>
-        <CardContent sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
-          <CircularProgress size={28} />
+      <Card className="h-full">
+        <CardContent className="flex justify-center items-center min-h-[300px]">
+          <Spinner className="size-7" />
         </CardContent>
       </Card>
     );
@@ -92,51 +86,52 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
     {
       label: t('teams.performance.totalCompleted'),
       value: totalCompleted.toString(),
-      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><TrendingUp size={22} strokeWidth={1.75} /></Box>,
+      icon: <span className="inline-flex text-[var(--ok)]"><TrendingUp size={22} strokeWidth={1.75} /></span>,
       color: 'var(--ok)',
     },
     {
       label: t('teams.performance.averagePerMonth'),
       value: averagePerMonth.toString(),
-      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><CalendarMonth size={22} strokeWidth={1.75} /></Box>,
+      icon: <span className="inline-flex text-[var(--info)]"><CalendarMonth size={22} strokeWidth={1.75} /></span>,
       color: 'var(--info)',
     },
     {
       label: t('teams.performance.completionRate'),
       value: `${completionRate}%`,
-      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Speed size={22} strokeWidth={1.75} /></Box>,
+      icon: <span className="inline-flex text-[var(--accent)]"><Speed size={22} strokeWidth={1.75} /></span>,
       color: 'var(--accent)',
     },
   ];
 
   return (
-    <Card sx={{ height: '100%' }}>
-      <CardContent sx={{ p: 3 }}>
-        <Typography variant="h6" sx={{ color: 'var(--ink)', fontWeight: 600, mb: 2 }}>
+    <Card className="h-full">
+      {/* p: 3 = 18 px (theme.spacing vaut 6 dans ce projet). */}
+      <CardContent className="p-[18px]">
+        <h6 className="cn-text-h6 text-[var(--ink)] font-semibold mb-3">
           {t('teams.performance.title')}
-        </Typography>
+        </h6>
 
-        <Grid container spacing={2} sx={{ mb: 3 }}>
+        <div className="grid grid-cols-12 gap-3 mb-[18px]">
           {summaryStats.map((stat) => (
-            <Grid item xs={4} key={stat.label}>
-              <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: '12px', bgcolor: 'var(--field)', border: '1px solid var(--field-line)' }}>
+            <div className="col-span-4" key={stat.label}>
+              <div className="text-center p-2 rounded-[12px] bg-[var(--field)] border border-[var(--field-line)]">
                 {stat.icon}
-                <Typography variant="h5" fontWeight={700} sx={{ color: stat.color, mt: 0.5 }}>
+                <h5 className="cn-text-h5 font-bold mt-[3px]" style={{ color: stat.color }}>
                   {stat.value}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                </h5>
+                <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
                   {stat.label}
-                </Typography>
-              </Box>
-            </Grid>
+                </span>
+              </div>
+            </div>
           ))}
-        </Grid>
+        </div>
 
-        <Typography variant="body2" fontWeight={500} sx={{ mb: 1 }}>
+        <p className="cn-text-body2 font-medium mb-1.5">
           {t('teams.performance.monthlyTrend')}
-        </Typography>
+        </p>
 
-        <Box sx={{ height: 200 }}>
+        <div className="h-[200px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -153,7 +148,7 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
               />
             </LineChart>
           </ResponsiveContainer>
-        </Box>
+        </div>
       </CardContent>
     </Card>
   );

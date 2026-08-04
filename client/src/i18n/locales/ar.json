@@ -53,6 +53,26 @@
       "rep": {
         "name": "التقييمات والسمعة",
         "role": "التقييمات والتقدير"
+      },
+      "sync": {
+        "name": "المزامنة",
+        "role": "القنوات والتقويمات"
+      },
+      "cmp": {
+        "name": "الامتثال",
+        "role": "الامتثال والأمان"
+      },
+      "gst": {
+        "name": "الضيف",
+        "role": "تجربة الضيف"
+      },
+      "own": {
+        "name": "المالك",
+        "role": "العلاقة مع المالك"
+      },
+      "gro": {
+        "name": "النمو",
+        "role": "التوزيع والنمو"
       }
     },
     "status": {
@@ -187,7 +207,10 @@
       "SEND_GUIDE_FAILED": "فشل إرسال دليل الاستقبال (أتمتة)",
       "SEND_CHECKIN_LINK_FAILED": "فشل إرسال رابط تسجيل الوصول (أتمتة)",
       "SEND_NOISE_WARNING_FAILED": "فشل إرسال تنبيه الضوضاء (أتمتة)",
-      "SEND_REVIEW_REQUEST_FAILED": "فشل إرسال طلب التقييم (أتمتة)"
+      "SEND_REVIEW_REQUEST_FAILED": "فشل إرسال طلب التقييم (أتمتة)",
+      "yield_guardrail": "تم حجب التعديل بواسطة ضابط الأمان",
+      "auto_rule_suggested": "اقتراح أتمتة بعد موافقات متكررة",
+      "payment_dispute": "نزاع مصرفي مستلم"
     },
     "approval": {
       "title": "مطلوب موافقة",
@@ -217,7 +240,10 @@
       "empty": "لا توجد إجراءات حديثة للوكلاء",
       "emptyOnboarding": "يراقب الوكلاء عقاراتك. ستظهر هنا إجراءاتهم واقتراحاتهم بانتظار موافقتك — لا يُنفَّذ شيء دون موافقتك.",
       "openMessage": "عرض الرسالة المُرسَلة",
-      "openInvoice": "عرض الفاتورة"
+      "openInvoice": "عرض الفاتورة",
+      "guardrail": "ضابط أمان",
+      "learned": "قاعدة متعلَّمة",
+      "deferred": "مؤجَّل"
     },
     "messageModal": {
       "title": "الرسالة المُرسَلة",
@@ -308,6 +334,35 @@
     },
     "compact": {
       "hitl": "للمعالجة"
+    },
+    "verbs": {
+      "block": "حظر",
+      "schedule": "جدولة",
+      "reassign": "إعادة تعيين",
+      "refund": "استرداد",
+      "release": "تحرير",
+      "remind": "تذكير",
+      "retry": "إعادة المحاولة",
+      "republish": "إعادة النشر",
+      "send": "إرسال",
+      "pay": "دفع",
+      "declare": "تقديم التصريح",
+      "signSend": "إرسال للتوقيع",
+      "restrict": "تقييد",
+      "deactivate": "تعطيل",
+      "withhold": "اقتطاع",
+      "approve": "موافقة",
+      "translate": "ترجمة",
+      "resolve": "حل",
+      "takeover": "الاستلام اليدوي",
+      "markFiled": "تسجيل كمُصرَّح",
+      "propose": "اقتراح",
+      "markNoShow": "تسجيل عدم الحضور",
+      "submit": "تقديم",
+      "order": "طلب",
+      "accept": "قبول",
+      "erase": "محو",
+      "publish": "نشر"
     }
   },
   "channexGuided": {
@@ -423,12 +478,7 @@
       "dialogTitle": "العمولات وحصتي"
     },
     "orgCommission": {
-      "title": "عمولتي (الإدارة)",
-      "note": "حصتك من المتبقي بعد عمولة المنصة. يحصل المالك على الرصيد المتبقي.",
-      "platformInfo": "عمولة المنصة (تحددها المنصة)",
-      "upsell": "حصتي (الخدمات الإضافية)",
-      "activity": "حصتي (الأنشطة)",
-      "saved": "تم حفظ العمولة"
+      "movedToPayment": "تُضبط حصتك من الخدمات الإضافية في الإعدادات › الدفع، تبويب «الخدمات والأنشطة»."
     }
   },
   "welcomeGuide": {
@@ -756,7 +806,9 @@
     "expandMenu": "فتح القائمة",
     "collapseMenu": "طي القائمة",
     "ratesAt": "الأسعار في",
-    "download": "تحميل"
+    "download": "تحميل",
+    "tabsMenu": "علامات التبويب",
+    "tabsMenuCount": "{{count}} علامات تبويب"
   },
   "connectedObjects": {
     "previewBadge": "معاينة",
@@ -2289,7 +2341,26 @@
     "invalidDate": "تاريخ غير صالح",
     "notFound": "طلب الخدمة غير موجود",
     "team": "الفريق",
-    "approvedDateShort": "تمت الموافقة في"
+    "approvedDateShort": "تمت الموافقة في",
+    "unassigned": "غير مسندة",
+    "kpi": {
+      "late": "متأخرة",
+      "today": "اليوم",
+      "done7d": "منجزة (7 أيام)",
+      "sinceDays_zero": "اليوم",
+      "sinceDays_one": "منذ يوم",
+      "sinceDays_two": "منذ يومين",
+      "sinceDays_few": "منذ {{count}} أيام",
+      "sinceDays_many": "منذ {{count}} يومًا",
+      "sinceDays_other": "منذ {{count}} يوم",
+      "avgDuration": "متوسط المدة المقدّرة"
+    },
+    "family": {
+      "all": "كل الأنواع",
+      "cleaning": "تنظيف",
+      "maintenance": "صيانة",
+      "other": "أخرى"
+    }
   },
   "interventions": {
     "due": {
@@ -3201,7 +3272,8 @@
       "projectionHint": "إسقاط على 100 € محصّلة، بتوزيع ثابت. هذا ليس كشف تحويلات.",
       "detailTitle": "التفصيل حسب القناة",
       "tabChannels": "قنوات التوزيع",
-      "tabServices": "الخدمات والأنشطة"
+      "tabServices": "الخدمات والأنشطة",
+      "contractOverride": "{{count}} عقار(ات) تحت عقد إدارة لا تتبع هذا التوزيع: يتلقى المالك الرصيد بعد نسبة عقده، وتُقسَّم العمولة 25% للمنصة و75% للكونسيرج."
     },
     "commissions": {
       "title": "عمولات القنوات",
@@ -3237,6 +3309,8 @@
       "daysOfMonthHelper": "حدد أيام الشهر التي سيتم فيها إنشاء التحويلات (1-28).",
       "gracePeriod": "مهلة التذكير (أيام)",
       "gracePeriodHelper": "عدد الأيام بعد الإنشاء قبل إرسال تذكير بالموافقة.",
+      "reminderSentenceStart": "إرسال تذكير بالموافقة بعد",
+      "reminderSentenceEnd": "أيام من الإنشاء.",
       "save": "حفظ الجدول",
       "saved": "تم تحديث جدول التحويلات",
       "error": "خطأ في تحديث الجدول",
@@ -3989,6 +4063,8 @@
     "onCapLabel": "عند بلوغ الحد",
     "onCapNotify": "إشعار فقط (اقتراحات دون تنفيذ)",
     "onCapPause": "إيقاف الاستقلالية مؤقتًا",
+    "capSentenceStart": "تحديد سقف قدره",
+    "capSentenceMiddle": "رصيدًا في الشهر، ثم",
     "save": "حفظ",
     "noBehaviors": "لا يوجد سلوك مميز مفعّل بعد — ستظهر المفاتيح هنا (مثل تحسين الأسعار الاستباقي).",
     "trustTitle": "قواعد الثقة",
@@ -4025,7 +4101,18 @@
       "logoHelp": "اتركه فارغًا لعدم عرض شعار",
       "primaryColor": "لون التمييز (#RRGGBB)",
       "saveError": "تعذر الحفظ"
-    }
+    },
+    "showcase": {
+      "title": "ملاكك يتابعون عقاراتهم دون الاتصال بك",
+      "description": "الإشغال والإيرادات والتحويلات والمستندات، في مساحة مخصصة تفتحها عقارًا بعقار.",
+      "action": "دعوة مالك"
+    },
+    "propertiesCount_zero": "لا عقارات",
+    "propertiesCount_one": "عقار واحد",
+    "propertiesCount_two": "عقاران",
+    "propertiesCount_few": "{{count}} عقارات",
+    "propertiesCount_many": "{{count}} عقارًا",
+    "propertiesCount_other": "{{count}} عقار"
   },
   "ownerConstellation": {
     "subtitle": "مساحة المالك",
@@ -4579,6 +4666,17 @@
       "notAvailable": "ستتوفر المزامنة الصادرة للأسعار قريبًا.",
       "success": "تمت مزامنة الأسعار بنجاح مع Airbnb",
       "error": "خطأ أثناء مزامنة الأسعار"
+    },
+    "health": {
+      "ok": "مدير القنوات يعمل بشكل سليم",
+      "errors_zero": "لا أخطاء مزامنة",
+      "errors_one": "عقار واحد به خطأ مزامنة",
+      "errors_two": "عقاران بهما خطأ مزامنة",
+      "errors_few": "{{count}} عقارات بها أخطاء مزامنة",
+      "errors_many": "{{count}} عقارًا به أخطاء مزامنة",
+      "errors_other": "{{count}} عقار به أخطاء مزامنة",
+      "detail": "{{active}}/{{total}} ربط نشط · حُسب في {{time}}",
+      "journal": "سجل المزامنة"
     }
   },
   "systemEmailTemplates": {
@@ -4725,7 +4823,13 @@
       "locked": "مقفل",
       "countryChanged": "تم تحديث بلد الامتثال بنجاح",
       "countryChangeError": "خطأ أثناء تغيير بلد الامتثال"
-    }
+    },
+    "failedBadge_zero": "لا إخفاقات",
+    "failedBadge_one": "إخفاق واحد",
+    "failedBadge_two": "إخفاقان",
+    "failedBadge_few": "{{count}} إخفاقات",
+    "failedBadge_many": "{{count}} إخفاقًا",
+    "failedBadge_other": "{{count}} إخفاق"
   },
   "messaging": {
     "whatsappStatus": {
@@ -4842,7 +4946,23 @@
       "draft": "مسودات",
       "issued": "صادرة",
       "paid": "مدفوعة",
-      "totalTtc": "إجمالي شامل الضريبة"
+      "totalTtc": "إجمالي شامل الضريبة",
+      "issuedTotal": "الصادر",
+      "collected": "المحصَّل",
+      "overdue": "متأخرة",
+      "count_zero": "لا فواتير",
+      "count_one": "فاتورة واحدة",
+      "count_two": "فاتورتان",
+      "count_few": "{{count}} فواتير",
+      "count_many": "{{count}} فاتورة",
+      "count_other": "{{count}} فاتورة",
+      "collectedShare": "{{rate}}٪ من المبلغ الصادر",
+      "overdueCount_zero": "لا فواتير",
+      "overdueCount_one": "فاتورة واحدة",
+      "overdueCount_two": "فاتورتان",
+      "overdueCount_few": "{{count}} فواتير",
+      "overdueCount_many": "{{count}} فاتورة",
+      "overdueCount_other": "{{count}} فاتورة"
     },
     "columns": {
       "number": "الرقم",
@@ -4864,7 +4984,8 @@
       "PAID": "مدفوعة",
       "CANCELLED": "ملغاة",
       "CREDIT_NOTE": "إشعار دائن"
-    }
+    },
+    "totalPeriod": "إجمالي الفترة"
   },
   "notifications": {
     "title": "الإشعارات",
@@ -4971,6 +5092,16 @@
       "NOISE_ALERT_RESOLVED": "تم حل تنبيه الضوضاء",
       "CONTACT_MESSAGE_RECEIVED": "تم استلام رسالة",
       "CONTACT_FORM_RECEIVED": "تم استلام نموذج اتصال"
+    },
+    "groups": {
+      "today": "اليوم",
+      "yesterday": "أمس"
+    },
+    "preferences": "تفضيلات الإشعارات",
+    "showcase": {
+      "title": "كن على علم بما يهم، لا بغيره",
+      "description": "حجز جديد، إلغاء، مشكلة دفع، تنبيه ضوضاء: أنت تختار القناة والوتيرة.",
+      "action": "ضبط إشعاراتي"
     }
   },
   "fiscal": {
@@ -5854,6 +5985,10 @@
       }
     },
     "skip": "تخطي",
+    "dock": {
+      "title": "دليل البدء",
+      "continue": "متابعة"
+    },
     "completionMessage": "أكمل الإعداد الأولي للوصول إلى لوحة التحكم الكاملة"
   },
   "auth": {
@@ -5877,7 +6012,7 @@
       "trustSupport": "دعم 7 أيام في الأسبوع"
     },
     "login": {
-      "title": "مرحبًا بعودتك",
+      "title": "تسجيل الدخول",
       "subtitle": "سجّل الدخول للوصول إلى لوحة التحكم.",
       "inscriptionSuccess": "تم إنشاء حسابك بنجاح. سجّل الدخول للوصول إلى مساحتك.",
       "emailLabel": "البريد الإلكتروني أو اسم المستخدم",
@@ -6652,5 +6787,8 @@
   },
   "search": {
     "goToScreen": "الانتقال إلى شاشة…"
+  },
+  "messagingHub": {
+    "viewReservation": "عرض الحجز"
   }
 }

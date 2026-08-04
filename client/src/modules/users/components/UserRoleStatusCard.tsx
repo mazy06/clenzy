@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Chip, Typography, alpha, useTheme } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
 import { Business, AdminPanelSettings } from '../../../icons';
 import { semanticToHex } from '../../../utils/statusUtils';
 import type { UserDetailsData, RoleInfo, StatusInfo } from './userDetailsTypes';
@@ -38,14 +38,13 @@ const STATUS_DESCRIPTIONS: Record<string, string> = {
  * (no two consecutive sections share an accent).
  */
 const UserRoleStatusCard: React.FC<UserRoleStatusCardProps> = ({ user, roles, statuses }) => {
-  const theme = useTheme();
   const roleInfo = getRoleInfo(user.role, roles);
   const statusInfo = getStatusInfo(user.status, statuses);
   const roleHex = semanticToHex(roleInfo.color);
   const statusHex = semanticToHex(statusInfo.color);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <div className="flex flex-col gap-2">
       {/* Organisation — warm accent */}
       <DetailSection
         title="Organisation"
@@ -65,66 +64,33 @@ const UserRoleStatusCard: React.FC<UserRoleStatusCardProps> = ({ user, roles, st
         icon={<AdminPanelSettings size={14} strokeWidth={1.75} />}
       >
         {/* Role chip + description */}
-        <Box sx={{ minWidth: 0 }}>
-          <Typography
-            variant="caption"
-            sx={{
-              fontSize: '0.6875rem',
-              fontWeight: 600,
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-              color: 'text.secondary',
-              display: 'block',
-              mb: 0.5,
-            }}
-          >
+        <div className="min-w-0">
+          <span className="cn-text-caption text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-muted-foreground block mb-0.5">
             Rôle
-          </Typography>
-          <Chip
-            icon={
-              <Box component="span" sx={{ display: 'inline-flex' }}>
+          </span>
+          <StatusChip tokens={{ color: roleHex, bg: `${roleHex}18` }} label={roleInfo.label} icon={<span className="inline-flex">
                 {React.cloneElement(roleInfo.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
                   size: 14,
                   strokeWidth: 1.75,
                 })}
-              </Box>
-            }
-            label={roleInfo.label}
-            size="small"
-            sx={{ backgroundColor: `${roleHex}18`, color: roleHex, '& .MuiChip-icon': { color: roleHex }, mb: 0.75 }}
-          />
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.5 }}>
+              </span>} className="mb-1" />
+          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground leading-[1.5]">
             {ROLE_DESCRIPTIONS[user.role] || ''}
-          </Typography>
-        </Box>
+          </p>
+        </div>
 
         {/* Status chip + description */}
-        <Box sx={{ minWidth: 0 }}>
-          <Typography
-            variant="caption"
-            sx={{
-              fontSize: '0.6875rem',
-              fontWeight: 600,
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-              color: 'text.secondary',
-              display: 'block',
-              mb: 0.5,
-            }}
-          >
+        <div className="min-w-0">
+          <span className="cn-text-caption text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-muted-foreground block mb-0.5">
             Statut
-          </Typography>
-          <Chip
-            label={statusInfo.label}
-            size="small"
-            sx={{ backgroundColor: `${statusHex}18`, color: statusHex, mb: 0.75 }}
-          />
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.5 }}>
+          </span>
+          <StatusChip tokens={{ color: statusHex, bg: `${statusHex}18` }} label={statusInfo.label} className="mb-1" />
+          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground leading-[1.5]">
             {STATUS_DESCRIPTIONS[user.status] || ''}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       </DetailSection>
-    </Box>
+    </div>
   );
 };
 

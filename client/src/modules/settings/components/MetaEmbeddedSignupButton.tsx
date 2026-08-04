@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
-  Box,
+  AlertAction,
+  AlertDescription,
+  AlertTitle,
   Button,
-  CircularProgress,
-  Typography,
-  alpha,
-  useTheme,
-} from '@mui/material';
+  Spinner,
+} from '../../../components/ui';
+import { X } from 'lucide-react';
 import { CheckCircle, ErrorOutline } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
@@ -75,7 +75,6 @@ const FB_SDK_SCRIPT_ID = 'facebook-jssdk';
 
 export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSignupButtonProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
 
   // Config Meta app lue uniquement dans le handler de lancement : ref.
   const appConfigRef = useRef<MetaAppConfig | null>(null);
@@ -226,96 +225,100 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}>
-        <CircularProgress size={16} />
-        <Typography variant="caption" color="text.secondary">
+      <div className="flex items-center gap-2 py-1.5">
+        <Spinner className="size-4" />
+        <span className="cn-text-caption text-muted-foreground">
           {t('settings.whatsapp.meta.signup.loading', 'Initialisation du SDK Facebook…')}
-        </Typography>
-      </Box>
+        </span>
+      </div>
     );
   }
 
   if (success) {
     return (
-      <Alert severity="success" icon={<CheckCircle size={20} />}>
-        <strong>{t('settings.whatsapp.meta.signup.success', 'WhatsApp connecté avec succès')}</strong>
-        <Typography variant="body2" sx={{ mt: 0.5 }}>
-          {t('settings.whatsapp.meta.signup.successDetails',
-            "Numéro {{phoneNumber}} — WABA {{wabaId}}. Vous pouvez maintenant activer l'envoi WhatsApp.",
-            { phoneNumber: success.phoneNumber, wabaId: success.wabaId })}
-        </Typography>
-        {success.templatesSubmitted > 0 && (
-          <Typography variant="body2" sx={{ mt: 0.5 }}>
-            {t('settings.whatsapp.meta.signup.templatesSubmitted',
-              "✓ {{count}} templates Baitly standards soumis à Meta (validation ~24h).",
-              { count: success.templatesSubmitted })}
-          </Typography>
-        )}
+      <Alert variant="success">
+        <CheckCircle size={20} />
+        <AlertTitle>
+          {t('settings.whatsapp.meta.signup.success', 'WhatsApp connecté avec succès')}
+        </AlertTitle>
+        <AlertDescription>
+          <p className="cn-text-body2 mt-0.5">
+            {t('settings.whatsapp.meta.signup.successDetails',
+              "Numéro {{phoneNumber}} — WABA {{wabaId}}. Vous pouvez maintenant activer l'envoi WhatsApp.",
+              { phoneNumber: success.phoneNumber, wabaId: success.wabaId })}
+          </p>
+          {success.templatesSubmitted > 0 && (
+            <p className="cn-text-body2 mt-0.5">
+              {t('settings.whatsapp.meta.signup.templatesSubmitted',
+                "✓ {{count}} templates Baitly standards soumis à Meta (validation ~24h).",
+                { count: success.templatesSubmitted })}
+            </p>
+          )}
+        </AlertDescription>
       </Alert>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Bleu Facebook conserve : c'est l'identite de marque du bouton de connexion,
+            pas une couleur du theme Baitly. Seul le fond est surcharge, le reste du
+            gabarit vient du kit. */}
         <Button
-          variant="contained"
-          disableElevation
           onClick={handleSignup}
           disabled={!sdkReady || signingIn}
-          startIcon={
-            signingIn ? (
-              <CircularProgress size={14} color="inherit" />
-            ) : (
-              // Icone Facebook simple en SVG inline (pas besoin d'ajouter au barrel icons)
-              <Box
-                component="svg"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                sx={{ width: 16, height: 16, fill: 'currentColor' }}
-              >
-                <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z" />
-              </Box>
-            )
-          }
-          sx={{
-            bgcolor: '#1877F2', // Facebook brand blue (exception au theme — c'est leur identite)
-            '&:hover': { bgcolor: '#166FE5' },
-            textTransform: 'none',
-            fontWeight: 600,
-          }}
-          size="small"
+          size="sm"
+          className="bg-[#1877F2] text-white hover:bg-[#166FE5]"
         >
+          {signingIn ? (
+            <Spinner className="size-3.5" />
+          ) : (
+            // Icone Facebook simple en SVG inline (pas besoin d'ajouter au barrel icons)
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              className="fill-current"
+            >
+              <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z" />
+            </svg>
+          )}
           {signingIn
             ? t('settings.whatsapp.meta.signup.inProgress', 'Connexion en cours…')
             : t('settings.whatsapp.meta.signup.cta', 'Connecter avec Facebook')}
         </Button>
-        <Typography variant="caption" color="text.secondary">
+        <span className="cn-text-caption text-muted-foreground">
           {t('settings.whatsapp.meta.signup.hint',
             "~5 min · Configuration auto du WhatsApp Business + templates")}
-        </Typography>
-      </Box>
+        </span>
+      </div>
 
       {error && error !== 'UNAVAILABLE' && (
-        <Alert severity="error" icon={<ErrorOutline size={20} />} onClose={() => setError(null)} sx={{ mt: 1 }}>
-          {error}
+        // Le kit n'a pas de prop `onClose` : la croix devient une AlertAction.
+        <Alert variant="destructive" className="mt-1.5">
+          <ErrorOutline size={20} />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={t('common.close', 'Fermer')}
+              onClick={() => setError(null)}
+            >
+              <X size={14} />
+            </Button>
+          </AlertAction>
         </Alert>
       )}
 
-      <Box sx={{
-        mt: 0.5,
-        p: 1.25,
-        borderRadius: 1.5,
-        bgcolor: alpha(theme.palette.info.main, 0.06),
-        border: `1px solid ${alpha(theme.palette.info.main, 0.15)}`,
-      }}>
-        <Typography variant="caption" color="text.secondary">
+      <div className="mt-[3px] p-[7.5px] rounded-[12px] bg-[color-mix(in_srgb,var(--info)_6%,transparent)] border border-solid border-[color-mix(in_srgb,var(--info)_15%,transparent)]">
+        <span className="cn-text-caption text-muted-foreground">
           <strong>{t('settings.whatsapp.meta.signup.recommendedTitle', 'Méthode recommandée')}</strong>
           {' — '}
           {t('settings.whatsapp.meta.signup.recommendedBody',
             "Pas de Meta Business Manager nécessaire en amont. Baitly provisionne tout pour vous : compte WhatsApp Business, vérification du numéro, templates de messages.")}
-        </Typography>
-      </Box>
-    </Box>
+        </span>
+      </div>
+    </div>
   );
 }

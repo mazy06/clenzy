@@ -1,14 +1,28 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
+import { Spinner } from '../../components/ui';
+import { Button } from '../../components/ui';
+import { Card } from '../../components/ui';
 import {
-  Box, Paper, Typography, Button, TextField, MenuItem,
-  Switch, FormControlLabel, Grid, CircularProgress, Alert, Snackbar,
-  Chip,
-} from '@mui/material';
+  Alert as BuiAlert,
+  AlertAction,
+  AlertDescription,
+  AlertTitle,
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  Switch,
+  Textarea,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
 import {
   AccountBalance, Info as InfoIcon, Verified,
 } from '../../icons';
 import { useFiscalProfile, useUpdateFiscalProfile } from '../../hooks/useFiscalProfile';
 import { CURRENCY_OPTIONS, COUNTRY_OPTIONS } from '../../utils/currencyUtils';
+import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
 import { getCountryDefaults } from '../../utils/countryDefaults';
 import { STORAGE_KEYS, getItem } from '../../services/storageService';
@@ -52,6 +66,7 @@ interface FiscalProfileSectionProps {
 
 const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectionProps>(function FiscalProfileSection({ onChangeState }, ref) {
   const { t } = useTranslation();
+  const { notify } = useNotification();
   const { data: profile, isLoading, error, refetch } = useFiscalProfile();
   const updateMutation = useUpdateFiscalProfile();
   const { completeStep, steps } = useOnboarding();
@@ -73,10 +88,6 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
     legalMentions: '',
     legalEntityName: '',
     legalAddress: '',
-  });
-
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false, message: '', severity: 'success',
   });
 
   // Sync form with fetched data
@@ -121,12 +132,12 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
   const handleSave = async () => {
     try {
       await updateMutation.mutateAsync(form);
-      setSnackbar({ open: true, message: t('fiscal.profile.saved'), severity: 'success' });
+      notify.success(t('fiscal.profile.saved'));
       if (!isConfigureOrgDone) {
         completeStep('configure_org');
       }
     } catch {
-      setSnackbar({ open: true, message: t('fiscal.profile.error'), severity: 'error' });
+      notify.error(t('fiscal.profile.error'));
     }
   };
 
@@ -168,237 +179,228 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
   // ── Loading state ──
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center py-6">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
   // ── Error state — show a helpful retry notice, NOT a blocking error ──
   if (error && !profile) {
     return (
-      <Box>
-        <Alert
-          severity="warning"
-          icon={<InfoIcon />}
-          action={
-            <Button color="inherit" size="small" onClick={() => refetch()}>
+      <div>
+        <BuiAlert variant="warning" className="mb-3">
+          <InfoIcon />
+          <AlertDescription>{t('fiscal.profile.loadError')}</AlertDescription>
+          <AlertAction>
+            {/* `color="inherit"` n'a pas d'equivalent au kit : on pose
+                explicitement la teinte --warn de l'alerte qui l'heberge. */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+            >
               Réessayer
             </Button>
-          }
-          sx={{ mb: 2 }}
-        >
-          {t('fiscal.profile.loadError')}
-        </Alert>
-      </Box>
+          </AlertAction>
+        </BuiAlert>
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       {/* First-time setup banner */}
       {isFirstSetup && (
-        <Alert
-          severity="info"
-          icon={<InfoIcon />}
-          sx={{ mb: 2, '& .MuiAlert-message': { width: '100%' } }}
-        >
-          <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.5 }}>
+        <BuiAlert variant="info" className="mb-3">
+          <InfoIcon />
+          <AlertTitle className="cn-text-subtitle2 font-semibold mb-0.5">
             {t('fiscal.profile.setupTitle')}
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
-            {t('fiscal.profile.setupDescription')}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontSize: '0.7rem' }}>
-            {t('fiscal.profile.setupNotice')}
-          </Typography>
-        </Alert>
+          </AlertTitle>
+          <AlertDescription>
+            <p className="cn-text-body2 text-[0.8rem]">
+              {t('fiscal.profile.setupDescription')}
+            </p>
+            <span className="cn-text-caption text-muted-foreground block mt-0.5 text-[0.7rem]">
+              {t('fiscal.profile.setupNotice')}
+            </span>
+          </AlertDescription>
+        </BuiAlert>
       )}
 
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {/* ── Section 1 : Informations fiscales ── */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2, height: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AccountBalance size={20} strokeWidth={1.75} /></Box>
-              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <Card className="gap-0 py-0 p-3 h-full">
+            <div className="flex items-center gap-1.5 mb-3">
+              <span className="inline-flex text-primary"><AccountBalance size={20} strokeWidth={1.75} /></span>
+              <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
                 {t('fiscal.profile.sectionFiscalInfo')}
-              </Typography>
+              </h6>
               {!isFirstSetup && profile?.vatRegistered && (
-                <Chip
-                  icon={<Verified size={11} strokeWidth={2} />}
-                  label="TVA"
-                  size="small"
-                  sx={{
-                    ml: 'auto',
-                    height: 22,
-                    fontSize: '0.6875rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.04em',
-                    backgroundColor: 'var(--ok-soft)',
-                    color: 'var(--ok)',
-                    border: '1px solid color-mix(in srgb, var(--ok) 25%, transparent)',
-                    borderRadius: '6px',
-                    px: 0.25,
-                    '& .MuiChip-icon': {
-                      color: 'var(--ok) !important',
-                      ml: '6px',
-                      mr: '-2px',
-                    },
-                    '& .MuiChip-label': { px: 0.875 },
-                  }}
-                />
+                <StatusChip tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label="TVA" icon={<Verified size={11} strokeWidth={2} />} className="ms-auto tracking-[0.04em] px-0.5" />
               )}
-            </Box>
+            </div>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  select
-                  label={t('fiscal.profile.country')}
-                  value={form.countryCode}
-                  onChange={(e) => handleChange('countryCode', e.target.value)}
-                  size="small"
-                  required
-                >
-                  {COUNTRY_OPTIONS.map(c => (
-                    <MenuItem key={c.code} value={c.code}>{c.label}</MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-12 min-[600px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="fiscal-country">{t('fiscal.profile.country')}</FieldLabel>
+                  <NativeSelect
+                    id="fiscal-country"
+                    className="w-full"
+                    value={form.countryCode}
+                    onChange={(e) => handleChange('countryCode', e.target.value)}
+                    required
+                  >
+                    {COUNTRY_OPTIONS.map(c => (
+                      <NativeSelectOption key={c.code} value={c.code}>{c.label}</NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
+              </div>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  select
-                  label={t('fiscal.profile.currency')}
-                  value={form.defaultCurrency}
-                  onChange={(e) => handleChange('defaultCurrency', e.target.value)}
-                  size="small"
-                  required
-                >
-                  {CURRENCY_OPTIONS.map(c => (
-                    <MenuItem key={c.code} value={c.code}>{c.label}</MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
+              <div className="col-span-12 min-[600px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="fiscal-currency">{t('fiscal.profile.currency')}</FieldLabel>
+                  <NativeSelect
+                    id="fiscal-currency"
+                    className="w-full"
+                    value={form.defaultCurrency}
+                    onChange={(e) => handleChange('defaultCurrency', e.target.value)}
+                    required
+                  >
+                    {CURRENCY_OPTIONS.map(c => (
+                      <NativeSelectOption key={c.code} value={c.code}>{c.label}</NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
+              </div>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  select
-                  label={t('fiscal.profile.regime')}
-                  value={form.fiscalRegime}
-                  onChange={(e) => handleChange('fiscalRegime', e.target.value)}
-                  size="small"
-                >
-                  {REGIME_OPTIONS.map(r => (
-                    <MenuItem key={r.value} value={r.value}>{t(r.labelKey)}</MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
+              <div className="col-span-12 min-[600px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="fiscal-regime">{t('fiscal.profile.regime')}</FieldLabel>
+                  <NativeSelect
+                    id="fiscal-regime"
+                    className="w-full"
+                    value={form.fiscalRegime ?? ''}
+                    onChange={(e) => handleChange('fiscalRegime', e.target.value)}
+                  >
+                    {REGIME_OPTIONS.map(r => (
+                      <NativeSelectOption key={r.value} value={r.value}>{t(r.labelKey)}</NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
+              </div>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('fiscal.profile.taxId')}
-                  value={form.taxIdNumber}
-                  onChange={(e) => handleChange('taxIdNumber', e.target.value)}
-                  size="small"
-                  placeholder="FR12345678901"
-                />
-              </Grid>
+              <div className="col-span-12 min-[600px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="fiscal-tax-id">{t('fiscal.profile.taxId')}</FieldLabel>
+                  <Input
+                    id="fiscal-tax-id"
+                    value={form.taxIdNumber ?? ''}
+                    onChange={(e) => handleChange('taxIdNumber', e.target.value)}
+                    placeholder="FR12345678901"
+                  />
+                </Field>
+              </div>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('fiscal.profile.vatNumber')}
-                  value={form.vatNumber}
-                  onChange={(e) => handleChange('vatNumber', e.target.value)}
-                  size="small"
-                  placeholder="FR 12 345678901"
-                />
-              </Grid>
+              <div className="col-span-12 min-[600px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="fiscal-vat-number">{t('fiscal.profile.vatNumber')}</FieldLabel>
+                  <Input
+                    id="fiscal-vat-number"
+                    value={form.vatNumber ?? ''}
+                    onChange={(e) => handleChange('vatNumber', e.target.value)}
+                    placeholder="FR 12 345678901"
+                  />
+                </Field>
+              </div>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  select
-                  label={t('fiscal.profile.vatFrequency')}
-                  value={form.vatDeclarationFrequency || 'QUARTERLY'}
-                  onChange={(e) => handleChange('vatDeclarationFrequency', e.target.value)}
-                  size="small"
-                >
-                  {VAT_FREQUENCY_OPTIONS.map(f => (
-                    <MenuItem key={f.value} value={f.value}>{t(f.labelKey)}</MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
+              <div className="col-span-12 min-[600px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="fiscal-vat-frequency">{t('fiscal.profile.vatFrequency')}</FieldLabel>
+                  <NativeSelect
+                    id="fiscal-vat-frequency"
+                    className="w-full"
+                    value={form.vatDeclarationFrequency || 'QUARTERLY'}
+                    onChange={(e) => handleChange('vatDeclarationFrequency', e.target.value)}
+                  >
+                    {VAT_FREQUENCY_OPTIONS.map(f => (
+                      <NativeSelectOption key={f.value} value={f.value}>{t(f.labelKey)}</NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
+              </div>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  select
-                  label={t('fiscal.profile.invoiceLanguage')}
-                  value={form.invoiceLanguage || 'fr'}
-                  onChange={(e) => handleChange('invoiceLanguage', e.target.value)}
-                  size="small"
-                >
-                  {LANGUAGE_OPTIONS.map(l => (
-                    <MenuItem key={l.value} value={l.value}>{l.label}</MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
+              <div className="col-span-12 min-[600px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="fiscal-invoice-language">{t('fiscal.profile.invoiceLanguage')}</FieldLabel>
+                  <NativeSelect
+                    id="fiscal-invoice-language"
+                    className="w-full"
+                    value={form.invoiceLanguage || 'fr'}
+                    onChange={(e) => handleChange('invoiceLanguage', e.target.value)}
+                  >
+                    {LANGUAGE_OPTIONS.map(l => (
+                      <NativeSelectOption key={l.value} value={l.value}>{l.label}</NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
+              </div>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label={t('fiscal.profile.invoicePrefix')}
-                  value={form.invoicePrefix}
-                  onChange={(e) => handleChange('invoicePrefix', e.target.value)}
-                  size="small"
-                  placeholder="FA"
-                  helperText="Ex: FA-2026-0001"
-                />
-              </Grid>
+              <div className="col-span-12 min-[600px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="fiscal-invoice-prefix">{t('fiscal.profile.invoicePrefix')}</FieldLabel>
+                  <Input
+                    id="fiscal-invoice-prefix"
+                    value={form.invoicePrefix ?? ''}
+                    onChange={(e) => handleChange('invoicePrefix', e.target.value)}
+                    placeholder="FA"
+                  />
+                  <FieldDescription>Ex: FA-2026-0001</FieldDescription>
+                </Field>
+              </div>
 
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={form.vatRegistered}
-                      onChange={(e) => handleChange('vatRegistered', e.target.checked)}
-                    />
-                  }
-                  label={<Typography variant="body2">{t('fiscal.profile.vatRegistered')}</Typography>}
-                />
-              </Grid>
-            </Grid>
-          </Paper>
-        </Grid>
+              <div className="col-span-12">
+                <Field orientation="horizontal">
+                  <Switch
+                    id="fiscal-vat-registered"
+                    checked={form.vatRegistered}
+                    onCheckedChange={(checked) => handleChange('vatRegistered', checked)}
+                  />
+                  <FieldLabel htmlFor="fiscal-vat-registered" className="cn-text-body2 font-normal">
+                    {t('fiscal.profile.vatRegistered')}
+                  </FieldLabel>
+                </Field>
+              </div>
+            </div>
+          </Card>
+        </div>
 
         {/* ── Section 2 : Informations legales ── */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2, height: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><AccountBalance size={20} strokeWidth={1.75} /></Box>
-              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <Card className="gap-0 py-0 p-3 h-full">
+            <div className="flex items-center gap-1.5 mb-3">
+              <span className="inline-flex text-[var(--mui-secondary)]"><AccountBalance size={20} strokeWidth={1.75} /></span>
+              <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
                 {t('fiscal.profile.sectionLegalInfo')}
-              </Typography>
-            </Box>
+              </h6>
+            </div>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label={t('fiscal.profile.legalName')}
-                  value={form.legalEntityName}
-                  onChange={(e) => handleChange('legalEntityName', e.target.value)}
-                  size="small"
-                />
-              </Grid>
-              <Grid item xs={12}>
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-12">
+                <Field>
+                  <FieldLabel htmlFor="fiscal-legal-name">{t('fiscal.profile.legalName')}</FieldLabel>
+                  <Input
+                    id="fiscal-legal-name"
+                    value={form.legalEntityName ?? ''}
+                    onChange={(e) => handleChange('legalEntityName', e.target.value)}
+                  />
+                </Field>
+              </div>
+              <div className="col-span-12">
                 <AddressAutocomplete
                   value={form.legalAddress ?? ''}
                   label={t('fiscal.profile.legalAddress')}
@@ -407,38 +409,24 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                   onSelect={(address) => handleChange('legalAddress', address.label)}
                   size="small"
                 />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label={t('fiscal.profile.legalMentions')}
-                  value={form.legalMentions}
-                  onChange={(e) => handleChange('legalMentions', e.target.value)}
-                  size="small"
-                  multiline
-                  rows={4}
-                  placeholder="Mentions legales obligatoires sur les factures"
-                />
-              </Grid>
-            </Grid>
-          </Paper>
-        </Grid>
-      </Grid>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-      >
-        <Alert
-          severity={snackbar.severity}
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+              </div>
+              <div className="col-span-12">
+                <Field>
+                  <FieldLabel htmlFor="fiscal-legal-mentions">{t('fiscal.profile.legalMentions')}</FieldLabel>
+                  <Textarea
+                    id="fiscal-legal-mentions"
+                    rows={4}
+                    value={form.legalMentions ?? ''}
+                    onChange={(e) => handleChange('legalMentions', e.target.value)}
+                    placeholder="Mentions legales obligatoires sur les factures"
+                  />
+                </Field>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
   );
 });
 

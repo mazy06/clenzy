@@ -1,37 +1,35 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { createPortal } from 'react-dom';
+import StatusChip from '../../components/StatusChip';
+import { Alert, AlertDescription, Button, Field, FieldLabel, Input } from '../../components/ui';
 import {
-  Box,
-  Typography,
-  Button,
-  Grid,
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
   Card,
   CardContent,
-  CardActions,
-  Chip,
-  Tooltip,
-  IconButton,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  Avatar,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Divider,
-  Alert,
-  Skeleton,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  NativeSelect,
+  NativeSelectOption,
   Select,
-  FormHelperText,
-} from '@mui/material';
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Skeleton,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { Info } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import {
   MoreVert,
   Edit,
@@ -168,7 +166,6 @@ interface UsersListProps {
 const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = false, actionsContainer, filtersContainer }, ref) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   // Tarifs & score d'un prestataire (staff plateforme) — MM-4A #6.
   const [ratesUser, setRatesUser] = useState<{ id: number; name: string } | null>(null);
@@ -215,40 +212,25 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
     loadUsers();
   }, []);
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, u: User) => {
-    setAnchorEl(event.currentTarget);
+  // Le menu contextuel est desormais monte DANS chaque carte (DropdownMenu du
+  // kit, ancre sur son declencheur) : plus d'anchorEl, chaque action recoit
+  // directement la ligne concernee.
+  const openEdit = (u: User) => {
     setSelectedUser(u);
+    setEditFormData({
+      firstName: u.firstName,
+      lastName: u.lastName,
+      email: u.email,
+      phoneNumber: u.phoneNumber,
+      role: u.role,
+      status: u.status,
+    });
+    setEditDialogOpen(true);
   };
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleEdit = () => {
-    if (selectedUser) {
-      setEditFormData({
-        firstName: selectedUser.firstName,
-        lastName: selectedUser.lastName,
-        email: selectedUser.email,
-        phoneNumber: selectedUser.phoneNumber,
-        role: selectedUser.role,
-        status: selectedUser.status,
-      });
-      setEditDialogOpen(true);
-      setAnchorEl(null);
-    }
-  };
-
-  const handleViewDetails = () => {
-    if (selectedUser) {
-      navigate(`/users/${selectedUser.id}`);
-      handleMenuClose();
-    }
-  };
-
-  const handleDelete = () => {
+  const openDelete = (u: User) => {
+    setSelectedUser(u);
     setDeleteDialogOpen(true);
-    setAnchorEl(null);
   };
 
   const handleSyncUsers = async () => {
@@ -335,64 +317,61 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
   // Si pas de permission, afficher un message informatif
   if (!user || !canManageUsers) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="info" sx={{ p: 2, py: 1 }}>
-          <Typography variant="subtitle1" gutterBottom sx={{ mb: 1 }}>
+      <div className="p-3">
+        <Alert variant="info" className="p-3 py-1.5">
+          <Info />
+          <AlertDescription><h6 className="cn-text-subtitle1 mb-1.5">
             Accès non autorisé
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+          </h6><p className="cn-text-body2 text-[0.85rem]">
             Vous n'avez pas les permissions nécessaires pour gérer les utilisateurs.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
-          </Typography>
+          </p></AlertDescription>
         </Alert>
-      </Box>
+      </div>
     );
   }
 
   if (loading) {
     return (
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {Array.from({ length: 8 }).map((_, i) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={i}>
-            <Skeleton variant="rounded" height={180} sx={{ borderRadius: '14px' }} />
-          </Grid>
+          <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={i}>
+            <Skeleton className="h-[180px] w-full rounded-[14px]" />
+          </div>
         ))}
-      </Grid>
+      </div>
     );
   }
 
   const actionButtons = (
-    <Box sx={{ display: 'flex', gap: 1.5 }}>
+    <div className="flex gap-2">
       <ExportButton
         data={filteredUsers}
         columns={exportColumns}
         fileName="utilisateurs"
       />
+      {/* Barre d'actions du header : « Nouvel utilisateur » est l'action principale,
+          la synchro reste secondaire a poids egal -> outline. */}
       <Button
-        variant="outlined"
-        color="secondary"
-        size="small"
-        startIcon={<Sync size={18} strokeWidth={1.75} />}
+        variant="outline"
+        size="sm"
         onClick={handleSyncUsers}
         disabled={syncing}
-        sx={{ fontSize: '0.8125rem' }}
         title="Synchroniser"
       >
+        <Sync strokeWidth={1.75} />
         {syncing ? 'Sync...' : 'Synchroniser'}
       </Button>
       <Button
-        variant="contained"
-        color="primary"
-        size="small"
-        startIcon={<Add size={18} strokeWidth={1.75} />}
+        size="sm"
         onClick={() => navigate('/users/new')}
-        sx={{ fontSize: '0.8125rem' }}
         title="Nouvel utilisateur"
       >
+        <Add strokeWidth={1.75} />
         Nouvel utilisateur
       </Button>
-    </Box>
+    </div>
   );
 
   const filtersBar = (
@@ -431,7 +410,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
   );
 
   return (
-    <Box>
+    <div>
       {/* Portal des actions dans le header parent */}
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
 
@@ -448,52 +427,52 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
       )}
 
       {/* Statistiques — StatTile (carte plate hairline, valeur display) */}
-      <Box sx={{ mb: 2 }}>
-        <Grid container spacing={2}>
-          <Grid item xs={6} md={3}>
+      <div className="mb-3">
+        <div className="grid grid-cols-12 gap-3">
+          <div className="col-span-6 min-[900px]:col-span-3">
             <StatTile
               icon={<Person />}
               label="Total utilisateurs"
               value={users.length}
               color="#6B8A9A"
             />
-          </Grid>
-          <Grid item xs={6} md={3}>
+          </div>
+          <div className="col-span-6 min-[900px]:col-span-3">
             <StatTile
               icon={<ManageAccounts />}
               label="Utilisateurs actifs"
               value={users.filter(u => u.status === 'ACTIVE').length}
               color="#4A9B8E"
             />
-          </Grid>
-          <Grid item xs={6} md={3}>
+          </div>
+          <div className="col-span-6 min-[900px]:col-span-3">
             <StatTile
               icon={<AdminPanelSettings />}
               label="Administrateurs"
               value={users.filter(u => ['SUPER_ADMIN'].includes(u.role)).length}
               color="#C97A7A"
             />
-          </Grid>
-          <Grid item xs={6} md={3}>
+          </div>
+          <div className="col-span-6 min-[900px]:col-span-3">
             <StatTile
               icon={<Build />}
               label="Personnel opérationnel"
               value={users.filter(u => ['TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH'].includes(u.role)).length}
               color="#7BA3C2"
             />
-          </Grid>
-        </Grid>
-      </Box>
+          </div>
+        </div>
+      </div>
 
       {/* Filtres : portales dans le PageHeader parent, sinon inline en standalone */}
       {filtersContainer
         ? createPortal(filtersBar, filtersContainer)
-        : !embedded && <Box sx={{ mb: 2 }}>{filtersBar}</Box>}
+        : !embedded && <div className="mb-3">{filtersBar}</div>}
 
       {/* Liste des utilisateurs */}
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {filteredUsers.length === 0 ? (
-          <Grid item xs={12}>
+          <div className="col-span-12">
             <EmptyState
               icon={<Person />}
               title={users.length === 0 ? 'Aucun utilisateur' : 'Aucun résultat'}
@@ -503,7 +482,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                   : 'Aucun utilisateur ne correspond aux filtres sélectionnés.'
               }
             />
-          </Grid>
+          </div>
         ) : (
           filteredUsers.map((user) => {
             const platformRole = getRoleInfo(user.role);
@@ -516,241 +495,151 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
             const PlatformIcon = platformRole.Icon;
             const OrgIcon = orgRole?.Icon;
             return (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={user.id}>
-              {/* Carte hairline r14 (thème global) — hover lift + shadow-card (cliquable) */}
-              <Card
-                sx={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  '&:hover': {
-                    borderColor: 'var(--line-2)',
-                    boxShadow: 'var(--shadow-card)',
-                    transform: 'translateY(-1px)',
-                  },
-                  '@media (prefers-reduced-motion: reduce)': {
-                    '&:hover': { transform: 'none' },
-                  },
-                }}
-              >
-                <CardContent sx={{ flexGrow: 1, p: 1.75, pb: 1.25 }}>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={user.id}>
+              {/* Carte hairline r14 (kit) — hover lift + shadow-card (cliquable) */}
+              <Card className="h-full gap-2 [--card-spacing:10.5px] transition-[box-shadow,transform] duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-card)] hover:ring-[color:var(--line-2)] motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+                <CardContent className="flex-1">
                   {/* En-tête avec avatar (initiales display — pattern .mg-avt/.s-av) et menu */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.25, gap: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flex: 1, minWidth: 0 }}>
-                      <Avatar
-                        src={userAvatarSrc(user)}
-                        sx={{
-                          width: 38,
-                          height: 38,
-                          borderRadius: '10px',
-                          bgcolor: `${roleColor}1F`,
-                          color: roleColor,
-                          fontFamily: 'var(--font-display)',
-                          fontSize: '0.8125rem',
-                          fontWeight: 600,
-                          letterSpacing: '0.02em',
-                        }}
-                      >
-                        {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                  <div className="flex justify-between items-start mb-2 gap-1.5">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <Avatar className="size-[38px] shrink-0 rounded-[10px] after:rounded-[10px]">
+                        <AvatarImage src={userAvatarSrc(user)} alt="" className="rounded-[10px]" />
+                        <AvatarFallback
+                          className="rounded-[10px] font-[family-name:var(--font-display)] text-[0.8125rem] font-semibold tracking-[0.02em]"
+                          style={{ backgroundColor: `${roleColor}1F`, color: roleColor }}
+                        >
+                          {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                        </AvatarFallback>
                       </Avatar>
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography
-                          fontWeight={600}
-                          sx={{
-                            fontSize: '0.9rem',
-                            lineHeight: 1.25,
-                            color: 'text.primary',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
+                      <div className="flex-1 min-w-0">
+                        <p className="cn-text-body1 font-semibold text-[0.9rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                           {user.firstName} {user.lastName}
-                        </Typography>
-                        <Typography
-                          color="text.secondary"
-                          sx={{
-                            fontSize: '0.7rem',
-                            lineHeight: 1.3,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            display: 'block',
-                          }}
-                        >
+                        </p>
+                        <p className="cn-text-body1 text-muted-foreground text-[0.7rem] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap block">
                           {user.email}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => handleMenuOpen(e, user)}
-                      sx={{ p: 0.5, ml: 0.25, color: 'text.secondary' }}
-                      aria-label="Options"
-                    >
-                      <MoreVert size={16} strokeWidth={1.75} />
-                    </IconButton>
-                  </Box>
+                        </p>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        {/* Le span porte la ref exigee par Radix : Button du kit est
+                            un composant fonction qui ne la transmet pas (React 18). */}
+                        <span className="inline-flex ms-[1.5px]">
+                          <Button variant="ghost" size="icon-sm" aria-label="Options" className="text-[var(--muted)]">
+                            <MoreVert size={16} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-auto min-w-[180px]">
+                        <DropdownMenuItem onClick={() => navigate(`/users/${user.id}`)}>
+                          <Visibility size={18} strokeWidth={1.75} />
+                          Voir détails
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openEdit(user)}>
+                          <Edit size={18} strokeWidth={1.75} />
+                          Modifier
+                        </DropdownMenuItem>
+                        {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER'])
+                          && ['HOUSEKEEPER', 'TECHNICIAN'].includes(user.role) && (
+                          <DropdownMenuItem
+                            onClick={() => setRatesUser({ id: user.id, name: `${user.firstName} ${user.lastName}`.trim() })}
+                          >
+                            <Euro size={18} strokeWidth={1.75} />
+                            Tarifs & score
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem variant="destructive" onClick={() => openDelete(user)}>
+                          <Delete size={18} strokeWidth={1.75} />
+                          Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
 
                   {/* Rôles (plateforme + org) et statut — chips -soft */}
-                  <Box sx={{ display: 'flex', gap: 0.5, mb: 1.25, flexWrap: 'wrap' }}>
-                    <Tooltip title="Rôle sur la plateforme">
-                      <Chip
-                        icon={<PlatformIcon size={11} strokeWidth={2} />}
-                        label={platformRole.label}
-                        size="small"
-                        sx={{
-                          backgroundColor: `${roleColor}18`,
-                          color: roleColor,
-                          '& .MuiChip-icon': { color: roleColor, ml: '8px', mr: '-4px' },
-                        }}
-                      />
+                  <div className="flex gap-0.5 mb-2 flex-wrap">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        {/* TooltipTrigger pose une ref sur son enfant, que StatusChip ne transmet
+                            pas (React 18, composant fonction) : sans ce span, rien ne s'ancre. */}
+                        <span className="inline-flex">
+                          <StatusChip tokens={{ color: roleColor, bg: `${roleColor}18` }} label={platformRole.label} icon={<PlatformIcon size={11} strokeWidth={2} />} />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Rôle sur la plateforme</TooltipContent>
                     </Tooltip>
                     {showOrgRole && orgRole && OrgIcon && (
-                      <Tooltip title="Rôle dans l'organisation">
-                        <Chip
-                          icon={<OrgIcon size={11} strokeWidth={2} />}
-                          label={orgRole.label}
-                          size="small"
-                          variant="outlined"
-                          sx={{
-                            backgroundColor: 'transparent',
-                            color: orgRole.hex,
-                            borderColor: `${orgRole.hex}55`,
-                            '& .MuiChip-icon': { color: orgRole.hex, ml: '8px', mr: '-4px' },
-                          }}
-                        />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* Meme raison que ci-dessus : le span porte la ref. */}
+                          <span className="inline-flex">
+                            {/* Liseré teinté : `border-solid` est indispensable, le
+                                gabarit de la primitive pose `border-none`. */}
+                            <StatusChip
+                              tokens={{ color: orgRole.hex, bg: 'transparent' }}
+                              label={orgRole.label}
+                              icon={<OrgIcon size={11} strokeWidth={2} />}
+                              className="border border-solid"
+                              sx={{ borderColor: `${orgRole.hex}55` }}
+                            />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Rôle dans l'organisation</TooltipContent>
                       </Tooltip>
                     )}
-                    <Chip
-                      label={s.label}
-                      size="small"
-                      sx={{ backgroundColor: statusToken.bg, color: statusToken.fg }}
-                    />
-                  </Box>
+                    <StatusChip tokens={{ color: statusToken.fg, bg: statusToken.bg }} label={s.label} />
+                  </div>
 
                   {/* Informations supplémentaires */}
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.625 }}>
+                  <div className="flex flex-col gap-1">
                     {user.phoneNumber && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                        <Box sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="inline-flex text-muted-foreground shrink-0">
                           <Phone size={13} strokeWidth={1.75} />
-                        </Box>
-                        <Typography
-                          sx={{
-                            fontSize: '0.72rem',
-                            color: 'text.secondary',
-                            fontVariantNumeric: 'tabular-nums',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
+                        </div>
+                        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums overflow-hidden text-ellipsis whitespace-nowrap">
                           {user.phoneNumber}
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
                     )}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                      <Box sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="inline-flex text-muted-foreground shrink-0">
                         <Email size={13} strokeWidth={1.75} />
-                      </Box>
-                      <Typography
-                        sx={{
-                          fontSize: '0.72rem',
-                          color: 'text.secondary',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                      </div>
+                      <p className="cn-text-body1 text-[0.72rem] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                         {user.email}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                      <Box sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}>
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="inline-flex text-muted-foreground shrink-0">
                         <Person size={13} strokeWidth={1.75} />
-                      </Box>
-                      <Typography
-                        sx={{
-                          fontSize: '0.72rem',
-                          color: 'text.secondary',
-                          fontVariantNumeric: 'tabular-nums',
-                        }}
-                      >
+                      </div>
+                      <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums">
                         Créé le {formatDate(user.createdAt)}
-                      </Typography>
-                    </Box>
-                  </Box>
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
 
                 {/* Actions */}
-                <CardActions sx={{ pt: 0, px: 1.75, pb: 1.5 }}>
-                  {/* Bouton secondaire : peau .s-btn--g du thème global */}
+                <div className="px-[10.5px]">
+                  {/* Action de pied de carte, repetee sur chaque fiche : poids secondaire. */}
                   <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<Visibility size={14} strokeWidth={1.75} />}
+                    variant="outline"
+                    size="sm"
                     onClick={() => navigate(`/users/${user.id}`)}
-                    fullWidth
+                    className="w-full"
                   >
+                    <Visibility strokeWidth={1.75} />
                     Voir détails
                   </Button>
-                </CardActions>
+                </div>
               </Card>
-            </Grid>
+            </div>
             );
           })
         )}
-      </Grid>
-
-      {/* Menu contextuel */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-      >
-        <MenuItem onClick={handleViewDetails}>
-          <ListItemIcon>
-            <Visibility size={18} strokeWidth={1.75} />
-          </ListItemIcon>
-          Voir détails
-        </MenuItem>
-        <MenuItem onClick={handleEdit}>
-          <ListItemIcon>
-            <Edit size={18} strokeWidth={1.75} />
-          </ListItemIcon>
-          Modifier
-        </MenuItem>
-        {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER'])
-          && selectedUser != null
-          && ['HOUSEKEEPER', 'TECHNICIAN'].includes(selectedUser.role) && (
-          <MenuItem
-            onClick={() => {
-              setRatesUser({ id: selectedUser.id, name: `${selectedUser.firstName} ${selectedUser.lastName}`.trim() });
-              setAnchorEl(null);
-            }}
-          >
-            <ListItemIcon>
-              <Euro size={18} strokeWidth={1.75} />
-            </ListItemIcon>
-            Tarifs & score
-          </MenuItem>
-        )}
-        <MenuItem onClick={handleDelete} sx={{ color: 'var(--err)' }}>
-          <ListItemIcon>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Delete size={18} strokeWidth={1.75} /></Box>
-          </ListItemIcon>
-          Supprimer
-        </MenuItem>
-      </Menu>
+      </div>
 
       {/* Tarifs & score d'un prestataire (staff plateforme) */}
       <HousekeeperRatesDialog
@@ -760,122 +649,141 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
       />
 
       {/* Dialog de modification */}
-      <Dialog open={editDialogOpen} onClose={() => { setEditDialogOpen(false); setSelectedUser(null); }} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ pb: 1 }}>Modifier l'utilisateur</DialogTitle>
-        <DialogContent sx={{ pt: 1.5 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Prénom *"
-                value={editFormData.firstName || ''}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Nom *"
-                value={editFormData.lastName || ''}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                required
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Email *"
-                type="email"
-                value={editFormData.email || ''}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, email: e.target.value }))}
-                required
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Téléphone"
-                value={editFormData.phoneNumber || ''}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Rôle</InputLabel>
+      <Dialog
+        open={editDialogOpen}
+        onOpenChange={(next) => { if (!next) { setEditDialogOpen(false); setSelectedUser(null); } }}
+      >
+        <DialogContent className="max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Modifier l'utilisateur</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-12 gap-3">
+            <div className="col-span-12 min-[900px]:col-span-6">
+              <Field>
+                <FieldLabel htmlFor="user-edit-first-name">Prénom *</FieldLabel>
+                <Input
+                  id="user-edit-first-name"
+                  className="w-full"
+                  required
+                  value={editFormData.firstName || ''}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                />
+              </Field>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
+              <Field>
+                <FieldLabel htmlFor="user-edit-last-name">Nom *</FieldLabel>
+                <Input
+                  id="user-edit-last-name"
+                  className="w-full"
+                  required
+                  value={editFormData.lastName || ''}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                />
+              </Field>
+            </div>
+            <div className="col-span-12">
+              <Field>
+                <FieldLabel htmlFor="user-edit-email">Email *</FieldLabel>
+                <Input
+                  id="user-edit-email"
+                  type="email"
+                  className="w-full"
+                  required
+                  value={editFormData.email || ''}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, email: e.target.value }))}
+                />
+              </Field>
+            </div>
+            <div className="col-span-12">
+              <Field>
+                <FieldLabel htmlFor="user-edit-phone">Téléphone</FieldLabel>
+                <Input
+                  id="user-edit-phone"
+                  className="w-full"
+                  value={editFormData.phoneNumber || ''}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                />
+              </Field>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
+              {/* Liste riche (pastille de couleur par role) -> Select du kit et non
+                  NativeSelect : une <option> native ne peut pas porter d'icone. */}
+              <Field>
+                <FieldLabel htmlFor="user-edit-role">Rôle</FieldLabel>
                 <Select
                   value={editFormData.role || ''}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, role: e.target.value }))}
-                  label="Rôle"
+                  onValueChange={(value) => setEditFormData(prev => ({ ...prev, role: value }))}
                 >
-                  {userRoles.map((role) => {
-                    const RoleIcon = role.Icon;
-                    return (
-                      <MenuItem key={role.value} value={role.value}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ display: 'inline-flex', color: role.hex }}>
+                  <SelectTrigger id="user-edit-role" size="sm" className="w-full">
+                    <SelectValue placeholder="Rôle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {userRoles.map((role) => {
+                      const RoleIcon = role.Icon;
+                      return (
+                        <SelectItem key={role.value} value={role.value}>
+                          <span className="inline-flex" style={{ color: role.hex }}>
                             <RoleIcon size={16} strokeWidth={1.75} />
-                          </Box>
-                          <Typography variant="body2">{role.label}</Typography>
-                        </Box>
-                      </MenuItem>
-                    );
-                  })}
+                          </span>
+                          {role.label}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Statut</InputLabel>
-                <Select
-                  value={editFormData.status || ''}
+              </Field>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
+              <Field>
+                <FieldLabel htmlFor="user-edit-status">Statut</FieldLabel>
+                <NativeSelect
+                  id="user-edit-status"
+                  className="w-full"
+                  value={editFormData.status ?? ''}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, status: e.target.value }))}
-                  label="Statut"
                 >
                   {userStatuses.map((status) => (
-                    <MenuItem key={status.value} value={status.value}>
-                      <Typography variant="body2">{status.label}</Typography>
-                    </MenuItem>
+                    <NativeSelectOption key={status.value} value={status.value}>
+                      {status.label}
+                    </NativeSelectOption>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
+                </NativeSelect>
+              </Field>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => { setEditDialogOpen(false); setSelectedUser(null); }} variant="outline" size="sm">Annuler</Button>
+            <Button
+              onClick={handleEditSave}
+              size="sm"
+              disabled={saving || !editFormData.firstName || !editFormData.lastName || !editFormData.email}
+            >
+              {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={() => { setEditDialogOpen(false); setSelectedUser(null); }} size="small">Annuler</Button>
-          <Button 
-            onClick={handleEditSave} 
-            variant="contained"
-            size="small"
-            disabled={saving || !editFormData.firstName || !editFormData.lastName || !editFormData.email}
-          >
-            {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Dialog de confirmation de suppression */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle sx={{ pb: 1 }}>Confirmer la suppression</DialogTitle>
-        <DialogContent sx={{ pt: 1.5 }}>
-          <Typography variant="body2">
+      <Dialog open={deleteDialogOpen} onOpenChange={(next) => { if (!next) setDeleteDialogOpen(false); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+          </DialogHeader>
+          <p className="cn-text-body2">
             Êtes-vous sûr de vouloir supprimer l'utilisateur "{selectedUser?.firstName} {selectedUser?.lastName}" ?
             Cette action est irréversible.
-          </Typography>
+          </p>
+          <DialogFooter>
+            <Button onClick={() => setDeleteDialogOpen(false)} variant="outline" size="sm">Annuler</Button>
+            <Button onClick={confirmDelete} variant="destructive" size="sm">
+              Supprimer
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={() => setDeleteDialogOpen(false)} size="small">Annuler</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained" size="small">
-            Supprimer
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 });
 

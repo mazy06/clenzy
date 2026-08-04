@@ -88,6 +88,14 @@ public class SupervisionSuggestion {
     @Column(name = "dismissed_at")
     private Instant dismissedAt;
 
+    /**
+     * Carte qui n'appartient à aucun logement (litige, RGPD, site, taxe) : elle
+     * porte tout de même une propriété d'ancrage (colonne NOT NULL, dédup et
+     * agrégats en dépendent) mais reste lisible depuis TOUS les logements.
+     */
+    @Column(name = "org_level", nullable = false)
+    private boolean orgLevel = false;
+
     @Column(nullable = false, length = 20)
     private String status = STATUS_PENDING;
 
@@ -155,6 +163,9 @@ public class SupervisionSuggestion {
 
     public Instant getDismissedAt() { return dismissedAt; }
     public void setDismissedAt(Instant dismissedAt) { this.dismissedAt = dismissedAt; }
+
+    public boolean isOrgLevel() { return orgLevel; }
+    public void setOrgLevel(boolean orgLevel) { this.orgLevel = orgLevel; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

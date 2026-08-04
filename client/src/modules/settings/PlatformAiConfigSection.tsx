@@ -1,27 +1,40 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { CircleCheck, TriangleAlert, X } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import {
-  Autocomplete,
-  Box,
-  Paper,
-  Typography,
-  TextField,
-  Button,
-  Chip,
-  Alert,
-  CircularProgress,
-  IconButton,
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  Field,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupInput,
+  InputGroupAddon,
+  InputGroupButton,
+  NativeSelect,
+  NativeSelectOption,
+  NativeSelectOptGroup,
+} from '../../components/ui';
+import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Divider,
-  MenuItem,
-  ListSubheader,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Separator,
   Switch,
   Tooltip,
-  useTheme,
-  alpha,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { useThemeMode } from '../../hooks/useThemeMode';
 import {
   Add,
   Edit,
@@ -172,11 +185,18 @@ MODELS_BY_PROVIDER.openai = [
 
 const PROVIDER_IDS = Object.keys(PROVIDER_LABELS);
 
+/**
+ * Fond doux d'une couleur connue seulement a l'execution (hex d'un provider,
+ * couleur d'une feature) — remplace le `alpha()` de MUI, retire avec lui.
+ */
+const softBg = (color: string, ratio: number): string =>
+  `color-mix(in srgb, ${color} ${Math.round(ratio * 100)}%, transparent)`;
+
 // ─── Feature Config ────────────────────────────────────────────────────────
 
 // Palette catégorielle par feature IA — hex DÉSATURÉS alignés sur les tokens
 // Signature (= valeurs de --ok/--warn/--err/--info + mauve planning + slate).
-// En hex littéral (non var()) car consommés via MUI alpha() (qui rejette var()).
+// En hex littéral (non var()) car ces couleurs partent en style inline calculé.
 const AI_FEATURES = [
   { key: 'ASSISTANT_CHAT', label: 'Assistant IA', desc: 'Orchestrator multi-agent + specialists du chat + briefings', icon: <AutoAwesome />, color: '#6B8A9A' }, // slate
   { key: 'ASSISTANT_SMALL', label: 'Assistant IA — tier éco', desc: "Modèle économique des rôles utilitaires (classification, résumés). Non assigné = tiering inactif ; ne s'applique que si le provider correspond au modèle résolu", icon: <AutoAwesome />, color: '#7BA3C2' }, // info
@@ -191,16 +211,9 @@ const AI_FEATURES = [
   { key: 'EMBEDDINGS', label: 'Embeddings RAG', desc: 'Recherche sémantique de la base de connaissances (Voyage / OpenAI, 1024d)', icon: <Hub />, color: '#6E8AAD' }, // steel
 ];
 
-// En-tete de groupe dans le selecteur de modele (providers connectes / modeles plateforme).
-const subheaderSx = {
-  fontSize: '0.6rem',
-  fontWeight: 700,
-  letterSpacing: 0.5,
-  textTransform: 'uppercase' as const,
-  color: 'text.secondary',
-  lineHeight: 2.2,
-  bgcolor: 'transparent',
-};
+// Gabarit de ligne partage par ModelRow et FeatureRow (memes metriques).
+const ROW_CLASS =
+  'flex items-center px-[15px] py-[7.5px] gap-[9px] transition-colors duration-150 hover:bg-[var(--hover)]';
 
 // ─── Model Dialog ──────────────────────────────────────────────────────────
 
@@ -212,8 +225,6 @@ interface ModelDialogProps {
 
 function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
 
   const [name, setName] = useState('');
   const [provider, setProvider] = useState('');
@@ -304,6 +315,14 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
   const models = MODELS_BY_PROVIDER[provider] || [];
   const accent = PROVIDER_COLORS[provider] || '#9A7FA3';
 
+  // Le modele courant peut ne pas figurer dans le catalogue rapatrie (saisie
+  // manuelle, modele retire du provider) : on l'injecte pour que la valeur du
+  // selecteur reste affichable au lieu de retomber a vide.
+  const catalogOptions: AiCatalogModel[] =
+    modelId && !catalog.some((m) => m.id === modelId)
+      ? [{ id: modelId, category: 'other' }, ...catalog]
+      : catalog;
+
   // Clé réutilisable pour ce provider : connexion org BYOK (onglet Connection)
   // ou modèle plateforme déjà configuré. Si dispo, on ne redemande pas la clé —
   // le serveur la réutilise (le secret ne transite jamais vers le client, on
@@ -349,275 +368,270 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle sx={{ pb: 1 }}>
-        <Typography variant="h6" fontWeight={700} fontSize="1.05rem">
-          {editModel
-            ? t('settings.ai.platform.editModel')
-            : t('settings.ai.platform.addModel')}
-        </Typography>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="max-w-[600px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="pe-8 font-bold text-[1.05rem]">
+            {editModel
+              ? t('settings.ai.platform.editModel')
+              : t('settings.ai.platform.addModel')}
+          </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-          {/* Name */}
-          <TextField
-            label={t('settings.ai.platform.name')}
-            value={name}
-            onChange={(e) => { setName(e.target.value); nameTouchedRef.current = true; }}
-            fullWidth
-            size="small"
-            placeholder="ex: Design - Qwen Coder"
-            sx={{
-              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accent },
-              '& .MuiInputLabel-root.Mui-focused': { color: accent },
-            }}
-          />
+        <div className="flex flex-col gap-3">
+          {/* Name — la teinte provider au focus est abandonnee : le kit porte
+              son propre anneau de focus, un accent inline ne s'y greffe pas. */}
+          <Field>
+            <FieldLabel htmlFor="platform-ai-model-name">{t('settings.ai.platform.name')}</FieldLabel>
+            <Input
+              id="platform-ai-model-name"
+              value={name}
+              onChange={(e) => { setName(e.target.value); nameTouchedRef.current = true; }}
+              placeholder="ex: Design - Qwen Coder"
+            />
+          </Field>
 
-          {/* Provider */}
-          <TextField
-            label={t('settings.ai.platform.provider')}
-            value={provider}
-            onChange={(e) => handleProviderChange(e.target.value)}
-            fullWidth
-            size="small"
-            select
-            sx={{
-              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accent },
-              '& .MuiInputLabel-root.Mui-focused': { color: accent },
-            }}
-          >
-            {PROVIDER_IDS.map((pid) => (
-              <MenuItem key={pid} value={pid}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: PROVIDER_COLORS[pid], flexShrink: 0 }} />
-                  <Typography variant="body2" fontWeight={600}>{PROVIDER_LABELS[pid]}</Typography>
-                </Box>
-              </MenuItem>
-            ))}
-          </TextField>
+          {/* Provider — l'option vide desactivee reproduit l'etat « rien de
+              choisi » que MUI affichait tout seul ; sans elle, le select natif
+              montrerait le premier provider alors que l'etat est encore vide. */}
+          <Field>
+            <FieldLabel htmlFor="platform-ai-model-provider">{t('settings.ai.platform.provider')}</FieldLabel>
+            <NativeSelect
+              id="platform-ai-model-provider"
+              className="w-full"
+              value={provider}
+              onChange={(e) => handleProviderChange(e.target.value)}
+            >
+              <NativeSelectOption value="" disabled>
+                {t('settings.ai.platform.selectProvider', 'Choisir un provider')}
+              </NativeSelectOption>
+              {PROVIDER_IDS.map((pid) => (
+                <NativeSelectOption key={pid} value={pid}>
+                  {PROVIDER_LABELS[pid]}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
 
           {/* Model — sélecteur UNIQUE : catalogue live du provider si chargé,
               sinon presets curés (pas de doublon). Le catalogue live n'est dispo
               que pour les providers qui l'exposent (NVIDIA aujourd'hui). */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+          <div className="flex flex-col gap-1">
             {catalog.length > 0 ? (
-              <Autocomplete
-                options={
-                  modelId && !catalog.some((m) => m.id === modelId)
-                    ? [{ id: modelId, category: 'other' }, ...catalog]
-                    : catalog
-                }
-                value={catalog.find((m) => m.id === modelId) ?? (modelId ? { id: modelId, category: 'other' } : null)}
-                onChange={(_, v) => applyModelSelection(v?.id ?? '')}
-                getOptionLabel={(o) => o.id}
-                isOptionEqualToValue={(a, b) => a.id === b.id}
-                size="small"
-                fullWidth
-                renderOption={(props, option) => {
-                  const { key, ...rest } = props as { key?: React.Key } & React.HTMLAttributes<HTMLLIElement>;
-                  const color = CATALOG_CATEGORY_COLORS[option.category] || '#9AA1B0';
-                  return (
-                    <li key={key} {...rest} style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                      <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {option.id}
-                      </span>
-                      <Chip
-                        size="small"
-                        label={CATALOG_CATEGORY_LABELS[option.category] || option.category}
-                        sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600, flexShrink: 0, bgcolor: alpha(color, 0.14), color }}
-                      />
-                    </li>
-                  );
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label={`${t('settings.ai.platform.model')} (${catalog.length})`}
+              <Field>
+                <FieldLabel htmlFor="platform-ai-model-catalog">
+                  {`${t('settings.ai.platform.model')} (${catalog.length})`}
+                </FieldLabel>
+                <Combobox<AiCatalogModel>
+                  items={catalogOptions}
+                  itemToStringLabel={(o) => o.id}
+                  isItemEqualToValue={(a, b) => a.id === b.id}
+                  value={catalogOptions.find((m) => m.id === modelId) ?? null}
+                  onValueChange={(next) => applyModelSelection(next?.id ?? '')}
+                >
+                  <ComboboxInput id="platform-ai-model-catalog" className="w-full" />
+                  <ComboboxContent>
+                    <ComboboxEmpty>
+                      {t('settings.ai.platform.noCatalogMatch', 'Aucun modèle')}
+                    </ComboboxEmpty>
+                    <ComboboxList>
+                      {(option: AiCatalogModel) => {
+                        // La teinte de categorie n'est connue qu'a l'execution :
+                        // elle part en style inline, jamais en classe Tailwind.
+                        const color = CATALOG_CATEGORY_COLORS[option.category] || '#9AA1B0';
+                        return (
+                          <ComboboxItem key={option.id} value={option} className="justify-between gap-2">
+                            <span className="font-mono text-[0.75rem] overflow-hidden text-ellipsis whitespace-nowrap">
+                              {option.id}
+                            </span>
+                            <StatusChip
+                              size="sm"
+                              tokens={{ color, bg: softBg(color, 0.14) }}
+                              label={CATALOG_CATEGORY_LABELS[option.category] || option.category}
+                              className="text-[0.6rem] shrink-0"
+                            />
+                          </ComboboxItem>
+                        );
+                      }}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+              </Field>
+            ) : (
+              <Field>
+                <FieldLabel htmlFor="platform-ai-model-id">{t('settings.ai.platform.model')}</FieldLabel>
+                {models.length > 0 ? (
+                  <NativeSelect
+                    id="platform-ai-model-id"
+                    className="w-full"
+                    value={modelId}
+                    onChange={(e) => applyModelSelection(e.target.value)}
+                    disabled={!provider}
+                  >
+                    <NativeSelectOption value="" disabled>
+                      {t('settings.ai.platform.selectModel', 'Choisir un modèle')}
+                    </NativeSelectOption>
+                    {models.map((m) => (
+                      <NativeSelectOption key={m.id} value={m.id}>
+                        {`${m.label} · ${m.desc}`}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                ) : (
+                  <Input
+                    id="platform-ai-model-id"
+                    value={modelId}
+                    onChange={(e) => applyModelSelection(e.target.value)}
+                    disabled={!provider}
                   />
                 )}
-              />
-            ) : (
-              <TextField
-                label={t('settings.ai.platform.model')}
-                value={modelId}
-                onChange={(e) => applyModelSelection(e.target.value)}
-                fullWidth
-                size="small"
-                select={models.length > 0}
-                disabled={!provider}
-                sx={{
-                  '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accent },
-                  '& .MuiInputLabel-root.Mui-focused': { color: accent },
-                }}
-              >
-                {models.map((m) => (
-                  <MenuItem key={m.id} value={m.id}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                      <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8125rem' }}>
-                        {m.label}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.675rem' }}>
-                        {m.desc}
-                      </Typography>
-                    </Box>
-                  </MenuItem>
-                ))}
-              </TextField>
+              </Field>
             )}
 
             {/* Charge le catalogue live → le sélecteur ci-dessus bascule dessus. */}
-            <Button
-              size="small"
-              variant="outlined"
+            {/* Action auxiliaire d'un champ, pas l'action de la modale : outline.
+                La teinte du provider n'est connue qu'a l'execution -> style inline. */}
+            <BuiButton
+              size="sm"
+              variant="outline"
               disabled={!provider || catalogMutation.isPending}
-              startIcon={catalogMutation.isPending
-                ? <CircularProgress size={14} />
-                : <Refresh size={16} strokeWidth={1.75} />}
               onClick={() => catalogMutation.mutate(
                 { provider, apiKey: apiKey.trim() || undefined, baseUrl: baseUrl.trim() || undefined },
                 { onSuccess: (ids) => setCatalog(ids) },
               )}
-              sx={{ alignSelf: 'flex-start', textTransform: 'none', borderColor: accent, color: accent }}
+              className="self-start"
+              style={{ borderColor: accent, color: accent }}
             >
+              {catalogMutation.isPending
+                ? <Spinner className="size-3.5" />
+                : <Refresh size={16} strokeWidth={1.75} />}
               {catalog.length > 0
                 ? t('settings.ai.platform.reloadCatalog', 'Recharger le catalogue du provider')
                 : t('settings.ai.platform.loadCatalog', 'Charger le catalogue du provider')}
-            </Button>
+            </BuiButton>
             {catalogMutation.isError && (
-              <Typography variant="caption" color="error">
+              <span className="cn-text-caption text-destructive">
                 {(catalogMutation.error as Error)?.message
                   || t('settings.ai.platform.catalogError', 'Échec du chargement du catalogue.')}
-              </Typography>
+              </span>
             )}
             {catalog.length > 0 && (
-              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.45 }}>
+              <span className="cn-text-caption text-muted-foreground leading-[1.45]">
                 {t('settings.ai.platform.catalogLegend',
                   'Chat / Raisonnement → Assistant, Messagerie, Tarification, Analytics · Code → Design, Studio · Audio, OCR, Embeddings, Image, Rerank ne conviennent pas aux agents conversationnels.')}
-              </Typography>
+              </span>
             )}
-          </Box>
+          </div>
 
           {/* API Key */}
-          <TextField
-            label={t('settings.ai.platform.apiKey')}
-            type={showKey ? 'text' : 'password'}
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            fullWidth
-            size="small"
-            placeholder={editModel?.maskedApiKey || reusableMasked || 'sk-...'}
-            InputProps={{
-              endAdornment: (
-                <IconButton onClick={() => setShowKey(!showKey)} edge="end" size="small">
-                  {showKey ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                </IconButton>
-              ),
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accent },
-              '& .MuiInputLabel-root.Mui-focused': { color: accent },
-            }}
-          />
+          <Field>
+            <FieldLabel htmlFor="platform-ai-model-key">{t('settings.ai.platform.apiKey')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="platform-ai-model-key"
+                type={showKey ? 'text' : 'password'}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder={editModel?.maskedApiKey || reusableMasked || 'sk-...'}
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  size="icon-xs"
+                  aria-label={showKey
+                    ? t('settings.ai.platform.hideKey', 'Masquer la clé')
+                    : t('settings.ai.platform.showKey', 'Afficher la clé')}
+                  onClick={() => setShowKey(!showKey)}
+                >
+                  {showKey
+                    ? <VisibilityOff size={16} strokeWidth={1.75} />
+                    : <Visibility size={16} strokeWidth={1.75} />}
+                </InputGroupButton>
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
 
           {keyOptional && !apiKey.trim() && (
-            <Typography variant="caption" color="text.secondary" sx={{ mt: -1.25, mb: -0.5 }}>
+            <span className="cn-text-caption text-[var(--muted)] mt-[-7.5px] mb-[-3px]">
               {reusableMasked
                 ? t('settings.ai.platform.keyReuse', 'Laisse vide pour réutiliser la clé déjà configurée pour ce provider.')
                 : t('settings.ai.platform.keyKeep', 'Laisse vide pour conserver la clé actuelle.')}
-            </Typography>
+            </span>
           )}
 
           {/* Lien contextuel "Ou trouver ma cle ?" — adapte au provider selectionne */}
           {provider && PROVIDER_API_KEY_URLS[provider] && (
-            <Box sx={{ mt: -1, mb: -0.5 }}>
-              <Button
-                component="a"
-                href={keyHelpUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
-                size="small"
-                endIcon={<OpenInNew size={12} strokeWidth={1.75} />}
-                sx={{
-                  textTransform: 'none',
-                  fontSize: '0.72rem',
-                  fontWeight: 500,
-                  color: 'text.secondary',
-                  px: 0.75,
-                  py: 0.25,
-                  minWidth: 0,
-                  cursor: 'pointer',
-                  '&:hover': { color: accent, backgroundColor: alpha(accent, 0.06) },
-                }}
-              >
-                {provider === 'nvidia' && modelId
-                  ? 'Où trouver ma clé ? — Page du modèle : Get API Key'
-                  : `Où trouver ma clé ? — ${PROVIDER_API_KEY_URLS[provider].label}`}
-              </Button>
-            </Box>
+            <div className="-mt-1.5 -mb-[3px]">
+              {/* Aide contextuelle discrete : action tertiaire -> ghost.
+                  Le survol teinte provider laisse place au survol du kit. */}
+              <BuiButton asChild variant="ghost" size="xs" className="text-[0.72rem] font-medium text-[var(--muted)]">
+                <a href={keyHelpUrl()} target="_blank" rel="noopener noreferrer">
+                  {provider === 'nvidia' && modelId
+                    ? 'Où trouver ma clé ? — Page du modèle : Get API Key'
+                    : `Où trouver ma clé ? — ${PROVIDER_API_KEY_URLS[provider].label}`}
+                  <OpenInNew size={12} strokeWidth={1.75} />
+                </a>
+              </BuiButton>
+            </div>
           )}
 
           {/* Base URL */}
-          <TextField
-            label={t('settings.ai.platform.baseUrl')}
-            value={baseUrl}
-            onChange={(e) => setBaseUrl(e.target.value)}
-            fullWidth
-            size="small"
-            sx={{
-              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: accent },
-              '& .MuiInputLabel-root.Mui-focused': { color: accent },
-            }}
-          />
+          <Field>
+            <FieldLabel htmlFor="platform-ai-model-base-url">{t('settings.ai.platform.baseUrl')}</FieldLabel>
+            <Input
+              id="platform-ai-model-base-url"
+              value={baseUrl}
+              onChange={(e) => setBaseUrl(e.target.value)}
+            />
+          </Field>
 
           {/* Feedback */}
           {testResult === 'success' && (
-            <Alert severity="success" sx={{ py: 0.5 }}>{t('settings.ai.platform.testSuccess')}</Alert>
+            <BuiAlert variant="success" className="py-0.5">
+              <CircleCheck />
+              <AlertDescription>{t('settings.ai.platform.testSuccess')}</AlertDescription>
+            </BuiAlert>
           )}
           {testResult === 'error' && (
-            <Alert severity="error" sx={{ py: 0.5 }}>{t('settings.ai.platform.testError')}</Alert>
+            <BuiAlert variant="destructive" className="py-0.5">
+              <TriangleAlert />
+              <AlertDescription>{t('settings.ai.platform.testError')}</AlertDescription>
+            </BuiAlert>
           )}
           {saveMutation.isError && (
-            <Alert severity="error" sx={{ py: 0.5 }}>{t('settings.ai.platform.saveError')}</Alert>
+            <BuiAlert variant="destructive" className="py-0.5">
+              <TriangleAlert />
+              <AlertDescription>{t('settings.ai.platform.saveError')}</AlertDescription>
+            </BuiAlert>
           )}
-        </Box>
-      </DialogContent>
+        </div>
 
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} sx={{ textTransform: 'none', borderRadius: 1.5 }}>
-          {t('common.cancel')}
-        </Button>
-        <Button
-          onClick={handleTest}
-          startIcon={testMutation.isPending ? <CircularProgress size={14} /> : <Science />}
-          disabled={(!apiKey.trim() && !keyOptional) || !provider || !modelId || testMutation.isPending}
-          size="small"
-          sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5, color: accent }}
-        >
-          {t('settings.ai.platform.test')}
-        </Button>
-        <Button
-          onClick={handleSave}
-          variant="contained"
-          startIcon={saveMutation.isPending ? <CircularProgress size={14} color="inherit" /> : undefined}
-          disabled={!canSave || saveMutation.isPending}
-          size="small"
-          sx={{
-            textTransform: 'none',
-            fontWeight: 600,
-            borderRadius: 1.5,
-            bgcolor: accent,
-            '&:hover': { bgcolor: alpha(accent, 0.85) },
-          }}
-        >
-          {t('settings.ai.platform.saveActivate')}
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <BuiButton variant="ghost" size="sm" onClick={onClose}>
+            {t('common.cancel')}
+          </BuiButton>
+          {/* « Tester » est un preambule au vrai but de la modale : action secondaire. */}
+          <BuiButton
+            variant="ghost"
+            size="sm"
+            onClick={handleTest}
+            disabled={(!apiKey.trim() && !keyOptional) || !provider || !modelId || testMutation.isPending}
+            style={{ color: accent }}
+          >
+            {testMutation.isPending ? <Spinner className="size-3.5" /> : <Science />}
+            {t('settings.ai.platform.test')}
+          </BuiButton>
+          {/* Action principale de la modale. La teinte provider est abandonnee ici :
+              un fond pose en inline ecraserait aussi l'etat de survol du kit. */}
+          <BuiButton
+            size="sm"
+            onClick={handleSave}
+            disabled={!canSave || saveMutation.isPending}
+          >
+            {saveMutation.isPending && <Spinner className="size-3.5" />}
+            {t('settings.ai.platform.saveActivate')}
+          </BuiButton>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }
@@ -633,8 +647,7 @@ interface ModelRowProps {
 
 function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const { isDark } = useThemeMode();
   const providerColor = PROVIDER_COLORS[model.provider] || '#888';
   const recheck = useRecheckPlatformModel();
 
@@ -653,109 +666,95 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
     + (model.availabilityError ? `\n${model.availabilityError}` : '');
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        px: 2.5,
-        py: 1.25,
-        gap: 1.5,
-        transition: 'background-color 0.15s ease',
-        '&:hover': { bgcolor: 'action.hover' },
-      }}
-    >
+    <div className={ROW_CLASS}>
       {/* Color dot */}
-      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: providerColor, flexShrink: 0 }} />
+      <div className="w-[8px] h-[8px] rounded-[50%] shrink-0" style={{ backgroundColor: providerColor }} />
 
       {/* Name */}
-      <Typography variant="body2" fontWeight={600} sx={{ minWidth: 120, flex: '0 0 auto' }}>
+      <p className="cn-text-body2 font-semibold min-w-[120px] flex-[0_0_auto]">
         {model.name}
-      </Typography>
+      </p>
 
       {/* Provider chip */}
-      <Chip
-        size="small"
-        label={PROVIDER_LABELS[model.provider] || model.provider}
-        sx={{
-          height: 22,
-          fontSize: '0.65rem',
-          fontWeight: 600,
-          bgcolor: alpha(providerColor, isDark ? 0.18 : 0.1),
-          color: providerColor,
-          flexShrink: 0,
-        }}
-      />
+      <StatusChip tokens={{ color: providerColor, bg: softBg(providerColor, isDark ? 0.18 : 0.1) }} label={PROVIDER_LABELS[model.provider] || model.provider} className="text-[0.65rem] shrink-0" />
 
       {/* Model ID */}
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{ fontSize: '0.7rem', fontFamily: 'monospace', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-      >
+      <span className="cn-text-caption text-muted-foreground text-[0.7rem] font-mono flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
         {model.modelId}
-      </Typography>
+      </span>
 
       {/* Assigned features chips */}
-      <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
+      <div className="flex gap-0.5 shrink-0">
         {model.assignedFeatures.map((feat) => {
           const featureConf = AI_FEATURES.find((f) => f.key === feat);
           return (
-            <Chip
-              key={feat}
-              size="small"
-              label={feat}
-              sx={{
-                height: 20,
-                fontSize: '0.6rem',
-                fontWeight: 600,
-                bgcolor: alpha(featureConf?.color || '#888', isDark ? 0.15 : 0.08),
-                color: featureConf?.color || 'text.secondary',
-              }}
-            />
+            // Repli en TOKEN, pas en chemin de theme MUI : ces couleurs partent
+            // desormais en style inline, ou `text.secondary` ne veut rien dire.
+            <StatusChip tokens={{ color: featureConf?.color || 'var(--muted)', bg: softBg(featureConf?.color || '#888', isDark ? 0.15 : 0.08) }} label={feat} className="h-[20px] text-[0.6rem]" key={feat} />
           );
         })}
-      </Box>
+      </div>
 
       {/* Availability (live) — vert / rouge / gris + tooltip (dernier contrôle + erreur) */}
-      <Tooltip title={<span style={{ whiteSpace: 'pre-line' }}>{avTip}</span>}>
-        <Chip
-          size="small"
-          label={avLabel}
-          sx={{
-            height: 22,
-            fontSize: '0.65rem',
-            fontWeight: 600,
-            flexShrink: 0,
-            bgcolor: alpha(avColor, isDark ? 0.18 : 0.12),
-            color: avColor,
-          }}
-        />
+      {/* Le declencheur pose une ref sur son enfant, que StatusChip ne transmet
+          pas (React 18, composant fonction) : sans le span, rien ne s'ancre. */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            <StatusChip tokens={{ color: avColor, bg: softBg(avColor, isDark ? 0.18 : 0.12) }} label={avLabel} className="text-[0.65rem] shrink-0" />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent className="whitespace-pre-line">{avTip}</TooltipContent>
       </Tooltip>
 
       {/* Validated indicator */}
       {model.lastValidatedAt && (
-        <Tooltip title={`Valide le ${new Date(model.lastValidatedAt).toLocaleDateString()}`}>
-          <Box component="span" sx={{ display: 'inline-flex', color: providerColor, flexShrink: 0 }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex shrink-0" style={{ color: providerColor }}><CheckCircle size={16} strokeWidth={1.75} /></span>
+          </TooltipTrigger>
+          <TooltipContent>{`Valide le ${new Date(model.lastValidatedAt).toLocaleDateString()}`}</TooltipContent>
         </Tooltip>
       )}
 
       {/* Actions */}
-      <Box sx={{ display: 'flex', gap: 0.25, flexShrink: 0 }}>
-        <Tooltip title={t('settings.ai.platform.recheck', 'Revérifier la disponibilité')}>
-          <span>
-            <IconButton size="small" onClick={() => recheck.mutate(model.id)} disabled={recheck.isPending}>
-              {recheck.isPending ? <CircularProgress size={14} /> : <Refresh size={16} strokeWidth={1.75} />}
-            </IconButton>
-          </span>
+      <div className="flex gap-0.5 shrink-0">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <BuiButton
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t('settings.ai.platform.recheck', 'Revérifier la disponibilité')}
+                onClick={() => recheck.mutate(model.id)}
+                disabled={recheck.isPending}
+              >
+                {recheck.isPending ? <Spinner className="size-3.5" /> : <Refresh size={16} strokeWidth={1.75} />}
+              </BuiButton>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('settings.ai.platform.recheck', 'Revérifier la disponibilité')}</TooltipContent>
         </Tooltip>
-        <IconButton size="small" onClick={() => onEdit(model)}>
+        <BuiButton
+          variant="ghost"
+          size="icon-sm"
+          aria-label={t('settings.ai.platform.editModel')}
+          onClick={() => onEdit(model)}
+        >
           <Edit size={16} strokeWidth={1.75} />
-        </IconButton>
-        <IconButton size="small" onClick={() => onDelete(model.id)} disabled={isDeleting} color="error">
-          {isDeleting ? <CircularProgress size={14} /> : <Delete size={16} strokeWidth={1.75} />}
-        </IconButton>
-      </Box>
-    </Box>
+        </BuiButton>
+        <BuiButton
+          variant="ghost"
+          size="icon-sm"
+          aria-label={t('settings.ai.platform.delete', 'Supprimer')}
+          className="text-[var(--err)]"
+          onClick={() => onDelete(model.id)}
+          disabled={isDeleting}
+        >
+          {isDeleting ? <Spinner className="size-3.5" /> : <Delete size={16} strokeWidth={1.75} />}
+        </BuiButton>
+      </div>
+    </div>
   );
 }
 
@@ -784,61 +783,46 @@ function UsageBreakdownTooltip({
     return children;
   }
   return (
-    <Tooltip
-      arrow
-      placement="left"
-      enterDelay={200}
-      enterNextDelay={150}
-      componentsProps={{
-        tooltip: {
-          sx: {
-            bgcolor: 'background.paper',
-            color: 'text.primary',
-            border: '1px solid',
-            borderColor: 'divider',
-            boxShadow: 'var(--shadow-pop)',
-            p: 0,
-            maxWidth: 360,
-            fontFamily: 'inherit',
-          },
-        },
-        arrow: { sx: { color: 'background.paper', '&::before': { border: '1px solid', borderColor: 'divider' } } },
-      }}
-      title={
-        <Box sx={{ p: 1.5, minWidth: 280 }}>
+    <Tooltip delayDuration={200}>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      {/* Panneau clair (pas l'infobulle sombre du kit) : le detail se lit comme une
+          carte. `[&>svg]` vise la fleche Radix, seul svg enfant direct du contenu. */}
+      <TooltipContent
+        side="left"
+        className="bg-[var(--card)] text-[var(--ink)] border border-solid border-[var(--line)] shadow-[var(--shadow-pop)] p-0 max-w-[360px] [&>svg]:fill-[var(--card)]"
+      >
+        <div className="p-2 min-w-[280px]">
           {/* Header */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
-            <Typography variant="caption" sx={{ fontWeight: 700, color: feature.color, letterSpacing: 0.4 }}>
+          <div className="flex items-center justify-between mb-1.5 pb-1.5 border-b border-[var(--line)]">
+            <span className="cn-text-caption font-bold tracking-[0.4px]" style={{ color: feature.color }}>
               {feature.label.toUpperCase()}
-            </Typography>
-            <Typography variant="caption" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+            </span>
+            <span className="cn-text-caption font-bold tabular-nums">
               ${totalCost.toFixed(4)} USD
-            </Typography>
-          </Box>
+            </span>
+          </div>
           {/* Rows: 1 par (provider, model) */}
           {breakdown.map((m) => {
             const totalTokens = m.tokensIn + m.tokensOut;
             return (
-              <Box key={`${m.provider}-${m.model}`} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
-                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: PROVIDER_COLORS[m.provider] || '#888', flexShrink: 0 }} />
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="caption" sx={{ display: 'block', fontWeight: 600, fontSize: '0.72rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div className="flex items-center gap-1.5 py-0.5" key={`${m.provider}-${m.model}`}>
+                <div className="w-[6px] h-[6px] rounded-[50%] shrink-0" style={{ backgroundColor: PROVIDER_COLORS[m.provider] || '#888' }} />
+                <div className="flex-1 min-w-0">
+                  <span className="cn-text-caption block font-semibold text-[0.72rem] overflow-hidden text-ellipsis whitespace-nowrap">
                     {m.model}
-                  </Typography>
-                  <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: '0.65rem', fontVariantNumeric: 'tabular-nums' }}>
+                  </span>
+                  <span className="cn-text-caption block text-muted-foreground text-[0.65rem] tabular-nums">
                     {Math.round(totalTokens / 1000)}k tok ({Math.round(m.tokensIn / 1000)}k in + {Math.round(m.tokensOut / 1000)}k out) · {m.callCount} call{m.callCount > 1 ? 's' : ''}
-                  </Typography>
-                </Box>
-                <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.72rem', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                  </span>
+                </div>
+                <span className="cn-text-caption font-semibold text-[0.72rem] tabular-nums shrink-0">
                   ${m.costUsd.toFixed(4)}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             );
           })}
-        </Box>
-      }
-    >
-      {children}
+        </div>
+      </TooltipContent>
     </Tooltip>
   );
 }
@@ -871,8 +855,7 @@ const MODEL_VALUE_PREFIX = 'model:';
 
 function FeatureRow({ feature, models, connectedProviders, assignedModel, assignedProvider, budget, used, usageBreakdown, enabled, onAssign, onAssignProvider, onUnassign, onBudgetChange, onToggle, isAssigning }: FeatureRowProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const { isDark } = useThemeMode();
 
   // Budget editable : etat local + commit au blur / Entree. Sans ca, l'input
   // controle sur la valeur serveur sauvegardait a CHAQUE frappe et ecrasait la
@@ -919,109 +902,72 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
   };
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        px: 2.5,
-        py: 1.25,
-        gap: 1.5,
-        transition: 'background-color 0.15s ease',
-        '&:hover': { bgcolor: 'action.hover' },
-      }}
-    >
+    <div className={ROW_CLASS}>
       {/* Feature icon */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 34,
-          height: 34,
-          borderRadius: 1.5,
-          bgcolor: alpha(feature.color, isDark ? 0.15 : 0.08),
-          color: feature.color,
-          flexShrink: 0,
-          '& .MuiSvgIcon-root': { fontSize: 18 },
-        }}
+      {/* Couleur derivee de la feature a l'execution : inline, pas de classe. */}
+      <div
+        className="flex items-center justify-center w-[34px] h-[34px] rounded-[12px] shrink-0"
+        style={{ backgroundColor: softBg(feature.color, isDark ? 0.15 : 0.08), color: feature.color }}
       >
         {feature.icon}
-      </Box>
+      </div>
 
-      {/* Toggle */}
+      {/* Toggle — la teinte « couleur de la feature » de l'ancien Switch MUI
+          visait ses classes internes ; le kit n'expose pas ce point d'accroche.
+          La couleur reste portee par la pastille d'icone juste a gauche. */}
       <Switch
+        size="sm"
+        className="shrink-0"
+        aria-label={feature.label}
         checked={enabled}
-        onChange={() => onToggle(feature.key, !enabled)}
-        size="small"
-        sx={{
-          flexShrink: 0,
-          '& .MuiSwitch-switchBase.Mui-checked': { color: feature.color },
-          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: feature.color },
-        }}
+        onCheckedChange={(next) => onToggle(feature.key, next)}
       />
 
       {/* Feature name + desc */}
-      <Box sx={{ flex: 1, minWidth: 0, opacity: enabled ? 1 : 0.5 }}>
-        <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+      <div className={cn('flex-1 min-w-0', enabled ? 'opacity-100' : 'opacity-50')}>
+        <p className="cn-text-body2 font-semibold leading-[1.3]">
           {feature.label}
-        </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+        </p>
+        <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
           {feature.desc}
-        </Typography>
-      </Box>
+        </span>
+      </div>
 
-      {/* Model / connected-provider selector */}
-      <TextField
-        select
-        size="small"
+      {/* Model / connected-provider selector — les deux familles sont separees
+          par des optgroup, seul regroupement qu'un select natif sait rendre.
+          La pastille de couleur du provider disparait avec la liste riche. */}
+      <NativeSelect
+        id={`ai-feature-model-${feature.key}`}
+        aria-label={t('settings.ai.platform.model')}
+        className="min-w-[220px] shrink-0"
         value={selectValue}
         onChange={(e) => handleChange(e.target.value)}
         disabled={isAssigning}
-        sx={{
-          minWidth: 220,
-          flexShrink: 0,
-          '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' },
-          '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-            borderColor: feature.color,
-          },
-        }}
       >
-        <MenuItem value="__none__">
-          <Typography variant="body2" color="text.secondary" fontStyle="italic" sx={{ fontSize: '0.8125rem' }}>
-            {t('settings.ai.platform.noModel')}
-          </Typography>
-        </MenuItem>
+        <NativeSelectOption value="__none__">
+          {t('settings.ai.platform.noModel')}
+        </NativeSelectOption>
 
-        {/* Providers connectes (OpenAI/Anthropic) — utilises en priorite par l'agent */}
         {providerOptions.length > 0 && (
-          <ListSubheader sx={subheaderSx}>{t('settings.ai.platform.connectedProviders')}</ListSubheader>
+          <NativeSelectOptGroup label={t('settings.ai.platform.connectedProviders')}>
+            {providerOptions.map((p) => (
+              <NativeSelectOption key={`${PROVIDER_VALUE_PREFIX}${p.provider}`} value={`${PROVIDER_VALUE_PREFIX}${p.provider}`}>
+                {`${p.label} · ${p.source === 'ORGANIZATION' ? t('settings.ai.platform.providerOwnKey') : t('settings.ai.platform.providerSharedKey')}${p.model ? ` · ${p.model}` : ''}`}
+              </NativeSelectOption>
+            ))}
+          </NativeSelectOptGroup>
         )}
-        {providerOptions.map((p) => (
-          <MenuItem key={`${PROVIDER_VALUE_PREFIX}${p.provider}`} value={`${PROVIDER_VALUE_PREFIX}${p.provider}`}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, width: '100%' }}>
-              <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: PROVIDER_COLORS[p.provider] || '#888', flexShrink: 0 }} />
-              <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{p.label}</Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', ml: 'auto', pl: 1, flexShrink: 0 }}>
-                {p.source === 'ORGANIZATION' ? t('settings.ai.platform.providerOwnKey') : t('settings.ai.platform.providerSharedKey')}
-                {p.model ? ` · ${p.model}` : ''}
-              </Typography>
-            </Box>
-          </MenuItem>
-        ))}
 
-        {/* Modeles plateforme configures par le SUPER_ADMIN */}
         {models.length > 0 && (
-          <ListSubheader sx={subheaderSx}>{t('settings.ai.platform.platformModels')}</ListSubheader>
+          <NativeSelectOptGroup label={t('settings.ai.platform.platformModels')}>
+            {models.map((m) => (
+              <NativeSelectOption key={`${MODEL_VALUE_PREFIX}${m.id}`} value={`${MODEL_VALUE_PREFIX}${m.id}`}>
+                {m.name}
+              </NativeSelectOption>
+            ))}
+          </NativeSelectOptGroup>
         )}
-        {models.map((m) => (
-          <MenuItem key={`${MODEL_VALUE_PREFIX}${m.id}`} value={`${MODEL_VALUE_PREFIX}${m.id}`}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: PROVIDER_COLORS[m.provider] || '#888', flexShrink: 0 }} />
-              <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>{m.name}</Typography>
-            </Box>
-          </MenuItem>
-        ))}
-      </TextField>
+      </NativeSelect>
 
       {/* Token budget with progress + tooltip breakdown per (provider, model) */}
       {(() => {
@@ -1031,72 +977,45 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
         const totalCost = usageBreakdown.reduce((sum, m) => sum + (m.costUsd ?? 0), 0);
         return (
           <UsageBreakdownTooltip breakdown={usageBreakdown} totalCost={totalCost} feature={feature}>
-            <Box sx={{ position: 'relative', width: 170, flexShrink: 0, cursor: usageBreakdown.length > 0 ? 'help' : 'default' }}>
+            <div className={cn('relative w-[170px] shrink-0', usageBreakdown.length > 0 ? 'cursor-help' : 'cursor-default')}>
               {/* Progress bar background */}
-              <Box
-                sx={{
-                  position: 'absolute',
-                  inset: 0,
-                  borderRadius: 1,
-                  overflow: 'hidden',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                }}
-              >
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: `${pct}%`,
-                    bgcolor: `color-mix(in srgb, ${barColor} 15%, transparent)`,
-                    transition: 'width 0.3s ease, background-color 0.3s ease',
+              <div className="absolute inset-[0px] rounded-[8px] overflow-hidden border border-[var(--line)]">
+                <div className="absolute start-0 top-0 bottom-0" style={{ width: `${pct}%`, backgroundColor: `color-mix(in srgb, ${barColor} 15%, transparent)`, transition: 'width 0.3s ease, background-color 0.3s ease' }} />
+              </div>
+              {/* Input on top — le champ du kit porte desormais une bordure
+                  permanente : l'affordance « editable » n'a plus besoin du
+                  survol, et le fond reste transparent donc la jauge se voit. */}
+              <InputGroup>
+                <InputGroupInput
+                  id={`ai-feature-budget-${feature.key}`}
+                  type="number"
+                  aria-label={t('bookingEngine.ai.platform.budgetHint', 'Budget mensuel de tokens (modifiable)')}
+                  title={t('bookingEngine.ai.platform.budgetHint', 'Budget mensuel de tokens (modifiable)')}
+                  className="text-[0.75rem] tabular-nums"
+                  value={budgetInput}
+                  onChange={(e) => setBudgetInput(e.target.value)}
+                  onBlur={commitBudget}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      commitBudget();
+                      (e.target as HTMLInputElement).blur();
+                    }
                   }}
                 />
-              </Box>
-              {/* Input on top */}
-              <TextField
-                size="small"
-                type="number"
-                value={budgetInput}
-                onChange={(e) => setBudgetInput(e.target.value)}
-                onBlur={commitBudget}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    commitBudget();
-                    (e.target as HTMLInputElement).blur();
-                  }
-                }}
-                title={t('bookingEngine.ai.platform.budgetHint', 'Budget mensuel de tokens (modifiable)')}
-                InputProps={{
-                  endAdornment: (
-                    <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap', ml: 0.5, fontSize: '0.65rem', fontVariantNumeric: 'tabular-nums' }}>
-                      {Math.round(used / 1000)}k / {Math.round(budget / 1000)}k
-                    </Typography>
-                  ),
-                }}
-                sx={{
-                  width: '100%',
-                  '& .MuiOutlinedInput-root': {
-                    fontSize: '0.75rem',
-                    bgcolor: 'transparent',
-                    '& fieldset': { border: 'none' },
-                    // Affordance : bordure au survol/focus → signale que c'est éditable.
-                    '&:hover fieldset': { border: '1px solid', borderColor: 'divider' },
-                    '&.Mui-focused fieldset': { border: '1px solid', borderColor: feature.color },
-                  },
-                  '& .MuiInputBase-input': { position: 'relative', zIndex: 1 },
-                }}
-              />
-            </Box>
+                <InputGroupAddon align="inline-end">
+                  <span className="cn-text-caption text-muted-foreground whitespace-nowrap text-[0.65rem] tabular-nums">
+                    {Math.round(used / 1000)}k / {Math.round(budget / 1000)}k
+                  </span>
+                </InputGroupAddon>
+              </InputGroup>
+            </div>
           </UsageBreakdownTooltip>
         );
       })()}
 
       {/* Loading indicator */}
-      {isAssigning && <CircularProgress size={16} sx={{ flexShrink: 0 }} />}
-    </Box>
+      {isAssigning && <Spinner className="size-4 shrink-0" />}
+    </div>
   );
 }
 
@@ -1105,8 +1024,6 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
 export default function PlatformAiConfigSection() {
   const { t } = useTranslation();
   const { hasPermissionAsync } = useAuth();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
 
   const [canManage, setCanManage] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -1144,14 +1061,17 @@ export default function PlatformAiConfigSection() {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" py={4}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center py-6">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
   if (modelsError) {
-    return <Alert severity="error">{t('settings.ai.platform.loadError')}</Alert>;
+    return <BuiAlert variant="destructive">
+      <TriangleAlert />
+      <AlertDescription>{t('settings.ai.platform.loadError')}</AlertDescription>
+    </BuiAlert>;
   }
 
   const modelList = models || [];
@@ -1242,56 +1162,30 @@ export default function PlatformAiConfigSection() {
       title={t('settings.ai.platform.title')}
       subtitle={t('settings.ai.platform.subtitle')}
       action={
-        <Button
-          size="small"
-          startIcon={<Add />}
-          onClick={handleOpenAdd}
-          variant="outlined"
-          sx={{
-            textTransform: 'none',
-            fontWeight: 600,
-            borderRadius: 1.5,
-            fontSize: '0.8125rem',
-          }}
-        >
+        <BuiButton size="sm" variant="outline" onClick={handleOpenAdd}>
+          <Add />
           {t('settings.ai.platform.addModel')}
-        </Button>
+        </BuiButton>
       }
     >
       {/* ── Section 1: Configured Models ── */}
-      <Box sx={{ mb: 1 }}>
-        <Typography
-          variant="overline"
-          sx={{
-            fontWeight: 700,
-            color: 'text.secondary',
-            letterSpacing: 0.6,
-            fontSize: '0.7rem',
-          }}
-        >
+      <div className="mb-1.5">
+        <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]">
           {t('settings.ai.platform.models')}
-        </Typography>
-      </Box>
+        </span>
+      </div>
 
       {modelList.length === 0 ? (
-        <Box sx={{ pb: 2 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem', fontStyle: 'italic' }}>
+        <div className="pb-3">
+          <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] italic">
             {t('settings.ai.platform.noModel')}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       ) : (
-        <Box
-          sx={{
-            mx: { xs: -2, md: -3 },
-            mb: 2,
-            borderTop: '1px solid',
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
+        <div className="-mx-3 min-[900px]:-mx-[18px] mb-3 border-t border-b border-[var(--line)]">
           {modelList.map((model, index) => (
             <React.Fragment key={model.id}>
-              {index > 0 && <Divider sx={{ mx: { xs: 2, md: 3 } }} />}
+              {index > 0 && <Separator className="w-auto mx-3 min-[900px]:mx-[18px]" />}
               <ModelRow
                 model={model}
                 onEdit={handleOpenEdit}
@@ -1300,41 +1194,32 @@ export default function PlatformAiConfigSection() {
               />
             </React.Fragment>
           ))}
-        </Box>
+        </div>
       )}
 
       {/* ── Section 2: Feature Assignments ── */}
-      <Box sx={{ mt: 3, mb: 1 }}>
-        <Typography
-          variant="overline"
-          sx={{
-            fontWeight: 700,
-            color: 'text.secondary',
-            letterSpacing: 0.6,
-            fontSize: '0.7rem',
-          }}
-        >
+      <div className="mt-4 mb-1.5">
+        <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]">
           {t('settings.ai.platform.featureMapping')}
-        </Typography>
-      </Box>
+        </span>
+      </div>
 
       {assignError && (
-        <Alert severity="warning" onClose={() => setAssignError(null)} sx={{ mb: 1 }}>
-          {assignError}
-        </Alert>
+        <BuiAlert variant="warning" className="mb-1.5">
+          <TriangleAlert />
+          <AlertDescription>{assignError}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setAssignError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
-      <Box
-        sx={{
-          mx: { xs: -2, md: -3 },
-          borderTop: '1px solid',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
+      <div className="-mx-3 min-[900px]:-mx-[18px] border-t border-b border-[var(--line)]">
         {AI_FEATURES.map((feat, index) => (
           <React.Fragment key={feat.key}>
-            {index > 0 && <Divider sx={{ mx: { xs: 2, md: 3 } }} />}
+            {index > 0 && <Separator className="w-auto mx-3 min-[900px]:mx-[18px]" />}
             <FeatureRow
               feature={feat}
               models={modelList}
@@ -1358,59 +1243,59 @@ export default function PlatformAiConfigSection() {
             />
           </React.Fragment>
         ))}
-      </Box>
+      </div>
 
       {/* ── Section 3: Amorçage des crédits IA ── */}
-      <Box sx={{ mt: 3, mb: 1 }}>
-        <Typography
-          variant="overline"
-          sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
-        >
+      <div className="mt-4 mb-1.5">
+        <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]">
           {t('settings.ai.platform.creditsBootstrap', 'Amorçage des crédits')}
-        </Typography>
-      </Box>
+        </span>
+      </div>
 
-      <Box
-        sx={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: 2,
-          justifyContent: 'space-between',
-          py: 1.5,
-        }}
-      >
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem', maxWidth: 560, lineHeight: 1.5 }}>
+      <div className="flex flex-wrap items-center gap-3 justify-between py-2">
+        <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] max-w-[560px] leading-[1.5]">
           {t(
             'settings.ai.platform.creditsBootstrapHelp',
             'Dote toutes les organisations existantes de leur poche de crédits initiale. Action idempotente : une organisation déjà pourvue est ignorée. Les abonnés sont ensuite auto-provisionnés à l’usage et rechargés chaque mois.',
           )}
-        </Typography>
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={granting ? <CircularProgress size={14} color="inherit" /> : <AttachMoney />}
+        </p>
+        <BuiButton
+          size="sm"
+          variant="outline"
           onClick={handleGrantInitial}
           disabled={granting}
-          sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5, fontSize: '0.8125rem', flexShrink: 0 }}
+          className="shrink-0"
         >
+          {granting ? <Spinner className="size-3.5" /> : <AttachMoney />}
           {t('settings.ai.platform.grantInitial', 'Doter les organisations')}
-        </Button>
-      </Box>
+        </BuiButton>
+      </div>
 
       {grantResult && (
-        <Alert severity="success" onClose={() => setGrantResult(null)} sx={{ mt: 1 }}>
-          {t('settings.ai.platform.grantInitialDone', {
+        <BuiAlert variant="success" className="mt-1.5">
+          <CircleCheck />
+          <AlertDescription>{t('settings.ai.platform.grantInitialDone', {
             defaultValue: '{{granted}} organisation(s) dotée(s), {{skipped}} déjà pourvue(s).',
             granted: grantResult.granted,
             skipped: grantResult.skipped,
-          })}
-        </Alert>
+          })}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setGrantResult(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
       {grantError && (
-        <Alert severity="error" onClose={() => setGrantError(null)} sx={{ mt: 1 }}>
-          {grantError}
-        </Alert>
+        <BuiAlert variant="destructive" className="mt-1.5">
+          <TriangleAlert />
+          <AlertDescription>{grantError}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setGrantError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* ── Add/Edit Dialog ── */}
@@ -1421,43 +1306,46 @@ export default function PlatformAiConfigSection() {
       />
 
       {/* Confirmation de suppression — action destructive, affiche aussi l'erreur */}
-      <Dialog open={confirmDeleteId != null} onClose={() => setConfirmDeleteId(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ pb: 1 }}>
-          <Typography variant="h6" fontWeight={700} fontSize="1.05rem">
-            {t('settings.ai.platform.deleteConfirmTitle', 'Supprimer ce modèle ?')}
-          </Typography>
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary">
+      <Dialog
+        open={confirmDeleteId != null}
+        onOpenChange={(next) => { if (!next) setConfirmDeleteId(null); }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="pe-8 font-bold text-[1.05rem]">
+              {t('settings.ai.platform.deleteConfirmTitle', 'Supprimer ce modèle ?')}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="cn-text-body2 text-muted-foreground">
             {t('settings.ai.platform.deleteConfirmBody', {
               defaultValue: 'Le modèle « {{name}} » sera supprimé. Les features qui l’utilisent repasseront au modèle par défaut.',
               name: modelList.find((m) => m.id === confirmDeleteId)?.name ?? '',
             })}
-          </Typography>
+          </p>
           {deleteMutation.isError && (
-            <Alert severity="error" sx={{ mt: 1.5, py: 0.5 }}>
-              {(deleteMutation.error as Error)?.message
-                || t('settings.ai.platform.deleteError', 'Échec de la suppression.')}
-            </Alert>
+            <BuiAlert variant="destructive" className="mt-2 py-0.5">
+              <TriangleAlert />
+              <AlertDescription>{(deleteMutation.error as Error)?.message
+                || t('settings.ai.platform.deleteError', 'Échec de la suppression.')}</AlertDescription>
+            </BuiAlert>
           )}
+          <DialogFooter>
+            <BuiButton variant="ghost" size="sm" onClick={() => setConfirmDeleteId(null)}>
+              {t('common.cancel')}
+            </BuiButton>
+            <BuiButton
+              variant="destructive"
+              size="sm"
+              onClick={confirmDeleteModel}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending
+                ? <Spinner className="size-3.5" />
+                : <Delete size={16} strokeWidth={1.75} />}
+              {t('settings.ai.platform.delete', 'Supprimer')}
+            </BuiButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setConfirmDeleteId(null)} sx={{ textTransform: 'none', borderRadius: 1.5 }}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            onClick={confirmDeleteModel}
-            variant="contained"
-            color="error"
-            disabled={deleteMutation.isPending}
-            startIcon={deleteMutation.isPending
-              ? <CircularProgress size={14} color="inherit" />
-              : <Delete size={16} strokeWidth={1.75} />}
-            sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5 }}
-          >
-            {t('settings.ai.platform.delete', 'Supprimer')}
-          </Button>
-        </DialogActions>
       </Dialog>
     </AiSettingsCard>
   );

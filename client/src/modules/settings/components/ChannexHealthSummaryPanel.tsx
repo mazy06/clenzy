@@ -14,17 +14,16 @@
  * </ul>
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { cn } from '../../../utils/cn';
+import StatusChip from '../../../components/StatusChip';
 import {
-  Box,
-  Typography,
-  IconButton,
-  CircularProgress,
-  Stack,
-  Skeleton,
-  Tooltip,
-  Chip,
   Button,
-} from '@mui/material';
+  Skeleton,
+  Spinner,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import {
   AlertCircle,
   AlertTriangle,
@@ -81,64 +80,48 @@ function AttentionRow({
 }) {
   const meta = SEVERITY_META[item.severity];
   const Icon = meta.Icon;
+  // La couleur de severite est choisie a l'execution : elle passe par une custom
+  // property inline pour rester utilisable dans les classes (y compris hover/focus).
+  const Root = onClick ? 'button' : 'div';
   return (
-    <Box
-      component={onClick ? 'button' : 'div'}
+    <Root
       onClick={onClick}
-      sx={{
-        display: 'flex',
-        gap: 1.25,
-        alignItems: 'flex-start',
-        width: '100%',
-        textAlign: 'left',
-        p: 1,
-        borderRadius: 0.75,
-        border: '1px solid',
-        borderColor: `color-mix(in srgb, ${meta.color} 13%, transparent)`,
-        bgcolor: `color-mix(in srgb, ${meta.color} 3%, transparent)`,
-        background: `color-mix(in srgb, ${meta.color} 3%, transparent)`,
-        cursor: onClick ? 'pointer' : 'default',
-        transition: onClick ? 'all 150ms cubic-bezier(0.22, 1, 0.36, 1)' : undefined,
-        ...(onClick && {
-          '&:hover': {
-            borderColor: `color-mix(in srgb, ${meta.color} 33%, transparent)`,
-            bgcolor: `color-mix(in srgb, ${meta.color} 6%, transparent)`,
-            transform: 'translateX(2px)',
-          },
-          '&:focus-visible': {
-            outline: `2px solid ${meta.color}`,
-            outlineOffset: 2,
-          },
-        }),
-      }}
-    >
-      <Box sx={{ mt: 0.2, color: meta.color, flexShrink: 0 }}>
-        <Icon size={16} strokeWidth={2.2} />
-      </Box>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, mb: 0.2 }}>
-          <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3, color: 'text.primary' }}>
-            {item.propertyName}
-          </Typography>
-          <Typography variant="caption" sx={{ color: meta.color, fontWeight: 500, fontSize: '0.65rem' }}>
-            #{item.clenzyPropertyId}
-          </Typography>
-        </Box>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.45 }}>
-          {item.reason}
-        </Typography>
-        {item.lastSyncAt && (
-          <Typography variant="caption" sx={{ display: 'block', mt: 0.25, color: 'text.disabled', fontSize: '0.65rem' }}>
-            Derniere sync : il y a {formatRelative(item.lastSyncAt)}
-          </Typography>
-        )}
-      </Box>
-      {onClick && (
-        <Box sx={{ color: meta.color, mt: 0.4, flexShrink: 0 }}>
-          <ChevronRight size={14} />
-        </Box>
+      className={cn(
+        'flex gap-[7.5px] items-start w-full text-left p-1.5 rounded-[6px] border border-solid',
+        'border-[color-mix(in_srgb,_var(--sev)_13%,_transparent)] bg-[color-mix(in_srgb,_var(--sev)_3%,_transparent)]',
+        onClick
+          ? 'cursor-pointer transition-all duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-[color-mix(in_srgb,_var(--sev)_33%,_transparent)] hover:bg-[color-mix(in_srgb,_var(--sev)_6%,_transparent)] hover:translate-x-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sev)] focus-visible:outline-offset-2'
+          : 'cursor-default',
       )}
-    </Box>
+      style={{ '--sev': meta.color } as React.CSSProperties}
+    >
+      <div className="mt-[1.2000000000000002px] shrink-0" style={{ color: meta.color }}>
+        <Icon size={16} strokeWidth={2.2} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-1 mb-0.5">
+          <p className="cn-text-body2 font-semibold leading-[1.3] text-foreground">
+            {item.propertyName}
+          </p>
+          <span className="cn-text-caption font-medium text-[0.65rem]" style={{ color: meta.color }}>
+            #{item.clenzyPropertyId}
+          </span>
+        </div>
+        <span className="cn-text-caption text-muted-foreground block leading-[1.45]">
+          {item.reason}
+        </span>
+        {item.lastSyncAt && (
+          <span className="cn-text-caption block mt-0.5 text-muted-foreground opacity-60 text-[0.65rem]">
+            Derniere sync : il y a {formatRelative(item.lastSyncAt)}
+          </span>
+        )}
+      </div>
+      {onClick && (
+        <div className="mt-[2.4000000000000004px] shrink-0" style={{ color: meta.color }}>
+          <ChevronRight size={14} />
+        </div>
+      )}
+    </Root>
   );
 }
 
@@ -170,40 +153,25 @@ export default function ChannexHealthSummaryPanel({
 
   if (loading && !summary) {
     return (
-      <Box
-        sx={{
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 1,
-          p: 1.5,
-        }}
-      >
-        <Stack spacing={1}>
-          <Skeleton variant="rounded" height={32} />
-          <Skeleton variant="rounded" height={48} />
-        </Stack>
-      </Box>
+      <div className="border border-[var(--line)] rounded-[8px] p-2">
+        <div className="flex flex-col gap-1.5">
+          <Skeleton className="h-[32px] w-full rounded-[8px]" />
+          <Skeleton className="h-[48px] w-full rounded-[8px]" />
+        </div>
+      </div>
     );
   }
 
   if (error && !summary) {
     return (
-      <Box
-        sx={{
-          border: '1px solid',
-          borderColor: 'color-mix(in srgb, var(--err) 30%, transparent)',
-          borderRadius: 1,
-          p: 1.25,
-          bgcolor: 'color-mix(in srgb, var(--err) 5%, transparent)',
-        }}
-      >
-        <Typography variant="caption" color="error" sx={{ display: 'block', mb: 0.5 }}>
+      <div className="border border-solid border-[color-mix(in_srgb,_var(--err)_30%,_transparent)] rounded-[8px] p-[7.5px] bg-[color-mix(in_srgb,_var(--err)_5%,_transparent)]">
+        <span className="cn-text-caption text-destructive block mb-0.5">
           {error}
-        </Typography>
-        <Button size="small" onClick={() => void fetchSummary()} sx={{ textTransform: 'none', fontSize: '0.72rem' }}>
+        </span>
+        <Button variant="ghost" size="xs" onClick={() => void fetchSummary()}>
           Reessayer
         </Button>
-      </Box>
+      </div>
     );
   }
 
@@ -211,22 +179,14 @@ export default function ChannexHealthSummaryPanel({
 
   if (summary.totalMappings === 0) {
     return (
-      <Box
-        sx={{
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 1,
-          p: 1.5,
-          bgcolor: 'var(--surface-2)',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <div className="border border-[var(--line)] rounded-[8px] p-2 bg-[var(--surface-2)]">
+        <div className="flex items-center gap-1.5">
           <Activity size={16} color="var(--muted)" strokeWidth={2.2} />
-          <Typography variant="caption" color="text.secondary">
+          <span className="cn-text-caption text-muted-foreground">
             Aucune propriete connectee a Channex pour l'instant.
-          </Typography>
-        </Box>
-      </Box>
+          </span>
+        </div>
+      </div>
     );
   }
 
@@ -236,60 +196,45 @@ export default function ChannexHealthSummaryPanel({
   const hiddenCount = summary.attentionItems.length - visibleItems.length;
 
   return (
-    <Box
-      sx={{
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        p: 1.5,
-        bgcolor: 'var(--surface-2)',
-      }}
-    >
+    <div className="border border-[var(--line)] rounded-[8px] p-2 bg-[var(--surface-2)]">
       {/* Header : total + chips par status + refresh */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: summary.attentionItems.length > 0 ? 1.25 : 0 }}>
+      <div className={cn('flex items-center gap-1.5', summary.attentionItems.length > 0 ? 'mb-[7.5px]' : 'mb-0')}>
         <Activity size={16} color="var(--accent)" strokeWidth={2.2} />
-        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary' }}>
+        <span className="cn-text-caption font-semibold text-foreground">
           {summary.totalMappings} propriete{summary.totalMappings > 1 ? 's' : ''} connectee{summary.totalMappings > 1 ? 's' : ''}
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 0.5, ml: 'auto', flexWrap: 'wrap' }}>
+        </span>
+        <div className="flex gap-0.5 ms-auto flex-wrap">
           {STATUS_ORDER.map((st) => {
             const n = summary.countsByStatus[st] ?? 0;
             if (n === 0) return null;
             const meta = CHANNEX_STATUS_META[st];
             return (
-              <Chip
-                key={st}
-                size="small"
-                label={`${n} ${meta.label.toLowerCase()}`}
-                sx={{
-                  height: 20,
-                  fontSize: '0.65rem',
-                  fontWeight: 600,
-                  bgcolor: `color-mix(in srgb, ${meta.color} 10%, transparent)`,
-                  color: meta.color,
-                  border: `1px solid ${meta.color}40`,
-                }}
-              />
+              <StatusChip tokens={{ color: meta.color, bg: `color-mix(in srgb, ${meta.color} 10%, transparent)` }} label={`${n} ${meta.label.toLowerCase()}`} className="h-[20px] text-[0.65rem]" key={st} />
             );
           })}
-        </Box>
-        <Tooltip title="Rafraichir" arrow placement="top">
-          <span>
-            <IconButton
-              size="small"
-              disabled={loading}
-              onClick={() => void fetchSummary()}
-              sx={{ width: 24, height: 24, ml: 0.25 }}
-            >
-              {loading ? <CircularProgress size={12} /> : <RefreshCw size={12} strokeWidth={2.2} />}
-            </IconButton>
-          </span>
+        </div>
+        <Tooltip>
+          {/* Le bouton peut etre desactive : l'ancre du tooltip reste le span. */}
+          <TooltipTrigger asChild>
+            <span className="inline-flex ms-[1.5px]">
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label="Rafraichir"
+                disabled={loading}
+                onClick={() => void fetchSummary()}
+              >
+                {loading ? <Spinner className="size-3" /> : <RefreshCw size={12} strokeWidth={2.2} />}
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top">Rafraichir</TooltipContent>
         </Tooltip>
-      </Box>
+      </div>
 
       {/* Liste des items meritant attention */}
       {summary.attentionItems.length > 0 && (
-        <Stack spacing={0.65}>
+        <div className="flex flex-col gap-1">
           {visibleItems.map((item) => (
             <AttentionRow
               key={`${item.clenzyPropertyId}-${item.severity}`}
@@ -297,17 +242,15 @@ export default function ChannexHealthSummaryPanel({
               onClick={onAttentionItemClick ? () => onAttentionItemClick(item) : undefined}
             />
           ))}
+          {/* « Voir plus » repete sous une liste = action tertiaire → ghost, taille xs
+              pour rester sous la densite des lignes d'attention. */}
           {hiddenCount > 0 && (
-            <Button
-              size="small"
-              onClick={() => setShowAll(true)}
-              sx={{ textTransform: 'none', fontSize: '0.72rem', alignSelf: 'flex-start' }}
-            >
+            <Button variant="ghost" size="xs" className="self-start" onClick={() => setShowAll(true)}>
               Voir {hiddenCount} item{hiddenCount > 1 ? 's' : ''} de plus
             </Button>
           )}
-        </Stack>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }

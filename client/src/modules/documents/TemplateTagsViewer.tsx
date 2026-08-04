@@ -1,18 +1,16 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
 import {
-  Paper,
-  Typography,
   Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Chip,
-  Box,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+  Card,
   Table,
   TableBody,
-  TableCell,
   TableRow,
-} from '@mui/material';
-import { ExpandMore } from '../../icons';
+  TableCell,
+} from '../../components/ui';
 import { DocumentTemplateTag } from '../../services/api/documentsApi';
 
 interface TemplateTagsViewerProps {
@@ -21,30 +19,19 @@ interface TemplateTagsViewerProps {
 
 // ─── Tons sémantiques (tokens Signature — pattern TONES/chipSx) ──────────────
 
-interface Tone { c: string; bg: string }
 
-const TONES: Record<'ok' | 'accent' | 'warn' | 'err' | 'info' | 'muted', Tone> = {
-  ok:     { c: 'var(--ok)',     bg: 'var(--ok-soft)' },
-  accent: { c: 'var(--accent)', bg: 'var(--accent-soft)' },
-  warn:   { c: 'var(--warn)',   bg: 'var(--warn-soft)' },
-  err:    { c: 'var(--err)',    bg: 'var(--err-soft)' },
-  info:   { c: 'var(--info)',   bg: 'var(--info-soft)' },
-  muted:  { c: 'var(--muted)',  bg: 'var(--hover)' },
-};
-
-const chipSx = (tone: Tone) => ({ color: tone.c, bgcolor: tone.bg, '& .MuiChip-icon': { color: tone.c } });
 
 // Mapping catégorie → ton sémantique (remplace l'ancienne palette hex Baitly :
 // bleu doux → info, teal → ok, warm → warn, rouge doux → err, primary/violet → accent).
-const CATEGORY_TONES: Record<string, Tone> = {
-  CLIENT: TONES.info,
-  PROPERTY: TONES.ok,
-  INTERVENTION: TONES.warn,
-  DEVIS: TONES.accent,
-  FACTURE: TONES.err,
-  PAIEMENT: TONES.ok,
-  ENTREPRISE: TONES.accent,
-  SYSTEM: TONES.muted,
+const CATEGORY_TONES: Record<string, ToneTokens> = {
+  CLIENT: STATUS_TONES.info,
+  PROPERTY: STATUS_TONES.ok,
+  INTERVENTION: STATUS_TONES.warn,
+  DEVIS: STATUS_TONES.accent,
+  FACTURE: STATUS_TONES.err,
+  PAIEMENT: STATUS_TONES.ok,
+  ENTREPRISE: STATUS_TONES.accent,
+  SYSTEM: STATUS_TONES.neutral,
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -96,73 +83,67 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categories.join('|')]);
 
-  const handleChange = (cat: string) => (_e: React.SyntheticEvent, isExpanded: boolean) => {
-    setExpanded(isExpanded ? cat : false);
-  };
+  // Radix renvoie '' quand on referme l'item ouvert : c'est le `false` de l'ancien
+  // accordeon MUI en mode single-open.
+  const handleValueChange = (value: string) => setExpanded(value || false);
 
   return (
-    <Paper variant="outlined" sx={{ p: 2, borderRadius: 'var(--radius-lg)', borderColor: 'var(--line)', boxShadow: 'none' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6">Tags détectés</Typography>
-        <Chip label={`${tags.length} tags`} size="small" sx={chipSx(TONES.accent)} />
-      </Box>
+    <Card className="gap-0 py-0 p-3 border-[var(--line)]">
+      <div className="flex justify-between items-center mb-3">
+        <h6 className="cn-text-h6">Tags détectés</h6>
+        <StatusChip tokens={STATUS_TONES.accent} label={`${tags.length} tags`} />
+      </div>
 
       {categories.length === 0 ? (
-        <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+        <p className="cn-text-body1 text-muted-foreground py-3 text-center">
           Aucun tag détecté dans ce template
-        </Typography>
+        </p>
       ) : (
-        categories.map((cat) => (
-          <Accordion
-            key={cat}
-            expanded={expanded === cat}
-            onChange={handleChange(cat)}
-          >
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box sx={{
-                  width: 12, height: 12, borderRadius: '50%',
-                  bgcolor: (CATEGORY_TONES[cat] ?? TONES.muted).c,
-                }} />
-                <Typography fontWeight={500}>
-                  {CATEGORY_LABELS[cat] || cat}
-                </Typography>
-                <Chip
-                  label={groupedTags[cat].length}
-                  size="small"
-                  sx={{ ml: 1, ...chipSx(CATEGORY_TONES[cat] ?? TONES.muted) }}
-                />
-              </Box>
-            </AccordionSummary>
-            <AccordionDetails sx={{ p: 0 }}>
-              <Table size="small">
+        <Accordion type="single" collapsible value={expanded === false ? '' : expanded} onValueChange={handleValueChange}>
+          {categories.map((cat) => (
+            <AccordionItem key={cat} value={cat}>
+              <AccordionTrigger>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-[12px] h-[12px] rounded-[50%]" style={{ backgroundColor: (CATEGORY_TONES[cat] ?? STATUS_TONES.neutral).color }} />
+                  <span className="cn-text-body1 font-medium">
+                    {CATEGORY_LABELS[cat] || cat}
+                  </span>
+                  <StatusChip tokens={CATEGORY_TONES[cat] ?? STATUS_TONES.neutral} label={groupedTags[cat].length} className="ms-1.5" />
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="p-0">
+                <Table>
                 <TableBody>
                   {groupedTags[cat].map((tag) => (
                     <TableRow key={tag.id ?? `${cat}-${tag.tagName}`}>
-                      <TableCell sx={{ fontFamily: '"SF Mono", Menlo, Consolas, monospace', fontSize: '0.85rem', color: (CATEGORY_TONES[cat] ?? TONES.muted).c }}>
+                      {/* couleur resolue a l'execution depuis le ton de categorie : passe par style, pas par une classe */}
+                      <TableCell
+                        className="text-[0.85rem]"
+                        style={{
+                          fontFamily: '"SF Mono", Menlo, Consolas, monospace',
+                          color: (CATEGORY_TONES[cat] ?? STATUS_TONES.neutral).color,
+                        }}
+                      >
                         {'${' + tag.tagName + '}'}
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          label={TYPE_LABELS[tag.tagType] || tag.tagType}
-                          size="small"
-                          sx={chipSx(TONES.muted)}
-                        />
+                        <StatusChip tokens={STATUS_TONES.neutral} label={TYPE_LABELS[tag.tagType] || tag.tagType} />
                       </TableCell>
                       <TableCell>
                         {tag.required && (
-                          <Chip label="Requis" size="small" sx={chipSx(TONES.warn)} />
+                          <StatusChip tokens={STATUS_TONES.warn} label="Requis" />
                         )}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>
-            </AccordionDetails>
-          </Accordion>
-        ))
+                </Table>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
       )}
-    </Paper>
+    </Card>
   );
 };
 

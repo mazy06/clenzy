@@ -15,19 +15,21 @@
  * Ref Channex : docs.channex.io/api-v.1-documentation/channel-iframe
  */
 import React, { useEffect, useRef, useState } from 'react';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../../components/ui';
 import {
+  Button,
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogHeader,
   DialogTitle,
-  IconButton,
-  Box,
-  Typography,
-  CircularProgress,
-  Alert,
   Skeleton,
-  Stack,
   Tooltip,
-} from '@mui/material';
+  TooltipTrigger,
+  TooltipContent,
+} from '../../../components/ui';
 import { X, Link2, Info, RefreshCw } from 'lucide-react';
 
 import {
@@ -180,180 +182,90 @@ export default function ChannexEmbedDialog({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="lg"
-      fullWidth
-      PaperProps={{ sx: { height: 'min(90vh, 900px)' } }}
-    >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          py: 1.5,
-        }}
-      >
-        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0, flex: 1 }}>
-          <Box
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: 1,
-              bgcolor: selectedOta ? selectedOta.brandColor : 'rgba(15, 118, 110, 0.1)',
-              color: selectedOta ? selectedOta.brandColorFg : '#0F766E',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              fontWeight: 700,
-              fontSize: '0.85rem',
-            }}
-          >
-            {selectedOta ? selectedOta.initials : <Link2 size={18} />}
-          </Box>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography
-              variant="subtitle1"
-              fontWeight={600}
-              noWrap
-              sx={{ lineHeight: 1.2 }}
-            >
-              {selectedOta
-                ? `Connecter ${selectedOta.name} — ${propertyName}`
-                : `Connecter les OTAs — ${propertyName}`}
-            </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ display: 'block', lineHeight: 1.2 }}
-            >
-              {selectedOta
-                ? `${selectedOta.description} · via le hub de distribution`
-                : 'Airbnb · Booking.com · Vrbo · Expedia — via le hub'}
-            </Typography>
-          </Box>
-        </Stack>
-        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
-          {embedUrl && (
-            <Tooltip title="Rafraichir l'iframe (utile si bloque sur 'Await your action' apres OAuth)">
-              <IconButton
-                onClick={() => setIframeKey((k) => k + 1)}
-                size="small"
-                aria-label="Rafraichir"
-              >
-                <RefreshCw size={16} />
-              </IconButton>
-            </Tooltip>
-          )}
-          <IconButton onClick={handleClose} size="small" aria-label="Fermer">
-            <X size={18} />
-          </IconButton>
-        </Stack>
-      </DialogTitle>
-
+    // `onOpenChange` remplace `onClose` : seule la fermeture doit declencher
+    // handleClose (qui notifie le parent d'un eventuel pullBookings).
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
       <DialogContent
-        sx={{
-          p: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          bgcolor: 'background.default',
-        }}
+        showCloseButton={false}
+        className="sm:max-w-[1200px] h-[min(90vh,900px)] flex flex-col gap-0 p-0 overflow-hidden bg-[var(--bg)]"
       >
+        <DialogHeader className="flex-row items-center justify-between gap-3 border-b border-solid border-[var(--line)] px-6 py-[9px] bg-[var(--card)]">
+          <div className="flex flex-row items-center gap-[9px] min-w-0 flex-1">
+            <div className="w-[32px] h-[32px] rounded-[8px] flex items-center justify-center shrink-0 font-bold text-[0.85rem]" style={{ backgroundColor: selectedOta ? selectedOta.brandColor : 'rgba(15, 118, 110, 0.1)', color: selectedOta ? selectedOta.brandColorFg : '#0F766E' }}>
+              {selectedOta ? selectedOta.initials : <Link2 size={18} />}
+            </div>
+            <div className="min-w-0">
+              <DialogTitle className="cn-text-subtitle1 font-semibold truncate leading-[1.2]">
+                {selectedOta
+                  ? `Connecter ${selectedOta.name} — ${propertyName}`
+                  : `Connecter les OTAs — ${propertyName}`}
+              </DialogTitle>
+              <DialogDescription className="cn-text-caption text-muted-foreground block leading-[1.2]">
+                {selectedOta
+                  ? `${selectedOta.description} · via le hub de distribution`
+                  : 'Airbnb · Booking.com · Vrbo · Expedia — via le hub'}
+              </DialogDescription>
+            </div>
+          </div>
+          <div className="flex flex-row items-center gap-[3px] shrink-0">
+            {embedUrl && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => setIframeKey((k) => k + 1)}
+                    aria-label="Rafraichir"
+                  >
+                    <RefreshCw size={16} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Rafraichir l&apos;iframe (utile si bloque sur &laquo;&nbsp;Await your action&nbsp;&raquo; apres OAuth)</TooltipContent>
+              </Tooltip>
+            )}
+            <Button variant="ghost" size="icon-sm" onClick={handleClose} aria-label="Fermer">
+              <X size={18} />
+            </Button>
+          </div>
+        </DialogHeader>
+
+        <div className="flex flex-col flex-1 min-h-0">
         {/* Banner d'aide : guide vers le bouton + Create de Channex si la
             liste s'affiche au lieu du wizard. Channex ne supporte pas toujours
             un deep-link direct vers le formulaire de creation. */}
         {embedUrl && !error && (
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 1.25,
-              px: 2,
-              py: 1.25,
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-              bgcolor: 'var(--accent-soft)',
-            }}
-          >
-            <Box
-              sx={{
-                color: 'var(--accent)',
-                display: 'flex',
-                alignItems: 'center',
-                flexShrink: 0,
-                mt: 0.25,
-              }}
-            >
+          <div className="flex items-start gap-2 px-3 py-2 border-b border-[var(--line)] bg-[var(--accent-soft)]">
+            <div className="text-[var(--accent)] flex items-center shrink-0 mt-0.5">
               <Info size={14} />
-            </Box>
+            </div>
             {bannerHint === 'remap_listings' && selectedOta ? (
               // Vue specifique : OAuth deja fait, l'utilisateur doit naviguer
               // dans la liste de channels du wizard pour mapper de nouveaux
               // listings. Etapes numerotees car la UX Channex n'est pas
               // immediate (clic titre != clic Actions, onglet Listing pas
               // visible avant d'entrer dans le detail, etc.)
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    display: 'block',
-                    lineHeight: 1.5,
-                    color: 'text.primary',
-                    fontWeight: 600,
-                    mb: 0.5,
-                  }}
-                >
+              <div className="flex-1 min-w-0">
+                <span className="cn-text-caption block leading-[1.5] text-foreground font-semibold mb-0.5">
                   OAuth{' '}
-                  <Box component="span" sx={{ color: selectedOta.brandColor, fontWeight: 700 }}>
+                  <span className="font-bold" style={{ color: selectedOta.brandColor }}>
                     {selectedOta.name}
-                  </Box>{' '}
+                  </span>{' '}
                   deja actif — suivez ces 3 etapes pour mapper vos listings :
-                </Typography>
-                <Stack spacing={0.5}>
+                </span>
+                <div className="flex flex-col gap-[3px]">
                   {[
                     {
                       step: 1,
                       content: (
                         <>
                           Ouvrez le detail du channel{' '}
-                          <Box
-                            component="span"
-                            sx={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              px: 0.625,
-                              py: 0.125,
-                              borderRadius: 0.5,
-                              bgcolor: `${selectedOta.brandColor}1A`,
-                              color: selectedOta.brandColor,
-                              fontWeight: 600,
-                              fontSize: '0.7rem',
-                            }}
-                          >
+                          <span className="inline-flex items-center px-[3.75px] py-[0.75px] rounded-[4px] font-semibold text-[0.7rem]" style={{ backgroundColor: `${selectedOta.brandColor}1A`, color: selectedOta.brandColor }}>
                             New {selectedOta.name} Channel
-                          </Box>
+                          </span>
                           {' '}— cliquez sur le <strong>titre</strong>, ou sur{' '}
-                          <Box
-                            component="span"
-                            sx={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              px: 0.625,
-                              py: 0.125,
-                              borderRadius: 0.5,
-                              bgcolor: 'var(--field)',
-                              color: 'text.secondary',
-                              fontWeight: 600,
-                              fontSize: '0.7rem',
-                            }}
-                          >
+                          <span className="inline-flex items-center px-1 py-0 rounded-[4px] bg-[var(--field)] text-muted-foreground font-semibold text-[0.7rem]">
                             Actions &rsaquo; Edit
-                          </Box>
+                          </span>
                           .
                         </>
                       ),
@@ -363,42 +275,15 @@ export default function ChannexEmbedDialog({
                       content: (
                         <>
                           Dans le detail, ouvrez l'onglet{' '}
-                          <Box
-                            component="span"
-                            sx={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              px: 0.625,
-                              py: 0.125,
-                              borderRadius: 0.5,
-                              bgcolor: 'var(--ok-soft)',
-                              color: 'var(--ok)',
-                              fontWeight: 600,
-                              fontSize: '0.7rem',
-                            }}
-                          >
+                          <span className="inline-flex items-center px-1 py-0 rounded-[4px] bg-[var(--ok-soft)] text-[var(--ok)] font-semibold text-[0.7rem]">
                             Mapping
-                          </Box>
+                          </span>
                           {' '}— vos listings {selectedOta.name} s'affichent avec le
                           statut{' '}
-                          <Box
-                            component="span"
-                            sx={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              px: 0.625,
-                              py: 0.125,
-                              borderRadius: 0.5,
-                              bgcolor: 'var(--err-soft)',
-                              color: 'var(--err)',
-                              fontWeight: 600,
-                              fontSize: '0.7rem',
-                              textDecoration: 'underline',
-                              textDecorationStyle: 'dashed',
-                            }}
-                          >
+                          {/* px .625 = 3.75px, py .125 = .75px (spacing 6) ; radius .5 = 4px (shape 8) */}
+                          <span className="inline-flex items-center px-[3.75px] py-[0.75px] rounded-[4px] bg-[var(--err-soft)] text-[var(--err)] font-semibold text-[0.7rem] underline decoration-dashed">
                             Not mapped
-                          </Box>
+                          </span>
                           .
                         </>
                       ),
@@ -408,41 +293,15 @@ export default function ChannexEmbedDialog({
                       content: (
                         <>
                           Cliquez sur{' '}
-                          <Box
-                            component="span"
-                            sx={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              px: 0.625,
-                              py: 0.125,
-                              borderRadius: 0.5,
-                              bgcolor: 'var(--err-soft)',
-                              color: 'var(--err)',
-                              fontWeight: 600,
-                              fontSize: '0.7rem',
-                            }}
-                          >
+                          <span className="inline-flex items-center px-1 py-0 rounded-[4px] bg-[var(--err-soft)] text-[var(--err)] font-semibold text-[0.7rem]">
                             Not mapped
-                          </Box>
+                          </span>
                           {' '}→ un dropdown s'ouvre. Selectionnez une room + un rate
                           plan (le pivot Baitly si vous n'avez encore rien d'autre),
                           puis{' '}
-                          <Box
-                            component="span"
-                            sx={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              px: 0.625,
-                              py: 0.125,
-                              borderRadius: 0.5,
-                              bgcolor: 'var(--ok-soft)',
-                              color: 'var(--ok)',
-                              fontWeight: 600,
-                              fontSize: '0.7rem',
-                            }}
-                          >
+                          <span className="inline-flex items-center px-1 py-0 rounded-[4px] bg-[var(--ok-soft)] text-[var(--ok)] font-semibold text-[0.7rem]">
                             Save
-                          </Box>
+                          </span>
                           . Fermez le wizard et cliquez{' '}
                           <strong>Re-detecter</strong> dans Baitly — la propriete
                           apparaitra (renommable a l'import).
@@ -450,192 +309,92 @@ export default function ChannexEmbedDialog({
                       ),
                     },
                   ].map(({ step, content }) => (
-                    <Stack key={step} direction="row" spacing={0.875} alignItems="flex-start">
-                      <Box
-                        sx={{
-                          width: 16,
-                          height: 16,
-                          borderRadius: '50%',
-                          bgcolor: 'var(--accent)',
-                          color: 'var(--on-accent)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.65rem',
-                          fontWeight: 700,
-                          flexShrink: 0,
-                          mt: 0.25,
-                        }}
-                      >
+                    <div key={step} className="flex flex-row items-start gap-[5.25px]">
+                      <div className="w-[16px] h-[16px] rounded-[50%] bg-[var(--accent)] text-[var(--on-accent)] flex items-center justify-center text-[0.65rem] font-bold shrink-0 mt-0.5">
                         {step}
-                      </Box>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ lineHeight: 1.55, flex: 1 }}
-                      >
+                      </div>
+                      <span className="cn-text-caption text-muted-foreground leading-[1.55] flex-1">
                         {content}
-                      </Typography>
-                    </Stack>
+                      </span>
+                    </div>
                   ))}
-                </Stack>
-              </Box>
+                </div>
+              </div>
             ) : (
-              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+              <span className="cn-text-caption text-muted-foreground leading-[1.5]">
                 {prefetchedEmbedUrl && selectedOta ? (
                 <>
                   Channel <strong>{selectedOta.name}</strong> deja cree dans le hub (title, devise, mapping pre-remplis).
                   Cliquez sur la ligne{' '}
-                  <Box
-                    component="span"
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      px: 0.75,
-                      py: 0.125,
-                      borderRadius: 0.5,
-                      bgcolor: `${selectedOta.brandColor}1A`,
-                      color: selectedOta.brandColor,
-                      fontWeight: 600,
-                      fontSize: '0.7rem',
-                    }}
-                  >
+                  <span className="inline-flex items-center gap-[3px] px-[4.5px] py-[0.75px] rounded-[4px] font-semibold text-[0.7rem]" style={{ backgroundColor: `${selectedOta.brandColor}1A`, color: selectedOta.brandColor }}>
                     {selectedOta.name} - {propertyName}
-                  </Box>{' '}
+                  </span>{' '}
                   dans la liste ci-dessous, puis sur le bouton{' '}
-                  <Box
-                    component="span"
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      px: 0.75,
-                      py: 0.125,
-                      borderRadius: 0.5,
-                      bgcolor: `${selectedOta.brandColor}1A`,
-                      color: selectedOta.brandColor,
-                      fontWeight: 600,
-                      fontSize: '0.7rem',
-                    }}
-                  >
+                  <span className="inline-flex items-center gap-[3px] px-[4.5px] py-[0.75px] rounded-[4px] font-semibold text-[0.7rem]" style={{ backgroundColor: `${selectedOta.brandColor}1A`, color: selectedOta.brandColor }}>
                     Connect with {selectedOta.name}
-                  </Box>{' '}
+                  </span>{' '}
                   pour finaliser l'{selectedOta.code === 'ABB' ? 'OAuth' : 'authentification'} — autorisez les popups.
                 </>
               ) : selectedOta ? (
                 <>
                   Cliquez sur{' '}
-                  <Box
-                    component="span"
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      px: 0.75,
-                      py: 0.125,
-                      borderRadius: 0.5,
-                      bgcolor: 'var(--info-soft)',
-                      color: 'var(--info)',
-                      fontWeight: 600,
-                      fontSize: '0.7rem',
-                    }}
-                  >
+                  <span className="inline-flex items-center gap-0.5 px-1 py-0 rounded-[4px] bg-[var(--info-soft)] text-[var(--info)] font-semibold text-[0.7rem]">
                     + Create
-                  </Box>{' '}
+                  </span>{' '}
                   en haut a droite, puis selectionnez{' '}
-                  <Box
-                    component="span"
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      px: 0.75,
-                      py: 0.125,
-                      borderRadius: 0.5,
-                      bgcolor: `${selectedOta.brandColor}1A`,
-                      color: selectedOta.brandColor,
-                      fontWeight: 600,
-                      fontSize: '0.7rem',
-                    }}
-                  >
+                  <span className="inline-flex items-center gap-[3px] px-[4.5px] py-[0.75px] rounded-[4px] font-semibold text-[0.7rem]" style={{ backgroundColor: `${selectedOta.brandColor}1A`, color: selectedOta.brandColor }}>
                     {selectedOta.name}
-                  </Box>
+                  </span>
                   . La connexion ouvre une fenetre {selectedOta.code === 'ABB' ? 'OAuth' : 'de credentials'} — autorisez les popups.
                 </>
               ) : (
                 <>
                   Si la liste de channels s'affiche vide, cliquez sur{' '}
-                  <Box
-                    component="span"
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 0.5,
-                      px: 0.75,
-                      py: 0.125,
-                      borderRadius: 0.5,
-                      bgcolor: 'var(--info-soft)',
-                      color: 'var(--info)',
-                      fontWeight: 600,
-                      fontSize: '0.7rem',
-                    }}
-                  >
+                  <span className="inline-flex items-center gap-0.5 px-1 py-0 rounded-[4px] bg-[var(--info-soft)] text-[var(--info)] font-semibold text-[0.7rem]">
                     + Create
-                  </Box>{' '}
+                  </span>{' '}
                   en haut a droite pour choisir un OTA (Airbnb, Booking.com, Vrbo, Expedia).
                   La connexion ouvre une fenetre OAuth chez l'OTA — autorisez les popups pour ce site.
                 </>
               )}
-            </Typography>
+            </span>
             )}
-          </Box>
+          </div>
         )}
 
         {error && (
-          <Box sx={{ p: 2 }}>
-            <Alert severity="error" variant="outlined">
-              {error}
+          <div className="p-3">
+            <Alert variant="destructive">
+              <TriangleAlert />
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
-          </Box>
+          </div>
         )}
 
         {loading && (
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="center"
-            spacing={2}
-            sx={{ flex: 1, p: 4 }}
-          >
-            <CircularProgress size={24} thickness={4} />
-            <Typography variant="body2" color="text.secondary">
+          <div className="flex flex-row items-center justify-center gap-3 flex-1 p-6">
+            <Spinner className="size-6" />
+            <p className="cn-text-body2 text-muted-foreground">
               Generation de la session de connexion...
-            </Typography>
-          </Stack>
+            </p>
+          </div>
         )}
 
         {!loading && !error && !embedUrl && (
-          <Box sx={{ p: 2 }}>
-            <Skeleton variant="rectangular" height="60vh" sx={{ borderRadius: 1 }} />
-          </Box>
+          <div className="p-3">
+            <Skeleton className="h-[60vh] w-full rounded-lg" />
+          </div>
         )}
 
         {embedUrl && (
-          <Box
-            component="iframe"
+          <iframe
             ref={iframeRef}
             // key={iframeKey} : changer la cle force React a recreer l'iframe →
             // nouvelle session Channex (utile si l'UI est figee apres OAuth).
             key={iframeKey}
             src={embedUrl}
             title="Widget de connexion OTA"
-            sx={{
-              flex: 1,
-              width: '100%',
-              border: 0,
-              minHeight: 0,
-            }}
+            className="flex-1 w-full border-0 min-h-0"
             // PAS de sandbox : Channex est un provider de confiance qu'on embarque
             // consciemment. Le sandbox (meme permissif) casse la communication
             // entre l'iframe Channex et les popups OAuth qu'elle ouvre (Airbnb,
@@ -647,6 +406,7 @@ export default function ChannexEmbedDialog({
             allow="clipboard-write; popups"
           />
         )}
+        </div>
       </DialogContent>
     </Dialog>
   );

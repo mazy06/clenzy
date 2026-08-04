@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
+import { cn } from '../../../utils/cn';
+import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
+import { Spinner } from '../../../components/ui';
+import { Button } from '../../../components/ui';
 import {
-  Box,
-  Typography,
-  Chip,
-  Divider,
-  CircularProgress,
-  Button,
   Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
   Alert,
-} from '@mui/material';
+  AlertDescription,
+  Separator,
+} from '../../../components/ui';
 import {
   Apartment,
   Bed,
@@ -21,7 +22,6 @@ import {
   Schedule,
   AttachMoney,
   CleaningServices,
-  ExpandMore,
   OpenInNew,
   Handyman,
   Assignment,
@@ -64,6 +64,14 @@ const SECTION_TITLE_SX = {
   color: 'text.secondary',
   mb: 0.75,
 };
+
+/**
+ * Report en classes de `SECTION_TITLE_SX` (mb 0.75 = 4.5 px avec spacing 6).
+ * La taille est ecrite en litteral : une classe Tailwind ne peut pas naitre
+ * de la constante `LABEL_FS`, qui n'existe qu'a l'execution.
+ */
+const SECTION_TITLE_CLASS =
+  'text-[0.625rem] font-bold uppercase tracking-[0.06em] text-[var(--muted)] mb-[4.5px]';
 
 // ─── Amenity categorization & color palette ──────────────────────────────────
 //
@@ -187,14 +195,20 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" py={4}>
-        <CircularProgress size={28} />
-      </Box>
+      <div className="flex justify-center py-6">
+        <Spinner className="size-7" />
+      </div>
     );
   }
 
   if (isError || !property) {
-    return <Alert severity="error" sx={{ fontSize: BODY_FS }}>{error || 'Impossible de charger le logement'}</Alert>;
+    return (
+      <Alert variant="destructive">
+        <AlertDescription className="text-[0.75rem]">
+          {error || 'Impossible de charger le logement'}
+        </AlertDescription>
+      </Alert>
+    );
   }
 
   const metrics = [
@@ -241,10 +255,10 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
   ].filter((r): r is { icon: React.ReactElement; label: string; value: string } => r !== null);
 
   return (
-    <Box>
+    <div>
       {/* ─── HÉRO : aperçu carte (propriété géolocalisée) sinon icône ─── */}
       {hasCoords ? (
-        <Box sx={{ borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--line)', mb: 1.25 }}>
+        <div className="rounded-[14px] overflow-hidden border border-[var(--line)] mb-2">
           <MapboxPropertyMap
             properties={[{
               lat: property.latitude as number,
@@ -256,133 +270,74 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
             zoom={14}
             height={150}
           />
-        </Box>
+        </div>
       ) : (
-        <Box
-          sx={{
-            height: 96,
-            borderRadius: '14px',
-            backgroundColor: 'var(--accent-soft)',
-            color: 'var(--accent)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            mb: 1.25,
-          }}
-        >
+        <div className="h-[96px] rounded-[14px] bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center mb-2">
           <Apartment size={40} strokeWidth={1.5} />
-        </Box>
+        </div>
       )}
 
       {/* Nom + statut + ligne « ville · m² · ch » */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.875, mb: 0.25 }}>
-        <Typography
-          sx={{
-            fontFamily: 'var(--font-display)',
-            fontSize: TITLE_FS,
-            fontWeight: 700,
-            flex: 1,
-            lineHeight: 1.25,
-            letterSpacing: '-0.01em',
-            color: 'var(--ink)',
-          }}
-        >
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <p className="cn-text-body1 font-bold flex-1 leading-[1.25] tracking-[-0.01em] text-[var(--ink)]" style={{ fontFamily: 'var(--font-display)', fontSize: TITLE_FS }}>
           {property.name}
-        </Typography>
-        <Chip
+        </p>
+        <StatusChip
+          pill
+          size="sm"
+          tokens={isActive ? STATUS_TONES.ok : STATUS_TONES.neutral}
           label={property.status}
-          size="small"
-          sx={{
-            fontSize: MICRO_FS,
-            height: 18,
-            fontWeight: 600,
-            backgroundColor: isActive ? 'var(--ok-soft)' : 'var(--hover)',
-            color: isActive ? 'var(--ok)' : 'var(--muted)',
-            border: 'none',
-            borderRadius: 'var(--radius-pill)',
-            '& .MuiChip-label': { px: 0.75 },
-          }}
+          className="text-[0.5625rem]"
         />
-      </Box>
+      </div>
 
       {metaLine && (
-        <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)', display: 'block', mb: 0.25 }}>
+        <p className="cn-text-body1 text-[var(--muted)] block mb-[1.5px]" style={{ fontSize: BODY_FS }}>
           {metaLine}
-        </Typography>
+        </p>
       )}
-      <Typography sx={{ fontSize: LABEL_FS, color: 'text.secondary', display: 'block', mb: 1.5 }}>
+      <p className="cn-text-body1 text-[var(--muted)] block mb-[9px]" style={{ fontSize: LABEL_FS }}>
         {property.address}, {property.city} {property.postalCode}
-      </Typography>
+      </p>
 
       {/* ─── ACCÈS : Digicode / Étage / Wi-Fi (si données) ───────────── */}
       {accessRows.length > 0 && (
-        <Box sx={{ mb: 1.5 }}>
-          <Typography sx={SECTION_TITLE_SX}>Accès</Typography>
-          <Box sx={{ '& > * + *': { borderTop: '1px solid var(--line)' } }}>
+        <div className="mb-2">
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>Accès</p>
+          <div className="[&>*+*]:[border-top:1px_solid_var(--line)]">
             {accessRows.map((row) => (
-              <Box key={row.label} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: '7px' }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)', flexShrink: 0 }}>
+              <div className="flex items-center gap-1.5 py-[7px]" key={row.label}>
+                <span className="inline-flex text-[var(--muted)] shrink-0">
                   {row.icon}
-                </Box>
-                <Typography sx={{ fontSize: BODY_FS, color: 'var(--muted)', flexShrink: 0 }}>
+                </span>
+                <p className="cn-text-body1 text-[var(--muted)] shrink-0" style={{ fontSize: BODY_FS }}>
                   {row.label}
-                </Typography>
-                <Typography
-                  sx={{
-                    ml: 'auto',
-                    fontSize: BODY_FS,
-                    fontWeight: 600,
-                    color: 'var(--ink)',
-                    fontVariantNumeric: 'tabular-nums',
-                    minWidth: 0,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
+                </p>
+                <p
+                  className="cn-text-body1 ml-auto font-semibold text-[var(--ink)] tabular-nums min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
+                  style={{ fontSize: BODY_FS }}
                 >
                   {row.value}
-                </Typography>
-              </Box>
+                </p>
+              </div>
             ))}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* ─── STAT TILES : grid uniforme ────────────────────────────── */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${metrics.length}, 1fr)`,
-          gap: 0.5,
-          mb: 1.5,
-        }}
-      >
+      <div className="grid gap-[3px] mb-[9px]" style={{ gridTemplateColumns: `repeat(${metrics.length}, 1fr)` }}>
         {metrics.map((m) => (
-          <Box
-            key={m.label}
-            sx={{
-              px: 0.5,
-              py: 0.625,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              textAlign: 'center',
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 1,
-              minWidth: 0,
-              gap: 0.125,
-            }}
-          >
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>{m.icon}</Box>
-            <Typography sx={{ fontSize: BODY_FS, fontWeight: 700, lineHeight: 1 }}>{m.value}</Typography>
-            <Typography sx={{ fontSize: MICRO_FS, color: 'text.secondary', lineHeight: 1.1 }}>{m.label}</Typography>
-          </Box>
+          <div className="px-0.5 py-1 flex flex-col items-center text-center border border-[var(--line)] rounded-[8px] min-w-0 gap-0" key={m.label}>
+            <span className="inline-flex text-muted-foreground">{m.icon}</span>
+            <p className="cn-text-body1 font-bold leading-[1]" style={{ fontSize: BODY_FS }}>{m.value}</p>
+            <p className="cn-text-body1 text-[var(--muted)] leading-[1.1]" style={{ fontSize: MICRO_FS }}>{m.label}</p>
+          </div>
         ))}
-      </Box>
+      </div>
 
       {/* ─── PHOTOS ────────────────────────────────────────────────── */}
-      <Box sx={{ mb: 1.5 }}>
+      <div className="mb-2">
         <PropertyImageCarousel
           photoUrls={property.photoUrls}
           alt={property.name}
@@ -393,7 +348,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
           showCounter
           sx={{ width: '100%', borderRadius: 1.5, overflow: 'hidden' }}
         />
-      </Box>
+      </div>
 
       {/* ─── ÉQUIPEMENTS : chips colores par categorie semantique ────────
             5 categories (comfort / kitchen / appliances / outdoor / safetyFamily),
@@ -401,59 +356,44 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
             leger (10-12% opacite) et une bordure 30-35% : distinction visuelle
             par categorie sans surcharge "rainbow". */}
       {property.amenities.length > 0 && (
-        <Box sx={{ mb: 1.5 }}>
-          <Typography sx={SECTION_TITLE_SX}>Équipements</Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+        <div className="mb-2">
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>Équipements</p>
+          <div className="flex flex-wrap gap-0.5">
             {property.amenities.map((a) => {
               const palette = getAmenityChipStyle(a);
               return (
-                <Chip
+                <StatusChip
                   key={a}
+                  tokens={{ color: palette.color, bg: hexToRgbaTuple(palette.color, palette.bgAlpha) }}
                   label={t(`properties.amenities.items.${a}`)}
-                  size="small"
-                  sx={{
-                    backgroundColor: hexToRgbaTuple(palette.color, palette.bgAlpha),
-                    color: palette.color,
-                    border: '1px solid',
-                    borderColor: hexToRgbaTuple(palette.color, palette.borderAlpha),
-                    borderRadius: '6px',
-                    fontWeight: 600,
-                    fontSize: MICRO_FS,
-                    height: 20,
-                    '& .MuiChip-label': { px: 0.75 },
-                  }}
+                  // Teinte de bordure derivee de la palette : calculee, donc en
+                  // style inline plutot qu'en classe arbitraire.
+                  sx={{ borderColor: hexToRgbaTuple(palette.color, palette.borderAlpha) }}
+                  className="h-[20px] border border-solid text-[0.5625rem]"
                 />
               );
             })}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* ─── CONFIGURATION MÉNAGE (accordion) ─────────────────────── */}
       <Accordion
-        disableGutters
-        elevation={0}
-        sx={{
-          '&:before': { display: 'none' },
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: '8px !important',
-          mb: 1.5,
-        }}
+        type="single"
+        collapsible
+        className="border border-solid border-[var(--line)] rounded-lg mb-[9px] px-[7.5px]"
       >
-        <AccordionSummary
-          expandIcon={<ExpandMore size={14} strokeWidth={1.75} />}
-          sx={{ minHeight: 34, '& .MuiAccordionSummary-content': { my: 0.5 } }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}>
-              <CleaningServices size={14} strokeWidth={1.75} />
-            </Box>
-            <Typography sx={{ fontSize: BODY_FS, fontWeight: 600 }}>Configuration ménage</Typography>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails sx={{ pt: 0, pb: 1.25, px: 1.25 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+        <AccordionItem value="cleaning-config" className="border-b-0">
+          <AccordionTrigger className="py-1 min-h-[34px] no-underline hover:no-underline">
+            <div className="flex items-center gap-1">
+              <span className="inline-flex text-primary">
+                <CleaningServices size={14} strokeWidth={1.75} />
+              </span>
+              <p className="cn-text-body1 font-semibold" style={{ fontSize: BODY_FS }}>Configuration ménage</p>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pt-0 pb-[7.5px]">
+          <div className="flex flex-col gap-0.5">
             <ConfigRow icon={<Schedule size={12} strokeWidth={1.75} />} label="Fréquence">
               {property.cleaningFrequency ? getCleaningFrequencyLabel(property.cleaningFrequency, t) : '—'}
             </ConfigRow>
@@ -469,67 +409,52 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
             )}
             {(property.defaultCheckInTime || property.defaultCheckOutTime) && (
               <ConfigRow label="Check-in / out">
-                <Box component="span" sx={{ fontWeight: 600 }}>{property.defaultCheckInTime || '—'}</Box>
+                <span className="font-semibold">{property.defaultCheckInTime || '—'}</span>
                 {' / '}
-                <Box component="span" sx={{ fontWeight: 600 }}>{property.defaultCheckOutTime || '—'}</Box>
+                <span className="font-semibold">{property.defaultCheckOutTime || '—'}</span>
               </ConfigRow>
             )}
             {cleaningFeatures.length > 0 && (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+              <div className="flex flex-wrap gap-0.5 mt-0.5">
                 {cleaningFeatures.map((f) => (
-                  <Chip
+                  <StatusChip
                     key={f as string}
+                    size="sm"
+                    tokens={{ color: 'var(--body)', bg: 'transparent' }}
                     label={f as string}
-                    size="small"
-                    sx={{
-                      fontSize: MICRO_FS,
-                      height: 18,
-                      fontWeight: 600,
-                      backgroundColor: (th) => th.palette.mode === 'dark'
-                        ? 'rgba(255,255,255,0.06)'
-                        : 'rgba(107,138,154,0.08)',
-                      color: 'text.primary',
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: '6px',
-                      '& .MuiChip-label': { px: 0.625 },
-                    }}
+                    // Le fond passait par une fonction du theme MUI ; la variante
+                    // `dark` de Tailwind dit la meme chose sans passer par lui.
+                    className="border border-solid border-border bg-[rgba(107,138,154,0.08)] text-[0.5625rem] dark:bg-[rgba(255,255,255,0.06)]"
                   />
                 ))}
-              </Box>
+              </div>
             )}
-          </Box>
-        </AccordionDetails>
+          </div>
+          </AccordionContent>
+        </AccordionItem>
       </Accordion>
 
       {/* ─── NOTES MÉNAGE (accordion optionnel) ───────────────────── */}
       {property.cleaningNotes && (
         <Accordion
-          disableGutters
-          elevation={0}
-          sx={{
-            '&:before': { display: 'none' },
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: '8px !important',
-            mb: 1.5,
-          }}
+          type="single"
+          collapsible
+          className="border border-solid border-[var(--line)] rounded-lg mb-[9px] px-[7.5px]"
         >
-          <AccordionSummary
-            expandIcon={<ExpandMore size={14} strokeWidth={1.75} />}
-            sx={{ minHeight: 34, '& .MuiAccordionSummary-content': { my: 0.5 } }}
-          >
-            <Typography sx={{ fontSize: BODY_FS, fontWeight: 600 }}>Notes ménage</Typography>
-          </AccordionSummary>
-          <AccordionDetails sx={{ pt: 0, px: 1.25, pb: 1.25 }}>
-            <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-              {property.cleaningNotes}
-            </Typography>
-          </AccordionDetails>
+          <AccordionItem value="cleaning-notes" className="border-b-0">
+            <AccordionTrigger className="py-1 min-h-[34px] no-underline hover:no-underline">
+              <p className="cn-text-body1 font-semibold" style={{ fontSize: BODY_FS }}>Notes ménage</p>
+            </AccordionTrigger>
+            <AccordionContent className="pt-0 pb-[7.5px]">
+              <p className="cn-text-body1 text-[var(--muted)] whitespace-pre-wrap leading-[1.5]" style={{ fontSize: BODY_FS }}>
+                {property.cleaningNotes}
+              </p>
+            </AccordionContent>
+          </AccordionItem>
         </Accordion>
       )}
 
-      <Divider sx={{ my: 1.5 }} />
+      <Separator className="my-[9px]" />
 
       {/* ─── SUB-TABS : Demandes / Interventions ──────────────────── */}
       <PageTabs
@@ -560,11 +485,11 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
       {activeSubTab === 'requests' && (
         <>
           {serviceRequests.length === 0 ? (
-            <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary', fontStyle: 'italic', textAlign: 'center', py: 1 }}>
+            <p className="cn-text-body1 text-[var(--muted)] italic text-center py-1.5" style={{ fontSize: BODY_FS }}>
               Aucune demande de service
-            </Typography>
+            </p>
           ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <div className="flex flex-col gap-0.5">
               {[...serviceRequests]
                 .sort((a, b) => new Date(b.desiredDate || '').getTime() - new Date(a.desiredDate || '').getTime())
                 .slice(0, 5)
@@ -592,7 +517,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
                   Voir toutes les demandes
                 </FooterLink>
               )}
-            </Box>
+            </div>
           )}
         </>
       )}
@@ -601,11 +526,11 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
       {activeSubTab === 'interventions' && (
         <>
           {interventions.length === 0 ? (
-            <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary', fontStyle: 'italic', textAlign: 'center', py: 1 }}>
+            <p className="cn-text-body1 text-[var(--muted)] italic text-center py-1.5" style={{ fontSize: BODY_FS }}>
               Aucune intervention planifiée
-            </Typography>
+            </p>
           ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <div className="flex flex-col gap-0.5">
               {[...interventions]
                 .sort((a, b) => new Date(b.scheduledDate || '').getTime() - new Date(a.scheduledDate || '').getTime())
                 .slice(0, 5)
@@ -633,33 +558,24 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
                   Voir toutes les interventions
                 </FooterLink>
               )}
-            </Box>
+            </div>
           )}
         </>
       )}
 
-      <Divider sx={{ my: 1.5 }} />
+      <Separator className="my-[9px]" />
 
       {/* ─── CTA : page complète ──────────────────────────────────── */}
       <Button
-        variant="outlined"
-        size="small"
-        fullWidth
-        startIcon={<OpenInNew size={13} strokeWidth={1.75} />}
+        variant="outline"
+        size="sm"
+        className="w-full shrink"
         onClick={() => navigate(`/properties/${propertyId}`)}
-        sx={{
-          textTransform: 'none',
-          fontSize: BODY_FS,
-          fontWeight: 600,
-          borderRadius: 'var(--radius-sm)',
-          color: 'var(--ink)',
-          borderColor: 'var(--line-2)',
-          '&:hover': { borderColor: 'var(--ink)', backgroundColor: 'var(--hover)' },
-        }}
       >
+        <OpenInNew size={13} strokeWidth={1.75} />
         Ouvrir la fiche logement
       </Button>
-    </Box>
+    </div>
   );
 };
 
@@ -679,19 +595,19 @@ function ConfigRow({
   children: React.ReactNode;
 }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+    <div className="flex items-center gap-1">
       {icon && (
-        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
+        <span className="inline-flex text-muted-foreground">
           {icon}
-        </Box>
+        </span>
       )}
-      <Typography sx={{ fontSize: BODY_FS, color: 'text.secondary', minWidth: 90 }}>
+      <p className="cn-text-body1 text-[var(--muted)] min-w-[90px]" style={{ fontSize: BODY_FS }}>
         {label} :
-      </Typography>
-      <Typography sx={{ fontSize: BODY_FS, fontWeight: 600, color: 'text.primary', flex: 1 }}>
+      </p>
+      <p className="cn-text-body1 font-semibold text-[var(--ink)] flex-1" style={{ fontSize: BODY_FS }}>
         {children}
-      </Typography>
-    </Box>
+      </p>
+    </div>
   );
 }
 
@@ -716,72 +632,35 @@ function ListItemCard({
   onClick: () => void;
 }) {
   return (
-    <Box
+    <div
       onClick={onClick}
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1,
-        px: 1,
-        py: 0.75,
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        cursor: 'pointer',
-        transition: 'background-color 150ms, border-color 150ms',
-        '&:hover': {
-          backgroundColor: 'action.hover',
-          borderColor: 'text.secondary',
-        },
-      }}
+      className="flex items-center gap-1.5 px-1.5 py-[4.5px] border border-solid border-[var(--line)] rounded-lg cursor-pointer transition-[background-color,border-color] duration-150 hover:bg-[var(--hover)] hover:border-[var(--muted)]"
     >
-      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}>
+      <span className="inline-flex text-muted-foreground shrink-0">
         {icon}
-      </Box>
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography
-          sx={{
-            fontSize: BODY_FS,
-            fontWeight: 600,
-            color: 'text.primary',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            lineHeight: 1.3,
-          }}
+      </span>
+      <div className="flex-1 min-w-0">
+        <p
+          className="cn-text-body1 font-semibold text-[var(--ink)] overflow-hidden text-ellipsis whitespace-nowrap leading-[1.3]"
+          style={{ fontSize: BODY_FS }}
         >
           {title}
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: MICRO_FS,
-            color: 'text.secondary',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            lineHeight: 1.3,
-            textTransform: 'capitalize',
-          }}
+        </p>
+        <p
+          className="cn-text-body1 text-[var(--muted)] overflow-hidden text-ellipsis whitespace-nowrap leading-[1.3] capitalize"
+          style={{ fontSize: MICRO_FS }}
         >
           {meta}
-        </Typography>
-      </Box>
-      <Chip
+        </p>
+      </div>
+      <StatusChip
+        size="sm"
+        tokens={{ color: statusColor, bg: `${statusColor}18` }}
         label={statusLabel}
-        size="small"
-        sx={{
-          fontSize: MICRO_FS,
-          height: 18,
-          fontWeight: 600,
-          backgroundColor: `${statusColor}18`,
-          color: statusColor,
-          border: `1px solid ${statusColor}40`,
-          borderRadius: '6px',
-          flexShrink: 0,
-          '& .MuiChip-label': { px: 0.625 },
-        }}
+        sx={{ borderColor: `${statusColor}40` }}
+        className="shrink-0 border border-solid text-[0.5625rem]"
       />
-    </Box>
+    </div>
   );
 }
 
@@ -789,19 +668,13 @@ function ListItemCard({
 function FooterLink({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
   return (
     <Button
-      size="small"
-      endIcon={<ArrowForward size={12} strokeWidth={1.75} />}
+      variant="ghost"
+      size="sm"
       onClick={onClick}
-      sx={{
-        fontSize: LABEL_FS,
-        textTransform: 'none',
-        alignSelf: 'center',
-        mt: 0.25,
-        color: 'text.secondary',
-        '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
-      }}
+      className="self-center mt-[1.5px]"
     >
       {children}
+      <ArrowForward size={12} strokeWidth={1.75} />
     </Button>
   );
 }

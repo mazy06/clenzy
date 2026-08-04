@@ -83,7 +83,7 @@ class GuestMessagingControllerTest {
         when(configRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         var dto = new MessagingAutomationConfigDto(
-            true, false, 48, 12, 10L, null, true);
+            true, false, 48, 12, 10L, null, true, "22:00", "08:00");
 
         var response = controller.updateConfig(dto);
 
@@ -101,7 +101,7 @@ class GuestMessagingControllerTest {
         when(configRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         var dto = new MessagingAutomationConfigDto(
-            false, true, 24, 6, null, 20L, false);
+            false, true, 24, 6, null, 20L, false, null, null);
 
         var response = controller.updateConfig(dto);
 

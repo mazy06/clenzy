@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Box, Button, Typography } from '@mui/material';
+import { Alert, AlertDescription, AlertTitle, Button } from '../../../components/ui';
 import { Warning, ErrorOutline } from '../../../icons';
 import type { OwnerPayoutConfig } from '../../../services/api/accountingApi';
 
@@ -42,33 +42,29 @@ export default function OpenBankingConsentBanner({
   if (!expiresAt) {
     // Open Banking sélectionné mais SCA jamais validé → bannière "à compléter"
     return (
-      <Alert
-        severity="warning"
-        icon={<Warning size={18} strokeWidth={1.75} />}
-        sx={{ mb: 2, borderRadius: 2, fontSize: '0.85rem', alignItems: 'center' }}
-        action={
-          onReconnect && (
+      // L'action passe SOUS le texte (col-start-2) : le slot AlertAction du kit
+      // est ancre en haut a droite sur 72 px, trop etroit pour ces libelles.
+      <Alert variant="warning" className="mb-3">
+        <Warning size={18} strokeWidth={1.75} />
+        <AlertTitle className="text-[0.85rem] font-semibold">
+          Configuration Open Banking incomplète
+        </AlertTitle>
+        <AlertDescription className="text-[0.78rem]">
+          La méthode Open Banking est sélectionnée, mais l'authentification bancaire (SCA)
+          n'a pas encore été validée. Aucun virement ne peut être effectué tant que ce n'est pas fait.
+        </AlertDescription>
+        {onReconnect && (
+          <div className="col-start-2 mt-1.5">
             <Button
-              size="small"
-              variant="outlined"
-              color="warning"
+              size="sm"
+              variant="outline"
               onClick={onReconnect}
-              sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.78rem', borderRadius: '8px' }}
+              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
               Compléter le SCA
             </Button>
-          )
-        }
-      >
-        <Box>
-          <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, mb: 0.25 }}>
-            Configuration Open Banking incomplète
-          </Typography>
-          <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
-            La méthode Open Banking est sélectionnée, mais l'authentification bancaire (SCA)
-            n'a pas encore été validée. Aucun virement ne peut être effectué tant que ce n'est pas fait.
-          </Typography>
-        </Box>
+          </div>
+        )}
       </Alert>
     );
   }
@@ -81,40 +77,23 @@ export default function OpenBankingConsentBanner({
   // Cas 1 : déjà expiré
   if (isExpired) {
     return (
-      <Alert
-        severity="error"
-        icon={<ErrorOutline size={18} strokeWidth={1.75} />}
-        sx={{ mb: 2, borderRadius: 2, fontSize: '0.85rem', alignItems: 'center' }}
-        action={
-          onReconnect && (
-            <Button
-              size="small"
-              variant="contained"
-              color="error"
-              onClick={onReconnect}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: '0.78rem',
-                borderRadius: '8px',
-                boxShadow: 'none',
-              }}
-            >
+      <Alert variant="destructive" className="mb-3">
+        <ErrorOutline size={18} strokeWidth={1.75} />
+        <AlertTitle className="text-[0.85rem] font-semibold">
+          Consent bancaire expiré
+        </AlertTitle>
+        <AlertDescription className="text-[0.78rem]">
+          Votre consent Open Banking a expiré le{' '}
+          <strong>{new Date(expiresAt).toLocaleDateString('fr-FR')}</strong>. Les virements automatiques
+          sont suspendus jusqu'à reconnexion. Refaites le SCA bancaire pour réactiver les payouts.
+        </AlertDescription>
+        {onReconnect && (
+          <div className="col-start-2 mt-1.5">
+            <Button size="sm" variant="destructive" onClick={onReconnect}>
               Reconnecter ma banque
             </Button>
-          )
-        }
-      >
-        <Box>
-          <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, mb: 0.25 }}>
-            Consent bancaire expiré
-          </Typography>
-          <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
-            Votre consent Open Banking a expiré le{' '}
-            <strong>{new Date(expiresAt).toLocaleDateString('fr-FR')}</strong>. Les virements automatiques
-            sont suspendus jusqu'à reconnexion. Refaites le SCA bancaire pour réactiver les payouts.
-          </Typography>
-        </Box>
+          </div>
+        )}
       </Alert>
     );
   }
@@ -122,41 +101,35 @@ export default function OpenBankingConsentBanner({
   // Cas 2 : expire dans < 7 jours
   if (daysUntilExpiry <= WARNING_THRESHOLD_DAYS) {
     return (
-      <Alert
-        severity="warning"
-        icon={<Warning size={18} strokeWidth={1.75} />}
-        sx={{ mb: 2, borderRadius: 2, fontSize: '0.85rem', alignItems: 'center' }}
-        action={
-          onReconnect && (
+      <Alert variant="warning" className="mb-3">
+        <Warning size={18} strokeWidth={1.75} />
+        <AlertTitle className="text-[0.85rem] font-semibold">
+          Consent bancaire à renouveler bientôt
+        </AlertTitle>
+        <AlertDescription className="text-[0.78rem]">
+          Votre consent Open Banking expire dans{' '}
+          <strong>
+            {daysUntilExpiry === 0
+              ? "moins d'un jour"
+              : daysUntilExpiry === 1
+                ? '1 jour'
+                : `${daysUntilExpiry} jours`}
+          </strong>
+          {' '}({new Date(expiresAt).toLocaleDateString('fr-FR')}). Renouvelez dès maintenant pour éviter
+          toute interruption des virements automatiques.
+        </AlertDescription>
+        {onReconnect && (
+          <div className="col-start-2 mt-1.5">
             <Button
-              size="small"
-              variant="outlined"
-              color="warning"
+              size="sm"
+              variant="outline"
               onClick={onReconnect}
-              sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.78rem', borderRadius: '8px' }}
+              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
               Renouveler maintenant
             </Button>
-          )
-        }
-      >
-        <Box>
-          <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, mb: 0.25 }}>
-            Consent bancaire à renouveler bientôt
-          </Typography>
-          <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
-            Votre consent Open Banking expire dans{' '}
-            <strong>
-              {daysUntilExpiry === 0
-                ? "moins d'un jour"
-                : daysUntilExpiry === 1
-                  ? '1 jour'
-                  : `${daysUntilExpiry} jours`}
-            </strong>
-            {' '}({new Date(expiresAt).toLocaleDateString('fr-FR')}). Renouvelez dès maintenant pour éviter
-            toute interruption des virements automatiques.
-          </Typography>
-        </Box>
+          </div>
+        )}
       </Alert>
     );
   }

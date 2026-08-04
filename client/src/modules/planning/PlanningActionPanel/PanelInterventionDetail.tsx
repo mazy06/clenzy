@@ -1,19 +1,16 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import StatusChip, { STATUS_TONES } from '../../../components/StatusChip';
+import { Alert, AlertDescription, Button, InputGroup, InputGroupAddon, InputGroupInput } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../../components/ui';
 import {
-  Box,
-  Typography,
-  Chip,
-  Divider,
-  Button,
-  TextField,
-  IconButton,
-  LinearProgress,
-  CircularProgress,
-  Alert,
   Accordion,
-  AccordionSummary,
-  AccordionDetails,
-} from '@mui/material';
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+  Progress,
+  Separator,
+} from '../../../components/ui';
 import {
   AutoAwesome,
   Handyman,
@@ -22,7 +19,6 @@ import {
   CalendarMonth,
   PlayArrow,
   CheckCircle,
-  ExpandMore,
   AttachMoney,
   Edit,
   EnterKey,
@@ -68,6 +64,11 @@ const STATUS_HEX: Record<string, string> = {
   SCHEDULED: '#0288d1',
   CANCELLED: '#d32f2f',
 };
+
+/** Coque de l'accordeon : le liseré et le rayon que portait le `sx` MUI. */
+const ACCORDION_CLASS = 'rounded-[8px] border border-solid border-[var(--line)] overflow-hidden';
+/** En-tete d'accordeon : hauteur 36 et gouttieres reprises du gabarit MUI. */
+const ACCORDION_TRIGGER_CLASS = 'min-h-9 items-center px-2 py-1';
 
 const parseCompletedSteps = (steps?: string): Set<string> => {
   if (!steps) return new Set();
@@ -145,8 +146,9 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
 
   if (!intervention) {
     return (
-      <Alert severity="warning" sx={{ fontSize: '0.75rem' }}>
-        Intervention #{interventionId} introuvable
+      <Alert variant="warning" className="text-[0.75rem]">
+        <TriangleAlert />
+        <AlertDescription>Intervention #{interventionId}introuvable</AlertDescription>
       </Alert>
     );
   }
@@ -178,62 +180,55 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
     : [];
 
   return (
-    <Box>
+    <div>
       {/* Header with icon + title */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+      <div className="flex items-center gap-1.5 mb-2">
         {isCleaning
           ? <AutoAwesome size={20} strokeWidth={1.75} color='#9B7FC4' />
           : <Handyman size={20} strokeWidth={1.75} color='#F59E0B' />}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div className="flex-1 min-w-0">
+          <p className="cn-text-body1 font-bold text-[0.875rem] overflow-hidden text-ellipsis whitespace-nowrap">
             {intervention.title}
-          </Typography>
-          <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
+          </p>
+          <p className="cn-text-body1 text-[0.625rem] text-muted-foreground">
             {intervention.propertyName}
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
 
       {/* Chips row */}
-      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 1.5 }}>
+      <div className="flex gap-0.5 flex-wrap mb-2">
         {(() => { const c = STATUS_HEX[intervention.status] ?? '#757575'; return (
-        <Chip
-          label={intervention.status}
-          size="small"
-          sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
-        />
+        <StatusChip tokens={{ color: c, bg: `${c}18` }} label={intervention.status} className="text-[0.5625rem]" />
         ); })()}
         {intervention.assigneeName && (
-          <Chip
-            icon={<Person size={12} strokeWidth={1.75} color="#757575" />}
-            label={intervention.assigneeName}
-            size="small"
-            sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
-          />
+          <StatusChip tokens={{ color: '#757575', bg: '#75757518' }} label={intervention.assigneeName} icon={<Person size={12} strokeWidth={1.75} color="#757575" />} className="text-[0.5625rem]" />
         )}
         {intervention.estimatedDurationHours && (
-          <Chip
-            icon={<Schedule size={12} strokeWidth={1.75} color="#0288d1" />}
-            label={`${intervention.estimatedDurationHours}h`}
-            size="small"
-            sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: '#0288d118', color: '#0288d1', border: '1px solid #0288d140', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
-          />
+          <StatusChip tokens={{ color: '#0288d1', bg: '#0288d118' }} label={`${intervention.estimatedDurationHours}h`} icon={<Schedule size={12} strokeWidth={1.75} color="#0288d1" />} className="text-[0.5625rem]" />
         )}
-        <Chip
+        {/* Le crayon etait monte en `deleteIcon`, avec un `onDelete` qui basculait
+            le meme panneau que le corps de la puce : une seule action, donc une
+            seule commande — le crayon n'est plus qu'un decor. */}
+        <StatusChip
+          tokens={{ color: '#4A9B8E', bg: '#4A9B8E18' }}
           icon={<AttachMoney size={12} strokeWidth={1.75} color="#4A9B8E" />}
-          label={<Money value={displayAmount} from="EUR" decimals={0} />}
+          label={
+            <span className="inline-flex items-center gap-0.5">
+              <Money value={displayAmount} from="EUR" decimals={0} />
+              <Edit size={11} strokeWidth={1.75} />
+            </span>
+          }
           onClick={() => setAmountEditOpen((o) => !o)}
-          onDelete={() => setAmountEditOpen((o) => !o)}
-          deleteIcon={<Edit size={11} strokeWidth={1.75} />}
-          size="small"
-          sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: '#4A9B8E18', color: '#4A9B8E', border: '1px solid #4A9B8E40', borderRadius: '6px', cursor: 'pointer', '& .MuiChip-label': { px: 0.75 }, '& .MuiChip-deleteIcon': { color: '#4A9B8E', fontSize: 12 } }}
+          ariaLabel="Modifier le montant"
+          className="text-[0.5625rem] border border-solid border-[#4A9B8E40]"
         />
-      </Box>
+      </div>
 
       {/* Édition du montant : nouveau montant / remise € / remise % */}
       {amountEditOpen && (
-        <Box sx={{ mb: 1.5, p: 1.25, borderRadius: '10px', border: '1px solid var(--line)', bgcolor: 'var(--field)' }}>
-          <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
+        <div className="mb-2 p-2 rounded-[10px] border border-[var(--line)] bg-[var(--field)]">
+          <div className="flex gap-0.5 mb-1.5 flex-wrap">
             {([
               ['SET', 'Nouveau montant'],
               ['DISCOUNT_AMOUNT', 'Remise €'],
@@ -241,160 +236,168 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
             ] as const).map(([mode, label]) => {
               const active = amountMode === mode;
               return (
-                <Chip
+                <StatusChip
                   key={mode}
+                  outlined
+                  selected={active}
+                  tokens={STATUS_TONES.accent}
                   label={label}
                   onClick={() => setAmountMode(mode)}
-                  size="small"
-                  sx={{
-                    height: 24, fontSize: '0.625rem', fontWeight: 600, cursor: 'pointer',
-                    border: '1px solid', borderColor: active ? 'var(--accent)' : 'var(--line-2)',
-                    bgcolor: active ? 'var(--accent-soft)' : 'var(--card)',
-                    color: active ? 'var(--accent)' : 'var(--body)',
-                    '& .MuiChip-label': { px: 0.75 },
-                  }}
+                  className="h-6 text-[0.625rem] font-semibold"
                 />
               );
             })}
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <TextField
-              type="number"
-              size="small"
-              value={amountValue}
-              onChange={(e) => setAmountValue(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyAmount(); } }}
-              placeholder={amountMode === 'DISCOUNT_PERCENT' ? '10' : '0'}
-              disabled={amountSaving}
-              inputProps={{ min: 0, step: amountMode === 'DISCOUNT_PERCENT' ? 1 : 5, style: { textAlign: 'right' } }}
-              InputProps={{ endAdornment: (
-                <Typography sx={{ fontSize: '0.75rem', color: 'var(--faint)', pl: 0.5 }}>
+          </div>
+          <div className="flex items-center gap-1">
+            {/* Le champ n'avait pas de libelle : les puces de mode au-dessus font
+                office d'intitule, d'ou l'aria-label qui reprend le mode actif. */}
+            <InputGroup className="flex-1 bg-[var(--card)]">
+              <InputGroupInput
+                id="intervention-amount"
+                type="number"
+                value={amountValue}
+                onChange={(e) => setAmountValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyAmount(); } }}
+                placeholder={amountMode === 'DISCOUNT_PERCENT' ? '10' : '0'}
+                disabled={amountSaving}
+                min={0}
+                step={amountMode === 'DISCOUNT_PERCENT' ? 1 : 5}
+                aria-label={amountMode === 'DISCOUNT_PERCENT' ? 'Remise en pourcentage' : amountMode === 'DISCOUNT_AMOUNT' ? 'Remise en euros' : 'Nouveau montant'}
+                className="text-end text-[0.8125rem]"
+              />
+              <InputGroupAddon align="inline-end">
+                <span className="cn-text-body1 text-[0.75rem] text-[var(--faint)]">
                   {amountMode === 'DISCOUNT_PERCENT' ? '%' : '€'}
-                </Typography>
-              ) }}
-              sx={{ flex: 1, '& .MuiOutlinedInput-root': { fontSize: '0.8125rem', bgcolor: 'var(--card)' } }}
-            />
-            <IconButton
-              size="small"
+                </span>
+              </InputGroupAddon>
+            </InputGroup>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
               onClick={applyAmount}
               disabled={amountSaving || !amountValue.trim()}
               aria-label="Appliquer"
-              sx={{ color: 'var(--accent)' }}
+              className="text-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
             >
-              {amountSaving ? <CircularProgress size={16} /> : <EnterKey size={16} strokeWidth={1.75} />}
-            </IconButton>
-          </Box>
-        </Box>
+              {amountSaving ? <Spinner className="size-4" /> : <EnterKey size={16} strokeWidth={1.75} />}
+            </Button>
+          </div>
+        </div>
       )}
 
       {/* Dates */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 1.5, alignItems: 'center' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CalendarMonth size={14} strokeWidth={1.75} /></Box>
-          <Typography sx={{ fontSize: '0.6875rem' }}>
+      <div className="flex gap-3 mb-2 items-center">
+        <div className="flex items-center gap-0.5">
+          <span className="inline-flex text-muted-foreground"><CalendarMonth size={14} strokeWidth={1.75} /></span>
+          <p className="cn-text-body1 text-[0.6875rem]">
             {intervention.startDate}
             {intervention.startTime && ` ${intervention.startTime}`}
-          </Typography>
-        </Box>
-        <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>→</Typography>
-        <Typography sx={{ fontSize: '0.6875rem' }}>
+          </p>
+        </div>
+        <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">→</p>
+        <p className="cn-text-body1 text-[0.6875rem]">
           {intervention.endDate}
           {intervention.endTime && ` ${intervention.endTime}`}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
-      <Divider sx={{ my: 1.5 }} />
+      <Separator className="my-[9px]" />
 
       {/* Progress section */}
-      <Box sx={{ mb: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-          <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>
+      <div className="mb-3">
+        <div className="flex justify-between items-center mb-0.5">
+          <p className="cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-muted-foreground">
             Progression
-          </Typography>
+          </p>
           {(() => { const c = progress === 100 ? '#4A9B8E' : '#757575'; return (
-          <Chip label={`${progress}%`} size="small" sx={{ fontSize: '0.5625rem', height: 18, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }} />
+          <StatusChip size="sm" tokens={{ color: c, bg: `${c}18` }} label={`${progress}%`} className="text-[0.5625rem]" />
           ); })()}
-        </Box>
-        <LinearProgress variant="determinate" value={progress} sx={{ height: 6, borderRadius: 3 }} />
-        <Box sx={{ display: 'flex', gap: 0.5, mt: 0.75 }}>
+        </div>
+        <Progress
+          value={progress}
+          className="h-1.5 rounded-[3px] [&_[data-slot=progress-indicator]]:rounded-[3px]"
+        />
+        <div className="flex gap-0.5 mt-1">
           {['inspection', 'rooms', 'after_photos'].map((step) => {
             const done = completedSteps.has(step);
             const labels: Record<string, string> = { inspection: 'Inspection', rooms: 'Pièces', after_photos: 'Photos' };
             const c = done ? '#4A9B8E' : '#757575';
             return (
-              <Chip
-                key={step}
-                label={labels[step]}
-                size="small"
-                sx={{ fontSize: '0.5rem', height: 18, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
-              />
+              <StatusChip size="sm" tokens={{ color: c, bg: `${c}18` }} label={labels[step]} className="text-[0.5rem]" key={step} />
             );
           })}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      {error && <Alert severity="error" sx={{ fontSize: '0.6875rem', mb: 1 }}>{error}</Alert>}
+      {error && <Alert variant="destructive" className="text-[0.6875rem] mb-1.5">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>}
 
       {/* Action buttons */}
       {!isStarted && onStartIntervention && (
         <Button
-          variant="contained"
-          fullWidth
-          size="small"
-          startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <PlayArrow size={16} strokeWidth={1.75} />}
+          size="sm"
           onClick={handleStart}
           disabled={loading}
-          sx={{ mb: 1, textTransform: 'none', fontSize: '0.75rem' }}
+          className="w-full mb-1.5 shrink"
         >
+          {loading ? <Spinner className="size-3.5" /> : <PlayArrow strokeWidth={1.75} />}
           Démarrer l'intervention
         </Button>
       )}
 
       {isStarted && !isCompleted && onCompleteIntervention && (
+        // `color="success"` n'a pas de variante dediee dans le kit : outline
+        // teinte --ok.
         <Button
-          variant="contained"
-          color="success"
-          fullWidth
-          size="small"
-          startIcon={loading ? <CircularProgress size={14} color="inherit" /> : <CheckCircle size={14} strokeWidth={1.75} />}
+          variant="outline"
+          size="sm"
           onClick={handleComplete}
           disabled={loading}
-          sx={{ mb: 1, textTransform: 'none', fontSize: '0.75rem' }}
+          className="w-full mb-1.5 text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)] shrink"
         >
+          {loading ? <Spinner className="size-3.5" /> : <CheckCircle strokeWidth={1.75} />}
           Terminer l'intervention
         </Button>
       )}
 
-      <Divider sx={{ my: 1.5 }} />
+      <Separator className="my-[9px]" />
 
       {/* Photos preview */}
-      <Accordion disableGutters elevation={0} sx={{ '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', borderRadius: '8px !important', mb: 1 }}>
-        <AccordionSummary expandIcon={<ExpandMore size={16} strokeWidth={1.75} />} sx={{ minHeight: 36, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>Photos ({beforePhotos.length + afterPhotos.length})</Typography>
-        </AccordionSummary>
-        <AccordionDetails sx={{ pt: 0 }}>
-          {beforePhotos.length > 0 && <PanelPhotoGallery photos={beforePhotos} label="Avant" maxVisible={2} />}
-          {afterPhotos.length > 0 && <PanelPhotoGallery photos={afterPhotos} label="Après" maxVisible={2} />}
-          {beforePhotos.length === 0 && afterPhotos.length === 0 && (
-            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontStyle: 'italic' }}>
-              Aucune photo
-            </Typography>
-          )}
-        </AccordionDetails>
+      {/* Le chevron est fourni par AccordionTrigger : plus d'expandIcon a passer. */}
+      <Accordion type="single" collapsible className={ACCORDION_CLASS + ' mb-1'}>
+        <AccordionItem value="photos" className="border-b-0">
+          <AccordionTrigger className={ACCORDION_TRIGGER_CLASS}>
+            <p className="cn-text-body1 text-[0.75rem] font-semibold">Photos ({beforePhotos.length + afterPhotos.length})</p>
+          </AccordionTrigger>
+          <AccordionContent className="px-2 pt-0">
+            {beforePhotos.length > 0 && <PanelPhotoGallery photos={beforePhotos} label="Avant" maxVisible={2} />}
+            {afterPhotos.length > 0 && <PanelPhotoGallery photos={afterPhotos} label="Après" maxVisible={2} />}
+            {beforePhotos.length === 0 && afterPhotos.length === 0 && (
+              <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground italic">
+                Aucune photo
+              </p>
+            )}
+          </AccordionContent>
+        </AccordionItem>
       </Accordion>
 
       {/* Notes */}
       {intervention.notes && (
-        <Accordion disableGutters elevation={0} sx={{ '&:before': { display: 'none' }, border: '1px solid', borderColor: 'divider', borderRadius: '8px !important' }}>
-          <AccordionSummary expandIcon={<ExpandMore size={16} strokeWidth={1.75} />} sx={{ minHeight: 36, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>Notes</Typography>
-          </AccordionSummary>
-          <AccordionDetails sx={{ pt: 0 }}>
-            <Typography sx={{ fontSize: '0.6875rem', whiteSpace: 'pre-wrap' }}>{intervention.notes}</Typography>
-          </AccordionDetails>
+        <Accordion type="single" collapsible className={ACCORDION_CLASS}>
+          <AccordionItem value="notes" className="border-b-0">
+            <AccordionTrigger className={ACCORDION_TRIGGER_CLASS}>
+              <p className="cn-text-body1 text-[0.75rem] font-semibold">Notes</p>
+            </AccordionTrigger>
+            <AccordionContent className="px-2 pt-0">
+              <p className="cn-text-body1 text-[0.6875rem] whitespace-pre-wrap">{intervention.notes}</p>
+            </AccordionContent>
+          </AccordionItem>
         </Accordion>
       )}
-    </Box>
+    </div>
   );
 };
 

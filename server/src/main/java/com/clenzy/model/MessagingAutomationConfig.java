@@ -43,6 +43,17 @@ public class MessagingAutomationConfig {
     @Column(name = "auto_push_pricing_enabled", nullable = false)
     private boolean autoPushPricingEnabled = false;
 
+    /**
+     * Heures calmes "HH:mm" (heure LOCALE du logement) : les envois automatiques
+     * non urgents tombant dans [start, end) sont reportés à {@code end}. Vider
+     * les deux champs désactive la fonctionnalité (M10).
+     */
+    @Column(name = "quiet_hours_start", length = 5)
+    private String quietHoursStart = "22:00";
+
+    @Column(name = "quiet_hours_end", length = 5)
+    private String quietHoursEnd = "08:00";
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -87,6 +98,12 @@ public class MessagingAutomationConfig {
 
     public boolean isAutoPushPricingEnabled() { return autoPushPricingEnabled; }
     public void setAutoPushPricingEnabled(boolean autoPushPricingEnabled) { this.autoPushPricingEnabled = autoPushPricingEnabled; }
+
+    public String getQuietHoursStart() { return quietHoursStart; }
+    public void setQuietHoursStart(String quietHoursStart) { this.quietHoursStart = quietHoursStart; }
+
+    public String getQuietHoursEnd() { return quietHoursEnd; }
+    public void setQuietHoursEnd(String quietHoursEnd) { this.quietHoursEnd = quietHoursEnd; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

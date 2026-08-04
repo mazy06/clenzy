@@ -1,10 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import {
-  Box,
-  Button,
-  TextField,
-  InputAdornment,
-} from '@mui/material';
+import { Badge, Button, InputGroup, InputGroupAddon, InputGroupInput } from '../../components/ui';
 import {
   ViewList,
   ChatBubbleOutline,
@@ -135,7 +130,8 @@ const DocumentsPage: React.FC = () => {
   const inlineActions = (() => {
     if (activeTab === TAB_CATALOG) {
       return (
-        <Button startIcon={<Refresh size={14} strokeWidth={1.75} />} size="small" onClick={() => docTemplatesRef.current?.fetchTemplates()}>
+        <Button variant="ghost" size="sm" onClick={() => docTemplatesRef.current?.fetchTemplates()}>
+          <Refresh size={14} strokeWidth={1.75} />
           {t('common.refresh')}
         </Button>
       );
@@ -143,10 +139,12 @@ const DocumentsPage: React.FC = () => {
     if (activeTab === TAB_MSG_TEMPLATES) {
       return (
         <>
-          <Button startIcon={<Refresh size={14} strokeWidth={1.75} />} size="small" onClick={() => msgTemplatesRef.current?.fetchTemplates()}>
+          <Button variant="ghost" size="sm" onClick={() => msgTemplatesRef.current?.fetchTemplates()}>
+            <Refresh size={14} strokeWidth={1.75} />
             {t('common.refresh')}
           </Button>
-          <Button variant="contained" startIcon={<Add size={14} strokeWidth={1.75} />} size="small" onClick={() => msgTemplatesRef.current?.openEditor()}>
+          <Button size="sm" onClick={() => msgTemplatesRef.current?.openEditor()}>
+            <Add size={14} strokeWidth={1.75} />
             {t('messaging.templates.create')}
           </Button>
         </>
@@ -154,11 +152,8 @@ const DocumentsPage: React.FC = () => {
     }
     if (activeTab === TAB_WHATSAPP_TEMPLATES) {
       return (
-        <Button
-          startIcon={<Refresh size={14} strokeWidth={1.75} />}
-          size="small"
-          onClick={() => whatsappTemplatesRef.current?.refresh()}
-        >
+        <Button variant="ghost" size="sm" onClick={() => whatsappTemplatesRef.current?.refresh()}>
+          <Refresh size={14} strokeWidth={1.75} />
           {t('common.refresh')}
         </Button>
       );
@@ -166,10 +161,12 @@ const DocumentsPage: React.FC = () => {
     if (activeTab === TAB_DOC_TEMPLATES) {
       return (
         <>
-          <Button startIcon={<Refresh size={14} strokeWidth={1.75} />} size="small" onClick={() => docTemplatesRef.current?.fetchTemplates()}>
+          <Button variant="ghost" size="sm" onClick={() => docTemplatesRef.current?.fetchTemplates()}>
+            <Refresh size={14} strokeWidth={1.75} />
             {t('common.refresh')}
           </Button>
-          <Button variant="contained" startIcon={<Add size={14} strokeWidth={1.75} />} size="small" onClick={() => docTemplatesRef.current?.openUpload()}>
+          <Button size="sm" onClick={() => docTemplatesRef.current?.openUpload()}>
+            <Add size={14} strokeWidth={1.75} />
             {t('documents.tabs.newDocTemplate')}
           </Button>
         </>
@@ -178,10 +175,12 @@ const DocumentsPage: React.FC = () => {
     if (activeTab === TAB_HISTORY) {
       return (
         <>
-          <Button startIcon={<Refresh size={14} strokeWidth={1.75} />} size="small" onClick={() => historyRef.current?.refresh()}>
+          <Button variant="ghost" size="sm" onClick={() => historyRef.current?.refresh()}>
+            <Refresh size={14} strokeWidth={1.75} />
             {t('common.refresh')}
           </Button>
-          <Button variant="contained" startIcon={<Send size={14} strokeWidth={1.75} />} size="small" onClick={() => historyRef.current?.openGenerate()}>
+          <Button size="sm" onClick={() => historyRef.current?.openGenerate()}>
+            <Send size={14} strokeWidth={1.75} />
             {t('documents.tabs.generateDoc')}
           </Button>
         </>
@@ -189,43 +188,42 @@ const DocumentsPage: React.FC = () => {
     }
     if (activeTab === TAB_VARIABLES) {
       return (
-        <TextField
-          size="small"
-          placeholder={t('documents.tabs.searchTag')}
-          value={tagsSearch}
-          onChange={(e) => setTagsSearch(e.target.value)}
-          sx={{ minWidth: 220 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={14} strokeWidth={1.75} /></Box>
-              </InputAdornment>
-            ),
-          }}
-        />
+        // Champ de recherche de la barre d'onglets : aucun libelle visible,
+        // d'ou aria-label plutot qu'un FieldLabel.
+        <InputGroup className="w-[220px]">
+          <InputGroupAddon align="inline-start">
+            <span className="inline-flex text-muted-foreground"><Search size={14} strokeWidth={1.75} /></span>
+          </InputGroupAddon>
+          <InputGroupInput
+            id="documents-tags-search"
+            aria-label={t('documents.tabs.searchTag')}
+            placeholder={t('documents.tabs.searchTag')}
+            value={tagsSearch}
+            onChange={(e) => setTagsSearch(e.target.value)}
+          />
+        </InputGroup>
       );
     }
     if (activeTab === TAB_COMPLIANCE) {
       return (
         <>
-          <Button startIcon={<Refresh size={14} strokeWidth={1.75} />} size="small" onClick={() => complianceRef.current?.fetchData()}>
+          <Button variant="ghost" size="sm" onClick={() => complianceRef.current?.fetchData()}>
+            <Refresh size={14} strokeWidth={1.75} />
             {t('common.refresh')}
           </Button>
-          <TextField
-            size="small"
-            placeholder="Ex: FAC-2025-00001"
-            value={complianceSearch}
-            onChange={(e) => setComplianceSearch(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && complianceRef.current?.searchByNumber(complianceSearch)}
-            sx={{ minWidth: 220 }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={14} strokeWidth={1.75} /></Box>
-                </InputAdornment>
-              ),
-            }}
-          />
+          <InputGroup className="w-[220px]">
+            <InputGroupAddon align="inline-start">
+              <span className="inline-flex text-muted-foreground"><Search size={14} strokeWidth={1.75} /></span>
+            </InputGroupAddon>
+            <InputGroupInput
+              id="documents-compliance-search"
+              aria-label="Rechercher par numéro de document"
+              placeholder="Ex: FAC-2025-00001"
+              value={complianceSearch}
+              onChange={(e) => setComplianceSearch(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && complianceRef.current?.searchByNumber(complianceSearch)}
+            />
+          </InputGroup>
         </>
       );
     }
@@ -234,11 +232,20 @@ const DocumentsPage: React.FC = () => {
 
   return (
     <PageHeaderActionsProvider slot={headerActionsSlot}>
-      <Box>
+      <div>
         <PageHeader
           title={title}
           subtitle={subtitle}
           iconBadge={<Description />}
+          // Le badge d'echecs de la projection, sur le titre : meme compteur
+          // que la pastille de l'onglet Historique, masque a zero.
+          titleAdornment={
+            failedCount > 0 ? (
+              <Badge variant="destructive">
+                {t('documents.failedBadge', { count: failedCount, defaultValue: '{{count}} échecs' })}
+              </Badge>
+            ) : undefined
+          }
           backPath="/dashboard"
           showBackButton={false}
           actions={headerActionsPortal}
@@ -272,7 +279,7 @@ const DocumentsPage: React.FC = () => {
         {activeTab === TAB_HISTORY && <UnifiedHistoryTab ref={historyRef} />}
         {activeTab === TAB_VARIABLES && <AvailableTagsReference search={tagsSearch} />}
         {activeTab === TAB_COMPLIANCE && <ComplianceDashboard ref={complianceRef} />}
-      </Box>
+      </div>
     </PageHeaderActionsProvider>
   );
 };

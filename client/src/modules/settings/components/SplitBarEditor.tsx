@@ -1,6 +1,7 @@
 import React, { useCallback, useRef } from 'react';
-import { Box, Tooltip, Typography } from '@mui/material';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { Lock, LockOpen } from '../../../icons';
+import { cn } from '../../../utils/cn';
 import {
   redistributeShares,
   isShareAdjustable,
@@ -141,40 +142,29 @@ export default function SplitBarEditor({
   );
 
   return (
-    <Box>
-      <Box
+    <div>
+      <div
         ref={barRef}
-        sx={{
-          position: 'relative',
-          display: 'flex',
-          height: BAR_HEIGHT,
-          borderRadius: '8px',
-          overflow: 'hidden',
-          border: '1px solid',
-          borderColor: 'divider',
-          userSelect: 'none',
-        }}
+        className="relative flex overflow-hidden rounded-[8px] border border-solid border-[var(--line)] select-none"
+        style={{ height: BAR_HEIGHT }}
       >
         {upstream && upstreamPct > 0 && (
-          <Tooltip title={`${upstream.label} · ${formatPct(upstreamPct)}`}>
-            <Box
-              sx={{
-                width: `${upstreamPct}%`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                fontVariantNumeric: 'tabular-nums',
-                color: 'common.white',
-                // Hachures : cette part sort du circuit avant tout partage,
-                // elle ne se lit pas comme les trois autres.
-                backgroundImage:
-                  'repeating-linear-gradient(45deg, var(--muted) 0 4px, color-mix(in srgb, var(--muted) 80%, black) 4px 8px)',
-              }}
-            >
-              {upstreamPct >= 8 ? formatPct(upstreamPct) : ''}
-            </Box>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div
+                className="flex items-center justify-center text-[0.72rem] font-bold tabular-nums text-white"
+                style={{
+                  width: `${upstreamPct}%`,
+                  // Hachures : cette part sort du circuit avant tout partage,
+                  // elle ne se lit pas comme les trois autres.
+                  backgroundImage:
+                    'repeating-linear-gradient(45deg, var(--muted) 0 4px, color-mix(in srgb, var(--muted) 80%, black) 4px 8px)',
+                }}
+              >
+                {upstreamPct >= 8 ? formatPct(upstreamPct) : ''}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>{`${upstream.label} · ${formatPct(upstreamPct)}`}</TooltipContent>
           </Tooltip>
         )}
 
@@ -184,26 +174,17 @@ export default function SplitBarEditor({
           const isLastSegment = index === segments.length - 1;
           return (
             <React.Fragment key={segment.key}>
-              <Box
-                sx={{
-                  width: `${width}%`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  fontVariantNumeric: 'tabular-nums',
-                  color: 'common.white',
-                  backgroundColor: segment.color,
-                  opacity: segment.locked ? 0.75 : 1,
-                  minWidth: 0,
-                  overflow: 'hidden',
-                }}
+              <div
+                className={cn(
+                  'flex min-w-0 items-center justify-center overflow-hidden text-[0.72rem] font-bold tabular-nums text-white',
+                  segment.locked ? 'opacity-75' : 'opacity-100',
+                )}
+                style={{ width: `${width}%`, backgroundColor: segment.color }}
               >
                 {width >= 8 ? formatPct(segment.value) : ''}
-              </Box>
+              </div>
               {!isLastSegment && (
-                <Box
+                <div
                   role="separator"
                   tabIndex={adjustable ? 0 : -1}
                   aria-orientation="vertical"
@@ -214,114 +195,89 @@ export default function SplitBarEditor({
                   aria-disabled={!adjustable}
                   onPointerDown={(e) => handlePointerDown(e, index)}
                   onKeyDown={(e) => handleKeyDown(e, index)}
-                  sx={{
-                    width: 3,
-                    flexShrink: 0,
-                    cursor: adjustable ? 'col-resize' : 'not-allowed',
-                    backgroundColor: 'background.paper',
-                    opacity: adjustable ? 0.55 : 0.25,
-                    transition: 'opacity 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-                    '&:hover': { opacity: adjustable ? 1 : 0.25 },
-                    '&:focus-visible': {
-                      outline: '2px solid var(--accent)',
-                      outlineOffset: 1,
-                      opacity: 1,
-                    },
-                  }}
+                  className={cn(
+                    'w-[3px] shrink-0 bg-[var(--card)] transition-opacity duration-150 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                    'focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]',
+                    adjustable
+                      ? 'cursor-col-resize opacity-55 hover:opacity-100'
+                      : 'cursor-not-allowed opacity-25',
+                  )}
                 />
               )}
             </React.Fragment>
           );
         })}
-      </Box>
+      </div>
 
       {/* Legende : porte la valeur exacte (les segments etroits ne peuvent pas
           l'afficher) et le verrou, plus lisible ici que dans une bande de 1 %. */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mt: 1.25 }}>
+      <div className="flex flex-wrap gap-2 mt-2">
         {upstream && upstreamPct > 0 && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: 'var(--muted)' }} />
-            <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', fontWeight: 500 }}>
+          <div className="flex items-center gap-1">
+            <div className="w-[8px] h-[8px] rounded-[2px] bg-[var(--muted)]" />
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground font-medium">
               {upstream.label}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                fontVariantNumeric: 'tabular-nums',
-                color: 'text.secondary',
-              }}
-            >
+            </p>
+            <p className="cn-text-body1 text-[0.72rem] font-bold tabular-nums text-muted-foreground">
               {formatPct(upstreamPct)}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
 
         {segments.map((segment) => (
-          <Box key={segment.key} sx={{ display: 'flex', alignItems: 'center', gap: 0.625 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: segment.color }} />
-            <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', fontWeight: 500 }}>
+          <div className="flex items-center gap-1" key={segment.key}>
+            <div className="w-[8px] h-[8px] rounded-[2px]" style={{ backgroundColor: segment.color }} />
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground font-medium">
               {segment.label}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                fontVariantNumeric: 'tabular-nums',
-                color: 'text.primary',
-              }}
-            >
+            </p>
+            <p className="cn-text-body1 text-[0.72rem] font-bold tabular-nums text-foreground">
               {formatPct(segment.value)}
-            </Typography>
+            </p>
             {onToggleLock && (
-            <Tooltip
-              title={
-                segment.locked
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => onToggleLock(segment.key)}
+                  disabled={disabled}
+                  aria-pressed={Boolean(segment.locked)}
+                  aria-label={
+                    segment.locked ? `Déverrouiller ${segment.label}` : `Verrouiller ${segment.label}`
+                  }
+                  className={cn(
+                    'inline-flex size-5 items-center justify-center rounded-[5px] border border-solid p-0',
+                    'transition-[color,background-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                    'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]',
+                    disabled ? 'cursor-not-allowed' : 'cursor-pointer',
+                    // Verrouille : teinte et fond derives de la couleur du segment,
+                    // connue seulement a l'execution — passes en style inline.
+                    !segment.locked && 'text-[var(--faint)] hover:text-[var(--muted)]',
+                  )}
+                  style={{
+                    borderColor: segment.locked
+                      ? `color-mix(in srgb, ${segment.color} 45%, transparent)`
+                      : 'transparent',
+                    backgroundColor: segment.locked
+                      ? `color-mix(in srgb, ${segment.color} 12%, transparent)`
+                      : 'transparent',
+                    color: segment.locked ? segment.color : undefined,
+                  }}
+                >
+                  {segment.locked ? (
+                    <Lock size={11} strokeWidth={2} />
+                  ) : (
+                    <LockOpen size={11} strokeWidth={1.75} />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {segment.locked
                   ? `Déverrouiller ${segment.label} — cette part pourra de nouveau absorber les ajustements`
-                  : `Verrouiller ${segment.label} — cette part ne bougera plus, les autres serviront de variable d’ajustement`
-              }
-            >
-              <Box
-                component="button"
-                type="button"
-                onClick={() => onToggleLock(segment.key)}
-                disabled={disabled}
-                aria-pressed={Boolean(segment.locked)}
-                aria-label={
-                  segment.locked ? `Déverrouiller ${segment.label}` : `Verrouiller ${segment.label}`
-                }
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 20,
-                  height: 20,
-                  p: 0,
-                  border: '1px solid',
-                  borderColor: segment.locked
-                    ? `color-mix(in srgb, ${segment.color} 45%, transparent)`
-                    : 'transparent',
-                  borderRadius: '5px',
-                  cursor: disabled ? 'not-allowed' : 'pointer',
-                  bgcolor: segment.locked
-                    ? `color-mix(in srgb, ${segment.color} 12%, transparent)`
-                    : 'transparent',
-                  color: segment.locked ? segment.color : 'text.disabled',
-                  transition:
-                    'color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-                  '&:hover': { color: segment.locked ? segment.color : 'text.secondary' },
-                  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 1 },
-                }}
-              >
-                {segment.locked ? (
-                  <Lock size={11} strokeWidth={2} />
-                ) : (
-                  <LockOpen size={11} strokeWidth={1.75} />
-                )}
-              </Box>
+                  : `Verrouiller ${segment.label} — cette part ne bougera plus, les autres serviront de variable d’ajustement`}
+              </TooltipContent>
             </Tooltip>
             )}
-          </Box>
+          </div>
         ))}
 
         {/* Une part amont a ete prelevee : les trois valeurs ci-dessus portent
@@ -329,17 +285,11 @@ export default function SplitBarEditor({
             elles s'additionnent a plus de 100 % a la lecture, alors que les
             largeurs de la barre, elles, sont bien a l'echelle du total. */}
         {upstream && upstreamPct > 0 && (
-          <Typography
-            sx={{
-              fontSize: '0.72rem',
-              color: 'text.disabled',
-              fontStyle: 'italic',
-            }}
-          >
+          <p className="cn-text-body1 text-[0.72rem] text-muted-foreground opacity-60 italic">
             (% du net)
-          </Typography>
+          </p>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

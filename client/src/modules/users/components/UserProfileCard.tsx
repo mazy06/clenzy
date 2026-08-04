@@ -1,12 +1,7 @@
 import React from 'react';
-import {
-  Avatar,
-  Box,
-  Card,
-  CardContent,
-  Chip,
-  Typography,
-} from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+import { Avatar, AvatarFallback, AvatarImage, Card, CardContent } from '../../../components/ui';
+import { cn } from '../../../utils/cn';
 import { Mail as MailIcon, Phone as PhoneIcon, Business } from '../../../icons';
 import { semanticToHex } from '../../../utils/statusUtils';
 import type { ChipColor } from '../../../types';
@@ -53,135 +48,51 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
     : null;
 
   return (
-    <Card
-      variant="outlined"
-      sx={{
-        mb: 2,
-        borderRadius: 'var(--radius-lg)',
-        bgcolor: 'var(--card)',
-        borderColor: 'var(--line)',
-        overflow: 'hidden',
-        position: 'relative',
-      }}
-    >
-      <CardContent sx={{ p: { xs: 2, md: 2.75 }, '&:last-child': { pb: { xs: 2, md: 2.75 } } }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: { xs: 'flex-start', md: 'center' },
-            justifyContent: 'space-between',
-            gap: 2,
-            flexWrap: 'wrap',
-          }}
-        >
+    // mb: 2 = 12 px ; p: 2 / 2.75 = 12 / 16,5 px (theme.spacing vaut 6).
+    <Card className="relative mb-3 overflow-hidden rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]">
+      <CardContent className="p-3 min-[900px]:p-[16.5px]">
+        <div className="flex items-start min-[900px]:items-center justify-between gap-3 flex-wrap">
           {/* Identity */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0, flex: 1 }}>
-            <Box sx={{ position: 'relative', flexShrink: 0 }}>
-              <Avatar
-                src={photoUrl ?? undefined}
-                sx={{
-                  width: 60,
-                  height: 60,
-                  fontSize: '1.25rem',
-                  fontFamily: 'var(--font-display)',
-                  fontWeight: 600,
-                  color: 'var(--on-accent)',
-                  bgcolor: photoUrl ? 'transparent' : 'var(--accent)',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                {!photoUrl && `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`}
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="relative shrink-0">
+              <Avatar className="size-[60px] rounded-full">
+                {photoUrl && <AvatarImage src={photoUrl} alt={`${user.firstName} ${user.lastName}`} />}
+                <AvatarFallback className="bg-[var(--accent)] text-[var(--on-accent)] text-[1.25rem] font-semibold tracking-[0.04em] font-[family-name:var(--font-display)]">
+                  {`${user.firstName.charAt(0)}${user.lastName.charAt(0)}`}
+                </AvatarFallback>
               </Avatar>
               {/* Tiny active dot — green pulse if status === ACTIVE. */}
               {isActive && (
-                <Box
+                <span
                   aria-hidden
-                  sx={{
-                    position: 'absolute',
-                    bottom: 2,
-                    right: 2,
-                    width: 12,
-                    height: 12,
-                    borderRadius: '50%',
-                    bgcolor: 'var(--ok)',
-                    border: '2px solid',
-                    borderColor: 'background.paper',
-                  }}
+                  className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-[var(--ok)] border-2 border-solid border-[var(--card)]"
                 />
               )}
-            </Box>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography
-                variant="h5"
-                sx={{
-                  fontSize: { xs: '1.125rem', md: '1.375rem' },
-                  fontWeight: 700,
-                  letterSpacing: '-0.01em',
-                  color: 'text.primary',
-                  textWrap: 'balance',
-                  lineHeight: 1.2,
-                }}
-              >
+            </div>
+            <div className="min-w-0">
+              <h5 className="cn-text-h5 text-[1.125rem] min-[900px]:text-[1.375rem] font-bold tracking-[-0.01em] text-[var(--ink)] text-balance leading-[1.2]">
                 {user.firstName} {user.lastName}
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: '0.8125rem',
-                  color: 'text.secondary',
-                  mt: 0.25,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
+              </h5>
+              <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap">
                 {user.email}
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
 
           {/* Chips */}
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', flexShrink: 0 }}>
-            <Chip
-              icon={
-                <Box component="span" sx={{ display: 'inline-flex' }}>
+          <div className="flex gap-1 flex-wrap shrink-0">
+            <StatusChip tokens={{ color: semanticToHex(roleInfo.color), bg: `${semanticToHex(roleInfo.color)}18` }} label={roleInfo.label} icon={<span className="inline-flex">
                   {React.cloneElement(roleInfo.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
                     size: 14,
                     strokeWidth: 1.75,
                   })}
-                </Box>
-              }
-              label={roleInfo.label}
-              size="small"
-              sx={{
-                backgroundColor: `${semanticToHex(roleInfo.color)}18`,
-                color: semanticToHex(roleInfo.color),
-                '& .MuiChip-icon': { color: semanticToHex(roleInfo.color) },
-              }}
-            />
-            <Chip
-              label={statusInfo.label}
-              size="small"
-              sx={{
-                backgroundColor: (SEM_TOKEN[statusInfo.color] ?? NEUTRAL_TOKEN).bg,
-                color: (SEM_TOKEN[statusInfo.color] ?? NEUTRAL_TOKEN).fg,
-              }}
-            />
-          </Box>
-        </Box>
+                </span>} />
+            <StatusChip tokens={{ color: (SEM_TOKEN[statusInfo.color] ?? NEUTRAL_TOKEN).fg, bg: (SEM_TOKEN[statusInfo.color] ?? NEUTRAL_TOKEN).bg }} label={statusInfo.label} />
+          </div>
+        </div>
 
         {/* Meta row — replaces the 3-up centered KPI tiles. */}
-        <Box
-          sx={{
-            mt: 2,
-            pt: 1.5,
-            borderTop: '1px solid',
-            borderColor: 'divider',
-            display: 'flex',
-            alignItems: 'center',
-            gap: { xs: 1.5, sm: 3 },
-            flexWrap: 'wrap',
-          }}
-        >
+        <div className="mt-3 pt-[9px] border-t border-solid border-[var(--line)] flex items-center gap-[9px] min-[600px]:gap-[18px] flex-wrap">
           <MetaItem
             icon={<MailIcon size={14} strokeWidth={1.75} />}
             value={user.email}
@@ -200,7 +111,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
               value={user.organizationName}
             />
           )}
-        </Box>
+        </div>
       </CardContent>
     </Card>
   );
@@ -212,41 +123,27 @@ const MetaItem: React.FC<{
   href?: string;
 }> = ({ icon, value, href }) => {
   const content = (
-    <Box
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 0.625,
-        fontSize: '0.75rem',
-        color: 'text.secondary',
-        minWidth: 0,
-        transition: 'color 150ms ease',
-        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-        '&:hover': href ? { color: 'var(--accent)' } : undefined,
-      }}
+    <span
+      className={cn(
+        'inline-flex items-center gap-[3.75px] text-[0.75rem] text-[var(--muted)] min-w-0',
+        'transition-colors duration-150 ease-[ease] motion-reduce:transition-none',
+        href && 'hover:text-[var(--accent)]',
+      )}
     >
-      <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}>
+      <span className="inline-flex text-muted-foreground opacity-60">
         {icon}
-      </Box>
-      <Box
-        component="span"
-        sx={{
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          maxWidth: { xs: 180, sm: 240, md: 320 },
-        }}
-      >
+      </span>
+      <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[180px] min-[600px]:max-w-[240px] min-[900px]:max-w-[320px]">
         {value}
-      </Box>
-    </Box>
+      </span>
+    </span>
   );
 
   if (href) {
     return (
-      <Box component="a" href={href} sx={{ textDecoration: 'none' }}>
+      <a className="no-underline" href={href}>
         {content}
-      </Box>
+      </a>
     );
   }
   return content;

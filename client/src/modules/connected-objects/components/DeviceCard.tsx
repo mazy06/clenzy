@@ -1,6 +1,27 @@
 import React, { useState } from 'react';
-import { Paper, Box, Typography, Button, CircularProgress, Tooltip, IconButton, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert, alpha, useTheme } from '@mui/material';
+import { Button as BuiButton } from '../../../components/ui';
+import { Spinner } from '../../../components/ui';
+import { Card } from '../../../components/ui';
+import {
+  buttonVariants,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import { Wifi, WifiOff, ChevronRight, Lock, LockOpen, MoreVert, Delete } from '../../../icons';
+import { cn } from '../../../utils/cn';
+import { useNotification } from '../../../hooks/useNotification';
+import { useThemeMode } from '../../../hooks/useThemeMode';
 import { useIconSize } from '../../../hooks/useResponsiveSize';
 import StatusPill from './StatusPill';
 import BatteryIndicator from './BatteryIndicator';
@@ -28,15 +49,19 @@ interface DeviceCardProps {
  * pas de carte-dans-carte.
  */
 export default function DeviceCard({ device, onAction, acting = false }: DeviceCardProps) {
-  const theme = useTheme();
+  const { notify } = useNotification();
+  const { isDark } = useThemeMode();
   const iconSize = useIconSize('row');
   const meta = DEVICE_KINDS[device.kind];
+  // `meta.color` est une valeur d'execution : le voile derriere l'icone se compose
+  // donc en style inline (aucune classe Tailwind ne peut naitre d'une variable).
+  const iconVeil = `color-mix(in srgb, ${meta.color} ${isDark ? 20 : 12}%, transparent)`;
   const locked = device.kind === 'lock' && (device.raw as { lockState?: string })?.lockState?.toUpperCase() === 'LOCKED';
 
   // Suppression auto-portée par la carte : fonctionne partout où elle est rendue
   // (Hub, vue par logement…) sans câblage par l'hôte. Confirmation explicite
-  // (geste destructif) ; au succès la carte disparaît au refetch, l'erreur reste
-  // affichée en snackbar pour permettre un nouvel essai.
+  // (geste destructif) ; au succès la carte disparaît au refetch, l'erreur part
+  // en toast pour permettre un nouvel essai.
   // Sync ponctuelle du statut réel au montage (online réel via provider), qui
   // rafraîchit le read-model → carte + KPIs cohérents. No-op hors du type concerné.
   useLockLiveStatus(device.id, device.kind === 'lock');
@@ -49,206 +74,160 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
 
   const deletable = isDeviceDeletable(device.kind);
   const { remove, removing } = useDeleteDevice();
-  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const closeMenu = () => setMenuAnchor(null);
-  const handleDeleteClick = () => { closeMenu(); setConfirmOpen(true); };
+  // Le menu du kit se ferme de lui-meme a la selection : plus d'ancre a piloter.
+  const handleDeleteClick = () => setConfirmOpen(true);
   const handleConfirmDelete = async () => {
     try {
       await remove(device);
       setConfirmOpen(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Échec de la suppression.');
+      notify.error(e instanceof Error ? e.message : 'Échec de la suppression.');
     }
   };
 
   return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 1.25,
-        borderRadius: 'var(--radius-lg)',
-        borderColor: 'var(--line)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 0.875,
-        transition: 'border-color 200ms, box-shadow 200ms',
-        '&:hover': { borderColor: 'var(--line-2)' },
-      }}
-    >
+    <Card className="gap-0 py-0 p-2 border-[var(--line)] flex flex-col gap-1.5 transition-colors duration-200 hover:border-[var(--line-2)]">
       {/* En-tête : badge type + nom (+ pièce) | indicateur en ligne */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minWidth: 0 }}>
+      <div className="flex items-start gap-1.5 min-w-0">
         {device.kind === 'camera' ? (
           // Caméra : aperçu (snapshot) du flux. Repli sur l'icône (placée derrière) si hors
           // ligne, pas de snapshot, ou image en erreur (onError masque l'img → l'icône réapparaît).
-          <Box
-            sx={{
-              position: 'relative', width: 40, height: 30, borderRadius: 1, flexShrink: 0, overflow: 'hidden',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: meta.color,
-              bgcolor: alpha(meta.color, theme.palette.mode === 'dark' ? 0.2 : 0.12),
-            }}
-          >
+          <div className="relative w-[40px] h-[30px] rounded-[8px] shrink-0 overflow-hidden flex items-center justify-center" style={{ color: meta.color, backgroundColor: iconVeil }}>
             {meta.icon(iconSize)}
             {device.online && device.previewUrl && (
-              <Box
-                component="img"
-                src={device.previewUrl}
-                alt=""
-                loading="lazy"
-                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-              />
+              <img className="absolute inset-[0px] w-full h-full object-cover" src={device.previewUrl} alt="" loading="lazy" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
             )}
-          </Box>
+          </div>
         ) : (
-          <Box
-            sx={{
-              width: 30, height: 30, borderRadius: 1, flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: meta.color,
-              bgcolor: alpha(meta.color, theme.palette.mode === 'dark' ? 0.2 : 0.12),
-            }}
-          >
+          <div className="w-[30px] h-[30px] rounded-[8px] shrink-0 flex items-center justify-center" style={{ color: meta.color, backgroundColor: iconVeil }}>
             {meta.icon(iconSize)}
-          </Box>
+          </div>
         )}
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography
+        <div className="min-w-0 flex-1">
+          <p
             onClick={() => onAction?.(device.uid, 'view')}
-            sx={{ fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.25, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer', '&:hover': { color: 'var(--accent)' } }}
+            className="cn-text-body1 text-[0.875rem] font-semibold leading-[1.25] text-[var(--ink)] truncate cursor-pointer hover:text-[var(--accent)]"
           >
             {device.name}
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          </p>
+          <span className="cn-text-caption text-muted-foreground block overflow-hidden text-ellipsis whitespace-nowrap">
             {device.roomName ? `${device.roomName} · ` : ''}{meta.singular}
-          </Typography>
-        </Box>
-        <Tooltip title={device.online ? 'En ligne' : 'Hors ligne'} arrow>
-          <Box component="span" sx={{ color: device.online ? 'success.main' : 'text.disabled', display: 'inline-flex', flexShrink: 0, mt: 0.25 }}>
-            {device.online ? <Wifi size={14} strokeWidth={1.75} /> : <WifiOff size={14} strokeWidth={1.75} />}
-          </Box>
+          </span>
+        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={cn('inline-flex shrink-0 mt-[1.5px]', device.online ? 'text-[#4A9B8E]' : 'text-[var(--faint)]')}>
+              {device.online ? <Wifi size={14} strokeWidth={1.75} /> : <WifiOff size={14} strokeWidth={1.75} />}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{device.online ? 'En ligne' : 'Hors ligne'}</TooltipContent>
         </Tooltip>
-      </Box>
+      </div>
 
       {/* État + métrique principale */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+      <div className="flex items-center gap-1 flex-wrap">
         <StatusPill level={device.statusLevel} label={device.statusLabel} pulse={device.online} />
         {device.kind === 'lock' ? (
           <BatteryIndicator level={device.battery} />
         ) : (
           <>
             {device.primaryMetric && (
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+              <span className="cn-text-caption text-muted-foreground tabular-nums">
                 {device.primaryMetric.label} : <strong>{device.primaryMetric.value}</strong>
-              </Typography>
+              </span>
             )}
             {device.battery != null && <BatteryIndicator level={device.battery} />}
           </>
         )}
-      </Box>
+      </div>
 
       {/* Code d'accès (serrures uniquement) */}
       {device.kind === 'lock' && <AccessCodeSection deviceId={device.id} />}
 
       {/* Action rapide contextualisée */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 'auto', pt: 0.25 }}>
+      <div className="flex items-center gap-1 mt-auto pt-0.5">
         {device.kind === 'lock' ? (
-          <Button
-            size="small"
-            variant="outlined"
+          <BuiButton
+            size="sm"
+            variant="outline"
             disabled={acting || !device.online}
-            startIcon={acting ? <CircularProgress size={13} /> : locked ? <LockOpen size={14} strokeWidth={1.75} /> : <Lock size={14} strokeWidth={1.75} />}
             onClick={() => onAction?.(device.uid, locked ? 'unlock' : 'lock')}
-            sx={{ flex: 1, justifyContent: 'flex-start' }}
+            className="flex-1 justify-start"
           >
+            {acting ? <Spinner className="size-[13px]" /> : locked ? <LockOpen strokeWidth={1.75} /> : <Lock strokeWidth={1.75} />}
             {locked ? 'Déverrouiller' : 'Verrouiller'}
-          </Button>
+          </BuiButton>
         ) : (
-          <Button
-            size="small"
-            variant="text"
-            endIcon={<ChevronRight size={14} strokeWidth={1.75} />}
+          <BuiButton
+            size="sm"
+            variant="ghost"
             onClick={() => onAction?.(device.uid, 'view')}
-            sx={{ flex: 1, justifyContent: 'space-between', color: 'text.secondary' }}
+            className="flex-1 justify-between text-[var(--muted)]"
           >
             Gérer
-          </Button>
+            <ChevronRight strokeWidth={1.75} />
+          </BuiButton>
         )}
 
         {/* Menu d'options (⋮) — actions secondaires dont la suppression. */}
         {deletable && (
-          <>
-            <Tooltip title="Options" arrow>
-              <IconButton
-                size="small"
-                aria-label="Options de l'objet"
-                onClick={(e) => setMenuAnchor(e.currentTarget)}
-                disabled={removing}
-                sx={{ flexShrink: 0, color: 'text.secondary', cursor: 'pointer' }}
-              >
-                {removing ? <CircularProgress size={16} /> : <MoreVert size={16} strokeWidth={1.75} />}
-              </IconButton>
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/* Le declencheur porte lui-meme le gabarit de bouton : passer par
+                    `Button` en asChild casserait la ref dont Radix a besoin. */}
+                <DropdownMenuTrigger
+                  aria-label="Options de l'objet"
+                  disabled={removing}
+                  className={cn(
+                    buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
+                    'shrink-0 text-[var(--muted)] cursor-pointer',
+                  )}
+                >
+                  {removing ? <Spinner className="size-4" /> : <MoreVert size={16} strokeWidth={1.75} />}
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Options</TooltipContent>
             </Tooltip>
-            <Menu
-              anchorEl={menuAnchor}
-              open={Boolean(menuAnchor)}
-              onClose={closeMenu}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-            >
-              <MenuItem onClick={handleDeleteClick} sx={{ color: 'error.main', gap: 1 }}>
+            <DropdownMenuContent align="end" className="w-auto">
+              <DropdownMenuItem variant="destructive" className="gap-1.5" onSelect={handleDeleteClick}>
                 <Delete size={16} strokeWidth={1.75} />
                 Supprimer
-              </MenuItem>
-            </Menu>
-          </>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
-      </Box>
+      </div>
 
       {/* Confirmation de suppression (geste destructif → dialog explicite). */}
       <Dialog
         open={confirmOpen}
-        onClose={() => { if (!removing) setConfirmOpen(false); }}
-        maxWidth="xs"
-        fullWidth
+        onOpenChange={(next) => { if (!next && !removing) setConfirmOpen(false); }}
       >
-        <DialogTitle>Supprimer cet objet ?</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            «&nbsp;{device.name}&nbsp;» sera retiré de vos objets connectés.
-            Le service relié reste connecté — vous pourrez le rajouter ensuite.
-          </DialogContentText>
+          <DialogHeader>
+            <DialogTitle>Supprimer cet objet ?</DialogTitle>
+            <DialogDescription>
+              «&nbsp;{device.name}&nbsp;» sera retiré de vos objets connectés.
+              Le service relié reste connecté — vous pourrez le rajouter ensuite.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <BuiButton variant="outline" onClick={() => setConfirmOpen(false)} disabled={removing}>
+              Annuler
+            </BuiButton>
+            <BuiButton
+              onClick={() => { void handleConfirmDelete(); }}
+              variant="destructive"
+              disabled={removing}
+            >
+              {removing ? <Spinner className="size-3.5" /> : <Delete strokeWidth={1.75} />}
+              Supprimer
+            </BuiButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmOpen(false)} disabled={removing}>
-            Annuler
-          </Button>
-          <Button
-            onClick={() => { void handleConfirmDelete(); }}
-            color="error"
-            variant="contained"
-            disabled={removing}
-            startIcon={removing ? <CircularProgress size={14} color="inherit" /> : <Delete size={16} strokeWidth={1.75} />}
-          >
-            Supprimer
-          </Button>
-        </DialogActions>
       </Dialog>
-
-      <Snackbar
-        open={Boolean(error)}
-        autoHideDuration={5000}
-        onClose={() => setError(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        {error ? (
-          <Alert severity="error" variant="filled" onClose={() => setError(null)} sx={{ width: '100%' }}>
-            {error}
-          </Alert>
-        ) : undefined}
-      </Snackbar>
-    </Paper>
+    </Card>
   );
 }

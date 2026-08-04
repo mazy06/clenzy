@@ -1,13 +1,10 @@
 import React, { useState, forwardRef, useImperativeHandle } from 'react';
-import {
-  Box,
-  Typography,
-  Chip,
-  IconButton,
-  Tooltip,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Alert, AlertDescription, AlertAction, Button } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import StatusChip from '../../components/StatusChip';
 import {
   Delete,
   CheckCircle,
@@ -17,6 +14,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useTemplates, useActivateTemplate, useDeleteTemplate } from './hooks/useDocuments';
 import TemplateUpload from './TemplateUpload';
+import { Upload as UploadIcon } from '../../icons';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import EmptyState from '../../components/EmptyState';
 
@@ -68,139 +66,131 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center p-6">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
   const displayError = actionError || (error ? 'Erreur lors du chargement des templates' : null);
 
   return (
-    <Box>
-      {displayError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>{displayError}</Alert>}
+    <div>
+      {displayError && <Alert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{displayError}</AlertDescription>
+        <AlertAction>
+          <Button variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setActionError(null)}>
+            <X />
+          </Button>
+        </AlertAction>
+      </Alert>}
+
+      {/* ─── Zone d'import de la projection : l'entree principale de l'onglet,
+          plus seulement un bouton d'en-tete. ── */}
+      <button
+        type="button"
+        onClick={() => setUploadOpen(true)}
+        className="mb-3 flex w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-border p-4 text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      >
+        <UploadIcon size={20} strokeWidth={1.75} />
+        <span className="text-sm font-medium">Importer un template .odt</span>
+        <span className="text-2xs">{'Variables {{...}} remplacées à la génération · 10 Mo max'}</span>
+      </button>
 
       {templates.length === 0 ? (
         <EmptyState
           icon={<Description />}
           title="Aucun template"
-          description='Cliquez sur "Nouveau template" pour en ajouter un.'
+          description="Importez un premier template .odt : il devient un document généré automatiquement (facture, attestation, état des lieux)."
         />
       ) : (
         /* ── Cartes hairline r14 avec overline (type) ── */
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
-            gap: 1.5,
-          }}
-        >
+        <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_1fr)] min-[1200px]:grid-cols-[repeat(3,_1fr)] gap-[9px]">
           {templates.map((t) => (
-            <Box
+            <div
               key={t.id}
               onClick={() => navigate(`/documents/templates/${t.id}`)}
-              sx={{
-                display: 'flex', flexDirection: 'column', gap: 0.75,
-                p: '14px 16px',
-                border: '1px solid var(--line)',
-                borderRadius: 'var(--radius-lg)',
-                bgcolor: 'var(--card)',
-                cursor: 'pointer',
-                transition: 'border-color .14s, box-shadow .14s',
-                '&:hover': { borderColor: 'var(--accent)', boxShadow: '0 8px 22px -16px var(--accent)' },
-                '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-              }}
+              className="flex flex-col gap-[4.5px] py-[14px] px-4 border border-solid border-[var(--line)] rounded-[var(--radius-lg)] bg-[var(--card)] cursor-pointer transition-[border-color,box-shadow] duration-[140ms] hover:border-[var(--accent)] hover:shadow-[0_8px_22px_-16px_var(--accent)] focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2 motion-reduce:transition-none"
               role="link"
               tabIndex={0}
               onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/documents/templates/${t.id}`); }}
             >
               {/* Overline type + statut -soft */}
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}>
+              <div className="flex items-center justify-between gap-1.5">
+                <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
                   {t.documentType}
-                </Typography>
-                <Chip
+                </p>
+                <StatusChip
+                  tone={t.active ? 'ok' : 'neutral'}
                   label={t.active ? 'Actif' : 'Inactif'}
-                  size="small"
-                  sx={t.active
-                    ? { color: 'var(--ok)', bgcolor: 'var(--ok-soft)' }
-                    : { color: 'var(--muted)', bgcolor: 'var(--hover)' }}
                 />
-              </Box>
+              </div>
 
               {/* Nom + description */}
-              <Box sx={{ minWidth: 0 }}>
-                <Typography noWrap sx={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>
+              <div className="min-w-0">
+                <p className="cn-text-body1 truncate text-[13.5px] font-semibold text-[var(--ink)]">
                   {t.name}
-                </Typography>
+                </p>
                 {t.description && (
-                  <Typography noWrap sx={{ fontSize: '11.5px', color: 'var(--muted)', mt: '1px' }}>
+                  <p className="cn-text-body1 truncate text-[11.5px] text-[var(--muted)] mt-px">
                     {t.description}
-                  </Typography>
+                  </p>
                 )}
-              </Box>
+              </div>
 
               {/* Méta muted */}
-              <Typography noWrap sx={{ fontSize: '11.5px', color: 'var(--muted)' }}>
+              <p className="cn-text-body1 truncate text-[11.5px] text-[var(--muted)]">
                 {[t.originalFilename, `v${t.version}`, `${t.tags?.length || 0} tags`, t.createdBy]
                   .filter(Boolean).join(' · ')}
-              </Typography>
+              </p>
 
               {/* Pied : action accent + actions secondaires */}
-              <Box
-                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 0.5 }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Box
-                  component="span"
-                  onClick={() => navigate(`/documents/templates/${t.id}`)}
-                  sx={{
-                    display: 'inline-flex', alignItems: 'center', gap: '4px',
-                    fontSize: '12.5px', fontWeight: 600, color: 'var(--accent)',
-                    whiteSpace: 'nowrap', cursor: 'pointer',
-                    '&:hover': { color: 'var(--accent-deep)' },
-                  }}
-                >
+              <div className="flex items-center justify-between mt-0.5" onClick={(e) => e.stopPropagation()}>
+                <span className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-[var(--accent)] whitespace-nowrap cursor-pointer hover:text-[var(--accent-deep)]" onClick={() => navigate(`/documents/templates/${t.id}`)}>
                   Aperçu
                   <ArrowRightIcon size={14} strokeWidth={1.75} />
-                </Box>
-                <Box sx={{ display: 'flex', gap: 0.25 }}>
+                </span>
+                <div className="flex gap-0.5">
                   {!t.active && (
-                    <Tooltip title="Activer" arrow>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleActivate(t.id)}
-                        aria-label="Activer"
-                        sx={{
-                          cursor: 'pointer',
-                          color: 'var(--muted)',
-                          '&:hover': { color: 'var(--ok)', backgroundColor: 'var(--ok-soft)' },
-                        }}
-                      >
-                        <CheckCircle size={16} strokeWidth={1.75} />
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleActivate(t.id)}
+                            aria-label="Activer"
+                            className="cursor-pointer text-[var(--muted)] hover:text-[var(--ok)] hover:bg-[var(--ok-soft)]"
+                          >
+                            <CheckCircle size={16} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Activer</TooltipContent>
                     </Tooltip>
                   )}
-                  <Tooltip title="Supprimer" arrow>
-                    <IconButton
-                      size="small"
-                      onClick={() => setDeleteTarget({ id: t.id, name: t.name })}
-                      aria-label="Supprimer"
-                      sx={{
-                        cursor: 'pointer',
-                        color: 'var(--muted)',
-                        '&:hover': { color: 'var(--err)', backgroundColor: 'var(--err-soft)' },
-                      }}
-                    >
-                      <Delete size={16} strokeWidth={1.75} />
-                    </IconButton>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => setDeleteTarget({ id: t.id, name: t.name })}
+                          aria-label="Supprimer"
+                          className="cursor-pointer text-[var(--muted)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+                        >
+                          <Delete size={16} strokeWidth={1.75} />
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Supprimer</TooltipContent>
                   </Tooltip>
-                </Box>
-              </Box>
-            </Box>
+                </div>
+              </div>
+            </div>
           ))}
-        </Box>
+        </div>
       )}
 
       <TemplateUpload open={uploadOpen} onClose={() => setUploadOpen(false)} onSuccess={handleUploadSuccess} />
@@ -218,7 +208,7 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
         icon={<Delete size={22} strokeWidth={1.75} />}
         confirmIcon={<Delete size={18} strokeWidth={1.75} />}
       />
-    </Box>
+    </div>
   );
 });
 

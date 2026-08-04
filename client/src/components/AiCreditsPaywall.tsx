@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Dialog, DialogContent, Box, Button, CircularProgress, IconButton } from '@mui/material';
+import { useEffect, useState, type CSSProperties } from 'react';
+import { cn } from '../utils/cn';
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, Spinner } from './ui';
 import { Sparkles, X, Wallet, AlertTriangle, ArrowRight, Check } from 'lucide-react';
 import { aiCreditsApi, toCredits, type CreditPack } from '../services/api/aiCreditsApi';
 
@@ -61,71 +62,83 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
   };
 
   return (
-    <Dialog open={open} onClose={busy ? undefined : handleClose} maxWidth="sm" fullWidth
-      PaperProps={{ sx: { borderRadius: 'var(--radius-lg)' } }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 3, pt: 2.5, pb: 1 }}>
-        <Box sx={{ display: 'grid', placeItems: 'center', width: 34, height: 34, borderRadius: '10px', bgcolor: 'var(--accent-soft)', color: 'var(--accent)', flexShrink: 0 }}>
-          <Wallet size={18} strokeWidth={2} />
-        </Box>
-        <Box sx={{ flex: 1, fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-bold)', color: 'var(--ink)' }}>
-          {title ?? 'Crédits IA insuffisants'}
-        </Box>
-        <IconButton onClick={handleClose} size="small" aria-label="Fermer" disabled={busy} sx={{ color: 'var(--muted)' }}><X size={18} /></IconButton>
-      </Box>
+    // maxWidth="sm" + fullWidth MUI = pleine largeur plafonnee a 600 px.
+    // `showCloseButton={false}` : la croix doit pouvoir etre desactivee pendant
+    // l'ouverture du paiement, ce que la croix integree du primitif ne permet pas.
+    <Dialog open={open} onOpenChange={(next) => { if (!next && !busy) handleClose(); }}>
+      <DialogContent showCloseButton={false} className="w-full sm:max-w-[600px] rounded-[var(--radius-lg)]">
+        <DialogHeader>
+          <div className="flex items-center gap-2">
+            <span className="grid place-items-center w-[34px] h-[34px] rounded-[10px] bg-[var(--accent-soft)] text-[var(--accent)] shrink-0">
+              <Wallet size={18} strokeWidth={2} />
+            </span>
+            <DialogTitle className="flex-1 font-[family-name:var(--font-display)] text-[var(--text-lg)] font-[family-name:var(--fw-bold)] text-[var(--ink)]">
+              {title ?? 'Crédits IA insuffisants'}
+            </DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleClose}
+              aria-label="Fermer"
+              disabled={busy}
+              className="text-[var(--muted)]"
+            >
+              <X size={18} />
+            </Button>
+          </div>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 0.5, px: 3, pb: 2.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', lineHeight: 1.55 }}>
+        <div className="flex flex-col gap-3">
+        <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.55]">
           {message ?? "Cette génération dépasse votre solde de crédits IA. Rechargez pour continuer — le surplus consommé est facturé au réel."}
-        </Box>
+        </div>
 
         {balance != null && (
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, alignSelf: 'flex-start', px: 1.25, py: 0.75, borderRadius: 'var(--radius-md)', bgcolor: 'var(--field)', border: '1px solid var(--line)', fontSize: 'var(--text-2xs)', color: 'var(--body)' }}>
+          <div className="inline-flex items-center gap-1 self-start px-2 py-1 rounded-[var(--radius-md)] bg-[var(--field)] border border-[var(--line)] text-[var(--text-2xs)] text-[var(--body)]">
             Solde actuel : <b style={{ fontVariantNumeric: 'tabular-nums' }}>{toCredits(balance)} crédits</b>
-          </Box>
+          </div>
         )}
 
         {packs === null ? (
-          <Box sx={{ display: 'grid', placeItems: 'center', py: 3 }}><CircularProgress size={22} sx={{ color: 'var(--accent)' }} /></Box>
+          <div className="grid place-items-[center] py-[18px]"><Spinner className="size-[22px] text-[var(--accent)]" /></div>
         ) : packs.length === 0 ? (
-          <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)' }}>Aucun pack disponible pour le moment.</Box>
+          <div className="text-[var(--text-sm)] text-[var(--muted)]">Aucun pack disponible pour le moment.</div>
         ) : (
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: `repeat(${Math.min(packs.length, 3)}, 1fr)` }, gap: 1.25 }}>
+          // Le gabarit depend du nombre de packs (execution) : custom property,
+          // la rupture sm (600px MUI) reste une variante statique.
+          <div
+            className="grid grid-cols-[1fr] min-[600px]:grid-cols-[var(--packs-cols)] gap-[7.5px]"
+            style={{ '--packs-cols': `repeat(${Math.min(packs.length, 3)}, 1fr)` } as CSSProperties}
+          >
             {packs.map((p) => {
               const active = p.key === selected;
               return (
-                <Box key={p.key} component="button" type="button" onClick={() => setSelected(p.key)} disabled={busy}
-                  sx={{
-                    position: 'relative', textAlign: 'left', cursor: busy ? 'default' : 'pointer', p: 1.5,
-                    borderRadius: 'var(--radius-md)', border: '1.5px solid', borderColor: active ? 'var(--accent)' : 'var(--line)',
-                    bgcolor: active ? 'var(--accent-soft)' : 'var(--card, #fff)',
-                    transition: 'border-color 150ms ease, background 150ms ease',
-                    '&:hover': { borderColor: 'var(--accent)' },
-                  }}>
-                  {active && <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'grid', placeItems: 'center', width: 18, height: 18, borderRadius: '50%', bgcolor: 'var(--accent)', color: 'var(--on-accent)' }}><Check size={12} strokeWidth={3} /></Box>}
-                  <Box sx={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>{toCredits(p.millicredits)}</Box>
-                  <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', mb: 1 }}>crédits IA</Box>
-                  <Box sx={{ fontSize: 'var(--text-md)', fontWeight: 700, color: active ? 'var(--accent)' : 'var(--body)', fontVariantNumeric: 'tabular-nums' }}>{euro(p.priceCents)}</Box>
-                </Box>
+                <button className={cn('relative text-start p-[9px] rounded-[var(--radius-md)] border-[1.5px] border-solid hover:border-[var(--accent)]', busy ? 'cursor-default' : 'cursor-pointer', active ? 'border-[var(--accent)]' : 'border-[var(--line)]', active ? 'bg-[var(--accent-soft)]' : 'bg-[var(--card,_#fff)]')} style={{ transition: 'border-color 150ms ease, background 150ms ease' }} key={p.key} type="button" onClick={() => setSelected(p.key)} disabled={busy}>
+                  {active && <div className="absolute top-[8px] end-[8px] grid place-items-[center] w-[18px] h-[18px] rounded-[50%] bg-[var(--accent)] text-[var(--on-accent)]"><Check size={12} strokeWidth={3} /></div>}
+                  <div className="text-[var(--text-lg)] font-bold text-[var(--ink)] tabular-nums">{toCredits(p.millicredits)}</div>
+                  <div className="text-[var(--text-2xs)] text-[var(--muted)] mb-1.5">crédits IA</div>
+                  <div className={cn('text-[var(--text-md)] font-bold tabular-nums', active ? 'text-[var(--accent)]' : 'text-[var(--body)]')}>{euro(p.priceCents)}</div>
+                </button>
               );
             })}
-          </Box>
+          </div>
         )}
 
         {error && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.25, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 'var(--text-sm)' }}>
+          <div className="flex items-center gap-1.5 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
             <AlertTriangle size={16} strokeWidth={2} style={{ flexShrink: 0 }} /> {error}
-          </Box>
+          </div>
         )}
 
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, pt: 0.5 }}>
-          <Button onClick={handleClose} disabled={busy} sx={{ textTransform: 'none', color: 'var(--muted)' }}>Annuler</Button>
-          <Button variant="contained" disableElevation onClick={handleBuy} disabled={!selected || busy}
-            startIcon={busy ? <CircularProgress size={15} color="inherit" /> : <Sparkles size={16} strokeWidth={2} />}
-            endIcon={!busy ? <ArrowRight size={16} strokeWidth={2} /> : undefined}
-            sx={{ textTransform: 'none' }}>
+        <div className="flex justify-end gap-1.5 pt-0.5">
+          <Button variant="ghost" onClick={handleClose} disabled={busy} className="text-[var(--muted)]">Annuler</Button>
+          <Button onClick={handleBuy} disabled={!selected || busy}>
+            {busy ? <Spinner className="size-[15px]" /> : <Sparkles strokeWidth={2} />}
             {busy ? 'Ouverture du paiement…' : 'Recharger & continuer'}
+            {!busy && <ArrowRight strokeWidth={2} />}
           </Button>
-        </Box>
+        </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

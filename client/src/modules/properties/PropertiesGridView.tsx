@@ -1,12 +1,11 @@
-import React, { useMemo } from 'react';
-import { Box } from '@mui/material';
+import React from 'react';
 import type { NavigateFunction } from 'react-router-dom';
 import PropertyCard from './PropertyCard';
 import { toPropertyDetails } from './propertyDetailsMapper';
 import { ITEMS_PER_PAGE } from './propertiesListConstants';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import type { ChannexMappingDto } from '../../services/api/channexApi';
-import { usePropertyKpiSummaries } from '../../hooks/usePropertyKpiSummaries';
+import type { PropertyKpiSummary } from '../../services/api/propertyKpiApi';
 import PagePagination from '../../components/PagePagination';
 
 interface PropertiesGridViewProps {
@@ -14,6 +13,8 @@ interface PropertiesGridViewProps {
   totalCount: number;
   page: number;
   onPageChange: (page: number) => void;
+  /** KPI opérationnels batchés par la liste (portefeuille complet), clé = propertyId. */
+  kpiMap: Map<number, PropertyKpiSummary>;
   channexMappings: Map<number, ChannexMappingDto>;
   /** Coûts de ménage estimés (vrai estimateur backend), clé = propertyId. */
   cleaningEstimates: Record<number, number>;
@@ -28,26 +29,13 @@ interface PropertiesGridViewProps {
 
 /** Vue grille : cartes PropertyCard + pagination fixe. */
 const PropertiesGridView: React.FC<PropertiesGridViewProps> = ({
-  properties, totalCount, page, onPageChange, channexMappings, cleaningEstimates, onDelete, onDiagnose,
+  properties, totalCount, page, onPageChange, kpiMap, channexMappings, cleaningEstimates, onDelete, onDiagnose,
   canManageContracts, missingContractIds, onMissingContractClick, navigate,
 }) => {
-  // KPI opérationnels (occupation / ADR / revenu / statut / interventions) des
-  // cartes visibles, en une seule requête batchée.
-  const propertyIds = useMemo(() => properties.map((p) => Number(p.id)), [properties]);
-  const kpiMap = usePropertyKpiSummaries(propertyIds);
-
   return (
   <>
     {/* .pr-grid — grille 4 colonnes (2 colonnes < 1100px), gap 16 */}
-    <Box
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '16px',
-        '@media (max-width: 1100px)': { gridTemplateColumns: 'repeat(2, 1fr)' },
-        '@media (max-width: 560px)': { gridTemplateColumns: '1fr' },
-      }}
-    >
+    <div className="grid grid-cols-4 gap-4 max-[1100px]:grid-cols-2 max-[560px]:grid-cols-1">
       {properties.map((property) => (
         <PropertyCard
           key={property.id}
@@ -63,7 +51,7 @@ const PropertiesGridView: React.FC<PropertiesGridViewProps> = ({
           onMissingContractClick={() => onMissingContractClick(Number(property.id))}
         />
       ))}
-    </Box>
+    </div>
     {totalCount > ITEMS_PER_PAGE && (
       <PagePagination
         count={totalCount}

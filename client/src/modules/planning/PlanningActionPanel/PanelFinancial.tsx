@@ -1,40 +1,42 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { cn } from '../../../utils/cn';
+import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { Info } from 'lucide-react';
+import { Button, Spinner } from '../../../components/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';
 import { serviceRequestsApi, type ServiceRequest } from '../../../services/api/serviceRequestsApi';
 import { reservationsApi } from '../../../services/api/reservationsApi';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import {
-  Box,
-  Typography,
-  Button,
-  Divider,
-  Chip,
+  Field,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../../components/ui';
+import {
+  Separator,
+  Collapsible,
+  CollapsibleContent,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
-  CircularProgress,
-  Alert,
-  IconButton,
-  Snackbar,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Collapse,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Tooltip,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import {
   Payment,
   Add,
   Receipt,
   MoneyOff,
   AttachMoney,
-  Close,
   Check,
   Warning,
   Person,
@@ -53,8 +55,9 @@ import type { PlanningEvent } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
 import { RESERVATION_SOURCE_LABELS, isCollectedByChannel } from '../../../services/api/reservationsApi';
 import { useCurrency } from '../../../hooks/useCurrency';
+import { useNotification } from '../../../hooks/useNotification';
 import { Money } from '../../../components/Money';
-import StatusChip, { STATUS_TONES, toneTokensSx, type ToneTokens } from '../../../components/StatusChip';
+import StatusChip, { STATUS_TONES, type ToneTokens } from '../../../components/StatusChip';
 
 // ── Types for local financial state ────────────────────────────────────────
 interface LocalPayment {
@@ -118,26 +121,8 @@ const OVERLINE_SX = {
   color: 'var(--faint)',
 };
 
-/** ✕ de modale — pattern validé (34px r10 hairline, hover --err). */
-const CLOSE_BTN_SX = {
-  width: 34,
-  height: 34,
-  borderRadius: '10px',
-  border: '1px solid var(--line-2)',
-  backgroundColor: 'var(--card)',
-  color: 'var(--muted)',
-  transition: 'color .14s, border-color .14s',
-  '&:hover': { color: 'var(--err)', borderColor: 'var(--err)', backgroundColor: 'var(--card)' },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-};
-
-/** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
-const chipSx = (bg: string, color: string) => ({
-  ...toneTokensSx({ color, bg }),
-  height: 20,
-  borderRadius: 'var(--radius-pill)',
-});
+/** Report en classes de `OVERLINE_SX`. */
+const OVERLINE_CLASS = 'text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)]';
 
 const STATUS_LABELS: Record<string, string> = {
   PAID: 'Paye',
@@ -182,23 +167,16 @@ const SectionCard: React.FC<{
   badgeTokens: SoftTokens;
   children: React.ReactNode;
 }> = ({ icon, title, badge, badgeTokens, children }) => (
-  <Box
-    sx={{
-      border: '1px solid var(--line)',
-      backgroundColor: 'var(--card)',
-      borderRadius: '12px',
-      p: 1.5,
-    }}
-  >
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.25 }}>
+  <div className="border border-[var(--line)] bg-[var(--card)] rounded-[12px] p-2">
+    <div className="flex items-center gap-1.5 mb-2">
       {icon}
-      <Typography variant="body2" sx={{ ...OVERLINE_SX, flex: 1 }}>
+      <p className={cn(OVERLINE_CLASS, 'cn-text-body2 flex-1')}>
         {title}
-      </Typography>
-      <Chip label={badge} size="small" sx={chipSx(badgeTokens.bg, badgeTokens.color)} />
-    </Box>
+      </p>
+      <StatusChip pill tokens={{ color: badgeTokens.color, bg: badgeTokens.bg }} label={badge} />
+    </div>
     {children}
-  </Box>
+  </div>
 );
 
 // ── Status chip helper — résout le ton via la map domaine puis délègue au
@@ -225,30 +203,25 @@ const FinRow: React.FC<{
   secondary?: boolean;
   children?: React.ReactNode;
 }> = ({ label, value, bold, color, secondary, children }) => (
-  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-    <Typography
-      variant="body2"
-      color={secondary !== false ? 'text.secondary' : undefined}
-      sx={{ fontSize: '0.8125rem' }}
-    >
+  <div className="flex justify-between items-center mb-0.5">
+    <p className={cn('cn-text-body2 text-[0.8125rem]', secondary !== false && 'text-[var(--muted)]')}>
       {label}
-    </Typography>
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      <Typography
-        variant="body2"
-        sx={{
-          fontWeight: 600,
-          fontSize: '0.8125rem',
+    </p>
+    <div className="flex items-center gap-1.5">
+      {/* `color` et `bold` sont des props : leur valeur n'existe qu'a
+          l'execution, donc style inline et non classes Tailwind. */}
+      <p
+        className="cn-text-body2 font-semibold text-[0.8125rem] tabular-nums"
+        style={{
           color: color || 'var(--ink)',
-          fontVariantNumeric: 'tabular-nums',
           ...(bold && { fontFamily: 'var(--font-display)' }),
         }}
       >
         {value}
-      </Typography>
+      </p>
       {children}
-    </Box>
-  </Box>
+    </div>
+  </div>
 );
 
 // ── Props ──────────────────────────────────────────────────────────────────
@@ -277,7 +250,7 @@ const fmtDate = (iso: string) => {
 };
 
 // Nœud (glyphe de devise pour SAR/MAD). Pour un contexte chaîne pure, utiliser
-// convertAndFormat directement (cf. snackbars).
+// convertAndFormat directement (cf. notifier).
 const fmtCurrency = (val: number) => <Money value={val} from="EUR" />;
 
 const PanelFinancial: React.FC<PanelFinancialProps> = ({
@@ -292,6 +265,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   const reservation = event.reservation;
   const intervention = event.intervention;
   const { convertAndFormat } = useCurrency();
+  const { notify } = useNotification();
 
   // Latest-ref : le polling de paiement lit toujours le callback frais sans
   // re-declencher l'effet (deps fines anti-spam API).
@@ -439,14 +413,8 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   } | null>(null);
 
   // Errors & feedback
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
-
-  const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' = 'success') => {
-    setSnackbar({ open: true, message, severity });
+  const notifier = (message: string, severity: 'success' | 'error' | 'info' = 'success') => {
+    notify[severity](message);
   };
 
   // Sync payment link state with reservation changes
@@ -559,10 +527,10 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
       setLinkSent(true);
       setShowEmailInput(false);
       setLinkEmail('');
-      showSnackbar('Lien de paiement envoye avec succes');
+      notifier('Lien de paiement envoye avec succes');
       setTimeout(() => setLinkSent(false), 4000);
     } catch {
-      showSnackbar("Erreur lors de l'envoi du lien", 'error');
+      notifier("Erreur lors de l'envoi du lien", 'error');
     } finally {
       setSendingLink(false);
     }
@@ -588,7 +556,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     setPaymentMethod('card');
     setPaymentDate(today);
     setPaymentReference('');
-    showSnackbar(`Paiement de ${convertAndFormat(amount, 'EUR')} enregistre`);
+    notifier(`Paiement de ${convertAndFormat(amount, 'EUR')} enregistre`);
   }, [paymentAmount, paymentMethod, paymentDate, paymentReference, today, convertAndFormat]);
 
   const handleGenerateInvoice = useCallback(async (refType: string, refId: number) => {
@@ -609,9 +577,9 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
         createdAt: new Date().toISOString().split('T')[0],
       };
       setInvoices((prev) => [...prev, newInvoice]);
-      showSnackbar(`Facture ${result.legalNumber || result.fileName} generee`);
+      notifier(`Facture ${result.legalNumber || result.fileName} generee`);
     } catch (err) {
-      showSnackbar(`Erreur generation facture: ${err instanceof Error ? err.message : 'Erreur'}`);
+      notifier(`Erreur generation facture: ${err instanceof Error ? err.message : 'Erreur'}`);
     } finally {
       setInvoiceLoading(false);
     }
@@ -633,7 +601,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     setAddFeeOpen(false);
     setFeeDescription('');
     setFeeAmount('');
-    showSnackbar(`Frais "${newFee.description}" (+${convertAndFormat(amount, 'EUR')}) ajoute`);
+    notifier(`Frais "${newFee.description}" (+${convertAndFormat(amount, 'EUR')}) ajoute`);
   }, [feeDescription, feeAmount, today, convertAndFormat]);
 
   const handleRefund = useCallback(async () => {
@@ -651,7 +619,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     setPayments((prev) => [...prev, newPayment]);
     setRefundLoading(false);
     setRefundDialogOpen(false);
-    showSnackbar(`Remboursement de ${convertAndFormat(totalPaid, 'EUR')} effectue`, 'info');
+    notifier(`Remboursement de ${convertAndFormat(totalPaid, 'EUR')} effectue`, 'info');
   }, [totalPaid, today, reservation?.id, convertAndFormat]);
 
   // ── Handler — Intervention payment (embedded) ──────────────────────────
@@ -720,58 +688,25 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
 
   // ── Render ─────────────────────────────────────────────────────────────
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div className="flex flex-col gap-3">
 
       {/* ─── MONTANT (hero) ─────────────────────────────────────────────── */}
       {reservation && (
-        <Box>
-          <Box
-            component="span"
-            sx={{
-              display: 'block',
-              fontSize: '0.625rem',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              color: 'var(--faint)',
-              mb: 0.5,
-            }}
-          >
+        <div>
+          <span className="block text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)] mb-0.5">
             Montant
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.25, flexWrap: 'wrap' }}>
-            <Box
-              component="span"
-              sx={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '1.75rem',
-                fontWeight: 700,
-                color: 'var(--ink)',
-                lineHeight: 1.1,
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
+          </span>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="font-[family-name:var(--font-display)] text-[1.75rem] font-bold text-[var(--ink)] leading-[1.1] tabular-nums">
               {isICalImport && !hasTotalPrice ? 'Non communiqué' : fmtCurrency(grandTotal)}
-            </Box>
+            </span>
             {(hasTotalPrice || isOTABooking) && (
-              <Box
-                component="span"
-                sx={{
-                  alignSelf: 'center',
-                  px: 1,
-                  py: '3px',
-                  borderRadius: 'var(--radius-pill)',
-                  fontSize: '0.6875rem',
-                  fontWeight: 600,
-                  backgroundColor: isSettled ? 'var(--ok-soft)' : 'var(--warn-soft)',
-                  color: isSettled ? 'var(--ok)' : 'var(--warn)',
-                }}
-              >
+              <span className={cn('self-center px-1.5 py-[3px] rounded-[var(--radius-pill)] text-[0.6875rem] font-semibold', isSettled ? 'bg-[var(--ok-soft)]' : 'bg-[var(--warn-soft)]', isSettled ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
                 {isOTABooking ? `Réglé · ${otaChannelLabel}` : isSettled ? 'Réglé' : 'En attente'}
-              </Box>
+              </span>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════
@@ -779,7 +714,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       {reservation && (
         <SectionCard
-          icon={<Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><Person size={18} strokeWidth={1.75} /></Box>}
+          icon={<span className="inline-flex text-[var(--info)]"><Person size={18} strokeWidth={1.75} /></span>}
           title="Paiement reservation"
           badge="Voyageur"
           badgeTokens={INFO_TOKENS}
@@ -806,16 +741,16 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           {extraFees.length > 0 && (
             <>
               {extraFees.map((fee) => (
-                <Box key={fee.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.25 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                <div className="flex justify-between items-center mb-0.5" key={fee.id}>
+                  <span className="cn-text-caption text-muted-foreground text-[0.75rem]">
                     + {fee.description}
-                  </Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>
+                  </span>
+                  <span className="cn-text-caption font-semibold text-[0.75rem]">
                     {fmtCurrency(fee.amount)}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
               ))}
-              <Divider sx={{ my: 0.5 }} />
+              <Separator className="my-[3px]" />
               <FinRow label="Total" value={fmtCurrency(grandTotal)} bold />
             </>
           )}
@@ -830,128 +765,114 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <FinRow label="Rembourse" value={<>-{fmtCurrency(totalRefunded)}</>} color="var(--err)" />
           )}
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+          <div className="flex justify-between items-center mb-1.5">
+            <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
               Reste a payer
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: 600,
-                  fontFamily: 'var(--font-display)',
-                  fontVariantNumeric: 'tabular-nums',
-                  color: effectiveBalanceDue > 0 ? 'var(--warn)' : 'var(--ok)',
-                }}
-              >
+            </p>
+            <div className="flex items-center gap-1.5">
+              <p className={cn('cn-text-body2 font-semibold tabular-nums', effectiveBalanceDue > 0 ? 'text-[var(--warn)]' : 'text-[var(--ok)]')} style={{ fontFamily: 'var(--font-display)' }}>
                 <Money value={Math.max(0, effectiveBalanceDue)} from="EUR" />
-              </Typography>
-              <Chip
-                label={effectivePaymentStatus}
-                size="small"
-                sx={chipSx(effectivePaymentStatusTokens.bg, effectivePaymentStatusTokens.color)}
-              />
-            </Box>
-          </Box>
+              </p>
+              <StatusChip pill tokens={{ color: effectivePaymentStatusTokens.color, bg: effectivePaymentStatusTokens.bg }} label={effectivePaymentStatus} />
+            </div>
+          </div>
 
           {/* Invoices */}
           {invoices.length > 0 && (
-            <Box sx={{ mb: 1 }}>
-              <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.6875rem', color: 'text.secondary' }}>
+            <div className="mb-1.5">
+              <span className="cn-text-caption font-semibold text-[0.6875rem] text-muted-foreground">
                 Factures ({invoices.length})
-              </Typography>
+              </span>
               {invoices.map((inv) => (
-                <Box key={inv.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.25 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Receipt size={14} strokeWidth={1.75} /></Box>
-                  <Typography variant="caption" sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>
+                <div className="flex items-center gap-1 mt-0.5" key={inv.id}>
+                  <span className="inline-flex text-muted-foreground"><Receipt size={14} strokeWidth={1.75} /></span>
+                  <span className="cn-text-caption text-[0.6875rem] font-semibold">
                     {inv.legalNumber || inv.fileName}
-                  </Typography>
+                  </span>
                   <DomainStatusChip status={inv.status} />
-                  <Box sx={{ ml: 'auto', display: 'flex', gap: 0.25 }}>
-                    <Tooltip title="Telecharger">
-                      <IconButton
-                        size="small"
-                        onClick={async () => {
-                          const { documentsApi } = await import('../../../services/api/documentsApi');
-                          await documentsApi.downloadGeneration(inv.id, inv.fileName);
-                        }}
-                        sx={{ p: 0.25 }}
-                      >
-                        <Download size={14} strokeWidth={1.75} />
-                      </IconButton>
+                  <div className="ms-auto flex gap-0.5">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            aria-label="Telecharger"
+                            onClick={async () => {
+                              const { documentsApi } = await import('../../../services/api/documentsApi');
+                              await documentsApi.downloadGeneration(inv.id, inv.fileName);
+                            }}
+                          >
+                            <Download size={14} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Telecharger</TooltipContent>
                     </Tooltip>
-                    <Tooltip title="Duplicata">
-                      <IconButton
-                        size="small"
-                        onClick={async () => {
-                          const { documentsApi } = await import('../../../services/api/documentsApi');
-                          await documentsApi.downloadGeneration(inv.id, inv.fileName.replace('.pdf', '-duplicata.pdf'));
-                        }}
-                        sx={{ p: 0.25 }}
-                      >
-                        <Receipt size={14} strokeWidth={1.75} />
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            aria-label="Duplicata"
+                            onClick={async () => {
+                              const { documentsApi } = await import('../../../services/api/documentsApi');
+                              await documentsApi.downloadGeneration(inv.id, inv.fileName.replace('.pdf', '-duplicata.pdf'));
+                            }}
+                          >
+                            <Receipt size={14} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Duplicata</TooltipContent>
                     </Tooltip>
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               ))}
-            </Box>
+            </div>
           )}
 
-          <Divider sx={{ my: 0.75 }} />
+          <Separator className="my-[4.5px]" />
 
           {/* ── Confirmation lien envoye ──────────────────────────── */}
           {lastSentAt && (
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 0.5 }}>
-              <Box component="span" sx={{ display: 'inline-flex', mt: 0.25, color: 'var(--ok)' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: 'var(--ok)', fontWeight: 600 }}>
+            <div className="flex items-start gap-1.5 mb-0.5">
+              <span className="inline-flex mt-0.5 text-[var(--ok)]"><CheckCircle size={16} strokeWidth={1.75} /></span>
+              <div className="flex-1">
+                <span className="cn-text-caption text-[0.6875rem] text-[var(--ok)] font-semibold">
                   Lien envoye le {fmtDate(lastSentAt)}
-                </Typography>
+                </span>
                 {lastSentEmail && (
-                  <Typography variant="caption" sx={{ display: 'block', fontSize: '0.625rem', color: 'text.secondary' }}>
+                  <span className="cn-text-caption block text-[0.625rem] text-muted-foreground">
                     a {lastSentEmail}
-                  </Typography>
+                  </span>
                 )}
-              </Box>
-            </Box>
+              </div>
+            </div>
           )}
 
           {linkSent && (
-            <Alert severity="success" sx={{ fontSize: '0.6875rem', mt: 0.5, mb: 0.5, py: 0, '& .MuiAlert-message': { py: 0.25 } }}>
-              Lien envoye avec succes !
-            </Alert>
+            <UiAlert variant="success" className="my-[3px] py-1 text-[0.6875rem]">
+              <CheckCircle size={14} strokeWidth={1.75} />
+              <AlertDescription className="text-[0.6875rem]">Lien envoye avec succes !</AlertDescription>
+            </UiAlert>
           )}
 
           {/* ── Action buttons (same row) ──────────────────────────── */}
-          <Box sx={{ display: 'flex', gap: 0.75, mt: 1 }}>
+          <div className="flex gap-1 mt-1.5">
             {isOTABooking ? (
               // OTA : paiement deja regle sur le canal externe → pas de bouton
               // d'envoi de lien, juste une note d'information.
-              <Box
-                sx={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 0.75,
-                  px: 1.25,
-                  py: 0.875,
-                  borderRadius: '9px',
-                  backgroundColor: 'var(--ok-soft)',
-                  border: '1px solid color-mix(in srgb, var(--ok) 30%, transparent)',
-                }}
-              >
-                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={14} strokeWidth={1.75} /></Box>
-                <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: 'var(--ok)', fontWeight: 500 }}>
+              <div className="flex-1 flex items-center justify-center gap-[4.5px] px-[7.5px] py-[5.25px] rounded-[9px] bg-[var(--ok-soft)] border border-solid border-[color-mix(in_srgb,_var(--ok)_30%,_transparent)]">
+                <span className="inline-flex text-[var(--ok)]"><CheckCircle size={14} strokeWidth={1.75} /></span>
+                <span className="cn-text-caption text-[0.6875rem] text-[var(--ok)] font-medium">
                   Reglement effectue sur {otaChannelLabel}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             ) : (
               <Button
-                size="small"
-                variant="contained"
-                startIcon={sendingLink ? <CircularProgress size={14} color="inherit" /> : <Send size={14} strokeWidth={1.75} />}
+                size="sm"
                 disabled={sendingLink || !onSendPaymentLink || !hasTotalPrice || reservation?.paymentStatus === 'PAID'}
                 onClick={() => {
                   if (reservation.guestEmail) {
@@ -960,66 +881,73 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                     setShowEmailInput(true);
                   }
                 }}
-                sx={{ flex: 1 }}
+                className="flex-1"
               >
+                {sendingLink ? <Spinner className="size-3.5" /> : <Send size={14} strokeWidth={1.75} />}
                 {lastSentAt ? 'Renvoyer lien' : 'Lien paiement'}
               </Button>
             )}
 
             {invoices.length > 0 ? (
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={<Download size={12} strokeWidth={1.75} />}
+                size="sm"
+                variant="outline"
                 onClick={async () => {
                   const inv = invoices[invoices.length - 1];
                   const { documentsApi } = await import('../../../services/api/documentsApi');
                   await documentsApi.downloadGeneration(inv.id, inv.fileName);
                 }}
-                sx={{ flex: 1 }}
+                className="flex-1"
               >
+                <Download size={12} strokeWidth={1.75} />
                 Duplicata
               </Button>
             ) : (
               <Button
-                size="small"
-                variant="outlined"
-                startIcon={invoiceLoading ? <CircularProgress size={12} /> : <Receipt size={12} strokeWidth={1.75} />}
+                size="sm"
+                variant="outline"
                 disabled={invoiceLoading || !onGenerateInvoice || !reservation || !hasTotalPrice}
                 onClick={() => reservation && handleGenerateInvoice('RESERVATION', reservation.id)}
-                sx={{ flex: 1 }}
+                className="flex-1"
               >
+                {invoiceLoading ? <Spinner className="size-3" /> : <Receipt size={12} strokeWidth={1.75} />}
                 Facture
               </Button>
             )}
-          </Box>
+          </div>
 
           {/* Email input (si pas d'email guest) */}
-          <Collapse in={showEmailInput}>
-            <Box sx={{ display: 'flex', gap: 0.5, mt: 0.75 }}>
-              <TextField
-                size="small"
-                placeholder="Email du voyageur"
-                type="email"
-                value={linkEmail}
-                onChange={(e) => setLinkEmail(e.target.value)}
-                fullWidth
-                sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
-                InputProps={{
-                  startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><Email size={14} strokeWidth={1.75} /></Box>,
-                }}
-              />
+          <Collapsible open={showEmailInput}>
+            <CollapsibleContent>
+            <div className="flex gap-0.5 mt-1">
+              {/* Pas de libelle : le champ n'apparait qu'a la demande, le
+                  placeholder suffit — d'ou l'aria-label pour le lecteur d'ecran. */}
+              <InputGroup className="w-full">
+                <InputGroupAddon>
+                  <span className="inline-flex text-muted-foreground"><Email size={14} strokeWidth={1.75} /></span>
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="panel-financial-link-email"
+                  aria-label="Email du voyageur"
+                  placeholder="Email du voyageur"
+                  type="email"
+                  className="text-[0.75rem]"
+                  value={linkEmail}
+                  onChange={(e) => setLinkEmail(e.target.value)}
+                />
+              </InputGroup>
+              {/* px: 1.5 = 9 px (le spacing MUI de ce projet vaut 6). */}
               <Button
-                size="small"
-                variant="contained"
+                size="sm"
                 disabled={!linkEmail || sendingLink || !hasTotalPrice}
                 onClick={() => handleSendPaymentLink(linkEmail)}
-                sx={{ minWidth: 'auto', px: 1.5 }}
+                className="min-w-0 px-[9px]"
               >
                 Envoyer
               </Button>
-            </Box>
-          </Collapse>
+            </div>
+            </CollapsibleContent>
+          </Collapsible>
 
         </SectionCard>
       )}
@@ -1029,7 +957,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       {reservation && (linkedInterventions.length > 0 || payableServiceRequests.length > 0) && (
         <SectionCard
-          icon={<Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Business size={18} strokeWidth={1.75} /></Box>}
+          icon={<span className="inline-flex text-[var(--warn)]"><Business size={18} strokeWidth={1.75} /></span>}
           title="Paiement interventions"
           badge="Proprietaire"
           badgeTokens={WARN_TOKENS}
@@ -1037,114 +965,105 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           {/* ── Interventions proposees (SR assignees, en attente de paiement) ── */}
           {payableServiceRequests.length > 0 && (
             <>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.6875rem', color: 'var(--warn)' }}>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="cn-text-caption font-semibold text-[0.6875rem] text-[var(--warn)]">
                   Interventions proposees ({payableServiceRequests.length})
-                </Typography>
-              </Box>
+                </span>
+              </div>
               {payableServiceRequests.map((sr) => {
                 const cost = sr.estimatedCost || (sr.estimatedDurationHours ? sr.estimatedDurationHours * 25 : 0);
                 const typeIcon = (
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}>
+                  <span className="inline-flex text-[var(--warn)]">
                     {sr.serviceType === 'CLEANING' || sr.serviceType === 'EXPRESS_CLEANING'
                       ? <CleaningServices size={14} strokeWidth={1.75} />
                       : <Handyman size={14} strokeWidth={1.75} />}
-                  </Box>
+                  </span>
                 );
                 return (
-                  <Box
-                    key={`sr-${sr.id}`}
-                    sx={{
-                      display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5,
-                      p: 0.75, borderRadius: '9px',
-                      border: '1px dashed color-mix(in srgb, var(--warn) 50%, transparent)',
-                      backgroundColor: 'var(--warn-soft)',
-                    }}
-                  >
+                  <div className="flex items-center gap-[4.5px] mb-[3px] p-[4.5px] rounded-[9px] border border-dashed border-[color-mix(in_srgb,_var(--warn)_50%,_transparent)] bg-[var(--warn-soft)]" key={`sr-${sr.id}`}>
                     {typeIcon}
-                    <Tooltip title={sr.title} placement="top">
-                      <Typography
-                        sx={{ fontSize: '0.6875rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                      >
-                        {sr.title}
-                      </Typography>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <p className="cn-text-body1 text-[0.6875rem] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                          {sr.title}
+                        </p>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">{sr.title}</TooltipContent>
                     </Tooltip>
                     {sr.estimatedDurationHours > 0 && (
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
+                      <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
                         {sr.estimatedDurationHours}h
-                      </Typography>
+                      </span>
                     )}
-                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, minWidth: 50, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                    <p className="cn-text-body1 text-[0.75rem] font-semibold min-w-[50px] text-end tabular-nums">
                       {cost > 0 ? <Money value={cost} from="EUR" decimals={0} /> : '\u2014'}
-                    </Typography>
-                    <Chip
-                      label="A payer"
-                      size="small"
-                      sx={{ ...chipSx('var(--warn-soft)', 'var(--warn)'), height: 18, fontSize: '0.625rem', '& .MuiChip-label': { px: 0.75 } }}
-                    />
-                  </Box>
+                    </p>
+                    <StatusChip pill size="sm" tokens={WARN_TOKENS} label="A payer" />
+                  </div>
                 );
               })}
-              {linkedInterventions.length > 0 && <Divider sx={{ my: 0.5 }} />}
+              {linkedInterventions.length > 0 && <Separator className="my-[3px]" />}
             </>
           )}
 
           {/* ── Interventions existantes (deja creees et payees) ── */}
           {linkedInterventions.length > 0 && (
             <>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.6875rem', color: 'text.secondary' }}>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="cn-text-caption font-semibold text-[0.6875rem] text-muted-foreground">
                   Prestations liees ({linkedInterventions.length})
-                </Typography>
-                <IconButton size="small" onClick={() => setInterventionsExpanded(!interventionsExpanded)} sx={{ p: 0.25 }}>
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label={interventionsExpanded ? 'Replier les prestations liees' : 'Deplier les prestations liees'}
+                  aria-expanded={interventionsExpanded}
+                  onClick={() => setInterventionsExpanded(!interventionsExpanded)}
+                >
                   {interventionsExpanded ? <ExpandLess size={16} strokeWidth={1.75} /> : <ExpandMore size={16} strokeWidth={1.75} />}
-                </IconButton>
-              </Box>
+                </Button>
+              </div>
 
-              <Collapse in={interventionsExpanded}>
+              <Collapsible open={interventionsExpanded}>
+                <CollapsibleContent>
                 {linkedInterventions.map((intv) => {
                   const cost = intv.actualCost || intv.estimatedCost || (intv.estimatedDurationHours ? intv.estimatedDurationHours * 25 : 0);
                   const typeIcon = intv.type === 'cleaning'
-                    ? <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CleaningServices size={14} strokeWidth={1.75} /></Box>
-                    : <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Handyman size={14} strokeWidth={1.75} /></Box>;
+                    ? <span className="inline-flex text-muted-foreground"><CleaningServices size={14} strokeWidth={1.75} /></span>
+                    : <span className="inline-flex text-muted-foreground"><Handyman size={14} strokeWidth={1.75} /></span>;
                   return (
-                    <Box
-                      key={intv.id}
-                      sx={{
-                        display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5,
-                        p: 0.75, borderRadius: '9px', border: '1px solid var(--line)',
-                        backgroundColor: 'var(--card)',
-                      }}
-                    >
+                    <div className="flex items-center gap-1 mb-0.5 p-1 rounded-[9px] border border-[var(--line)] bg-[var(--card)]" key={intv.id}>
                       {typeIcon}
-                      <Tooltip title={intv.title} placement="top">
-                        <Typography
-                          sx={{ fontSize: '0.6875rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                        >
-                          {intv.title}
-                        </Typography>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <p className="cn-text-body1 text-[0.6875rem] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                            {intv.title}
+                          </p>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">{intv.title}</TooltipContent>
                       </Tooltip>
                       {intv.estimatedDurationHours > 0 && (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
+                        <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
                           {intv.estimatedDurationHours}h
-                        </Typography>
+                        </span>
                       )}
-                      <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, minWidth: 50, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                      <p className="cn-text-body1 text-[0.75rem] font-semibold min-w-[50px] text-end tabular-nums">
                         {cost > 0 ? <Money value={cost} from="EUR" /> : '—'}
-                      </Typography>
+                      </p>
                       <DomainStatusChip
                         status={intv.paymentStatus || intv.status}
                         map={{ ...STATUS_LABELS, ...INTERVENTION_STATUS_LABELS }}
                         tokenMap={{ ...STATUS_TOKENS, ...INTERVENTION_STATUS_TOKENS }}
                       />
-                    </Box>
+                    </div>
                   );
                 })}
-              </Collapse>
+                </CollapsibleContent>
+              </Collapsible>
             </>
           )}
 
-          <Divider sx={{ my: 0.75 }} />
+          <Separator className="my-[4.5px]" />
 
           {/* Summary */}
           {srProposedTotal > 0 && (
@@ -1159,12 +1078,13 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           )}
 
           {/* Action buttons */}
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mt: 1 }}>
-            {/* Pay button — SR proposees first, then unpaid interventions */}
+          <div className="flex gap-1 flex-wrap mt-1.5">
+            {/* Pay button — SR proposees first, then unpaid interventions.
+                Le kit n'a pas de variante « warning » pleine : outline + teinte
+                --warn, comme les deux autres actions de la zone Proprietaire. */}
             <Button
-              size="small"
-              variant="contained"
-              startIcon={payingSR ? <CircularProgress size={14} color="inherit" /> : <CreditCard size={14} strokeWidth={1.75} />}
+              size="sm"
+              variant="outline"
               disabled={payingSR || (payableServiceRequests.length === 0 && interventionCostTotal <= interventionPaid)}
               onClick={() => {
                 if (payableServiceRequests.length > 0) {
@@ -1174,16 +1094,15 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   handlePayInterventions();
                 }
               }}
-              color="warning"
-              sx={{ flex: 1 }}
+              className="flex-1 text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
+              {payingSR ? <Spinner className="size-3.5" /> : <CreditCard size={14} strokeWidth={1.75} />}
               Payer
             </Button>
             {/* Generate invoice for linked interventions — always visible */}
             <Button
-              size="small"
-              variant="outlined"
-              startIcon={invoiceLoading ? <CircularProgress size={12} /> : <Receipt size={12} strokeWidth={1.75} />}
+              size="sm"
+              variant="outline"
               disabled={invoiceLoading || linkedInterventions.length === 0 || !onGenerateInvoice}
               onClick={() => {
                 if (linkedInterventions.length > 0) {
@@ -1191,38 +1110,37 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   handleGenerateInvoice('INTERVENTION', intv.id);
                 }
               }}
-              color="warning"
-              sx={{ flex: 1 }}
+              className="flex-1 text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
+              {invoiceLoading ? <Spinner className="size-3" /> : <Receipt size={12} strokeWidth={1.75} />}
               Facture
             </Button>
             {/* Refund button — always visible */}
             <Button
-              size="small"
-              variant="outlined"
-              color="warning"
-              startIcon={<MoneyOff size={12} strokeWidth={1.75} />}
+              size="sm"
+              variant="outline"
               disabled={interventionPaid <= 0}
               onClick={() => setRefundDialogOpen(true)}
-              sx={{ flex: 1 }}
+              className="flex-1 text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
+              <MoneyOff size={12} strokeWidth={1.75} />
               Remboursement
             </Button>
-          </Box>
+          </div>
         </SectionCard>
       )}
 
       {/* ── No interventions message ───────────────────────────────────── */}
       {reservation && linkedInterventions.length === 0 && payableServiceRequests.length === 0 && (
         <SectionCard
-          icon={<Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Business size={18} strokeWidth={1.75} /></Box>}
+          icon={<span className="inline-flex text-[var(--warn)]"><Business size={18} strokeWidth={1.75} /></span>}
           title="Paiement interventions"
           badge="Proprietaire"
           badgeTokens={WARN_TOKENS}
         >
-          <Typography variant="body2" sx={{ fontSize: '0.75rem', fontStyle: 'italic', color: 'var(--muted)' }}>
+          <p className="cn-text-body2 text-[0.75rem] italic text-[var(--muted)]">
             Aucune intervention liee a cette reservation.
-          </Typography>
+          </p>
         </SectionCard>
       )}
 
@@ -1231,7 +1149,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
       {!reservation && intervention && (
         <SectionCard
-          icon={<Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Business size={18} strokeWidth={1.75} /></Box>}
+          icon={<span className="inline-flex text-[var(--warn)]"><Business size={18} strokeWidth={1.75} /></span>}
           title="Cout intervention"
           badge="Proprietaire"
           badgeTokens={WARN_TOKENS}
@@ -1248,7 +1166,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             <FinRow label="Cout reel" value={fmtCurrency(intervention.actualCost)} bold color="var(--ok)" />
           )}
 
-          <Divider sx={{ my: 0.75 }} />
+          <Separator className="my-[4.5px]" />
 
           <FinRow
             label="Statut paiement"
@@ -1262,81 +1180,91 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           </FinRow>
 
           {intervention.status === 'awaiting_payment' && (
+            // mt: 1 = 6 px (le spacing MUI de ce projet vaut 6).
             <Button
-              size="small"
-              variant="contained"
-              startIcon={<CreditCard size={14} strokeWidth={1.75} />}
-              fullWidth
+              size="sm"
+              variant="outline"
               onClick={() => {
                 const cost = intervention.estimatedCost || (intervention.estimatedDurationHours ? intervention.estimatedDurationHours * 25 : 0);
                 setPaymentModalTarget({ interventionId: intervention.id, amount: cost, title: intervention.title });
                 setPaymentModalOpen(true);
               }}
-              color="warning"
-              sx={{ mt: 1 }}
+              className="w-full mt-[6px] text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
+              <CreditCard size={14} strokeWidth={1.75} />
               Payer {fmtCurrency(intervention.estimatedCost || (intervention.estimatedDurationHours ? intervention.estimatedDurationHours * 25 : 0))}
             </Button>
           )}
 
           {/* Generate invoice for standalone intervention */}
           {onGenerateInvoice && (
+            // mt: 0.75 = 4.5 px (le spacing MUI de ce projet vaut 6).
             <Button
-              size="small"
-              variant="outlined"
-              startIcon={invoiceLoading ? <CircularProgress size={12} /> : <Receipt size={12} strokeWidth={1.75} />}
-              fullWidth
+              size="sm"
+              variant="outline"
               disabled={invoiceLoading}
               onClick={() => handleGenerateInvoice('INTERVENTION', intervention.id)}
-              color="warning"
-              sx={{ mt: 0.75 }}
+              className="w-full mt-[4.5px] text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
             >
+              {invoiceLoading ? <Spinner className="size-3" /> : <Receipt size={12} strokeWidth={1.75} />}
               Generer facture
             </Button>
           )}
 
           {/* Standalone intervention invoices */}
           {invoices.length > 0 && (
-            <Box sx={{ mt: 1 }}>
-              <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.6875rem', color: 'text.secondary' }}>
+            <div className="mt-1.5">
+              <span className="cn-text-caption font-semibold text-[0.6875rem] text-muted-foreground">
                 Factures ({invoices.length})
-              </Typography>
+              </span>
               {invoices.map((inv) => (
-                <Box key={inv.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.25 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Receipt size={14} strokeWidth={1.75} /></Box>
-                  <Typography variant="caption" sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>
+                <div className="flex items-center gap-1 mt-0.5" key={inv.id}>
+                  <span className="inline-flex text-muted-foreground"><Receipt size={14} strokeWidth={1.75} /></span>
+                  <span className="cn-text-caption text-[0.6875rem] font-semibold">
                     {inv.legalNumber || inv.fileName}
-                  </Typography>
+                  </span>
                   <DomainStatusChip status={inv.status} />
-                  <Box sx={{ ml: 'auto', display: 'flex', gap: 0.25 }}>
-                    <Tooltip title="Telecharger">
-                      <IconButton
-                        size="small"
-                        onClick={async () => {
-                          const { documentsApi } = await import('../../../services/api/documentsApi');
-                          await documentsApi.downloadGeneration(inv.id, inv.fileName);
-                        }}
-                        sx={{ p: 0.25 }}
-                      >
-                        <Download size={14} strokeWidth={1.75} />
-                      </IconButton>
+                  <div className="ms-auto flex gap-0.5">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            aria-label="Telecharger"
+                            onClick={async () => {
+                              const { documentsApi } = await import('../../../services/api/documentsApi');
+                              await documentsApi.downloadGeneration(inv.id, inv.fileName);
+                            }}
+                          >
+                            <Download size={14} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Telecharger</TooltipContent>
                     </Tooltip>
-                    <Tooltip title="Duplicata">
-                      <IconButton
-                        size="small"
-                        onClick={async () => {
-                          const { documentsApi } = await import('../../../services/api/documentsApi');
-                          await documentsApi.downloadGeneration(inv.id, inv.fileName.replace('.pdf', '-duplicata.pdf'));
-                        }}
-                        sx={{ p: 0.25 }}
-                      >
-                        <Receipt size={14} strokeWidth={1.75} />
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            aria-label="Duplicata"
+                            onClick={async () => {
+                              const { documentsApi } = await import('../../../services/api/documentsApi');
+                              await documentsApi.downloadGeneration(inv.id, inv.fileName.replace('.pdf', '-duplicata.pdf'));
+                            }}
+                          >
+                            <Receipt size={14} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Duplicata</TooltipContent>
                     </Tooltip>
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               ))}
-            </Box>
+            </div>
           )}
         </SectionCard>
       )}
@@ -1346,166 +1274,246 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           ═══════════════════════════════════════════════════════════════════ */}
 
       {/* View Payments Dialog */}
-      <Dialog open={paymentsDialogOpen} onClose={() => setPaymentsDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Payment size={20} strokeWidth={1.75} /></Box>
-            <Typography component="span" variant="inherit">Historique des paiements</Typography>
-          </Box>
-          <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setPaymentsDialogOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
-        </DialogTitle>
-        <DialogContent>
+      <Dialog open={paymentsDialogOpen} onOpenChange={(next) => { if (!next) setPaymentsDialogOpen(false); }}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5">
+              <span className="inline-flex text-[var(--accent)]"><Payment size={20} strokeWidth={1.75} /></span>
+              <span>Historique des paiements</span>
+            </DialogTitle>
+          </DialogHeader>
           {payments.length === 0 ? (
-            <Alert severity="info" sx={{ fontSize: '0.8125rem' }}>Aucun paiement enregistre.</Alert>
+            <UiAlert variant="info" className="text-[0.8125rem]">
+              <Info />
+              <AlertDescription>Aucun paiement enregistre.</AlertDescription>
+            </UiAlert>
           ) : (
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Methode</TableCell>
-                    <TableCell>Reference</TableCell>
-                    <TableCell align="right">Montant</TableCell>
-                    <TableCell>Statut</TableCell>
+            // La modale du kit est une grille : sans ce conteneur, un tableau
+            // large ferait deborder la page au lieu de defiler chez lui.
+            <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Methode</TableHead>
+                  <TableHead>Reference</TableHead>
+                  <TableHead className="text-end">Montant</TableHead>
+                  <TableHead>Statut</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {payments.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="tabular-nums">{p.date}</TableCell>
+                    <TableCell>{PAYMENT_METHODS.find((m) => m.value === p.method)?.label || p.method}</TableCell>
+                    <TableCell className="text-[var(--muted)]">{p.reference || '-'}</TableCell>
+                    <TableCell className="text-end font-semibold tabular-nums">
+                      {p.status === 'REFUNDED' ? '-' : ''}{fmtCurrency(p.amount)}
+                    </TableCell>
+                    <TableCell><DomainStatusChip status={p.status} /></TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {payments.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{p.date}</TableCell>
-                      <TableCell>{PAYMENT_METHODS.find((m) => m.value === p.method)?.label || p.method}</TableCell>
-                      <TableCell sx={{ color: 'text.secondary' }}>{p.reference || '-'}</TableCell>
-                      <TableCell sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }} align="right">
-                        {p.status === 'REFUNDED' ? '-' : ''}{fmtCurrency(p.amount)}
-                      </TableCell>
-                      <TableCell><DomainStatusChip status={p.status} /></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                ))}
+              </TableBody>
+            </Table>
+            </div>
           )}
           {payments.length > 0 && (
-            <Box sx={{ mt: 1.5, pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Total paye</Typography>
-                <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--ok)' }}>{fmtCurrency(totalPaid)}</Typography>
-              </Box>
+            <div className="mt-2 pt-1.5 border-t border-[var(--line)]">
+              <div className="flex justify-between mb-0.5">
+                <span className="cn-text-caption font-semibold text-[0.75rem]">Total paye</span>
+                <span className="cn-text-caption font-bold text-[0.75rem] text-[var(--ok)]">{fmtCurrency(totalPaid)}</span>
+              </div>
               {totalRefunded > 0 && (
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Total rembourse</Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.75rem', color: 'var(--err)' }}>-{fmtCurrency(totalRefunded)}</Typography>
-                </Box>
+                <div className="flex justify-between mb-0.5">
+                  <span className="cn-text-caption font-semibold text-[0.75rem]">Total rembourse</span>
+                  <span className="cn-text-caption font-bold text-[0.75rem] text-[var(--err)]">-{fmtCurrency(totalRefunded)}</span>
+                </div>
               )}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Reste a payer</Typography>
-                <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums', color: balanceDue > 0 ? 'var(--warn)' : 'var(--ok)' }}>
+              <div className="flex justify-between">
+                <span className="cn-text-caption font-semibold text-[0.75rem]">Reste a payer</span>
+                <span className={cn('cn-text-caption font-bold text-[0.75rem] tabular-nums', balanceDue > 0 ? 'text-[var(--warn)]' : 'text-[var(--ok)]')}>
                   <Money value={Math.max(0, balanceDue)} from="EUR" />
-                </Typography>
-              </Box>
-            </Box>
+                </span>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
 
       {/* Add Payment Dialog */}
-      <Dialog open={addPaymentOpen} onClose={() => setAddPaymentOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Add size={20} strokeWidth={1.75} /></Box>
-            <Typography component="span" variant="inherit">Ajouter un paiement</Typography>
-          </Box>
-          <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setAddPaymentOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
-        </DialogTitle>
-        <DialogContent>
+      <Dialog open={addPaymentOpen} onOpenChange={(next) => { if (!next) setAddPaymentOpen(false); }}>
+        <DialogContent className="sm:max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5">
+              <span className="inline-flex text-[var(--accent)]"><Add size={20} strokeWidth={1.75} /></span>
+              <span>Ajouter un paiement</span>
+            </DialogTitle>
+          </DialogHeader>
           {reservation && (
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', mb: 1.5, display: 'block' }}>
+            <span className="cn-text-caption text-muted-foreground text-[0.6875rem] mb-2 block">
               Reservation : <strong>{reservation.guestName}</strong> — Reste a payer : <strong><Money value={Math.max(0, balanceDue)} from="EUR" /></strong>
-            </Typography>
+            </span>
           )}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField type="number" label="Montant (EUR)" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} size="small" fullWidth required inputProps={{ min: 0.01, step: 0.01 }} sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }} />
-            <TextField select label="Methode de paiement" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} size="small" fullWidth sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}>
-              {PAYMENT_METHODS.map((m) => <MenuItem key={m.value} value={m.value}>{m.label}</MenuItem>)}
-            </TextField>
-            <TextField type="date" label="Date du paiement" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} size="small" fullWidth InputLabelProps={{ shrink: true }} sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }} />
-            <TextField label="Reference (optionnel)" value={paymentReference} onChange={(e) => setPaymentReference(e.target.value)} size="small" fullWidth placeholder="N° transaction, cheque..." sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }} />
-          </Box>
+          <div className="flex flex-col gap-3">
+            <Field>
+              <FieldLabel htmlFor="panel-financial-payment-amount">Montant (EUR)</FieldLabel>
+              <Input
+                id="panel-financial-payment-amount"
+                type="number"
+                required
+                min={0.01}
+                step={0.01}
+                className="w-full text-[0.8125rem]"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="panel-financial-payment-method">Methode de paiement</FieldLabel>
+              <NativeSelect
+                id="panel-financial-payment-method"
+                className="w-full text-[0.8125rem]"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              >
+                {PAYMENT_METHODS.map((m) => (
+                  <NativeSelectOption key={m.value} value={m.value}>{m.label}</NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="panel-financial-payment-date">Date du paiement</FieldLabel>
+              <Input
+                id="panel-financial-payment-date"
+                type="date"
+                className="w-full text-[0.8125rem]"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="panel-financial-payment-reference">Reference (optionnel)</FieldLabel>
+              <Input
+                id="panel-financial-payment-reference"
+                placeholder="N° transaction, cheque..."
+                className="w-full text-[0.8125rem]"
+                value={paymentReference}
+                onChange={(e) => setPaymentReference(e.target.value)}
+              />
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddPaymentOpen(false)} size="sm">Annuler</Button>
+            <Button onClick={handleAddPayment} size="sm" disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || paymentLoading}>
+              {paymentLoading ? <Spinner className="size-3.5" /> : <Check size={16} strokeWidth={1.75} />}
+              Enregistrer
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddPaymentOpen(false)} size="small">Annuler</Button>
-          <Button onClick={handleAddPayment} variant="contained" size="small" disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || paymentLoading} startIcon={paymentLoading ? <CircularProgress size={14} /> : <Check size={16} strokeWidth={1.75} />}>
-            Enregistrer
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Add Extra Fee Dialog */}
-      <Dialog open={addFeeOpen} onClose={() => setAddFeeOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><AttachMoney size={20} strokeWidth={1.75} /></Box>
-            <Typography component="span" variant="inherit">Frais supplementaires</Typography>
-          </Box>
-          <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setAddFeeOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField label="Description" value={feeDescription} onChange={(e) => setFeeDescription(e.target.value)} size="small" fullWidth required placeholder="Ex: Menage supplementaire, cle perdue..." sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }} />
-            <TextField type="number" label="Montant (EUR)" value={feeAmount} onChange={(e) => setFeeAmount(e.target.value)} size="small" fullWidth required inputProps={{ min: 0.01, step: 0.01 }} sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }} />
-          </Box>
+      <Dialog open={addFeeOpen} onOpenChange={(next) => { if (!next) setAddFeeOpen(false); }}>
+        <DialogContent className="sm:max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5">
+              <span className="inline-flex text-[var(--accent)]"><AttachMoney size={20} strokeWidth={1.75} /></span>
+              <span>Frais supplementaires</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            <Field>
+              <FieldLabel htmlFor="panel-financial-fee-description">Description</FieldLabel>
+              <Input
+                id="panel-financial-fee-description"
+                required
+                placeholder="Ex: Menage supplementaire, cle perdue..."
+                className="w-full text-[0.8125rem]"
+                value={feeDescription}
+                onChange={(e) => setFeeDescription(e.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="panel-financial-fee-amount">Montant (EUR)</FieldLabel>
+              <Input
+                id="panel-financial-fee-amount"
+                type="number"
+                required
+                min={0.01}
+                step={0.01}
+                className="w-full text-[0.8125rem]"
+                value={feeAmount}
+                onChange={(e) => setFeeAmount(e.target.value)}
+              />
+            </Field>
+          </div>
           {grandTotal > 0 && (
-            <Alert severity="info" sx={{ fontSize: '0.75rem', mt: 2, '& .MuiAlert-message': { py: 0.25 } }}>
-              Nouveau total : <Money value={grandTotal + (parseFloat(feeAmount) || 0)} from="EUR" />
-            </Alert>
+            <UiAlert variant="info" className="mt-3 text-[0.75rem]">
+              <Info />
+              <AlertDescription className="text-[0.75rem]">
+                Nouveau total : <Money value={grandTotal + (parseFloat(feeAmount) || 0)} from="EUR" />
+              </AlertDescription>
+            </UiAlert>
           )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddFeeOpen(false)} size="sm">Annuler</Button>
+            <Button onClick={handleAddFee} size="sm" disabled={!feeDescription.trim() || !feeAmount || parseFloat(feeAmount) <= 0 || feeLoading}>
+              {feeLoading ? <Spinner className="size-3.5" /> : <Add size={16} strokeWidth={1.75} />}
+              Ajouter
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddFeeOpen(false)} size="small">Annuler</Button>
-          <Button onClick={handleAddFee} variant="contained" size="small" disabled={!feeDescription.trim() || !feeAmount || parseFloat(feeAmount) <= 0 || feeLoading} startIcon={feeLoading ? <CircularProgress size={14} /> : <Add size={16} strokeWidth={1.75} />}>
-            Ajouter
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Refund Confirmation Dialog */}
-      <Dialog open={refundDialogOpen} onClose={() => setRefundDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><MoneyOff size={20} strokeWidth={1.75} /></Box>
-            <Typography component="span" variant="inherit">Confirmer le remboursement</Typography>
-          </Box>
-          <IconButton size="small" aria-label="Fermer" sx={CLOSE_BTN_SX} onClick={() => setRefundDialogOpen(false)}><Close size={18} strokeWidth={1.75} /></IconButton>
-        </DialogTitle>
-        <DialogContent>
-          <Alert severity="warning" icon={<Warning size={18} strokeWidth={1.75} />} sx={{ fontSize: '0.8125rem', mb: 2 }}>
-            Cette action est irreversible. Le remboursement sera traite via le mode de paiement d'origine.
-          </Alert>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, p: 1.5, borderRadius: '10px', bgcolor: 'var(--field)' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>Montant total paye</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', fontVariantNumeric: 'tabular-nums' }}>{fmtCurrency(totalPaid)}</Typography>
-            </Box>
+      <Dialog open={refundDialogOpen} onOpenChange={(next) => { if (!next) setRefundDialogOpen(false); }}>
+        <DialogContent className="sm:max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1.5">
+              <span className="inline-flex text-[var(--warn)]"><MoneyOff size={20} strokeWidth={1.75} /></span>
+              <span>Confirmer le remboursement</span>
+            </DialogTitle>
+          </DialogHeader>
+          <UiAlert variant="warning" className="mb-3 text-[0.8125rem]">
+            <Warning size={18} strokeWidth={1.75} />
+            <AlertDescription className="text-[0.8125rem]">
+              Cette action est irreversible. Le remboursement sera traite via le mode de paiement d'origine.
+            </AlertDescription>
+          </UiAlert>
+          <div className="flex flex-col gap-0.5 p-2 rounded-[10px] bg-[var(--field)]">
+            <div className="flex justify-between">
+              <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">Montant total paye</p>
+              <p className="cn-text-body2 font-bold text-[0.8125rem] tabular-nums">{fmtCurrency(totalPaid)}</p>
+            </div>
             {reservation && (
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>Client</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>{reservation.guestName}</Typography>
-              </Box>
+              <div className="flex justify-between">
+                <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">Client</p>
+                <p className="cn-text-body2 font-semibold text-[0.8125rem]">{reservation.guestName}</p>
+              </div>
             )}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>Montant rembourse</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', color: 'var(--err)', fontVariantNumeric: 'tabular-nums' }}>
+            <div className="flex justify-between">
+              <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">Montant rembourse</p>
+              <p className="cn-text-body2 font-bold text-[0.8125rem] text-[var(--err)] tabular-nums">
                 -{fmtCurrency(totalPaid)}
-              </Typography>
-            </Box>
-          </Box>
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRefundDialogOpen(false)} size="sm">Annuler</Button>
+            {/* Teinte --warn conservee (pas de variante « warning » au kit) :
+                l'action est irreversible mais ce n'est pas une suppression. */}
+            <Button
+              onClick={handleRefund}
+              variant="outline"
+              size="sm"
+              disabled={refundLoading}
+              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+            >
+              {refundLoading ? <Spinner className="size-3.5" /> : <MoneyOff size={16} strokeWidth={1.75} />}
+              Confirmer le remboursement
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setRefundDialogOpen(false)} size="small">Annuler</Button>
-          <Button onClick={handleRefund} variant="contained" color="warning" size="small" disabled={refundLoading} startIcon={refundLoading ? <CircularProgress size={14} /> : <MoneyOff size={16} strokeWidth={1.75} />}>
-            Confirmer le remboursement
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Payment Checkout Modal */}
@@ -1520,14 +1528,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           interventionTitle={paymentModalTarget.title}
         />
       )}
-
-      {/* Snackbar */}
-      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} sx={{ fontSize: '0.8125rem' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+    </div>
   );
 };
 

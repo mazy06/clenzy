@@ -1,7 +1,7 @@
 import React from 'react';
-import {
-  Paper, Typography, Chip, Tooltip, IconButton,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, } from '@mui/material';
+import StatusChip from '../../components/StatusChip';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility, MoreVert } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -11,7 +11,7 @@ import {
   getServiceRequestPriorityLabel,
 } from '../../utils/statusUtils';
 import { stripPropertySuffix, formatDateShort } from './serviceRequestDisplayMapper';
-import { LIST_PAPER_SX, srStatusChipSx, srPriorityChipSx } from './serviceRequestsListConstants';
+import { srStatusTokens, srPriorityTokens } from './serviceRequestsListConstants';
 import { Money } from '../../components/Money';
 import PagePagination from '../../components/PagePagination';
 
@@ -33,129 +33,126 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
 }) => {
   const { t } = useTranslation();
 
+  // Report en classes de LIST_PAPER_SX (hairline, r14, fond --card, sans ombre).
   return (
-    <Paper ref={containerRef} sx={{ ...LIST_PAPER_SX, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <TableContainer sx={{ flex: 1, overflow: 'hidden' }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow
-              sx={{
-                '& th': {
-                  fontWeight: 700,
-                  fontSize: '10.5px',
-                  letterSpacing: '.05em',
-                  textTransform: 'uppercase',
-                  color: 'var(--faint)',
-                  borderBottom: '1px solid var(--line)',
-                  whiteSpace: 'nowrap',
-                },
-              }}
-            >
-              <TableCell>Titre</TableCell>
-              <TableCell>Propriété</TableCell>
-              <TableCell>Demandeur</TableCell>
-              <TableCell>Assigné à</TableCell>
-              <TableCell align="center">Statut</TableCell>
-              <TableCell align="center">Priorité</TableCell>
-              <TableCell align="right">Coût</TableCell>
-              <TableCell>Échéance</TableCell>
-              <TableCell align="center">Actions</TableCell>
+    <div
+      ref={containerRef}
+      className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] shadow-none"
+    >
+      <div className="flex-1 overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Titre</TableHead>
+              <TableHead>Propriété</TableHead>
+              <TableHead>Demandeur</TableHead>
+              <TableHead>Assigné à</TableHead>
+              <TableHead className="text-center">Statut</TableHead>
+              <TableHead className="text-center">Priorité</TableHead>
+              <TableHead className="text-end">Coût</TableHead>
+              <TableHead>Échéance</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {serviceRequests.map((request) => (
               <TableRow
                 key={request.id}
                 data-highlight-id={String(request.id)}
-                hover
-                sx={{
-                  cursor: 'pointer',
-                  '&:last-child td': { borderBottom: 0 },
-                }}
+                className="cursor-pointer"
                 onClick={() => navigate(`/service-requests/${request.id}`)}
               >
                 <TableCell>
-                  <Typography sx={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+                  <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)]">
                     {stripPropertySuffix(request.title, request.propertyName)}
-                  </Typography>
+                  </p>
                 </TableCell>
                 <TableCell>
-                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
+                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
                     {request.propertyName}
-                  </Typography>
-                  <Typography sx={{ fontSize: '11px', color: 'var(--muted)' }}>
+                  </p>
+                  <p className="cn-text-body1 text-[11px] text-[var(--muted)]">
                     {request.propertyAddress}, {request.propertyCity}
-                  </Typography>
+                  </p>
                 </TableCell>
                 <TableCell>
-                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
+                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
                     {request.requestorName}
-                  </Typography>
+                  </p>
                 </TableCell>
                 <TableCell>
-                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
+                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
                     {request.assignedToName || '—'}
-                  </Typography>
+                  </p>
                 </TableCell>
-                <TableCell align="center">
-                  <Chip
-                    label={getServiceRequestStatusLabel(request.status, t)}
-                    size="small"
-                    sx={srStatusChipSx(request.status)}
-                  />
+                <TableCell className="text-center">
+                  <StatusChip pill tokens={srStatusTokens(request.status)} label={getServiceRequestStatusLabel(request.status, t)} />
                 </TableCell>
-                <TableCell align="center">
-                  <Chip
-                    label={getServiceRequestPriorityLabel(request.priority, t)}
-                    size="small"
-                    sx={srPriorityChipSx(request.priority)}
-                  />
+                <TableCell className="text-center">
+                  <StatusChip pill tokens={srPriorityTokens(request.priority)} label={getServiceRequestPriorityLabel(request.priority, t)} />
                 </TableCell>
-                <TableCell align="right">
-                  <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font-display)', fontVariantNumeric: 'tabular-nums' }}>
+                <TableCell className="text-end">
+                  <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] font-[family-name:var(--font-display)] tabular-nums">
                     {request.estimatedCost != null ? <Money value={request.estimatedCost} from="EUR" /> : '—'}
-                  </Typography>
+                  </p>
                   {request.estimatedDuration > 0 && (
-                    <Typography sx={{ fontSize: '11px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                    <p className="cn-text-body1 text-[11px] text-[var(--muted)] tabular-nums">
                       ~{request.estimatedDuration}h
-                    </Typography>
+                    </p>
                   )}
                 </TableCell>
                 <TableCell>
-                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)', fontVariantNumeric: 'tabular-nums' }}>
+                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)] tabular-nums">
                     {formatDateShort(request.dueDate)}
-                  </Typography>
+                  </p>
                 </TableCell>
-                <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
-                  <Tooltip title="Détails">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => { e.stopPropagation(); navigate(`/service-requests/${request.id}`); }}
-                    >
-                      <Visibility size={18} strokeWidth={1.75} />
-                    </IconButton>
+                <TableCell className="text-center">
+                  {/* Declencheur = <span> natif : les primitives du kit ne
+                      transmettent pas de ref (React 18), le tooltip n'aurait
+                      pas d'ancre. */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="Détails"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/service-requests/${request.id}`); }}
+                        >
+                          <Visibility size={18} strokeWidth={1.75} />
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Détails</TooltipContent>
                   </Tooltip>
-                  <Tooltip title="Actions">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => { e.stopPropagation(); onMenuOpen(e, request); }}
-                    >
-                      <MoreVert size={18} strokeWidth={1.75} />
-                    </IconButton>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="Actions"
+                          onClick={(e) => { e.stopPropagation(); onMenuOpen(e, request); }}
+                        >
+                          <MoreVert size={18} strokeWidth={1.75} />
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Actions</TooltipContent>
                   </Tooltip>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
       <PagePagination
         count={totalCount}
         page={page}
         onPageChange={(p) => onPageChange(p)}
         rowsPerPage={rowsPerPage}
       />
-    </Paper>
+    </div>
   );
 };
 

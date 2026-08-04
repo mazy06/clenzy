@@ -1,27 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import StatusChip from './StatusChip';
+import { Alert as BuiAlert, AlertAction, AlertDescription, Button, Field, FieldLabel, Input } from './ui';
+import { Info as BuiInfo, TriangleAlert } from 'lucide-react';
+import { Spinner } from './ui';
 import {
-  Box,
   Card,
   CardContent,
-  Typography,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Chip,
-  IconButton,
+  NativeSelect,
+  NativeSelectOption,
+  Separator,
   Tooltip,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Button,
-  Grid,
-  Divider,
-  Alert,
-  CircularProgress,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from './ui';
 import {
   Info,
   Warning,
@@ -42,11 +33,6 @@ import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 import PagePagination from './PagePagination';
 
 /** Chip -soft : texte couleur + fond -soft (pilule/typo via theme global MuiChip) */
-const chipSx = (fg: string, bg: string) => ({
-  color: fg,
-  backgroundColor: bg,
-  '& .MuiChip-icon': { color: fg },
-});
 
 const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
 
@@ -79,21 +65,21 @@ const PAGE_SIZE = 15;
 const getEventTypeIcon = (eventType: string) => {
   switch (eventType) {
     case 'LOGIN_SUCCESS':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--ok)]"><CheckCircle size={20} strokeWidth={1.75} /></span>;
     case 'LOGIN_FAILURE':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><Warning size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--warn)]"><Warning size={20} strokeWidth={1.75} /></span>;
     case 'PERMISSION_DENIED':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Lock size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--err)]"><Lock size={20} strokeWidth={1.75} /></span>;
     case 'DATA_ACCESS':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><Visibility size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--info)]"><Visibility size={20} strokeWidth={1.75} /></span>;
     case 'ADMIN_ACTION':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><AdminPanelSettings size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--info)]"><AdminPanelSettings size={20} strokeWidth={1.75} /></span>;
     case 'SECRET_ROTATION':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><VpnKey size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--info)]"><VpnKey size={20} strokeWidth={1.75} /></span>;
     case 'SUSPICIOUS_ACTIVITY':
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><ReportProblem size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--err)]"><ReportProblem size={20} strokeWidth={1.75} /></span>;
     default:
-      return <Box component="span" sx={{ display: 'inline-flex', color: 'var(--info)' }}><Info size={20} strokeWidth={1.75} /></Box>;
+      return <span className="inline-flex text-[var(--info)]"><Info size={20} strokeWidth={1.75} /></span>;
   }
 };
 
@@ -152,14 +138,26 @@ const AuditLogging: React.FC = () => {
   // Register page-header actions + last-update timestamp.
   useEffect(() => {
     setHeaderActions(
-      <Box display="flex" alignItems="center" gap={1}>
-        {loading && <CircularProgress size={16} />}
-        <Tooltip title="Actualiser les logs">
-          <IconButton onClick={handleRefresh} size="small">
-            <Refresh size={20} strokeWidth={1.75} />
-          </IconButton>
+      <div className="flex items-center gap-1.5">
+        {loading && <Spinner className="size-4" />}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {/* Le span porte la ref que Radix pose sur son enfant : Button est
+                une fonction, il n'en transmet pas. */}
+            <span className="inline-flex">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Actualiser les logs"
+                onClick={handleRefresh}
+              >
+                <Refresh size={20} strokeWidth={1.75} />
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Actualiser les logs</TooltipContent>
         </Tooltip>
-      </Box>,
+      </div>,
     );
     return () => setHeaderActions(null);
   }, [setHeaderActions, loading, handleRefresh]);
@@ -180,21 +178,23 @@ const AuditLogging: React.FC = () => {
 
   if (loading && !page) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center min-h-[200px]">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
   if (error && !page) {
     return (
-      <Alert severity="error" action={
-        <Button color="inherit" size="small" onClick={handleRefresh}>
-          Réessayer
-        </Button>
-      }>
-        {error}
-      </Alert>
+      <BuiAlert variant="destructive">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+        <AlertAction>
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
+            Réessayer
+          </Button>
+        </AlertAction>
+      </BuiAlert>
     );
   }
 
@@ -203,176 +203,153 @@ const AuditLogging: React.FC = () => {
   const totalElements = page?.totalElements ?? 0;
 
   return (
-    <Box>
+    <div>
       {/* Filtres */}
-      <Card variant="outlined" sx={{ mb: 3 }}>
+      <Card className="mb-[18px]">
         <CardContent>
-          <Typography variant="h6" gutterBottom sx={{ color: 'var(--ink)' }}>
+          <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
             Filtres
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Type d'événement</InputLabel>
-                <Select
+          </h6>
+          <div className="grid grid-cols-12 gap-3">
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+              <Field>
+                <FieldLabel htmlFor="audit-event-type">Type d'événement</FieldLabel>
+                <NativeSelect
+                  id="audit-event-type"
+                  size="sm"
+                  className="w-full"
                   value={filters.eventType}
-                  label="Type d'événement"
                   onChange={(e) => handleFilterChange('eventType', e.target.value)}
                 >
-                  <MenuItem value="">Tous</MenuItem>
-                  <MenuItem value="LOGIN_SUCCESS">Connexion réussie</MenuItem>
-                  <MenuItem value="LOGIN_FAILURE">Échec de connexion</MenuItem>
-                  <MenuItem value="PERMISSION_DENIED">Accès refusé</MenuItem>
-                  <MenuItem value="DATA_ACCESS">Accès aux données</MenuItem>
-                  <MenuItem value="ADMIN_ACTION">Action admin</MenuItem>
-                  <MenuItem value="SECRET_ROTATION">Rotation de secret</MenuItem>
-                  <MenuItem value="SUSPICIOUS_ACTIVITY">Activité suspecte</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Résultat</InputLabel>
-                <Select
+                  <NativeSelectOption value="">Tous</NativeSelectOption>
+                  <NativeSelectOption value="LOGIN_SUCCESS">Connexion réussie</NativeSelectOption>
+                  <NativeSelectOption value="LOGIN_FAILURE">Échec de connexion</NativeSelectOption>
+                  <NativeSelectOption value="PERMISSION_DENIED">Accès refusé</NativeSelectOption>
+                  <NativeSelectOption value="DATA_ACCESS">Accès aux données</NativeSelectOption>
+                  <NativeSelectOption value="ADMIN_ACTION">Action admin</NativeSelectOption>
+                  <NativeSelectOption value="SECRET_ROTATION">Rotation de secret</NativeSelectOption>
+                  <NativeSelectOption value="SUSPICIOUS_ACTIVITY">Activité suspecte</NativeSelectOption>
+                </NativeSelect>
+              </Field>
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+              <Field>
+                <FieldLabel htmlFor="audit-result">Résultat</FieldLabel>
+                <NativeSelect
+                  id="audit-result"
+                  size="sm"
+                  className="w-full"
                   value={filters.result}
-                  label="Résultat"
                   onChange={(e) => handleFilterChange('result', e.target.value)}
                 >
-                  <MenuItem value="">Tous</MenuItem>
-                  <MenuItem value="SUCCESS">Succès</MenuItem>
-                  <MenuItem value="DENIED">Refusé</MenuItem>
-                  <MenuItem value="ERROR">Erreur</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <TextField
-                fullWidth
-                size="small"
-                label="ID Acteur"
-                value={filters.actorId}
-                onChange={(e) => handleFilterChange('actorId', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<Clear size={18} strokeWidth={1.75} />}
-                onClick={clearFilters}
-              >
+                  <NativeSelectOption value="">Tous</NativeSelectOption>
+                  <NativeSelectOption value="SUCCESS">Succès</NativeSelectOption>
+                  <NativeSelectOption value="DENIED">Refusé</NativeSelectOption>
+                  <NativeSelectOption value="ERROR">Erreur</NativeSelectOption>
+                </NativeSelect>
+              </Field>
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+              <Field>
+                <FieldLabel htmlFor="audit-actor-id">ID Acteur</FieldLabel>
+                <Input
+                  id="audit-actor-id"
+                  className="w-full"
+                  value={filters.actorId}
+                  onChange={(e) => handleFilterChange('actorId', e.target.value)}
+                />
+              </Field>
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                <Clear size={18} strokeWidth={1.75} />
                 Effacer
               </Button>
-            </Grid>
-          </Grid>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* Logs */}
-      <Card variant="outlined">
+      <Card>
         <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6" sx={{ color: 'var(--ink)' }}>
+          <div className="flex justify-between items-center mb-3">
+            <h6 className="cn-text-h6 text-[var(--ink)]">
               Logs d'audit ({totalElements} entrées)
-            </Typography>
+            </h6>
             {totalPages > 1 && (
-              <Chip
-                label={`Page ${currentPage + 1} sur ${totalPages}`}
-                size="small"
-                sx={{ ...chipSx('var(--accent)', 'var(--accent-soft)'), fontVariantNumeric: 'tabular-nums' }}
-              />
+              <StatusChip tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={`Page ${currentPage + 1} sur ${totalPages}`} className="tabular-nums" />
             )}
-          </Box>
+          </div>
 
           {logs.length === 0 ? (
-            <Alert severity="info">Aucun log d'audit trouvé pour les filtres sélectionnés</Alert>
+            <BuiAlert variant="info">
+              <BuiInfo />
+              <AlertDescription>Aucun log d'audit trouvé pour les filtres sélectionnés</AlertDescription>
+            </BuiAlert>
           ) : (
-            <List>
+            <div className="flex flex-col">
               {logs.map((log, index) => (
                 <React.Fragment key={log.id}>
-                  <ListItem alignItems="flex-start">
-                    <ListItemIcon>
+                  <div className="flex items-start gap-2 py-1.5">
+                    <span className="flex w-9 shrink-0 items-center justify-start pt-0.5">
                       {getEventTypeIcon(log.eventType)}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-                          <Typography variant="subtitle2" component="span">
-                            {log.action || formatEventType(log.eventType)}
-                          </Typography>
-                          <Chip
-                            label={formatEventType(log.eventType)}
-                            size="small"
-                            sx={chipSx(eventToken(log.eventType).fg, eventToken(log.eventType).bg)}
-                          />
-                          {log.result && (
-                            <Chip
-                              label={log.result}
-                              size="small"
-                              sx={chipSx(resultToken(log.result).fg, resultToken(log.result).bg)}
-                            />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="cn-text-subtitle2">
+                          {log.action || formatEventType(log.eventType)}
+                        </span>
+                        <StatusChip tokens={{ color: eventToken(log.eventType).fg, bg: eventToken(log.eventType).bg }} label={formatEventType(log.eventType)} />
+                        {log.result && (
+                          <StatusChip tokens={{ color: resultToken(log.result).fg, bg: resultToken(log.result).bg }} label={log.result} />
+                        )}
+                      </div>
+                      <div className="mt-1.5">
+                        {log.details && (
+                          <p className="cn-text-body2 text-[var(--body)] mb-[0.35em]">
+                            {log.details}
+                          </p>
+                        )}
+                        {/* Meta technique : mono compact sur fond --field */}
+                        <div className="inline-flex gap-3 flex-wrap mt-0.5 px-1.5 py-0.5 bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[8px]">
+                          {log.actorEmail && (
+                            <span className="cn-text-caption font-mono text-[11px] text-[var(--muted)]">
+                              {log.actorEmail}
+                            </span>
                           )}
-                        </Box>
-                      }
-                      secondary={
-                        <Box mt={1}>
-                          {log.details && (
-                            <Typography variant="body2" sx={{ color: 'var(--body)' }} gutterBottom>
-                              {log.details}
-                            </Typography>
+                          {log.actorIp && (
+                            <span className="cn-text-caption font-mono text-[11px] text-[var(--muted)]">
+                              IP {log.actorIp}
+                            </span>
                           )}
-                          {/* Meta technique : mono compact sur fond --field */}
-                          <Box
-                            sx={{
-                              display: 'inline-flex',
-                              gap: 2,
-                              flexWrap: 'wrap',
-                              mt: 0.5,
-                              px: 1,
-                              py: 0.5,
-                              bgcolor: 'var(--field)',
-                              border: '1px solid var(--field-line)',
-                              borderRadius: '8px',
-                            }}
-                          >
-                            {log.actorEmail && (
-                              <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--muted)' }}>
-                                {log.actorEmail}
-                              </Typography>
-                            )}
-                            {log.actorIp && (
-                              <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--muted)' }}>
-                                IP {log.actorIp}
-                              </Typography>
-                            )}
-                            {log.timestamp && (
-                              <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
-                                {new Date(log.timestamp).toLocaleString()}
-                              </Typography>
-                            )}
-                          </Box>
-                        </Box>
-                      }
-                    />
-                  </ListItem>
-                  {index < logs.length - 1 && <Divider variant="inset" component="li" />}
+                          {log.timestamp && (
+                            <span className="cn-text-caption font-mono text-[11px] text-[var(--muted)] tabular-nums">
+                              {new Date(log.timestamp).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {index < logs.length - 1 && <Separator />}
                 </React.Fragment>
               ))}
-            </List>
+            </div>
           )}
 
           {totalPages > 1 && (
-            <Box display="flex" justifyContent="center" mt={3}>
+            <div className="flex justify-center mt-[18px]">
               <PagePagination
                 totalPages={totalPages}
                 page={currentPage}
                 onPageChange={(value) => setCurrentPage(value)}
               />
-            </Box>
+            </div>
           )}
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

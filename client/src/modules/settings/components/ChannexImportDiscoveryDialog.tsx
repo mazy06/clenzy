@@ -14,26 +14,24 @@
  *   5. Recap : N created, M skipped, K errors
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
+import { Badge, Button } from '../../../components/ui';
+import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../../components/ui';
 import {
+  Checkbox,
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogHeader,
   DialogTitle,
-  IconButton,
-  Box,
-  Typography,
-  Stack,
-  CircularProgress,
-  Alert,
-  Checkbox,
-  FormControl,
-  Select,
-  MenuItem,
-  Button,
-  Divider,
-  Chip,
-  ButtonBase,
-} from '@mui/material';
-import { X, Download, RefreshCw, CheckCircle2, AlertCircle, Info, Sparkles, Image as ImageIcon } from 'lucide-react';
+  NativeSelect,
+  NativeSelectOption,
+  Separator,
+} from '../../../components/ui';
+import { cn } from '../../../utils/cn';
+import { Download, RefreshCw, CheckCircle2, AlertCircle, Info, Sparkles, Image as ImageIcon } from 'lucide-react';
 
 import {
   channexApi,
@@ -85,7 +83,7 @@ export default function ChannexImportDiscoveryDialog({
 
   // Options du dropdown propertyType : source unique = PROPERTY_TYPES dans
   // utils/statusUtils.ts (synchronise avec l'enum PropertyType cote backend).
-  // Memoizee pour eviter le re-render des Select MUI a chaque map().
+  // Memoizee pour eviter de recalculer les options a chaque map().
   const propertyTypeOptions = React.useMemo(
     () => PROPERTY_TYPES.map((pt) => ({ value: pt.value, label: t(pt.i18nKey) })),
     [t],
@@ -366,120 +364,84 @@ export default function ChannexImportDiscoveryDialog({
 
   return (
     <>
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{ sx: { minHeight: 'min(70vh, 700px)' } }}
-    >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          gap: 2,
-          pb: 1.5,
-        }}
-      >
-        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0, flex: 1 }}>
-          <Box
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: 1,
-              bgcolor: 'var(--accent-soft)',
-              color: ACCENT,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-4xl min-h-[min(70vh,700px)] max-h-[90vh] overflow-y-auto flex flex-col">
+        {/* La croix de fermeture est fournie par DialogContent : `pe-14` reserve sa place. */}
+        <DialogHeader className="flex-row items-start gap-2 pe-14">
+          <div className="w-[32px] h-[32px] rounded-[8px] bg-[var(--accent-soft)] flex items-center justify-center shrink-0" style={{ color: ACCENT }}>
             <Download size={18} />
-          </Box>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="subtitle1" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+          </div>
+          <div className="min-w-0 flex-1">
+            <DialogTitle className="cn-text-subtitle1 font-semibold leading-[1.3]">
               Importer une propriete deja en ligne
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.4 }}>
+            </DialogTitle>
+            <DialogDescription className="cn-text-caption block leading-[1.4]">
               Detecte les listings Airbnb/Booking/Vrbo deja connus du hub de distribution et non encore dans Baitly
-            </Typography>
-          </Box>
-        </Stack>
-        <IconButton onClick={onClose} size="small" aria-label="Fermer">
-          <X size={18} />
-        </IconButton>
-      </DialogTitle>
+            </DialogDescription>
+          </div>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 1 }}>
+        <div className="flex-1">
         {/* Phase 1 UX : Stepper visuel 3 etapes (Autoriser → Detecter → Synchroniser)
             qui montre ou en est l'utilisateur dans le flow Connect, base sur l'etat
             reel (nb OTAs connectes, nb properties detectees, nb importees). */}
-        <Box sx={{ mb: 1.5 }}>
+        <div className="mb-2">
           <ChannexImportProgressStepper
             connectedOtaCount={connectedOtas.filter((o) => o.isActive || o.hasOauthToken).length}
             totalInHub={totalInHub}
             importedCount={discovered.filter((p) => p.isImported).length}
           />
-        </Box>
+        </div>
 
         {/* Banner d'aide */}
-        <Stack
-          direction="row"
-          alignItems="flex-start"
-          spacing={1}
-          sx={{
-            p: 1.25,
-            mb: 2,
-            borderRadius: 1,
-            bgcolor: 'color-mix(in srgb, var(--accent) 4%, transparent)',
-            border: '1px solid',
+        <div
+          className="flex flex-row items-start gap-1.5 p-[7.5px] mb-3 rounded-[8px] border border-solid"
+          style={{
+            backgroundColor: 'color-mix(in srgb, var(--accent) 4%, transparent)',
             borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
           }}
         >
-          <Box sx={{ color: ACCENT, mt: 0.25, flexShrink: 0 }}>
+          <div className="mt-[1.5px] shrink-0" style={{ color: ACCENT }}>
             <Info size={14} />
-          </Box>
-          <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+          </div>
+          <span className="cn-text-caption text-muted-foreground leading-[1.5]">
             Apres avoir connecte votre compte Airbnb (ou autre OTA) via le widget de configuration,
             tous vos listings detectes apparaissent ici. Selectionnez ceux a importer dans
             Baitly — leur nom, devise, pays et capacite sont pre-remplis automatiquement.
-          </Typography>
-        </Stack>
+          </span>
+        </div>
 
         {/* Loading initial */}
         {loading && (
-          <Stack alignItems="center" justifyContent="center" spacing={2} sx={{ py: 6 }}>
-            <CircularProgress size={24} thickness={4} />
-            <Typography variant="body2" color="text.secondary">
+          <div className="flex flex-col items-center justify-center gap-3 py-9">
+            <Spinner className="size-6" />
+            <p className="cn-text-body2 text-muted-foreground">
               Recherche des proprietes en ligne...
-            </Typography>
-          </Stack>
+            </p>
+          </div>
         )}
 
         {/* Erreur */}
         {error && !loading && (
-          <Alert severity="error" variant="outlined" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
+          <UiAlert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+          </UiAlert>
         )}
 
         {/* Recap apres import */}
         {importResult && (
-          <Alert
-            severity={importResult.errors > 0 ? 'warning' : 'success'}
-            variant="outlined"
-            sx={{ mb: 2 }}
-          >
-            <strong>{importResult.created}</strong> creees
-            {importResult.skipped > 0 && (
-              <> · <strong>{importResult.skipped}</strong> ignorees (deja mappees)</>
-            )}
-            {importResult.errors > 0 && (
-              <> · <strong>{importResult.errors}</strong> erreurs</>
-            )}
-          </Alert>
+          <UiAlert variant={importResult.errors > 0 ? 'warning' : 'success'} className="mb-3">
+            <AlertDescription>
+              <strong>{importResult.created}</strong> creees
+              {importResult.skipped > 0 && (
+                <> · <strong>{importResult.skipped}</strong> ignorees (deja mappees)</>
+              )}
+              {importResult.errors > 0 && (
+                <> · <strong>{importResult.errors}</strong> erreurs</>
+              )}
+            </AlertDescription>
+          </UiAlert>
         )}
 
         {/* Cas 1 : Hub vide (aucune propriete cote distribution)
@@ -487,40 +449,24 @@ export default function ChannexImportDiscoveryDialog({
             (picker des 5 OTAs majeurs). Click sur une card declenche le
             setup-oauth backend qui cree une property pivot + ouvre l'iframe. */}
         {!loading && !error && discovered.length === 0 && totalInHub === 0 && !importResult && (
-          <Box sx={{ py: 2, px: 1 }}>
-            <Stack alignItems="center" sx={{ mb: 2.5, textAlign: 'center' }}>
-              <Box
-                sx={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: '50%',
-                  bgcolor: 'var(--accent-soft)',
-                  color: ACCENT,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mb: 1.5,
-                }}
-              >
+          <div className="py-3 px-1.5">
+            <div className="flex flex-col items-center text-center mb-[15px]">
+              <div className="w-[56px] h-[56px] rounded-[50%] bg-[var(--accent-soft)] inline-flex items-center justify-center mb-[9px]" style={{ color: ACCENT }}>
                 <Info size={24} />
-              </Box>
-              <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+              </div>
+              <p className="cn-text-body2 font-semibold mb-0.5">
                 Connectez un compte OTA pour importer vos listings
-              </Typography>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: 'block', maxWidth: 500, lineHeight: 1.6 }}
-              >
+              </p>
+              <span className="cn-text-caption text-muted-foreground block max-w-[500px] leading-[1.6]">
                 Choisissez l'OTA sur lequel vous avez deja des proprietes en ligne.
                 Apres authentification, Baitly detectera automatiquement vos listings
                 et vous proposera de les importer.
-              </Typography>
-            </Stack>
+              </span>
+            </div>
 
             {/* Picker OTA inline (5 cards horizontales en grid responsive)
                 + indication "Re-detecter" si un channel existe deja pour cet OTA */}
-            <Stack spacing={1} sx={{ mb: 2 }}>
+            <div className="flex flex-col gap-1.5 mb-3">
               {CHANNEX_OTA_OPTIONS.map((option) => {
                 const isLoading = settingUpOta === option.code;
                 const disabled = settingUpOta !== null && !isLoading;
@@ -530,170 +476,116 @@ export default function ChannexImportDiscoveryDialog({
                     || ota.otaName.toLowerCase() === option.name.toLowerCase()
                 );
                 return (
-                  <ButtonBase
+                  // La couleur de marque est une valeur d'execution : elle passe par une
+                  // variable CSS posee inline, que les classes hover/focus peuvent lire.
+                  <button
+                    type="button"
                     key={option.code}
                     onClick={() => handleSetupOauth(option.code, existing?.channelId)}
                     disabled={settingUpOta !== null}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1.5,
-                      width: '100%',
-                      p: 1.25,
-                      borderRadius: 1.5,
-                      border: '1px solid',
-                      borderColor: isLoading ? option.brandColor : 'divider',
-                      bgcolor: isLoading ? `${option.brandColor}08` : 'background.paper',
-                      textAlign: 'left',
-                      cursor: settingUpOta !== null ? 'wait' : 'pointer',
-                      opacity: disabled ? 0.45 : 1,
-                      transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                      '&:hover': settingUpOta === null ? {
-                        borderColor: option.brandColor,
-                        bgcolor: `${option.brandColor}08`,
-                        transform: 'translateX(2px)',
-                      } : {},
-                      '&:focus-visible': {
-                        outline: `2px solid ${option.brandColor}`,
-                        outlineOffset: 2,
-                      },
-                    }}
+                    style={{ '--ota-brand': option.brandColor } as React.CSSProperties}
+                    className={cn(
+                      'flex items-center gap-2 w-full p-[7.5px] rounded-[12px] border border-solid text-start',
+                      'transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                      'focus-visible:[outline:2px_solid_var(--ota-brand)] focus-visible:outline-offset-2',
+                      settingUpOta !== null ? 'cursor-wait' : 'cursor-pointer',
+                      isLoading
+                        ? 'border-[var(--ota-brand)] bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)]'
+                        : 'border-[var(--line)] bg-[var(--card)]',
+                      settingUpOta === null
+                        && 'hover:border-[var(--ota-brand)] hover:bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)] hover:translate-x-[2px]',
+                      disabled && 'opacity-45',
+                    )}
                   >
-                    <Box
-                      component="img"
-                      src={OTA_LOGO_BY_CODE[option.code]}
-                      alt={option.name}
-                      sx={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 1,
-                        objectFit: 'contain',
-                        bgcolor: 'var(--card)',
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        p: 0.5,
-                        flexShrink: 0,
-                      }}
-                    />
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.25 }}>
-                        <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+                    <img className="w-[40px] h-[40px] rounded-[8px] object-contain bg-[var(--card)] border border-solid border-[var(--line)] p-0.5 shrink-0" src={OTA_LOGO_BY_CODE[option.code]} alt={option.name} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-row items-center gap-[4.5px] mb-[1.5px]">
+                        <p className="cn-text-body2 font-semibold leading-[1.3]">
                           {existing ? `Re-detecter mes listings ${option.name}` : `Connecter ${option.name}`}
-                        </Typography>
+                        </p>
                         {existing && (
-                          <Chip
-                            size="small"
-                            icon={<CheckCircle2 size={11} />}
-                            label="OAuth fait"
-                            sx={{
-                              height: 18,
-                              fontSize: '0.65rem',
-                              bgcolor: 'var(--ok-soft)',
-                              color: 'var(--ok)',
-                              '& .MuiChip-icon': { color: 'var(--ok)', ml: 0.5 },
-                            }}
-                          />
+                          <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--ok-soft)] text-[var(--ok)] [&>svg]:text-[var(--ok)] [&>svg]:ms-0.5"><CheckCircle2 size={11} />OAuth fait</Badge>
                         )}
-                      </Stack>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.3 }}>
+                      </div>
+                      <span className="cn-text-caption text-muted-foreground block leading-[1.3]">
                         {isLoading
                           ? 'Preparation de la connexion...'
                           : existing
                             ? 'Rouvre le wizard pour mapper de nouveaux listings ajoutes recemment'
                             : option.description}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', color: isLoading ? option.brandColor : 'text.disabled' }}>
+                      </span>
+                    </div>
+                    <div className="shrink-0 flex items-center" style={{ color: isLoading ? option.brandColor : 'var(--faint)' }}>
                       {isLoading
-                        ? <CircularProgress size={14} thickness={5} sx={{ color: option.brandColor }} />
-                        : <Typography variant="caption" sx={{ fontWeight: 600 }}>→</Typography>}
-                    </Box>
-                  </ButtonBase>
+                        ? <Spinner className="size-3.5" style={{ color: option.brandColor }} />
+                        : <span className="cn-text-caption font-semibold">→</span>}
+                    </div>
+                  </button>
                 );
               })}
-            </Stack>
+            </div>
 
             {/* Action secondaire : si l'utilisateur prefere passer par une property Baitly existante */}
             {onRequestConnectExisting && (
-              <Stack direction="row" spacing={1} justifyContent="center" sx={{ mt: 2 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
+              <div className="flex flex-row gap-1.5 justify-center mt-3">
+                <span className="cn-text-caption text-muted-foreground self-center">
                   Ou bien :
-                </Typography>
+                </span>
                 <Button
-                  size="small"
+                  variant="ghost"
+                  size="sm"
                   onClick={onRequestConnectExisting}
-                  sx={{ textTransform: 'none', color: 'text.secondary', fontSize: '0.78rem' }}
+                  className="text-[var(--muted)]"
                 >
                   Connecter une propriete Baitly existante
                 </Button>
                 <Button
-                  size="small"
-                  startIcon={<RefreshCw size={12} />}
+                  variant="ghost"
+                  size="sm"
                   onClick={refresh}
-                  sx={{ textTransform: 'none', color: 'text.secondary', fontSize: '0.78rem' }}
+                  className="text-[var(--muted)]"
                 >
+                  <RefreshCw size={12} />
                   Rafraichir
                 </Button>
-              </Stack>
+              </div>
             )}
-          </Box>
+          </div>
         )}
 
         {/* Cas 2 : Hub non vide mais tout deja importe */}
         {!loading && !error && discovered.length === 0 && totalInHub > 0 && !importResult && (
-          <Box sx={{ py: 4, px: 2 }}>
-            <Stack alignItems="center" sx={{ mb: 3, textAlign: 'center' }}>
-              <Box
-                sx={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: '50%',
-                  bgcolor: 'var(--ok-soft)',
-                  color: 'var(--ok)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mb: 1.5,
-                }}
-              >
+          <div className="py-6 px-3">
+            <div className="flex flex-col items-center text-center mb-[18px]">
+              <div className="w-[56px] h-[56px] rounded-[50%] bg-[var(--ok-soft)] text-[var(--ok)] inline-flex items-center justify-center mb-2">
                 <CheckCircle2 size={24} />
-              </Box>
-              <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+              </div>
+              <p className="cn-text-body2 font-semibold mb-0.5">
                 Tout est synchronise
-              </Typography>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: 'block', mb: 2, maxWidth: 480, lineHeight: 1.6 }}
-              >
+              </p>
+              <span className="cn-text-caption text-muted-foreground block mb-3 max-w-[480px] leading-[1.6]">
                 Vos {totalInHub} propriete{totalInHub > 1 ? 's' : ''} en ligne {totalInHub > 1 ? 'sont' : 'est'} deja
                 import{totalInHub > 1 ? 'ees' : 'ee'} dans Baitly. Si vous avez ajoute de nouvelles
                 proprietes cote OTA depuis, re-detectez-les ci-dessous.
-              </Typography>
+              </span>
               <Button
-                variant="outlined"
-                size="small"
-                startIcon={<RefreshCw size={14} />}
+                variant="outline"
+                size="sm"
                 onClick={refresh}
-                sx={{ textTransform: 'none' }}
               >
+                <RefreshCw size={14} />
                 Verifier a nouveau
               </Button>
-            </Stack>
+            </div>
 
             {/* Section "Re-detecter listings" : visible si au moins 1 OTA est connecte */}
             {connectedOtas.length > 0 && (
               <>
-                <Divider sx={{ my: 2 }} />
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  fontWeight={600}
-                  sx={{ display: 'block', mb: 1, textAlign: 'center' }}
-                >
+                <Separator className="my-3" />
+                <span className="cn-text-caption text-muted-foreground font-semibold block mb-1.5 text-center">
                   Re-detecter de nouveaux listings ajoutes recemment cote OTA
-                </Typography>
-                <Stack spacing={1}>
+                </span>
+                <div className="flex flex-col gap-1.5">
                   {CHANNEX_OTA_OPTIONS
                     .flatMap((option) => {
                       const existing = connectedOtas.find(
@@ -703,120 +595,88 @@ export default function ChannexImportDiscoveryDialog({
                       if (!existing) return [];
                       const isLoading = settingUpOta === option.code;
                       return [
-                        <ButtonBase
+                        <button
+                          type="button"
                           key={option.code}
                           onClick={() => handleSetupOauth(option.code, existing.channelId)}
                           disabled={settingUpOta !== null}
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1.5,
-                            width: '100%',
-                            p: 1.25,
-                            borderRadius: 1.5,
-                            border: '1px solid',
-                            borderColor: isLoading ? option.brandColor : 'divider',
-                            bgcolor: isLoading ? `${option.brandColor}08` : 'background.paper',
-                            textAlign: 'left',
-                            cursor: settingUpOta !== null ? 'wait' : 'pointer',
-                            transition: 'all 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                            '&:hover': settingUpOta === null ? {
-                              borderColor: option.brandColor,
-                              bgcolor: `${option.brandColor}08`,
-                            } : {},
-                          }}
+                          style={{ '--ota-brand': option.brandColor } as React.CSSProperties}
+                          className={cn(
+                            'flex items-center gap-2 w-full p-[7.5px] rounded-[12px] border border-solid text-start',
+                            'transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                            settingUpOta !== null ? 'cursor-wait' : 'cursor-pointer',
+                            isLoading
+                              ? 'border-[var(--ota-brand)] bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)]'
+                              : 'border-[var(--line)] bg-[var(--card)]',
+                            settingUpOta === null
+                              && 'hover:border-[var(--ota-brand)] hover:bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)]',
+                          )}
                         >
-                          <Box
-                            component="img"
-                            src={OTA_LOGO_BY_CODE[option.code]}
-                            alt={option.name}
-                            sx={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 1,
-                              objectFit: 'contain',
-                              bgcolor: 'var(--card)',
-                              border: '1px solid',
-                              borderColor: 'divider',
-                              p: 0.5,
-                              flexShrink: 0,
-                            }}
-                          />
-                          <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+                          <img className="w-[36px] h-[36px] rounded-[8px] object-contain bg-[var(--card)] border border-solid border-[var(--line)] p-0.5 shrink-0" src={OTA_LOGO_BY_CODE[option.code]} alt={option.name} />
+                          <div className="flex-1 min-w-0">
+                            <p className="cn-text-body2 font-semibold leading-[1.3]">
                               Re-detecter mes listings {option.name}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.3 }}>
+                            </p>
+                            <span className="cn-text-caption text-muted-foreground block leading-[1.3]">
                               {isLoading
                                 ? 'Ouverture du widget...'
                                 : 'Rouvre le wizard onglet Listing pour mapper de nouveaux listings'}
-                            </Typography>
-                          </Box>
-                          <Box sx={{ flexShrink: 0, color: isLoading ? option.brandColor : 'text.disabled' }}>
+                            </span>
+                          </div>
+                          <div className="shrink-0" style={{ color: isLoading ? option.brandColor : 'var(--faint)' }}>
                             {isLoading
-                              ? <CircularProgress size={14} thickness={5} sx={{ color: option.brandColor }} />
-                              : <Typography variant="caption" sx={{ fontWeight: 600 }}>→</Typography>}
-                          </Box>
-                        </ButtonBase>,
+                              ? <Spinner className="size-3.5" style={{ color: option.brandColor }} />
+                              : <span className="cn-text-caption font-semibold">→</span>}
+                          </div>
+                        </button>,
                       ];
                     })}
-                </Stack>
+                </div>
               </>
             )}
-          </Box>
+          </div>
         )}
 
         {/* Liste des properties non-mappees */}
         {!loading && discovered.length > 0 && (
           <>
             {/* Header avec resume du diff (au lieu de select-all classique) */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-                p: 1,
-                px: 1.5,
-                borderRadius: 1,
-                bgcolor: 'background.default',
-                mb: 1,
-                flexWrap: 'wrap',
-              }}
-            >
-              <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
+            <div className="flex items-center gap-2 p-1.5 px-2 rounded-[8px] bg-[var(--bg)] mb-1.5 flex-wrap">
+              <span className="cn-text-caption text-muted-foreground flex-1">
                 {discovered.length} propriete{discovered.length > 1 ? 's' : ''} dans le hub
                 {diff.toImport.length > 0 && (
-                  <> · <Box component="span" sx={{ color: ACCENT, fontWeight: 600 }}>
+                  <> · <span className="font-semibold" style={{ color: ACCENT }}>
                     +{diff.toImport.length} a importer
-                  </Box></>
+                  </span></>
                 )}
                 {diff.toDisconnect.length > 0 && (
-                  <> · <Box component="span" sx={{ color: 'var(--err)', fontWeight: 600 }}>
+                  <> · <span className="text-[var(--err)] font-semibold">
                     −{diff.toDisconnect.length} a desimporter
-                  </Box></>
+                  </span></>
                 )}
-              </Typography>
+              </span>
               <Button
-                size="small"
-                startIcon={<RefreshCw size={12} />}
+                variant="ghost"
+                size="sm"
                 onClick={refresh}
-                sx={{ textTransform: 'none', color: 'text.secondary' }}
+                className="text-[var(--muted)]"
               >
+                <RefreshCw size={12} />
                 Rafraichir
               </Button>
-            </Box>
+            </div>
 
             {/* Banner info si user a coche des desimports (perte sync) */}
             {diff.toDisconnect.length > 0 && (
-              <Alert severity="warning" variant="outlined" sx={{ mb: 1, fontSize: '0.78rem' }}>
-                <strong>{diff.toDisconnect.length} propriete{diff.toDisconnect.length > 1 ? 's' : ''}</strong>
-                {' '}va etre desimport{diff.toDisconnect.length > 1 ? 'ees' : 'ee'} : le lien avec le hub sera
+              <UiAlert variant="warning" className="mb-1.5 text-[0.78rem]">
+                <TriangleAlert />
+                <AlertDescription><strong>{diff.toDisconnect.length} propriete{diff.toDisconnect.length > 1 ? 's' : ''}</strong>{' '}va etre desimport{diff.toDisconnect.length > 1 ? 'ees' : 'ee'}: le lien avec le hub sera
                 supprime mais la Property Baitly correspondante sera conservee (vous pourrez la re-importer
-                plus tard).
-              </Alert>
+                plus tard).</AlertDescription>
+              </UiAlert>
             )}
 
-            <Stack spacing={0.5}>
+            <div className="flex flex-col gap-[3px]">
               {discovered.map((p) => {
                 const row = rows[p.channexPropertyId] ?? { selected: p.isImported, propertyType: 'APARTMENT' };
                 // Etat visuel par diff :
@@ -837,53 +697,29 @@ export default function ChannexImportDiscoveryDialog({
                   bgCol = 'color-mix(in srgb, var(--accent) 4%, transparent)';
                 }
                 return (
-                  <Box
-                    key={p.channexPropertyId}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 1.5,
-                      p: 1.25,
-                      borderRadius: 1.5,
-                      border: '1px solid',
-                      borderColor: borderCol,
-                      bgcolor: bgCol,
-                      transition: 'all 180ms ease-out',
-                    }}
-                  >
+                  <div className="flex items-start gap-[9px] p-[7.5px] rounded-[12px] border border-solid" style={{ borderColor: borderCol, backgroundColor: bgCol, transition: 'all 180ms ease-out' }} key={p.channexPropertyId}>
+                    {/* Teinte de la case cochee : deux jeux de classes LITTERAUX,
+                        une classe Tailwind ne pouvant pas naitre d'une variable. */}
                     <Checkbox
                       checked={row.selected}
-                      onChange={(e) => toggleRow(p.channexPropertyId, e.target.checked)}
-                      size="small"
-                      sx={{
-                        p: 0.5,
-                        color: p.isImported ? 'var(--ok)' : ACCENT,
-                        '&.Mui-checked': { color: p.isImported ? 'var(--ok)' : ACCENT },
-                      }}
+                      onCheckedChange={(checked) => toggleRow(p.channexPropertyId, checked === true)}
+                      aria-label={`Selectionner ${p.title || 'cette propriete'}`}
+                      className={cn(
+                        'mt-0.5',
+                        p.isImported
+                          ? 'data-checked:bg-[var(--ok)] data-checked:border-[var(--ok)]'
+                          : 'data-checked:bg-[var(--accent)] data-checked:border-[var(--accent)]',
+                      )}
                     />
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.25, flexWrap: 'wrap' }}>
-                        <Typography variant="body2" fontWeight={600} noWrap sx={{ mr: 0.5 }}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-row items-center gap-[4.5px] mb-[1.5px] flex-wrap">
+                        <p className="cn-text-body2 font-semibold truncate me-0.5">
                           {p.title || 'Sans titre'}
-                        </Typography>
+                        </p>
                         {p.isImported && (
-                          <Chip
-                            size="small"
-                            icon={<CheckCircle2 size={11} />}
-                            label={row.selected
+                          <StatusChip size="sm" tokens={{ color: row.selected ? 'var(--ok)' : 'var(--err)', bg: row.selected ? 'var(--ok-soft)' : 'var(--err-soft)' }} label={row.selected
                               ? `Importee${p.clenzyPropertyName ? ` (${p.clenzyPropertyName})` : ''}`
-                              : 'Sera desimportee'}
-                            sx={{
-                              height: 18,
-                              fontSize: '0.65rem',
-                              bgcolor: row.selected ? 'var(--ok-soft)' : 'var(--err-soft)',
-                              color: row.selected ? 'var(--ok)' : 'var(--err)',
-                              '& .MuiChip-icon': {
-                                color: row.selected ? 'var(--ok)' : 'var(--err)',
-                                ml: 0.5,
-                              },
-                            }}
-                          />
+                              : 'Sera desimportee'} icon={<CheckCircle2 size={11} />} className="text-[0.65rem]" />
                         )}
                         {/* "Actif" est affiche dans la colonne droite (a cote des
                             logos OTA) — pas dans la rangee titre. */}
@@ -891,41 +727,17 @@ export default function ChannexImportDiscoveryDialog({
                             si room_type ou rate_plan manquent, on les creera automatiquement
                             (le user sait a quoi s'attendre avant de cliquer Importer). */}
                         {(!p.hasRoomType || !p.hasRatePlan) && (
-                          <Chip
-                            size="small"
-                            icon={<Sparkles size={11} />}
-                            label={
-                              !p.hasRoomType && !p.hasRatePlan
+                          <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--warn-soft)] text-[var(--warn)] [&>svg]:text-[var(--warn)] [&>svg]:ms-0.5"><Sparkles size={11} />{!p.hasRoomType && !p.hasRatePlan
                                 ? 'Room + Rate auto-crees'
-                                : !p.hasRoomType ? 'Room auto-cree' : 'Rate auto-cree'
-                            }
-                            sx={{
-                              height: 18,
-                              fontSize: '0.65rem',
-                              bgcolor: 'var(--warn-soft)',
-                              color: 'var(--warn)',
-                              '& .MuiChip-icon': { color: 'var(--warn)', ml: 0.5 },
-                            }}
-                          />
+                                : !p.hasRoomType ? 'Room auto-cree' : 'Rate auto-cree'}</Badge>
                         )}
                         {/* Contenu enrichi disponible (photos, description, address) :
                             visible quand le tier de distribution payant sync depuis Airbnb. */}
                         {p.photoCount > 0 && (
-                          <Chip
-                            size="small"
-                            icon={<ImageIcon size={11} />}
-                            label={`${p.photoCount} photo${p.photoCount > 1 ? 's' : ''}`}
-                            sx={{
-                              height: 18,
-                              fontSize: '0.65rem',
-                              bgcolor: 'var(--info-soft)',
-                              color: 'var(--info)',
-                              '& .MuiChip-icon': { color: 'var(--info)', ml: 0.5 },
-                            }}
-                          />
+                          <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--info-soft)] text-[var(--info)] [&>svg]:text-[var(--info)] [&>svg]:ms-0.5"><ImageIcon size={11} />{`${p.photoCount} photo${p.photoCount > 1 ? 's' : ''}`}</Badge>
                         )}
-                      </Stack>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.4 }}>
+                      </div>
+                      <span className="cn-text-caption text-muted-foreground block leading-[1.4]">
                         {[
                           p.country,
                           p.currency,
@@ -935,7 +747,7 @@ export default function ChannexImportDiscoveryDialog({
                         ]
                           .filter(Boolean)
                           .join(' · ')}
-                      </Typography>
+                      </span>
                       {/* Donnees STRUCTUREES OTA (rate_plan.settings) — pas de
                           scraping HTML. Chaque chip correspond a un champ JSON
                           de Channex (fiable et verifiable). Bedrooms/beds/baths/
@@ -946,249 +758,191 @@ export default function ChannexImportDiscoveryDialog({
                         || p.otaCheckOutTime != null || p.otaGuestsIncluded != null
                         || p.otaCancellationPolicy || p.otaInstantBooking
                         || p.otaAllowsPets != null) && (
-                        <Stack direction="row" spacing={0.5} flexWrap="wrap" alignItems="center" sx={{ mt: 0.5, gap: 0.5 }}>
+                        <div className="flex flex-row flex-wrap items-center gap-[3px] mt-[3px]">
                           {/* Type listing brut (donnee structuree primaire) */}
                           {p.otaListingType && (
-                            <Chip size="small" label={`Type OTA : ${p.otaListingType}`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--info-soft)', color: 'var(--info)', fontFamily: 'monospace' }} />
+                            <StatusChip size="sm" tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={`Type OTA : ${p.otaListingType}`} className="text-[0.65rem] font-mono" />
                           )}
                           {/* Tarifs */}
                           {p.otaNightlyPrice != null && (
-                            <Chip size="small" label={`${p.otaNightlyPrice} ${p.currency || 'EUR'} / nuit`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--ok-soft)', color: 'var(--ok)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--ok-soft)] text-[var(--ok)]">{`${p.otaNightlyPrice} ${p.currency || 'EUR'} / nuit`}</Badge>
                           )}
                           {p.otaWeekendPrice != null && p.otaWeekendPrice !== p.otaNightlyPrice && (
-                            <Chip size="small" label={`weekend : ${p.otaWeekendPrice} ${p.currency || 'EUR'}`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--ok-soft)', color: 'var(--ok)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--ok-soft)] text-[var(--ok)]">{`weekend : ${p.otaWeekendPrice} ${p.currency || 'EUR'}`}</Badge>
                           )}
                           {p.otaGuestsIncluded != null && (
-                            <Chip size="small" label={`${p.otaGuestsIncluded} voyageur${p.otaGuestsIncluded > 1 ? 's' : ''} inclus`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--info-soft)', color: 'var(--info)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--info-soft)] text-[var(--info)]">{`${p.otaGuestsIncluded} voyageur${p.otaGuestsIncluded > 1 ? 's' : ''} inclus`}</Badge>
                           )}
                           {p.otaPricePerExtraPerson != null && p.otaPricePerExtraPerson > 0 && (
-                            <Chip size="small" label={`+${p.otaPricePerExtraPerson} ${p.currency || 'EUR'} / voyageur supp.`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--info-soft)', color: 'var(--info)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--info-soft)] text-[var(--info)]">{`+${p.otaPricePerExtraPerson} ${p.currency || 'EUR'} / voyageur supp.`}</Badge>
                           )}
                           {p.otaMonthlyPriceFactor != null && p.otaMonthlyPriceFactor > 0 && (
-                            <Chip size="small" label={`-${p.otaMonthlyPriceFactor}% mensuel`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--field)', color: 'var(--muted)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--field)] text-[var(--muted)]">{`-${p.otaMonthlyPriceFactor}% mensuel`}</Badge>
                           )}
                           {/* Sejour */}
                           {p.otaMinNights != null && (
-                            <Chip size="small" label={`min ${p.otaMinNights} nuit${p.otaMinNights > 1 ? 's' : ''}`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--warn-soft)', color: 'var(--warn)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--warn-soft)] text-[var(--warn)]">{`min ${p.otaMinNights} nuit${p.otaMinNights > 1 ? 's' : ''}`}</Badge>
                           )}
                           {p.otaMaxNights != null && p.otaMaxNights < 365 && (
-                            <Chip size="small" label={`max ${p.otaMaxNights} nuits`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--warn-soft)', color: 'var(--warn)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--warn-soft)] text-[var(--warn)]">{`max ${p.otaMaxNights} nuits`}</Badge>
                           )}
                           {/* Check-in/out */}
                           {p.otaCheckOutTime != null && (
-                            <Chip size="small" label={`check-out ${p.otaCheckOutTime}h`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--info-soft)', color: 'var(--info)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--info-soft)] text-[var(--info)]">{`check-out ${p.otaCheckOutTime}h`}</Badge>
                           )}
                           {p.otaCheckInTimeStart && p.otaCheckInTimeStart !== 'FLEXIBLE' && (
-                            <Chip size="small" label={`check-in ${p.otaCheckInTimeStart}h`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--info-soft)', color: 'var(--info)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--info-soft)] text-[var(--info)]">{`check-in ${p.otaCheckInTimeStart}h`}</Badge>
                           )}
                           {/* Politiques */}
                           {p.otaCancellationPolicy && (
-                            <Chip size="small" label={`annulation : ${p.otaCancellationPolicy}`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--err-soft)', color: 'var(--err)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--err-soft)] text-[var(--err)]">{`annulation : ${p.otaCancellationPolicy}`}</Badge>
                           )}
                           {p.otaInstantBooking && (
-                            <Chip size="small" label={`booking : ${p.otaInstantBooking}`}
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--err-soft)', color: 'var(--err)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--err-soft)] text-[var(--err)]">{`booking : ${p.otaInstantBooking}`}</Badge>
                           )}
                           {/* Regles du logement (true uniquement = autorise par le host) */}
                           {p.otaAllowsPets === true && (
-                            <Chip size="small" label="animaux acceptes"
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--field)', color: 'var(--muted)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--field)] text-[var(--muted)]">animaux acceptes</Badge>
                           )}
                           {p.otaAllowsSmoking === true && (
-                            <Chip size="small" label="fumeurs acceptes"
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--field)', color: 'var(--muted)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--field)] text-[var(--muted)]">fumeurs acceptes</Badge>
                           )}
                           {p.otaAllowsEvents === true && (
-                            <Chip size="small" label="evenements acceptes"
-                              sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'var(--field)', color: 'var(--muted)' }} />
+                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--field)] text-[var(--muted)]">evenements acceptes</Badge>
                           )}
-                        </Stack>
+                        </div>
                       )}
-                    </Box>
+                    </div>
                     {/* Colonne droite : logos OTA + chip "Actif" en haut,
                         dropdown type Baitly en dessous. */}
-                    <Stack direction="column" spacing={1} alignItems="flex-end" sx={{ flexShrink: 0 }}>
+                    <div className="flex flex-col gap-1.5 items-end shrink-0">
                       {(p.connectedOtas?.length > 0 || p.hasActiveOta) && (
-                        <Stack direction="row" alignItems="center" spacing={0.75}>
+                        <div className="flex flex-row items-center gap-[4.5px]">
                           {p.connectedOtas && p.connectedOtas.length > 0 && (
                             <OtaSyncBadges otas={p.connectedOtas} size={22} />
                           )}
                           {p.hasActiveOta && (
-                            <Chip
-                              size="small"
-                              icon={<CheckCircle2 size={11} />}
-                              label="Actif"
-                              sx={{
-                                height: 20,
-                                fontSize: '0.7rem',
-                                bgcolor: 'var(--ok-soft)',
-                                color: 'var(--ok)',
-                                '& .MuiChip-icon': { color: 'var(--ok)', ml: 0.5 },
-                              }}
-                            />
+                            <Badge variant="secondary" className="h-[20px] text-[0.7rem] bg-[var(--ok-soft)] text-[var(--ok)] [&>svg]:text-[var(--ok)] [&>svg]:ms-0.5"><CheckCircle2 size={11} />Actif</Badge>
                           )}
-                        </Stack>
+                        </div>
                       )}
                       {/* Dropdown type Baitly : visible UNIQUEMENT pour les nouveaux
                           imports (proprietes non-importees). */}
                       {!p.isImported && (
-                        <FormControl size="small" sx={{ minWidth: 130 }}>
-                          <Select
-                            value={row.propertyType}
-                            onChange={(e) => updateType(p.channexPropertyId, e.target.value)}
-                            disabled={!row.selected}
-                            sx={{ fontSize: '0.8rem' }}
-                          >
-                            {propertyTypeOptions.map((opt) => (
-                              <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.85rem' }}>
-                                {opt.label}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
+                        <NativeSelect
+                          size="sm"
+                          className="min-w-[130px]"
+                          aria-label="Type de propriete Baitly"
+                          value={row.propertyType}
+                          onChange={(e) => updateType(p.channexPropertyId, e.target.value)}
+                          disabled={!row.selected}
+                        >
+                          {propertyTypeOptions.map((opt) => (
+                            <NativeSelectOption key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </NativeSelectOption>
+                          ))}
+                        </NativeSelect>
                       )}
-                    </Stack>
-                  </Box>
+                    </div>
+                  </div>
                 );
               })}
-            </Stack>
+            </div>
 
             {/* Details du recap (errors / skipped) */}
             {importResult && importResult.details.some((d) => d.status !== 'CREATED') && (
-              <Box sx={{ mt: 2 }}>
-                <Divider sx={{ mb: 1 }} />
-                <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>
+              <div className="mt-3">
+                <Separator className="mb-1.5" />
+                <span className="cn-text-caption text-muted-foreground font-semibold block mb-0.5">
                   Detail des cas particuliers
-                </Typography>
-                <Stack spacing={0.5}>
+                </span>
+                <div className="flex flex-col gap-[3px]">
                   {importResult.details
                     .flatMap((d) => d.status !== 'CREATED' ? [
-                      <Stack
+                      <div
                         key={d.channexPropertyId}
-                        direction="row"
-                        spacing={1}
-                        alignItems="center"
-                        sx={{ fontSize: '0.75rem' }}
+                        className="flex flex-row items-center gap-1.5 text-[0.75rem]"
                       >
                         <AlertCircle
                           size={12}
                           style={{ color: d.status === 'ERROR' ? 'var(--err)' : 'var(--warn)', flexShrink: 0 }}
                         />
-                        <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }} noWrap>
+                        <span className="cn-text-caption text-muted-foreground flex-1 truncate">
                           {d.channexPropertyId.slice(0, 8)} : {d.message}
-                        </Typography>
-                      </Stack>,
+                        </span>
+                      </div>,
                     ] : [])}
-                </Stack>
-              </Box>
+                </div>
+              </div>
             )}
           </>
         )}
-      </DialogContent>
+        </div>
 
       {/* Footer avec bouton Import */}
       {!loading && discovered.length > 0 && (
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 2,
-            px: 3,
-            py: 2,
-            borderTop: '1px solid',
-            borderColor: 'divider',
-            flexWrap: 'wrap',
-          }}
-        >
+        <div className="flex justify-between items-center gap-3 px-4 py-3 border-t border-[var(--line)] flex-wrap">
           {/* Override multi-tenant — visible uniquement pour les platform staff
               (SUPER_ADMIN / SUPER_MANAGER). Permet d'attribuer la property creee
               a une autre org + un autre user (sinon owner = self). */}
           {staffMode && diff.toImport.length > 0 ? (
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, flexShrink: 0 }}>
+            <div className="flex flex-row items-center gap-1.5 flex-1 min-w-0">
+              <span className="cn-text-caption text-muted-foreground font-semibold shrink-0">
                 Attribuer à :
-              </Typography>
-              <FormControl size="small" sx={{ minWidth: 160 }}>
-                <Select
-                  value={targetOrgId}
-                  onChange={(e) => setTargetOrgId(e.target.value as number | '')}
-                  displayEmpty
-                  sx={{ fontSize: '0.8rem' }}
-                  renderValue={(v) => v
-                    ? (organizations.find((o) => o.id === v)?.name ?? `Org #${v}`)
-                    : 'Mon organisation'}
-                >
-                  <MenuItem value="" sx={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
-                    Mon organisation (par défaut)
-                  </MenuItem>
-                  {organizations.map((o) => (
-                    <MenuItem key={o.id} value={o.id} sx={{ fontSize: '0.85rem' }}>
-                      {o.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              </span>
+              {/* Le placeholder de l'ancien renderValue devient la premiere option. */}
+              <NativeSelect
+                size="sm"
+                className="min-w-[160px]"
+                aria-label="Organisation cible"
+                value={targetOrgId === '' ? '' : String(targetOrgId)}
+                onChange={(e) => setTargetOrgId(e.target.value === '' ? '' : Number(e.target.value))}
+              >
+                <NativeSelectOption value="">Mon organisation (par défaut)</NativeSelectOption>
+                {organizations.map((o) => (
+                  <NativeSelectOption key={o.id} value={o.id}>
+                    {o.name}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
               {targetOrgId !== '' && (
-                <FormControl size="small" sx={{ minWidth: 160 }}>
-                  <Select
-                    value={targetOwnerId}
-                    onChange={(e) => setTargetOwnerId(e.target.value as number | '')}
-                    displayEmpty
-                    sx={{ fontSize: '0.8rem' }}
-                    renderValue={(v) => v
-                      ? (() => {
-                          const u = usersInOrg.find((x) => x.id === v);
-                          if (!u) return `User #${v}`;
-                          const name = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
-                          return name || u.email || `User #${v}`;
-                        })()
-                      : 'Choisir un owner'}
-                  >
-                    {usersInOrg.length === 0 && (
-                      <MenuItem value="" disabled sx={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
-                        Aucun user dans cette org
-                      </MenuItem>
-                    )}
-                    {usersInOrg.map((u) => {
-                      const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
-                      const label = fullName ? `${fullName} (${u.email})` : u.email;
-                      return (
-                        <MenuItem key={u.id} value={u.id} sx={{ fontSize: '0.85rem' }}>
-                          {label}
-                        </MenuItem>
-                      );
-                    })}
-                  </Select>
-                </FormControl>
+                <NativeSelect
+                  size="sm"
+                  className="min-w-[160px]"
+                  aria-label="Owner cible"
+                  value={targetOwnerId === '' ? '' : String(targetOwnerId)}
+                  onChange={(e) => setTargetOwnerId(e.target.value === '' ? '' : Number(e.target.value))}
+                >
+                  <NativeSelectOption value="">
+                    {usersInOrg.length === 0 ? 'Aucun user dans cette org' : 'Choisir un owner'}
+                  </NativeSelectOption>
+                  {usersInOrg.map((u) => {
+                    const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
+                    const label = fullName ? `${fullName} (${u.email})` : u.email;
+                    return (
+                      <NativeSelectOption key={u.id} value={u.id}>
+                        {label}
+                      </NativeSelectOption>
+                    );
+                  })}
+                </NativeSelect>
               )}
-            </Stack>
+            </div>
           ) : (
-            <Box sx={{ flex: 1 }} />
+            <div className="flex-1" />
           )}
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
-          <Button onClick={onClose} size="small" sx={{ textTransform: 'none', color: 'text.secondary' }}>
+          <div className="flex flex-row items-center gap-1.5 shrink-0">
+          <Button variant="ghost" size="sm" onClick={onClose} className="text-[var(--muted)]">
             Fermer
           </Button>
           <Button
-            variant="contained"
-            size="small"
+            variant="default"
+            size="sm"
             onClick={handleApply}
             disabled={importing || !hasChanges}
-            startIcon={importing ? <CircularProgress size={12} color="inherit" /> : <Download size={14} />}
-            sx={{ textTransform: 'none' }}
           >
+            {importing ? <Spinner className="size-3" /> : <Download size={14} />}
             {importing
               ? 'Application en cours...'
               : !hasChanges
@@ -1199,9 +953,10 @@ export default function ChannexImportDiscoveryDialog({
                     ? `Importer ${diff.toImport.length} propriete${diff.toImport.length > 1 ? 's' : ''}`
                     : `Desimporter ${diff.toDisconnect.length} propriete${diff.toDisconnect.length > 1 ? 's' : ''}`}
           </Button>
-          </Stack>
-        </Box>
+          </div>
+        </div>
       )}
+      </DialogContent>
     </Dialog>
 
     {/* iframe OAuth pour la connexion OTA "globale" depuis l'etat Hub vide.

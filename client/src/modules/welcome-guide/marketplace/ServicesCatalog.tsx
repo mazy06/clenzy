@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Skeleton, Box } from '@mui/material';
+import { Skeleton } from '../../../components/ui';
 import {
   LayoutGrid, List, Star, Plus, Check, Clock, Users, Globe, Calendar,
   ShieldCheck, ArrowLeft, BookOpen, Boxes, MoreHorizontal,
@@ -35,8 +35,13 @@ interface Props {
   onAdd: (exp: MarketplaceExperience) => Promise<void>;
   /** Ouvre le détail d'un service interne (géré par le parent). */
   onOpenInternal: (o: UpsellOffer) => void;
-  /** Ouvre le menu d'actions « … » d'un service interne (ancré sur l'élément). */
-  onMenuInternal: (el: HTMLElement, o: UpsellOffer) => void;
+  /**
+   * Menu d'actions « … » d'un service interne, rendu par le parent AVEC son
+   * declencheur. Le catalogue ne fait que lui donner sa place dans la ligne :
+   * un menu Radix ancre son panneau sur le declencheur qu'il rend lui-meme, et
+   * ne saurait pas quoi faire d'un `anchorEl` recu apres coup.
+   */
+  renderRowMenu: (o: UpsellOffer) => React.ReactNode;
 }
 
 const fmtEur = (n: number) => `${n} €`;
@@ -50,7 +55,7 @@ const tint = (hex: string, pct: number) => `color-mix(in srgb, ${hex} ${pct}%, t
  */
 export default function ServicesCatalog({
   loading = false, offers, search = '', kpis, addedTitles = [], typeLabel,
-  onAdd, onOpenInternal, onMenuInternal,
+  onAdd, onOpenInternal, renderRowMenu,
 }: Props) {
   const [view, setView] = useState<View>('cards');
   const [filter, setFilter] = useState<Filter>('Tous');
@@ -123,16 +128,6 @@ export default function ServicesCatalog({
       </button>
     );
   };
-
-  // Bouton menu « … » d'un service interne.
-  const menuBtn = (o: UpsellOffer) => (
-    <button
-      type="button" className="mp-imenu" aria-label="Actions"
-      onClick={(ev) => { ev.stopPropagation(); onMenuInternal(ev.currentTarget, o); }}
-    >
-      <MoreHorizontal size={18} strokeWidth={2} />
-    </button>
-  );
 
   // ── Écran de détail (expérience partenaire) ─────────────────────────────────
   if (selected) {
@@ -272,16 +267,17 @@ export default function ServicesCatalog({
           <div className="mp-grid">
             {Array.from({ length: 8 }).map((_, i) => (
               <div className="mp-card" key={i}>
-                <Skeleton variant="rectangular" height={138} sx={{ bgcolor: 'var(--hover)' }} />
+                <Skeleton className="h-[138px] w-full rounded-none bg-[var(--hover)]" />
                 <div className="mp-card__body">
-                  <Skeleton width="80%" height={18} /><Skeleton width="60%" height={14} />
-                  <Skeleton width="40%" height={24} sx={{ mt: 1 }} />
+                  <Skeleton className="h-[18px] w-[80%]" /><Skeleton className="h-[14px] w-[60%]" />
+                  {/* mt: 1 = 6 px (theme.spacing vaut 6). */}
+                  <Skeleton className="h-[24px] w-[40%] mt-[6px]" />
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="tbl mp-tbl">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} height={60} sx={{ bgcolor: 'var(--hover)' }} />)}</div>
+          <div className="tbl mp-tbl">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[60px] w-full bg-[var(--hover)]" />)}</div>
         )
       ) : visible.length === 0 ? (
         <p className="mp-empty">Aucun service pour ce filtre.</p>
@@ -303,13 +299,13 @@ export default function ServicesCatalog({
       )}
 
       {totalPages > 1 && (
-        <Box display="flex" justifyContent="center" mt={3}>
+        <div className="flex justify-center mt-[18px]">
           <PagePagination
             totalPages={totalPages}
             page={curPage - 1}
             onPageChange={(v) => setPage(v + 1)}
           />
-        </Box>
+        </div>
       )}
     </section>
   );
@@ -361,7 +357,7 @@ export default function ServicesCatalog({
           <p className="mp-card__desc">{typeLabel(o.type)}</p>
           <div className="mp-card__foot">
             <div className="mp-price"><span className="mp-price__v">{fmtPrice(o.price, o.currency)}</span></div>
-            {menuBtn(o)}
+            {renderRowMenu(o)}
           </div>
         </div>
       </article>
@@ -406,7 +402,7 @@ export default function ServicesCatalog({
         <span className={'mp-stat ' + (o.active ? 'on' : 'off')}><span className="mp-stat__led" />{o.active ? 'Actif' : 'Inactif'}</span>
         <span className="mp-row__price">{fmtPrice(o.price, o.currency)}</span>
         <span className="mp-row__chans">{chans}</span>
-        {menuBtn(o)}
+        {renderRowMenu(o)}
       </div>
     );
   }

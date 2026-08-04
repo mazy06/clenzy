@@ -1,24 +1,27 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Box,
-  Typography,
-  Chip,
   Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+  Alert,
+  AlertDescription,
+  Button,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
   Tooltip,
-  IconButton,
-  Alert,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import StatusChip, { type ToneTokens } from '../../components/StatusChip';
+import { cn } from '../../utils/cn';
 import {
-  ExpandMore,
   ContentCopy,
+  Info,
   Person,
   Home,
   Build,
@@ -29,7 +32,7 @@ import {
   GppGood,
   Email,
 } from '../../icons';
-// ─── Tons sémantiques (tokens Signature — pattern TONES/chipSx) ──────────────
+// ─── Tons sémantiques (tokens Signature — pattern TONES) ─────────────────────
 // Remplace l'ancienne palette hex Baitly : bleu doux → info, teal → ok,
 // warm → warn, rouge doux → err, primary/violet → accent, warm-gray → muted.
 
@@ -44,7 +47,8 @@ const TONES: Record<'ok' | 'accent' | 'warn' | 'err' | 'info' | 'muted', Tone> =
   muted:  { c: 'var(--muted)',  bg: 'var(--hover)' },
 };
 
-const chipSx = (tone: Tone) => ({ color: tone.c, bgcolor: tone.bg, '& .MuiChip-icon': { color: tone.c } });
+// Le ton local nomme son encre `c` ; la primitive attend `color`.
+const toneTokens = (tone: Tone): ToneTokens => ({ color: tone.c, bg: tone.bg });
 
 // ─── Définition de tous les tags disponibles (miroir de TagResolverService.java) ───
 
@@ -301,28 +305,17 @@ interface AvailableTagsReferenceProps {
 
 // Style cohérent partagé pour les chips ${...} (memes proportions que
 // TemplateCatalogAccordions : monospace, accent tinted, font 0.7rem).
-const codeChipSx = {
-  fontFamily: '"SF Mono", Menlo, Consolas, monospace',
-  fontSize: '0.7rem',
-  color: 'var(--accent)',
-  backgroundColor: 'var(--accent-soft)',
-  border: '1px solid',
-  borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)',
-  borderRadius: '4px',
-  px: 0.625,
-  py: '2px',
-  lineHeight: 1.5,
-  display: 'inline-block',
-  whiteSpace: 'nowrap' as const,
-};
+// Puce de code inline. La pile mono est posee en propriete arbitraire plutot
+// qu'avec `font-mono` : la classe Tailwind par defaut n'a pas la meme pile.
+const CODE_CHIP_CLASS =
+  'inline-block whitespace-nowrap rounded-[4px] border border-solid ' +
+  'border-[color-mix(in_srgb,_var(--accent)_25%,_transparent)] bg-[var(--accent-soft)] ' +
+  'px-[3.75px] py-[2px] text-[0.7rem] leading-normal text-[var(--accent)] ' +
+  "[font-family:'SF_Mono',_Menlo,_Consolas,_monospace]";
 
 const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search }) => {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [copiedTag, setCopiedTag] = useState<string | null>(null);
-
-  const handleToggleCategory = (categoryId: string) => {
-    setExpandedCategory((prev) => (prev === categoryId ? null : categoryId));
-  };
 
   const handleCopyTag = (tag: string) => {
     navigator.clipboard.writeText('${' + tag + '}');
@@ -346,196 +339,146 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
   const totalTags = TAG_CATEGORIES.reduce((sum, c) => sum + c.tags.length, 0);
 
   return (
-    <Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.78rem' }}>
+    <div>
+      <p className="cn-text-body2 text-muted-foreground mb-3 text-[0.78rem]">
         {totalTags} tags disponibles dans {TAG_CATEGORIES.length} catégories
-      </Typography>
+      </p>
 
       {/* Instructions — icone lucide ContentCopy inline (plus d'emoji) */}
-      <Alert
-        severity="info"
-        variant="outlined"
-        sx={{
-          mb: 3,
-          borderRadius: 1.5,
-          borderColor: 'color-mix(in srgb, var(--info) 30%, transparent)',
-          backgroundColor: 'var(--info-soft)',
-          color: 'text.primary',
-          '& .MuiAlert-icon': { color: 'var(--info)' },
-        }}
-      >
-        <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.6 }}>
-          <Box component="strong" sx={{ fontWeight: 600 }}>Comment utiliser les tags :</Box>{' '}
+      <Alert variant="info" className="mb-[18px]">
+        <Info />
+        <AlertDescription className="cn-text-body2 text-[0.8125rem] leading-[1.6]">
+          <strong className="font-semibold">Comment utiliser les tags :</strong>{' '}
           Dans votre fichier .odt, insérez les tags sous la forme{' '}
-          <Box component="code" sx={codeChipSx}>{'${categorie.champ}'}</Box>
+          <code className={CODE_CHIP_CLASS}>{'${categorie.champ}'}</code>
           . Par exemple{' '}
-          <Box component="code" sx={codeChipSx}>{'${client.nom}'}</Box>{' '}
+          <code className={CODE_CHIP_CLASS}>{'${client.nom}'}</code>{' '}
           sera remplacé par le nom du client. Cliquez sur l&apos;icône{' '}
-          <Box component="span" sx={{ display: 'inline-flex', verticalAlign: 'middle', color: 'var(--info)', mx: 0.25 }}>
+          <span className="inline-flex align-[middle] text-[var(--info)] mx-[1.5px]">
             <ContentCopy size={13} strokeWidth={1.75} />
-          </Box>{' '}
+          </span>{' '}
           à droite de chaque ligne pour copier un tag prêt à coller.
-        </Typography>
+        </AlertDescription>
       </Alert>
 
-      {/* Catégories de tags */}
+      {/* Catégories de tags — un seul Accordion pilote, une categorie ouverte a la fois */}
+      <Accordion
+        type="single"
+        collapsible
+        value={expandedCategory ?? ''}
+        onValueChange={(value) => setExpandedCategory(value || null)}
+      >
       {filteredCategories.map((category) => (
-        <Accordion
+        <AccordionItem
           key={category.id}
-          expanded={expandedCategory === category.id}
-          onChange={() => handleToggleCategory(category.id)}
-          disableGutters
-          elevation={0}
-          sx={{
-            mb: 1,
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: '8px !important',
-            '&:before': { display: 'none' },
-            transition: 'border-color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-            '&:hover': { borderColor: 'text.disabled' },
-          }}
+          value={category.id}
+          className="mb-1.5 rounded-[8px] border border-solid border-[var(--line)] transition-[border-color] duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-[var(--faint)]"
         >
-          <AccordionSummary
-            expandIcon={<ExpandMore size={18} strokeWidth={1.75} />}
-            sx={{
-              borderRadius: '8px',
-              cursor: 'pointer',
-              '&.Mui-expanded': {
-                borderBottomLeftRadius: 0,
-                borderBottomRightRadius: 0,
-                borderBottom: '1px solid',
-                borderColor: 'divider',
-              },
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, width: '100%', minWidth: 0 }}>
+          <AccordionTrigger className="cursor-pointer rounded-[8px] px-3 aria-expanded:rounded-b-none aria-expanded:border-b aria-expanded:border-solid aria-expanded:border-b-[var(--line)]">
+            <div className="flex items-center gap-2 w-full min-w-0">
               {/* Badge icone Baitly (tile 26x26 tintee, icon 16px) */}
-              <Box
-                sx={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 1,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: category.tone.bg,
-                  color: category.tone.c,
-                  flexShrink: 0,
-                }}
-              >
+              <div className="w-[26px] h-[26px] rounded-[8px] inline-flex items-center justify-center shrink-0" style={{ backgroundColor: category.tone.bg, color: category.tone.c }}>
                 {React.isValidElement(category.icon)
                   ? React.cloneElement(category.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
                       size: 16,
                       strokeWidth: 1.75,
                     })
                   : category.icon}
-              </Box>
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary' }}>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="cn-text-body1 font-semibold text-[0.875rem] text-foreground">
                   {category.label}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block', lineHeight: 1.4 }}>
+                </p>
+                <span className="cn-text-caption text-muted-foreground text-[0.7rem] block leading-[1.4]">
                   {category.description}
-                </Typography>
-              </Box>
-              <Chip
+                </span>
+              </div>
+              <StatusChip
+                tokens={toneTokens(category.tone)}
                 label={`${category.tags.length} tags`}
-                size="small"
-                sx={chipSx(category.tone)}
               />
-            </Box>
-          </AccordionSummary>
-          <AccordionDetails sx={{ p: 0 }}>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow
-                    sx={{
-                      // Header de table tres subtil (au lieu de action.hover agressif)
-                      backgroundColor: 'background.default',
-                      '& th': {
-                        fontWeight: 600,
-                        fontSize: '0.7rem',
-                        color: 'text.secondary',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.02em',
-                        py: 1,
-                        borderBottom: '1px solid',
-                        borderColor: 'divider',
-                      },
-                    }}
-                  >
-                    <TableCell sx={{ width: '30%' }}>Tag</TableCell>
-                    <TableCell sx={{ width: '30%' }}>Description</TableCell>
-                    <TableCell sx={{ width: '10%' }}>Type</TableCell>
-                    <TableCell sx={{ width: '25%' }}>Exemple</TableCell>
-                    <TableCell sx={{ width: '5%' }} align="center">Copier</TableCell>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                {/* Header de table tres subtil (au lieu d'un survol agressif) */}
+                <TableHeader className="bg-[var(--bg)] [&_th]:py-1.5 [&_th]:text-[0.7rem] [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-[0.02em] [&_th]:text-[var(--muted)] [&_th]:border-b [&_th]:border-solid [&_th]:border-b-[var(--line)]">
+                  <TableRow>
+                    <TableHead className="w-[30%]">Tag</TableHead>
+                    <TableHead className="w-[30%]">Description</TableHead>
+                    <TableHead className="w-[10%]">Type</TableHead>
+                    <TableHead className="w-[25%]">Exemple</TableHead>
+                    <TableHead className="w-[5%] text-center">Copier</TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {category.tags.map((tagDef) => (
                     <TableRow
                       key={tagDef.tag}
-                      hover
-                      sx={{ '&:last-child td': { borderBottom: 0 } }}
+                      className="hover:bg-[var(--hover)] last:[&_td]:border-b-0"
                     >
                       <TableCell>
-                        <Box component="code" sx={codeChipSx}>
+                        <code className={CODE_CHIP_CLASS}>
                           {'${' + tagDef.tag + '}'}
-                        </Box>
+                        </code>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+                        <p className="cn-text-body2 text-[0.8125rem]">
                           {tagDef.description}
-                        </Typography>
+                        </p>
                       </TableCell>
                       <TableCell>
-                        <Chip
+                        <StatusChip
+                          tokens={toneTokens(TYPE_TONES[tagDef.type])}
                           label={TYPE_LABELS[tagDef.type]}
-                          size="small"
-                          sx={chipSx(TYPE_TONES[tagDef.type])}
                         />
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.8125rem' }}>
+                        <p className="cn-text-body2 text-muted-foreground italic text-[0.8125rem]">
                           {tagDef.example}
-                        </Typography>
+                        </p>
                       </TableCell>
-                      <TableCell align="center">
-                        <Tooltip title={copiedTag === tagDef.tag ? 'Copié !' : 'Copier le tag'} arrow>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleCopyTag(tagDef.tag)}
-                            aria-label={`Copier le tag ${tagDef.tag}`}
-                            sx={{
-                              cursor: 'pointer',
-                              color: copiedTag === tagDef.tag ? 'var(--ok)' : 'text.secondary',
-                              transition: 'color 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-                              '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' },
-                            }}
-                          >
-                            <ContentCopy size={15} strokeWidth={1.75} />
-                          </IconButton>
+                      <TableCell className="text-center">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => handleCopyTag(tagDef.tag)}
+                              aria-label={`Copier le tag ${tagDef.tag}`}
+                              className={cn(
+                                'transition-colors duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                                'hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]',
+                                copiedTag === tagDef.tag ? 'text-[var(--ok)]' : 'text-[var(--muted)]',
+                              )}
+                            >
+                              <ContentCopy size={15} strokeWidth={1.75} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {copiedTag === tagDef.tag ? 'Copié !' : 'Copier le tag'}
+                          </TooltipContent>
                         </Tooltip>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </TableContainer>
-          </AccordionDetails>
-        </Accordion>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
       ))}
+      </Accordion>
 
       {filteredCategories.length === 0 && (
-        <Box sx={{ textAlign: 'center', py: 4 }}>
-          <Typography color="text.secondary">
+        <div className="text-center py-6">
+          <p className="cn-text-body1 text-muted-foreground">
             Aucun tag ne correspond à la recherche &quot;{search}&quot;
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

@@ -1,7 +1,18 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
 import {
-  Box, Paper, Typography, Chip, Tooltip, IconButton,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, } from '@mui/material';
+  Button,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility, Edit, BroomFill, Power, Delete, Business } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -11,7 +22,7 @@ import { Money } from '../../components/Money';
 import MissingContractChip from './MissingContractChip';
 import { estimateCleaningDuration, formatDuration } from './PropertyCard';
 import { toPropertyDetails } from './propertyDetailsMapper';
-import { LIST_PAPER_SX, LIST_ROWS_PER_PAGE_OPTIONS, softDataChipSx, FIELD_CHIP_SX, propertyGradientCss } from './propertiesListConstants';
+import { LIST_ROWS_PER_PAGE_OPTIONS, FIELD_TOKENS, FIELD_CHIP_CLASS, propertyGradientCss } from './propertiesListConstants';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import type { ChannexMappingDto } from '../../services/api/channexApi';
 import {
@@ -52,77 +63,40 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
   const { t } = useTranslation();
 
   return (
-    <Paper
-      sx={{
-        ...LIST_PAPER_SX,
-        flex: 1,
-        minHeight: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}
-    >
-      <TableContainer sx={{ flex: 1, overflow: 'hidden' }}>
-        <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
-          <TableHead>
-            <TableRow
-              sx={{
-                // .pr-lhead — entête overline sur surface sur-élevée (h42)
-                '& th': {
-                  fontWeight: 700,
-                  fontSize: '10.5px',
-                  letterSpacing: '.05em',
-                  textTransform: 'uppercase',
-                  color: 'var(--faint)',
-                  bgcolor: 'var(--surface-2)',
-                  height: 42,
-                  py: 0,
-                  borderBottom: '1px solid var(--line)',
-                  whiteSpace: 'nowrap',
-                },
-              }}
-            >
-              <TableCell sx={{ width: '28%' }}>Nom</TableCell>
-              <TableCell sx={{ width: '11%' }}>Type</TableCell>
-              <TableCell sx={{ width: '20%' }}>Caractéristiques</TableCell>
-              <TableCell sx={{ width: '18%' }}>Commodités</TableCell>
-              <TableCell sx={{ width: '13%' }}>Ménage</TableCell>
-              <TableCell align="center" sx={{ width: '10%' }}>Actions</TableCell>
+    // Equivalent classes de LIST_PAPER_SX (hairline --line, r14, fond --card).
+    <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] shadow-none">
+      <div className="flex-1 overflow-hidden">
+        <Table className="table-fixed w-full">
+          <TableHeader>
+            {/* .pr-lhead — entête overline sur surface sur-élevée (h42) ; seuls le
+                fond, la hauteur et le py:0 s'ecartent du primitif. */}
+            <TableRow className="bg-[var(--surface-2)] h-[42px]">
+              <TableHead className="w-[28%] py-0">Nom</TableHead>
+              <TableHead className="w-[11%] py-0">Type</TableHead>
+              <TableHead className="w-[20%] py-0">Caractéristiques</TableHead>
+              <TableHead className="w-[18%] py-0">Commodités</TableHead>
+              <TableHead className="w-[13%] py-0">Ménage</TableHead>
+              <TableHead className="w-[10%] py-0 text-center">Actions</TableHead>
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {properties.map((property) => {
               const details = toPropertyDetails(property);
               const price = cleaningEstimates[Number(property.id)];
               const duration = estimateCleaningDuration(details);
+              // .pr-lrow:hover → fond accent doux, plus soutenu que le --hover du primitif
               return (
                 <TableRow
                   key={property.id}
-                  hover
-                  sx={{
-                    cursor: 'pointer',
-                    '& td': { borderBottom: '1px solid var(--line)', fontSize: '12.5px' },
-                    // .pr-lrow:hover → fond accent doux (transition douce, pas de scale)
-                    transition: 'background-color .12s',
-                    '&:hover': { bgcolor: 'var(--accent-soft)' },
-                    '&:last-child td': { borderBottom: 0 },
-                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                  }}
+                  className="cursor-pointer hover:bg-[var(--accent-soft)] motion-reduce:transition-none"
                   onClick={() => navigate(`/properties/${property.id}`)}
                 >
-                  <TableCell sx={{ py: 1, pr: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, gap: 1.25 }}>
+                  <TableCell className="py-1.5 pe-1.5">
+                    <div className="flex items-center min-w-0 gap-2">
                       {/* .pr-lthumb — vignette dégradé déterministe + icône immeuble (photo en overlay si dispo) */}
-                      <Box
-                        sx={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: '11px',
-                          flexShrink: 0,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'rgba(255,255,255,.8)',
+                      <div
+                        className="w-11 h-11 rounded-[11px] shrink-0 flex items-center justify-center text-[rgba(255,255,255,.8)]"
+                        style={{
                           background: propertyGradientCss(property.id || property.name),
                           ...(property.photoUrls && property.photoUrls.length > 0
                             ? {
@@ -134,25 +108,12 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                         }}
                       >
                         <Business size={20} strokeWidth={1.75} />
-                      </Box>
-                      <Box sx={{ minWidth: 0 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, gap: 0.75 }}>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontFamily: 'var(--font-display)',
-                              fontWeight: 600,
-                              fontSize: '14px',
-                              color: 'var(--ink)',
-                              letterSpacing: '-.01em',
-                              minWidth: 0,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center min-w-0 gap-1">
+                          <p className="cn-text-body2 font-[family-name:var(--font-display)] font-semibold text-[14px] text-[var(--ink)] tracking-[-.01em] min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
                             {property.name}
-                          </Typography>
+                          </p>
                           {/* Quick Win #4 : badge sante Channex (visible si mapping present) */}
                           {channexMappings.get(Number(property.id)) && (
                             <ChannexHealthBadge
@@ -167,159 +128,158 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                               onClick={(e) => { e.stopPropagation(); onMissingContractClick(Number(property.id)); }}
                             />
                           )}
-                        </Box>
+                        </div>
                         {/* .pr-lci — localisation (ville) sous le nom */}
-                        <Typography
-                          sx={{
-                            fontSize: '11.5px',
-                            color: 'var(--muted)',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            mt: '1px',
-                          }}
-                        >
+                        <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] overflow-hidden text-ellipsis whitespace-nowrap mt-[1px]">
                           {property.city}
-                        </Typography>
-                      </Box>
-                    </Box>
+                        </p>
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell>
                     {(() => { const c = getPropertyTypeHex(property.type); return (
-                    <Chip
-                      label={getPropertyTypeLabel(property.type, t)}
-                      size="small"
-                      sx={{ ...softDataChipSx(c), '& .MuiChip-label': { px: 1 } }}
-                    />
+                    <StatusChip color={c} label={getPropertyTypeLabel(property.type, t)} />
                     ); })()}
                   </TableCell>
                   <TableCell>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{
-                        fontSize: '0.78rem',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
+                    <p className="cn-text-body2 text-muted-foreground text-[0.78rem] overflow-hidden text-ellipsis whitespace-nowrap">
                       {property.bedrooms} ch. · {property.bathrooms} sdb · {property.squareMeters ?? 0} m² · {property.guests} voy.
-                    </Typography>
+                    </p>
                   </TableCell>
                   <TableCell>
                     {property.amenities && property.amenities.length > 0 ? (
-                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', alignItems: 'center', minWidth: 0 }}>
+                      <div className="flex gap-0.5 flex-nowrap items-center min-w-0">
                         {property.amenities.slice(0, 2).map((amenity) => (
-                          <Chip
+                          <StatusChip
                             key={amenity}
+                            tokens={FIELD_TOKENS}
                             label={t(`properties.amenities.items.${amenity}`)}
-                            size="small"
-                            sx={{
-                              ...FIELD_CHIP_SX,
-                              minWidth: 0,
-                              flexShrink: 1,
-                              '& .MuiChip-label': {
-                                px: 1,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                display: 'block',
-                              },
-                            }}
+                            className={cn(FIELD_CHIP_CLASS, 'min-w-0 shrink truncate')}
                           />
                         ))}
                         {property.amenities.length > 2 && (
                           <ThemedTooltip
                             title={
-                              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              <div className="flex flex-wrap gap-0.5">
                                 {property.amenities.map((a) => (
-                                  <Chip
+                                  <StatusChip
                                     key={a}
+                                    tokens={FIELD_TOKENS}
                                     label={t(`properties.amenities.items.${a}`)}
-                                    size="small"
-                                    sx={{ ...FIELD_CHIP_SX, height: 20, '& .MuiChip-label': { px: 1 } }}
+                                    className={cn(FIELD_CHIP_CLASS, 'h-[20px]')}
                                   />
                                 ))}
-                              </Box>
+                              </div>
                             }
                             arrow
                             placement="top"
                           >
-                            <Chip
-                              label={`+${property.amenities.length - 2}`}
-                              size="small"
-                              sx={{ color: 'var(--muted)', bgcolor: 'var(--hover)', border: 'none', flexShrink: 0, '& .MuiChip-label': { px: 1 }, cursor: 'default' }}
-                            />
+                            <StatusChip tone="neutral" label={`+${property.amenities.length - 2}`} className="shrink-0 cursor-default tabular-nums" />
                           </ThemedTooltip>
                         )}
-                      </Box>
+                      </div>
                     ) : (
-                      <Typography variant="body2" color="text.secondary">—</Typography>
+                      <p className="cn-text-body2 text-muted-foreground">—</p>
                     )}
                   </TableCell>
                   <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    <div className="flex items-center gap-1">
                       {(() => { const freq = property.cleaningFrequency || 'ON_DEMAND'; return (
-                        <Tooltip title={`Ménage auto : ${getCleaningFrequencyLabel(freq, t)}`}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: getCleaningFrequencyHex(freq), flexShrink: 0 }}>
-                            <BroomFill size={16} />
-                          </Box>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex shrink-0" style={{ color: getCleaningFrequencyHex(freq) }}>
+                              <BroomFill size={16} />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{`Ménage auto : ${getCleaningFrequencyLabel(freq, t)}`}</TooltipContent>
                         </Tooltip>
                       ); })()}
                       {price != null ? (
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography variant="body2" sx={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '13px', lineHeight: 1.2, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+                        <div className="min-w-0">
+                          <p className="cn-text-body2 font-[family-name:var(--font-display)] font-semibold text-[13px] leading-[1.2] text-[var(--ink)] tabular-nums">
                             <Money value={price} from="EUR" decimals={0} />
-                          </Typography>
+                          </p>
                           {duration != null && (
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
+                            <span className="cn-text-caption text-muted-foreground text-[0.68rem]">
                               ~{formatDuration(duration)}
-                            </Typography>
+                            </span>
                           )}
-                        </Box>
+                        </div>
                       ) : (
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.82rem' }}>—</Typography>
+                        <p className="cn-text-body2 text-muted-foreground text-[0.82rem]">—</p>
                       )}
-                    </Box>
+                    </div>
                   </TableCell>
-                  <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
+                  <TableCell className="text-center">
                     {(() => { const sc = getPropertyStatusHex(property.status); return (
-                      <Tooltip title={`${getPropertyStatusLabel(property.status, t)} — cliquer pour ${property.status === 'active' ? 'désactiver' : 'activer'}`}>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => { e.stopPropagation(); onToggleStatus(property); }}
-                          sx={{ color: sc, mr: 0.25 }}
-                        >
-                          <Power size={16} strokeWidth={2} />
-                        </IconButton>
+                      <Tooltip>
+                        {/* Le trigger enveloppe un <span> (element hote) : Radix y pose sa
+                            ref d'ancrage, qu'un composant fonction React 18 ne recoit pas. */}
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={getPropertyStatusLabel(property.status, t)}
+                              onClick={(e) => { e.stopPropagation(); onToggleStatus(property); }}
+                              style={{ color: sc }}
+                              className="me-[1.5px]"
+                            >
+                              <Power size={16} strokeWidth={2} />
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {`${getPropertyStatusLabel(property.status, t)} — cliquer pour ${property.status === 'active' ? 'désactiver' : 'activer'}`}
+                        </TooltipContent>
                       </Tooltip>
                     ); })()}
-                    <Tooltip title="Détails">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/properties/${property.id}`); }}
-                      >
-                        <Visibility size={18} strokeWidth={1.75} />
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Détails"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/properties/${property.id}`); }}
+                          >
+                            <Visibility size={18} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Détails</TooltipContent>
                     </Tooltip>
-                    <Tooltip title="Modifier">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/properties/${property.id}/edit`); }}
-                      >
-                        <Edit size={18} strokeWidth={1.75} />
-                      </IconButton>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Modifier"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/properties/${property.id}/edit`); }}
+                          >
+                            <Edit size={18} strokeWidth={1.75} />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Modifier</TooltipContent>
                     </Tooltip>
                     {canManageContracts ? (
-                      <Tooltip title="Supprimer">
-                        <IconButton
-                          size="small"
-                          onClick={(e) => { e.stopPropagation(); onDelete(property); }}
-                          sx={{ color: 'error.main' }}
-                        >
-                          <Delete size={18} strokeWidth={1.75} />
-                        </IconButton>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label="Supprimer"
+                              onClick={(e) => { e.stopPropagation(); onDelete(property); }}
+                              className="text-[var(--err)]"
+                            >
+                              <Delete size={18} strokeWidth={1.75} />
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Supprimer</TooltipContent>
                       </Tooltip>
                     ) : null}
                   </TableCell>
@@ -328,7 +288,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
             })}
           </TableBody>
         </Table>
-      </TableContainer>
+      </div>
       <PagePagination
         count={totalCount}
         page={page}
@@ -337,7 +297,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
         rowsPerPageOptions={LIST_ROWS_PER_PAGE_OPTIONS}
         onRowsPerPageChange={(rows) => onRowsPerPageChange(rows)}
       />
-    </Paper>
+    </div>
   );
 };
 

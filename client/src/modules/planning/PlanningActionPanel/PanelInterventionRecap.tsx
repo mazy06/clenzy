@@ -1,23 +1,28 @@
 import React, { useState } from 'react';
+import { cn } from '../../../utils/cn';
+import StatusChip from '../../../components/StatusChip';
+import { Info } from 'lucide-react';
 import {
-  Box,
-  Typography,
   Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Chip,
-  Divider,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
   Alert,
-} from '@mui/material';
+  AlertDescription,
+  Separator,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Button,
+  Field,
+  FieldLabel,
+  NativeSelect,
+  NativeSelectOption,
+  Textarea,
+} from '../../../components/ui';
 import {
-  ExpandMore,
   Notes,
   Warning,
   Schedule,
@@ -73,11 +78,6 @@ const SEVERITY_TOKENS: Record<string, ToneTokens> = {
 };
 
 /** Chip statut pilule — même pattern que PanelReservationInfo (texte couleur + fond soft). */
-const chipSx = (bg: string, color: string) => ({
-  ...toneTokensSx({ color, bg }),
-  borderRadius: 'var(--radius-pill)',
-  fontVariantNumeric: 'tabular-nums',
-});
 
 const OVERLINE_SX = {
   fontSize: '0.625rem',
@@ -86,6 +86,9 @@ const OVERLINE_SX = {
   letterSpacing: '0.08em',
   color: 'var(--faint)',
 };
+
+/** Report en classes de `OVERLINE_SX`. */
+const OVERLINE_CLASS = 'text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[var(--faint)]';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -103,8 +106,9 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
 
   if (!intervention) {
     return (
-      <Alert severity="info" sx={{ fontSize: '0.75rem' }}>
-        Aucune donnée d'intervention disponible
+      <Alert variant="info" className="text-[0.75rem]">
+        <Info />
+        <AlertDescription>Aucune donnée d'intervention disponible</AlertDescription>
       </Alert>
     );
   }
@@ -126,9 +130,9 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
   const hasNotes = Object.keys(stepNotes).length > 0;
 
   return (
-    <Box>
+    <div>
       {/* Status + duration summary */}
-      <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+      <div className="flex gap-1.5 mb-3 flex-wrap">
         {(() => {
           const t = intervention.status === 'completed'
             ? { bg: 'var(--ok-soft)', color: 'var(--ok)' }
@@ -136,183 +140,169 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
               ? { bg: 'var(--info-soft)', color: 'var(--info)' }
               : { bg: 'var(--warn-soft)', color: 'var(--warn)' };
           return (
-            <Chip label={intervention.status} size="small" sx={chipSx(t.bg, t.color)} />
+            <StatusChip pill tokens={{ color: t.color, bg: t.bg }} label={intervention.status} />
           );
         })()}
         {intervention.estimatedDurationHours && (
-          <Chip
-            icon={<Schedule size={12} strokeWidth={1.75} />}
-            label={`${intervention.estimatedDurationHours}h estimées`}
-            size="small"
-            sx={chipSx('var(--info-soft)', 'var(--info)')}
-          />
+          <StatusChip pill tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={`${intervention.estimatedDurationHours}h estimées`} icon={<Schedule size={12} strokeWidth={1.75} />} />
         )}
         {intervention.estimatedDurationHours && (
-          <Chip
-            icon={<AttachMoney size={12} strokeWidth={1.75} />}
-            label={`${(intervention.estimatedDurationHours * 25).toFixed(0)} EUR`}
-            size="small"
-            sx={chipSx('var(--ok-soft)', 'var(--ok)')}
-          />
+          <StatusChip pill tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label={`${(intervention.estimatedDurationHours * 25).toFixed(0)} EUR`} icon={<AttachMoney size={12} strokeWidth={1.75} />} />
         )}
-      </Box>
+      </div>
 
       {/* Photos avant */}
       <PanelPhotoGallery photos={beforePhotos} label="Photos avant" />
 
-      <Divider sx={{ my: 1.5 }} />
+      <Separator className="my-[9px]" />
 
       {/* Photos après */}
       <PanelPhotoGallery photos={afterPhotos} label="Photos après" />
 
-      <Divider sx={{ my: 1.5 }} />
+      <Separator className="my-[9px]" />
 
       {/* Notes per step */}
-      <Typography sx={{ ...OVERLINE_SX, mb: 1 }}>
+      {/* mb: 1 = 6 px (theme.spacing vaut 6). */}
+      <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-[6px]')}>
         Notes
-      </Typography>
+      </p>
 
       {!hasNotes && !intervention.notes ? (
-        <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)', fontStyle: 'italic', mb: 1.5 }}>
+        <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] italic mb-2">
           Aucune note enregistrée
-        </Typography>
+        </p>
       ) : (
         <>
-          {['inspection', 'rooms', 'after_photos'].map((step) => {
-            const note = stepNotes[step];
-            if (!note) return null;
-            const labels: Record<string, string> = {
-              inspection: 'Inspection',
-              rooms: 'Pièces',
-              after_photos: 'Photos après',
-            };
-            return (
-              <Accordion
-                key={step}
-                disableGutters
-                elevation={0}
-                defaultExpanded
-                sx={{ '&:before': { display: 'none' }, border: '1px solid var(--line)', borderRadius: '9px !important', mb: 0.75, backgroundColor: 'var(--card)', backgroundImage: 'none' }}
-              >
-                <AccordionSummary expandIcon={<ExpandMore size={16} strokeWidth={1.75} />} sx={{ minHeight: 32, '& .MuiAccordionSummary-content': { my: 0.25 } }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Notes size={14} strokeWidth={1.75} /></Box>
-                    <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>{labels[step]}</Typography>
-                  </Box>
-                </AccordionSummary>
-                <AccordionDetails sx={{ pt: 0, pb: 1 }}>
-                  <Typography sx={{ fontSize: '0.6875rem', whiteSpace: 'pre-wrap' }}>{note}</Typography>
-                </AccordionDetails>
-              </Accordion>
-            );
-          })}
+          <Accordion
+            type="multiple"
+            defaultValue={['inspection', 'rooms', 'after_photos']}
+            className="gap-[4.5px]"
+          >
+            {['inspection', 'rooms', 'after_photos'].map((step) => {
+              const note = stepNotes[step];
+              if (!note) return null;
+              const labels: Record<string, string> = {
+                inspection: 'Inspection',
+                rooms: 'Pièces',
+                after_photos: 'Photos après',
+              };
+              return (
+                <AccordionItem
+                  key={step}
+                  value={step}
+                  className="border border-solid border-[var(--line)] rounded-[9px] bg-[var(--card)]"
+                >
+                  <AccordionTrigger className="min-h-8 items-center px-2 py-1">
+                    <div className="flex items-center gap-0.5">
+                      <span className="inline-flex text-[var(--accent)]"><Notes size={14} strokeWidth={1.75} /></span>
+                      <p className="cn-text-body1 text-[0.6875rem] font-semibold">{labels[step]}</p>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-2 pt-0 pb-[6px]">
+                    <p className="cn-text-body1 text-[0.6875rem] whitespace-pre-wrap">{note}</p>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
 
           {/* Raw notes fallback if no structured notes */}
           {!hasNotes && intervention.notes && (
-            <Box sx={{ p: 1.25, backgroundColor: 'var(--field)', borderRadius: '10px', mb: 1.5 }}>
-              <Typography sx={{ fontSize: '0.6875rem', color: 'var(--body)', whiteSpace: 'pre-wrap' }}>{intervention.notes}</Typography>
-            </Box>
+            <div className="p-2 bg-[var(--field)] rounded-[10px] mb-2">
+              <p className="cn-text-body1 text-[0.6875rem] text-[var(--body)] whitespace-pre-wrap">{intervention.notes}</p>
+            </div>
           )}
         </>
       )}
 
-      <Divider sx={{ my: 1.5 }} />
+      <Separator className="my-[9px]" />
 
       {/* Signalements */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-        <Typography sx={OVERLINE_SX}>
+      <div className="flex items-center justify-between mb-1.5">
+        <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>
           Signalements ({signalements.length})
-        </Typography>
+        </p>
         <Button
-          size="small"
-          startIcon={<Add size={14} strokeWidth={1.75} />}
+          variant="ghost"
+          size="sm"
           onClick={() => setAddDialogOpen(true)}
-          sx={{ textTransform: 'none', fontSize: '0.625rem' }}
+          className="text-[0.625rem]"
         >
+          <Add size={14} strokeWidth={1.75} />
           Ajouter
         </Button>
-      </Box>
+      </div>
 
       {signalements.length === 0 ? (
-        <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)', fontStyle: 'italic' }}>
+        <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] italic">
           Aucun signalement
-        </Typography>
+        </p>
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+        <div className="flex flex-col gap-1">
           {signalements.map((s, i) => (
-            <Box
-              key={i}
-              sx={{
-                p: 1.25,
-                border: '1px solid var(--line)',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 1,
-              }}
-            >
+            <div className="p-2 border border-[var(--line)] rounded-[10px] flex items-start gap-1.5" key={i}>
               {(() => { const t = SEVERITY_TOKENS[s.severity] || SEVERITY_TOKENS.moyenne; return (
               <>
-              <Box component="span" sx={{ display: 'inline-flex', color: t.color, mt: 0.25 }}><Warning size={16} strokeWidth={1.75} /></Box>
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Chip
-                  label={s.severity.charAt(0).toUpperCase() + s.severity.slice(1)}
-                  size="small"
-                  sx={{ ...chipSx(t.bg, t.color), mb: 0.5 }}
-                />
-                <Typography sx={{ fontSize: '0.6875rem', color: 'var(--body)' }}>{s.description}</Typography>
-              </Box>
+              <span className="inline-flex mt-[1.5px]" style={{ color: t.color }}><Warning size={16} strokeWidth={1.75} /></span>
+              <div className="flex-1 min-w-0">
+                <StatusChip pill tokens={{ color: t.color, bg: t.bg }} label={s.severity.charAt(0).toUpperCase() + s.severity.slice(1)} className="mb-0.5" />
+                <p className="cn-text-body1 text-[0.6875rem] text-[var(--body)]">{s.description}</p>
+              </div>
               </>
               ); })()}
-            </Box>
+            </div>
           ))}
-        </Box>
+        </div>
       )}
 
       {/* Add signalement dialog */}
-      <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Ajouter un signalement</DialogTitle>
-        <DialogContent>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            label="Sévérité"
-            value={newSeverity}
-            onChange={(e) => setNewSeverity(e.target.value as Signalement['severity'])}
-            sx={{ mb: 2, mt: 1 }}
-          >
-            <MenuItem value="basse">Basse</MenuItem>
-            <MenuItem value="moyenne">Moyenne</MenuItem>
-            <MenuItem value="haute">Haute</MenuItem>
-          </TextField>
-          <TextField
-            fullWidth
-            size="small"
-            label="Description"
-            multiline
-            rows={3}
-            value={newDescription}
-            onChange={(e) => setNewDescription(e.target.value)}
-          />
+      <Dialog open={addDialogOpen} onOpenChange={(next) => { if (!next) setAddDialogOpen(false); }}>
+        {/* maxWidth="xs" MUI = 444 px. */}
+        <DialogContent className="sm:max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>Ajouter un signalement</DialogTitle>
+          </DialogHeader>
+          <Field className="mt-1.5 mb-3">
+            <FieldLabel htmlFor="signalement-severity">Sévérité</FieldLabel>
+            <NativeSelect
+              id="signalement-severity"
+              className="w-full"
+              value={newSeverity}
+              onChange={(e) => setNewSeverity(e.target.value as Signalement['severity'])}
+            >
+              <NativeSelectOption value="basse">Basse</NativeSelectOption>
+              <NativeSelectOption value="moyenne">Moyenne</NativeSelectOption>
+              <NativeSelectOption value="haute">Haute</NativeSelectOption>
+            </NativeSelect>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="signalement-description">Description</FieldLabel>
+            <Textarea
+              id="signalement-description"
+              // field-sizing:content neutralise `rows` : min-h garantit les 3 lignes
+              className="min-h-[3lh]"
+              rows={3}
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+            />
+          </Field>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddDialogOpen(false)} size="sm">Annuler</Button>
+            <Button
+              size="sm"
+              disabled={!newDescription.trim()}
+              onClick={() => {
+                // Would append [SIGNALEMENT:severity] description to notes
+                setAddDialogOpen(false);
+                setNewDescription('');
+              }}
+            >
+              Ajouter
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddDialogOpen(false)} size="small">Annuler</Button>
-          <Button
-            variant="contained"
-            size="small"
-            disabled={!newDescription.trim()}
-            onClick={() => {
-              // Would append [SIGNALEMENT:severity] description to notes
-              setAddDialogOpen(false);
-              setNewDescription('');
-            }}
-          >
-            Ajouter
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

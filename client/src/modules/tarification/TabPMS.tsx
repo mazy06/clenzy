@@ -1,12 +1,15 @@
 import React from 'react';
 import {
-  Box,
-  Typography,
-  TextField,
-  Grid,
-  InputAdornment,
-  Divider,
-} from '@mui/material';
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+  Separator,
+} from '../../components/ui';
 import { Devices, Computer, People, AutoAwesome } from '../../icons';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -25,211 +28,261 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
   const { currency } = useCurrency();
 
   return (
-    <Box sx={{ pt: 2 }}>
+    <div className="pt-3">
       {/* ─── Abonnement PMS ─────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><Devices size={20} strokeWidth={1.75} /></Box>
-        <Typography variant="subtitle1" fontWeight={600}>
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="inline-flex text-[var(--mui-info)]"><Devices size={20} strokeWidth={1.75} /></span>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {t('tarification.pms.title')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('tarification.pms.subtitle')}
-      </Typography>
+      </p>
 
-      <Grid container spacing={1.5}>
-        <Grid item xs={6}>
-          <TextField
-            label={t('tarification.pms.monthly')}
-            type="number"
-            size="small"
-            fullWidth
-            value={(config.pmsMonthlyPriceCents / 100).toFixed(0)}
-            onChange={(e) => {
-              const euros = parseInt(e.target.value, 10);
-              if (!isNaN(euros)) onUpdate({ pmsMonthlyPriceCents: euros * 100 });
-            }}
-            disabled={!canEdit}
-            helperText={t('tarification.pms.monthlyHelp')}
-            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
-          />
-        </Grid>
-        <Grid item xs={6}>
-          <TextField
-            label={t('tarification.pms.sync')}
-            type="number"
-            size="small"
-            fullWidth
-            value={(config.pmsSyncPriceCents / 100).toFixed(0)}
-            onChange={(e) => {
-              const euros = parseInt(e.target.value, 10);
-              if (!isNaN(euros)) onUpdate({ pmsSyncPriceCents: euros * 100 });
-            }}
-            disabled={!canEdit}
-            helperText={t('tarification.pms.syncHelp')}
-            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
-          />
-        </Grid>
-      </Grid>
+      <div className="grid grid-cols-12 gap-[9px]">
+        <div className="col-span-6">
+          <Field>
+            <FieldLabel htmlFor="pms-monthly">{t('tarification.pms.monthly')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="pms-monthly"
+                type="number"
+                className="tabular-nums"
+                value={(config.pmsMonthlyPriceCents / 100).toFixed(0)}
+                onChange={(e) => {
+                  const euros = parseInt(e.target.value, 10);
+                  if (!isNaN(euros)) onUpdate({ pmsMonthlyPriceCents: euros * 100 });
+                }}
+                disabled={!canEdit}
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupText><CurrencySymbol code={currency} />/mois</InputGroupText>
+              </InputGroupAddon>
+            </InputGroup>
+            <FieldDescription>{t('tarification.pms.monthlyHelp')}</FieldDescription>
+          </Field>
+        </div>
+        <div className="col-span-6">
+          <Field>
+            <FieldLabel htmlFor="pms-sync">{t('tarification.pms.sync')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="pms-sync"
+                type="number"
+                className="tabular-nums"
+                value={(config.pmsSyncPriceCents / 100).toFixed(0)}
+                onChange={(e) => {
+                  const euros = parseInt(e.target.value, 10);
+                  if (!isNaN(euros)) onUpdate({ pmsSyncPriceCents: euros * 100 });
+                }}
+                disabled={!canEdit}
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupText><CurrencySymbol code={currency} />/mois</InputGroupText>
+              </InputGroupAddon>
+            </InputGroup>
+            <FieldDescription>{t('tarification.pms.syncHelp')}</FieldDescription>
+          </Field>
+        </div>
+      </div>
 
-      <Divider sx={{ my: 2.5 }} />
+      <Separator className="my-[15px]" />
 
       {/* ─── Supplément IA par forfait (campagne X5) ─────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><AutoAwesome size={20} strokeWidth={1.75} /></Box>
-        <Typography variant="subtitle1" fontWeight={600}>
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="inline-flex text-[var(--mui-secondary)]"><AutoAwesome size={20} strokeWidth={1.75} /></span>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {t('tarification.pms.aiTitle')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('tarification.pms.aiSubtitle')}
-      </Typography>
+      </p>
 
-      <Grid container spacing={1.5}>
-        <Grid item xs={4}>
-          <TextField
-            label={t('tarification.pms.aiEssentiel')}
-            type="number"
-            size="small"
-            fullWidth
-            value={(config.aiSurchargeEssentielCents / 100).toFixed(0)}
-            onChange={(e) => {
-              const euros = parseInt(e.target.value, 10);
-              if (!isNaN(euros)) onUpdate({ aiSurchargeEssentielCents: euros * 100 });
-            }}
-            disabled={!canEdit}
-            helperText={t('tarification.pms.aiEssentielHelp')}
-            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
-          />
-        </Grid>
-        <Grid item xs={4}>
-          <TextField
-            label={t('tarification.pms.aiConfort')}
-            type="number"
-            size="small"
-            fullWidth
-            value={(config.aiSurchargeConfortCents / 100).toFixed(0)}
-            onChange={(e) => {
-              const euros = parseInt(e.target.value, 10);
-              if (!isNaN(euros)) onUpdate({ aiSurchargeConfortCents: euros * 100 });
-            }}
-            disabled={!canEdit}
-            helperText={t('tarification.pms.aiConfortHelp')}
-            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
-          />
-        </Grid>
-        <Grid item xs={4}>
-          <TextField
-            label={t('tarification.pms.aiPremium')}
-            type="number"
-            size="small"
-            fullWidth
-            value={(config.aiSurchargePremiumCents / 100).toFixed(0)}
-            onChange={(e) => {
-              const euros = parseInt(e.target.value, 10);
-              if (!isNaN(euros)) onUpdate({ aiSurchargePremiumCents: euros * 100 });
-            }}
-            disabled={!canEdit}
-            helperText={t('tarification.pms.aiPremiumHelp')}
-            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois</InputAdornment> }}
-          />
-        </Grid>
-      </Grid>
+      <div className="grid grid-cols-12 gap-[9px]">
+        <div className="col-span-4">
+          <Field>
+            <FieldLabel htmlFor="pms-ai-essentiel">{t('tarification.pms.aiEssentiel')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="pms-ai-essentiel"
+                type="number"
+                className="tabular-nums"
+                value={(config.aiSurchargeEssentielCents / 100).toFixed(0)}
+                onChange={(e) => {
+                  const euros = parseInt(e.target.value, 10);
+                  if (!isNaN(euros)) onUpdate({ aiSurchargeEssentielCents: euros * 100 });
+                }}
+                disabled={!canEdit}
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupText><CurrencySymbol code={currency} />/mois</InputGroupText>
+              </InputGroupAddon>
+            </InputGroup>
+            <FieldDescription>{t('tarification.pms.aiEssentielHelp')}</FieldDescription>
+          </Field>
+        </div>
+        <div className="col-span-4">
+          <Field>
+            <FieldLabel htmlFor="pms-ai-confort">{t('tarification.pms.aiConfort')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="pms-ai-confort"
+                type="number"
+                className="tabular-nums"
+                value={(config.aiSurchargeConfortCents / 100).toFixed(0)}
+                onChange={(e) => {
+                  const euros = parseInt(e.target.value, 10);
+                  if (!isNaN(euros)) onUpdate({ aiSurchargeConfortCents: euros * 100 });
+                }}
+                disabled={!canEdit}
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupText><CurrencySymbol code={currency} />/mois</InputGroupText>
+              </InputGroupAddon>
+            </InputGroup>
+            <FieldDescription>{t('tarification.pms.aiConfortHelp')}</FieldDescription>
+          </Field>
+        </div>
+        <div className="col-span-4">
+          <Field>
+            <FieldLabel htmlFor="pms-ai-premium">{t('tarification.pms.aiPremium')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="pms-ai-premium"
+                type="number"
+                className="tabular-nums"
+                value={(config.aiSurchargePremiumCents / 100).toFixed(0)}
+                onChange={(e) => {
+                  const euros = parseInt(e.target.value, 10);
+                  if (!isNaN(euros)) onUpdate({ aiSurchargePremiumCents: euros * 100 });
+                }}
+                disabled={!canEdit}
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupText><CurrencySymbol code={currency} />/mois</InputGroupText>
+              </InputGroupAddon>
+            </InputGroup>
+            <FieldDescription>{t('tarification.pms.aiPremiumHelp')}</FieldDescription>
+          </Field>
+        </div>
+      </div>
 
-      <Divider sx={{ my: 2.5 }} />
+      <Separator className="my-[15px]" />
 
       {/* ─── Tarification par utilisateur ────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><People size={20} strokeWidth={1.75} /></Box>
-        <Typography variant="subtitle1" fontWeight={600}>
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="inline-flex text-[var(--bui-success-ink)]"><People size={20} strokeWidth={1.75} /></span>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {t('tarification.pms.perSeatTitle')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('tarification.pms.perSeatSubtitle')}
-      </Typography>
+      </p>
 
-      <Grid container spacing={1.5}>
-        <Grid item xs={6}>
-          <TextField
-            label={t('tarification.pms.perSeat')}
-            type="number"
-            size="small"
-            fullWidth
-            value={(config.pmsPerSeatPriceCents / 100).toFixed(0)}
-            onChange={(e) => {
-              const euros = parseInt(e.target.value, 10);
-              if (!isNaN(euros)) onUpdate({ pmsPerSeatPriceCents: euros * 100 });
-            }}
-            disabled={!canEdit}
-            helperText={t('tarification.pms.perSeatHelp')}
-            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} />/mois/utilisateur</InputAdornment> }}
-          />
-        </Grid>
-        <Grid item xs={6}>
-          <TextField
-            label={t('tarification.pms.freeSeats')}
-            type="number"
-            size="small"
-            fullWidth
-            value={config.pmsFreeSeats}
-            onChange={(e) => {
-              const num = parseInt(e.target.value, 10);
-              if (!isNaN(num) && num >= 0) onUpdate({ pmsFreeSeats: num });
-            }}
-            disabled={!canEdit}
-            helperText={t('tarification.pms.freeSeatsHelp')}
-          />
-        </Grid>
-      </Grid>
+      <div className="grid grid-cols-12 gap-[9px]">
+        <div className="col-span-6">
+          <Field>
+            <FieldLabel htmlFor="pms-per-seat">{t('tarification.pms.perSeat')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="pms-per-seat"
+                type="number"
+                className="tabular-nums"
+                value={(config.pmsPerSeatPriceCents / 100).toFixed(0)}
+                onChange={(e) => {
+                  const euros = parseInt(e.target.value, 10);
+                  if (!isNaN(euros)) onUpdate({ pmsPerSeatPriceCents: euros * 100 });
+                }}
+                disabled={!canEdit}
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupText><CurrencySymbol code={currency} />/mois/utilisateur</InputGroupText>
+              </InputGroupAddon>
+            </InputGroup>
+            <FieldDescription>{t('tarification.pms.perSeatHelp')}</FieldDescription>
+          </Field>
+        </div>
+        <div className="col-span-6">
+          <Field>
+            <FieldLabel htmlFor="pms-free-seats">{t('tarification.pms.freeSeats')}</FieldLabel>
+            <Input
+              id="pms-free-seats"
+              type="number"
+              className="tabular-nums"
+              value={config.pmsFreeSeats}
+              onChange={(e) => {
+                const num = parseInt(e.target.value, 10);
+                if (!isNaN(num) && num >= 0) onUpdate({ pmsFreeSeats: num });
+              }}
+              disabled={!canEdit}
+            />
+            <FieldDescription>{t('tarification.pms.freeSeatsHelp')}</FieldDescription>
+          </Field>
+        </div>
+      </div>
 
-      <Divider sx={{ my: 2.5 }} />
+      <Separator className="my-[15px]" />
 
       {/* ─── Surcharges automatisation ──────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Computer size={20} strokeWidth={1.75} /></Box>
-        <Typography variant="subtitle1" fontWeight={600}>
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className="inline-flex text-[var(--bui-warning-ink)]"><Computer size={20} strokeWidth={1.75} /></span>
+        <h6 className="cn-text-subtitle1 font-semibold">
           {t('tarification.automation.title')}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        </h6>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('tarification.automation.subtitle')}
-      </Typography>
+      </p>
 
-      <Grid container spacing={1.5}>
-        <Grid item xs={6}>
-          <TextField
-            label={t('tarification.automation.basic')}
-            type="number"
-            size="small"
-            fullWidth
-            value={config.automationBasicSurcharge}
-            onChange={(e) => {
-              const num = parseInt(e.target.value, 10);
-              if (!isNaN(num)) onUpdate({ automationBasicSurcharge: num });
-            }}
-            disabled={!canEdit}
-            helperText={t('tarification.automation.basicHelp')}
-            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-          />
-        </Grid>
-        <Grid item xs={6}>
-          <TextField
-            label={t('tarification.automation.full')}
-            type="number"
-            size="small"
-            fullWidth
-            value={config.automationFullSurcharge}
-            onChange={(e) => {
-              const num = parseInt(e.target.value, 10);
-              if (!isNaN(num)) onUpdate({ automationFullSurcharge: num });
-            }}
-            disabled={!canEdit}
-            helperText={t('tarification.automation.fullHelp')}
-            InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-          />
-        </Grid>
-      </Grid>
-    </Box>
+      <div className="grid grid-cols-12 gap-[9px]">
+        <div className="col-span-6">
+          <Field>
+            <FieldLabel htmlFor="automation-basic">{t('tarification.automation.basic')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="automation-basic"
+                type="number"
+                className="tabular-nums"
+                value={config.automationBasicSurcharge}
+                onChange={(e) => {
+                  const num = parseInt(e.target.value, 10);
+                  if (!isNaN(num)) onUpdate({ automationBasicSurcharge: num });
+                }}
+                disabled={!canEdit}
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+              </InputGroupAddon>
+            </InputGroup>
+            <FieldDescription>{t('tarification.automation.basicHelp')}</FieldDescription>
+          </Field>
+        </div>
+        <div className="col-span-6">
+          <Field>
+            <FieldLabel htmlFor="automation-full">{t('tarification.automation.full')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="automation-full"
+                type="number"
+                className="tabular-nums"
+                value={config.automationFullSurcharge}
+                onChange={(e) => {
+                  const num = parseInt(e.target.value, 10);
+                  if (!isNaN(num)) onUpdate({ automationFullSurcharge: num });
+                }}
+                disabled={!canEdit}
+              />
+              <InputGroupAddon align="inline-end">
+                <InputGroupText><CurrencySymbol code={currency} /></InputGroupText>
+              </InputGroupAddon>
+            </InputGroup>
+            <FieldDescription>{t('tarification.automation.fullHelp')}</FieldDescription>
+          </Field>
+        </div>
+      </div>
+    </div>
   );
 }

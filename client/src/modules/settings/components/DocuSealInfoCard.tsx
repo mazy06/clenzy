@@ -1,4 +1,5 @@
-import { Box, Paper, Typography, Alert, Chip } from '@mui/material';
+import StatusChip from '../../../components/StatusChip';
+import { Alert, Card } from '../../../components/ui';
 import ProviderLogo from './ProviderLogos';
 import { CheckCircle } from '../../../icons';
 
@@ -34,71 +35,61 @@ const STEPS: Array<{ title: string; detail: string }> = [
 
 export default function DocuSealInfoCard({ available, active }: DocuSealInfoCardProps) {
   return (
-    <Paper
-      elevation={0}
-      sx={{ borderRadius: '12px', border: '1px solid', borderColor: 'divider', boxShadow: 'none', overflow: 'hidden' }}
-    >
+    <Card className="gap-0 py-0 border-border overflow-hidden">
       {/* Header */}
-      <Box sx={{ px: 2, py: 1.75, display: 'flex', alignItems: 'flex-start', gap: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+      <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[var(--line)]">
         <ProviderLogo provider="DOCUSEAL" size={40} />
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>DocuSeal</Typography>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="cn-text-body1 text-[0.9rem] font-semibold">DocuSeal</p>
             {active ? (
-              <Chip label="Provider actif" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, color: 'var(--ok)', backgroundColor: 'var(--ok-soft)', border: '1px solid color-mix(in srgb, var(--ok) 25%, transparent)' }} />
+              <StatusChip size="sm" tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label="Provider actif" className="text-[0.6rem]" />
             ) : available ? (
-              <Chip label="Instance connectée — non activé" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, color: 'var(--ok)', backgroundColor: 'var(--ok-soft)', border: '1px solid color-mix(in srgb, var(--ok) 25%, transparent)' }} />
+              <StatusChip size="sm" tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label="Instance connectée — non activé" className="text-[0.6rem]" />
             ) : (
-              <Chip label="Prêt — à brancher" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, color: 'var(--warn)', backgroundColor: 'var(--warn-soft)', border: '1px solid color-mix(in srgb, var(--warn) 25%, transparent)' }} />
+              <StatusChip size="sm" tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }} label="Prêt — à brancher" className="text-[0.6rem]" />
             )}
-          </Box>
-          <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mt: 0.25 }}>
+          </div>
+          <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-0.5">
             Alternative open source (AGPL) auto-hébergée à DocuSign — signature SES avec scellement cryptographique du PDF, données sur votre infrastructure, 0 € de licence.
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
 
       {/* Corps */}
-      <Box sx={{ px: 2, py: 1.75 }}>
-        <Alert severity={available ? 'success' : 'info'} variant="outlined" sx={{ borderRadius: '8px', fontSize: '0.75rem', py: 0.25, mb: 1.5 }}>
+      <div className="px-3 py-2.5">
+        <Alert variant={available ? 'success' : 'info'} className="rounded-[8px] text-[0.75rem] py-[1.5px] mb-[9px]">
           {available
             ? "L'instance DocuSeal est configurée. Le provider est implémenté et fonctionnel — il ne sera utilisé qu'après la bascule SIGNATURE_PROVIDER=docuseal."
             : "L'intégration est entièrement implémentée côté code (création de la demande, lien de signature, statut, téléchargement du document signé). Elle est inactive tant que l'instance self-hosted n'est pas déployée et branchée — opération d'infrastructure, pas de saisie ici."}
         </Alert>
 
-        <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'text.secondary', mb: 1 }}>
+        <p className="cn-text-body1 text-[0.7rem] font-bold uppercase tracking-[0.06em] text-muted-foreground mb-1.5">
           Branchement (opération infra)
-        </Typography>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        </p>
+        <div className="flex flex-col gap-1.5">
           {STEPS.map((step, i) => (
-            <Box key={step.title} sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start' }}>
-              <Box
-                sx={{
-                  width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '0.65rem', fontWeight: 700,
-                  bgcolor: 'var(--accent-soft)', color: 'var(--accent)',
-                }}
-              >
+            <div className="flex gap-2 items-start" key={step.title}>
+              <div className="w-[20px] h-[20px] rounded-[50%] shrink-0 inline-flex items-center justify-center text-[0.65rem] font-bold bg-[var(--accent-soft)] text-[var(--accent)]">
                 {i + 1}
-              </Box>
-              <Box>
-                <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, lineHeight: 1.3 }}>{step.title}</Typography>
-                <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', lineHeight: 1.45 }}>{step.detail}</Typography>
-              </Box>
-            </Box>
+              </div>
+              <div>
+                <p className="cn-text-body1 text-[0.78rem] font-semibold leading-[1.3]">{step.title}</p>
+                <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.45]">{step.detail}</p>
+              </div>
+            </div>
           ))}
-        </Box>
+        </div>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1.5 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}>
+        <div className="flex items-center gap-1 mt-2">
+          <span className="inline-flex text-[var(--ok)]">
             <CheckCircle size={13} strokeWidth={2} />
-          </Box>
-          <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+          </span>
+          <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">
             En attendant, la signature électronique fonctionne via le workflow interne Clenzy (SES, lien public + certificat de preuve).
-          </Typography>
-        </Box>
-      </Box>
-    </Paper>
+          </p>
+        </div>
+      </div>
+    </Card>
   );
 }

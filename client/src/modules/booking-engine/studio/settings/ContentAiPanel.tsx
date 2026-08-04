@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Box, ButtonBase, Skeleton } from '@mui/material';
+import { Skeleton } from '../../../../components/ui';
 import { Wand2, Search, Copy, Check, AlertTriangle, Sparkles } from 'lucide-react';
 import { propertiesApi, type Property } from '../../../../services/api/propertiesApi';
 import { propertyContentAiApi, type GeneratedContent } from '../../../../services/api/propertyContentAiApi';
@@ -81,29 +81,29 @@ export default function ContentAiPanel() {
 
   if (properties === null && !loadError) {
     return (
-      <Box sx={{ maxWidth: 720, mx: 'auto', px: 4, py: 4 }}>
-        <Skeleton variant="rounded" height={220} sx={{ borderRadius: 'var(--radius-lg)', bgcolor: 'var(--hover)' }} />
-      </Box>
+      <div className="max-w-[720px] mx-auto px-6 py-6">
+        <Skeleton className="h-[220px] w-full rounded-[var(--radius-lg)] bg-[var(--hover)]" />
+      </div>
     );
   }
 
   if (loadError) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, m: 4, p: 2, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 'var(--text-sm)' }}>
+      <div className="flex items-center gap-1.5 m-6 p-3 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
         <AlertTriangle size={18} strokeWidth={2} /> {loadError}
-      </Box>
+      </div>
     );
   }
 
   if (properties && properties.length === 0) {
     return (
-      <Box sx={{ textAlign: 'center', py: 8, px: 4 }}>
-        <Box sx={{ width: 56, height: 56, mx: 'auto', mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-lg)', bgcolor: 'var(--accent-soft)', color: 'var(--accent)' }}>
+      <div className="text-center py-12 px-6">
+        <div className="w-[56px] h-[56px] mx-auto mb-3 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--accent-soft)] text-[var(--accent)]">
           <Sparkles size={26} strokeWidth={1.85} />
-        </Box>
-        <Box sx={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-semibold)', mb: 0.5 }}>Aucune propriété</Box>
-        <Box sx={{ fontSize: 'var(--text-md)', color: 'var(--muted)' }}>Ajoutez une propriété pour générer son contenu avec l'IA.</Box>
-      </Box>
+        </div>
+        <div className="text-[var(--text-lg)] font-[family-name:var(--fw-semibold)] mb-0.5">Aucune propriété</div>
+        <div className="text-[var(--text-md)] text-[var(--muted)]">Ajoutez une propriété pour générer son contenu avec l'IA.</div>
+      </div>
     );
   }
 
@@ -123,37 +123,37 @@ export default function ContentAiPanel() {
         } />
       </SettingCard>
 
-      <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 2.5 }}>
+      <div className="flex gap-2 flex-wrap mb-3.5">
         <GenButton icon={Wand2} label="Générer une description" loading={generating === 'description'} disabled={!propertyId || generating !== null} onClick={() => generate('description')} />
         <GenButton icon={Search} label="Générer le SEO" variant="ghost" loading={generating === 'seo'} disabled={!propertyId || generating !== null} onClick={() => generate('seo')} />
-      </Box>
+      </div>
 
       {genError && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2.5, p: 1.5, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 'var(--text-sm)' }}>
+        <div className="flex items-center gap-1.5 mb-3.5 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
           <AlertTriangle size={16} strokeWidth={2} /> {genError}
-        </Box>
+        </div>
       )}
 
       {result && (
         <SettingCard title={result.kind === 'SEO_META' ? 'Meta SEO générée' : 'Description générée'}>
-          <Box sx={{ py: 1.5 }}>
+          <div className="py-2">
             {result.title && (
-              <Box sx={{ mb: 1.5 }}>
-                <Box sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)', mb: 0.5 }}>Titre</Box>
-                <Box sx={{ fontSize: 'var(--text-md)', fontWeight: 'var(--fw-semibold)', color: 'var(--ink)' }}>{result.title}</Box>
-              </Box>
+              <div className="mb-2">
+                <div className="text-[var(--text-2xs)] font-[family-name:var(--fw-bold)] tracking-[.06em] uppercase text-[var(--faint)] mb-0.5">Titre</div>
+                <div className="text-[var(--text-md)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">{result.title}</div>
+              </div>
             )}
-            <Box sx={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-bold)', letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--faint)', mb: 0.5 }}>
+            <div className="text-[var(--text-2xs)] font-[family-name:var(--fw-bold)] tracking-[.06em] uppercase text-[var(--faint)] mb-0.5">
               {result.kind === 'SEO_META' ? 'Meta description' : 'Contenu'}
-            </Box>
-            <Box sx={{ fontSize: 'var(--text-md)', color: 'var(--body)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{result.content}</Box>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-              <ButtonBase onClick={copy} sx={ghostBtnSx}>
+            </div>
+            <div className="text-[var(--text-md)] text-[var(--body)] leading-[1.6] whitespace-pre-wrap">{result.content}</div>
+            <div className="flex justify-end mt-3">
+              <button type="button" onClick={copy} className={GHOST_BTN_CLASS}>
                 {copied ? <Check size={15} strokeWidth={2.4} /> : <Copy size={15} strokeWidth={2} />}
                 {copied ? 'Copié' : 'Copier'}
-              </ButtonBase>
-            </Box>
-          </Box>
+              </button>
+            </div>
+          </div>
         </SettingCard>
       )}
     </SettingsPage>
@@ -164,29 +164,34 @@ function GenButton({ icon: Icon, label, onClick, loading, disabled, variant = 's
   icon: typeof Wand2; label: string; onClick: () => void; loading: boolean; disabled: boolean; variant?: 'solid' | 'ghost';
 }) {
   return (
-    <ButtonBase onClick={onClick} disabled={disabled} sx={variant === 'solid' ? solidBtnSx : ghostBtnSx}>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={variant === 'solid' ? SOLID_BTN_CLASS : GHOST_BTN_CLASS}
+    >
       <Icon size={16} strokeWidth={2} />
       {loading ? 'Génération…' : label}
-    </ButtonBase>
+    </button>
   );
 }
 
-const solidBtnSx = {
-  display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 40, px: 2.25,
-  borderRadius: 'var(--radius-md)', bgcolor: 'var(--accent)', color: 'var(--on-accent)',
-  fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-sm)', cursor: 'pointer',
-  transition: 'background var(--duration-fast) var(--ease-out)',
-  '&:hover': { bgcolor: 'var(--accent-deep)' },
-  '&.Mui-disabled': { opacity: 0.45, cursor: 'default' },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-} as const;
+// Boutons maison du Studio (l'ancien ButtonBase + sx) : le kit n'a pas de
+// variante calee sur les tokens `--text-sm`/`--fw-semibold` du Studio.
+// `font-[number:…]` et la transition en propriete brute `[transition:…]` : Tailwind
+// v4 n'infere pas le type derriere `var(`, ni pour une graisse ni pour une duree.
+const BTN_BASE_CLASS =
+  'inline-flex items-center gap-[4.5px] h-10 px-[13.5px] rounded-[var(--radius-md)] ' +
+  'font-[number:var(--fw-semibold)] text-[var(--text-sm)] cursor-pointer ' +
+  'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2 ' +
+  'disabled:opacity-45 disabled:cursor-default';
 
-const ghostBtnSx = {
-  display: 'inline-flex', alignItems: 'center', gap: 0.75, height: 40, px: 2.25,
-  borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--card)', color: 'var(--body)',
-  fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-sm)', cursor: 'pointer',
-  transition: 'border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
-  '&:hover': { borderColor: 'var(--accent)', color: 'var(--ink)' },
-  '&.Mui-disabled': { opacity: 0.45, cursor: 'default' },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-} as const;
+const SOLID_BTN_CLASS =
+  `${BTN_BASE_CLASS} border-none bg-[var(--accent)] text-[var(--on-accent)] ` +
+  '[transition:background_var(--duration-fast)_var(--ease-out)] ' +
+  'hover:bg-[var(--accent-deep)]';
+
+const GHOST_BTN_CLASS =
+  `${BTN_BASE_CLASS} border border-solid border-[var(--line)] bg-[var(--card)] text-[var(--body)] ` +
+  '[transition:border-color_var(--duration-fast)_var(--ease-out),color_var(--duration-fast)_var(--ease-out)] ' +
+  'hover:border-[var(--accent)] hover:text-[var(--ink)]';

@@ -1,24 +1,21 @@
 import React from 'react';
+import StatusChip from '../../../components/StatusChip';
+import { Badge } from '../../../components/ui';
+import { Spinner } from '../../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
+import { Button } from '../../../components/ui';
 import {
-  Box,
-  Typography,
-  Grid,
-  Chip,
-  Switch,
-  FormControlLabel,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Button,
-  IconButton,
-  Tooltip,
-  CircularProgress,
   Card,
   CardContent,
-} from '@mui/material';
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+  Switch,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import {
   Star,
   Payment,
@@ -122,286 +119,256 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
   if (!hasHostData(user)) return null;
 
   return (
-    <Card variant="outlined" sx={{ borderRadius: 'var(--radius-lg)', bgcolor: 'var(--card)', borderColor: 'var(--line)' }}>
-      <CardContent sx={{ p: 2 }}>
-        <Grid container spacing={2}>
-      <Grid item xs={12}>
-        <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'var(--accent)', fontWeight: 600 }}>
+    <Card className="rounded-[var(--radius-lg)] bg-[var(--card)] ring-0 border border-solid border-[var(--line)] p-0">
+      <CardContent className="p-3">
+        <div className="grid grid-cols-12 gap-3">
+      <div className="col-span-12">
+        <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
           Profil proprietaire
-        </Typography>
-      </Grid>
+        </h6>
+      </div>
 
       {user.companyName && (
-        <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Entreprise</Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>{user.companyName}</Typography>
-        </Grid>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Entreprise</h6>
+          <p className="cn-text-body1 mb-3">{user.companyName}</p>
+        </div>
       )}
 
       {user.forfait && (
-        <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Forfait souscrit</Typography>
-          <Chip
-            icon={<Star />}
-            label={user.forfait.charAt(0).toUpperCase() + user.forfait.slice(1)}
-            size="small"
-            sx={{ mt: 0.5, mb: 2, color: 'var(--accent)', backgroundColor: 'var(--accent-soft)', '& .MuiChip-icon': { color: 'var(--accent)' } }}
-          />
-        </Grid>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Forfait souscrit</h6>
+          <Badge variant="secondary" className="mt-0.5 mb-3 text-[var(--accent)] bg-[var(--accent-soft)] [&>svg]:text-[var(--accent)]"><Star />{user.forfait.charAt(0).toUpperCase() + user.forfait.slice(1)}</Badge>
+        </div>
       )}
 
       {(user.city || user.postalCode) && (
-        <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Localisation</Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Localisation</h6>
+          <p className="cn-text-body1 mb-3">
             {[user.city, user.postalCode].filter(Boolean).join(' - ')}
-          </Typography>
-        </Grid>
+          </p>
+        </div>
       )}
 
       {user.propertyType && (
-        <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Type de propriete</Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Type de propriete</h6>
+          <p className="cn-text-body1 mb-3">
             {PROPERTY_TYPE_LABELS[user.propertyType] || user.propertyType}
-          </Typography>
-        </Grid>
+          </p>
+        </div>
       )}
 
       {user.propertyCount != null && (
-        <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Nombre de proprietes</Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>{user.propertyCount}</Typography>
-        </Grid>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Nombre de proprietes</h6>
+          <p className="cn-text-body1 mb-3">{user.propertyCount}</p>
+        </div>
       )}
 
       {user.surface != null && (
-        <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Surface</Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>{user.surface} m2</Typography>
-        </Grid>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Surface</h6>
+          <p className="cn-text-body1 mb-3">{user.surface} m2</p>
+        </div>
       )}
 
       {user.guestCapacity != null && (
-        <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Capacite d'accueil</Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Capacite d'accueil</h6>
+          <p className="cn-text-body1 mb-3">
             {user.guestCapacity} {user.guestCapacity > 1 ? 'personnes' : 'personne'}
-          </Typography>
-        </Grid>
+          </p>
+        </div>
       )}
 
       {user.bookingFrequency && (
-        <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Frequence de reservation</Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Frequence de reservation</h6>
+          <p className="cn-text-body1 mb-3">
             {BOOKING_FREQUENCY_LABELS[user.bookingFrequency] || user.bookingFrequency}
-          </Typography>
-        </Grid>
+          </p>
+        </div>
       )}
 
       {user.cleaningSchedule && (
-        <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Planning menage</Typography>
-          <Typography variant="body1" sx={{ mb: 2 }}>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Planning menage</h6>
+          <p className="cn-text-body1 mb-3">
             {CLEANING_SCHEDULE_LABELS[user.cleaningSchedule] || user.cleaningSchedule}
-          </Typography>
-        </Grid>
+          </p>
+        </div>
       )}
 
       {user.calendarSync && (
-        <Grid item xs={12} md={6}>
-          <Typography variant="subtitle2" color="text.secondary">Synchronisation calendrier</Typography>
-          <Chip
-            label={CALENDAR_SYNC_LABELS[user.calendarSync] || user.calendarSync}
-            size="small"
-            sx={{
-              mt: 0.5,
-              mb: 2,
-              color: (CALENDAR_SYNC_TOKEN[user.calendarSync] ?? CALENDAR_SYNC_TOKEN.non).fg,
-              backgroundColor: (CALENDAR_SYNC_TOKEN[user.calendarSync] ?? CALENDAR_SYNC_TOKEN.non).bg,
-            }}
-          />
-        </Grid>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Synchronisation calendrier</h6>
+          <StatusChip tokens={{ color: (CALENDAR_SYNC_TOKEN[user.calendarSync] ?? CALENDAR_SYNC_TOKEN.non).fg, bg: (CALENDAR_SYNC_TOKEN[user.calendarSync] ?? CALENDAR_SYNC_TOKEN.non).bg }} label={CALENDAR_SYNC_LABELS[user.calendarSync] || user.calendarSync} className="mt-0.5 mb-3" />
+        </div>
       )}
 
       {user.services && (
-        <Grid item xs={12}>
-          <Typography variant="subtitle2" color="text.secondary">Services forfait</Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5, mb: 2 }}>
+        <div className="col-span-12">
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Services forfait</h6>
+          <div className="flex flex-wrap gap-0.5 mt-0.5 mb-3">
             {user.services.split(',').map((s) => (
-              <Chip
-                key={s}
-                label={SERVICE_LABELS[s.trim()] || s.trim()}
-                size="small"
-                sx={{ color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' }}
-              />
+              <Badge variant="secondary" className="text-[var(--accent)] bg-[var(--accent-soft)]" key={s}>{SERVICE_LABELS[s.trim()] || s.trim()}</Badge>
             ))}
-          </Box>
-        </Grid>
+          </div>
+        </div>
       )}
 
       {user.servicesDevis && (
-        <Grid item xs={12}>
-          <Typography variant="subtitle2" color="text.secondary">Services sur devis</Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5, mb: 2 }}>
+        <div className="col-span-12">
+          <h6 className="cn-text-subtitle2 text-muted-foreground">Services sur devis</h6>
+          <div className="flex flex-wrap gap-0.5 mt-0.5 mb-3">
             {user.servicesDevis.split(',').map((s) => (
-              <Chip
-                key={s}
-                label={SERVICE_DEVIS_LABELS[s.trim()] || s.trim()}
-                size="small"
-                sx={{ color: 'var(--warn)', backgroundColor: 'var(--warn-soft)' }}
-              />
+              <Badge variant="secondary" className="text-[var(--warn)] bg-[var(--warn-soft)]" key={s}>{SERVICE_DEVIS_LABELS[s.trim()] || s.trim()}</Badge>
             ))}
-          </Box>
-        </Grid>
+          </div>
+        </div>
       )}
 
       {/* Toggle paiement differe (ADMIN/MANAGER uniquement) */}
       {isAdminOrManager && (
-        <Grid item xs={12}>
-          <Box sx={{ border: '1px solid var(--line)', borderRadius: '12px', p: 2, mb: 1 }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={user.deferredPayment || false}
-                  onChange={onToggleDeferredPayment}
-                  disabled={deferredToggling}
-                />
-              }
-              label={
-                <Box>
-                  <Typography variant="body2" fontWeight={500}>
-                    Paiement differe
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Les interventions auto (iCal / Channel Manager) demarrent sans attente de paiement.
-                    Le cumul impaye sera visible ci-dessous.
-                  </Typography>
-                </Box>
-              }
-            />
-          </Box>
-        </Grid>
+        <div className="col-span-12">
+          <div className="border border-[var(--line)] rounded-[12px] p-3 mb-1.5">
+            <Field orientation="horizontal">
+              <Switch
+                id="deferred-payment"
+                checked={user.deferredPayment || false}
+                onCheckedChange={onToggleDeferredPayment}
+                disabled={deferredToggling}
+              />
+              <FieldContent>
+                <FieldLabel htmlFor="deferred-payment" className="cn-text-body2 font-medium">
+                  Paiement differe
+                </FieldLabel>
+                <FieldDescription>
+                  Les interventions auto (iCal / Channel Manager) demarrent sans attente de paiement.
+                  Le cumul impaye sera visible ci-dessous.
+                </FieldDescription>
+              </FieldContent>
+            </Field>
+          </div>
+        </div>
       )}
 
       {/* Carte cumul impayes */}
       {isAdminOrManager && (
-        <Grid item xs={12}>
-          <Box sx={{ border: '1px solid var(--line)', borderRadius: '12px', p: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Payment size={20} strokeWidth={1.75} /></Box>
-                <Typography variant="body1" fontWeight={600}>Solde impaye</Typography>
-              </Box>
+        <div className="col-span-12">
+          <div className="border border-[var(--line)] rounded-[12px] p-3">
+            <div className="flex justify-between items-center mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex text-muted-foreground"><Payment size={20} strokeWidth={1.75} /></span>
+                <p className="cn-text-body1 font-semibold">Solde impaye</p>
+              </div>
               {balance && balance.totalUnpaid > 0 && (
-                <Chip
-                  icon={<Warning size={14} strokeWidth={1.75} />}
-                  label={`${balance.totalUnpaid.toFixed(2)} EUR`}
-                  size="small"
-                  sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--err)', backgroundColor: 'var(--err-soft)', '& .MuiChip-icon': { color: 'var(--err)' } }}
-                />
+                <Badge variant="secondary" className="font-bold tabular-nums text-[var(--err)] bg-[var(--err-soft)] [&>svg]:text-[var(--err)]"><Warning size={14} strokeWidth={1.75} />{`${balance.totalUnpaid.toFixed(2)} EUR`}</Badge>
               )}
               {balance && balance.totalUnpaid === 0 && (
-                <Chip label="Aucun impaye" size="small" sx={{ color: 'var(--ok)', backgroundColor: 'var(--ok-soft)' }} />
+                <Badge variant="secondary" className="text-[var(--ok)] bg-[var(--ok-soft)]">Aucun impaye</Badge>
               )}
-            </Box>
+            </div>
 
             {balanceLoading && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                <CircularProgress size={24} />
-              </Box>
+              <div className="flex justify-center py-3">
+                <Spinner className="size-6" />
+              </div>
             )}
 
             {!balanceLoading && balance && balance.properties.length > 0 && (
               <>
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Propriete</TableCell>
-                        <TableCell align="center">Interventions</TableCell>
-                        <TableCell align="right">Montant</TableCell>
-                        <TableCell align="center">Details</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {balance.properties.map((prop) => (
-                        <React.Fragment key={prop.propertyId}>
-                          <TableRow>
-                            <TableCell sx={{ fontSize: '0.8rem' }}>{prop.propertyName}</TableCell>
-                            <TableCell align="center" sx={{ fontSize: '0.8rem' }}>{prop.interventionCount}</TableCell>
-                            <TableCell align="right" sx={{ fontSize: '0.8rem', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-                              {prop.unpaidAmount.toFixed(2)} EUR
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Propriete</TableHead>
+                      <TableHead className="text-center">Interventions</TableHead>
+                      <TableHead className="text-end">Montant</TableHead>
+                      <TableHead className="text-center">Details</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {balance.properties.map((prop) => (
+                      <React.Fragment key={prop.propertyId}>
+                        <TableRow>
+                          <TableCell className="text-[0.8rem]">{prop.propertyName}</TableCell>
+                          <TableCell className="text-center text-[0.8rem]">{prop.interventionCount}</TableCell>
+                          <TableCell className="text-end text-[0.8rem] font-semibold tabular-nums">
+                            {prop.unpaidAmount.toFixed(2)} EUR
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={expandedProperty === prop.propertyId
+                                ? `Masquer le detail de ${prop.propertyName}`
+                                : `Afficher le detail de ${prop.propertyName}`}
+                              onClick={() => onExpandProperty(
+                                expandedProperty === prop.propertyId ? null : prop.propertyId
+                              )}
+                            >
+                              {expandedProperty === prop.propertyId
+                                ? <ExpandLess size={18} strokeWidth={1.75} />
+                                : <ExpandMore size={18} strokeWidth={1.75} />}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                        {expandedProperty === prop.propertyId && prop.interventions.map((iv) => (
+                          // `ps` (padding-inline-start) plutot que `pl` : le kit raisonne en
+                          // proprietes logiques, l'indentation doit suivre le sens de lecture.
+                          <TableRow key={iv.id} className="bg-[var(--hover)]">
+                            <TableCell className="text-[0.75rem] ps-6">{iv.title}</TableCell>
+                            <TableCell className="text-center text-[0.75rem]">
+                              {iv.scheduledDate ? new Date(iv.scheduledDate).toLocaleDateString('fr-FR') : '-'}
                             </TableCell>
-                            <TableCell align="center">
-                              <IconButton
-                                size="small"
-                                onClick={() => onExpandProperty(
-                                  expandedProperty === prop.propertyId ? null : prop.propertyId
-                                )}
-                              >
-                                {expandedProperty === prop.propertyId
-                                  ? <ExpandLess size={18} strokeWidth={1.75} />
-                                  : <ExpandMore size={18} strokeWidth={1.75} />}
-                              </IconButton>
+                            <TableCell className="text-end text-[0.75rem]">
+                              {iv.estimatedCost.toFixed(2)} EUR
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <StatusChip tokens={{ color: iv.paymentStatus === 'PAID' ? 'var(--ok)' : iv.paymentStatus === 'PROCESSING' ? 'var(--info)' : 'var(--muted)', bg: iv.paymentStatus === 'PAID' ? 'var(--ok-soft)' : iv.paymentStatus === 'PROCESSING' ? 'var(--info-soft)' : 'var(--hover)' }} label={iv.paymentStatus || 'N/A'} className="h-[20px] text-[0.65rem]" />
                             </TableCell>
                           </TableRow>
-                          {expandedProperty === prop.propertyId && prop.interventions.map((iv) => (
-                            <TableRow key={iv.id} sx={{ bgcolor: 'var(--hover)' }}>
-                              <TableCell sx={{ fontSize: '0.75rem', pl: 4 }}>{iv.title}</TableCell>
-                              <TableCell align="center" sx={{ fontSize: '0.75rem' }}>
-                                {iv.scheduledDate ? new Date(iv.scheduledDate).toLocaleDateString('fr-FR') : '-'}
-                              </TableCell>
-                              <TableCell align="right" sx={{ fontSize: '0.75rem' }}>
-                                {iv.estimatedCost.toFixed(2)} EUR
-                              </TableCell>
-                              <TableCell align="center">
-                                <Chip
-                                  label={iv.paymentStatus || 'N/A'}
-                                  size="small"
-                                  sx={{
-                                    height: 20,
-                                    fontSize: '0.65rem',
-                                    color: iv.paymentStatus === 'PAID' ? 'var(--ok)' : iv.paymentStatus === 'PROCESSING' ? 'var(--info)' : 'var(--muted)',
-                                    backgroundColor: iv.paymentStatus === 'PAID' ? 'var(--ok-soft)' : iv.paymentStatus === 'PROCESSING' ? 'var(--info-soft)' : 'var(--hover)',
-                                  }}
-                                />
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </React.Fragment>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                        ))}
+                      </React.Fragment>
+                    ))}
+                  </TableBody>
+                </Table>
 
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1.5 }}>
-                  <Tooltip title="Cree un lien Stripe et le copie dans le presse-papier">
-                    <Button
-                      variant="contained"
-                      size="small"
-                      startIcon={<ContentCopy size={16} strokeWidth={1.75} />}
-                      onClick={onSendPaymentLink}
-                      disabled={paymentLinkLoading || balance.totalUnpaid === 0}
-                      sx={{ fontSize: '0.8rem' }}
-                    >
-                      {paymentLinkLoading ? 'Creation...' : 'Envoyer lien de paiement'}
-                    </Button>
+                <div className="flex justify-end mt-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      {/* Le Button du kit ne transmet pas de ref : le span
+                          intercalaire porte celle que Radix pose. */}
+                      <span className="inline-flex">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={onSendPaymentLink}
+                          disabled={paymentLinkLoading || balance.totalUnpaid === 0}
+                        >
+                          <ContentCopy size={16} strokeWidth={1.75} />
+                          {paymentLinkLoading ? 'Creation...' : 'Envoyer lien de paiement'}
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Cree un lien Stripe et le copie dans le presse-papier</TooltipContent>
                   </Tooltip>
-                </Box>
+                </div>
               </>
             )}
 
             {!balanceLoading && (!balance || balance.properties.length === 0) && (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 1 }}>
+              <p className="cn-text-body2 text-muted-foreground text-center py-1.5">
                 Aucune intervention impayee pour ce proprietaire.
-              </Typography>
+              </p>
             )}
-          </Box>
-        </Grid>
+          </div>
+        </div>
       )}
-        </Grid>
+        </div>
       </CardContent>
     </Card>
   );

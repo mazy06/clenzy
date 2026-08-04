@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
+import StatusChip from '../../components/StatusChip';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { CircleCheck, TriangleAlert, X } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import {
-  Box,
-  Button,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  TextField,
-  Typography,
-  Chip,
-  IconButton,
   Tooltip,
-  CircularProgress,
-  Alert,
-  useTheme,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { Field, FieldLabel, Input } from '../../components/ui';
+import { useThemeMode } from '../../hooks/useThemeMode';
 import {
   Download,
   Lock,
@@ -40,6 +40,17 @@ import FilterChipRow from '../../components/FilterChipRow';
 import EmptyState from '../../components/EmptyState';
 import { renderServerEmailPreview } from '../../utils/emailMarkdown';
 import PagePagination from '../../components/PagePagination';
+import { cn } from '../../utils/cn';
+
+// Lien-bouton de fin de ligne (« Apercu », « Telecharger »). L'ancien `all: unset`
+// est rendu par des remises a zero explicites : l'ordre des utilities Tailwind
+// n'etant pas celui du fichier, un `all:unset` pourrait ecraser les declarations
+// suivantes au lieu de les preceder.
+const INLINE_LINK_BTN_CLS =
+  'inline-flex cursor-pointer appearance-none items-center gap-1 border-0 bg-transparent p-0 '
+  + '[font-family:inherit] text-[12.5px] font-semibold whitespace-nowrap text-[var(--accent)] '
+  + 'hover:text-[var(--accent-deep)] '
+  + 'focus-visible:rounded-[6px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -145,8 +156,7 @@ const formatFileSize = (bytes?: number) => {
 
 const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const { isDark } = useThemeMode();
   const [filter, setFilter] = useState<HistoryFilter>('all');
   const [generateOpen, setGenerateOpen] = useState(false);
   const [verifyResult, setVerifyResult] = useState<string | null>(null);
@@ -371,20 +381,30 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
   }, [highlightId, docsLoading, generations, openPdfPreview]);
 
   return (
-    <Box>
-      {actionError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>{actionError}</Alert>}
+    <div>
+      {actionError && <BuiAlert variant="destructive" className="mb-3">
+        <TriangleAlert />
+        <AlertDescription>{actionError}</AlertDescription>
+        <AlertAction>
+          <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setActionError(null)}>
+            <X />
+          </BuiButton>
+        </AlertAction>
+      </BuiAlert>}
       {verifyResult && (
-        <Alert
-          severity={verifyResult.includes('verifiee') ? 'success' : 'error'}
-          sx={{ mb: 2 }}
-          onClose={() => setVerifyResult(null)}
-        >
-          {verifyResult}
-        </Alert>
+        <BuiAlert variant={verifyResult.includes('verifiee') ? 'success' : 'destructive'} className="mb-3">
+          {verifyResult.includes('verifiee') ? <CircleCheck /> : <TriangleAlert />}
+          <AlertDescription>{verifyResult}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setVerifyResult(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {/* Filtres — primitive partagée FilterChipRow ('' = Tous) */}
-      <Box sx={{ mb: 2 }}>
+      <div className="mb-3">
         <FilterChipRow
           options={[
             { value: 'messages', label: t('documents.history.filterMessages'), color: 'var(--info)', count: messageLogs.length },
@@ -396,12 +416,12 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
           allCount={messageLogs.length + docTotalElements}
           size="compact"
         />
-      </Box>
+      </div>
 
       {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-          <CircularProgress />
-        </Box>
+        <div className="flex justify-center p-6">
+          <Spinner className="size-10" />
+        </div>
       ) : unifiedRows.length === 0 ? (
         <EmptyState
           icon={<History />}
@@ -411,7 +431,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
       ) : (
         <>
           {/* ── Lignes .fr-doc : pastille type + nom fw600 + méta muted + statut -soft + actions ── */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="flex flex-col gap-2">
             {unifiedRows.map((row) => {
               const isFailed = row.statusTone === TONES.err && (row.status === 'Echoue' || row.status === 'Rebondi');
               const pastille = row.kind === 'document'
@@ -430,90 +450,108 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                 : String(row.messageLog?.id ?? '');
 
               return (
-                <Box
+                <div
                   key={row.id}
                   data-highlight-id={rawId || undefined}
-                  sx={{
-                    display: 'flex', alignItems: 'center', gap: '12px', p: '13px 15px',
-                    border: '1px solid', borderColor: isFailed ? 'var(--err)' : 'var(--line)',
-                    borderRadius: '12px', bgcolor: isFailed ? 'var(--err-soft)' : 'var(--card)',
-                    transition: 'border-color .14s, box-shadow .14s',
-                    ...(isFailed ? {} : {
-                      '&:hover': { borderColor: 'var(--accent)', boxShadow: '0 8px 22px -16px var(--accent)' },
-                    }),
-                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                  }}
+                  className={cn(
+                    'flex items-center gap-3 rounded-[12px] border border-solid px-[15px] py-[13px]',
+                    '[transition:border-color_.14s,box-shadow_.14s] motion-reduce:transition-none',
+                    isFailed
+                      ? 'border-[var(--err)] bg-[var(--err-soft)]'
+                      : 'border-[var(--line)] bg-[var(--card)] hover:border-[var(--accent)] hover:shadow-[0_8px_22px_-16px_var(--accent)]',
+                  )}
                 >
                   {/* Pastille type 34 r9 — PDF = --err, canaux mappés sémantiquement */}
-                  <Tooltip title={row.kind === 'message' ? t('documents.history.typeMessage') : t('documents.history.typeDocument')} arrow>
-                    <Box sx={{
-                      width: 34, height: 34, borderRadius: '9px',
-                      bgcolor: isFailed ? 'var(--err)' : pastille.bg, color: 'var(--on-accent)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                      fontSize: '9px', fontWeight: 800,
-                    }}>
-                      {isFailed
-                        ? <AlertTriangleIcon size={15} strokeWidth={1.75} />
-                        : row.kind === 'document' ? 'PDF' : pastille.icon}
-                    </Box>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="w-[34px] h-[34px] rounded-[9px] text-[var(--on-accent)] flex items-center justify-center shrink-0 text-[9px] font-extrabold" style={{ backgroundColor: isFailed ? 'var(--err)' : pastille.bg }}>
+                        {isFailed
+                          ? <AlertTriangleIcon size={15} strokeWidth={1.75} />
+                          : row.kind === 'document' ? 'PDF' : pastille.icon}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {row.kind === 'message' ? t('documents.history.typeMessage') : t('documents.history.typeDocument')}
+                    </TooltipContent>
                   </Tooltip>
 
                   {/* Nom + méta */}
-                  <Box sx={{ minWidth: 0, flex: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-                      <Typography noWrap sx={{ fontSize: '13px', fontWeight: 600, color: isFailed ? 'var(--err)' : 'var(--ink)' }}>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <p className={cn('cn-text-body1 truncate text-[13px] font-semibold', isFailed ? 'text-[var(--err)]' : 'text-[var(--ink)]')}>
                         {row.name}
-                      </Typography>
+                      </p>
                       {row.legalNumber && (
-                        <Chip
+                        <StatusChip
+                          tone={row.locked ? 'warn' : 'neutral'}
                           icon={row.locked ? <Lock size={12} strokeWidth={1.75} /> : undefined}
                           label={row.legalNumber}
-                          size="small"
-                          sx={{
-                            color: row.locked ? 'var(--warn)' : 'var(--muted)',
-                            bgcolor: row.locked ? 'var(--warn-soft)' : 'var(--hover)',
-                            fontFamily: '"SF Mono", Menlo, Consolas, monospace',
-                            '& .MuiChip-icon': { color: row.locked ? 'var(--warn)' : 'var(--muted)' },
-                          }}
+                          className="font-mono"
                         />
                       )}
-                    </Box>
-                    <Typography noWrap sx={{ fontSize: '11.5px', color: 'var(--muted)', mt: '1px' }}>
+                    </div>
+                    <p className="cn-text-body1 truncate text-[11.5px] text-[var(--muted)] mt-px">
                       {isFailed && row.errorMessage ? `${row.errorMessage} · ${meta}` : meta}
-                    </Typography>
-                  </Box>
+                    </p>
+                  </div>
 
                   {/* Statut -soft + actions */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
-                    <Tooltip title={row.errorMessage || ''} arrow>
-                      <Chip label={row.status} size="small" sx={{ color: row.statusTone.c, bgcolor: row.statusTone.bg }} />
-                    </Tooltip>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {/* Sans message d'erreur, aucune infobulle : le Tooltip du kit
+                        afficherait une bulle vide la ou MUI n'en montrait aucune. */}
+                    {row.errorMessage ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* Le span porte la ref que TooltipTrigger pose sur son enfant :
+                              StatusChip est une fonction et n'en transmet pas. */}
+                          <span className="inline-flex">
+                            <StatusChip tokens={{ color: row.statusTone.c, bg: row.statusTone.bg }} label={row.status} />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{row.errorMessage}</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <StatusChip tokens={{ color: row.statusTone.c, bg: row.statusTone.bg }} label={row.status} />
+                    )}
 
                     {/* ── Message : « Aperçu → » accent + actions d'échec ── */}
                     {row.kind === 'message' && row.messageLog && (
                       <>
                         {row.messageLog.status === 'FAILED' && row.messageLog.guestId && (
-                          <Tooltip title="Modifier l'email et renvoyer" arrow>
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                setEditEmailLog(row.messageLog!);
-                                setEditEmailValue(row.messageLog!.recipient === 'N/A' ? '' : row.messageLog!.recipient);
-                              }}
-                              aria-label="Modifier l'email"
-                              sx={{ cursor: 'pointer', color: 'var(--muted)', '&:hover': { color: 'var(--warn)', backgroundColor: 'var(--warn-soft)' } }}
-                            >
-                              <EditIcon size={16} strokeWidth={1.75} />
-                            </IconButton>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {/* Le span porte la ref : Button du kit ne la transmet pas. */}
+                              <span className="inline-flex">
+                                <BuiButton
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => {
+                                    setEditEmailLog(row.messageLog!);
+                                    setEditEmailValue(row.messageLog!.recipient === 'N/A' ? '' : row.messageLog!.recipient);
+                                  }}
+                                  aria-label="Modifier l'email"
+                                  className="text-[var(--muted)] hover:bg-[var(--warn-soft)] hover:text-[var(--warn)]"
+                                >
+                                  <EditIcon size={16} strokeWidth={1.75} />
+                                </BuiButton>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Modifier l&apos;email et renvoyer</TooltipContent>
                           </Tooltip>
                         )}
                         {row.messageLog.status === 'FAILED' && !row.messageLog.guestId && (
-                          <Tooltip title="Réservation anonymisée (iCal Airbnb/Booking) — l'email du voyageur n'est pas exposé par le canal. Crée un guest manuel pour pouvoir envoyer le message.">
-                            <span>
-                              <IconButton size="small" disabled>
-                                <EditIcon size={16} strokeWidth={1.75} />
-                              </IconButton>
-                            </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <BuiButton variant="ghost" size="icon-sm" disabled aria-label="Modifier l'email">
+                                  <EditIcon size={16} strokeWidth={1.75} />
+                                </BuiButton>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Réservation anonymisée (iCal Airbnb/Booking) — l&apos;email du voyageur n&apos;est pas exposé par le canal.
+                              Crée un guest manuel pour pouvoir envoyer le message.
+                            </TooltipContent>
                           </Tooltip>
                         )}
                         {row.messageLog.status === 'FAILED' && row.messageLog.templateId && (() => {
@@ -522,43 +560,40 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                             ? "Renvoyer le message"
                             : "Pas de destinataire — ajoute un email guest avant de renvoyer";
                           return (
-                            <Tooltip title={tip} arrow>
-                              <span>
-                                <IconButton
-                                  size="small"
-                                  disabled={!canResend || resendingId === row.messageLog!.id}
-                                  onClick={() => canResend && handleResend(row.messageLog!)}
-                                  aria-label="Renvoyer"
-                                  sx={{
-                                    cursor: canResend ? 'pointer' : 'not-allowed',
-                                    color: canResend ? 'var(--ok)' : 'var(--faint)',
-                                    '&:hover': canResend ? { color: 'var(--ok)', backgroundColor: 'var(--ok-soft)' } : {},
-                                  }}
-                                >
-                                  {resendingId === row.messageLog!.id
-                                    ? <CircularProgress size={16} />
-                                    : <Replay size={16} strokeWidth={1.75} />}
-                                </IconButton>
-                              </span>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                  <BuiButton
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    disabled={!canResend || resendingId === row.messageLog!.id}
+                                    onClick={() => canResend && handleResend(row.messageLog!)}
+                                    aria-label="Renvoyer"
+                                    className={cn(
+                                      canResend
+                                        ? 'text-[var(--ok)] hover:bg-[var(--ok-soft)] hover:text-[var(--ok)]'
+                                        : 'text-[var(--faint)]',
+                                    )}
+                                  >
+                                    {resendingId === row.messageLog!.id
+                                      ? <Spinner className="size-4" />
+                                      : <Replay size={16} strokeWidth={1.75} />}
+                                  </BuiButton>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>{tip}</TooltipContent>
                             </Tooltip>
                           );
                         })()}
-                        <Box
-                          component="button"
+                        <button
                           type="button"
                           onClick={() => setDetailLog(row.messageLog!)}
                           aria-label="Voir les details"
-                          sx={{
-                            all: 'unset', display: 'inline-flex', alignItems: 'center', gap: '4px',
-                            fontSize: '12.5px', fontWeight: 600, color: 'var(--accent)',
-                            whiteSpace: 'nowrap', cursor: 'pointer',
-                            '&:hover': { color: 'var(--accent-deep)' },
-                            '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2, borderRadius: '6px' },
-                          }}
+                          className={INLINE_LINK_BTN_CLS}
                         >
                           Aperçu
                           <ArrowRightIcon size={14} strokeWidth={1.75} />
-                        </Box>
+                        </button>
                       </>
                     )}
 
@@ -566,47 +601,49 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                     {row.kind === 'document' && row.documentGeneration && (
                       <>
                         {row.locked && row.documentHash && (
-                          <Tooltip title="Verifier l'integrite" arrow>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleVerify(row.documentGeneration!)}
-                              aria-label="Verifier l'integrite"
-                              sx={{ cursor: 'pointer', color: 'var(--muted)', '&:hover': { color: 'var(--info)', backgroundColor: 'var(--info-soft)' } }}
-                            >
-                              <Fingerprint size={16} strokeWidth={1.75} />
-                            </IconButton>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <BuiButton
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => handleVerify(row.documentGeneration!)}
+                                  aria-label="Verifier l'integrite"
+                                  className="text-[var(--muted)] hover:bg-[var(--info-soft)] hover:text-[var(--info)]"
+                                >
+                                  <Fingerprint size={16} strokeWidth={1.75} />
+                                </BuiButton>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>Verifier l&apos;integrite</TooltipContent>
                           </Tooltip>
                         )}
                         {row.correctsId && (
-                          <Tooltip title={`Correction du document #${row.correctsId}`}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><VerifiedUser size={16} strokeWidth={1.75} /></Box>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex text-[var(--muted)]"><VerifiedUser size={16} strokeWidth={1.75} /></span>
+                            </TooltipTrigger>
+                            <TooltipContent>{`Correction du document #${row.correctsId}`}</TooltipContent>
                           </Tooltip>
                         )}
                         {['COMPLETED', 'SENT', 'LOCKED'].includes(row.documentGeneration.status) && (
-                          <Box
-                            component="button"
+                          <button
                             type="button"
                             onClick={() => handleDownload(row.documentGeneration!)}
                             aria-label="Telecharger"
-                            sx={{
-                              all: 'unset', display: 'inline-flex', alignItems: 'center', gap: '4px',
-                              fontSize: '12.5px', fontWeight: 600, color: 'var(--accent)',
-                              whiteSpace: 'nowrap', cursor: 'pointer',
-                              '&:hover': { color: 'var(--accent-deep)' },
-                              '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2, borderRadius: '6px' },
-                            }}
+                            className={INLINE_LINK_BTN_CLS}
                           >
                             <Download size={14} strokeWidth={1.75} />
                             Télécharger
-                          </Box>
+                          </button>
                         )}
                       </>
                     )}
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               );
             })}
-          </Box>
+          </div>
 
           {/* Pagination only for documents view */}
           {filter !== 'messages' && docTotalElements > docSize && (
@@ -623,44 +660,41 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
       )}
 
       {/* ── Detail dialog ── */}
-      <Dialog open={!!detailLog} onClose={() => setDetailLog(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Details du message</DialogTitle>
-        <DialogContent>
+      <Dialog open={!!detailLog} onOpenChange={(next) => { if (!next) setDetailLog(null); }}>
+        <DialogContent className="max-w-[600px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Details du message</DialogTitle>
+          </DialogHeader>
           {detailLog && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: 1 }}>
-              <Typography variant="body2"><strong>Template :</strong> {detailLog.templateName || '—'}</Typography>
-              <Typography variant="body2"><strong>Sujet :</strong> {detailLog.subject || '—'}</Typography>
-              <Typography variant="body2"><strong>Destinataire :</strong> {detailLog.recipient}</Typography>
-              <Typography variant="body2"><strong>Voyageur :</strong> {detailLog.guestName || '—'}</Typography>
-              <Typography variant="body2"><strong>Canal :</strong> {detailLog.channel}</Typography>
-              <Typography variant="body2"><strong>Statut :</strong> {detailLog.status}</Typography>
+            <div className="flex flex-col gap-2 pt-1.5">
+              <p className="cn-text-body2"><strong>Template :</strong> {detailLog.templateName || '—'}</p>
+              <p className="cn-text-body2"><strong>Sujet :</strong> {detailLog.subject || '—'}</p>
+              <p className="cn-text-body2"><strong>Destinataire :</strong> {detailLog.recipient}</p>
+              <p className="cn-text-body2"><strong>Voyageur :</strong> {detailLog.guestName || '—'}</p>
+              <p className="cn-text-body2"><strong>Canal :</strong> {detailLog.channel}</p>
+              <p className="cn-text-body2"><strong>Statut :</strong> {detailLog.status}</p>
               {detailLog.errorMessage && (
-                <Alert severity="error" sx={{ mt: 1 }}>{detailLog.errorMessage}</Alert>
+                <BuiAlert variant="destructive" className="mt-1.5">
+                  <TriangleAlert />
+                  <AlertDescription>{detailLog.errorMessage}</AlertDescription>
+                </BuiAlert>
               )}
-              <Typography variant="body2"><strong>Reservation :</strong> #{detailLog.reservationId}</Typography>
-              <Typography variant="body2" color="text.secondary">
+              <p className="cn-text-body2"><strong>Reservation :</strong> #{detailLog.reservationId}</p>
+              <p className="cn-text-body2 text-muted-foreground">
                 Cree le {formatDate(detailLog.createdAt)}
                 {detailLog.sentAt && ` — Envoye le ${formatDate(detailLog.sentAt)}`}
-              </Typography>
+              </p>
 
               {/* Apercu du contenu email */}
               {detailLog.channel === 'EMAIL' && detailLog.templateId && (
                 <>
-                  <Typography variant="subtitle2" sx={{ mt: 1 }}>Contenu de l&apos;email</Typography>
+                  <h6 className="cn-text-subtitle2 mt-1.5">Contenu de l&apos;email</h6>
                   {previewLoading ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                      <CircularProgress size={24} />
-                    </Box>
+                    <div className="flex justify-center py-3">
+                      <Spinner className="size-6" />
+                    </div>
                   ) : previewHtml ? (
-                    <Box
-                      sx={{
-                        mt: 0.5,
-                        borderRadius: 1,
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        overflow: 'hidden',
-                      }}
-                    >
+                    <div className="mt-0.5 rounded-[8px] border border-[var(--line)] overflow-hidden">
                       <iframe
                         sandbox=""
                         srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.6;color:${isDark ? '#e0e0e0' : '#333'};background:${isDark ? '#1e1e1e' : '#fff'};padding:16px;margin:0;word-wrap:break-word;}a{color:${isDark ? '#90caf9' : '#1976d2'};}</style></head><body>${renderServerEmailPreview(previewHtml)}</body></html>`}
@@ -671,21 +705,21 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                           border: 'none',
                         }}
                       />
-                    </Box>
+                    </div>
                   ) : (
-                    <Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic' }}>
+                    <p className="cn-text-body2 text-muted-foreground opacity-60 italic">
                       Apercu indisponible
-                    </Typography>
+                    </p>
                   )}
                 </>
               )}
-            </Box>
+            </div>
           )}
-        </DialogContent>
-        <DialogActions>
+        <DialogFooter>
           {detailLog?.status === 'FAILED' && detailLog.guestId && (
-            <Button
-              color="warning"
+            <BuiButton
+              variant="outline"
+              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
               onClick={() => {
                 setEditEmailLog(detailLog);
                 setEditEmailValue(detailLog.recipient === 'N/A' ? '' : detailLog.recipient);
@@ -693,108 +727,116 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
               }}
             >
               Modifier l&apos;email
-            </Button>
+            </BuiButton>
           )}
           {detailLog?.status === 'FAILED' && detailLog.templateId && (() => {
             const canResend = hasRecipient(detailLog);
-            return (
-              <Tooltip
-                title={canResend ? '' : "Pas de destinataire — ajoute un email guest avant de renvoyer"}
-                disableHoverListener={canResend}
+            const resendButton = (
+              <BuiButton
+                variant="outline"
+                className="text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]"
+                disabled={!canResend || resendingId === detailLog.id}
+                onClick={() => {
+                  if (!canResend) return;
+                  handleResend(detailLog);
+                  setDetailLog(null);
+                }}
               >
-                <span>
-                  <Button
-                    color="success"
-                    disabled={!canResend || resendingId === detailLog.id}
-                    onClick={() => {
-                      if (!canResend) return;
-                      handleResend(detailLog);
-                      setDetailLog(null);
-                    }}
-                  >
-                    Renvoyer
-                  </Button>
-                </span>
+                Renvoyer
+              </BuiButton>
+            );
+            // L'infobulle n'existait que dans le cas bloque (`disableHoverListener`
+            // quand l'envoi est possible) : on ne monte le Tooltip que la.
+            return canResend ? resendButton : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">{resendButton}</span>
+                </TooltipTrigger>
+                <TooltipContent>Pas de destinataire — ajoute un email guest avant de renvoyer</TooltipContent>
               </Tooltip>
             );
           })()}
-          <Button onClick={() => setDetailLog(null)}>Fermer</Button>
-        </DialogActions>
+          <BuiButton variant="ghost" onClick={() => setDetailLog(null)}>Fermer</BuiButton>
+        </DialogFooter>
+        </DialogContent>
       </Dialog>
 
       {/* ── Edit email dialog ── */}
-      <Dialog open={!!editEmailLog} onClose={() => setEditEmailLog(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Modifier l&apos;email du voyageur</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Dialog open={!!editEmailLog} onOpenChange={(next) => { if (!next) setEditEmailLog(null); }}>
+        <DialogContent className="max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>Modifier l&apos;email du voyageur</DialogTitle>
+          </DialogHeader>
+          <p className="cn-text-body2 text-muted-foreground mb-3">
             Saisissez l&apos;email du voyageur pour {editEmailLog?.guestName || 'ce voyageur'}.
             Le message sera automatiquement renvoye apres la mise a jour.
-          </Typography>
-          <TextField
-            autoFocus
-            fullWidth
-            type="email"
-            label="Email"
-            value={editEmailValue}
-            onChange={(e) => setEditEmailValue(e.target.value)}
-            placeholder="voyageur@example.com"
-          />
+          </p>
+          <Field>
+            <FieldLabel htmlFor="resend-guest-email">Email</FieldLabel>
+            <Input
+              id="resend-guest-email"
+              autoFocus
+              type="email"
+              value={editEmailValue}
+              onChange={(e) => setEditEmailValue(e.target.value)}
+              placeholder="voyageur@example.com"
+            />
+          </Field>
+          <DialogFooter>
+            <BuiButton variant="outline" onClick={() => setEditEmailLog(null)} disabled={editEmailLoading}>
+              Annuler
+            </BuiButton>
+            <BuiButton
+              disabled={!editEmailValue.trim() || editEmailLoading}
+              onClick={handleUpdateEmailAndResend}
+            >
+              {editEmailLoading ? <Spinner className="size-5" /> : 'Enregistrer et renvoyer'}
+            </BuiButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditEmailLog(null)} disabled={editEmailLoading}>
-            Annuler
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            disabled={!editEmailValue.trim() || editEmailLoading}
-            onClick={handleUpdateEmailAndResend}
-          >
-            {editEmailLoading ? <CircularProgress size={20} /> : 'Enregistrer et renvoyer'}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* ── Apercu PDF (deep-link notification document) ── */}
-      <Dialog
-        open={pdfDialogOpen}
-        onClose={handleClosePdf}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{ sx: { height: '85vh' } }}
-      >
-        <DialogTitle>{t('documents.history.pdfPreview', 'Apercu du document')}</DialogTitle>
-        <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      <Dialog open={pdfDialogOpen} onOpenChange={(next) => { if (!next) handleClosePdf(); }}>
+        <DialogContent className="max-w-[900px] h-[85vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>{t('documents.history.pdfPreview', 'Apercu du document')}</DialogTitle>
+          </DialogHeader>
+          <div className="flex min-h-0 flex-col overflow-hidden">
           {pdfLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
-              <CircularProgress thickness={3.5} sx={{ color: 'var(--accent)' }} />
-            </Box>
+            <div className="flex justify-center items-center flex-1">
+              <Spinner className="size-10 text-[var(--accent)]" />
+            </div>
           ) : pdfUrl ? (
             <object data={pdfUrl} type="application/pdf" width="100%" style={{ flex: 1, border: 'none', minHeight: 0 }}>
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="body2" sx={{ color: 'var(--muted)', mb: 2 }}>
+              <div className="p-4 text-center">
+                <p className="cn-text-body2 text-[var(--muted)] mb-3">
                   {t('documents.history.pdfNotSupported', 'Votre navigateur ne supporte pas la visualisation PDF.')}
-                </Typography>
-                <Button variant="contained" href={pdfUrl} download="document.pdf" startIcon={<Download size={16} strokeWidth={1.75} />}>
-                  {t('common.download', 'Telecharger')}
-                </Button>
-              </Box>
+                </p>
+                <BuiButton asChild>
+                  <a href={pdfUrl} download="document.pdf">
+                    <Download size={16} strokeWidth={1.75} />
+                    {t('common.download', 'Telecharger')}
+                  </a>
+                </BuiButton>
+              </div>
             </object>
           ) : (
-            <Box sx={{ p: 3, textAlign: 'center' }}>
-              <Typography variant="body2" sx={{ color: 'var(--muted)' }}>
+            <div className="p-4 text-center">
+              <p className="cn-text-body2 text-[var(--muted)]">
                 {t('documents.history.pdfLoadError', 'Erreur lors du chargement du document')}
-              </Typography>
-            </Box>
+              </p>
+            </div>
           )}
+          </div>
+          <DialogFooter>
+            <BuiButton variant="ghost" onClick={handleClosePdf}>{t('common.close', 'Fermer')}</BuiButton>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClosePdf}>{t('common.close', 'Fermer')}</Button>
-        </DialogActions>
       </Dialog>
 
       <GenerateDialog open={generateOpen} onClose={() => setGenerateOpen(false)} onSuccess={() => setGenerateOpen(false)} />
-    </Box>
+    </div>
   );
 });
 

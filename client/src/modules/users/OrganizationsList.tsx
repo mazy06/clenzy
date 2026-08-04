@@ -1,29 +1,28 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import StatusChip from '../../components/StatusChip';
+import { Alert, AlertDescription, Button } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import {
-  Box,
-  Typography,
-  Button,
-  Grid,
   Card,
   CardContent,
-  CardActions,
-  Chip,
-  IconButton,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  Alert,
   Skeleton,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   Select,
-} from '@mui/material';
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui';
+import { Field, FieldLabel, Input } from '../../components/ui';
 import {
   MoreVert,
   Edit,
@@ -89,7 +88,6 @@ interface OrganizationsListProps {
 const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListProps>(({ embedded = false, actionsContainer, filtersContainer }, ref) => {
   const [organizations, setOrganizations] = useState<OrganizationDto[]>([]);
   const [loading, setLoading] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedOrg, setSelectedOrg] = useState<OrganizationDto | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [formDialogOpen, setFormDialogOpen] = useState(false);
@@ -122,15 +120,6 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
 
   // ─── Actions ──────────────────────────────────────────────────────────────
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, org: OrganizationDto) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedOrg(org);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
   const handleCreate = () => {
     setFormMode('create');
     setFormData({ name: '', type: 'INDIVIDUAL' });
@@ -142,18 +131,19 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
     create: handleCreate,
   }));
 
-  const handleEdit = () => {
-    if (selectedOrg) {
-      setFormMode('edit');
-      setFormData({ name: selectedOrg.name, type: selectedOrg.type });
-      setFormDialogOpen(true);
-      setAnchorEl(null);
-    }
+  // Le menu contextuel est desormais monte DANS chaque carte (DropdownMenu du
+  // kit, plus d'anchorEl global) : l'organisation ciblee est passee en argument
+  // au lieu d'etre lue dans un state pose au clic du declencheur.
+  const handleEdit = (org: OrganizationDto) => {
+    setSelectedOrg(org);
+    setFormMode('edit');
+    setFormData({ name: org.name, type: org.type });
+    setFormDialogOpen(true);
   };
 
-  const handleDelete = () => {
+  const handleDelete = (org: OrganizationDto) => {
+    setSelectedOrg(org);
     setDeleteDialogOpen(true);
-    setAnchorEl(null);
   };
 
   const handleFormSave = async () => {
@@ -224,25 +214,19 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
 
   if (loading) {
     return (
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {Array.from({ length: 8 }).map((_, i) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={i}>
-            <Skeleton variant="rounded" height={170} sx={{ borderRadius: '14px' }} />
-          </Grid>
+          <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={i}>
+            <Skeleton className="h-[170px] rounded-[14px]" />
+          </div>
         ))}
-      </Grid>
+      </div>
     );
   }
 
   const actionButtons = isAdmin() ? (
-    <Button
-      variant="contained"
-      color="primary"
-      size="small"
-      startIcon={<Add size={18} strokeWidth={1.75} />}
-      onClick={handleCreate}
-      sx={{ fontSize: '0.8125rem' }}
-    >
+    <Button size="sm" onClick={handleCreate}>
+      <Add size={18} strokeWidth={1.75} />
       Nouvelle organisation
     </Button>
   ) : null;
@@ -274,7 +258,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
   );
 
   return (
-    <Box>
+    <div>
       {/* Portal des actions dans le header parent */}
       {embedded && actionsContainer && actionButtons && createPortal(actionButtons, actionsContainer)}
 
@@ -291,41 +275,44 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
       )}
 
       {/* Statistiques — StatTile (carte plate hairline, valeur display) */}
-      <Box sx={{ mb: 2 }}>
-        <Grid container spacing={2}>
-          <Grid item xs={6} sm={4} md>
+      <div className="mb-3">
+        {/* Les 5 tuiles se partagent la ligne a parts egales des 900px (ancien
+            `<Grid item md>` sans taille) : `flex-1` n'a aucun effet sur un enfant
+            de `display: grid`, d'ou le passage du conteneur en flex a ce palier. */}
+        <div className="grid grid-cols-12 gap-3 min-[900px]:flex">
+          <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:flex-1">
             <StatTile
               icon={<CorporateFare />}
               label="Total organisations"
               value={organizations.length}
               color="#6B8A9A"
             />
-          </Grid>
+          </div>
           {orgTypes.map((typeInfo) => {
             const TypeIcon = typeInfo.Icon;
             return (
-              <Grid item xs={6} sm={4} md key={typeInfo.value}>
+              <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:flex-1" key={typeInfo.value}>
                 <StatTile
                   icon={<TypeIcon />}
                   label={typeInfo.label}
                   value={organizations.filter(o => o.type === typeInfo.value).length}
                   color={typeInfo.hex}
                 />
-              </Grid>
+              </div>
             );
           })}
-        </Grid>
-      </Box>
+        </div>
+      </div>
 
       {/* Filtres : portales dans le PageHeader parent, sinon inline en standalone */}
       {filtersContainer
         ? createPortal(filtersBar, filtersContainer)
-        : !embedded && <Box sx={{ mb: 2 }}>{filtersBar}</Box>}
+        : !embedded && <div className="mb-3">{filtersBar}</div>}
 
       {/* Liste des organisations */}
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {filteredOrgs.length === 0 ? (
-          <Grid item xs={12}>
+          <div className="col-span-12">
             <EmptyState
               icon={<CorporateFare />}
               title={organizations.length === 0 ? 'Aucune organisation' : 'Aucun résultat'}
@@ -335,360 +322,274 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                   : 'Aucune organisation ne correspond aux filtres sélectionnés.'
               }
             />
-          </Grid>
+          </div>
         ) : (
           filteredOrgs.map((org) => {
             const typeInfo = getTypeInfo(org.type);
             const typeColor = typeInfo.hex;
             const TypeIcon = typeInfo.Icon;
             return (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={org.id}>
-                {/* Carte hairline r14 (thème global) — hover lift + shadow-card */}
-                <Card
-                  sx={{
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    '&:hover': {
-                      borderColor: 'var(--line-2)',
-                      boxShadow: 'var(--shadow-card)',
-                      transform: 'translateY(-1px)',
-                    },
-                    '@media (prefers-reduced-motion: reduce)': {
-                      '&:hover': { transform: 'none' },
-                    },
-                  }}
-                >
-                  <CardContent sx={{ flexGrow: 1, p: 1.75, pb: 1.25 }}>
+              <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={org.id}>
+                {/* Carte hairline r14 (thème global) — hover lift + shadow-card.
+                    Le filet de la carte du kit est un `ring`, d'ou hover:ring-… la
+                    ou le sx MUI teintait `borderColor`. */}
+                <Card className="h-full gap-0 py-0 transition-[box-shadow,transform,--tw-ring-color] duration-150 hover:ring-[var(--line-2)] hover:shadow-[var(--shadow-card)] hover:-translate-y-px motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+                  <CardContent className="grow p-[10.5px] pb-[7.5px]">
                     {/* Header — badge icône fond soft (pattern .mg-avt) */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.25, gap: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flex: 1, minWidth: 0 }}>
-                        <Box
-                          sx={{
-                            width: 38,
-                            height: 38,
-                            borderRadius: '10px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            bgcolor: `${typeColor}1F`,
-                            color: typeColor,
-                            flexShrink: 0,
-                          }}
-                        >
+                    <div className="flex justify-between items-start mb-2 gap-1.5">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="w-[38px] h-[38px] rounded-[10px] inline-flex items-center justify-center shrink-0" style={{ backgroundColor: `${typeColor}1F`, color: typeColor }}>
                           <TypeIcon size={18} strokeWidth={1.75} />
-                        </Box>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography
-                            fontWeight={600}
-                            sx={{
-                              fontSize: '0.9rem',
-                              lineHeight: 1.25,
-                              color: 'text.primary',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                            title={org.name}
-                          >
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="cn-text-body1 font-semibold text-[0.9rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={org.name}>
                             {org.name}
-                          </Typography>
-                          <Typography
-                            color="text.secondary"
-                            sx={{
-                              fontSize: '0.7rem',
-                              lineHeight: 1.3,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              display: 'block',
-                              fontVariantNumeric: 'tabular-nums',
-                            }}
-                          >
+                          </p>
+                          <p className="cn-text-body1 text-muted-foreground text-[0.7rem] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap block tabular-nums">
                             {org.slug}
-                          </Typography>
-                        </Box>
-                      </Box>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => handleMenuOpen(e, org)}
-                        sx={{ p: 0.5, ml: 0.25, color: 'text.secondary' }}
-                        aria-label="Options"
-                      >
-                        <MoreVert size={16} strokeWidth={1.75} />
-                      </IconButton>
-                    </Box>
+                          </p>
+                        </div>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <span className="inline-flex ms-[1.5px]">
+                            <Button variant="ghost" size="icon-sm" aria-label="Options" className="text-[var(--muted)]">
+                              <MoreVert size={16} strokeWidth={1.75} />
+                            </Button>
+                          </span>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-auto min-w-[180px]">
+                          <DropdownMenuItem onClick={() => setMembersDialogOrg(org)}>
+                            <People size={18} strokeWidth={1.75} />
+                            Voir les membres
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEdit(org)}>
+                            <Edit size={18} strokeWidth={1.75} />
+                            Modifier
+                          </DropdownMenuItem>
+                          {isAdmin() && (
+                            <DropdownMenuItem variant="destructive" onClick={() => handleDelete(org)}>
+                              <Delete size={18} strokeWidth={1.75} />
+                              Supprimer
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
 
                     {/* Type et membres — chips -soft (pilule/typo via thème global MuiChip) */}
-                    <Box sx={{ display: 'flex', gap: 0.5, mb: 1.25, flexWrap: 'wrap' }}>
-                      <Chip
-                        icon={<TypeIcon size={11} strokeWidth={2} />}
-                        label={typeInfo.label}
-                        size="small"
-                        sx={{
-                          backgroundColor: `${typeColor}18`,
-                          color: typeColor,
-                          '& .MuiChip-icon': { color: typeColor, ml: '8px', mr: '-4px' },
-                        }}
-                      />
-                      <Chip
+                    <div className="flex gap-0.5 mb-2 flex-wrap">
+                      <StatusChip tokens={{ color: typeColor, bg: `${typeColor}18` }} label={typeInfo.label} icon={<TypeIcon size={11} strokeWidth={2} />} />
+                      <StatusChip
+                        tokens={{ color: MEMBER_CHIP_COLOR, bg: `${MEMBER_CHIP_COLOR}18` }}
                         icon={<People size={11} strokeWidth={2} />}
                         label={`${org.memberCount} membre${org.memberCount !== 1 ? 's' : ''}`}
-                        size="small"
                         onClick={() => setMembersDialogOrg(org)}
-                        sx={{
-                          cursor: 'pointer',
-                          backgroundColor: `${MEMBER_CHIP_COLOR}18`,
-                          color: MEMBER_CHIP_COLOR,
-                          fontVariantNumeric: 'tabular-nums',
-                          '& .MuiChip-icon': { color: MEMBER_CHIP_COLOR, ml: '8px', mr: '-4px' },
-                          '&:hover': { backgroundColor: `${MEMBER_CHIP_COLOR}28` },
-                        }}
+                        className="tabular-nums"
                       />
-                    </Box>
+                    </div>
 
                     {/* Date de creation */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}>
+                    <div className="flex items-center gap-1.5">
+                      <div className="inline-flex text-muted-foreground shrink-0">
                         <Person size={13} strokeWidth={1.75} />
-                      </Box>
-                      <Typography
-                        sx={{
-                          fontSize: '0.72rem',
-                          color: 'text.secondary',
-                          fontVariantNumeric: 'tabular-nums',
-                        }}
-                      >
+                      </div>
+                      <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums">
                         Creee le {formatDate(org.createdAt)}
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                   </CardContent>
 
-                  {/* Actions */}
-                  {/* Boutons secondaires : peau .s-btn--g du thème global */}
-                  <CardActions sx={{ pt: 0, px: 1.75, pb: 1.5, gap: 0.75 }}>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<Visibility size={14} strokeWidth={1.75} />}
-                      onClick={() => setMembersDialogOrg(org)}
-                      sx={{ flex: 1 }}
-                    >
+                  {/* Actions — simple rangee et non CardFooter du kit : ce dernier
+                      pose un fond `muted` + filet superieur que la carte MUI
+                      d'origine n'avait pas. */}
+                  <div className="flex items-center gap-[4.5px] px-[10.5px] pb-[9px]">
+                    {/* Deux actions de carte a poids egal : aucune ne domine, donc
+                        outline pour les deux plutot qu'une principale arbitraire. */}
+                    <Button variant="outline" size="sm" className="flex-1 shrink" onClick={() => setMembersDialogOrg(org)}>
+                      <Visibility size={14} strokeWidth={1.75} />
                       Membres
                     </Button>
                     <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<Edit size={14} strokeWidth={1.75} />}
-                      onClick={() => {
-                        setSelectedOrg(org);
-                        setFormMode('edit');
-                        setFormData({ name: org.name, type: org.type });
-                        setFormDialogOpen(true);
-                      }}
-                      sx={{ flex: 1 }}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 shrink"
+                      onClick={() => handleEdit(org)}
                     >
+                      <Edit size={14} strokeWidth={1.75} />
                       Modifier
                     </Button>
-                  </CardActions>
+                  </div>
                 </Card>
-              </Grid>
+              </div>
             );
           })
         )}
-      </Grid>
-
-      {/* Menu contextuel */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <MenuItem
-          onClick={() => {
-            if (selectedOrg) setMembersDialogOrg(selectedOrg);
-            setAnchorEl(null);
-          }}
-        >
-          <ListItemIcon>
-            <People size={18} strokeWidth={1.75} />
-          </ListItemIcon>
-          Voir les membres
-        </MenuItem>
-        <MenuItem onClick={handleEdit}>
-          <ListItemIcon>
-            <Edit size={18} strokeWidth={1.75} />
-          </ListItemIcon>
-          Modifier
-        </MenuItem>
-        {isAdmin() && (
-          <MenuItem onClick={handleDelete} sx={{ color: 'var(--err)' }}>
-            <ListItemIcon>
-              <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}><Delete size={18} strokeWidth={1.75} /></Box>
-            </ListItemIcon>
-            Supprimer
-          </MenuItem>
-        )}
-      </Menu>
+      </div>
 
       {/* Dialog de creation/modification */}
       <Dialog
         open={formDialogOpen}
-        onClose={() => {
-          setFormDialogOpen(false);
-          setSelectedOrg(null);
+        onOpenChange={(next) => {
+          if (!next) {
+            setFormDialogOpen(false);
+            setSelectedOrg(null);
+          }
         }}
-        maxWidth="sm"
-        fullWidth
       >
-        <DialogTitle sx={{ pb: 1 }}>
-          {formMode === 'create' ? 'Nouvelle organisation' : 'Modifier l\'organisation'}
-        </DialogTitle>
-        <DialogContent sx={{ pt: 1.5 }}>
-          <Grid container spacing={2} sx={{ mt: 0.5 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Nom de l'organisation *"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                required
-                autoFocus
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Type</InputLabel>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>
+              {formMode === 'create' ? 'Nouvelle organisation' : 'Modifier l\'organisation'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-12 gap-3 mt-[3px]">
+            <div className="col-span-12">
+              <Field>
+                <FieldLabel htmlFor="org-form-name">Nom de l'organisation *</FieldLabel>
+                <Input
+                  id="org-form-name"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  required
+                  autoFocus
+                />
+              </Field>
+            </div>
+            <div className="col-span-12">
+              {/* Select riche (pas NativeSelect) : chaque option porte une icone
+                  coloree par type d'organisation, qu'une <option> ne rend pas. */}
+              <Field>
+                <FieldLabel htmlFor="org-form-type">Type</FieldLabel>
                 <Select
                   value={formData.type}
-                  onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
-                  label="Type"
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
                 >
-                  {orgTypes.map((t) => {
-                    const TypeIcon = t.Icon;
-                    return (
-                      <MenuItem key={t.value} value={t.value}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ display: 'inline-flex', color: t.hex }}>
-                            <TypeIcon size={16} strokeWidth={1.75} />
-                          </Box>
-                          <Typography variant="body2">{t.label}</Typography>
-                        </Box>
-                      </MenuItem>
-                    );
-                  })}
+                  <SelectTrigger id="org-form-type" className="w-full">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {orgTypes.map((t) => {
+                      const TypeIcon = t.Icon;
+                      return (
+                        <SelectItem key={t.value} value={t.value}>
+                          <span className="flex items-center gap-1.5">
+                            <span className="inline-flex" style={{ color: t.hex }}>
+                              <TypeIcon size={16} strokeWidth={1.75} />
+                            </span>
+                            {t.label}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
                 </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
+              </Field>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setFormDialogOpen(false);
+                setSelectedOrg(null);
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleFormSave}
+              disabled={saving || !formData.name.trim()}
+            >
+              {saving ? 'Sauvegarde...' : formMode === 'create' ? 'Creer' : 'Sauvegarder'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button
-            onClick={() => {
-              setFormDialogOpen(false);
-              setSelectedOrg(null);
-            }}
-            size="small"
-          >
-            Annuler
-          </Button>
-          <Button
-            onClick={handleFormSave}
-            variant="contained"
-            size="small"
-            disabled={saving || !formData.name.trim()}
-          >
-            {saving ? 'Sauvegarde...' : formMode === 'create' ? 'Creer' : 'Sauvegarder'}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Dialog de confirmation de suppression */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle sx={{ pb: 1 }}>Confirmer la suppression</DialogTitle>
-        <DialogContent sx={{ pt: 1.5 }}>
-          <Typography variant="body2">
+      <Dialog open={deleteDialogOpen} onOpenChange={(next) => { if (!next) setDeleteDialogOpen(false); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+          </DialogHeader>
+          <p className="cn-text-body2">
             Etes-vous sur de vouloir supprimer l'organisation "{selectedOrg?.name}" ?
-          </Typography>
+          </p>
           {selectedOrg && selectedOrg.memberCount > 0 && (
-            <Alert severity="warning" sx={{ mt: 1 }}>
-              Cette organisation contient {selectedOrg.memberCount} membre(s).
-              Vous devez retirer tous les membres avant de pouvoir la supprimer.
+            <Alert variant="warning" className="mt-1.5">
+              <TriangleAlert />
+              <AlertDescription>Cette organisation contient {selectedOrg.memberCount}membre(s).
+              Vous devez retirer tous les membres avant de pouvoir la supprimer.</AlertDescription>
             </Alert>
           )}
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setDeleteDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button variant="destructive" size="sm" onClick={confirmDelete}>
+              Supprimer
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={() => setDeleteDialogOpen(false)} size="small">
-            Annuler
-          </Button>
-          <Button onClick={confirmDelete} color="error" variant="contained" size="small">
-            Supprimer
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Dialog des membres de l'organisation */}
       <Dialog
         open={!!membersDialogOrg}
-        onClose={() => {
-          setMembersDialogOrg(null);
-          // Rafraichir la liste des orgas pour mettre a jour le memberCount
-          loadOrganizations();
+        onOpenChange={(next) => {
+          if (!next) {
+            setMembersDialogOrg(null);
+            // Rafraichir la liste des orgas pour mettre a jour le memberCount
+            loadOrganizations();
+          }
         }}
-        maxWidth="md"
-        fullWidth
       >
-        {membersDialogOrg && (
-          <>
-            <DialogTitle sx={{ pb: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><People size={20} strokeWidth={1.75} /></Box>
-                <Box>
-                  <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
-                    Membres de {membersDialogOrg.name}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
-                    {(() => { const ti = getTypeInfo(membersDialogOrg.type); const c = ti.hex; return (
-                      <Chip
-                        label={ti.label}
-                        size="small"
-                        sx={{ backgroundColor: `${c}18`, color: c }}
-                      />
-                    ); })()}
-                    <Chip
-                      label={`${membersDialogOrg.memberCount} membre${membersDialogOrg.memberCount !== 1 ? 's' : ''}`}
-                      size="small"
-                      sx={{ backgroundColor: `${MEMBER_CHIP_COLOR}18`, color: MEMBER_CHIP_COLOR, fontVariantNumeric: 'tabular-nums' }}
-                    />
-                  </Box>
-                </Box>
-              </Box>
-            </DialogTitle>
-            <DialogContent sx={{ pt: 1 }}>
+        <DialogContent className="sm:max-w-[900px]">
+          {membersDialogOrg && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-1.5">
+                  <span className="inline-flex text-[var(--accent)]"><People size={20} strokeWidth={1.75} /></span>
+                  <span className="flex flex-col">
+                    <span className="text-[1rem] font-semibold">
+                      Membres de {membersDialogOrg.name}
+                    </span>
+                    <span className="flex gap-0.5 mt-0.5">
+                      {(() => { const ti = getTypeInfo(membersDialogOrg.type); const c = ti.hex; return (
+                        <StatusChip tokens={{ color: c, bg: `${c}18` }} label={ti.label} />
+                      ); })()}
+                      <StatusChip tokens={{ color: MEMBER_CHIP_COLOR, bg: `${MEMBER_CHIP_COLOR}18` }} label={`${membersDialogOrg.memberCount} membre${membersDialogOrg.memberCount !== 1 ? 's' : ''}`} className="tabular-nums" />
+                    </span>
+                  </span>
+                </DialogTitle>
+              </DialogHeader>
               <MembersList
                 organizationId={membersDialogOrg.id}
                 refreshTrigger={membersRefresh}
                 onMemberChanged={() => setMembersRefresh(prev => prev + 1)}
               />
-            </DialogContent>
-            <DialogActions sx={{ px: 2, pb: 1.5 }}>
-              <Button
-                onClick={() => {
-                  setMembersDialogOrg(null);
-                  loadOrganizations();
-                }}
-                size="small"
-              >
-                Fermer
-              </Button>
-            </DialogActions>
-          </>
-        )}
+              <DialogFooter>
+                {/* Seule action du pied de cette modale : outline plutot que ghost,
+                    sinon le pied n'offre plus aucune cible visible. */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setMembersDialogOrg(null);
+                    loadOrganizations();
+                  }}
+                >
+                  Fermer
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
       </Dialog>
-    </Box>
+    </div>
   );
 });
 

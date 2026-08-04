@@ -1,31 +1,43 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
 import {
-  Box,
+  Badge,
   Button,
   Card,
   CardContent,
   Checkbox,
-  Chip,
-  CircularProgress,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  Divider,
-  FormControlLabel,
-  IconButton,
-  Menu,
-  MenuItem,
-  Snackbar,
-  Alert,
-  Stack,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Separator,
   Switch,
-  TextField,
+  Textarea,
   Tooltip,
-  Typography,
-} from '@mui/material';
-import type { AlertColor } from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
+import { Spinner } from '../../components/ui';
+import { useQuery } from '@tanstack/react-query';
+import { useNotification, type NotificationSeverity } from '../../hooks/useNotification';
 import { Add, Save, Edit, Delete, ContentCopy, Link as LinkIcon, OpenInNew } from '../../icons';
 import {
   MessageSquare,
@@ -150,32 +162,38 @@ const newSection = (): GuideSection => ({
 const newSectionItem = (): GuideSectionItem => ({ id: `it-${Date.now()}`, icon: 'sparkles', label: '', detail: '', steps: [] });
 
 /** Sélecteur d'icône lucide compact (aperçu + nom). */
-const IconSelect: React.FC<{ value: string; onChange: (v: string) => void; label?: string }> = ({ value, onChange, label }) => (
-  <TextField
-    select
-    size="small"
-    label={label}
-    value={GUIDE_ICON_OPTIONS.includes(value) ? value : ''}
-    onChange={(e) => onChange(e.target.value)}
-    sx={{ width: 76, '& .MuiSelect-select': { display: 'flex', alignItems: 'center', justifyContent: 'center', py: 1 } }}
-    SelectProps={{
-      renderValue: (v) => {
-        const Icon = guideIcon(v as string);
-        return <Icon size={18} strokeWidth={1.75} />;
-      },
-      MenuProps: { PaperProps: { sx: { maxHeight: 320 } } },
-    }}
-  >
-    {GUIDE_ICON_OPTIONS.map((name) => {
-      const Icon = guideIcon(name);
-      return (
-        <MenuItem key={name} value={name}>
-          <Icon size={18} strokeWidth={1.75} style={{ marginRight: 10 }} /> {name}
-        </MenuItem>
-      );
-    })}
-  </TextField>
-);
+const IconSelect: React.FC<{ value: string; onChange: (v: string) => void; label?: string }> = ({ value, onChange, label }) => {
+  const fieldId = React.useId();
+  const current = GUIDE_ICON_OPTIONS.includes(value) ? value : '';
+  const CurrentIcon = current ? guideIcon(current) : null;
+  return (
+    <Field className="w-[76px] shrink-0">
+      {label ? <FieldLabel htmlFor={fieldId}>{label}</FieldLabel> : null}
+      {/* Report du `renderValue` MUI : le declencheur n'affiche que l'icone,
+          la liste deroulee garde icone + nom. */}
+      <Select value={current} onValueChange={onChange}>
+        <SelectTrigger id={fieldId} className="w-[76px] justify-center" aria-label={label ?? 'Icône'}>
+          <SelectValue>
+            {CurrentIcon ? <CurrentIcon size={18} strokeWidth={1.75} /> : null}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent className="max-h-[320px]">
+          {GUIDE_ICON_OPTIONS.map((name) => {
+            const Icon = guideIcon(name);
+            return (
+              <SelectItem key={name} value={name} textValue={name}>
+                <span className="flex items-center gap-2.5">
+                  <Icon size={18} strokeWidth={1.75} />
+                  {name}
+                </span>
+              </SelectItem>
+            );
+          })}
+        </SelectContent>
+      </Select>
+    </Field>
+  );
+};
 
 /** Formate une plage de dates d'une réservation (ex : « 12 juin → 15 juin »). Dates ISO en entrée. */
 function formatReservationRange(r: GuideReservationRef, locale: string): string {
@@ -212,9 +230,8 @@ const WelcomeGuideAdmin: React.FC = () => {
   // Initiales du propriétaire (colonne « Propriétaire » de la liste, façon Booking Engine).
   const ownerInitials = ((user?.firstName?.[0] ?? '') + (user?.lastName?.[0] ?? '')).toUpperCase()
     || (user?.fullName || user?.email || 'V').trim().charAt(0).toUpperCase();
-  // Menu « … » d'actions par ligne de la liste (toutes les actions y sont conservées).
-  const [rowMenu, setRowMenu] = useState<{ el: HTMLElement; guide: WelcomeGuide } | null>(null);
   const { properties } = usePropertiesList();
+  const { showNotification } = useNotification();
 
   const { data: guides = [], isLoading, refetch } = useQuery({
     queryKey: ['welcome-guides'],
@@ -338,11 +355,6 @@ const WelcomeGuideAdmin: React.FC = () => {
     selected: new Set(),
   });
 
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: AlertColor }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
   const [linkDialog, setLinkDialog] = useState<{ open: boolean; link: string; qrCode: string }>({
     open: false,
     link: '',
@@ -362,8 +374,10 @@ const WelcomeGuideAdmin: React.FC = () => {
     data: null,
   });
 
-  const notify = (message: string, severity: AlertColor = 'success') =>
-    setSnackbar({ open: true, message, severity });
+  // Signature conservee a l'identique (une trentaine d'appels dans le fichier) :
+  // seul le mecanisme d'affichage change, du Snackbar vers le toast partage.
+  const notify = (message: string, severity: NotificationSeverity = 'success') =>
+    showNotification(message, severity);
 
   const openCreate = (opts?: { theme?: string }) => {
     // Nouveau livret pré-rempli avec un modèle riche (template Baitly) que l'hôte
@@ -728,12 +742,13 @@ const WelcomeGuideAdmin: React.FC = () => {
   const headerActions = usePageHeaderActions(
     view === 'list' ? (
       isStaff ? (
-        <Button variant="contained" size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={() => openCreate()}>
+        <Button size="sm" onClick={() => openCreate()}>
+          <Add size={14} strokeWidth={1.75} />
           {t('welcomeGuide.actions.new', 'Nouveau livret')}
         </Button>
       ) : null
     ) : (
-      <Button variant="text" size="small" onClick={closeForm}>
+      <Button variant="ghost" size="sm" onClick={closeForm}>
         {t('welcomeGuide.actions.cancel', 'Annuler')}
       </Button>
     ),
@@ -751,7 +766,7 @@ const WelcomeGuideAdmin: React.FC = () => {
     const themeOverlap = WELCOME_BOOK_THEMES.length > 1
       ? Math.max(6, (WELCOME_BOOK_THEMES.length * 124 - 760) / (WELCOME_BOOK_THEMES.length - 1)) : 0;
     return (
-      <Box className="be-home" data-accent="indigo" sx={{ px: { xs: 2, md: 3 }, py: { xs: 2, md: 3 } }}>
+      <div className="be-home px-3 min-[900px]:px-[18px] py-3 min-[900px]:py-[18px]" data-accent="indigo">
         <div className="canvas" style={{ maxWidth: 860, margin: '0 auto' }}>
           {/* Bloc création (studio) — réservé au staff plateforme (cf. POST /welcome-guides).
               Même écran que le Booking Engine : TOUJOURS affiché (pas d'écran différent selon
@@ -879,14 +894,15 @@ const WelcomeGuideAdmin: React.FC = () => {
             </div>
 
             {isLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
+              <div className="flex justify-center py-9"><Spinner className="size-10" /></div>
             ) : guides.length === 0 ? (
               <EmptyState
                 icon={<LinkIcon />}
                 title={t('welcomeGuide.list.emptyTitle', 'Aucun livret pour le moment')}
                 description={t('welcomeGuide.list.emptyDescription', "Créez un livret d'accueil pour partager le wifi, le digicode et vos bons plans avec vos voyageurs.")}
                 action={isStaff ? (
-                  <Button variant="contained" startIcon={<Add size={16} strokeWidth={1.75} />} onClick={() => openCreate()}>
+                  <Button onClick={() => openCreate()}>
+                    <Add size={16} strokeWidth={1.75} />
                     {t('welcomeGuide.actions.new', 'Nouveau livret')}
                   </Button>
                 ) : undefined}
@@ -911,42 +927,46 @@ const WelcomeGuideAdmin: React.FC = () => {
                         <span className="row__meta">{g.language.toUpperCase()}</span>
                         <div className="row__acc"><span className="av-sm">{ownerInitials}</span><span className="row__owner">Vous</span></div>
                       </button>
-                      <button className="row__menu" type="button" aria-label={t('common.actions', 'Actions')} title={t('common.actions', 'Actions')} onClick={(e) => setRowMenu({ el: e.currentTarget, guide: g })}><MoreHorizontal size={18} strokeWidth={2} /></button>
+                      {/* Menu d'actions par ligne — TOUTES les actions de l'ancienne carte sont conservées ici. */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="row__menu" type="button" aria-label={t('common.actions', 'Actions')} title={t('common.actions', 'Actions')}><MoreHorizontal size={18} strokeWidth={2} /></button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-auto min-w-[200px]">
+                          <DropdownMenuItem disabled={togglingPublishId === g.id} onSelect={() => handleTogglePublish(g)}>
+                            {g.published ? <Unlink size={16} strokeWidth={2} /> : <Check size={16} strokeWidth={2} />}
+                            {g.published ? t('welcomeGuide.actions.unpublish', 'Dépublier') : t('welcomeGuide.actions.publish', 'Publier')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem disabled={!g.published} onSelect={() => handleGenerateLink(g)}>
+                            <Link2 size={16} strokeWidth={2} /> {t('welcomeGuide.actions.generateLink', 'Générer le lien')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleOpenGuestbook(g)}>
+                            <MessageSquare size={16} strokeWidth={2} /> {t('welcomeGuide.actions.guestbook', "Livre d'or")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleOpenStats(g)}>
+                            <BarChart3 size={16} strokeWidth={2} /> {t('welcomeGuide.actions.stats', 'Statistiques')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => openEdit(g)}>
+                            <Edit size={16} strokeWidth={2} /> {t('welcomeGuide.actions.edit', 'Modifier')}
+                          </DropdownMenuItem>
+                          {isStaff ? (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem variant="destructive" onSelect={() => handleDelete(g)}>
+                                <Delete size={16} strokeWidth={2} /> {t('welcomeGuide.actions.delete', 'Supprimer')}
+                              </DropdownMenuItem>
+                            </>
+                          ) : null}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   );
                 })}
               </div>
             )}
-            {/* Menu d'actions par ligne — TOUTES les actions de l'ancienne carte sont conservées ici. */}
-            <Menu anchorEl={rowMenu?.el ?? null} open={!!rowMenu} onClose={() => setRowMenu(null)}>
-              {rowMenu && ([
-                <MenuItem key="pub" disabled={togglingPublishId === rowMenu.guide.id} onClick={() => { handleTogglePublish(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
-                  {rowMenu.guide.published ? <Unlink size={16} strokeWidth={2} /> : <Check size={16} strokeWidth={2} />}
-                  {rowMenu.guide.published ? t('welcomeGuide.actions.unpublish', 'Dépublier') : t('welcomeGuide.actions.publish', 'Publier')}
-                </MenuItem>,
-                <MenuItem key="link" disabled={!rowMenu.guide.published} onClick={() => { handleGenerateLink(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
-                  <Link2 size={16} strokeWidth={2} /> {t('welcomeGuide.actions.generateLink', 'Générer le lien')}
-                </MenuItem>,
-                <MenuItem key="gb" onClick={() => { handleOpenGuestbook(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
-                  <MessageSquare size={16} strokeWidth={2} /> {t('welcomeGuide.actions.guestbook', "Livre d'or")}
-                </MenuItem>,
-                <MenuItem key="stats" onClick={() => { handleOpenStats(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
-                  <BarChart3 size={16} strokeWidth={2} /> {t('welcomeGuide.actions.stats', 'Statistiques')}
-                </MenuItem>,
-                <MenuItem key="edit" onClick={() => { openEdit(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1 }}>
-                  <Edit size={16} strokeWidth={2} /> {t('welcomeGuide.actions.edit', 'Modifier')}
-                </MenuItem>,
-                ...(isStaff ? [
-                  <Divider key="div" sx={{ my: 0.5 }} />,
-                  <MenuItem key="del" onClick={() => { handleDelete(rowMenu.guide); setRowMenu(null); }} sx={{ fontSize: 13, gap: 1, color: 'error.main' }}>
-                    <Delete size={16} strokeWidth={2} /> {t('welcomeGuide.actions.delete', 'Supprimer')}
-                  </MenuItem>,
-                ] : []),
-              ])}
-            </Menu>
           </section>
         </div>
-      </Box>
+      </div>
     );
   };
 
@@ -1072,36 +1092,33 @@ const WelcomeGuideAdmin: React.FC = () => {
 
   // ─── Stepper compact (haut de la colonne 1) ─────────────────────────────────
   const renderStepper = () => (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, mb: 1 }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 700 }} noWrap>
+    <div>
+      <div className="flex items-baseline justify-between gap-1.5 mb-1.5">
+        <h6 className="cn-text-subtitle2 font-bold truncate">
           {WIZARD_STEPS[step]}
-        </Typography>
+        </h6>
         {step < LAST_STEP ? (
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}
-          >
+          <span className="cn-text-caption text-muted-foreground shrink-0 tabular-nums">
             {t('welcomeGuide.wizard.stepCounter', 'Étape {{current}} / {{total}}', {
               current: step + 1,
               total: LAST_STEP,
             })}
-          </Typography>
+          </span>
         ) : null}
-      </Box>
+      </div>
       {/* Précédent | numéros d'étape (centrés, cliquables → saut direct) | Suivant/Enregistrer */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Button variant="outlined" size="small" onClick={goBack} disabled={step === 0} sx={{ flexShrink: 0 }}>
+      <div className="flex items-center gap-1.5">
+        <Button variant="outline" size="sm" className="shrink-0" onClick={goBack} disabled={step === 0}>
           {t('welcomeGuide.wizard.previous', 'Précédent')}
         </Button>
-        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+        <div className="flex-1 flex items-center justify-center gap-1 flex-wrap">
           {WIZARD_STEPS.map((label, i) => {
             const active = i === step;
             const done = i < step;
             return (
-              <Tooltip key={label} title={label} arrow>
-                <Box
+              <Tooltip key={label}>
+                <TooltipTrigger asChild>
+                <div
                   role="button"
                   aria-label={label}
                   aria-current={active ? 'step' : undefined}
@@ -1113,74 +1130,59 @@ const WelcomeGuideAdmin: React.FC = () => {
                       goToStep(i);
                     }
                   }}
-                  sx={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    fontVariantNumeric: 'tabular-nums',
-                    userSelect: 'none',
-                    cursor: 'pointer',
-                    bgcolor: active ? 'var(--accent)' : done ? 'var(--accent-soft)' : 'var(--hover)',
-                    color: active ? 'var(--on-accent)' : done ? 'var(--accent)' : 'var(--muted)',
-                    border: '1px solid',
-                    borderColor: active
-                      ? 'var(--accent)'
-                      : done
-                        ? 'color-mix(in srgb, var(--accent) 35%, transparent)'
-                        : 'var(--line)',
-                    transition: 'background-color .18s ease, color .18s ease, border-color .18s ease',
-                    '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                    '&:hover': !active ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : undefined,
-                    '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-                  }}
+                  className={cn(
+                    'w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[13px] font-semibold tabular-nums select-none cursor-pointer border border-solid',
+                    'transition-[background-color,color,border-color] duration-[180ms] ease-[ease] motion-reduce:transition-none',
+                    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+                    active && 'bg-[var(--accent)] text-[var(--on-accent)] border-[var(--accent)]',
+                    // Le hover n'existait que hors etape active (sx `!active ? … : undefined`).
+                    !active && 'hover:border-[var(--accent)] hover:text-[var(--accent)]',
+                    !active && done && 'bg-[var(--accent-soft)] text-[var(--accent)] border-[color-mix(in_srgb,_var(--accent)_35%,_transparent)]',
+                    !active && !done && 'bg-[var(--hover)] text-[var(--muted)] border-[var(--line)]',
+                  )}
                 >
                   {done ? <Check size={15} strokeWidth={2.5} /> : i + 1}
-                </Box>
+                </div>
+                </TooltipTrigger>
+                <TooltipContent>{label}</TooltipContent>
               </Tooltip>
             );
           })}
-        </Box>
+        </div>
         {step < LAST_STEP ? (
-          <Button variant="contained" size="small" onClick={goNext} sx={{ flexShrink: 0 }}>
+          <Button size="sm" className="shrink-0" onClick={goNext}>
             {t('welcomeGuide.wizard.next', 'Suivant')}
+          </Button>
+        ) : canCreate ? (
+          <Button size="sm" className="shrink-0" onClick={() => handleSave()} disabled={saving}>
+            {saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
+            {t('welcomeGuide.actions.save', 'Enregistrer')}
           </Button>
         ) : (
           // Création réservée au staff + nécessite une réservation en cours/à venir.
-          // Tooltip explicatif quand l'action est bloquée (édition jamais bloquée).
-          <Tooltip
-            arrow
-            title={
-              canCreate
-                ? ''
-                : !isStaff
-                  ? t('welcomeGuide.reservationLink.staffOnly', 'La création d’un livret est réservée au staff Clenzy.')
-                  : t(
-                      'welcomeGuide.reservationLink.noReservation',
-                      'Aucune réservation en cours ou à venir pour ce logement : livret non créable.',
-                    )
-            }
-          >
-            <span style={{ flexShrink: 0 }}>
-              <Button
-                variant="contained"
-                size="small"
-                onClick={() => handleSave()}
-                disabled={saving || !canCreate}
-                startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save size={14} strokeWidth={1.75} />}
-              >
-                {t('welcomeGuide.actions.save', 'Enregistrer')}
-              </Button>
-            </span>
+          // Le tooltip n'existait que pour expliquer le blocage : on ne le monte
+          // donc que dans ce cas (MUI acceptait un libelle vide, pas Radix).
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex shrink-0">
+                <Button size="sm" onClick={() => handleSave()} disabled>
+                  {saving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
+                  {t('welcomeGuide.actions.save', 'Enregistrer')}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              {!isStaff
+                ? t('welcomeGuide.reservationLink.staffOnly', 'La création d’un livret est réservée au staff Baitly.')
+                : t(
+                    'welcomeGuide.reservationLink.noReservation',
+                    'Aucune réservation en cours ou à venir pour ce logement : livret non créable.',
+                  )}
+            </TooltipContent>
           </Tooltip>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 
   // ─── Récapitulatif (étape finale) ───────────────────────────────────────────
@@ -1210,33 +1212,30 @@ const WelcomeGuideAdmin: React.FC = () => {
       { label: t('welcomeGuide.wizard.recapPublished', 'Publié'), value: published ? yes : no },
     ];
     return (
-      <Card variant="outlined">
+      <Card>
         <CardContent>
           <SectionHeading
             icon={<Check size={17} strokeWidth={1.75} />}
             title={t('welcomeGuide.wizard.recapTitle', 'Vérifiez votre livret')}
           />
-          <Typography variant="body2" color="text.secondary" sx={{ mt: -0.5, mb: 1.5 }}>
+          {/* theme.spacing = 6 : mt -0.5 -> -3px, mb 1.5 -> 9px */}
+          <p className="cn-text-body2 text-[var(--muted)] mt-[-3px] mb-[9px]">
             {t('welcomeGuide.wizard.recapSubtitle', "Un dernier coup d'œil avant d'enregistrer.")}
-          </Typography>
-          <Stack divider={<Divider />} spacing={0}>
+          </p>
+          {/* `divider` du Stack MUI : filet entre lignes, rendu ici par une
+              bordure haute sur chaque ligne sauf la premiere. */}
+          <div className="flex flex-col [&>*+*]:border-t [&>*+*]:border-solid [&>*+*]:border-[var(--line)]">
             {rows.map((r) => (
-              <Box
-                key={r.label}
-                sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 2, py: 0.85 }}
-              >
-                <Typography variant="body2" color="text.secondary">
+              <div className="flex items-baseline justify-between gap-3 py-1.5" key={r.label}>
+                <p className="cn-text-body2 text-muted-foreground">
                   {r.label}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{ fontWeight: 600, textAlign: 'right', minWidth: 0, ...(r.num ? { fontVariantNumeric: 'tabular-nums' } : {}) }}
-                >
+                </p>
+                <p className={cn('cn-text-body2 font-semibold text-right min-w-0', r.num && 'tabular-nums')}>
                   {r.value}
-                </Typography>
-              </Box>
+                </p>
+              </div>
             ))}
-          </Stack>
+          </div>
         </CardContent>
       </Card>
     );
@@ -1254,38 +1253,31 @@ const WelcomeGuideAdmin: React.FC = () => {
       ? t('welcomeGuide.reservationLink.noneCreate', 'Aucune réservation en cours ou à venir')
       : t('welcomeGuide.reservationLink.none', 'Aucune réservation liée');
     return (
-      <Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+      <div>
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <h6 className="cn-text-subtitle2 font-semibold">
             {t('welcomeGuide.reservationLink.title', 'Réservation en cours / à venir')}
-          </Typography>
-          <Chip
-            size="small"
-            icon={linked ? <Link2 size={13} strokeWidth={1.9} /> : <Unlink size={13} strokeWidth={1.9} />}
-            label={
-              linked
+          </h6>
+          <StatusChip color={semanticToHex(linked ? 'success' : 'default')} label={linked
                 ? t('welcomeGuide.reservationLink.linked', 'Lié')
-                : t('welcomeGuide.reservationLink.notLinked', 'Non lié')
-            }
-            sx={softChipSx(semanticToHex(linked ? 'success' : 'default'))}
-          />
-        </Box>
+                : t('welcomeGuide.reservationLink.notLinked', 'Non lié')} icon={linked ? <Link2 size={13} strokeWidth={1.9} /> : <Unlink size={13} strokeWidth={1.9} />} />
+        </div>
         {linked && linkedReservation ? (
-          <Card variant="outlined">
-            <CardContent sx={{ py: 1.25, '&:last-child': { pb: 1.25 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Card className="py-[7.5px]">
+            <CardContent>
+              <div className="flex items-center gap-1.5">
                 <CalendarDays size={18} strokeWidth={1.75} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                <div className="min-w-0">
+                  <p className="cn-text-body2 font-semibold truncate">
                     {linkedReservation.guestName || t('welcomeGuide.reservationLink.guestUnknown', 'Voyageur')}
-                  </Typography>
+                  </p>
                   {dates ? (
-                    <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    <span className="cn-text-caption text-muted-foreground tabular-nums">
                       {dates}
-                    </Typography>
+                    </span>
                   ) : null}
-                </Box>
-              </Box>
+                </div>
+              </div>
             </CardContent>
           </Card>
         ) : (
@@ -1293,94 +1285,101 @@ const WelcomeGuideAdmin: React.FC = () => {
         )}
         {/* Garde-fous de création (étape Logement uniquement) */}
         {isCreate && !isStaff ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1, color: 'text.secondary' }}>
+          <div className="flex items-center gap-1 mt-1.5 text-muted-foreground">
             <Lock size={14} strokeWidth={1.75} style={{ flexShrink: 0 }} />
-            <Typography variant="caption">
+            <span className="cn-text-caption">
               {t('welcomeGuide.reservationLink.staffOnly', 'La création d’un livret est réservée au staff Clenzy.')}
-            </Typography>
-          </Box>
+            </span>
+          </div>
         ) : null}
         {isCreate && isStaff && propertyId && !linked ? (
-          <Typography variant="caption" color="warning.main" sx={{ display: 'block', mt: 1 }}>
+          <span className="cn-text-caption text-[var(--bui-warning-ink)] block mt-1.5">
             {t(
               'welcomeGuide.reservationLink.noReservation',
               'Aucune réservation en cours ou à venir pour ce logement : livret non créable.',
             )}
-          </Typography>
+          </span>
         ) : null}
-      </Box>
+      </div>
     );
   };
 
   // ─── Render: form ──────────────────────────────────────────────────────────
   const renderForm = () => (
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) 392px' }, gap: 3, alignItems: 'start' }}>
-      <Stack spacing={2.5}>
+    // Rupture MUI lg = 1200px (breakpoints non configures) ; gap: 3 = 18px.
+    <div className="grid grid-cols-[1fr] min-[1200px]:grid-cols-[minmax(0,_1fr)_392px] gap-[18px] items-start">
+      {/* theme.spacing = 6 : Stack spacing 2.5 -> 15px */}
+      <div className="flex flex-col gap-[15px] min-w-0">
       {renderStepper()}
 
       {/* ── Étape 0 — Logement ── */}
       {step === 0 && (
       <>
-      <TextField
-        select
-        label={t('welcomeGuide.fields.property', 'Logement')}
-        value={propertyId}
-        onChange={(e) => {
-          setPropertyId(e.target.value);
-          // Nouveau logement → on réinitialise le hero pour reprendre ses photos.
-          setHeroPhotoIds([]);
-          setHeroTouched(false);
-        }}
-        disabled={editingId != null}
-        fullWidth
-        size="small"
-        helperText={
-          editingId != null
-            ? t('welcomeGuide.fields.propertyLocked', 'Le logement ne peut pas être changé après création')
-            : undefined
-        }
-      >
-        {properties.map((p) => (
-          <MenuItem key={p.id} value={p.id}>
-            {p.name}
-          </MenuItem>
-        ))}
-      </TextField>
-
-      <TextField
-        label={t('welcomeGuide.fields.title', 'Titre du livret')}
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        fullWidth
-        size="small"
-        placeholder={t('welcomeGuide.fields.titlePlaceholder', 'Bienvenue à l’Appartement du Vieux-Port')}
-      />
-
-      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-        <TextField
-          select
-          label={t('welcomeGuide.fields.language', 'Langue')}
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-          size="small"
-          sx={{ minWidth: 160 }}
+      <Field>
+        <FieldLabel htmlFor="guide-property">{t('welcomeGuide.fields.property', 'Logement')}</FieldLabel>
+        <NativeSelect
+          id="guide-property"
+          value={propertyId}
+          onChange={(e) => {
+            setPropertyId(e.target.value);
+            // Nouveau logement → on réinitialise le hero pour reprendre ses photos.
+            setHeroPhotoIds([]);
+            setHeroTouched(false);
+          }}
+          disabled={editingId != null}
         >
-          {LANGUAGES.map((lng) => (
-            <MenuItem key={lng} value={lng}>
-              {t(`welcomeGuide.languages.${lng}`, lng.toUpperCase())}
-            </MenuItem>
+          {/* Option vide obligatoire : un select natif sans elle afficherait le
+              premier logement alors que propertyId vaut encore ''. */}
+          <NativeSelectOption value="" />
+          {properties.map((p) => (
+            <NativeSelectOption key={p.id} value={p.id}>
+              {p.name}
+            </NativeSelectOption>
           ))}
-        </TextField>
+        </NativeSelect>
+        {editingId != null && (
+          <FieldDescription>
+            {t('welcomeGuide.fields.propertyLocked', 'Le logement ne peut pas être changé après création')}
+          </FieldDescription>
+        )}
+      </Field>
 
-        <TextField
-          label={t('welcomeGuide.fields.logoUrl', 'URL du logo')}
-          value={logoUrl}
-          onChange={(e) => setLogoUrl(e.target.value)}
-          size="small"
-          sx={{ flex: 1, minWidth: 220 }}
-          placeholder="https://…"
+      <Field>
+        <FieldLabel htmlFor="guide-title">{t('welcomeGuide.fields.title', 'Titre du livret')}</FieldLabel>
+        <Input
+          id="guide-title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={t('welcomeGuide.fields.titlePlaceholder', 'Bienvenue à l’Appartement du Vieux-Port')}
         />
-      </Box>
+      </Field>
+
+      <div className="flex gap-3 flex-wrap">
+        <Field className="w-auto min-w-[160px]">
+          <FieldLabel htmlFor="guide-language">{t('welcomeGuide.fields.language', 'Langue')}</FieldLabel>
+          <NativeSelect
+            id="guide-language"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+          >
+            {LANGUAGES.map((lng) => (
+              <NativeSelectOption key={lng} value={lng}>
+                {t(`welcomeGuide.languages.${lng}`, lng.toUpperCase())}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </Field>
+
+        <Field className="flex-1 min-w-[220px]">
+          <FieldLabel htmlFor="guide-logo-url">{t('welcomeGuide.fields.logoUrl', 'URL du logo')}</FieldLabel>
+          <Input
+            id="guide-logo-url"
+            value={logoUrl}
+            onChange={(e) => setLogoUrl(e.target.value)}
+            placeholder="https://…"
+          />
+        </Field>
+      </div>
 
       {/* Réservation rattachée (lecture seule) + badge Lié/Non lié */}
       {renderReservationLink()}
@@ -1391,66 +1390,65 @@ const WelcomeGuideAdmin: React.FC = () => {
       {step === 2 && (
       <>
       {/* Message d'accueil de l'hôte : note dédiée (serif italique) affichée sous le hero. */}
-      <Box>
+      <div>
         <SectionHeading
           icon={<Quote size={17} strokeWidth={1.75} />}
           title={t('welcomeGuide.welcomeNote.title', "Message d'accueil")}
         />
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+        <span className="cn-text-caption text-muted-foreground block mb-2">
           {t(
             'welcomeGuide.welcomeNote.guestHint',
             "Le prénom du voyageur s'affiche automatiquement en haut de l'accueil, chargé depuis la réservation.",
           )}
-        </Typography>
-        <Stack spacing={1.5}>
-          <TextField
-            label={t('welcomeGuide.welcomeNote.message', "Mot d'accueil")}
-            inputRef={welcomeMessageRef}
-            value={welcomeMessage}
-            onChange={(e) => setWelcomeMessage(e.target.value)}
-            size="small"
-            fullWidth
-            multiline
-            minRows={2}
-            placeholder={t(
-              'welcomeGuide.welcomeNote.messagePlaceholder',
-              'Bienvenue chez nous. Installez-vous, respirez — tout ce qu’il vous faut pour un séjour parfait est ici.',
-            )}
-          />
+        </span>
+        <div className="flex flex-col gap-[9px]">
+          {/* La ref vise le <textarea> lui-meme : le tag prenom s'insere A LA
+              POSITION DU CURSEUR, pas en fin de texte. */}
+          <Field>
+            <FieldLabel htmlFor="welcome-note-message">
+              {t('welcomeGuide.welcomeNote.message', "Mot d'accueil")}
+            </FieldLabel>
+            <Textarea
+              id="welcome-note-message"
+              ref={welcomeMessageRef}
+              value={welcomeMessage}
+              onChange={(e) => setWelcomeMessage(e.target.value)}
+              // `field-sizing: content` du kit neutralise `minRows`.
+              className="min-h-[2lh]"
+              placeholder={t(
+                'welcomeGuide.welcomeNote.messagePlaceholder',
+                'Bienvenue chez nous. Installez-vous, respirez — tout ce qu’il vous faut pour un séjour parfait est ici.',
+              )}
+            />
+          </Field>
           {/* Nom du voyageur chargé depuis la réservation (lecture seule), insérable dans le
               message via un tag. Remplace l'ancienne signature d'hôte (champ libre). */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            <Typography variant="caption" color="text.secondary">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="cn-text-caption text-muted-foreground">
               {t('welcomeGuide.welcomeNote.guestLabel', 'Voyageur (chargé depuis la réservation)')} :
-            </Typography>
-            <Chip
-              size="small"
-              label={loadedGuestName || t('welcomeGuide.welcomeNote.guestPending', 'chargé à l’arrivée')}
-              sx={{ height: 24, '& .MuiChip-label': { px: 1, fontSize: 12.5, fontWeight: 600 } }}
-            />
-            <Button
-              size="small"
-              variant="text"
-              startIcon={<Tag size={14} strokeWidth={1.9} />}
-              onClick={insertGuestFirstNameTag}
-              sx={{ textTransform: 'none' }}
-            >
+            </span>
+            <Badge variant="secondary" className="h-[24px] px-1.5 text-[12.5px] font-semibold">{loadedGuestName || t('welcomeGuide.welcomeNote.guestPending', 'chargé à l’arrivée')}</Badge>
+            <Button variant="ghost" size="sm" onClick={insertGuestFirstNameTag}>
+              <Tag size={14} strokeWidth={1.9} />
               {t('welcomeGuide.welcomeNote.insertFirstName', 'Insérer le prénom dans le message')}
             </Button>
-          </Box>
-          <Typography variant="caption" color="text.secondary">
+          </div>
+          <span className="cn-text-caption text-muted-foreground">
             {t('welcomeGuide.welcomeNote.tagHint', 'Le tag {prénom} sera remplacé par le prénom du voyageur.')}
-          </Typography>
-          <TextField
-            label={t('welcomeGuide.welcomeNote.signature', 'Signature (vos noms)')}
-            value={hostNames}
-            onChange={(e) => setHostNames(e.target.value)}
-            size="small"
-            sx={{ maxWidth: 320 }}
-            placeholder={t('welcomeGuide.welcomeNote.signaturePlaceholder', 'ex : Camille & Antoine')}
-          />
-        </Stack>
-      </Box>
+          </span>
+          <Field className="max-w-[320px]">
+            <FieldLabel htmlFor="guide-host-names">
+              {t('welcomeGuide.welcomeNote.signature', 'Signature (vos noms)')}
+            </FieldLabel>
+            <Input
+              id="guide-host-names"
+              value={hostNames}
+              onChange={(e) => setHostNames(e.target.value)}
+              placeholder={t('welcomeGuide.welcomeNote.signaturePlaceholder', 'ex : Camille & Antoine')}
+            />
+          </Field>
+        </div>
+      </div>
       </>
       )}
 
@@ -1459,86 +1457,67 @@ const WelcomeGuideAdmin: React.FC = () => {
       <>
       {/* Thème du livret : carrés de couleur seuls, nom + description en tooltip.
           Taille fixe → le retour à la ligne s'adapte à la largeur (flex-wrap). */}
-      <Box>
-        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.25 }}>
+      <div>
+        <h6 className="cn-text-subtitle2 font-semibold mb-2">
           {t('welcomeGuide.themes.sectionTitle', 'Thème du livret')}
-        </Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25 }}>
+        </h6>
+        <div className="flex flex-wrap gap-2">
           {WELCOME_BOOK_THEMES.map((th) => {
             const on = theme === th.id;
             return (
-              <Tooltip
-                key={th.id}
-                arrow
-                title={
-                  <Box sx={{ textAlign: 'center', py: 0.25 }}>
-                    <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>
-                      {t(`welcomeGuide.themes.${th.id}.name`, th.name)}
-                    </Typography>
-                    <Typography variant="caption" sx={{ opacity: 0.85 }}>
-                      {t(`welcomeGuide.themes.${th.id}.desc`, th.desc)}
-                    </Typography>
-                  </Box>
-                }
-              >
-                <Box
+              // borderRadius: 1.5 avec theme.shape.borderRadius = 8 => 12px.
+              <Tooltip key={th.id}>
+                <TooltipTrigger asChild>
+                <div
                   role="button"
                   aria-label={t(`welcomeGuide.themes.${th.id}.name`, th.name)}
                   onClick={() => setTheme(th.id)}
-                  sx={{
-                    position: 'relative',
-                    flexShrink: 0,
-                    width: 52,
-                    height: 52,
-                    borderRadius: 1.5,
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    boxShadow: on
-                      ? '0 0 0 2px var(--accent), 0 0 0 4px var(--accent-soft)'
-                      : 'inset 0 0 0 1px var(--line-2)',
-                    transition: 'box-shadow .15s',
-                    '&:hover': on ? undefined : { boxShadow: 'inset 0 0 0 1px var(--faint)' },
-                  }}
+                  className={cn(
+                    'relative shrink-0 w-[52px] h-[52px] rounded-[12px] overflow-hidden cursor-pointer flex flex-col',
+                    'transition-shadow duration-150',
+                    on
+                      ? 'shadow-[0_0_0_2px_var(--accent),0_0_0_4px_var(--accent-soft)]'
+                      : 'shadow-[inset_0_0_0_1px_var(--line-2)] hover:shadow-[inset_0_0_0_1px_var(--faint)]',
+                  )}
                 >
-                  <Box sx={{ flex: 1, bgcolor: th.swatch.bg }} />
-                  <Box sx={{ flex: 1, bgcolor: th.swatch.surface }} />
-                  <Box sx={{ height: 16, bgcolor: th.swatch.accent }} />
+                  <div className="flex-1" style={{ backgroundColor: th.swatch.bg }} />
+                  <div className="flex-1" style={{ backgroundColor: th.swatch.surface }} />
+                  <div className="h-[16px]" style={{ backgroundColor: th.swatch.accent }} />
                   {on ? (
-                    <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Box
-                        sx={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: '50%',
-                          bgcolor: 'rgba(255,255,255,0.92)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: '0 1px 3px rgba(21,36,45,.3)',
-                        }}
-                      >
+                    <div className="absolute inset-[0px] flex items-center justify-center">
+                      <div className="w-[22px] h-[22px] rounded-[50%] bg-[rgba(255,255,255,0.92)] flex items-center justify-center" style={{ boxShadow: '0 1px 3px rgba(21,36,45,.3)' }}>
                         <Check size={14} strokeWidth={2.75} style={{ color: 'var(--accent)' }} />
-                      </Box>
-                    </Box>
+                      </div>
+                    </div>
                   ) : null}
-                </Box>
+                </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="text-center py-0.5">
+                    <span className="cn-text-caption font-bold block">
+                      {t(`welcomeGuide.themes.${th.id}.name`, th.name)}
+                    </span>
+                    <span className="cn-text-caption opacity-85">
+                      {t(`welcomeGuide.themes.${th.id}.desc`, th.desc)}
+                    </span>
+                  </div>
+                </TooltipContent>
               </Tooltip>
             );
           })}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Photo de couverture (hero) : choix parmi les photos du logement */}
-      <Box>
+      <div>
         <SectionHeading
           icon={<ImageIcon size={17} strokeWidth={1.75} />}
           title={t('welcomeGuide.hero.title', 'Photos de couverture')}
           actions={
             propertyPhotos.length > 0 ? (
               <Button
-                size="small"
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setHeroTouched(true);
                   setHeroPhotoIds(
@@ -1564,59 +1543,41 @@ const WelcomeGuideAdmin: React.FC = () => {
             text={t('welcomeGuide.hero.empty', "Ce logement n'a pas encore de photos. Ajoutez-en depuis sa fiche.")}
           />
         ) : (
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(92px, 1fr))', gap: 1 }}>
+          <div className="grid grid-cols-[repeat(auto-fill,_minmax(92px,_1fr))] gap-1.5">
             {propertyPhotos.map((ph) => {
               const on = heroPhotoIds.includes(ph.id);
               return (
-                <Box
-                  key={ph.id}
-                  onClick={() => {
+                <div className={cn('relative aspect-[4_/_3] rounded-[12px] overflow-hidden cursor-pointer border-[2px] border-solid', on ? 'border-[var(--accent)]' : 'border-[var(--line-2)]')} style={{ transition: 'border-color .15s' }} key={ph.id} onClick={() => {
                     setHeroTouched(true);
                     setHeroPhotoIds((prev) =>
                       prev.includes(ph.id) ? prev.filter((id) => id !== ph.id) : [...prev, ph.id],
                     );
-                  }}
-                  sx={{
-                    position: 'relative',
-                    aspectRatio: '4 / 3',
-                    borderRadius: 1.5,
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    border: '2px solid',
-                    borderColor: on ? 'var(--accent)' : 'var(--line-2)',
-                    transition: 'border-color .15s',
-                  }}
-                >
-                  <Box
-                    component="img"
-                    src={propertyPhotosApi.getPhotoUrl(Number(propertyId), ph.id)}
-                    alt={ph.caption || ''}
-                    loading="lazy"
-                    sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  />
+                  }}>
+                  <img className="w-full h-full object-cover block" src={propertyPhotosApi.getPhotoUrl(Number(propertyId), ph.id)} alt={ph.caption || ''} loading="lazy" />
                   {on ? (
-                    <Box sx={{ position: 'absolute', top: 4, right: 4, bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="absolute top-[4px] end-[4px] bg-[var(--accent)] text-[var(--on-accent)] rounded-[50%] w-[22px] h-[22px] flex items-center justify-center">
                       <Check size={14} strokeWidth={2.5} />
-                    </Box>
+                    </div>
                   ) : null}
-                </Box>
+                </div>
               );
             })}
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
       </>
       )}
 
       {/* ── Étape 3 — Contenu (sections + autour de moi) ── */}
       {step === 3 && (
       <>
-      <Box>
+      <div>
         <SectionHeading
           icon={<FileText size={17} strokeWidth={1.75} />}
           title={t('welcomeGuide.form.sectionsTitle', 'Sections du livret')}
           actions={
-            <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={addSection}>
+            <Button variant="ghost" size="sm" onClick={addSection}>
+              <Add size={14} strokeWidth={1.75} />
               {t('welcomeGuide.actions.addSection', 'Ajouter une section')}
             </Button>
           }
@@ -1628,116 +1589,146 @@ const WelcomeGuideAdmin: React.FC = () => {
             text={t('welcomeGuide.form.noSection', 'Aucune section. Ajoutez un message d’accueil ou des recommandations.')}
           />
         ) : (
-          <Stack spacing={1.5}>
+          <div className="flex flex-col gap-[9px]">
             {sections.map((s, idx) => (
-              <Card key={s.id} variant="outlined">
-                <CardContent sx={{ '&:last-child': { pb: 2 } }}>
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', mb: 1, flexWrap: 'wrap' }}>
+              <Card key={s.id}>
+                <CardContent>
+                  <div className="flex gap-1.5 items-start mb-1.5 flex-wrap">
                     <IconSelect value={s.icon} onChange={(v) => updateSection(idx, { icon: v })} label={t('welcomeGuide.fields.sectionIcon', 'Icône')} />
-                    <TextField
-                      label={t('welcomeGuide.fields.sectionTitle', 'Titre')}
-                      value={s.title}
-                      onChange={(e) => updateSection(idx, { title: e.target.value })}
-                      size="small"
-                      sx={{ flex: 1, minWidth: 150 }}
-                    />
-                    <TextField
-                      select
-                      label={t('welcomeGuide.fields.sectionLayout', 'Type')}
-                      value={s.layout}
-                      onChange={(e) => updateSection(idx, { layout: e.target.value as GuideSectionLayout })}
-                      size="small"
-                      sx={{ width: 150 }}
+                    <Field className="flex-1 min-w-[150px]">
+                      <FieldLabel htmlFor={`guide-section-${s.id}-title`}>
+                        {t('welcomeGuide.fields.sectionTitle', 'Titre')}
+                      </FieldLabel>
+                      <Input
+                        id={`guide-section-${s.id}-title`}
+                        value={s.title}
+                        onChange={(e) => updateSection(idx, { title: e.target.value })}
+                      />
+                    </Field>
+                    <Field className="w-[150px]">
+                      <FieldLabel htmlFor={`guide-section-${s.id}-layout`}>
+                        {t('welcomeGuide.fields.sectionLayout', 'Type')}
+                      </FieldLabel>
+                      <NativeSelect
+                        id={`guide-section-${s.id}-layout`}
+                        value={s.layout}
+                        onChange={(e) => updateSection(idx, { layout: e.target.value as GuideSectionLayout })}
+                      >
+                        {SECTION_LAYOUT_OPTIONS.map((l) => (
+                          <NativeSelectOption key={l} value={l}>{t(`welcomeGuide.layouts.${l}`, l)}</NativeSelectOption>
+                        ))}
+                      </NativeSelect>
+                    </Field>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t('welcomeGuide.actions.delete', 'Supprimer')}
+                      onClick={() => removeSection(idx)}
+                      className="mt-[3px] text-[var(--err)]"
                     >
-                      {SECTION_LAYOUT_OPTIONS.map((l) => (
-                        <MenuItem key={l} value={l}>{t(`welcomeGuide.layouts.${l}`, l)}</MenuItem>
-                      ))}
-                    </TextField>
-                    <IconButton size="small" color="error" onClick={() => removeSection(idx)} sx={{ mt: 0.5 }}>
                       <Delete size={16} strokeWidth={1.75} />
-                    </IconButton>
-                  </Box>
-                  <TextField
-                    label={t('welcomeGuide.fields.sectionSubtitle', 'Sous-titre (liste de navigation)')}
-                    value={s.subtitle}
-                    onChange={(e) => updateSection(idx, { subtitle: e.target.value })}
-                    fullWidth
-                    size="small"
-                    sx={{ mb: 1.25 }}
-                  />
-                  {s.layout === 'text' ? (
-                    <TextField
-                      label={t('welcomeGuide.fields.sectionBody', 'Contenu')}
-                      value={s.body}
-                      onChange={(e) => updateSection(idx, { body: e.target.value })}
-                      fullWidth
-                      size="small"
-                      multiline
-                      minRows={3}
+                    </Button>
+                  </div>
+                  <Field className="mb-[7.5px]">
+                    <FieldLabel htmlFor={`guide-section-${s.id}-subtitle`}>
+                      {t('welcomeGuide.fields.sectionSubtitle', 'Sous-titre (liste de navigation)')}
+                    </FieldLabel>
+                    <Input
+                      id={`guide-section-${s.id}-subtitle`}
+                      value={s.subtitle}
+                      onChange={(e) => updateSection(idx, { subtitle: e.target.value })}
                     />
+                  </Field>
+                  {s.layout === 'text' ? (
+                    <Field>
+                      <FieldLabel htmlFor={`guide-section-${s.id}-body`}>
+                        {t('welcomeGuide.fields.sectionBody', 'Contenu')}
+                      </FieldLabel>
+                      <Textarea
+                        id={`guide-section-${s.id}-body`}
+                        value={s.body}
+                        onChange={(e) => updateSection(idx, { body: e.target.value })}
+                        rows={3}
+                      />
+                    </Field>
                   ) : (
-                    <Box>
+                    <div>
                       {s.items.map((item, iIdx) => (
-                        <Box key={item.id} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', mb: 1, p: 1, borderRadius: 1.5, bgcolor: 'action.hover' }}>
+                        <div className="flex gap-1.5 items-start mb-1.5 p-1.5 rounded-[12px] bg-[var(--hover)]" key={item.id}>
                           <IconSelect value={item.icon} onChange={(v) => updateSectionItem(idx, iIdx, { icon: v })} />
-                          <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <TextField
-                              label={t('welcomeGuide.sectionItems.label', 'Intitulé')}
-                              value={item.label}
-                              onChange={(e) => updateSectionItem(idx, iIdx, { label: e.target.value })}
-                              fullWidth
-                              size="small"
-                            />
-                            {s.layout === 'list' ? (
-                              <TextField
-                                label={t('welcomeGuide.sectionItems.detail', 'Détail')}
-                                value={item.detail}
-                                onChange={(e) => updateSectionItem(idx, iIdx, { detail: e.target.value })}
-                                fullWidth
-                                size="small"
-                                sx={{ mt: 1 }}
+                          <div className="flex-1 min-w-0">
+                            <Field>
+                              <FieldLabel htmlFor={`guide-item-${item.id}-label`}>
+                                {t('welcomeGuide.sectionItems.label', 'Intitulé')}
+                              </FieldLabel>
+                              <Input
+                                id={`guide-item-${item.id}-label`}
+                                value={item.label}
+                                onChange={(e) => updateSectionItem(idx, iIdx, { label: e.target.value })}
                               />
+                            </Field>
+                            {s.layout === 'list' ? (
+                              <Field className="mt-1.5">
+                                <FieldLabel htmlFor={`guide-item-${item.id}-detail`}>
+                                  {t('welcomeGuide.sectionItems.detail', 'Détail')}
+                                </FieldLabel>
+                                <Input
+                                  id={`guide-item-${item.id}-detail`}
+                                  value={item.detail}
+                                  onChange={(e) => updateSectionItem(idx, iIdx, { detail: e.target.value })}
+                                />
+                              </Field>
                             ) : null}
                             {s.layout === 'steps' ? (
-                              <TextField
-                                label={t('welcomeGuide.sectionItems.steps', 'Étapes (une par ligne)')}
-                                value={item.steps.join('\n')}
-                                onChange={(e) => updateSectionItem(idx, iIdx, { steps: e.target.value.split('\n') })}
-                                fullWidth
-                                size="small"
-                                multiline
-                                minRows={2}
-                                sx={{ mt: 1 }}
-                              />
+                              <Field className="mt-1.5">
+                                <FieldLabel htmlFor={`guide-item-${item.id}-steps`}>
+                                  {t('welcomeGuide.sectionItems.steps', 'Étapes (une par ligne)')}
+                                </FieldLabel>
+                                <Textarea
+                                  id={`guide-item-${item.id}-steps`}
+                                  value={item.steps.join('\n')}
+                                  onChange={(e) => updateSectionItem(idx, iIdx, { steps: e.target.value.split('\n') })}
+                                  rows={2}
+                                />
+                              </Field>
                             ) : null}
-                          </Box>
-                          <IconButton size="small" color="error" onClick={() => removeSectionItem(idx, iIdx)}>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={t('welcomeGuide.actions.delete', 'Supprimer')}
+                            onClick={() => removeSectionItem(idx, iIdx)}
+                            className="text-[var(--err)]"
+                          >
                             <Delete size={15} strokeWidth={1.75} />
-                          </IconButton>
-                        </Box>
+                          </Button>
+                        </div>
                       ))}
-                      <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={() => addSectionItem(idx)}>
+                      <Button variant="ghost" size="sm" onClick={() => addSectionItem(idx)}>
+                        <Add size={14} strokeWidth={1.75} />
                         {t('welcomeGuide.sectionItems.add', 'Ajouter un élément')}
                       </Button>
-                    </Box>
+                    </div>
                   )}
                 </CardContent>
               </Card>
             ))}
-          </Stack>
+          </div>
         )}
-      </Box>
+      </div>
 
-      <Box>
+      <div>
         <SectionHeading
           icon={<MapPin size={17} strokeWidth={1.75} />}
           title={t('welcomeGuide.pois.title', 'Autour de moi')}
           actions={
             <>
-              <Button size="small" startIcon={<Sparkles size={14} strokeWidth={1.75} />} onClick={openSuggest}>
+              <Button variant="ghost" size="sm" onClick={openSuggest}>
+                <Sparkles size={14} strokeWidth={1.75} />
                 {t('welcomeGuide.pois.suggest', 'Suggérer')}
               </Button>
-              <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={addPoi}>
+              <Button variant="ghost" size="sm" onClick={addPoi}>
+                <Add size={14} strokeWidth={1.75} />
                 {t('welcomeGuide.pois.add', 'Ajouter un lieu')}
               </Button>
             </>
@@ -1750,94 +1741,127 @@ const WelcomeGuideAdmin: React.FC = () => {
             text={t('welcomeGuide.pois.empty', 'Aucun lieu. Ajoutez vos restaurants, transports et incontournables.')}
           />
         ) : (
-          <Stack spacing={1.5}>
+          <div className="flex flex-col gap-[9px]">
             {pois.map((p, idx) => (
-              <Card key={p.id} variant="outlined">
-                <CardContent sx={{ '&:last-child': { pb: 2 } }}>
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                    <Box sx={{ flex: 1 }}>
-                      <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
-                        <TextField
-                          select
-                          size="small"
-                          label={t('welcomeGuide.pois.category', 'Catégorie')}
-                          value={p.category}
-                          onChange={(e) => updatePoi(idx, { category: e.target.value })}
-                          sx={{ minWidth: 160 }}
-                        >
-                          {POI_CATEGORIES.map((c) => (
-                            <MenuItem key={c.id} value={c.id}>
-                              {poiLabel(c.id, currentLanguage)}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                        <TextField
-                          size="small"
-                          label={t('welcomeGuide.pois.name', 'Nom')}
-                          value={p.name}
-                          onChange={(e) => updatePoi(idx, { name: e.target.value })}
-                          sx={{ flex: 1, minWidth: 180 }}
-                        />
-                      </Box>
-                      <Box sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
-                        <TextField
-                          size="small"
-                          label={t('welcomeGuide.pois.address', 'Adresse')}
-                          value={p.address}
-                          onChange={(e) => updatePoi(idx, { address: e.target.value })}
-                          fullWidth
-                        />
-                        <Tooltip title={t('welcomeGuide.pois.geocode', 'Localiser sur la carte')}>
-                          <span>
-                            <IconButton size="small" onClick={() => geocodePoi(idx)} disabled={geocoding === p.id}>
-                              {geocoding === p.id ? (
-                                <CircularProgress size={16} />
-                              ) : (
-                                <MapPin size={16} strokeWidth={1.75} />
-                              )}
-                            </IconButton>
-                          </span>
+              <Card key={p.id}>
+                <CardContent>
+                  <div className="flex gap-1.5 items-start">
+                    <div className="flex-1">
+                      <div className="flex gap-1.5 mb-1.5 flex-wrap">
+                        <Field className="w-auto min-w-[160px]">
+                          <FieldLabel htmlFor={`guide-poi-${p.id}-category`}>
+                            {t('welcomeGuide.pois.category', 'Catégorie')}
+                          </FieldLabel>
+                          <NativeSelect
+                            id={`guide-poi-${p.id}-category`}
+                            value={p.category}
+                            onChange={(e) => updatePoi(idx, { category: e.target.value })}
+                          >
+                            {POI_CATEGORIES.map((c) => (
+                              <NativeSelectOption key={c.id} value={c.id}>
+                                {poiLabel(c.id, currentLanguage)}
+                              </NativeSelectOption>
+                            ))}
+                          </NativeSelect>
+                        </Field>
+                        <Field className="flex-1 min-w-[180px]">
+                          <FieldLabel htmlFor={`guide-poi-${p.id}-name`}>
+                            {t('welcomeGuide.pois.name', 'Nom')}
+                          </FieldLabel>
+                          <Input
+                            id={`guide-poi-${p.id}-name`}
+                            value={p.name}
+                            onChange={(e) => updatePoi(idx, { name: e.target.value })}
+                          />
+                        </Field>
+                      </div>
+                      <div className="flex gap-1.5 mb-1.5 items-end">
+                        <Field>
+                          <FieldLabel htmlFor={`guide-poi-${p.id}-address`}>
+                            {t('welcomeGuide.pois.address', 'Adresse')}
+                          </FieldLabel>
+                          <Input
+                            id={`guide-poi-${p.id}-address`}
+                            value={p.address}
+                            onChange={(e) => updatePoi(idx, { address: e.target.value })}
+                          />
+                        </Field>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={t('welcomeGuide.pois.geocode', 'Localiser sur la carte')}
+                                onClick={() => geocodePoi(idx)}
+                                disabled={geocoding === p.id}
+                              >
+                                {geocoding === p.id ? (
+                                  <Spinner className="size-4" />
+                                ) : (
+                                  <MapPin size={16} strokeWidth={1.75} />
+                                )}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('welcomeGuide.pois.geocode', 'Localiser sur la carte')}</TooltipContent>
                         </Tooltip>
-                      </Box>
-                      <TextField
-                        size="small"
-                        label={t('welcomeGuide.pois.note', 'Note (optionnel)')}
-                        value={p.note}
-                        onChange={(e) => updatePoi(idx, { note: e.target.value })}
-                        fullWidth
-                      />
-                      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', mt: 1, flexWrap: 'wrap' }}>
-                        <TextField
-                          size="small"
-                          label={t('welcomeGuide.pois.type', 'Type (ex : Bistrot)')}
-                          value={p.type}
-                          onChange={(e) => updatePoi(idx, { type: e.target.value })}
-                          sx={{ flex: 1, minWidth: 160 }}
+                      </div>
+                      <Field>
+                        <FieldLabel htmlFor={`guide-poi-${p.id}-note`}>
+                          {t('welcomeGuide.pois.note', 'Note (optionnel)')}
+                        </FieldLabel>
+                        <Input
+                          id={`guide-poi-${p.id}-note`}
+                          value={p.note}
+                          onChange={(e) => updatePoi(idx, { note: e.target.value })}
                         />
-                        <FormControlLabel
-                          control={<Switch size="small" checked={p.featured} onChange={(e) => updatePoi(idx, { featured: e.target.checked })} />}
-                          label={t('welcomeGuide.pois.featured', 'Coup de cœur')}
-                        />
-                      </Box>
+                      </Field>
+                      <div className="flex gap-2 items-end mt-1.5 flex-wrap">
+                        <Field className="flex-1 min-w-[160px]">
+                          <FieldLabel htmlFor={`guide-poi-${p.id}-type`}>
+                            {t('welcomeGuide.pois.type', 'Type (ex : Bistrot)')}
+                          </FieldLabel>
+                          <Input
+                            id={`guide-poi-${p.id}-type`}
+                            value={p.type}
+                            onChange={(e) => updatePoi(idx, { type: e.target.value })}
+                          />
+                        </Field>
+                        <Field orientation="horizontal" className="w-auto gap-1.5">
+                          <Switch
+                            id={`guide-poi-${p.id}-featured`}
+                            size="sm"
+                            checked={p.featured}
+                            onCheckedChange={(checked) => updatePoi(idx, { featured: checked })}
+                          />
+                          <FieldLabel htmlFor={`guide-poi-${p.id}-featured`}>
+                            {t('welcomeGuide.pois.featured', 'Coup de cœur')}
+                          </FieldLabel>
+                        </Field>
+                      </div>
                       {p.lat != null && p.lng != null ? (
-                        <Typography
-                          variant="caption"
-                          sx={{ color: 'success.main', display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 0.75 }}
-                        >
+                        <span className="cn-text-caption text-[var(--bui-success-ink)] inline-flex items-center gap-0.5 mt-1">
                           <MapPin size={12} strokeWidth={2} /> {t('welcomeGuide.pois.located', 'Position trouvée')}
-                        </Typography>
+                        </span>
                       ) : null}
-                    </Box>
-                    <IconButton size="small" color="error" onClick={() => removePoi(idx)} sx={{ mt: 0.5 }}>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t('welcomeGuide.actions.delete', 'Supprimer')}
+                      onClick={() => removePoi(idx)}
+                      className="mt-[3px] text-[var(--err)]"
+                    >
                       <Delete size={16} strokeWidth={1.75} />
-                    </IconButton>
-                  </Box>
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
-          </Stack>
+          </div>
         )}
-      </Box>
+      </div>
 
       </>
       )}
@@ -1845,22 +1869,23 @@ const WelcomeGuideAdmin: React.FC = () => {
       {/* ── Étape 4 — Expériences & services ── */}
       {step === 4 && (
       <>
-      <Box>
+      <div>
         <SectionHeading
           icon={<Ticket size={17} strokeWidth={1.75} />}
           title={t('welcomeGuide.curation.title', 'Activités à proposer')}
           actions={
-            <Button size="small" startIcon={<Add size={14} strokeWidth={1.75} />} onClick={addActivity}>
+            <Button variant="ghost" size="sm" onClick={addActivity}>
+              <Add size={14} strokeWidth={1.75} />
               {t('welcomeGuide.curation.add', 'Ajouter une activité')}
             </Button>
           }
         />
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+        <span className="cn-text-caption text-muted-foreground block mb-2">
           {t(
             'welcomeGuide.curation.affiliateHint',
             "Collez un lien Klook, GetYourGuide ou Viator : si le fournisseur est connecté (onglet Intégrations), votre identifiant d'affiliation est ajouté automatiquement au lien pour toucher votre commission.",
           )}
-        </Typography>
+        </span>
 
         {curatedActivities.length === 0 ? (
           <EmptyHint
@@ -1868,82 +1893,102 @@ const WelcomeGuideAdmin: React.FC = () => {
             text={t('welcomeGuide.curation.empty', 'Aucune activité. Ajoutez vos excursions et bons plans à réserver.')}
           />
         ) : (
-          <Stack spacing={1.5}>
+          <div className="flex flex-col gap-[9px]">
             {curatedActivities.map((a, idx) => (
-              <Card key={a.id} variant="outlined" sx={a.featured ? { borderColor: 'var(--warn)' } : undefined}>
-                <CardContent sx={{ '&:last-child': { pb: 2 } }}>
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                    <Box sx={{ flex: 1 }}>
-                      <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
-                        <TextField
-                          size="small"
-                          label={t('welcomeGuide.curation.activityTitle', 'Titre')}
-                          value={a.title}
-                          onChange={(e) => updateActivity(idx, { title: e.target.value })}
-                          sx={{ flex: 1, minWidth: 180 }}
-                        />
-                        <TextField
-                          size="small"
-                          label={t('welcomeGuide.curation.price', 'Prix')}
-                          value={a.price ?? ''}
-                          onChange={(e) => updateActivity(idx, { price: e.target.value || null })}
-                          sx={{ width: 120 }}
-                          placeholder="ex : 29 €"
-                        />
-                      </Box>
-                      <TextField
-                        size="small"
-                        label={t('welcomeGuide.curation.bookingUrl', 'Lien de réservation')}
-                        value={a.bookingUrl}
-                        onChange={(e) => updateActivity(idx, { bookingUrl: e.target.value })}
-                        fullWidth
-                        placeholder="https://…"
-                        sx={{ mb: 1 }}
-                      />
-                      <TextField
-                        size="small"
-                        label={t('welcomeGuide.curation.imageUrl', "URL de l'image (optionnel)")}
-                        value={a.imageUrl ?? ''}
-                        onChange={(e) => updateActivity(idx, { imageUrl: e.target.value || null })}
-                        fullWidth
-                        placeholder="https://…"
-                        sx={{ mb: 1 }}
-                      />
-                      <TextField
-                        size="small"
-                        label={t('welcomeGuide.curation.description', 'Description (optionnel)')}
-                        value={a.description}
-                        onChange={(e) => updateActivity(idx, { description: e.target.value })}
-                        fullWidth
-                        multiline
-                        minRows={2}
-                      />
-                      <FormControlLabel
-                        sx={{ mt: 0.5 }}
-                        control={
-                          <Switch
-                            size="small"
-                            checked={a.featured}
-                            onChange={(e) => updateActivity(idx, { featured: e.target.checked })}
+              // La carte du kit dessine son contour avec un `ring` : la mise en
+              // avant se marque donc sur le ring, pas sur une bordure.
+              <Card key={a.id} className={cn(a.featured && 'ring-[var(--warn)]')}>
+                <CardContent>
+                  <div className="flex gap-1.5 items-start">
+                    <div className="flex-1">
+                      <div className="flex gap-1.5 mb-1.5 flex-wrap">
+                        <Field className="flex-1 min-w-[180px]">
+                          <FieldLabel htmlFor={`guide-activity-${a.id}-title`}>
+                            {t('welcomeGuide.curation.activityTitle', 'Titre')}
+                          </FieldLabel>
+                          <Input
+                            id={`guide-activity-${a.id}-title`}
+                            value={a.title}
+                            onChange={(e) => updateActivity(idx, { title: e.target.value })}
                           />
-                        }
-                        label={t('welcomeGuide.curation.featured', 'Mettre en avant')}
-                      />
-                    </Box>
-                    <IconButton size="small" color="error" onClick={() => removeActivity(idx)} sx={{ mt: 0.5 }}>
+                        </Field>
+                        <Field className="w-[120px]">
+                          <FieldLabel htmlFor={`guide-activity-${a.id}-price`}>
+                            {t('welcomeGuide.curation.price', 'Prix')}
+                          </FieldLabel>
+                          <Input
+                            id={`guide-activity-${a.id}-price`}
+                            value={a.price ?? ''}
+                            onChange={(e) => updateActivity(idx, { price: e.target.value || null })}
+                            placeholder="ex : 29 €"
+                          />
+                        </Field>
+                      </div>
+                      <Field className="mb-1.5">
+                        <FieldLabel htmlFor={`guide-activity-${a.id}-booking-url`}>
+                          {t('welcomeGuide.curation.bookingUrl', 'Lien de réservation')}
+                        </FieldLabel>
+                        <Input
+                          id={`guide-activity-${a.id}-booking-url`}
+                          value={a.bookingUrl}
+                          onChange={(e) => updateActivity(idx, { bookingUrl: e.target.value })}
+                          placeholder="https://…"
+                        />
+                      </Field>
+                      <Field className="mb-1.5">
+                        <FieldLabel htmlFor={`guide-activity-${a.id}-image-url`}>
+                          {t('welcomeGuide.curation.imageUrl', "URL de l'image (optionnel)")}
+                        </FieldLabel>
+                        <Input
+                          id={`guide-activity-${a.id}-image-url`}
+                          value={a.imageUrl ?? ''}
+                          onChange={(e) => updateActivity(idx, { imageUrl: e.target.value || null })}
+                          placeholder="https://…"
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor={`guide-activity-${a.id}-description`}>
+                          {t('welcomeGuide.curation.description', 'Description (optionnel)')}
+                        </FieldLabel>
+                        <Textarea
+                          id={`guide-activity-${a.id}-description`}
+                          value={a.description}
+                          onChange={(e) => updateActivity(idx, { description: e.target.value })}
+                          rows={2}
+                        />
+                      </Field>
+                      <Field orientation="horizontal" className="mt-[3px] w-auto gap-1.5">
+                        <Switch
+                          id={`guide-activity-${a.id}-featured`}
+                          size="sm"
+                          checked={a.featured}
+                          onCheckedChange={(checked) => updateActivity(idx, { featured: checked })}
+                        />
+                        <FieldLabel htmlFor={`guide-activity-${a.id}-featured`}>
+                          {t('welcomeGuide.curation.featured', 'Mettre en avant')}
+                        </FieldLabel>
+                      </Field>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t('welcomeGuide.actions.delete', 'Supprimer')}
+                      onClick={() => removeActivity(idx)}
+                      className="mt-[3px] text-[var(--err)]"
+                    >
                       <Delete size={16} strokeWidth={1.75} />
-                    </IconButton>
-                  </Box>
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
-          </Stack>
+          </div>
         )}
-      </Box>
+      </div>
 
       {/* Activation des sections « Activités » et « Services payants » (split de la carte Fonctionnalités) */}
-      <Card variant="outlined">
-        <CardContent sx={{ '&:last-child': { pb: 0.5 }, pt: 1, px: 2 }}>
+      <Card className="py-[6px]">
+        <CardContent className="px-3">
           <ToggleRow
             icon={<Ticket size={18} strokeWidth={1.75} />}
             label={t('welcomeGuide.fields.activitiesEnabled', 'Activités')}
@@ -1951,7 +1996,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             checked={activitiesEnabled}
             onChange={setActivitiesEnabled}
           />
-          <Divider />
+          <Separator />
           <ToggleRow
             icon={<ConciergeBell size={18} strokeWidth={1.75} />}
             label={t('welcomeGuide.fields.upsellsEnabled', 'Services payants')}
@@ -1964,8 +2009,8 @@ const WelcomeGuideAdmin: React.FC = () => {
 
       {/* Sélection des services payants affichés sur CE livret (par défaut : tous) */}
       {upsellsEnabled && (
-        <Card variant="outlined">
-          <CardContent sx={{ '&:last-child': { pb: 2 }, pt: 1.5, px: 2 }}>
+        <Card className="py-[9px]">
+          <CardContent className="px-3">
             <SectionHeading
               icon={<ConciergeBell size={16} strokeWidth={1.75} />}
               title={t('welcomeGuide.fields.upsellSelectionTitle', 'Services affichés sur ce livret')}
@@ -1980,38 +2025,31 @@ const WelcomeGuideAdmin: React.FC = () => {
               />
             ) : (
               <>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                <span className="cn-text-caption text-muted-foreground block mb-1.5">
                   {t(
                     'welcomeGuide.fields.upsellSelectionHint',
                     'Décochez un service pour le masquer sur ce livret uniquement.',
                   )}
-                </Typography>
-                <Stack spacing={0}>
+                </span>
+                <div className="flex flex-col">
                   {applicableOffers.map((o) => (
-                    <FormControlLabel
-                      key={o.id}
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={isOfferShown(o.id)}
-                          onChange={() => toggleOfferShown(o.id)}
-                        />
-                      }
-                      label={
-                        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                          <Typography variant="body2">{o.title}</Typography>
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ fontVariantNumeric: 'tabular-nums' }}
-                          >
+                    <Field key={o.id} orientation="horizontal" className="w-auto gap-1.5 py-[3px]">
+                      <Checkbox
+                        id={`guide-upsell-${o.id}`}
+                        checked={isOfferShown(o.id)}
+                        onCheckedChange={() => toggleOfferShown(o.id)}
+                      />
+                      <FieldLabel htmlFor={`guide-upsell-${o.id}`}>
+                        <span className="flex items-baseline gap-1.5">
+                          <span className="cn-text-body2">{o.title}</span>
+                          <span className="cn-text-caption text-muted-foreground tabular-nums">
                             {o.price.toFixed(0)} {o.currency}
-                          </Typography>
-                        </Box>
-                      }
-                    />
+                          </span>
+                        </span>
+                      </FieldLabel>
+                    </Field>
                   ))}
-                </Stack>
+                </div>
               </>
             )}
           </CardContent>
@@ -2024,8 +2062,8 @@ const WelcomeGuideAdmin: React.FC = () => {
       {step === 5 && (
       <>
       {/* Fonctionnalités optionnelles : chatbot + livre d'or (split de la carte Fonctionnalités) */}
-      <Card variant="outlined">
-        <CardContent sx={{ '&:last-child': { pb: 0.5 }, pt: 1, px: 2 }}>
+      <Card className="py-[6px]">
+        <CardContent className="px-3">
           <ToggleRow
             icon={<MessageCircle size={18} strokeWidth={1.75} />}
             label={t('welcomeGuide.fields.chatbotEnabled', 'Chatbot assistant')}
@@ -2033,7 +2071,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             checked={chatbotEnabled}
             onChange={setChatbotEnabled}
           />
-          <Divider />
+          <Separator />
           <ToggleRow
             icon={<Star size={18} strokeWidth={1.75} />}
             label={t('welcomeGuide.fields.guestbookEnabled', "Livre d'or")}
@@ -2045,34 +2083,22 @@ const WelcomeGuideAdmin: React.FC = () => {
       </Card>
 
       {/* Publication déplacée sur la liste des livrets (toggle par carte) : ici on informe seulement. */}
-      <Card variant="outlined">
-        <CardContent sx={{ '&:last-child': { pb: 1.5 }, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box
-            sx={{
-              flexShrink: 0,
-              width: 34,
-              height: 34,
-              borderRadius: 1.25,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: 'action.hover',
-              color: 'text.secondary',
-            }}
-          >
+      <Card className="py-[9px]">
+        <CardContent className="flex items-center gap-[9px]">
+          <div className="shrink-0 w-[34px] h-[34px] rounded-[10px] flex items-center justify-center bg-[var(--hover)] text-muted-foreground">
             <Globe size={18} strokeWidth={1.75} />
-          </Box>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h6 className="cn-text-subtitle2 font-semibold">
               {t('welcomeGuide.fields.publishTitle', 'Publier le livret')}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
+            </h6>
+            <span className="cn-text-caption text-muted-foreground">
               {t(
                 'welcomeGuide.actions.publishFromListHint',
                 'La publication se fait depuis la liste des livrets, via le bouton sur chaque carte.',
               )}
-            </Typography>
-          </Box>
+            </span>
+          </div>
         </CardContent>
       </Card>
       </>
@@ -2080,25 +2106,11 @@ const WelcomeGuideAdmin: React.FC = () => {
 
       {/* ── Étape 6 — Récapitulatif ── */}
       {step === LAST_STEP && renderRecap()}
-      </Stack>
+      </div>
 
       {/* ── Aperçu téléphone live (reflète l'état du formulaire en temps réel) ── */}
-      <Box sx={{ position: { lg: 'sticky' }, top: 12, justifySelf: { xs: 'center', lg: 'start' }, width: '100%' }}>
-        <Box
-          sx={{
-            width: 360,
-            maxWidth: '100%',
-            height: 720,
-            mx: 'auto',
-            borderRadius: '34px',
-            overflow: 'hidden',
-            border: '10px solid',
-            // Bezel téléphone : tons chrome (pas de #000 pur — ban baseline).
-            borderColor: 'var(--chrome-1)',
-            boxShadow: '0 28px 70px -28px rgba(21,36,45,0.55)',
-            bgcolor: 'var(--chrome-2)',
-          }}
-        >
+      <div className="min-[1200px]:sticky top-3 justify-self-center min-[1200px]:justify-self-start w-full">
+        <div className="w-[360px] max-w-full h-[720px] mx-auto rounded-[34px] overflow-hidden border-[10px] border-solid border-[var(--chrome-1)] bg-[var(--chrome-2)]" style={{ boxShadow: '0 28px 70px -28px rgba(21,36,45,0.55)' }}>
           <WelcomeBookView
             model={previewModel}
             theme={theme}
@@ -2108,58 +2120,62 @@ const WelcomeGuideAdmin: React.FC = () => {
             interactive={false}
             previewFocus={step === 3 ? 'content' : step === 4 ? 'experiences' : 'home'}
           />
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 
   return (
-    <Box>
+    <div>
       {headerActions}
       {view === 'list' ? renderList() : renderForm()}
 
-      <Dialog open={linkDialog.open} onClose={() => setLinkDialog({ open: false, link: '', qrCode: '' })} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('welcomeGuide.link.dialogTitle', "Lien du livret d'accueil")}</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Dialog
+        open={linkDialog.open}
+        onOpenChange={(next) => { if (!next) setLinkDialog({ open: false, link: '', qrCode: '' }); }}
+      >
+        <DialogContent className="sm:max-w-[600px]" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>{t('welcomeGuide.link.dialogTitle', "Lien du livret d'accueil")}</DialogTitle>
+          </DialogHeader>
+          <p className="cn-text-body2 text-muted-foreground mb-3">
             {t(
               'welcomeGuide.link.note',
               'Lien de partage manuel (aperçu). La diffusion automatique d’un lien propre à chaque réservation — valable uniquement le temps du séjour — arrive prochainement.',
             )}
-          </Typography>
-          <TextField
+          </p>
+          <Input
+            id="guide-share-link"
             value={linkDialog.link}
-            fullWidth
-            size="small"
-            InputProps={{ readOnly: true }}
+            readOnly
+            aria-label={t('welcomeGuide.link.dialogTitle', "Lien du livret d'accueil")}
             onFocus={(e) => e.target.select()}
+            className="w-full"
           />
           {linkDialog.qrCode ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 2, gap: 1 }}>
-              <Box component="img" src={linkDialog.qrCode} alt="QR code" sx={{ width: 200, height: 200 }} />
-              <Button size="small" href={linkDialog.qrCode} download="livret-qr.png">
-                {t('welcomeGuide.link.downloadQr', 'Télécharger le QR')}
+            <div className="flex flex-col items-center mt-3 gap-1.5">
+              <img className="w-[200px] h-[200px]" src={linkDialog.qrCode} alt="QR code" />
+              {/* `href` : le kit ne rend pas d'ancre, on delegue via asChild. */}
+              <Button variant="ghost" size="sm" asChild>
+                <a href={linkDialog.qrCode} download="livret-qr.png">
+                  {t('welcomeGuide.link.downloadQr', 'Télécharger le QR')}
+                </a>
               </Button>
-            </Box>
+            </div>
           ) : null}
+          <DialogFooter>
+            <Button variant="ghost" asChild>
+              <a href={linkDialog.link} target="_blank" rel="noopener noreferrer">
+                <OpenInNew size={16} strokeWidth={1.75} />
+                {t('welcomeGuide.link.open', 'Ouvrir')}
+              </a>
+            </Button>
+            <Button onClick={copyLink}>
+              <ContentCopy size={16} strokeWidth={1.75} />
+              {copied ? t('welcomeGuide.link.copied', 'Copié !') : t('welcomeGuide.link.copy', 'Copier')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button
-            href={linkDialog.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            startIcon={<OpenInNew size={16} strokeWidth={1.75} />}
-          >
-            {t('welcomeGuide.link.open', 'Ouvrir')}
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<ContentCopy size={16} strokeWidth={1.75} />}
-            onClick={copyLink}
-          >
-            {copied ? t('welcomeGuide.link.copied', 'Copié !') : t('welcomeGuide.link.copy', 'Copier')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       <ConfirmationModal
@@ -2199,79 +2215,87 @@ const WelcomeGuideAdmin: React.FC = () => {
         loading={saving}
       />
 
-      <Dialog open={guestbook.open} onClose={() => setGuestbook((s) => ({ ...s, open: false }))} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {t('welcomeGuide.guestbook.title', "Livre d'or")} — {guestbook.title}
-        </DialogTitle>
-        <DialogContent dividers>
+      <Dialog
+        open={guestbook.open}
+        onOpenChange={(next) => { if (!next) setGuestbook((s) => ({ ...s, open: false })); }}
+      >
+        <DialogContent className="sm:max-w-[600px]" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>
+              {t('welcomeGuide.guestbook.title', "Livre d'or")} — {guestbook.title}
+            </DialogTitle>
+          </DialogHeader>
+          {/* `dividers` du Dialog MUI : filets haut/bas + corps defilant. */}
+          <div className="max-h-[60vh] overflow-y-auto border-y border-solid border-[var(--line)] py-3">
           {guestbook.loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-              <CircularProgress />
-            </Box>
+            <div className="flex justify-center py-4">
+              <Spinner className="size-10" />
+            </div>
           ) : guestbook.entries.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
+            <p className="cn-text-body2 text-muted-foreground">
               {t('welcomeGuide.guestbook.empty', 'Aucun message pour le moment.')}
-            </Typography>
+            </p>
           ) : (
-            <Stack spacing={1.5}>
+            <div className="flex flex-col gap-[9px]">
               {guestbook.entries.map((e) => (
-                <Box key={e.id} sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 1.5 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                <div className="border-b border-[var(--line)] pb-2" key={e.id}>
+                  <div className="flex justify-between items-center">
+                    <h6 className="cn-text-subtitle2 font-semibold">
                       {e.authorName || '—'}
-                    </Typography>
+                    </h6>
                     {e.rating ? (
-                      <Box sx={{ display: 'flex', gap: 0.25 }}>
+                      <div className="flex gap-0.5">
                         {Array.from({ length: e.rating }).map((_, i) => (
                           <Star key={i} size={14} strokeWidth={1.75} fill="currentColor" style={{ color: 'var(--warn)' }} />
                         ))}
-                      </Box>
+                      </div>
                     ) : null}
-                  </Box>
+                  </div>
                   {e.message ? (
-                    <Typography variant="body2" sx={{ whiteSpace: 'pre-line', mt: 0.5 }}>
+                    <p className="cn-text-body2 whitespace-pre-line mt-0.5">
                       {e.message}
-                    </Typography>
+                    </p>
                   ) : null}
                   {e.createdAt ? (
-                    <Typography variant="caption" color="text.secondary">
+                    <span className="cn-text-caption text-muted-foreground">
                       {new Date(e.createdAt).toLocaleDateString()}
-                    </Typography>
+                    </span>
                   ) : null}
-                </Box>
+                </div>
               ))}
-            </Stack>
+            </div>
           )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setGuestbook((s) => ({ ...s, open: false }))}>
+              {t('welcomeGuide.actions.close', 'Fermer')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setGuestbook((s) => ({ ...s, open: false }))}>
-            {t('welcomeGuide.actions.close', 'Fermer')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
-      <Dialog open={stats.open} onClose={() => setStats((s) => ({ ...s, open: false }))} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {t('welcomeGuide.stats.title', 'Statistiques')} — {stats.title}
-        </DialogTitle>
-        <DialogContent dividers>
+      <Dialog
+        open={stats.open}
+        onOpenChange={(next) => { if (!next) setStats((s) => ({ ...s, open: false })); }}
+      >
+        <DialogContent className="sm:max-w-[600px]" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>
+              {t('welcomeGuide.stats.title', 'Statistiques')} — {stats.title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto border-y border-solid border-[var(--line)] py-3">
           {stats.loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-              <CircularProgress />
-            </Box>
+            <div className="flex justify-center py-4">
+              <Spinner className="size-10" />
+            </div>
           ) : !stats.data ? (
-            <Typography variant="body2" color="text.secondary">
+            <p className="cn-text-body2 text-muted-foreground">
               {t('welcomeGuide.stats.empty', 'Aucune donnée pour le moment.')}
-            </Typography>
+            </p>
           ) : (
-            <Stack spacing={2.5}>
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)' },
-                  gap: 1,
-                }}
-              >
+            <div className="flex flex-col gap-[15px]">
+              <div className="grid grid-cols-[repeat(2,_1fr)] min-[600px]:grid-cols-[repeat(3,_1fr)] gap-1.5">
                 {[
                   { key: 'opens', icon: <Eye size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.opens', 'Ouvertures'), value: stats.data.totalOpens },
                   { key: 'chat', icon: <MessageCircle size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.chat', 'Messages chatbot'), value: stats.data.chatMessages },
@@ -2279,28 +2303,28 @@ const WelcomeGuideAdmin: React.FC = () => {
                   { key: 'activities', icon: <MapPin size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.activities', 'Clics activités'), value: stats.data.activityClicks },
                   { key: 'checkin', icon: <DoorOpen size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.checkin', 'Clics check-in'), value: stats.data.checkinClicks },
                 ].map((tile) => (
-                  <Box key={tile.key} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.25 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: 'text.secondary', mb: 0.5 }}>
+                  <div className="border border-[var(--line)] rounded-[16px] p-2" key={tile.key}>
+                    <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
                       {tile.icon}
-                      <Typography variant="caption">{tile.label}</Typography>
-                    </Box>
-                    <Typography variant="h6" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                      <span className="cn-text-caption">{tile.label}</span>
+                    </div>
+                    <h6 className="cn-text-h6 font-bold tabular-nums">
                       {tile.value}
-                    </Typography>
-                  </Box>
+                    </h6>
+                  </div>
                 ))}
-              </Box>
+              </div>
 
-              <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+              <div>
+                <h6 className="cn-text-subtitle2 font-semibold mb-1.5">
                   {t('welcomeGuide.stats.trend', 'Ouvertures (30 derniers jours)')}
-                </Typography>
+                </h6>
                 {stats.data.dailyOpens.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">
+                  <p className="cn-text-body2 text-muted-foreground">
                     {t('welcomeGuide.stats.noTrend', 'Pas encore d’ouvertures.')}
-                  </Typography>
+                  </p>
                 ) : (
-                  <Box sx={{ width: '100%', height: 200 }}>
+                  <div className="w-full h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={stats.data.dailyOpens.map((d) => ({ day: d.date.slice(5), count: d.count }))}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -2310,105 +2334,100 @@ const WelcomeGuideAdmin: React.FC = () => {
                         <Bar dataKey="count" fill={DEFAULT_COLOR} radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
-                  </Box>
+                  </div>
                 )}
-              </Box>
+              </div>
 
               {stats.data.topActivities.length > 0 ? (
-                <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                <div>
+                  <h6 className="cn-text-subtitle2 font-semibold mb-1.5">
                     {t('welcomeGuide.stats.topActivities', 'Activités les plus cliquées')}
-                  </Typography>
-                  <Stack spacing={0.75}>
+                  </h6>
+                  <div className="flex flex-col gap-[4.5px]">
                     {stats.data.topActivities.map((a) => (
-                      <Box key={a.label} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="body2" noWrap>
+                      <div className="flex justify-between items-center gap-1.5" key={a.label}>
+                        <p className="cn-text-body2 truncate">
                           {a.label}
-                        </Typography>
-                        <Chip size="small" label={a.count} sx={softChipSx(DEFAULT_COLOR)} />
-                      </Box>
+                        </p>
+                        <StatusChip color={DEFAULT_COLOR} label={a.count} />
+                      </div>
                     ))}
-                  </Stack>
-                </Box>
+                  </div>
+                </div>
               ) : null}
-            </Stack>
+            </div>
           )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setStats((s) => ({ ...s, open: false }))}>
+              {t('welcomeGuide.actions.close', 'Fermer')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setStats((s) => ({ ...s, open: false }))}>
-            {t('welcomeGuide.actions.close', 'Fermer')}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Suggestions auto (OSM) autour du logement */}
-      <Dialog open={suggest.open} onClose={() => setSuggest((s) => ({ ...s, open: false }))} maxWidth="sm" fullWidth>
-        <DialogTitle>{t('welcomeGuide.pois.suggestTitle', 'Suggestions autour du logement')}</DialogTitle>
-        <DialogContent dividers>
+      <Dialog
+        open={suggest.open}
+        onOpenChange={(next) => { if (!next) setSuggest((s) => ({ ...s, open: false })); }}
+      >
+        <DialogContent className="sm:max-w-[600px]" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>{t('welcomeGuide.pois.suggestTitle', 'Suggestions autour du logement')}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto border-y border-solid border-[var(--line)] py-3">
           {suggest.loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-              <CircularProgress />
-            </Box>
+            <div className="flex justify-center py-4">
+              <Spinner className="size-10" />
+            </div>
           ) : suggest.items.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
+            <p className="cn-text-body2 text-muted-foreground">
               {t('welcomeGuide.pois.suggestEmpty', 'Aucune suggestion trouvée autour du logement.')}
-            </Typography>
+            </p>
           ) : (
-            <Stack spacing={0.25}>
+            <div className="flex flex-col gap-[1.5px]">
               {suggest.items.map((sug, i) => {
                 const cat = poiCategory(sug.category);
                 const CatIcon = cat.Icon;
                 return (
-                  <FormControlLabel
-                    key={i}
-                    sx={{ alignItems: 'flex-start', m: 0, py: 0.5 }}
-                    control={<Checkbox size="small" checked={suggest.selected.has(i)} onChange={() => toggleSuggest(i)} />}
-                    label={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.5 }}>
+                  <Field key={i} orientation="horizontal" className="items-start gap-1.5 py-[3px]">
+                    <Checkbox
+                      id={`guide-suggest-${i}`}
+                      checked={suggest.selected.has(i)}
+                      onCheckedChange={() => toggleSuggest(i)}
+                    />
+                    <FieldLabel htmlFor={`guide-suggest-${i}`}>
+                      <span className="flex items-center gap-1 mt-0.5">
                         <CatIcon size={14} strokeWidth={1.9} style={{ color: cat.color, flexShrink: 0 }} />
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        <span className="flex flex-col">
+                          <span className="cn-text-body2 font-semibold">
                             {sug.name}
-                          </Typography>
+                          </span>
                           {sug.address ? (
-                            <Typography variant="caption" color="text.secondary">
+                            <span className="cn-text-caption text-muted-foreground">
                               {sug.address}
-                            </Typography>
+                            </span>
                           ) : null}
-                        </Box>
-                      </Box>
-                    }
-                  />
+                        </span>
+                      </span>
+                    </FieldLabel>
+                  </Field>
                 );
               })}
-            </Stack>
+            </div>
           )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setSuggest((s) => ({ ...s, open: false }))}>
+              {t('welcomeGuide.actions.close', 'Fermer')}
+            </Button>
+            <Button disabled={suggest.selected.size === 0} onClick={addSuggested}>
+              {t('welcomeGuide.pois.suggestAdd', 'Ajouter')} ({suggest.selected.size})
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSuggest((s) => ({ ...s, open: false }))}>
-            {t('welcomeGuide.actions.close', 'Fermer')}
-          </Button>
-          <Button variant="contained" disabled={suggest.selected.size === 0} onClick={addSuggested}>
-            {t('welcomeGuide.pois.suggestAdd', 'Ajouter')} ({suggest.selected.size})
-          </Button>
-        </DialogActions>
       </Dialog>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3500}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          severity={snackbar.severity}
-          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-          variant="filled"
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+    </div>
   );
 };
 

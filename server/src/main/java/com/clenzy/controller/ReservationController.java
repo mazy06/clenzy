@@ -227,6 +227,11 @@ public class ReservationController {
         Reservation existing = reservationService.getByIdFetchAll(id);
 
         reservationService.validatePropertyAccess(existing.getProperty().getId(), jwt.getSubject());
+        // Relogement : la propriété CIBLE doit être autorisée au même titre que
+        // l'origine (asymétrie corrigée — le POST de création la validait déjà).
+        if (dto.propertyId() != null && !dto.propertyId().equals(existing.getProperty().getId())) {
+            reservationService.validatePropertyAccess(dto.propertyId(), jwt.getSubject());
+        }
 
         // Orchestration transactionnelle (calendrier, intervention, codes, notification)
         Reservation saved = reservationService.update(id, dto, jwt.getSubject());

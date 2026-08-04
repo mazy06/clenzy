@@ -1,17 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  MenuItem,
-  Grid,
-  InputAdornment,
-  FormControlLabel,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Switch,
-} from '@mui/material';
+  Button,
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { Property } from '../../services/api/propertiesApi';
 import type {
@@ -122,189 +128,246 @@ export default function TouristTaxBaremeDialog({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        {config
-          ? t('touristTax.dialog.editTitle', 'Modifier le barème')
-          : t('touristTax.dialog.createTitle', 'Nouveau barème de taxe de séjour')}
-      </DialogTitle>
-      <DialogContent>
-        <Grid container spacing={2} sx={{ mt: 0 }}>
-          <Grid item xs={12}>
-            <TextField
-              select
-              fullWidth
-              size="small"
-              label={t('touristTax.dialog.property', 'Logement')}
-              value={form.propertyId}
-              onChange={(e) => set('propertyId', e.target.value)}
-              disabled={config != null /* la clé naturelle ne change pas en édition */}
-              helperText={t(
-                'touristTax.dialog.propertyHelp',
-                'Le barème par défaut s’applique à tous les logements sans barème propre.'
-              )}
-            >
-              <MenuItem value={ORG_DEFAULT}>
-                {t('touristTax.dialog.orgDefault', 'Barème par défaut (toute l’organisation)')}
-              </MenuItem>
-              {properties.map((p) => (
-                <MenuItem key={p.id} value={String(p.id)}>
-                  {p.name}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
+    // maxWidth="sm" MUI = 600 px.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>
+            {config
+              ? t('touristTax.dialog.editTitle', 'Modifier le barème')
+              : t('touristTax.dialog.createTitle', 'Nouveau barème de taxe de séjour')}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-12 gap-3 mt-0">
+          <div className="col-span-12">
+            <Field>
+              <FieldLabel htmlFor="tourist-tax-property">
+                {t('touristTax.dialog.property', 'Logement')}
+              </FieldLabel>
+              <NativeSelect
+                id="tourist-tax-property"
+                className="w-full"
+                value={form.propertyId}
+                onChange={(e) => set('propertyId', e.target.value)}
+                disabled={config != null /* la clé naturelle ne change pas en édition */}
+              >
+                <NativeSelectOption value={ORG_DEFAULT}>
+                  {t('touristTax.dialog.orgDefault', 'Barème par défaut (toute l’organisation)')}
+                </NativeSelectOption>
+                {properties.map((p) => (
+                  <NativeSelectOption key={p.id} value={String(p.id)}>
+                    {p.name}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+              <FieldDescription>
+                {t(
+                  'touristTax.dialog.propertyHelp',
+                  'Le barème par défaut s’applique à tous les logements sans barème propre.'
+                )}
+              </FieldDescription>
+            </Field>
+          </div>
 
-          <Grid item xs={12} sm={8}>
-            <TextField
-              fullWidth
-              size="small"
-              required
-              label={t('touristTax.dialog.communeName', 'Commune')}
-              value={form.communeName}
-              onChange={(e) => set('communeName', e.target.value)}
-            />
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <TextField
-              fullWidth
-              size="small"
-              label={t('touristTax.dialog.communeCode', 'Code INSEE')}
-              value={form.communeCode}
-              onChange={(e) => set('communeCode', e.target.value)}
-            />
-          </Grid>
+          <div className="col-span-12 min-[600px]:col-span-8">
+            <Field>
+              <FieldLabel htmlFor="tourist-tax-commune-name">
+                {t('touristTax.dialog.communeName', 'Commune')}
+              </FieldLabel>
+              <Input
+                id="tourist-tax-commune-name"
+                required
+                value={form.communeName}
+                onChange={(e) => set('communeName', e.target.value)}
+              />
+            </Field>
+          </div>
+          <div className="col-span-12 min-[600px]:col-span-4">
+            <Field>
+              <FieldLabel htmlFor="tourist-tax-commune-code">
+                {t('touristTax.dialog.communeCode', 'Code INSEE')}
+              </FieldLabel>
+              <Input
+                id="tourist-tax-commune-code"
+                value={form.communeCode}
+                onChange={(e) => set('communeCode', e.target.value)}
+              />
+            </Field>
+          </div>
 
-          <Grid item xs={12}>
-            <TextField
-              select
-              fullWidth
-              size="small"
-              label={t('touristTax.dialog.mode', 'Mode de calcul')}
-              value={form.calculationMode}
-              onChange={(e) => set('calculationMode', e.target.value as TaxCalculationMode)}
-            >
-              <MenuItem value="PER_PERSON_PER_NIGHT">
-                {t('touristTax.mode.perPersonPerNight', 'Classé — montant fixe / personne / nuit')}
-              </MenuItem>
-              <MenuItem value="PERCENTAGE_OF_RATE">
-                {t('touristTax.mode.percentageOfRate', 'Non classé « au réel » — % du prix, plafonné')}
-              </MenuItem>
-              <MenuItem value="FLAT_PER_NIGHT">
-                {t('touristTax.mode.flatPerNight', 'Forfait / nuit')}
-              </MenuItem>
-            </TextField>
-          </Grid>
+          <div className="col-span-12">
+            <Field>
+              <FieldLabel htmlFor="tourist-tax-mode">
+                {t('touristTax.dialog.mode', 'Mode de calcul')}
+              </FieldLabel>
+              <NativeSelect
+                id="tourist-tax-mode"
+                className="w-full"
+                value={form.calculationMode}
+                onChange={(e) => set('calculationMode', e.target.value as TaxCalculationMode)}
+              >
+                <NativeSelectOption value="PER_PERSON_PER_NIGHT">
+                  {t('touristTax.mode.perPersonPerNight', 'Classé — montant fixe / personne / nuit')}
+                </NativeSelectOption>
+                <NativeSelectOption value="PERCENTAGE_OF_RATE">
+                  {t('touristTax.mode.percentageOfRate', 'Non classé « au réel » — % du prix, plafonné')}
+                </NativeSelectOption>
+                <NativeSelectOption value="FLAT_PER_NIGHT">
+                  {t('touristTax.mode.flatPerNight', 'Forfait / nuit')}
+                </NativeSelectOption>
+              </NativeSelect>
+            </Field>
+          </div>
 
           {!isPercentage && (
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label={
-                  form.calculationMode === 'FLAT_PER_NIGHT'
+            <div className="col-span-12 min-[600px]:col-span-6">
+              <Field>
+                <FieldLabel htmlFor="tourist-tax-rate">
+                  {form.calculationMode === 'FLAT_PER_NIGHT'
                     ? t('touristTax.dialog.ratePerNight', 'Montant par nuit')
-                    : t('touristTax.dialog.ratePerPerson', 'Montant par personne et par nuit')
-                }
-                value={form.ratePerPerson}
-                onChange={(e) => set('ratePerPerson', e.target.value)}
-                InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
-                inputProps={{ inputMode: 'decimal' }}
-              />
-            </Grid>
+                    : t('touristTax.dialog.ratePerPerson', 'Montant par personne et par nuit')}
+                </FieldLabel>
+                <InputGroup>
+                  <InputGroupInput
+                    id="tourist-tax-rate"
+                    inputMode="decimal"
+                    value={form.ratePerPerson}
+                    onChange={(e) => set('ratePerPerson', e.target.value)}
+                  />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupText>€</InputGroupText>
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
+            </div>
           )}
 
           {isPercentage && (
             <>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label={t('touristTax.dialog.percentageRate', 'Taux (% du prix de la nuitée / pers.)')}
-                  value={form.percentageRatePct}
-                  onChange={(e) => set('percentageRatePct', e.target.value)}
-                  InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
-                  inputProps={{ inputMode: 'decimal' }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label={t('touristTax.dialog.cap', 'Plafond / personne / nuit')}
-                  value={form.capPerPersonNight}
-                  onChange={(e) => set('capPerPersonNight', e.target.value)}
-                  InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
-                  inputProps={{ inputMode: 'decimal' }}
-                />
-              </Grid>
+              <div className="col-span-12 min-[600px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="tourist-tax-percentage">
+                    {t('touristTax.dialog.percentageRate', 'Taux (% du prix de la nuitée / pers.)')}
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id="tourist-tax-percentage"
+                      inputMode="decimal"
+                      value={form.percentageRatePct}
+                      onChange={(e) => set('percentageRatePct', e.target.value)}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText>%</InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                </Field>
+              </div>
+              <div className="col-span-12 min-[600px]:col-span-6">
+                <Field>
+                  <FieldLabel htmlFor="tourist-tax-cap">
+                    {t('touristTax.dialog.cap', 'Plafond / personne / nuit')}
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id="tourist-tax-cap"
+                      inputMode="decimal"
+                      value={form.capPerPersonNight}
+                      onChange={(e) => set('capPerPersonNight', e.target.value)}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText>€</InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                </Field>
+              </div>
             </>
           )}
 
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              size="small"
-              label={t('touristTax.dialog.departmentalSurcharge', 'Taxe additionnelle départementale')}
-              value={form.departmentalSurchargePct}
-              onChange={(e) => set('departmentalSurchargePct', e.target.value)}
-              InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
-              inputProps={{ inputMode: 'decimal' }}
-              helperText={t('touristTax.dialog.departmentalHelp', 'Typiquement 10 %')}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              size="small"
-              label={t('touristTax.dialog.regionalSurcharge', 'Taxe additionnelle régionale')}
-              value={form.regionalSurchargePct}
-              onChange={(e) => set('regionalSurchargePct', e.target.value)}
-              InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
-              inputProps={{ inputMode: 'decimal' }}
-            />
-          </Grid>
+          <div className="col-span-12 min-[600px]:col-span-6">
+            <Field>
+              <FieldLabel htmlFor="tourist-tax-departmental">
+                {t('touristTax.dialog.departmentalSurcharge', 'Taxe additionnelle départementale')}
+              </FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="tourist-tax-departmental"
+                  inputMode="decimal"
+                  value={form.departmentalSurchargePct}
+                  onChange={(e) => set('departmentalSurchargePct', e.target.value)}
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupText>%</InputGroupText>
+                </InputGroupAddon>
+              </InputGroup>
+              <FieldDescription>
+                {t('touristTax.dialog.departmentalHelp', 'Typiquement 10 %')}
+              </FieldDescription>
+            </Field>
+          </div>
+          <div className="col-span-12 min-[600px]:col-span-6">
+            <Field>
+              <FieldLabel htmlFor="tourist-tax-regional">
+                {t('touristTax.dialog.regionalSurcharge', 'Taxe additionnelle régionale')}
+              </FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="tourist-tax-regional"
+                  inputMode="decimal"
+                  value={form.regionalSurchargePct}
+                  onChange={(e) => set('regionalSurchargePct', e.target.value)}
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupText>%</InputGroupText>
+                </InputGroupAddon>
+              </InputGroup>
+            </Field>
+          </div>
 
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              size="small"
-              label={t('touristTax.dialog.maxNights', 'Nuits taxées max (optionnel)')}
-              value={form.maxNights}
-              onChange={(e) => set('maxNights', e.target.value)}
-              inputProps={{ inputMode: 'numeric' }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} sx={{ display: 'flex', flexDirection: 'column' }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  size="small"
-                  checked={form.exemptMinors}
-                  onChange={(e) => set('exemptMinors', e.target.checked)}
-                />
-              }
-              label={t('touristTax.dialog.exemptMinors', 'Exonérer les mineurs (<18 ans)')}
-            />
-            <FormControlLabel
-              control={
-                <Switch
-                  size="small"
-                  checked={form.enabled}
-                  onChange={(e) => set('enabled', e.target.checked)}
-                />
-              }
-              label={t('touristTax.dialog.enabled', 'Barème actif')}
-            />
-          </Grid>
-        </Grid>
+          <div className="col-span-12 min-[600px]:col-span-6">
+            <Field>
+              <FieldLabel htmlFor="tourist-tax-max-nights">
+                {t('touristTax.dialog.maxNights', 'Nuits taxées max (optionnel)')}
+              </FieldLabel>
+              <Input
+                id="tourist-tax-max-nights"
+                inputMode="numeric"
+                value={form.maxNights}
+                onChange={(e) => set('maxNights', e.target.value)}
+              />
+            </Field>
+          </div>
+          <div className="col-span-12 min-[600px]:col-span-6 flex flex-col gap-1.5 justify-center">
+            <Field orientation="horizontal" className="w-[fit-content] gap-2">
+              <Switch
+                id="tourist-tax-exempt-minors"
+                size="sm"
+                checked={form.exemptMinors}
+                onCheckedChange={(checked) => set('exemptMinors', checked)}
+              />
+              <FieldLabel htmlFor="tourist-tax-exempt-minors" className="cursor-pointer">
+                {t('touristTax.dialog.exemptMinors', 'Exonérer les mineurs (<18 ans)')}
+              </FieldLabel>
+            </Field>
+            <Field orientation="horizontal" className="w-[fit-content] gap-2">
+              <Switch
+                id="tourist-tax-enabled"
+                size="sm"
+                checked={form.enabled}
+                onCheckedChange={(checked) => set('enabled', checked)}
+              />
+              <FieldLabel htmlFor="tourist-tax-enabled" className="cursor-pointer">
+                {t('touristTax.dialog.enabled', 'Barème actif')}
+              </FieldLabel>
+            </Field>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>{t('common.cancel', 'Annuler')}</Button>
+          <Button onClick={handleSave} disabled={!canSubmit}>
+            {t('common.save', 'Enregistrer')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>{t('common.cancel', 'Annuler')}</Button>
-        <Button variant="contained" onClick={handleSave} disabled={!canSubmit}>
-          {t('common.save', 'Enregistrer')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

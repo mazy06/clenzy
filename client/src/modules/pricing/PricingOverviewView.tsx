@@ -1,18 +1,18 @@
 import React, { useMemo } from 'react';
+import { cn } from '../../utils/cn';
 import {
-  Box,
-  Typography,
-  Paper,
-  IconButton,
-  CircularProgress,
+  Button,
+  Spinner,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
   Tooltip,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import { ChevronLeft as ChevronLeftIcon } from '../../icons';
 import { ChevronRight as ChevronRightIcon } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
@@ -24,14 +24,20 @@ import { dynamicPricingKeys } from '../../hooks/useDynamicPricing';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
-const CARD_SX = {
-  border: '1px solid',
-  borderColor: 'var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: 1.5,
-} as const;
+// Surface « carte » : le Paper MUI ne portait que ces declarations.
+const CARD_CLASS = 'border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px]';
+
+// Le primitif Table pose lui-meme son conteneur `cn-table-container`
+// (overflow-x-auto) : c'est LUI qui doit porter la hauteur max, sinon l'en-tete
+// `sticky top-0` se collerait a un scrollport qui ne defile pas verticalement.
+const TABLE_SCROLL_CLASS =
+  '[&_[data-slot=table-container]]:max-h-[calc(100vh-280px)] '
+  + '[&_[data-slot=table-container]]:overflow-y-auto';
+
+// Premiere colonne figee. Le fond doit etre opaque, sinon les colonnes de
+// droite defilent par transparence dessous.
+const STICKY_COL_CLASS =
+  'sticky left-0 min-w-[150px] bg-[var(--card)] [border-right:1px_solid_var(--line)]';
 
 const SOURCE_COLORS: Record<string, string> = {
   OVERRIDE: '#D98E8E',
@@ -100,21 +106,11 @@ const PropertyRow: React.FC<{
   }, [pricing]);
 
   return (
-    <TableRow hover>
-      <TableCell
-        sx={{
-          position: 'sticky',
-          left: 0,
-          zIndex: 1,
-          bgcolor: 'var(--card)',
-          borderRight: '1px solid',
-          borderColor: 'var(--line)',
-          minWidth: 150,
-        }}
-      >
-        <Typography variant="body2" fontWeight={600} noWrap sx={{ fontSize: '0.8125rem' }}>
+    <TableRow>
+      <TableCell className={cn(STICKY_COL_CLASS, 'z-[5]')}>
+        <p className="cn-text-body2 font-semibold truncate text-[0.8125rem]">
           {property.name}
-        </Typography>
+        </p>
       </TableCell>
       {days.map((day) => {
         const dateStr = toISO(year, month, day);
@@ -123,8 +119,8 @@ const PropertyRow: React.FC<{
 
         if (isLoading) {
           return (
-            <TableCell key={day} sx={{ textAlign: 'center', px: 0.5 }}>
-              <CircularProgress size={12} />
+            <TableCell key={day} className="text-center px-[3px]">
+              <Spinner className="size-3" />
             </TableCell>
           );
         }
@@ -132,29 +128,24 @@ const PropertyRow: React.FC<{
         return (
           <TableCell
             key={day}
-            sx={{
-              textAlign: 'center',
-              px: 0.5,
-              py: 0.5,
-              minWidth: 44,
-              borderBottom: '3px solid',
-              borderBottomColor: sourceColor,
-            }}
+            className="text-center px-[3px] py-[3px] min-w-[44px]"
+            // Couleur calculee au runtime : une classe Tailwind ne peut pas
+            // naitre d'une variable.
+            style={{ borderBottom: `3px solid ${sourceColor}` }}
           >
             {entry && entry.nightlyPrice !== null ? (
-              <Tooltip title={`${entry.priceSource} - ${dateStr}`} arrow>
-                <Typography
-                  variant="caption"
-                  fontWeight={600}
-                  sx={{ color: sourceColor, cursor: 'default', fontVariantNumeric: 'tabular-nums' }}
-                >
-                  {entry.nightlyPrice}
-                </Typography>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="cn-text-caption font-semibold cursor-default tabular-nums" style={{ color: sourceColor }}>
+                    {entry.nightlyPrice}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{`${entry.priceSource} - ${dateStr}`}</TooltipContent>
               </Tooltip>
             ) : (
-              <Typography variant="caption" color="text.disabled">
+              <span className="cn-text-caption text-muted-foreground opacity-60">
                 -
-              </Typography>
+              </span>
             )}
           </TableCell>
         );
@@ -181,79 +172,58 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
   const month = currentMonth.getMonth();
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <div className="flex flex-col gap-2">
       {/* Month navigation */}
-      <Paper sx={CARD_SX}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-          <IconButton onClick={onPrevMonth} size="small">
+      <div className={cn(CARD_CLASS, 'p-[9px]')}>
+        <div className="flex items-center justify-center gap-0.5">
+          <Button variant="ghost" size="icon-sm" aria-label={t('common.previous', 'Précédent')} onClick={onPrevMonth}>
             <ChevronLeftIcon size={20} strokeWidth={1.75} />
-          </IconButton>
-          <Typography
-            variant="body2"
-            fontWeight={600}
-            sx={{ minWidth: 140, textAlign: 'center', textTransform: 'capitalize', fontSize: '0.8125rem' }}
-          >
+          </Button>
+          <p className="cn-text-body2 font-semibold min-w-[140px] text-center capitalize text-[0.8125rem]">
             {formatMonth(currentMonth, isFrench)}
-          </Typography>
-          <IconButton onClick={onNextMonth} size="small">
+          </p>
+          <Button variant="ghost" size="icon-sm" aria-label={t('common.next', 'Suivant')} onClick={onNextMonth}>
             <ChevronRightIcon size={20} strokeWidth={1.75} />
-          </IconButton>
-        </Box>
-      </Paper>
+          </Button>
+        </div>
+      </div>
 
       {/* Loading */}
       {propertiesLoading && (
-        <Paper sx={{ ...CARD_SX, display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={28} />
-        </Paper>
+        <div className={cn(CARD_CLASS, 'flex justify-center px-[9px] py-6')}>
+          <Spinner className="size-7" />
+        </div>
       )}
 
       {/* Empty state */}
       {!propertiesLoading && properties.length === 0 && (
-        <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+        <div className={cn(CARD_CLASS, 'p-6 text-center')}>
+          <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
             {t('dynamicPricing.calendar.noProperty')}
-          </Typography>
-        </Paper>
+          </p>
+        </div>
       )}
 
       {/* Overview table */}
       {!propertiesLoading && properties.length > 0 && (
-        <TableContainer
-          component={Paper}
-          sx={{
-            ...CARD_SX,
-            p: 0,
-            maxHeight: 'calc(100vh - 280px)',
-          }}
-        >
-          <Table stickyHeader size="small">
-            <TableHead>
+        <div className={cn(CARD_CLASS, TABLE_SCROLL_CLASS, 'overflow-hidden')}>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  sx={{
-                    position: 'sticky',
-                    left: 0,
-                    zIndex: 3,
-                    bgcolor: 'var(--card)',
-                    borderRight: '1px solid',
-                    borderColor: 'var(--line)',
-                    minWidth: 150,
-                  }}
-                >
-                  <Typography variant="caption" sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <TableHead className={cn(STICKY_COL_CLASS, 'top-0 z-20')}>
+                  <span className="cn-text-caption text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em]">
                     {t('common.name')}
-                  </Typography>
-                </TableCell>
+                  </span>
+                </TableHead>
                 {days.map((day) => (
-                  <TableCell key={day} sx={{ textAlign: 'center', px: 0.5, minWidth: 40 }}>
-                    <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.6875rem', color: 'var(--faint)', fontVariantNumeric: 'tabular-nums' }}>
+                  <TableHead key={day} className="sticky top-0 z-10 bg-[var(--card)] text-center px-[3px] min-w-[40px]">
+                    <span className="cn-text-caption font-semibold text-[0.6875rem] text-[var(--faint)] tabular-nums">
                       {day}
-                    </Typography>
-                  </TableCell>
+                    </span>
+                  </TableHead>
                 ))}
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {properties.map((property) => (
                 <PropertyRow
@@ -268,25 +238,25 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       {/* Legend */}
       {!propertiesLoading && properties.length > 0 && (
-        <Paper sx={CARD_SX}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+        <div className={cn(CARD_CLASS, 'p-[9px]')}>
+          <div className="flex flex-wrap gap-2">
             {Object.entries(SOURCE_COLORS).map(([key, color]) => (
-              <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: color }} />
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
+              <div className="flex items-center gap-0.5" key={key}>
+                <div className="w-[10px] h-[10px] rounded-[50%]" style={{ backgroundColor: color }} />
+                <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
                   {t(`dynamicPricing.priceSource.${key}`)}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             ))}
-          </Box>
-        </Paper>
+          </div>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

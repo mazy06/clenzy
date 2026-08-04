@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Typography, Chip, Skeleton } from '@mui/material';
+import { Skeleton } from '../../components/ui';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
 import { CleaningServices, TrendingUp, Timer, CheckCircle } from '../../icons';
 import { useWatch } from 'react-hook-form';
 import type { Control, UseFormSetValue } from 'react-hook-form';
@@ -18,28 +20,6 @@ import type { PropertyFormValues } from '../../schemas';
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
-const CONTAINER_SX = {
-  border: '1px solid var(--line)',
-  borderRadius: '14px',
-  bgcolor: 'var(--card)',
-  mb: 2,
-  px: 2.5,
-  py: 2,
-} as const;
-
-const HEADER_SX = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  mb: 2,
-} as const;
-
-const TITLE_ROW_SX = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 0.75,
-} as const;
-
 const TITLE_SX = {
   fontSize: '10.5px',
   fontWeight: 700,
@@ -49,46 +29,16 @@ const TITLE_SX = {
   whiteSpace: 'nowrap',
 } as const;
 
-const CARDS_ROW_SX = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 1fr 1fr',
-  gap: 2,
-  '@media (max-width: 700px)': { gridTemplateColumns: '1fr' },
-} as const;
+/** Report en classes de `TITLE_SX`. */
+const TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] whitespace-nowrap';
+
+const CARDS_ROW_CLASS = 'grid grid-cols-[1fr_1fr_1fr] gap-3 max-[700px]:grid-cols-[1fr]';
 
 // Carte option sélectionnable : tuile hairline, sélection accent-soft + bordure accent.
-const PRICE_CARD_SX = {
-  position: 'relative',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 0.75,
-  py: 2.5,
-  px: 2,
-  borderRadius: '13px',
-  border: '1px solid var(--line)',
-  bgcolor: 'var(--card)',
-  cursor: 'pointer',
-  transition: 'border-color .14s, background-color .14s',
-  '&:hover': {
-    borderColor: 'var(--line-2)',
-  },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-} as const;
-
-const PRICE_CARD_SELECTED_SX = {
-  ...PRICE_CARD_SX,
-  borderColor: 'var(--accent)',
-  bgcolor: 'var(--accent-soft)',
-  '&:hover': {
-    borderColor: 'var(--accent)',
-  },
-} as const;
-
-const CHIP_SX = {
-  '& .MuiChip-label': { px: 1.25 },
-} as const;
+const PRICE_CARD_CLASS =
+  'relative flex flex-col items-center justify-center gap-[4.5px] py-[15px] px-3 rounded-[13px] '
+  + 'border border-solid cursor-pointer '
+  + 'focus-visible:[outline:2px_solid_var(--accent)] focus-visible:[outline-offset:2px]';
 
 /** Prix conseillé (médiane) : l'ancre visuelle, en avant. */
 const RECOMMENDED_SX = {
@@ -108,6 +58,19 @@ const RECOMMENDED_SECONDARY_SX = {
   color: 'var(--ink)',
 } as const;
 
+/**
+ * Report en classes de `RECOMMENDED_SX` / `RECOMMENDED_SECONDARY_SX`.
+ * `[font-family:…]` (propriete arbitraire) et non `font-[…]` : ce dernier se
+ * lit comme une graisse et non comme une famille.
+ */
+const RECOMMENDED_CLASS =
+  '[font-family:var(--font-display)] text-[22px] font-semibold text-[var(--accent)] '
+  + 'whitespace-nowrap leading-[1.2] tabular-nums tracking-[-.01em]';
+
+const RECOMMENDED_SECONDARY_CLASS =
+  '[font-family:var(--font-display)] text-[19px] font-semibold text-[var(--ink)] '
+  + 'whitespace-nowrap leading-[1.2] tabular-nums tracking-[-.01em]';
+
 /** Fourchette min–max : discrète, sous la médiane. */
 const RANGE_SX = {
   fontSize: '11.5px',
@@ -116,11 +79,17 @@ const RANGE_SX = {
   fontVariantNumeric: 'tabular-nums',
 } as const;
 
+/** Report en classes de `RANGE_SX`. */
+const RANGE_CLASS = 'text-[11.5px] text-[var(--muted)] leading-[1] tabular-nums';
+
 const PER_LABEL_SX = {
   fontSize: '11px',
   color: 'var(--muted)',
   lineHeight: 1,
 } as const;
+
+/** Report en classes de `PER_LABEL_SX`. */
+const PER_LABEL_CLASS = 'text-[11px] text-[var(--muted)] leading-[1]';
 
 const HINT_SX = {
   fontSize: '12.5px',
@@ -130,25 +99,13 @@ const HINT_SX = {
   py: 3,
 } as const;
 
-const BADGE_SX = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 0.5,
-} as const;
+/** Report en classes de `HINT_SX`. */
+const HINT_CLASS = 'text-[12.5px] text-[var(--muted)] italic text-center py-[18px]';
 
 // Bandeau durée : pattern alerte -soft pleine largeur (accent).
-const DURATION_BANNER_SX = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 1,
-  py: 1.25,
-  px: 2,
-  mb: 2,
-  borderRadius: '11px',
-  border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
-  bgcolor: 'var(--accent-soft)',
-} as const;
+const DURATION_BANNER_CLASS =
+  'flex items-center justify-center gap-1.5 py-[7.5px] px-3 mb-3 rounded-[11px] '
+  + 'border border-solid border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[var(--accent-soft)]';
 
 const DURATION_VALUE_SX = {
   fontFamily: 'var(--font-display)',
@@ -159,47 +116,33 @@ const DURATION_VALUE_SX = {
   fontVariantNumeric: 'tabular-nums',
 } as const;
 
+/** Report en classes de `DURATION_VALUE_SX`. */
+const DURATION_VALUE_CLASS =
+  '[font-family:var(--font-display)] text-[17px] font-semibold text-[var(--accent)] leading-[1.2] tabular-nums';
+
 const DURATION_LABEL_SX = {
   fontSize: '11.5px',
   fontWeight: 500,
   color: 'var(--body)',
 } as const;
 
+/** Report en classes de `DURATION_LABEL_SX`. */
+const DURATION_LABEL_CLASS = 'text-[11.5px] font-medium text-[var(--body)]';
+
 // Décomposition minutes (pattern price book) : lignes hairline lisibles.
-const BREAKDOWN_SX = {
-  mt: 2,
-  border: '1px solid var(--line)',
-  borderRadius: '11px',
-  overflow: 'hidden',
-} as const;
+const BREAKDOWN_CLASS = 'mt-3 border border-solid border-[var(--line)] rounded-[11px] overflow-hidden';
 
-const BREAKDOWN_ROW_SX = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  px: 1.75,
-  py: 0.75,
-  '& + &': { borderTop: '1px solid var(--line)' },
-} as const;
+// Le selecteur d'origine ('& + &') posait un filet entre deux lignes consecutives :
+// toutes les lignes sauf la premiere, la liste ne contenant que des lignes.
+const BREAKDOWN_ROW_CLASS =
+  'flex items-center justify-between px-[10.5px] py-[4.5px] '
+  + '[&:not(:first-child)]:[border-top:1px_solid_var(--line)]';
 
-const ADOPT_BTN_SX = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '7px',
-  height: 32,
-  padding: '0 14px',
-  borderRadius: '10px',
-  border: '1px solid var(--accent)',
-  background: 'transparent',
-  color: 'var(--accent)',
-  fontFamily: 'inherit',
-  fontSize: '12px',
-  fontWeight: 600,
-  cursor: 'pointer',
-  transition: 'background .14s, color .14s',
-  '&:hover': { backgroundColor: 'var(--accent-soft)' },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-} as const;
+const ADOPT_BTN_CLASS =
+  'inline-flex items-center gap-[7px] h-8 px-[14px] py-0 rounded-[10px] '
+  + 'border border-solid border-[var(--accent)] bg-transparent text-[var(--accent)] '
+  + '[font-family:inherit] text-[12px] font-semibold cursor-pointer hover:bg-[var(--accent-soft)] '
+  + 'focus-visible:[outline:2px_solid_var(--accent)] focus-visible:[outline-offset:2px]';
 
 // ─── Types & helpers ─────────────────────────────────────────────────────────
 
@@ -310,63 +253,63 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
   // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <Box sx={CONTAINER_SX}>
+    <div className="border border-solid border-[var(--line)] rounded-[14px] bg-[var(--card)] mb-3 px-[15px] py-3">
       {/* Header */}
-      <Box sx={HEADER_SX}>
-        <Box sx={TITLE_ROW_SX}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CleaningServices size={20} strokeWidth={1.75} /></Box>
-          <Typography sx={TITLE_SX}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-[4.5px]">
+          <span className="inline-flex text-[var(--accent)]"><CleaningServices size={20} strokeWidth={1.75} /></span>
+          <p className={cn(TITLE_CLASS, 'cn-text-body1')}>
             {t('properties.priceEstimation.title')}
-          </Typography>
-        </Box>
+          </p>
+        </div>
 
         {preview && (
-          <Box sx={BADGE_SX}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--muted)' }}><TrendingUp size={13} strokeWidth={1.75} /></Box>
-            <Typography sx={PER_LABEL_SX}>
+          <div className="flex items-center gap-[3px]">
+            <span className="inline-flex text-[var(--muted)]"><TrendingUp size={13} strokeWidth={1.75} /></span>
+            <p className={cn(PER_LABEL_CLASS, 'cn-text-body1')}>
               {t('properties.cleaningEstimator.engineBadge')}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
-      </Box>
+      </div>
 
       {/* Duration banner — durée normée du moteur pour le type sélectionné */}
       {selectedQuote != null && (
-        <Box sx={DURATION_BANNER_SX}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Timer size={20} strokeWidth={1.75} /></Box>
-          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}>
-            <Typography sx={DURATION_VALUE_SX}>
+        <div className={DURATION_BANNER_CLASS}>
+          <span className="inline-flex text-[var(--accent)]"><Timer size={20} strokeWidth={1.75} /></span>
+          <div className="flex items-baseline gap-1">
+            <p className={cn(DURATION_VALUE_CLASS, 'cn-text-body1')}>
               {formatDuration(selectedQuote.durationMinutes)}
-            </Typography>
-            <Typography sx={DURATION_LABEL_SX}>
+            </p>
+            <p className={cn(DURATION_LABEL_CLASS, 'cn-text-body1')}>
               {t('properties.durationEstimation.title')}
-            </Typography>
-          </Box>
-          <Typography sx={{ fontSize: '10.5px', color: 'var(--muted)', fontStyle: 'italic', ml: 'auto' }}>
+            </p>
+          </div>
+          <p className="cn-text-body1 text-[10.5px] text-[var(--muted)] italic ms-auto">
             {t('properties.durationEstimation.computed')}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
 
       {/* Skeleton bref pendant le premier chargement */}
       {loading && (
-        <Box sx={CARDS_ROW_SX}>
+        <div className={CARDS_ROW_CLASS}>
           {CLEANING_TYPES.map((ct) => (
-            <Skeleton key={ct} variant="rounded" height={118} sx={{ borderRadius: '13px' }} />
+            <Skeleton key={ct} className="h-[118px] rounded-[13px]" />
           ))}
-        </Box>
+        </div>
       )}
 
       {/* Price cards — cliquables pour choisir le type de ménage par défaut */}
       {!loading && preview ? (
         <>
-          <Box sx={CARDS_ROW_SX}>
+          <div className={CARDS_ROW_CLASS}>
             {CLEANING_TYPES.map((type) => {
               const quote = preview.quotes?.[type];
               if (!quote) return null;
               const isSelected = type === selectedType;
               return (
-                <Box
+                <div
                   key={type}
                   role="button"
                   tabIndex={0}
@@ -378,97 +321,101 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
                       setValue('defaultCleaningType', type, { shouldDirty: true });
                     }
                   }}
-                  sx={isSelected ? PRICE_CARD_SELECTED_SX : PRICE_CARD_SX}
+                  className={cn(
+                    PRICE_CARD_CLASS,
+                    isSelected
+                      ? 'border-[var(--accent)] bg-[var(--accent-soft)] hover:border-[var(--accent)]'
+                      : 'border-[var(--line)] bg-[var(--card)] hover:border-[var(--line-2)]',
+                  )}
+                  style={{ transition: 'border-color .14s, background-color .14s' }}
                 >
-                  {isSelected && <Box component="span" sx={{ position: 'absolute', top: 6, right: 6, display: 'inline-flex', color: 'var(--accent)' }}><CheckCircle size={18} strokeWidth={1.75} /></Box>}
-                  <Chip
+                  {isSelected && <span className="absolute top-[6px] end-[6px] inline-flex text-[var(--accent)]"><CheckCircle size={18} strokeWidth={1.75} /></span>}
+                  <StatusChip
                     label={t(`properties.priceEstimation.cleaningTypes.${type}`)}
-                    size="small"
-                    sx={{
-                      ...CHIP_SX,
-                      ...(isSelected
-                        ? { color: 'var(--accent)', bgcolor: 'var(--card)', border: '1px solid var(--accent)' }
-                        : { color: 'var(--muted)', bgcolor: 'var(--field)', border: '1px solid var(--field-line)' }),
-                    }}
+                    tokens={isSelected
+                      ? { color: 'var(--accent)', bg: 'var(--card)' }
+                      : { color: 'var(--muted)', bg: 'var(--field)' }}
+                    className="border border-solid"
+                    sx={{ borderColor: isSelected ? 'var(--accent)' : 'var(--field-line)' }}
                   />
                   {/* Médiane = ancre visuelle */}
-                  <Typography sx={isSelected ? RECOMMENDED_SX : RECOMMENDED_SECONDARY_SX}>
+                  <p className={cn(isSelected ? RECOMMENDED_CLASS : RECOMMENDED_SECONDARY_CLASS, 'cn-text-body1')}>
                     <Money value={quote.recommended} from="EUR" decimals={0} />
-                  </Typography>
+                  </p>
                   {/* Fourchette discrète */}
-                  <Typography sx={RANGE_SX}>
+                  <p className={cn(RANGE_CLASS, 'cn-text-body1')}>
                     <Money value={quote.min} from="EUR" decimals={0} /> – <Money value={quote.max} from="EUR" decimals={0} />
                     {' · '}{formatDuration(quote.durationMinutes)}
-                  </Typography>
-                  <Typography sx={PER_LABEL_SX}>
+                  </p>
+                  <p className={cn(PER_LABEL_CLASS, 'cn-text-body1')}>
                     {t('properties.priceEstimation.perIntervention')}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
               );
             })}
-          </Box>
+          </div>
 
           {/* Adopter la médiane CLEANING comme prix du logement */}
           {recommendedStandard != null && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mt: 2 }}>
+            <div className="flex items-center gap-2 mt-3">
               {adopted ? (
-                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-                  <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok, var(--accent))' }}>
+                <div className="inline-flex items-center gap-1">
+                  <span className="inline-flex text-[var(--ok,_var(--accent))]">
                     <CheckCircle size={15} strokeWidth={1.75} />
-                  </Box>
-                  <Typography sx={{ fontSize: '12px', fontWeight: 600, color: 'var(--body)' }}>
+                  </span>
+                  <p className="cn-text-body1 text-[12px] font-semibold text-[var(--body)]">
                     {t('properties.cleaningEstimator.adopted')}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
               ) : (
-                <Box
-                  component="button"
+                <button
                   type="button"
                   onClick={() => setValue('cleaningBasePrice', Number(recommendedStandard), { shouldDirty: true })}
-                  sx={ADOPT_BTN_SX}
+                  className={ADOPT_BTN_CLASS}
+                  style={{ transition: 'background .14s, color .14s' }}
                 >
                   <CheckCircle size={14} strokeWidth={1.75} />
                   {t('properties.cleaningEstimator.adoptAsBasePrice')}
-                </Box>
+                </button>
               )}
               {cleaningBasePrice != null && Number(cleaningBasePrice) > 0 && !adopted && (
-                <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums">
                   {t('properties.cleaningEstimator.currentBasePrice')} : <Money value={Number(cleaningBasePrice)} from="EUR" decimals={0} />
-                </Typography>
+                </p>
               )}
-            </Box>
+            </div>
           )}
 
           {/* Décomposition minutes — transparence du conseil (pattern price book) */}
           {breakdownEntries.length > 0 && (
-            <Box sx={BREAKDOWN_SX}>
-              <Box sx={{ ...BREAKDOWN_ROW_SX, bgcolor: 'var(--surface-2)' }}>
-                <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}>
+            <div className={BREAKDOWN_CLASS}>
+              <div className={cn(BREAKDOWN_ROW_CLASS, 'bg-[var(--surface-2)]')}>
+                <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
                   {t('properties.cleaningEstimator.breakdownTitle')}
-                </Typography>
-                <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', fontVariantNumeric: 'tabular-nums' }}>
+                </p>
+                <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] tabular-nums">
                   {formatDuration(breakdownEntries.reduce((sum, e) => sum + e.minutes, 0))}
-                </Typography>
-              </Box>
+                </p>
+              </div>
               {breakdownEntries.map(({ key, minutes }) => (
-                <Box key={key} sx={BREAKDOWN_ROW_SX}>
-                  <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
+                <div key={key} className={BREAKDOWN_ROW_CLASS}>
+                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
                     {t(`properties.cleaningEstimator.breakdown.${key}`)}
-                  </Typography>
-                  <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+                  </p>
+                  <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] tabular-nums">
                     {minutes} min
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
               ))}
-            </Box>
+            </div>
           )}
         </>
       ) : !loading ? (
-        <Typography sx={HINT_SX}>
+        <p className={cn(HINT_CLASS, 'cn-text-body1')}>
           {t('properties.priceEstimation.noEstimation')}
-        </Typography>
+        </p>
       ) : null}
-    </Box>
+    </div>
   );
 });
 

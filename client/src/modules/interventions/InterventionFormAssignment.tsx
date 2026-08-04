@@ -1,13 +1,12 @@
 import React from 'react';
 import {
-  Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Card,
   CardContent,
-} from '@mui/material';
+  Field,
+  FieldLabel,
+  NativeSelect,
+  NativeSelectOption,
+} from '../../components/ui';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -37,38 +36,42 @@ export interface InterventionFormAssignmentProps {
   watchedAssignedToType: 'user' | 'team' | undefined;
 }
 
+const ASSIGNABLE_ROLES = ['TECHNICIAN', 'EXTERIOR_TECH', 'LAUNDRY', 'SUPERVISOR', 'SUPER_MANAGER'];
+
 const InterventionFormAssignment: React.FC<InterventionFormAssignmentProps> = React.memo(
   ({ control, errors, setValue, users, teams, watchedAssignedToType }) => {
     const { t } = useTranslation();
 
     return (
-      <Card sx={{ mb: 1.5 }}>
-        <CardContent sx={{ p: 2 }}>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
+      <Card className="gap-0 py-0 mb-[9px]">
+        <CardContent className="p-3">
+          <h6 className="cn-text-subtitle1 font-semibold mb-2">
             {t('interventions.sections.assignment')}
-          </Typography>
+          </h6>
 
           <Controller
             name="assignedToType"
             control={control}
             render={({ field }) => (
-              <FormControl fullWidth sx={{ mb: 1.5 }}>
-                <InputLabel>{t('interventions.fields.assignmentType')}</InputLabel>
-                <Select
-                  value={field.value || ''}
+              <Field className="mb-[9px]">
+                <FieldLabel htmlFor="intervention-assignment-type">
+                  {t('interventions.fields.assignmentType')}
+                </FieldLabel>
+                <NativeSelect
+                  id="intervention-assignment-type"
+                  className="w-full"
+                  value={field.value ?? ''}
                   onChange={(e) => {
                     const val = e.target.value as 'user' | 'team' | '';
                     field.onChange(val || undefined);
                     setValue('assignedToId', undefined);
                   }}
-                  label={t('interventions.fields.assignmentType')}
-                  size="small"
                 >
-                  <MenuItem value="">{t('interventions.fields.noAssignment')}</MenuItem>
-                  <MenuItem value="user">{t('interventions.fields.user')}</MenuItem>
-                  <MenuItem value="team">{t('interventions.fields.team')}</MenuItem>
-                </Select>
-              </FormControl>
+                  <NativeSelectOption value="">{t('interventions.fields.noAssignment')}</NativeSelectOption>
+                  <NativeSelectOption value="user">{t('interventions.fields.user')}</NativeSelectOption>
+                  <NativeSelectOption value="team">{t('interventions.fields.team')}</NativeSelectOption>
+                </NativeSelect>
+              </Field>
             )}
           />
 
@@ -77,25 +80,30 @@ const InterventionFormAssignment: React.FC<InterventionFormAssignmentProps> = Re
               name="assignedToId"
               control={control}
               render={({ field }) => (
-                <FormControl fullWidth>
-                  <InputLabel>{t('interventions.fields.assignedUser')}</InputLabel>
-                  <Select
-                    value={field.value || ''}
+                <Field>
+                  <FieldLabel htmlFor="intervention-assigned-user">
+                    {t('interventions.fields.assignedUser')}
+                  </FieldLabel>
+                  <NativeSelect
+                    id="intervention-assigned-user"
+                    className="w-full"
+                    value={field.value ?? ''}
                     onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                    label={t('interventions.fields.assignedUser')}
-                    size="small"
                   >
-                    {users.flatMap((user) =>
-                      ['TECHNICIAN', 'EXTERIOR_TECH', 'LAUNDRY', 'SUPERVISOR', 'SUPER_MANAGER'].includes(user.role)
-                        ? [
-                            <MenuItem key={user.id} value={user.id}>
-                              <Typography variant="body2">{user.firstName} {user.lastName} ({user.role})</Typography>
-                            </MenuItem>,
-                          ]
-                        : [],
-                    )}
-                  </Select>
-                </FormControl>
+                    {/* Option vide explicite : sans elle, un <select> natif dont la
+                        valeur ne correspond a aucune option affiche selon le
+                        navigateur la premiere entree, alors que le formulaire est
+                        vide — le MUI Select, lui, laissait le champ blanc. */}
+                    <NativeSelectOption value="">—</NativeSelectOption>
+                    {users
+                      .filter((user) => ASSIGNABLE_ROLES.includes(user.role))
+                      .map((user) => (
+                        <NativeSelectOption key={user.id} value={user.id}>
+                          {user.firstName} {user.lastName} ({user.role})
+                        </NativeSelectOption>
+                      ))}
+                  </NativeSelect>
+                </Field>
               )}
             />
           )}
@@ -105,21 +113,24 @@ const InterventionFormAssignment: React.FC<InterventionFormAssignmentProps> = Re
               name="assignedToId"
               control={control}
               render={({ field }) => (
-                <FormControl fullWidth>
-                  <InputLabel>{t('interventions.fields.assignedTeam')}</InputLabel>
-                  <Select
-                    value={field.value || ''}
+                <Field>
+                  <FieldLabel htmlFor="intervention-assigned-team">
+                    {t('interventions.fields.assignedTeam')}
+                  </FieldLabel>
+                  <NativeSelect
+                    id="intervention-assigned-team"
+                    className="w-full"
+                    value={field.value ?? ''}
                     onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                    label={t('interventions.fields.assignedTeam')}
-                    size="small"
                   >
+                    <NativeSelectOption value="">—</NativeSelectOption>
                     {teams.map((team) => (
-                      <MenuItem key={team.id} value={team.id}>
-                        <Typography variant="body2">{team.name} ({team.interventionType})</Typography>
-                      </MenuItem>
+                      <NativeSelectOption key={team.id} value={team.id}>
+                        {team.name} ({team.interventionType})
+                      </NativeSelectOption>
                     ))}
-                  </Select>
-                </FormControl>
+                  </NativeSelect>
+                </Field>
               )}
             />
           )}

@@ -1,18 +1,17 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { Info } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Button } from '../../components/ui';
 import {
-  Box,
-  Typography,
-  Button,
-  IconButton,
-  Paper,
-  Alert,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogContentText,
-  DialogActions,
-  CircularProgress,
-} from '@mui/material';
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui';
+import { cn } from '../../utils/cn';
 import {
   CloudUpload,
   Delete,
@@ -51,64 +50,15 @@ const SECTION_TITLE_SX = {
   mb: 1,
 } as const;
 
+/** Report en classes de `SECTION_TITLE_SX`. */
+const SECTION_TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-1.5';
+
 // .pd-card — carte hairline r14 plate.
-const CARD_SX = {
-  border: '1px solid var(--line)',
-  bgcolor: 'var(--card)',
-  boxShadow: 'none',
-  borderRadius: '14px',
-  p: '16px 18px',
-} as const;
+const CARD_CLASS = 'border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] px-[18px] py-4';
 
 // Dropzone — pattern manquant au baseline (signalé) : dérivé minimal en tokens
 // (tirets --line-2, hover/drag accent + accent-soft), aucun style inventé au-delà.
-const DROP_ZONE_SX = {
-  border: '2px dashed var(--line-2)',
-  borderRadius: '11px',
-  p: 3,
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-  transition: 'border-color .14s, background-color .14s',
-  '&:hover': {
-    borderColor: 'var(--accent)',
-    bgcolor: 'var(--accent-soft)',
-  },
-} as const;
-
-const DROP_ZONE_ACTIVE_SX = {
-  ...DROP_ZONE_SX,
-  borderColor: 'var(--accent)',
-  bgcolor: 'var(--accent-soft)',
-} as const;
-
-const PHOTO_CARD_SX = {
-  position: 'relative',
-  borderRadius: '11px',
-  overflow: 'hidden',
-  border: '1px solid var(--line)',
-  aspectRatio: '4 / 3',
-  '&:hover .photo-overlay': {
-    opacity: 1,
-  },
-} as const;
-
-const PHOTO_OVERLAY_SX = {
-  position: 'absolute',
-  top: 0,
-  right: 0,
-  left: 0,
-  bottom: 0,
-  bgcolor: 'rgba(10, 18, 24, 0.42)',
-  opacity: 0,
-  transition: 'opacity .2s',
-  display: 'flex',
-  alignItems: 'flex-start',
-  justifyContent: 'flex-end',
-  p: 0.5,
-} as const;
+const DROP_ZONE_CLASS = 'border-2 border-dashed border-[var(--line-2)] rounded-[11px] p-[18px] flex flex-col items-center justify-center cursor-pointer transition-[border-color,background-color] duration-[140ms] hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -246,30 +196,31 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
   const hasPhotos = photos.length > 0;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <div className="flex flex-col gap-2">
       {/* ── Sync info banner ─────────────────────────────────────────────── */}
-      <Alert severity="info" variant="outlined" sx={{ fontSize: '0.75rem' }}>
-        {t('properties.photos.channelSync')}
+      <Alert variant="info" className="text-[0.75rem]">
+        <Info />
+        <AlertDescription>{t('properties.photos.channelSync')}</AlertDescription>
       </Alert>
 
       {/* ── Upload zone ──────────────────────────────────────────────────── */}
-      <Paper sx={CARD_SX}>
-        <Typography sx={SECTION_TITLE_SX}>{t('properties.photos.upload')}</Typography>
-        <Box
-          sx={isDragOver ? DROP_ZONE_ACTIVE_SX : DROP_ZONE_SX}
+      <div className={CARD_CLASS}>
+        <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('properties.photos.upload')}</p>
+        <div
+          className={cn(DROP_ZONE_CLASS, isDragOver && 'border-[var(--accent)] bg-[var(--accent-soft)]')}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
         >
-          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><CloudUpload size={36} strokeWidth={1.5} /></Box>
-          <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.secondary', textAlign: 'center' }}>
+          <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><CloudUpload size={36} strokeWidth={1.5} /></span>
+          <p className="cn-text-body1 text-[0.8125rem] font-medium text-muted-foreground text-center">
             {t('properties.photos.dragDrop')}
-          </Typography>
-          <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled', mt: 0.5 }}>
+          </p>
+          <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60 mt-0.5">
             {t('properties.photos.maxSize')}
-          </Typography>
-        </Box>
+          </p>
+        </div>
         <input
           ref={fileInputRef}
           type="file"
@@ -278,79 +229,52 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
           hidden
           onChange={handleFileChange}
         />
-      </Paper>
+      </div>
 
       {/* ── Loading state ────────────────────────────────────────────────── */}
       {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress size={28} />
-        </Box>
+        <div className="flex justify-center py-6">
+          <Spinner className="size-7" />
+        </div>
       )}
 
       {/* ── Photo grid or empty state ────────────────────────────────────── */}
       {!loading && hasPhotos ? (
-        <Paper sx={CARD_SX}>
-          <Typography sx={SECTION_TITLE_SX}>
+        <div className={CARD_CLASS}>
+          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
             {t('properties.photos.title')} ({photos.length})
-          </Typography>
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: {
-                xs: 'repeat(2, 1fr)',
-                sm: 'repeat(3, 1fr)',
-                md: 'repeat(4, 1fr)',
-              },
-              gap: 1,
-            }}
-          >
+          </p>
+          <div className="grid grid-cols-[repeat(2,_1fr)] min-[600px]:grid-cols-[repeat(3,_1fr)] min-[900px]:grid-cols-[repeat(4,_1fr)] gap-1.5">
             {photos.map((photo) => (
-              <Box key={photo.id} sx={PHOTO_CARD_SX}>
-                <Box
-                  component="img"
-                  src={photo.url}
-                  alt={photo.name}
-                  sx={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    display: 'block',
-                  }}
-                />
-                <Box className="photo-overlay" sx={PHOTO_OVERLAY_SX}>
-                  <IconButton
-                    size="small"
+              <div
+                key={photo.id}
+                className="relative rounded-[11px] overflow-hidden border border-solid border-[var(--line)] aspect-[4/3] [&:hover_.photo-overlay]:opacity-100"
+              >
+                <img className="w-full h-full object-cover block" src={photo.url} alt={photo.name} />
+                <div className="photo-overlay absolute inset-0 bg-[rgba(10,18,24,0.42)] opacity-0 transition-opacity duration-200 flex items-start justify-end p-[3px]">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={t('common.delete')}
                     onClick={() => setDeleteTarget(photo)}
-                    sx={{
-                      bgcolor: 'rgba(255,255,255,0.92)',
-                      color: '#2A3942',
-                      borderRadius: '10px',
-                      '&:hover': { bgcolor: '#fff', color: 'var(--err)' },
-                      width: 28,
-                      height: 28,
-                    }}
+                    className="rounded-[10px] bg-[rgba(255,255,255,0.92)] text-[#2A3942] hover:bg-[rgba(255,255,255,1)] hover:text-[var(--err)]"
                   >
                     <Delete size={16} strokeWidth={1.75} />
-                  </IconButton>
-                </Box>
-              </Box>
+                  </Button>
+                </div>
+              </div>
             ))}
 
             {/* Add more button */}
-            <Box
-              sx={{
-                ...DROP_ZONE_SX,
-                p: 0,
-                aspectRatio: '4 / 3',
-                border: '2px dashed',
-                borderColor: 'divider',
-              }}
+            {/* `borderColor: 'divider'` (jeton MUI) => var(--line). */}
+            <div
+              className={cn(DROP_ZONE_CLASS, 'p-0 aspect-[4/3] border-[var(--line)]')}
               onClick={() => fileInputRef.current?.click()}
             >
-              <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><AddPhotoAlternate size={28} strokeWidth={1.5} /></Box>
-            </Box>
-          </Box>
-        </Paper>
+              <span className="inline-flex text-muted-foreground opacity-60"><AddPhotoAlternate size={28} strokeWidth={1.5} /></span>
+            </div>
+          </div>
+        </div>
       ) : !loading ? (
         <EmptyState
           icon={<PhotoLibrary />}
@@ -358,11 +282,11 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
           description={t('properties.photos.emptyDesc')}
           action={
             <Button
-              variant="outlined"
-              size="small"
-              startIcon={<CloudUpload size={18} strokeWidth={1.75} />}
+              variant="outline"
+              size="sm"
               onClick={() => fileInputRef.current?.click()}
             >
+              <CloudUpload size={18} strokeWidth={1.75} />
               {t('properties.photos.upload')}
             </Button>
           }
@@ -370,25 +294,24 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
       ) : null}
 
       {/* ── Delete confirmation dialog ───────────────────────────────────── */}
-      <Dialog open={deleteTarget !== null} onClose={() => setDeleteTarget(null)} maxWidth="xs">
-        <DialogTitle sx={{ fontSize: '0.875rem', fontWeight: 600 }}>
-          {t('properties.photos.deleteConfirm')}
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ fontSize: '0.8125rem' }}>
-            {deleteTarget?.name}
-          </DialogContentText>
+      {/* maxWidth="xs" MUI = 444 px. */}
+      <Dialog open={deleteTarget !== null} onOpenChange={(next) => { if (!next) setDeleteTarget(null); }}>
+        <DialogContent className="sm:max-w-[444px]">
+          <DialogHeader>
+            <DialogTitle>{t('properties.photos.deleteConfirm')}</DialogTitle>
+            <DialogDescription>{deleteTarget?.name}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(null)}>
+              {t('common.cancel')}
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleDeleteConfirm}>
+              {t('common.delete')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteTarget(null)} size="small" sx={{ textTransform: 'none' }}>
-            {t('common.cancel')}
-          </Button>
-          <Button onClick={handleDeleteConfirm} color="error" size="small" sx={{ textTransform: 'none' }}>
-            {t('common.delete')}
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   );
 };
 

@@ -1,12 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  TextField,
-} from '@mui/material';
+import React, { useEffect, useId, useState } from 'react';
+import StatusChip from '../../../components/StatusChip';
+import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
+import { CircleCheck, Info, TriangleAlert } from 'lucide-react';
+import { Spinner, Button, Field, FieldLabel, Input } from '../../../components/ui';
 import {
   partnerConnectionApi,
   type PartnerServiceProvider,
@@ -27,6 +23,9 @@ export default function PartnerServiceConfigForm({
   provider: PartnerServiceProvider;
   serviceName: string;
 }) {
+  // Le formulaire est instancie une fois par service du catalogue : les id des
+  // champs doivent rester uniques meme si deux instances coexistent.
+  const fieldId = useId();
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const [connectedServerUrl, setConnectedServerUrl] = useState<string | null>(null);
@@ -90,95 +89,83 @@ export default function PartnerServiceConfigForm({
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-        <CircularProgress size={22} />
-      </Box>
+      <div className="flex justify-center py-3">
+        <Spinner className="size-[22px]" />
+      </div>
     );
   }
 
   return (
-    <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5, mb: 1.5 }}>
-      <Alert severity="info" variant="outlined" sx={{ borderRadius: '8px', fontSize: '0.74rem', mb: 1.25 }}>
-        Vos accès {serviceName} sont chiffrés et enregistrés dès maintenant ; la
-        synchronisation native sera activée dans une prochaine release.
-      </Alert>
+    <div className="border border-[var(--line)] rounded-[16px] p-2 mb-2">
+      <UiAlert variant="info" className="text-[0.74rem] mb-2">
+        <Info />
+        <AlertDescription>Vos accès {serviceName}sont chiffrés et enregistrés dès maintenant ; la
+        synchronisation native sera activée dans une prochaine release.</AlertDescription>
+      </UiAlert>
 
       {connected ? (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-          <Chip
-            label="Accès enregistrés"
-            size="small"
-            sx={{
-              height: 20,
-              fontSize: '0.66rem',
-              fontWeight: 700,
-              color: 'var(--ok)',
-              backgroundColor: 'var(--ok-soft)',
-              border: '1px solid color-mix(in srgb, var(--ok) 25%, transparent)',
-            }}
-          />
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <StatusChip tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label="Accès enregistrés" className="h-[20px] text-[0.66rem]" />
           {connectedServerUrl && (
-            <Box component="span" sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>
+            <span className="text-[0.72rem] text-muted-foreground">
               {connectedServerUrl}
-            </Box>
+            </span>
           )}
-          <Button
-            size="small"
-            variant="outlined"
-            color="error"
-            onClick={handleDisconnect}
-            disabled={submitting}
-            sx={{ ml: 'auto', textTransform: 'none', fontWeight: 600, fontSize: '0.74rem', borderRadius: '8px' }}
-          >
+          {/* Rompre la connexion est l'action irreversible de la ligne : variante destructive. */}
+          <Button variant="destructive" size="sm" className="ms-auto" onClick={handleDisconnect} disabled={submitting}>
             Déconnecter
           </Button>
-        </Box>
+        </div>
       ) : (
         <>
-          <TextField
-            label="URL de l'API"
-            placeholder="https://api.exemple.com"
-            value={form.serverUrl}
-            onChange={(e) => setForm((f) => ({ ...f, serverUrl: e.target.value }))}
-            size="small"
-            fullWidth
-            sx={{ mb: 1 }}
-          />
-          <TextField
-            label="Identifiant de compte (optionnel)"
-            value={form.accountIdentifier}
-            onChange={(e) => setForm((f) => ({ ...f, accountIdentifier: e.target.value }))}
-            size="small"
-            fullWidth
-            sx={{ mb: 1 }}
-          />
-          <TextField
-            label="Clé API"
-            type="password"
-            value={form.apiKey}
-            onChange={(e) => setForm((f) => ({ ...f, apiKey: e.target.value }))}
-            size="small"
-            fullWidth
-            sx={{ mb: 1 }}
-          />
+          <Field className="mb-1.5">
+            <FieldLabel htmlFor={`${fieldId}-server-url`}>URL de l'API</FieldLabel>
+            <Input
+              id={`${fieldId}-server-url`}
+              className="w-full"
+              placeholder="https://api.exemple.com"
+              value={form.serverUrl}
+              onChange={(e) => setForm((f) => ({ ...f, serverUrl: e.target.value }))}
+            />
+          </Field>
+          <Field className="mb-1.5">
+            <FieldLabel htmlFor={`${fieldId}-account-identifier`}>
+              Identifiant de compte (optionnel)
+            </FieldLabel>
+            <Input
+              id={`${fieldId}-account-identifier`}
+              className="w-full"
+              value={form.accountIdentifier}
+              onChange={(e) => setForm((f) => ({ ...f, accountIdentifier: e.target.value }))}
+            />
+          </Field>
+          <Field className="mb-1.5">
+            <FieldLabel htmlFor={`${fieldId}-api-key`}>Clé API</FieldLabel>
+            <Input
+              id={`${fieldId}-api-key`}
+              className="w-full"
+              type="password"
+              value={form.apiKey}
+              onChange={(e) => setForm((f) => ({ ...f, apiKey: e.target.value }))}
+            />
+          </Field>
           <Button
-            size="small"
-            variant="contained"
+            size="sm"
             onClick={handleConnect}
             disabled={submitting || !form.serverUrl.trim() || form.apiKey.trim().length < 8}
-            startIcon={submitting ? <CircularProgress size={14} color="inherit" /> : undefined}
-            sx={{ textTransform: 'none', fontWeight: 600 }}
           >
+            {submitting ? <Spinner className="size-3.5" /> : null}
             Enregistrer les accès
           </Button>
         </>
       )}
 
       {message && (
-        <Alert severity={message.type} variant="outlined" sx={{ borderRadius: '8px', fontSize: '0.74rem', mt: 1.25 }}>
-          {message.text}
-        </Alert>
+        <UiAlert variant={message.type === 'success' ? 'success' : 'destructive'} className="text-[0.74rem] mt-[7.5px]">
+          {message.type === 'success' ? <CircleCheck /> : <TriangleAlert />}
+          <AlertDescription>{message.text}</AlertDescription>
+        </UiAlert>
       )}
-    </Box>
+    </div>
   );
 }

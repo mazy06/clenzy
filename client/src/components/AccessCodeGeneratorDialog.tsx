@@ -1,17 +1,20 @@
+import StatusChip from './StatusChip';
+import { cn } from '../utils/cn';
 import React, { useEffect, useState } from 'react';
 import {
-  Dialog,
-  DialogContent,
-  DialogActions,
-  Box,
-  Typography,
-  Slider,
-  Chip,
-  IconButton,
-  InputBase,
   Button,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Slider,
   Tooltip,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from './ui';
 import { Autorenew, Close as CloseIcon, ContentCopy, CheckCircle, VpnKey as KeyIcon } from '../icons';
 import { useTranslation } from '../hooks/useTranslation';
 
@@ -51,13 +54,9 @@ const NEXT_TYPE: Record<CodeCharType, CodeCharType> = { digits: 'letters', lette
 
 export const DEFAULT_CODE_FORMAT: CodeFormat = { pattern: Array(6).fill('digits') };
 
-const chipSx = (on: boolean, color: string) => ({
-  fontFamily: 'monospace',
-  fontWeight: 700,
-  cursor: 'pointer',
-  minWidth: 34,
-  ...(on ? { bgcolor: color, color: '#fff', borderColor: color, '&:hover': { bgcolor: color, opacity: 0.85 } } : {}),
-});
+/** Bascule de caractere : tokens pleins a l'etat presse, neutres au repos. */
+const toggleTokens = (on: boolean, color: string) =>
+  (on ? { color: '#fff', bg: color } : { color: 'var(--muted)', bg: 'var(--hover)' });
 
 // ─── Generation (crypto.getRandomValues, repli Math.random) ───────────────────
 
@@ -209,151 +208,195 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
   const hasSymbols = counts.symbols > 0;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 3, pt: 2.5, pb: 1 }}>
-        <Box sx={{ width: 32, height: 32, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: `${BRAND}1A`, color: BRAND }}>
-          <KeyIcon size={17} strokeWidth={1.8} />
-        </Box>
-        <Typography sx={{ flex: 1, fontWeight: 700, fontSize: '1.05rem' }}>{t('channels.checkIn.generator.title', "Générer un code d'accès")}</Typography>
-        <IconButton size="small" onClick={onClose} aria-label={t('channels.checkIn.generator.close', 'Fermer')}><CloseIcon size={18} strokeWidth={1.8} /></IconButton>
-      </Box>
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      {/* showCloseButton={false} : la croix vit dans l'entete, a cote du titre,
+          pour garder son libelle traduit (celui du kit est un « Close » fige). */}
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto" showCloseButton={false}>
+        <DialogHeader className="flex-row items-center gap-1.5">
+          <div className="w-[32px] h-[32px] rounded-[12px] flex items-center justify-center shrink-0" style={{ backgroundColor: `${BRAND}1A`, color: BRAND }}>
+            <KeyIcon size={17} strokeWidth={1.8} />
+          </div>
+          <DialogTitle className="flex-1 font-bold text-[1.05rem]">{t('channels.checkIn.generator.title', "Générer un code d'accès")}</DialogTitle>
+          <DialogClose asChild>
+            <Button variant="ghost" size="icon-sm" aria-label={t('channels.checkIn.generator.close', 'Fermer')}>
+              <CloseIcon size={18} strokeWidth={1.8} />
+            </Button>
+          </DialogClose>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 1 }}>
+      <div>
         {/* Aperçu du code + régénération / copie */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, p: 2, borderRadius: 2, bgcolor: 'action.hover', border: '1px solid', borderColor: 'divider' }}>
+        <div className="flex items-center justify-between gap-1.5 p-3 rounded-[16px] bg-[var(--hover)] border border-solid border-[var(--line)]">
           {/* Éditable : l'hôte peut saisir un code précis (boîte à clé existante, digicode imposé). */}
-          <InputBase
+          <Input
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="—"
-            inputProps={{ 'aria-label': t('channels.checkIn.generator.codeInput', "Code d'accès"), maxLength: 32 }}
-            sx={{
-              flex: 1, minWidth: 0,
-              '& input': {
-                fontFamily: 'monospace', fontSize: '1.7rem', fontWeight: 700, letterSpacing: '0.14em',
-                fontVariantNumeric: 'tabular-nums', lineHeight: 1.2, padding: 0,
-              },
-            }}
+            aria-label={t('channels.checkIn.generator.codeInput', "Code d'accès")}
+            maxLength={32}
+            className="flex-1 min-w-0 h-auto border-0 bg-transparent p-0 rounded-none shadow-none focus-visible:ring-0 font-mono text-[1.7rem] font-bold tracking-[0.14em] tabular-nums leading-[1.2]"
           />
-          <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
-            <Tooltip title={t('channels.checkIn.generator.regenerate', 'Régénérer le code')}>
-              <IconButton onClick={regenerate} sx={{ color: BRAND }}><Autorenew size={19} strokeWidth={1.85} /></IconButton>
+          <div className="flex gap-0.5 shrink-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/* span : TooltipTrigger asChild pose une ref DOM, que le Button du
+                    kit (fonction, React 18) ne transmet pas. */}
+                <span className="inline-flex">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    style={{ color: BRAND }}
+                    onClick={regenerate}
+                    aria-label={t('channels.checkIn.generator.regenerate', 'Régénérer le code')}
+                  >
+                    <Autorenew size={19} strokeWidth={1.85} />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('channels.checkIn.generator.regenerate', 'Régénérer le code')}</TooltipContent>
             </Tooltip>
-            <Tooltip title={copied ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.generator.copy', 'Copier')}>
-              <IconButton onClick={copy}>{copied ? <CheckCircle size={19} strokeWidth={2} color="#10b981" /> : <ContentCopy size={17} strokeWidth={1.75} />}</IconButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={copy}
+                    aria-label={copied ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.generator.copy', 'Copier')}
+                  >
+                    {copied ? <CheckCircle size={19} strokeWidth={2} color="#10b981" /> : <ContentCopy size={17} strokeWidth={1.75} />}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {copied ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.generator.copy', 'Copier')}
+              </TooltipContent>
             </Tooltip>
-          </Box>
-        </Box>
+          </div>
+        </div>
 
         {/* Longueur */}
-        <Box sx={{ mt: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: 0.5 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>{t('channels.checkIn.generator.length', 'Longueur')}</Typography>
-            <Typography variant="body2" sx={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: BRAND }}>
+        <div className="mt-4">
+          <div className="flex items-baseline justify-between mb-0.5">
+            <p className="cn-text-body2 font-semibold">{t('channels.checkIn.generator.length', 'Longueur')}</p>
+            <p className="cn-text-body2 font-bold tabular-nums" style={{ color: BRAND }}>
               {t('channels.checkIn.generator.chars', '{{n}} caractères', { n: pattern.length })}
-            </Typography>
-          </Box>
+            </p>
+          </div>
+          {/* Le Slider du kit ne connait ni `marks` ni bulle de valeur : les reperes
+              sont rendus dessous, et la valeur est deja lue dans la ligne ci-dessus. */}
           <Slider
-            value={pattern.length}
-            onChange={(_, v) => applyLength(v as number)}
+            value={[pattern.length]}
+            onValueChange={([v]) => applyLength(v)}
             min={MIN_LEN}
             max={MAX_LEN}
             step={1}
-            valueLabelDisplay="auto"
-            marks={[{ value: 4, label: '4' }, { value: 8, label: '8' }, { value: 12, label: '12' }, { value: 16, label: '16' }]}
-            sx={{ color: BRAND }}
+            aria-label={t('channels.checkIn.generator.length', 'Longueur')}
           />
-        </Box>
+          <div className="flex justify-between mt-1" aria-hidden>
+            {[4, 8, 12, 16].map((mark) => (
+              <span key={mark} className="cn-text-caption text-muted-foreground tabular-nums">{mark}</span>
+            ))}
+          </div>
+        </div>
 
         {/* Composition : type de chaque position (nombre + position de chaque type) */}
-        <Box sx={{ mt: 1.5 }}>
-          <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.75 }}>{t('channels.checkIn.generator.composition', 'Composition')}</Typography>
+        <div className="mt-2">
+          <p className="cn-text-body2 font-semibold mb-1">{t('channels.checkIn.generator.composition', 'Composition')}</p>
           {/* Récap des quantités (sert aussi de légende couleur) */}
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 1.25 }}>
+          <div className="flex gap-3 flex-wrap mb-2">
             {TYPE_ORDER.map((tp) => (
-              <Box key={tp} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: TYPE_META[tp].color }} />
-                <Typography variant="caption" sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+              <div className="flex items-center gap-0.5" key={tp}>
+                <div className="w-[9px] h-[9px] rounded-[50%]" style={{ backgroundColor: TYPE_META[tp].color }} />
+                <span className="cn-text-caption font-semibold tabular-nums">
                   {counts[tp]} {t(`channels.checkIn.generator.${TYPE_META[tp].labelKey}`, TYPE_META[tp].defaultLabel)}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             ))}
-          </Box>
+          </div>
           {/* Positions : un clic fait défiler le type */}
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+          <div className="flex flex-wrap gap-1">
             {pattern.map((type, i) => {
               const meta = TYPE_META[type];
               return (
-                <Tooltip key={i} title={t('channels.checkIn.generator.slotCycle', 'Changer le type')}>
-                  <Box
-                    onClick={() => cycleSlot(i)}
-                    sx={{
-                      width: 46, py: 0.75, borderRadius: 1.5, cursor: 'pointer', textAlign: 'center',
-                      border: '1px solid', borderColor: `${meta.color}66`, bgcolor: `${meta.color}14`,
-                      transition: 'all .15s ease', '&:hover': { bgcolor: `${meta.color}24` },
-                    }}
-                  >
-                    <Typography sx={{ fontSize: '0.6rem', color: 'text.secondary', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{i + 1}</Typography>
-                    <Typography sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', color: meta.color, mt: 0.25 }}>{meta.abbr}</Typography>
-                  </Box>
+                // Fonds au repos ET au survol derives de la couleur du type (valeur
+                // d'execution) : passes en variables CSS, pas en style inline, sinon le
+                // style l'emporterait sur la classe hover:.
+                <Tooltip key={i}>
+                  <TooltipTrigger asChild>
+                    <div
+                      onClick={() => cycleSlot(i)}
+                      className="w-[46px] py-[4.5px] rounded-[12px] cursor-pointer text-center border border-solid bg-[var(--slot-bg)] transition-all duration-150 ease-[ease] hover:bg-[var(--slot-bg-hover)]"
+                      style={{
+                        borderColor: `${meta.color}66`,
+                        '--slot-bg': `${meta.color}14`,
+                        '--slot-bg-hover': `${meta.color}24`,
+                      } as React.CSSProperties}
+                    >
+                      <p className="cn-text-body1 text-[0.6rem] text-muted-foreground leading-[1] tabular-nums">{i + 1}</p>
+                      <p className="cn-text-body1 font-bold text-[0.78rem] mt-[1.5px]" style={{ fontFamily: 'monospace', color: meta.color }}>{meta.abbr}</p>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>{t('channels.checkIn.generator.slotCycle', 'Changer le type')}</TooltipContent>
                 </Tooltip>
               );
             })}
-          </Box>
-          <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.75, display: 'block' }}>
+          </div>
+          <span className="cn-text-caption text-muted-foreground mt-1 block">
             {t('channels.checkIn.generator.compositionHint', 'Cliquez sur une position pour changer le type de caractère.')}
-          </Typography>
+          </span>
           {smartLockHint ? (
-            <Typography variant="caption" sx={{ color: 'warning.main', mt: 0.5, display: 'block' }}>
+            <span className="cn-text-caption text-[var(--bui-warning-ink)] mt-0.5 block">
               {t('channels.checkIn.generator.smartLockDigitsHint', 'Serrure connectée : seuls les chiffres du format (et sa longueur) sont utilisés pour le PIN de la serrure.')}
-            </Typography>
+            </span>
           ) : null}
-        </Box>
+        </div>
 
         {/* Sous-sélecteur : lettres autorisées (si au moins une position lettre) */}
         {hasLetters && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>{t('channels.checkIn.generator.lettersAllowed', 'Lettres autorisées')}</Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+          <div className="mt-3">
+            <p className="cn-text-body2 font-semibold mb-1.5">{t('channels.checkIn.generator.lettersAllowed', 'Lettres autorisées')}</p>
+            <div className="flex flex-wrap gap-0.5">
               {LETTER_CHARS.map((ch) => {
                 const on = selectedLetters.includes(ch);
-                return <Chip key={ch} label={ch} size="small" variant={on ? 'filled' : 'outlined'} onClick={() => toggleLetter(ch)} sx={chipSx(on, TYPE_META.letters.color)} />;
+                return <StatusChip key={ch} label={ch} pressed={on} onClick={() => toggleLetter(ch)} tokens={toggleTokens(on, TYPE_META.letters.color)} className="min-w-[34px] font-mono font-bold" />;
               })}
-            </Box>
-            <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.75, display: 'block' }}>
+            </div>
+            <span className="cn-text-caption text-muted-foreground mt-1 block">
               {t('channels.checkIn.generator.allLettersHint', 'Aucune sélection = toutes les lettres.')}
-            </Typography>
-          </Box>
+            </span>
+          </div>
         )}
 
         {/* Sous-sélecteur : symboles autorisés (souvent limités par la serrure) */}
         {hasSymbols && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>{t('channels.checkIn.generator.symbolsAllowed', 'Symboles autorisés')}</Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+          <div className="mt-3">
+            <p className="cn-text-body2 font-semibold mb-1.5">{t('channels.checkIn.generator.symbolsAllowed', 'Symboles autorisés')}</p>
+            <div className="flex flex-wrap gap-0.5">
               {SYMBOL_CHARS.map((ch) => {
                 const on = selectedSymbols.includes(ch);
-                return <Chip key={ch} label={ch} size="small" variant={on ? 'filled' : 'outlined'} onClick={() => toggleSymbol(ch)} sx={chipSx(on, TYPE_META.symbols.color)} />;
+                return <StatusChip key={ch} label={ch} pressed={on} onClick={() => toggleSymbol(ch)} tokens={toggleTokens(on, TYPE_META.symbols.color)} className="min-w-[34px] font-mono font-bold" />;
               })}
-            </Box>
-            <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.75, display: 'block' }}>
+            </div>
+            <span className="cn-text-caption text-muted-foreground mt-1 block">
               {t('channels.checkIn.generator.allSymbolsHint', 'Aucune sélection = tous les symboles.')}
-            </Typography>
-          </Box>
+            </span>
+          </div>
         )}
-      </DialogContent>
+      </div>
 
-      <DialogActions sx={{ px: 3, pb: 2.5 }}>
-        <Button onClick={onClose} color="inherit">{t('channels.checkIn.generator.cancel', 'Annuler')}</Button>
-        <Button
-          onClick={() => onApply(code, buildFormat())}
-          variant="contained"
-          disabled={!code}
-          sx={{ bgcolor: BRAND, '&:hover': { bgcolor: '#5a7888' } }}
-        >
-          {t('channels.checkIn.generator.apply', 'Utiliser ce code')}
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>{t('channels.checkIn.generator.cancel', 'Annuler')}</Button>
+          {/* L'encre pleine du kit remplace le fond de marque code en dur. */}
+          <Button
+            variant="default"
+            onClick={() => onApply(code, buildFormat())}
+            disabled={!code}
+          >
+            {t('channels.checkIn.generator.apply', 'Utiliser ce code')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

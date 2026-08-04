@@ -1,7 +1,12 @@
 import React from 'react';
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography,
-} from '@mui/material';
+  Button,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
 
 interface PropertyDeleteDialogProps {
@@ -18,23 +23,25 @@ const PropertyDeleteDialog: React.FC<PropertyDeleteDialogProps> = ({
   const { t } = useTranslation();
 
   return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogTitle>
-        {t('properties.confirmDelete')}
-      </DialogTitle>
-      <DialogContent>
-        <Typography sx={{ fontSize: '13px', color: 'var(--body)' }}>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {t('properties.confirmDelete')}
+          </DialogTitle>
+        </DialogHeader>
+        <p className="cn-text-body1 text-[13px] text-[var(--body)]">
           {t('properties.confirmDeleteMessage', { name: propertyName })}
-        </Typography>
+        </p>
+        <DialogFooter>
+          <Button onClick={onClose} variant="ghost" size="sm">
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={onConfirm} variant="destructive" size="sm">
+            {t('properties.delete')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} size="small" variant="text">
-          {t('common.cancel')}
-        </Button>
-        <Button onClick={onConfirm} color="error" variant="contained" size="small">
-          {t('properties.delete')}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };

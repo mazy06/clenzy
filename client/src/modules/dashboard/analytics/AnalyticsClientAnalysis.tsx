@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
+import { Card, CardContent } from '../../../components/ui';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -14,18 +14,9 @@ const AXIS_TICK = { fontSize: 10, fill: '#94A3B8' } as const;
 const TOOLTIP_STYLE = { fontSize: 11, borderRadius: 6, border: '1px solid #E2E8F0', boxShadow: 'none' } as const;
 const GRID_STROKE = '#F1F5F9';
 
-const CHART_CARD_SX = {
-  width: '100%',
-  height: 220,
-} as const;
-
-const CHART_CONTENT_SX = {
-  p: 1.25,
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  '&:last-child': { pb: 1.25 },
-} as const;
+/** Report en classes de `CHART_CARD_SX` / `CHART_CONTENT_SX` (p 1.25 = 7,5 px avec spacing 6). */
+const CHART_CARD_CLASS = 'w-full h-[220px] gap-0 p-0';
+const CHART_CONTENT_CLASS = 'p-[7.5px] h-full flex flex-col';
 
 const SECTION_LABEL_SX = {
   fontSize: '0.6875rem',
@@ -36,6 +27,10 @@ const SECTION_LABEL_SX = {
   mb: 0.5,
   flexShrink: 0,
 } as const;
+
+/** Report en classes de `SECTION_LABEL_SX` (mb 0.5 = 3 px avec spacing 6). */
+const SECTION_LABEL_CLASS =
+  'cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.04em] text-[var(--muted)] mb-[3px] shrink-0';
 
 interface Props {
   data: ClientMetrics | null;
@@ -50,21 +45,21 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
       title={t('dashboard.analytics.clientAnalysis')}
       subtitle={t('dashboard.analytics.clientAnalysisDesc')}
     >
-      <Grid container spacing={1.5}>
+      <div className="grid grid-cols-12 gap-[9px]">
         {/* Source distribution donut */}
-        <Grid item xs={12} sm={6}>
-          <Card sx={CHART_CARD_SX}>
-            <CardContent sx={CHART_CONTENT_SX}>
-              <Typography sx={SECTION_LABEL_SX}>
+        <div className="col-span-12 min-[600px]:col-span-6">
+          <Card className={CHART_CARD_CLASS}>
+            <CardContent className={CHART_CONTENT_CLASS}>
+              <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.bookingsBySource')}
-              </Typography>
+              </p>
               {loading || !data ? (
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.disabled">...</Typography>
-                </Box>
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                </div>
               ) : (
-                <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                  <Box sx={{ flex: 1, minHeight: 0 }}>
+                <div className="flex-1 min-h-0 flex flex-col">
+                  <div className="flex-1 min-h-0">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -81,36 +76,36 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
                         <Tooltip contentStyle={TOOLTIP_STYLE} />
                       </PieChart>
                     </ResponsiveContainer>
-                  </Box>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 0.5 }}>
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-0.5">
                     {data.bySource.map((ch) => (
-                      <Box key={ch.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.375 }}>
-                        <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: ch.color, flexShrink: 0 }} />
-                        <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary' }}>
+                      <div className="flex items-center gap-0.5" key={ch.name}>
+                        <div className="w-[8px] h-[8px] rounded-[2px] shrink-0" style={{ backgroundColor: ch.color }} />
+                        <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground">
                           {ch.name} ({ch.value})
-                        </Typography>
-                      </Box>
+                        </p>
+                      </div>
                     ))}
-                  </Box>
-                </Box>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Top properties by popularity */}
-        <Grid item xs={12} sm={6}>
-          <Card sx={CHART_CARD_SX}>
-            <CardContent sx={CHART_CONTENT_SX}>
-              <Typography sx={SECTION_LABEL_SX}>
+        <div className="col-span-12 min-[600px]:col-span-6">
+          <Card className={CHART_CARD_CLASS}>
+            <CardContent className={CHART_CONTENT_CLASS}>
+              <p className={SECTION_LABEL_CLASS}>
                 {t('dashboard.analytics.topByPopularity')}
-              </Typography>
+              </p>
               {loading || !data ? (
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.disabled">...</Typography>
-                </Box>
+                <div className="flex-1 flex items-center justify-center">
+                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                </div>
               ) : (
-                <Box sx={{ flex: 1, minHeight: 0 }}>
+                <div className="flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.topProperties} layout="vertical" margin={{ top: 4, right: 6, left: 0, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} horizontal={false} />
@@ -120,22 +115,22 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
                       <Bar dataKey="bookings" name={t('dashboard.analytics.bookings')} fill="#7BA3C2" radius={[0, 3, 3, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
-                </Box>
+                </div>
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* KPI cards */}
-        <Grid item xs={6} sm={4}>
+        <div className="col-span-6 min-[600px]:col-span-4">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.avgStayDuration')}
             value={data ? `${data.avgStayDuration} ${t('dashboard.analytics.nights')}` : '-'}
             icon={<AccessTime color="info" />}
             loading={loading}
           />
-        </Grid>
-        <Grid item xs={6} sm={4}>
+        </div>
+        <div className="col-span-6 min-[600px]:col-span-4">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.avgGuestCount')}
             value={data ? `${data.avgGuestCount}` : '-'}
@@ -143,16 +138,16 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
             icon={<People color="primary" />}
             loading={loading}
           />
-        </Grid>
-        <Grid item xs={6} sm={4}>
+        </div>
+        <div className="col-span-6 min-[600px]:col-span-4">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.totalBookings')}
             value={data ? `${data.totalBookings}` : '-'}
             icon={<Luggage color="success" />}
             loading={loading}
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </GridSection>
   );
 });

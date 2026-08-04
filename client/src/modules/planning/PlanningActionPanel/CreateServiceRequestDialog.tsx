@@ -1,22 +1,20 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { cn } from '../../../utils/cn';
+import StatusChip from '../../../components/StatusChip';
+import { Alert as UiAlert, AlertTitle, AlertDescription, Button } from '../../../components/ui';
+import { TriangleAlert, CircleCheck, Info } from 'lucide-react';
+import { Spinner } from '../../../components/ui';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Box,
-  Typography,
-  IconButton,
-  Button,
-  InputBase,
-  CircularProgress,
-  Alert,
-  Link,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
   Stepper,
   Step,
   StepLabel,
-  Chip,
-} from '@mui/material';
+} from '../../../components/ui';
 import {
   Close,
   Send,
@@ -806,147 +804,113 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{ sx: { maxHeight: '85vh' } }}
-    >
-      {/* ── Title ── */}
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 2, pb: 1, pt: 2, px: 2.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Send size={20} strokeWidth={1.75} /></Box>
-          <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+    // `aria-describedby={undefined}` : la modale n'a pas de texte descriptif
+    // unique, on evite l'avertissement Radix plutot que d'en inventer un.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        aria-describedby={undefined}
+        className="sm:max-w-[900px] max-h-[85vh] flex flex-col gap-0 p-0 overflow-hidden"
+      >
+        {/* ── Title ── */}
+        <DialogHeader className="flex-row items-center gap-3 pb-1.5 pt-3 px-[15px]">
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="inline-flex text-[var(--accent)]"><Send size={20} strokeWidth={1.75} /></span>
+          <DialogTitle className="cn-text-h6 font-bold text-[1rem]">
             {isEditMode ? 'Modifier l\'intervention' : 'Nouvelle intervention'}
-          </Typography>
-        </Box>
-        {/* Stepper à droite, sur la même ligne que le titre */}
-        <Stepper
-          activeStep={activeStep}
-          sx={{
-            ml: 'auto',
-            flex: '0 1 480px',
-            minWidth: 0,
-            '& .MuiStepLabel-label': { fontSize: '0.72rem', fontWeight: 600, whiteSpace: 'nowrap' },
-            '& .MuiStep-root': { px: 0.5 },
-          }}
-        >
+          </DialogTitle>
+        </div>
+        {/* Stepper à droite, sur la même ligne que le titre. Le gabarit du
+            libelle (0.72rem / 600 / nowrap) est deja celui du primitif : seul
+            le placement a droite reste a exprimer. */}
+        <Stepper activeStep={activeStep} className="ms-auto min-w-0 grow-0 shrink basis-[480px]">
           {STEPS.map((label) => (
-            <Step key={label}>
+            <Step key={label} className="px-[3px]">
               <StepLabel>{label}</StepLabel>
             </Step>
           ))}
         </Stepper>
-        <IconButton size="small" onClick={onClose} sx={{ flexShrink: 0 }}>
+        <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Fermer" className="shrink-0">
           <Close size={18} strokeWidth={1.75} />
-        </IconButton>
-      </DialogTitle>
+        </Button>
+        </DialogHeader>
 
-      <DialogContent sx={{ px: 2.5, pt: 0, pb: 0 }}>
+        <div className="px-[15px] flex-1 min-h-0 overflow-y-auto">
         {/* ── Header: Property info + Title + Requestor ── */}
-        <Box sx={{ mb: 2, pb: 2, borderBottom: '1px solid var(--line)' }}>
+        <div className="mb-3 pb-3 border-b border-[var(--line)]">
           {/* Property name + address */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Home size={16} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink)' }}>
+          <div className="flex items-center gap-1 mb-1.5">
+            <span className="inline-flex text-[var(--accent)]"><Home size={16} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 text-[0.8125rem] font-semibold text-[var(--ink)]">
               {propertyName}
-            </Typography>
+            </p>
             {selectedProperty && (
-              <Typography sx={{ fontSize: '0.6875rem', color: 'var(--muted)' }}>
+              <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)]">
                 — {selectedProperty.address}, {selectedProperty.city}
-              </Typography>
+              </p>
             )}
-          </Box>
+          </div>
 
           {/* Title + Requestor row */}
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <div className="flex gap-2">
             {/* Title — aligné visuellement sur le bloc « Demandeur » (libellé
                 majuscule au-dessus + champ encadré). */}
-            <Box sx={{ flex: 7 }}>
-              <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5, ml: 0.25 }}>
+            <div className="flex-[7]">
+              <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] mb-0.5 ms-0.5">
                 Titre de la demande *
-              </Typography>
+              </p>
+              {/* La ref react-hook-form reste portee par l'enveloppe, comme le
+                  faisait le root de l'InputBase MUI : les primitifs du kit sont
+                  des fonctions et ne transmettent pas de ref (React 18). */}
               <Controller
                 name="title"
                 control={control}
-                render={({ field, fieldState }) => (
+                render={({ field: { ref: fieldRef, ...field }, fieldState }) => (
                   <>
-                    <Box sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 0.75,
-                      px: 1.25,
-                      py: 0.75,
-                      borderRadius: '11px',
-                      bgcolor: 'var(--field)',
-                      border: `1px solid ${fieldState.error ? 'var(--err)' : 'var(--field-line)'}`,
-                      minHeight: 40,
-                    }}>
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Send size={16} strokeWidth={1.75} /></Box>
-                      <InputBase
+                    <div ref={fieldRef} className="flex items-center gap-[4.5px] px-[7.5px] py-[4.5px] rounded-[11px] bg-[var(--field)] min-h-[40px]" style={{ border: `1px solid ${fieldState.error ? 'var(--err)' : 'var(--field-line)'}` }}>
+                      <span className="inline-flex text-[var(--accent)]"><Send size={16} strokeWidth={1.75} /></span>
+                      <Input
                         {...field}
-                        fullWidth
+                        value={field.value ?? ''}
                         placeholder="Ex: Détartrage ballon d'eau chaude"
-                        sx={{ fontSize: '0.8125rem', color: 'var(--ink)', '& input::placeholder': { color: 'var(--faint)', opacity: 1 } }}
+                        className="flex-1 h-auto border-0 bg-transparent px-0 py-0 text-[0.8125rem] text-[var(--ink)] placeholder:text-[var(--faint)] placeholder:opacity-100 focus-visible:ring-0"
                       />
-                    </Box>
+                    </div>
                     {fieldState.error && (
-                      <Typography sx={{ fontSize: '0.6875rem', color: 'var(--err)', mt: 0.25, ml: 0.25 }}>
+                      <p className="cn-text-body1 text-[0.6875rem] text-[var(--err)] mt-0.5 ms-0.5">
                         {fieldState.error.message}
-                      </Typography>
+                      </p>
                     )}
                   </>
                 )}
               />
-            </Box>
+            </div>
 
             {/* Demandeur — lecture seule, trace l'utilisateur connecté */}
-            <Box sx={{ flex: 5 }}>
-              <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.5, ml: 0.25 }}>
+            <div className="flex-[5]">
+              <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] mb-0.5 ms-0.5">
                 Demandeur
-              </Typography>
-              <Box sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.75,
-                px: 1.25,
-                py: 0.75,
-                borderRadius: '11px',
-                bgcolor: 'var(--field)',
-                border: '1px solid var(--field-line)',
-                minHeight: 40,
-              }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Person size={16} strokeWidth={1.75} /></Box>
-                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--ink)', flex: 1 }}>
+              </p>
+              <div className="flex items-center gap-1 px-2 py-1 rounded-[11px] bg-[var(--field)] border border-[var(--field-line)] min-h-[40px]">
+                <span className="inline-flex text-[var(--accent)]"><Person size={16} strokeWidth={1.75} /></span>
+                <p className="cn-text-body1 text-[0.8125rem] font-medium text-[var(--ink)] flex-1">
                   {currentUserLabel}
-                </Typography>
+                </p>
                 {currentUserRole && (
-                  <Chip
-                    label={currentUserRole}
-                    size="small"
-                    sx={{
-                      height: 20,
-                      fontSize: '10.5px',
-                      fontWeight: 700,
-                      bgcolor: isAdmin() ? 'var(--err-soft)' : isManager() ? 'var(--warn-soft)' : 'var(--accent-soft)',
-                      color: isAdmin() ? 'var(--err)' : isManager() ? 'var(--warn)' : 'var(--accent)',
-                      '& .MuiChip-label': { px: 0.75 },
-                    }}
-                  />
+                  <StatusChip tokens={{ color: isAdmin() ? 'var(--err)' : isManager() ? 'var(--warn)' : 'var(--accent)', bg: isAdmin() ? 'var(--err-soft)' : isManager() ? 'var(--warn-soft)' : 'var(--accent-soft)' }} label={currentUserRole} className="h-[20px] text-[10.5px]" />
                 )}
-              </Box>
-            </Box>
-          </Box>
-        </Box>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* ── Step Content ── */}
         {loadingData ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress size={28} />
-          </Box>
+          <div className="flex justify-center py-6">
+            <Spinner className="size-7" />
+          </div>
         ) : (
-          <Box sx={{ minHeight: 250 }}>
+          <div className="min-h-[250px]">
             {/* Step 1: Service */}
             {activeStep === 0 && (
               <ServiceRequestFormInfo
@@ -968,34 +932,40 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
             {/* Step 2: Chiffrage */}
             {activeStep === 1 && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <div className="flex flex-col gap-2">
                     {/* Chiffrage ménage : estimation forfait (durée + prix), en colonne */}
                     {selectedProperty && isCleaningCategory && (
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, px: 1.5, py: 1.25, borderRadius: '10px', border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)', bgcolor: 'var(--accent-soft)' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Timer size={18} strokeWidth={1.75} /></Box>
-                          <Box>
-                            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>Durée estimée</Typography>
-                            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 600, color: 'var(--accent)', lineHeight: 1.3, fontVariantNumeric: 'tabular-nums' }}>{formatDuration(estimatedDuration)}</Typography>
-                          </Box>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Euro size={18} strokeWidth={1.75} /></Box>
-                          <Box>
-                            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 }}>Prix estimé</Typography>
+                      <div className="flex flex-col gap-[9px] px-[9px] py-[7.5px] rounded-[10px] border border-solid border-[color-mix(in_srgb,_var(--accent)_30%,_transparent)] bg-[var(--accent-soft)]">
+                        <div className="flex items-center gap-1">
+                          <span className="inline-flex text-[var(--accent)]"><Timer size={18} strokeWidth={1.75} /></span>
+                          <div>
+                            <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] leading-[1]">Durée estimée</p>
+                            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.9375rem] font-semibold text-[var(--accent)] leading-[1.3] tabular-nums">{formatDuration(estimatedDuration)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="inline-flex text-[var(--accent)]"><Euro size={18} strokeWidth={1.75} /></span>
+                          <div>
+                            <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.05em] leading-[1]">Prix estimé</p>
                             {priceRange ? (
-                              <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 600, color: 'var(--accent)', lineHeight: 1.3, fontVariantNumeric: 'tabular-nums' }}>
+                              <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.9375rem] font-semibold text-[var(--accent)] leading-[1.3] tabular-nums">
                                 {priceRange.min === priceRange.max ? <Money value={priceRange.min} from="EUR" /> : `${convertAndFormat(priceRange.min, 'EUR')} – ${convertAndFormat(priceRange.max, 'EUR')}`}
-                              </Typography>
+                              </p>
                             ) : (
-                              <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--faint)', lineHeight: 1.3 }}>Non disponible</Typography>
+                              <p className="cn-text-body1 text-[0.75rem] font-medium text-[var(--faint)] leading-[1.3]">Non disponible</p>
                             )}
-                          </Box>
-                        </Box>
+                          </div>
+                        </div>
+                        {/* Fond `--card` et non `--accent-soft` : le panneau qui
+                            porte la puce est deja en accent-soft. */}
                         {selectedForfait && (
-                          <Chip label={selectedForfait.label} size="small" variant="outlined" sx={{ alignSelf: 'flex-start', height: 22, fontSize: '0.625rem', fontWeight: 600, color: 'var(--accent)', borderColor: 'var(--accent)', backgroundColor: 'var(--card)', '& .MuiChip-label': { px: 1 } }} />
+                          <StatusChip
+                            tokens={{ color: 'var(--accent)', bg: 'var(--card)' }}
+                            label={selectedForfait.label}
+                            className="self-start border border-solid border-[var(--accent)] text-[0.625rem]"
+                          />
                         )}
-                      </Box>
+                      </div>
                     )}
                     {/* Chiffrage maintenance : devis direct ou diagnostic préalable */}
                     {!isCleaningCategory && (
@@ -1006,7 +976,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                         onChange={handlePricingChange}
                       />
                     )}
-              </Box>
+              </div>
             )}
 
             {/* Step 3: Planning */}
@@ -1023,7 +993,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
             {/* Step 4: Assignment */}
             {activeStep === 3 && (
-              <Box>
+              <div>
                 <ServiceRequestFormAssignment
                   control={control}
                   errors={errors}
@@ -1041,167 +1011,154 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
                 {/* ── Conflict detection panel ────────────────────────────── */}
                 {conflictLoading && (watchedAssignedToType === 'team' || watchedAssignedToType === 'user') && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1.5, py: 0.75 }}>
-                    <CircularProgress size={14} />
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                  <div className="flex items-center gap-1.5 mt-2 py-1">
+                    <Spinner className="size-3.5" />
+                    <span className="cn-text-caption text-muted-foreground text-[0.75rem]">
                       {watchedAssignedToType === 'team'
                         ? "Vérification de la disponibilité de l'équipe..."
                         : "Vérification de la disponibilité de l'utilisateur..."}
-                    </Typography>
-                  </Box>
+                    </span>
+                  </div>
                 )}
 
                 {/* ── Team conflict ── */}
                 {!conflictLoading && hasConflict && conflictInfo && watchedAssignedToType === 'team' && (
-                  <Alert
-                    severity="error"
-                    icon={<WarningIcon size={20} strokeWidth={1.75} />}
-                    sx={{
-                      mt: 1.5,
-                      fontSize: '0.75rem',
-                      '& .MuiAlert-message': { fontSize: '0.75rem' },
-                    }}
-                  >
-                    <Typography sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 0.5 }}>
+                  <UiAlert variant="destructive" className="mt-[9px] text-[0.75rem]">
+                    <WarningIcon size={20} strokeWidth={1.75} />
+                    <AlertTitle className="font-bold text-[0.8125rem]">
                       Conflit de planification détecté
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.75rem', mb: 1 }}>
-                      L'équipe <strong>{conflictInfo.teamName}</strong> a déjà{' '}
-                      {conflictInfo.teamConflictCount > 0
-                        ? `${conflictInfo.teamConflictCount} intervention${conflictInfo.teamConflictCount > 1 ? 's' : ''} d'équipe`
-                        : 'des membres occupés'}{' '}
-                      sur ce créneau. Choisissez une autre équipe ou une autre date.
-                    </Typography>
-                    {conflictMembers.length > 0 && (
-                      <Box sx={{ mt: 0.5, pl: 0.5 }}>
-                        {conflictMembers.map((member) => (
-                          <Box key={member.userId} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.25 }}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: member.available ? 'var(--ok)' : 'var(--err)' }}><Person size={12} strokeWidth={1.75} /></Box>
-                            <Typography sx={{ fontSize: '0.6875rem' }}>
-                              {member.firstName} {member.lastName}
-                              {!member.available && (
-                                <Typography component="span" sx={{ fontSize: '0.6875rem', color: 'var(--err)', fontWeight: 600 }}>
-                                  {' '}— {member.conflictCount} conflit{member.conflictCount > 1 ? 's' : ''}
-                                </Typography>
-                              )}
-                            </Typography>
-                          </Box>
-                        ))}
-                      </Box>
-                    )}
-                  </Alert>
+                    </AlertTitle>
+                    <AlertDescription className="text-[0.75rem]">
+                      <p className="mb-1.5">
+                        L'équipe <strong>{conflictInfo.teamName}</strong> a déjà{' '}
+                        {conflictInfo.teamConflictCount > 0
+                          ? `${conflictInfo.teamConflictCount} intervention${conflictInfo.teamConflictCount > 1 ? 's' : ''} d'équipe`
+                          : 'des membres occupés'}{' '}
+                        sur ce créneau. Choisissez une autre équipe ou une autre date.
+                      </p>
+                      {conflictMembers.length > 0 && (
+                        <div className="mt-0.5 ps-0.5">
+                          {conflictMembers.map((member) => (
+                            <div className="flex items-center gap-1 py-0.5" key={member.userId}>
+                              <span className={cn('inline-flex', member.available ? 'text-[var(--ok)]' : 'text-[var(--err)]')}><Person size={12} strokeWidth={1.75} /></span>
+                              <p className="cn-text-body1 text-[0.6875rem]">
+                                {member.firstName} {member.lastName}
+                                {!member.available && (
+                                  <span className="text-[0.6875rem] text-[var(--err)] font-semibold">
+                                    {' '}— {member.conflictCount} conflit{member.conflictCount > 1 ? 's' : ''}
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </AlertDescription>
+                  </UiAlert>
                 )}
 
                 {!conflictLoading && !hasConflict && conflictInfo && watchedAssignedToType === 'team' && (
-                  <Alert
-                    severity="success"
-                    sx={{ mt: 1.5, fontSize: '0.6875rem', py: 0, '& .MuiAlert-message': { py: 0.5, fontSize: '0.6875rem' } }}
-                  >
-                    L'équipe <strong>{conflictInfo.teamName}</strong> est disponible sur ce créneau
-                  </Alert>
+                  <UiAlert variant="success" className="mt-[9px] text-[0.6875rem]">
+                    <CircleCheck />
+                    <AlertDescription className="text-[0.6875rem]">
+                      L'équipe <strong>{conflictInfo.teamName}</strong> est disponible sur ce créneau
+                    </AlertDescription>
+                  </UiAlert>
                 )}
 
                 {/* ── User conflict ── */}
                 {!conflictLoading && hasConflict && userConflictInfo && watchedAssignedToType === 'user' && (
-                  <Alert
-                    severity="error"
-                    icon={<WarningIcon size={20} strokeWidth={1.75} />}
-                    sx={{
-                      mt: 1.5,
-                      fontSize: '0.75rem',
-                      '& .MuiAlert-message': { fontSize: '0.75rem' },
-                    }}
-                  >
-                    <Typography sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 0.5 }}>
+                  <UiAlert variant="destructive" className="mt-[9px] text-[0.75rem]">
+                    <WarningIcon size={20} strokeWidth={1.75} />
+                    <AlertTitle className="font-bold text-[0.8125rem]">
                       Conflit de planification détecté
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.75rem' }}>
+                    </AlertTitle>
+                    <AlertDescription className="text-[0.75rem]">
                       <strong>{userConflictInfo.firstName} {userConflictInfo.lastName}</strong> a déjà{' '}
                       {userConflictInfo.conflictCount} intervention{userConflictInfo.conflictCount > 1 ? 's' : ''}{' '}
                       sur ce créneau. Choisissez un autre intervenant ou une autre date.
-                    </Typography>
-                  </Alert>
+                    </AlertDescription>
+                  </UiAlert>
                 )}
 
                 {!conflictLoading && !hasConflict && userConflictInfo && watchedAssignedToType === 'user' && (
-                  <Alert
-                    severity="success"
-                    sx={{ mt: 1.5, fontSize: '0.6875rem', py: 0, '& .MuiAlert-message': { py: 0.5, fontSize: '0.6875rem' } }}
-                  >
-                    <strong>{userConflictInfo.firstName} {userConflictInfo.lastName}</strong> est disponible sur ce créneau
-                  </Alert>
+                  <UiAlert variant="success" className="mt-[9px] text-[0.6875rem]">
+                    <CircleCheck />
+                    <AlertDescription className="text-[0.6875rem]">
+                      <strong>{userConflictInfo.firstName} {userConflictInfo.lastName}</strong> est disponible sur ce créneau
+                    </AlertDescription>
+                  </UiAlert>
                 )}
 
                 {/* Workflow info */}
-                <Alert severity="info" sx={{ fontSize: '0.6875rem', mt: 2, '& .MuiAlert-message': { fontSize: '0.6875rem' } }}>
-                  La demande sera soumise au workflow : validation → assignation → paiement → intervention planifiée.
-                </Alert>
-              </Box>
+                <UiAlert variant="info" className="mt-3 text-[0.6875rem]">
+                  <Info size={16} strokeWidth={1.75} />
+                  <AlertDescription className="text-[0.6875rem]">
+                    La demande sera soumise au workflow : validation → assignation → paiement → intervention planifiée.
+                  </AlertDescription>
+                </UiAlert>
+              </div>
             )}
-          </Box>
+          </div>
         )}
 
         {/* Error / Success */}
         {error && (
-          <Alert severity="error" sx={{ fontSize: '0.75rem', mt: 1.5 }}>
-            {error}
-          </Alert>
+          <UiAlert variant="destructive" className="text-[0.75rem] mt-2">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+          </UiAlert>
         )}
 
         {createdId && (
-          <Alert severity="success" sx={{ fontSize: '0.75rem', mt: 1.5 }}>
-            Demande créée.{' '}
-            <Link component="button" onClick={() => navigate(`/service-requests/${createdId}`)} sx={{ fontSize: '0.75rem' }}>
+          <UiAlert variant="success" className="text-[0.75rem] mt-2">
+            <CircleCheck />
+            <AlertDescription>Demande créée.{' '}<button
+              type="button"
+              onClick={() => navigate(`/service-requests/${createdId}`)}
+              className="text-[0.75rem] underline underline-offset-2 cursor-pointer bg-transparent border-0 p-0 text-inherit"
+            >
               Voir la demande
-            </Link>
-          </Alert>
+            </button></AlertDescription>
+          </UiAlert>
         )}
-      </DialogContent>
+        </div>
 
-      {/* ── Actions ── */}
-      <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5, justifyContent: 'space-between' }}>
-        <Button onClick={onClose} size="small" sx={{ fontSize: '0.75rem', textTransform: 'none' }}>
+        {/* ── Actions ── */}
+        <DialogFooter className="flex-row justify-between sm:justify-between mx-0 mb-0 px-[15px] pb-3 pt-[9px] bg-transparent">
+        <Button variant="ghost" size="sm" onClick={onClose}>
           Annuler
         </Button>
 
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <div className="flex gap-1.5">
           {activeStep > 0 && (
-            <Button
-              onClick={handleBack}
-              size="small"
-              startIcon={<ArrowBack size={14} strokeWidth={1.75} />}
-              sx={{ fontSize: '0.75rem', textTransform: 'none' }}
-            >
+            <Button variant="ghost" size="sm" onClick={handleBack}>
+              <ArrowBack size={14} strokeWidth={1.75} />
               Retour
             </Button>
           )}
 
           {activeStep < STEPS.length - 1 ? (
-            <Button
-              onClick={handleNext}
-              variant="contained"
-              size="small"
-              disabled={!canGoNext()}
-              endIcon={<ArrowForward size={14} strokeWidth={1.75} />}
-              sx={{ fontSize: '0.75rem', textTransform: 'none' }}
-            >
+            <Button size="sm" onClick={handleNext} disabled={!canGoNext()}>
               Suivant
+              <ArrowForward size={14} strokeWidth={1.75} />
             </Button>
           ) : (
+            // Le bouton bascule en `destructive` quand un conflit bloque l'envoi :
+            // c'est le report du `color="error"` d'origine.
             <Button
+              variant={hasConflict ? 'destructive' : 'default'}
+              size="sm"
               onClick={handleConfirm}
-              variant="contained"
-              size="small"
               disabled={saving || hasConflict || conflictLoading || loadingEdit}
-              startIcon={saving ? <CircularProgress size={14} /> : hasConflict ? <WarningIcon size={16} strokeWidth={1.75} /> : <Send size={16} strokeWidth={1.75} />}
-              color={hasConflict ? 'error' : 'primary'}
-              sx={{ fontSize: '0.75rem', textTransform: 'none' }}
             >
+              {saving ? <Spinner className="size-3.5" /> : hasConflict ? <WarningIcon size={16} strokeWidth={1.75} /> : <Send size={16} strokeWidth={1.75} />}
               {hasConflict ? 'Conflit détecté' : isEditMode ? 'Enregistrer' : 'Créer la demande'}
             </Button>
           )}
-        </Box>
-      </DialogActions>
+        </div>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 };

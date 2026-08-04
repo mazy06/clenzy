@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import StatusChip from '../../components/StatusChip';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner, Button } from '../../components/ui';
 import {
-  Box,
-  Typography,
-  Button,
-  Alert,
-  Autocomplete,
-  TextField,
-  Chip,
-  CircularProgress,
-  Grid,
-} from '@mui/material';
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  Field,
+  FieldDescription,
+  FieldLabel,
+} from '../../components/ui';
 import {
   Business,
   PersonAdd,
@@ -106,25 +110,19 @@ export default function OrganizationSection({ organizationId }: Props) {
   if (!orgsLoading && organizations.length === 0 && !orgsError) {
     return (
       <SettingsSection title="Organisations" icon={Business} accent="primary">
-        <Alert
-          severity="info"
-          icon={<InfoOutlined size={16} strokeWidth={1.75} />}
-          sx={{ borderRadius: '8px' }}
-        >
-          Aucune organisation n'existe dans le systeme pour le moment.
+        <Alert variant="info">
+          <InfoOutlined size={16} strokeWidth={1.75} />
+          <AlertDescription>
+            Aucune organisation n'existe dans le systeme pour le moment.
+          </AlertDescription>
         </Alert>
       </SettingsSection>
     );
   }
 
   const inviteAction = effectiveOrgId ? (
-    <Button
-      variant="contained"
-      size="small"
-      startIcon={<PersonAdd size={14} strokeWidth={2} />}
-      onClick={() => setDialogOpen(true)}
-      sx={{ '& .MuiButton-startIcon': { mr: 0.75 } }}
-    >
+    <Button size="sm" onClick={() => setDialogOpen(true)}>
+      <PersonAdd size={14} strokeWidth={2} />
       Inviter
     </Button>
   ) : undefined;
@@ -143,9 +141,9 @@ export default function OrganizationSection({ organizationId }: Props) {
 
       {subTab === 0 && (
       <>
-      <Grid container spacing={2}>
+      <div className="grid grid-cols-12 gap-3">
         {/* ─── Colonne gauche : Organisation ─────────────────────────── */}
-        <Grid item xs={12} md={5}>
+        <div className="col-span-12 min-[900px]:col-span-5">
           <SettingsSection
             title="Organisations"
             icon={Business}
@@ -153,88 +151,66 @@ export default function OrganizationSection({ organizationId }: Props) {
             action={inviteAction}
           >
             {orgsError && (
-              <Alert severity="error" sx={{ mb: 1.5, borderRadius: '8px' }}>
-                {orgsError}
+              <Alert variant="destructive" className="mb-2">
+                <TriangleAlert />
+                <AlertDescription>{orgsError}</AlertDescription>
               </Alert>
             )}
 
-            <Autocomplete
-              size="small"
-              options={organizations}
-              value={selectedOrg}
-              loading={orgsLoading}
-              onChange={(_event, newValue) => {
-                setSelectedOrg(newValue);
-                setRefreshTrigger(0);
-              }}
-              getOptionLabel={(option) => option.name}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-              renderOption={(props, option) => {
-                const { key, ...optionProps } = props;
-                const c = getOrgTypeColor(option.type);
-                return (
-                  <li key={key} {...optionProps}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                      <Typography sx={{ fontWeight: 500, flex: 1, fontSize: '0.85rem' }}>
-                        {option.name}
-                      </Typography>
-                      <Chip
-                        label={getOrgTypeLabel(option.type)}
-                        size="small"
-                        sx={{
-                          height: 20,
-                          fontSize: '0.65rem',
-                          backgroundColor: `${c}18`,
-                          color: c,
-                          '& .MuiChip-label': { px: 0.75 },
-                        }}
-                      />
-                      <Typography
-                        sx={{
-                          fontSize: '0.7rem',
-                          color: 'text.secondary',
-                          fontVariantNumeric: 'tabular-nums',
-                        }}
-                      >
-                        {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
-                      </Typography>
-                    </Box>
-                  </li>
-                );
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Sélectionner une organisation"
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {orgsLoading ? <CircularProgress color="inherit" size={16} /> : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
-                  }}
+            <Field className="mb-3">
+              <FieldLabel htmlFor="organization-picker">Sélectionner une organisation</FieldLabel>
+              <Combobox
+                items={organizations}
+                value={selectedOrg}
+                onValueChange={(next) => {
+                  setSelectedOrg(next);
+                  setRefreshTrigger(0);
+                }}
+                itemToStringLabel={(option: OrganizationDto) => option.name}
+                isItemEqualToValue={(option: OrganizationDto, value: OrganizationDto) => option.id === value.id}
+              >
+                <ComboboxInput
+                  id="organization-picker"
+                  placeholder="Sélectionner une organisation"
+                  disabled={orgsLoading}
                 />
+                <ComboboxContent>
+                  <ComboboxEmpty>Aucune organisation</ComboboxEmpty>
+                  <ComboboxList>
+                    {(option: OrganizationDto) => {
+                      const c = getOrgTypeColor(option.type);
+                      return (
+                        <ComboboxItem key={option.id} value={option}>
+                          <div className="flex items-center gap-1.5 w-full">
+                            <p className="cn-text-body1 font-medium flex-1 text-[0.85rem]">
+                              {option.name}
+                            </p>
+                            <StatusChip tokens={{ color: c, bg: `${c}18` }} label={getOrgTypeLabel(option.type)} className="h-[20px] text-[0.65rem]" />
+                            <p className="cn-text-body1 text-[0.7rem] text-muted-foreground tabular-nums">
+                              {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                        </ComboboxItem>
+                      );
+                    }}
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
+              {/* L'attente ne tient plus dans un adornment du champ (le kit n'en
+                  expose pas) : elle se dit sous le champ, en texte d'aide. */}
+              {orgsLoading && (
+                <FieldDescription className="flex items-center gap-1.5">
+                  <Spinner className="size-3.5" />
+                  Chargement des organisations…
+                </FieldDescription>
               )}
-              sx={{ mb: 2 }}
-              noOptionsText="Aucune organisation"
-            />
+            </Field>
 
             {effectiveOrgId ? (
               <>
-                <Typography
-                  sx={{
-                    fontSize: '10.5px',
-                    fontWeight: 700,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    color: 'var(--faint)',
-                    mb: 1,
-                  }}
-                >
+                <p className="cn-text-body1 text-[10.5px] font-bold tracking-[0.08em] uppercase text-[var(--faint)] mb-1.5">
                   Membres de l'organisation
-                </Typography>
+                </p>
 
                 <MembersList
                   organizationId={effectiveOrgId}
@@ -243,20 +219,19 @@ export default function OrganizationSection({ organizationId }: Props) {
                 />
               </>
             ) : (
-              <Alert
-                severity="info"
-                icon={<InfoOutlined size={16} strokeWidth={1.75} />}
-                sx={{ borderRadius: '8px' }}
-              >
-                Sélectionnez une organisation pour voir ses membres et invitations.
+              <Alert variant="info">
+                <InfoOutlined size={16} strokeWidth={1.75} />
+                <AlertDescription>
+                  Sélectionnez une organisation pour voir ses membres et invitations.
+                </AlertDescription>
               </Alert>
             )}
           </SettingsSection>
-        </Grid>
+        </div>
 
         {/* ─── Colonne droite : Facturation + Invitations ─────────── */}
-        <Grid item xs={12} md={7}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="col-span-12 min-[900px]:col-span-7">
+          <div className="flex flex-col gap-3">
             {effectiveOrgId ? (
               <BillingSummaryCard
                 organizationId={effectiveOrgId}
@@ -264,9 +239,9 @@ export default function OrganizationSection({ organizationId }: Props) {
               />
             ) : (
               <SettingsSection title="Facturation" icon={Business} accent="accent">
-                <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary', textAlign: 'center', py: 2 }}>
+                <p className="cn-text-body1 text-[0.78rem] text-muted-foreground text-center py-3">
                   Sélectionnez une organisation pour voir la facturation.
-                </Typography>
+                </p>
               </SettingsSection>
             )}
 
@@ -278,9 +253,9 @@ export default function OrganizationSection({ organizationId }: Props) {
                 />
               </SettingsSection>
             )}
-          </Box>
-        </Grid>
-      </Grid>
+          </div>
+        </div>
+      </div>
       </>
       )}
 

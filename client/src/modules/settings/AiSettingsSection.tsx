@@ -1,26 +1,30 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import { useTabValueParam } from '../../components/tabKeyParam';
+import { Button, Card } from '../../components/ui';
 import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  TextField,
-  Grid,
-  Chip,
-  Alert,
-  Autocomplete,
-  CircularProgress,
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  IconButton,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupInput,
+  InputGroupAddon,
+  InputGroupButton,
+  Separator,
   Switch,
-  Divider,
-  useTheme,
-  alpha,
-} from '@mui/material';
+} from '../../components/ui';
+import { useThemeMode } from '../../hooks/useThemeMode';
 import {
   CheckCircle,
   Error as ErrorIcon,
@@ -90,8 +94,9 @@ const PROVIDERS: Record<string, ProviderBrand> = {
 // ─── SVG Logo Icons ─────────────────────────────────────────────────────────
 
 function OpenAILogo({ size = 28, color }: { size?: number; color?: string }) {
-  const theme = useTheme();
-  const fill = color ?? theme.palette.text.primary;
+  // `text.primary` etait un jeton MUI, pas une valeur CSS : sur un <svg> nu il
+  // ne donnait aucune couleur valide.
+  const fill = color ?? 'var(--ink)';
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill={fill} xmlns="http://www.w3.org/2000/svg">
       <path d="M14.949 6.547a3.94 3.94 0 0 0-.348-3.273 4.11 4.11 0 0 0-4.4-1.934A4.1 4.1 0 0 0 8.423.2 4.15 4.15 0 0 0 6.305.086a4.1 4.1 0 0 0-1.891.948 4.04 4.04 0 0 0-1.158 1.753 4.1 4.1 0 0 0-1.563.679A4 4 0 0 0 .554 4.72a3.99 3.99 0 0 0 .502 4.731 3.94 3.94 0 0 0 .346 3.274 4.11 4.11 0 0 0 4.402 1.933c.382.425.852.764 1.377.995.526.231 1.095.35 1.67.346 1.78.002 3.358-1.132 3.901-2.804a4.1 4.1 0 0 0 1.563-.68 4 4 0 0 0 1.14-1.253 3.99 3.99 0 0 0-.506-4.716m-6.097 8.406a3.05 3.05 0 0 1-1.945-.694l.096-.054 3.23-1.838a.53.53 0 0 0 .265-.455v-4.49l1.366.778q.02.011.025.035v3.722c-.003 1.653-1.361 2.992-3.037 2.996m-6.53-2.75a2.95 2.95 0 0 1-.36-2.01l.095.057L5.29 12.09a.53.53 0 0 0 .527 0l3.949-2.246v1.555a.05.05 0 0 1-.022.041L6.473 13.3c-1.454.826-3.311.335-4.15-1.098m-.85-6.94A3.02 3.02 0 0 1 3.07 3.949v3.785a.51.51 0 0 0 .262.451l3.93 2.237-1.366.779a.05.05 0 0 1-.048 0L2.585 9.342a2.98 2.98 0 0 1-1.113-4.094zm11.216 2.571L8.747 5.576l1.362-.776a.05.05 0 0 1 .048 0l3.265 1.86a3 3 0 0 1 1.173 1.207 2.96 2.96 0 0 1-.27 3.2 3.05 3.05 0 0 1-1.36.997V8.279a.52.52 0 0 0-.276-.445m1.36-2.015-.097-.057-3.226-1.855a.53.53 0 0 0-.53 0L6.249 6.153V4.598a.04.04 0 0 1 .019-.04L9.533 2.7a3.07 3.07 0 0 1 3.257.139c.474.325.843.778 1.066 1.303.223.526.289 1.103.191 1.664zM5.503 8.575 4.139 7.8a.05.05 0 0 1-.026-.037V4.049c0-.57.166-1.127.476-1.607s.752-.864 1.275-1.105a3.08 3.08 0 0 1 3.234.41l-.096.054-3.23 1.838a.53.53 0 0 0-.265.455zm.742-1.577 1.758-1 1.762 1v2l-1.755 1-1.762-1z" />
@@ -120,128 +125,84 @@ interface ProviderCardProps {
 
 function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnecting }: ProviderCardProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const { isDark } = useThemeMode();
   const isOrgKey = status.source === 'ORGANIZATION' && status.configured;
   const accent = isDark ? brand.accentDark : brand.accent; // couleur de MARQUE : réservée au logo
-  const ok = theme.palette.success.main;
+  const ok = 'var(--ok)';
+  const err = 'var(--err)';
 
   const Logo = brand.id === 'openai' ? OpenAILogo : ClaudeLogo;
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        height: '100%',
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 2,
-        transition: 'border-color 0.2s ease',
-        '&:hover': { borderColor: alpha(theme.palette.primary.main, 0.45) },
-      }}
-    >
-      <Box sx={{ p: 1.75 }}>
+    <Card className="h-full gap-0 py-0 transition-colors duration-200 hover:border-primary/45">
+      <div className="p-2.5">
         {/* ── Header: logo (couleur de marque) + nom/modèle + badge clé ── */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 34,
-                height: 34,
-                borderRadius: 1.25,
-                bgcolor: alpha(accent, isDark ? 0.16 : 0.1),
-                flexShrink: 0,
-              }}
+        <div className="flex items-center justify-between gap-1.5 mb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div
+              className="flex items-center justify-center w-[34px] h-[34px] rounded-[10px] shrink-0"
+              style={{ backgroundColor: `color-mix(in srgb, ${accent} ${isDark ? 16 : 10}%, transparent)` }}
             >
               <Logo size={18} color={accent} />
-            </Box>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle2" fontWeight={700} lineHeight={1.2} noWrap>
+            </div>
+            <div className="min-w-0">
+              <h6 className="cn-text-subtitle2 font-bold leading-[1.2] truncate">
                 {brand.label}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" fontSize="0.72rem" noWrap display="block">
+              </h6>
+              <span className="cn-text-caption text-[var(--muted)] text-[0.72rem] truncate block">
                 {/* Modèle EFFECTIF (choisi en live), repli sur le défaut — plus figé dans le code. */}
                 {status.modelOverride || brand.model}
-              </Typography>
-            </Box>
-          </Box>
+              </span>
+            </div>
+          </div>
 
-          <Chip
-            size="small"
-            label={isOrgKey ? t('bookingEngine.ai.settings.personalKey') : t('bookingEngine.ai.settings.sharedKey')}
-            sx={{
-              flexShrink: 0,
-              fontWeight: 600,
-              fontSize: '0.68rem',
-              height: 22,
-              bgcolor: 'action.hover',
-              color: 'text.secondary',
-            }}
-          />
-        </Box>
+          {/* `text.secondary` / `action.hover` etaient des jetons MUI : hors d'un
+              composant MUI ce ne sont pas des valeurs CSS (declaration ignoree). */}
+          <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--hover)' }} label={isOrgKey ? t('bookingEngine.ai.settings.personalKey') : t('bookingEngine.ai.settings.sharedKey')} className="shrink-0 text-[0.68rem]" />
+        </div>
 
         {/* ── Clé masquée + état (clé perso uniquement) — une seule ligne compacte ── */}
         {isOrgKey && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, minWidth: 0 }}>
-            <Typography
-              variant="caption"
-              fontFamily="monospace"
-              color="text.primary"
+          <div className="flex items-center gap-1.5 mb-2 min-w-0">
+            <span
               title={status.maskedApiKey ?? undefined}
-              sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.72rem' }}
+              className="cn-text-caption font-mono text-[var(--ink)] text-[0.72rem] flex-1 min-w-0 truncate"
             >
               {status.maskedApiKey}
-            </Typography>
-            <Chip
-              size="small"
-              icon={status.valid ? <CheckCircle size={13} strokeWidth={2} /> : <ErrorIcon size={13} strokeWidth={2} />}
-              label={status.valid
+            </span>
+            <StatusChip tokens={{ color: status.valid ? ok : err, bg: `color-mix(in srgb, ${status.valid ? ok : err} ${isDark ? 18 : 10}%, transparent)` }} label={status.valid
                 ? t('bookingEngine.ai.settings.validated')
-                : t('bookingEngine.ai.settings.notValidated')}
-              sx={{
-                flexShrink: 0,
-                height: 22,
-                fontSize: '0.66rem',
-                fontWeight: 600,
-                bgcolor: alpha(status.valid ? ok : theme.palette.error.main, isDark ? 0.18 : 0.1),
-                color: status.valid ? ok : theme.palette.error.main,
-                '& .MuiChip-icon': { color: status.valid ? ok : theme.palette.error.main },
-              }}
-            />
-          </Box>
+                : t('bookingEngine.ai.settings.notValidated')} icon={status.valid ? <CheckCircle size={13} strokeWidth={2} /> : <ErrorIcon size={13} strokeWidth={2} />} className="shrink-0 text-[0.66rem]" />
+          </div>
         )}
 
         {/* ── Actions : couleurs cohérentes (primary action, error déconnexion) ── */}
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <div className="flex gap-1.5">
+          {/* Cle deja posee -> « Modifier » redevient une action secondaire, la
+              carte n'a plus d'action principale a pousser. Branches litterales :
+              une classe Tailwind ne peut pas naitre d'une expression. */}
           <Button
-            variant={isOrgKey ? 'outlined' : 'contained'}
-            size="small"
-            color="primary"
-            disableElevation
+            variant={isOrgKey ? 'outline' : 'default'}
+            size="sm"
             onClick={onConfigure}
-            sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5, flex: isOrgKey ? '0 0 auto' : 1 }}
+            className={isOrgKey ? 'shrink-0' : 'flex-1'}
           >
             {isOrgKey ? t('bookingEngine.ai.settings.modify') : t('bookingEngine.ai.settings.connect')}
           </Button>
           {isOrgKey && (
             <Button
-              variant="outlined"
-              size="small"
-              color="error"
-              startIcon={isDisconnecting ? <CircularProgress size={14} color="inherit" /> : <LinkOff size={15} strokeWidth={1.75} />}
+              variant="destructive"
+              size="sm"
               onClick={onDisconnect}
               disabled={isDisconnecting}
-              sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1.5 }}
             >
+              {isDisconnecting ? <Spinner className="size-3.5" /> : <LinkOff size={15} strokeWidth={1.75} />}
               {t('bookingEngine.ai.settings.disconnect')}
             </Button>
           )}
-        </Box>
-      </Box>
-    </Paper>
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -255,8 +216,7 @@ interface ConfigureDialogProps {
 
 function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const { isDark } = useThemeMode();
   const [apiKey, setApiKey] = useState('');
   const [modelOverride, setModelOverride] = useState('');
   const [showKey, setShowKey] = useState(false);
@@ -286,8 +246,9 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
   };
 
   const brand = provider ? PROVIDERS[provider] : null;
-  const accent = brand ? (isDark ? brand.accentDark : brand.accent) : theme.palette.primary.main;
+  const accent = brand ? (isDark ? brand.accentDark : brand.accent) : 'var(--mui-primary)';
   const Logo = provider === 'openai' ? OpenAILogo : ClaudeLogo;
+  const modelIds = useMemo(() => models.map((m) => m.id), [models]);
 
   const handleClose = () => {
     setApiKey('');
@@ -315,173 +276,170 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 36,
-            height: 36,
-            borderRadius: 1.5,
-            bgcolor: alpha(accent, isDark ? 0.12 : 0.08),
-          }}
-        >
-          <Logo size={20} color={accent} />
-        </Box>
-        <Typography variant="h6" fontWeight={700} fontSize="1.05rem">
-          {t('bookingEngine.ai.settings.configureProvider', { provider: brand?.label ?? '' })}
-        </Typography>
-      </DialogTitle>
+    <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader className="flex-row items-center gap-1.5 pb-1">
+          <div
+            className="flex items-center justify-center w-[36px] h-[36px] rounded-[12px] shrink-0"
+            style={{ backgroundColor: `color-mix(in srgb, ${accent} ${isDark ? 12 : 8}%, transparent)` }}
+          >
+            <Logo size={20} color={accent} />
+          </div>
+          <DialogTitle className="font-bold text-[1.05rem]">
+            {t('bookingEngine.ai.settings.configureProvider', { provider: brand?.label ?? '' })}
+          </DialogTitle>
+        </DialogHeader>
 
-      <DialogContent>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-          <TextField
-            label={t('bookingEngine.ai.settings.apiKeyLabel')}
-            type={showKey ? 'text' : 'password'}
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            fullWidth
-            required
-            placeholder={brand?.placeholder}
-            InputProps={{
-              endAdornment: (
-                <IconButton onClick={() => setShowKey(!showKey)} edge="end" size="small">
-                  {showKey ? <VisibilityOff /> : <Visibility />}
-                </IconButton>
-              ),
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: accent,
-              },
-              '& .MuiInputLabel-root.Mui-focused': { color: accent },
-            }}
-          />
-
-          <Autocomplete
-            freeSolo
-            options={models.map((m) => m.id)}
-            value={modelOverride}
-            inputValue={modelOverride}
-            onInputChange={(_, v) => setModelOverride(v)}
-            loading={loadingModels}
-            fullWidth
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label={t('bookingEngine.ai.settings.modelOverrideLabel')}
-                placeholder={brand?.modelPlaceholder}
-                error={Boolean(catalogError)}
-                helperText={
-                  catalogError ||
-                  (models.length > 0
-                    ? t('bookingEngine.ai.settings.modelCatalogLoaded', {
-                        count: models.length,
-                        defaultValue: '{{count}} modèles disponibles — choisis-en un.',
-                      })
-                    : t('bookingEngine.ai.settings.modelOverrideHelper'))
-                }
-                sx={{
-                  '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: accent,
-                  },
-                  '& .MuiInputLabel-root.Mui-focused': { color: accent },
-                }}
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <>
-                      <Button
-                        onClick={loadModels}
-                        disabled={!apiKey.trim() || loadingModels}
-                        size="small"
-                        sx={{ textTransform: 'none', whiteSpace: 'nowrap', minWidth: 0, color: accent }}
-                      >
-                        {loadingModels ? (
-                          <CircularProgress size={16} />
-                        ) : (
-                          t('bookingEngine.ai.settings.loadModels', 'Charger les modèles')
-                        )}
-                      </Button>
-                      {params.InputProps.endAdornment}
-                    </>
-                  ),
-                }}
+        <div className="flex flex-col gap-3 mt-1.5">
+          {/* La teinte de marque au focus disparait : le kit porte son propre
+              anneau, un accent inline ne s'y greffe pas. */}
+          <Field>
+            <FieldLabel htmlFor="ai-provider-api-key">{t('bookingEngine.ai.settings.apiKeyLabel')}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput
+                id="ai-provider-api-key"
+                type={showKey ? 'text' : 'password'}
+                required
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder={brand?.placeholder}
               />
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  size="icon-xs"
+                  aria-label={showKey
+                    ? t('bookingEngine.ai.settings.hideKey', 'Masquer la clé')
+                    : t('bookingEngine.ai.settings.showKey', 'Afficher la clé')}
+                  onClick={() => setShowKey(!showKey)}
+                >
+                  {showKey
+                    ? <VisibilityOff size={16} strokeWidth={1.75} />
+                    : <Visibility size={16} strokeWidth={1.75} />}
+                </InputGroupButton>
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
+
+          {/* Equivalent du freeSolo : saisie libre + completions issues du
+              catalogue. Le <datalist> natif est rendu par le navigateur, sans
+              portail — le Combobox du kit, lui, portalise sa liste sur
+              document.body, que le Dialog Radix rend inerte au pointeur et
+              traite comme une interaction exterieure (le dialog se fermerait). */}
+          <Field>
+            <FieldLabel htmlFor="ai-model-override">
+              {t('bookingEngine.ai.settings.modelOverrideLabel')}
+            </FieldLabel>
+            <div className="flex items-center gap-1.5">
+              <Input
+                id="ai-model-override"
+                className="flex-1"
+                list="ai-model-catalog"
+                value={modelOverride}
+                onChange={(e) => setModelOverride(e.target.value)}
+                placeholder={brand?.modelPlaceholder}
+                aria-invalid={catalogError ? true : undefined}
+              />
+              <datalist id="ai-model-catalog">
+                {modelIds.map((id) => (
+                  <option key={id} value={id} />
+                ))}
+              </datalist>
+              {/* `accent` est la couleur de marque du provider, calculee
+                  a l'execution : style inline, jamais une classe. */}
+              <Button
+                variant="ghost"
+                onClick={loadModels}
+                disabled={!apiKey.trim() || loadingModels}
+                size="sm"
+                className="min-w-0"
+                style={{ color: accent }}
+              >
+                {loadingModels ? (
+                  <Spinner className="size-4" />
+                ) : (
+                  t('bookingEngine.ai.settings.loadModels', 'Charger les modèles')
+                )}
+              </Button>
+            </div>
+            {catalogError ? (
+              <FieldError>{catalogError}</FieldError>
+            ) : (
+              <FieldDescription>
+                {models.length > 0
+                  ? t('bookingEngine.ai.settings.modelCatalogLoaded', {
+                      count: models.length,
+                      defaultValue: '{{count}} modèles disponibles — choisis-en un.',
+                    })
+                  : t('bookingEngine.ai.settings.modelOverrideHelper')}
+              </FieldDescription>
             )}
-          />
+          </Field>
 
           {testMutation.data && (
-            <Alert
-              severity={
+            <UiAlert
+              variant={
                 testMutation.data.success
                   ? 'success'
                   : testMutation.data.keyValid
                     ? 'warning'
-                    : 'error'
+                    : 'destructive'
               }
             >
-              {testMutation.data.message}
-            </Alert>
+              <AlertDescription>{testMutation.data.message}</AlertDescription>
+            </UiAlert>
           )}
 
           {saveMutation.isError && (
-            <Alert severity="error">
-              {t('bookingEngine.ai.settings.saveError')}
-            </Alert>
+            <UiAlert variant="destructive">
+              <TriangleAlert />
+              <AlertDescription>{t('bookingEngine.ai.settings.saveError')}</AlertDescription>
+            </UiAlert>
           )}
 
-          <Alert
-            severity="info"
-            variant="outlined"
-            sx={{
-              borderColor: alpha(accent, 0.3),
-              '& .MuiAlert-icon': { color: accent },
-            }}
+          {/* La bordure prend la teinte de MARQUE du provider : valeur calculee a
+              l'execution, donc style inline et jamais une classe. */}
+          <UiAlert
+            variant="info"
+            style={{ borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
           >
-            {t('bookingEngine.ai.settings.byokInfo', { provider: brand?.label ?? '' })}
-          </Alert>
-        </Box>
-      </DialogContent>
+            <AlertDescription>
+              {t('bookingEngine.ai.settings.byokInfo', { provider: brand?.label ?? '' })}
+            </AlertDescription>
+          </UiAlert>
+        </div>
 
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={handleClose} sx={{ textTransform: 'none', borderRadius: 1.5 }}>
-          {t('bookingEngine.ai.settings.cancel')}
-        </Button>
-        <Button
-          onClick={handleTest}
-          startIcon={testMutation.isPending ? <CircularProgress size={16} /> : <Science />}
-          disabled={!apiKey.trim() || testMutation.isPending}
-          sx={{
-            textTransform: 'none',
-            borderRadius: 1.5,
-            color: accent,
-          }}
-        >
-          {t('bookingEngine.ai.settings.test')}
-        </Button>
-        <Button
-          onClick={handleSave}
-          variant="contained"
-          startIcon={saveMutation.isPending ? <CircularProgress size={16} color="inherit" /> : undefined}
-          disabled={!apiKey.trim() || saveMutation.isPending}
-          sx={{
-            textTransform: 'none',
-            borderRadius: 1.5,
-            bgcolor: accent,
-            '&:hover': { bgcolor: alpha(accent, 0.85) },
-          }}
-        >
-          {t('bookingEngine.ai.settings.save')}
-        </Button>
-      </DialogActions>
+        <DialogFooter>
+          <Button variant="ghost" onClick={handleClose}>
+            {t('bookingEngine.ai.settings.cancel')}
+          </Button>
+          {/* « Tester » reste tertiaire : c'est « Enregistrer » qu'on veut voir
+              cliquer. Teinte de marque du provider -> style inline (valeur
+              calculee a l'execution). */}
+          <Button
+            variant="ghost"
+            onClick={handleTest}
+            disabled={!apiKey.trim() || testMutation.isPending}
+            style={{ color: accent }}
+          >
+            {testMutation.isPending ? <Spinner className="size-4" /> : <Science />}
+            {t('bookingEngine.ai.settings.test')}
+          </Button>
+          {/* Fond de marque + son survol : passes en variables CSS inline, les
+              deux valeurs n'existant qu'a l'execution. */}
+          <Button
+            onClick={handleSave}
+            disabled={!apiKey.trim() || saveMutation.isPending}
+            className="bg-[var(--provider-accent)] hover:bg-[var(--provider-accent-hover)]"
+            style={{
+              '--provider-accent': accent,
+              '--provider-accent-hover': `color-mix(in srgb, ${accent} 85%, transparent)`,
+            } as React.CSSProperties}
+          >
+            {saveMutation.isPending && <Spinner className="size-4" />}
+            {t('bookingEngine.ai.settings.save')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }
@@ -508,8 +466,7 @@ const AI_FEATURES: FeatureConfig[] = [
 
 function FeatureTogglesSection() {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const { isDark } = useThemeMode();
   const { hasAnyRole } = useAuth();
   const canEdit = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']);
   const { data: toggles, isLoading } = useAiFeatureToggles();
@@ -528,49 +485,25 @@ function FeatureTogglesSection() {
   const accentColor = 'var(--accent)';
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        mb: 3,
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 'var(--radius-lg)',
-        overflow: 'hidden',
-      }}
-    >
+    <Card className="mb-6 gap-0 overflow-hidden py-0">
       {/* ── Section header ── */}
-      <Box
-        sx={{
-          px: 2.5,
-          py: 2,
-          background: 'var(--surface-2)',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box
-            sx={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              bgcolor: accentColor,
-            }}
-          />
-          <Typography variant="subtitle1" fontWeight={700} sx={{ color: 'var(--ink)' }}>
+      <div className="px-[15px] py-3 bg-[var(--surface-2)] [border-bottom:1px_solid_var(--line)]">
+        <div className="flex items-center gap-1.5">
+          <div className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: accentColor }} />
+          <h6 className="cn-text-subtitle1 font-bold text-[var(--ink)]">
             {t('bookingEngine.ai.features.title')}
-          </Typography>
-        </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontSize: '0.8rem' }}>
+          </h6>
+        </div>
+        <p className="cn-text-body2 text-muted-foreground mt-0.5 text-[0.8rem]">
           {t('bookingEngine.ai.features.subtitle')}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       {/* ── Feature rows ── */}
       {isLoading ? (
-        <Box display="flex" justifyContent="center" py={3}>
-          <CircularProgress size={24} />
-        </Box>
+        <div className="flex justify-center py-[18px]">
+          <Spinner className="size-6" />
+        </div>
       ) : (
         AI_FEATURES.map((feat, index) => {
           const enabled = getEnabled(feat.feature);
@@ -578,74 +511,46 @@ function FeatureTogglesSection() {
 
           return (
             <React.Fragment key={feat.feature}>
-              {index > 0 && <Divider sx={{ mx: 2.5 }} />}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  px: 2.5,
-                  py: 1.5,
-                  transition: 'background-color 0.15s ease',
-                  '&:hover': { bgcolor: 'action.hover' },
-                }}
-              >
+              {index > 0 && <Separator className="w-auto mx-[15px]" />}
+              <div className="flex items-center px-[15px] py-[9px] transition-[background-color] duration-150 hover:bg-[var(--hover)]">
                 {/* Icon */}
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 36,
-                    height: 36,
-                    borderRadius: 1.5,
-                    bgcolor: alpha(feat.color, isDark ? 0.15 : 0.08),
+                <div
+                  className="flex items-center justify-center w-9 h-9 rounded-[12px] me-[9px] shrink-0"
+                  style={{
+                    backgroundColor: `color-mix(in srgb, ${feat.color} ${isDark ? 15 : 8}%, transparent)`,
                     color: feat.color,
-                    mr: 1.5,
-                    flexShrink: 0,
-                    '& .MuiSvgIcon-root': { fontSize: 20 },
                   }}
                 >
                   {feat.icon}
-                </Box>
+                </div>
 
                 {/* Name + description */}
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+                <div className="flex-1 min-w-0">
+                  <p className="cn-text-body2 font-semibold leading-[1.3]">
                     {t(`bookingEngine.ai.features.${feat.key}.name`)}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+                  </p>
+                  <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
                     {t(`bookingEngine.ai.features.${feat.key}.description`)}
-                  </Typography>
-                </Box>
+                  </span>
+                </div>
 
                 {/* Menu chip */}
-                <Chip
-                  size="small"
-                  label={t(`bookingEngine.ai.features.${feat.key}.menu`)}
-                  sx={{
-                    mx: 1.5,
-                    height: 22,
-                    fontSize: '0.65rem',
-                    fontWeight: 600,
-                    bgcolor: alpha(feat.color, isDark ? 0.1 : 0.06),
-                    color: isDark ? alpha(feat.color, 0.85) : feat.color,
-                    flexShrink: 0,
-                  }}
-                />
+                <StatusChip tokens={{ color: isDark ? `color-mix(in srgb, ${feat.color} 85%, transparent)` : feat.color, bg: `color-mix(in srgb, ${feat.color} ${isDark ? 10 : 6}%, transparent)` }} label={t(`bookingEngine.ai.features.${feat.key}.menu`)} className="mx-2 text-[0.65rem] shrink-0" />
 
                 {/* Toggle switch */}
                 <Switch
                   checked={enabled}
-                  onChange={() => handleToggle(feat.feature, enabled)}
+                  onCheckedChange={() => handleToggle(feat.feature, enabled)}
                   disabled={isMutating || !canEdit}
-                  size="small"
+                  size="sm"
+                  aria-label={t(`bookingEngine.ai.features.${feat.key}.name`)}
                 />
-              </Box>
+              </div>
             </React.Fragment>
           );
         })
       )}
-    </Paper>
+    </Card>
   );
 }
 
@@ -686,17 +591,18 @@ export default function AiSettingsSection() {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" py={4}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center py-6">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Alert severity="error">
-        {t('bookingEngine.ai.settings.loadError')}
-      </Alert>
+      <UiAlert variant="destructive">
+        <TriangleAlert />
+        <AlertDescription>{t('bookingEngine.ai.settings.loadError')}</AlertDescription>
+      </UiAlert>
     );
   }
 
@@ -704,7 +610,7 @@ export default function AiSettingsSection() {
   const anthropicStatus = statuses?.find(s => s.provider === 'anthropic');
 
   return (
-    <Box>
+    <div>
       {/* ── Tabs internes ── */}
       <PageTabs
         options={[
@@ -722,8 +628,8 @@ export default function AiSettingsSection() {
       />
 
       {activeTab === 'connection' && (
-        <Grid container spacing={2.5}>
-          <Grid item xs={12} md={6}>
+        <div className="grid grid-cols-12 gap-[15px]">
+          <div className="col-span-12 min-[900px]:col-span-6">
             <ProviderCard
               status={openaiStatus || { ...defaultStatus, provider: 'openai' }}
               brand={PROVIDERS.openai}
@@ -731,8 +637,8 @@ export default function AiSettingsSection() {
               onDisconnect={() => deleteMutation.mutate('openai')}
               isDisconnecting={deleteMutation.isPending && deleteMutation.variables === 'openai'}
             />
-          </Grid>
-          <Grid item xs={12} md={6}>
+          </div>
+          <div className="col-span-12 min-[900px]:col-span-6">
             <ProviderCard
               status={anthropicStatus || { ...defaultStatus, provider: 'anthropic' }}
               brand={PROVIDERS.anthropic}
@@ -740,8 +646,8 @@ export default function AiSettingsSection() {
               onDisconnect={() => deleteMutation.mutate('anthropic')}
               isDisconnecting={deleteMutation.isPending && deleteMutation.variables === 'anthropic'}
             />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       )}
 
       {activeTab === 'models' && (
@@ -775,6 +681,6 @@ export default function AiSettingsSection() {
         onClose={() => setDialogProvider(null)}
         provider={dialogProvider}
       />
-    </Box>
+    </div>
   );
 }

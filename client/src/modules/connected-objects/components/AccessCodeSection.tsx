@@ -1,11 +1,24 @@
 import { useState } from 'react';
+import { cn } from '../../../utils/cn';
+import { Spinner } from '../../../components/ui';
+import { Button } from '../../../components/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Field, FieldLabel, FieldDescription, NativeSelect, NativeSelectOption } from '../../../components/ui';
 import {
-  Box, Typography, IconButton, Button, Tooltip, CircularProgress, Divider, TextField, MenuItem,
-  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Snackbar, Alert,
-} from '@mui/material';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Separator,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import { VpnKey, ContentCopy, Visibility, VisibilityOff, Refresh } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useNotification } from '../../../hooks/useNotification';
 import { useLockAccessCode } from '../useLockAccessCode';
 import { smartLockApi, type SmartLockAccessCodeMode } from '../../../services/api/smartLockApi';
 
@@ -31,12 +44,12 @@ function formatUntil(iso: string): string {
  */
 export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) {
   const { t } = useTranslation();
+  const { notify } = useNotification();
   const qc = useQueryClient();
   const { data: code, isLoading } = useLockAccessCode(deviceId, true);
   const [revealed, setRevealed] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [rotating, setRotating] = useState(false);
-  const [snack, setSnack] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
   const [savingMode, setSavingMode] = useState(false);
 
   // Origine du code (PMS pousse / serrure génère) — lue depuis la liste des serrures.
@@ -50,9 +63,9 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
     try {
       await smartLockApi.updateAccessCodeMode(deviceId, mode);
       await qc.invalidateQueries({ queryKey: ['smart-lock-devices'] });
-      setSnack({ msg: t('connectedObjects.codeMode.saved', 'Origine du code mise à jour (appliquée à la prochaine réservation)'), severity: 'success' });
+      notify.success(t('connectedObjects.codeMode.saved', 'Origine du code mise à jour (appliquée à la prochaine réservation)'));
     } catch {
-      setSnack({ msg: t('connectedObjects.codeMode.error', 'Échec du changement de mode'), severity: 'error' });
+      notify.error(t('connectedObjects.codeMode.error', 'Échec du changement de mode'));
     } finally {
       setSavingMode(false);
     }
@@ -62,9 +75,9 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
     if (!code?.code) return;
     try {
       await navigator.clipboard.writeText(code.code);
-      setSnack({ msg: 'Code copié', severity: 'success' });
+      notify.success('Code copié');
     } catch {
-      setSnack({ msg: 'Copie impossible', severity: 'error' });
+      notify.error('Copie impossible');
     }
   };
 
@@ -74,9 +87,9 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
       await smartLockApi.rotateAccessCode(deviceId);
       await qc.invalidateQueries({ queryKey: ['lock-access-code', deviceId] });
       setConfirmOpen(false);
-      setSnack({ msg: 'Nouveau code généré', severity: 'success' });
+      notify.success('Nouveau code généré');
     } catch (e) {
-      setSnack({ msg: e instanceof Error ? e.message : 'Échec de la génération', severity: 'error' });
+      notify.error(e instanceof Error ? e.message : 'Échec de la génération');
     } finally {
       setRotating(false);
     }
@@ -84,126 +97,143 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
 
   return (
     <>
-      <Divider sx={{ mt: 0.25 }} />
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
-        <Tooltip title="Code d'accès" arrow>
-          <Box component="span" sx={{ color: 'text.disabled', display: 'inline-flex', flexShrink: 0 }}>
-            <VpnKey size={14} strokeWidth={1.75} />
-          </Box>
+      <Separator className="mt-[1.5px]" />
+      <div className="flex items-center gap-0.5 min-w-0">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="text-muted-foreground opacity-60 inline-flex shrink-0">
+              <VpnKey size={14} strokeWidth={1.75} />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Code d'accès</TooltipContent>
         </Tooltip>
 
         {isLoading ? (
-          <Typography variant="caption" sx={{ color: 'text.disabled' }}>Code d'accès…</Typography>
+          <span className="cn-text-caption text-muted-foreground opacity-60">Code d'accès…</span>
         ) : hasCode ? (
           <>
             {/* Code PIN : display (Space Grotesk) tabular-nums sur fond --field */}
-            <Typography
-              sx={{
-                fontFamily: 'var(--font-display)',
-                fontVariantNumeric: 'tabular-nums',
-                fontWeight: 600,
-                fontSize: '0.875rem',
-                letterSpacing: revealed ? '0.06em' : '0.18em',
-                color: 'var(--ink)',
-                bgcolor: 'var(--field)',
-                borderRadius: '9px',
-                px: 1,
-                py: 0.25,
-                lineHeight: 1.4,
-              }}
-            >
+            <p className={cn('cn-text-body1 tabular-nums font-semibold text-[0.875rem] text-[var(--ink)] bg-[var(--field)] rounded-[9px] px-1.5 py-[1.5px] leading-[1.4]', revealed ? 'tracking-[0.06em]' : 'tracking-[0.18em]')} style={{ fontFamily: 'var(--font-display)' }}>
               {revealed ? code!.code : '••••••'}
-            </Typography>
-            <Tooltip title={revealed ? 'Masquer' : 'Afficher'} arrow>
-              <IconButton size="small" onClick={() => setRevealed((v) => !v)} sx={{ cursor: 'pointer', p: 0.25 }}>
-                {revealed ? <VisibilityOff size={14} strokeWidth={1.75} /> : <Visibility size={14} strokeWidth={1.75} />}
-              </IconButton>
+            </p>
+            {/* Le Button du kit est une fonction : il ne transmet pas de ref
+                (React 18). L'enveloppe porte l'ancre du Tooltip a sa place. */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label={revealed ? 'Masquer le code' : 'Afficher le code'}
+                    onClick={() => setRevealed((v) => !v)}
+                  >
+                    {revealed ? <VisibilityOff size={14} strokeWidth={1.75} /> : <Visibility size={14} strokeWidth={1.75} />}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{revealed ? 'Masquer' : 'Afficher'}</TooltipContent>
             </Tooltip>
-            <Tooltip title="Copier" arrow>
-              <IconButton size="small" onClick={handleCopy} sx={{ cursor: 'pointer', p: 0.25 }}>
-                <ContentCopy size={14} strokeWidth={1.75} />
-              </IconButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button variant="ghost" size="icon-xs" aria-label="Copier le code" onClick={handleCopy}>
+                    <ContentCopy size={14} strokeWidth={1.75} />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Copier</TooltipContent>
             </Tooltip>
-            <Tooltip title="Régénérer le code" arrow>
-              <IconButton size="small" onClick={() => setConfirmOpen(true)} disabled={rotating} sx={{ cursor: 'pointer', p: 0.25, ml: 'auto', color: 'text.secondary' }}>
-                {rotating ? <CircularProgress size={14} /> : <Refresh size={14} strokeWidth={1.75} />}
-              </IconButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/* Un bouton desactive n'emet pas d'evenement de survol : l'enveloppe
+                    porte le declencheur a sa place. */}
+                <span className="inline-flex ms-auto">
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label="Régénérer le code"
+                    onClick={() => setConfirmOpen(true)}
+                    disabled={rotating}
+                    className="text-[var(--muted)]"
+                  >
+                    {rotating ? <Spinner className="size-3.5" /> : <Refresh size={14} strokeWidth={1.75} />}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Régénérer le code</TooltipContent>
             </Tooltip>
           </>
         ) : (
           <>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>Aucun code actif</Typography>
+            <span className="cn-text-caption text-muted-foreground">Aucun code actif</span>
             <Button
-              size="small"
-              variant="text"
-              startIcon={rotating ? <CircularProgress size={13} /> : <Refresh size={14} strokeWidth={1.75} />}
+              variant="ghost"
+              size="sm"
               onClick={() => setConfirmOpen(true)}
               disabled={rotating}
-              sx={{ ml: 'auto' }}
+              className="ms-auto"
             >
+              {rotating ? <Spinner className="size-[13px]" /> : <Refresh size={14} strokeWidth={1.75} />}
               Générer
             </Button>
           </>
         )}
-      </Box>
+      </div>
 
       {hasCode && code!.validUntil && (
-        <Typography variant="caption" sx={{ color: 'text.disabled', pl: 2.5, display: 'block', lineHeight: 1.2 }}>
+        <span className="cn-text-caption text-muted-foreground opacity-60 ps-3.5 block leading-[1.2]">
           Valide jusqu'au {formatUntil(code!.validUntil)}
-        </Typography>
+        </span>
       )}
 
       {lockDevice ? (
-        <TextField
-          select
-          fullWidth
-          size="small"
-          label={t('connectedObjects.codeMode.label', "Origine du code d'accès")}
-          value={lockDevice.accessCodeMode || 'PMS_GENERATED'}
-          onChange={(e) => { void handleModeChange(e.target.value as SmartLockAccessCodeMode); }}
-          disabled={savingMode}
-          helperText={t('connectedObjects.codeMode.applied', 'Appliqué aux prochains codes générés (réservations à venir).')}
-          sx={{ mt: 1 }}
-        >
-          <MenuItem value="PMS_GENERATED">{t('connectedObjects.codeMode.pms', 'Le PMS génère et pousse le code')}</MenuItem>
-          <MenuItem value="LOCK_GENERATED">{t('connectedObjects.codeMode.lock', 'La serrure génère le code')}</MenuItem>
-        </TextField>
+        // L id porte le deviceId : plusieurs cartes serrure cohabitent dans la page.
+        <Field className="mt-1.5">
+          <FieldLabel htmlFor={`access-code-mode-${deviceId}`}>
+            {t('connectedObjects.codeMode.label', "Origine du code d'accès")}
+          </FieldLabel>
+          <NativeSelect
+            id={`access-code-mode-${deviceId}`}
+            className="w-full"
+            value={lockDevice.accessCodeMode || 'PMS_GENERATED'}
+            onChange={(e) => { void handleModeChange(e.target.value as SmartLockAccessCodeMode); }}
+            disabled={savingMode}
+          >
+            <NativeSelectOption value="PMS_GENERATED">{t('connectedObjects.codeMode.pms', 'Le PMS génère et pousse le code')}</NativeSelectOption>
+            <NativeSelectOption value="LOCK_GENERATED">{t('connectedObjects.codeMode.lock', 'La serrure génère le code')}</NativeSelectOption>
+          </NativeSelect>
+          <FieldDescription>
+            {t('connectedObjects.codeMode.applied', 'Appliqué aux prochains codes générés (réservations à venir).')}
+          </FieldDescription>
+        </Field>
       ) : null}
 
-      <Dialog open={confirmOpen} onClose={() => { if (!rotating) setConfirmOpen(false); }} maxWidth="xs" fullWidth>
-        <DialogTitle>{hasCode ? 'Régénérer le code ?' : 'Générer un code ?'}</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            {hasCode
-              ? "L'ancien code sera révoqué sur la serrure et un nouveau code prendra effet. Un évènement est enregistré."
-              : 'Un nouveau code d\'accès sera programmé sur la serrure. Un évènement est enregistré.'}
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmOpen(false)} disabled={rotating}>Annuler</Button>
-          <Button
-            onClick={() => { void handleRotate(); }}
-            variant="contained"
-            disabled={rotating}
-            startIcon={rotating ? <CircularProgress size={14} color="inherit" /> : undefined}
-          >
-            {hasCode ? 'Régénérer' : 'Générer'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Snackbar
-        open={!!snack}
-        autoHideDuration={3000}
-        onClose={() => setSnack(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      <Dialog
+        open={confirmOpen}
+        onOpenChange={(next) => { if (!next && !rotating) setConfirmOpen(false); }}
       >
-        {snack ? (
-          <Alert severity={snack.severity} variant="filled" onClose={() => setSnack(null)} sx={{ width: '100%' }}>
-            {snack.msg}
-          </Alert>
-        ) : undefined}
-      </Snackbar>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{hasCode ? 'Régénérer le code ?' : 'Générer un code ?'}</DialogTitle>
+            <DialogDescription>
+              {hasCode
+                ? "L'ancien code sera révoqué sur la serrure et un nouveau code prendra effet. Un évènement est enregistré."
+                : 'Un nouveau code d\'accès sera programmé sur la serrure. Un évènement est enregistré.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)} disabled={rotating}>Annuler</Button>
+            <Button
+              variant="default"
+              onClick={() => { void handleRotate(); }}
+              disabled={rotating}
+            >
+              {rotating ? <Spinner className="size-3.5" /> : null}
+              {hasCode ? 'Régénérer' : 'Générer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -1,10 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Box, Button, CircularProgress, Snackbar, Alert, Typography,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Switch, TextField, InputAdornment,
-} from '@mui/material';
+import { Spinner, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Button } from '../../components/ui';
+import { InputGroup, InputGroupAddon, InputGroupInput, Switch } from '../../components/ui';
 import { Save, Build } from '../../icons';
+import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
 import { CurrencySymbol } from '../../components/Money';
@@ -28,13 +26,11 @@ interface Row {
 export default function TechnicianTravaux() {
   const { t } = useTranslation();
   const { currency } = useCurrency();
+  const { notify } = useNotification();
 
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
-    open: false, message: '', severity: 'success',
-  });
 
   const otherDomain = t('tarification.travaux.otherDomain', 'Autre');
 
@@ -99,9 +95,9 @@ export default function TechnicianTravaux() {
       // Re-merge avec le catalogue courant pour rester pré-listé.
       const catalogue = await technicianPrestationsApi.catalogue().catch(() => [] as ServicePriceConfig[]);
       setRows(merge(catalogue, saved));
-      setSnackbar({ open: true, message: t('tarification.saveSuccess', 'Enregistré'), severity: 'success' });
+      notify.success(t('tarification.saveSuccess', 'Enregistré'));
     } catch {
-      setSnackbar({ open: true, message: t('tarification.saveError', "Erreur lors de l'enregistrement"), severity: 'error' });
+      notify.error(t('tarification.saveError', "Erreur lors de l'enregistrement"));
     } finally {
       setSaving(false);
     }
@@ -109,75 +105,79 @@ export default function TechnicianTravaux() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={t('technicianPrestations.title', 'Mes tarifs travaux')}
         subtitle={t('technicianPrestations.subtitle', 'Cochez les prestations que vous proposez et fixez vos prix — visibles de vous seul.')}
         iconBadge={<Build />}
         backPath="/dashboard"
         actions={
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <Save />}
-            onClick={handleSave}
-            disabled={saving}
-          >
+          <Button size="sm" onClick={handleSave} disabled={saving}>
+            {saving ? <Spinner className="size-4" /> : <Save />}
             {t('tarification.save', 'Enregistrer')}
           </Button>
         }
       />
 
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell>{t('tarification.travaux.prestation', 'Prestation')}</TableCell>
-              <TableCell align="center">{t('technicianPrestations.offered', 'Je propose')}</TableCell>
-              <TableCell align="right">{t('technicianPrestations.myPrice', 'Mon prix')}</TableCell>
+              <TableHead>{t('tarification.travaux.prestation', 'Prestation')}</TableHead>
+              <TableHead className="text-center">{t('technicianPrestations.offered', 'Je propose')}</TableHead>
+              <TableHead className="text-end">{t('technicianPrestations.myPrice', 'Mon prix')}</TableHead>
             </TableRow>
-          </TableHead>
+          </TableHeader>
           <TableBody>
             {grouped.map(([domain, entries]) => (
               <React.Fragment key={domain}>
                 <TableRow>
-                  <TableCell colSpan={3} sx={{ py: 0.75, borderBottom: '1px solid var(--line)', bgcolor: 'var(--field)' }}>
-                    <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)' }}>
+                  <TableCell colSpan={3} className="py-[4.5px] bg-[var(--field)]">
+                    <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
                       {domain}
-                    </Typography>
+                    </p>
                   </TableCell>
                 </TableRow>
                 {entries.map(({ row, index }) => (
                   <TableRow key={row.interventionType}>
                     <TableCell>{row.label}</TableCell>
-                    <TableCell align="center">
+                    <TableCell className="text-center">
                       <Switch
+                        aria-label={row.label}
                         checked={row.offered}
-                        onChange={(e) => updateRow(index, { offered: e.target.checked })}
-                        size="small"
+                        onCheckedChange={(checked) => updateRow(index, { offered: checked })}
+                        size="sm"
                       />
                     </TableCell>
-                    <TableCell align="right" sx={{ width: 140 }}>
-                      <TextField
-                        type="number"
-                        size="small"
-                        value={row.price}
-                        onChange={(e) => {
-                          const num = parseFloat(e.target.value);
-                          if (!isNaN(num)) updateRow(index, { price: num });
-                        }}
-                        disabled={!row.offered}
-                        inputProps={{ step: 1, min: 0, style: { textAlign: 'right' } }}
-                        InputProps={{ endAdornment: <InputAdornment position="end"><CurrencySymbol code={currency} /></InputAdornment> }}
-                        sx={{ width: 120 }}
-                      />
+                    <TableCell className="text-end w-[140px]">
+                      {/* Pas de libelle propre : l'entete de colonne « Mon prix »
+                          nomme la saisie, d'ou l'aria-label porte par le champ. */}
+                      <InputGroup className="w-[120px] ms-auto">
+                        <InputGroupInput
+                          id={`technician-price-${row.interventionType}`}
+                          type="number"
+                          step={1}
+                          min={0}
+                          className="text-end"
+                          aria-label={row.label}
+                          value={row.price}
+                          onChange={(e) => {
+                            const num = parseFloat(e.target.value);
+                            if (!isNaN(num)) updateRow(index, { price: num });
+                          }}
+                          disabled={!row.offered}
+                        />
+                        <InputGroupAddon align="inline-end">
+                          <CurrencySymbol code={currency} />
+                        </InputGroupAddon>
+                      </InputGroup>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -185,18 +185,7 @@ export default function TechnicianTravaux() {
             ))}
           </TableBody>
         </Table>
-      </TableContainer>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setSnackbar((s) => ({ ...s, open: false }))} severity={snackbar.severity} variant="filled">
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+      </div>
+    </div>
   );
 }

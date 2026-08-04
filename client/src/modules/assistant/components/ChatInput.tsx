@@ -1,5 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Box, IconButton, InputBase, CircularProgress, Tooltip } from '@mui/material';
+import {
+  Button,
+  Spinner,
+  Textarea,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import {
   Send as SendIcon,
   Close as XIcon,
@@ -18,6 +25,11 @@ interface ChatInputProps {
   onAbort?: () => void;
   placeholder?: string;
   autoFocus?: boolean;
+  /**
+   * Ligne de reassurance affichee sous la boite (projection galerie) —
+   * ex. « L'assistant agit sur tes données après confirmation. ».
+   */
+  hint?: string;
 }
 
 const MAX_ATTACHMENTS = 3;
@@ -39,11 +51,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onAbort,
   placeholder = "Demande quelque chose a l'assistant... (Entree pour envoyer)",
   autoFocus = false,
+  hint,
 }) => {
   const { notify } = useNotification();
   const [value, setValue] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { uploadImage, isUploading, error: uploadError, clearError } = useImageUpload();
@@ -114,14 +126,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const canSubmit = (value.trim().length > 0 || attachments.length > 0) && !isBusy && !isUploading;
 
   return (
-    <Box
-      sx={{
-        // Réf .mg-compose : zone compose sur carte, filet hairline au-dessus.
-        bgcolor: 'var(--card)',
-        borderTop: '1px solid var(--line)',
-        py: '14px',
-      }}
-    >
+    <div className="bg-[var(--card)] py-3.5" style={{ borderTop: '1px solid var(--line)' }}>
       {/* Input file cache — pilote par le bouton Paperclip */}
       <input
         ref={fileInputRef}
@@ -138,190 +143,114 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
       {/* Conteneur centre, meme contrainte que MessageList (760px) pour
           aligner visuellement input <-> messages. */}
-      <Box
-        sx={{
-          maxWidth: 760,
-          mx: 'auto',
-          px: { xs: 2, md: 3 },
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 1,
-        }}
-      >
+      <div className="max-w-[760px] mx-auto px-3 min-[900px]:px-[18px] flex flex-col gap-1.5">
       {/* Thumbnails preview au-dessus du textarea — uniquement si attachments */}
       {attachments.length > 0 && (
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 0.75,
-            flexWrap: 'wrap',
-            alignItems: 'center',
-          }}
-        >
+        <div className="flex gap-1 flex-wrap items-center">
           {attachments.map((att, idx) => (
-            <Box
-              key={att.storageKey}
-              sx={{
-                position: 'relative',
-                width: 64,
-                height: 64,
-                borderRadius: '10px',
-                overflow: 'hidden',
-                border: '1px solid var(--line)',
-                bgcolor: 'var(--field)',
-              }}
-            >
-              <Box
-                component="img"
-                src={att.url}
-                alt={att.name ?? 'image jointe'}
-                sx={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  display: 'block',
-                }}
-              />
-              <IconButton
+            <div className="relative w-[64px] h-[64px] rounded-[10px] overflow-hidden border border-[var(--line)] bg-[var(--field)]" key={att.storageKey}>
+              <img className="w-full h-full object-cover block" src={att.url} alt={att.name ?? 'image jointe'} />
+              {/* Scrim teinte encre (sur image) — pas de noir pur. */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
                 aria-label={`Retirer ${att.name ?? 'l\'image'}`}
-                size="small"
                 onClick={() => handleRemoveAttachment(idx)}
-                sx={{
-                  position: 'absolute',
-                  top: 2,
-                  right: 2,
-                  width: 18,
-                  height: 18,
-                  // Scrim teinte encre (sur image) — pas de noir pur.
-                  bgcolor: 'rgba(21,36,45,.55)',
-                  color: '#FDFDFC',
-                  '&:hover': { bgcolor: 'rgba(21,36,45,.75)' },
-                  cursor: 'pointer',
-                }}
+                className="absolute top-[2px] end-[2px] size-[18px] cursor-pointer rounded-full bg-[rgba(21,36,45,.55)] text-[#FDFDFC] hover:bg-[rgba(21,36,45,.75)] hover:text-[#FDFDFC]"
               >
                 <XIcon size={12} />
-              </IconButton>
-            </Box>
+              </Button>
+            </div>
           ))}
           {isUploading && (
-            <CircularProgress size={20} sx={{ ml: 0.5, color: 'var(--accent)' }} />
+            <Spinner className="size-5 ms-0.5 text-[var(--accent)]" />
           )}
-        </Box>
+        </div>
       )}
 
       {/* Boîte .mg-cbox : champ + outils + envoi */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'flex-end',
-          gap: 1.25,
-          bgcolor: 'var(--field)',
-          border: '1px solid var(--field-line)',
-          borderRadius: '13px',
-          p: '8px 8px 8px 14px',
-          transition: 'border-color .14s',
-          '&:focus-within': { borderColor: 'var(--accent)' },
-        }}
+      <div
+        className="flex items-end gap-[7.5px] bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[13px] pt-2 pr-2 pb-2 pl-[14px] focus-within:border-[var(--accent)]"
+        style={{ transition: 'border-color .14s' }}
       >
-        <InputBase
-          inputRef={inputRef}
+        {/* Réf .mg-cbox textarea : la boîte porte le padding, champ nu.
+            Le primitif pose `field-sizing: content` : la hauteur suit le contenu,
+            bornee a 6 lignes (l'equivalent de l'ancien maxRows). */}
+        <Textarea
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          multiline
-          maxRows={6}
-          fullWidth
+          rows={1}
           autoFocus={autoFocus}
           disabled={status === 'sending'}
-          // Réf .mg-cbox textarea : la boîte porte le padding, champ nu.
-          sx={{
-            flex: 1,
-            fontSize: '12.5px',
-            color: 'var(--body)',
-            lineHeight: 1.5,
-            py: '7px',
-            '& textarea': { p: 0 },
-            '& textarea::placeholder': { color: 'var(--faint)', opacity: 1 },
-          }}
+          className="flex-1 min-h-[1lh] max-h-[6lh] resize-none border-0 bg-transparent p-0 py-[7px] text-[12.5px] leading-[1.5] text-[var(--body)] shadow-none placeholder:text-[var(--faint)] placeholder:opacity-100 focus-visible:ring-0"
         />
 
         {!isBusy && (
-          <Tooltip title={attachments.length >= MAX_ATTACHMENTS
-            ? `Maximum ${MAX_ATTACHMENTS} images`
-            : 'Joindre une image'}>
-            <span>
-              {/* Outil .mg-ctool : 30px r8, transparent, hover card+accent */}
-              <IconButton
-                onClick={handleAttachClick}
-                disabled={!canAddAttachments || isUploading}
-                aria-label="Joindre une image"
-                sx={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: '8px',
-                  color: 'var(--muted)',
-                  bgcolor: 'transparent',
-                  transition: 'background .14s, color .14s',
-                  '&:hover': { bgcolor: 'var(--card)', color: 'var(--accent)' },
-                  cursor: canAddAttachments ? 'pointer' : 'not-allowed',
-                  '&.Mui-disabled': { opacity: 0.45 },
-                }}
-              >
-                {isUploading
-                  ? <CircularProgress size={15} sx={{ color: 'var(--accent)' }} />
-                  : <AttachFile size={15} strokeWidth={1.75} />}
-              </IconButton>
-            </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/* Le span porte la ref de Radix et reste survolable quand le
+                  bouton est desactive (limite atteinte / upload en cours). */}
+              <span className="inline-flex">
+                {/* Outil .mg-ctool : 30px r8, transparent, hover card+accent */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleAttachClick}
+                  disabled={!canAddAttachments || isUploading}
+                  aria-label="Joindre une image"
+                  className="size-[30px] rounded-[8px] p-0 bg-transparent text-[var(--muted)] transition-[background-color,color] duration-[140ms] hover:bg-[var(--card)] hover:text-[var(--accent)] disabled:opacity-45"
+                >
+                  {isUploading
+                    ? <Spinner className="size-[15px] text-[var(--accent)]" />
+                    : <AttachFile size={15} strokeWidth={1.75} />}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              {attachments.length >= MAX_ATTACHMENTS
+                ? `Maximum ${MAX_ATTACHMENTS} images`
+                : 'Joindre une image'}
+            </TooltipContent>
           </Tooltip>
         )}
 
         {isBusy && onAbort ? (
-          <IconButton
+          <Button
+            type="button"
+            variant="ghost"
             onClick={onAbort}
             aria-label="Annuler"
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: '11px',
-              bgcolor: 'var(--err-soft)',
-              color: 'var(--err)',
-              flexShrink: 0,
-              transition: 'background .14s, transform .12s',
-              '&:hover': { bgcolor: 'var(--err-soft)', filter: 'brightness(.96)' },
-              '&:active': { transform: 'scale(.97)' },
-              cursor: 'pointer',
-            }}
+            className="size-9 shrink-0 rounded-[11px] p-0 bg-[var(--err-soft)] text-[var(--err)] transition-[background-color,transform] duration-[140ms] hover:bg-[var(--err-soft)] hover:brightness-[.96] active:scale-[.97] motion-reduce:transition-none"
           >
             {status === 'sending'
-              ? <CircularProgress size={15} sx={{ color: 'var(--err)' }} />
+              ? <Spinner className="size-[15px] text-[var(--err)]" />
               : <XIcon size={15} strokeWidth={1.75} />}
-          </IconButton>
+          </Button>
         ) : (
           // Envoi .mg-send : 36px r11 accent PLEIN (exception validée messagerie)
-          <IconButton
+          <Button
+            type="button"
             onClick={handleSubmit}
             disabled={!canSubmit}
             aria-label="Envoyer"
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: '11px',
-              bgcolor: 'var(--accent)',
-              color: 'var(--on-accent)',
-              flexShrink: 0,
-              transition: 'background .14s, transform .12s',
-              '&:hover': { bgcolor: 'var(--accent-deep)' },
-              '&:active': { transform: 'scale(.97)' },
-              '&.Mui-disabled': { bgcolor: 'var(--accent)', color: 'var(--on-accent)', opacity: 0.45 },
-              cursor: 'pointer',
-            }}
+            className="size-9 shrink-0 rounded-[11px] p-0 bg-[var(--accent)] text-[var(--on-accent)] transition-[background-color,transform] duration-[140ms] hover:bg-[var(--accent-deep)] active:scale-[.97] disabled:opacity-45 motion-reduce:transition-none"
           >
             <SendIcon size={15} strokeWidth={1.75} />
-          </IconButton>
+          </Button>
         )}
-      </Box>
-      </Box>
-    </Box>
+      </div>
+
+      {/* Ligne de reassurance de la projection : rappelle que les actions
+          passent par la confirmation HITL (ToolConfirmationDialog). */}
+      {hint && (
+        <span className="block text-center text-[11px] leading-[1.4] text-[var(--faint)]">
+          {hint}
+        </span>
+      )}
+      </div>
+    </div>
   );
 };

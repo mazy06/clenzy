@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, ButtonBase, CircularProgress } from '@mui/material';
+import { cn } from '../../../../utils/cn';
+import { Spinner } from '../../../../components/ui';
 import { AlertTriangle, Wand2 } from 'lucide-react';
 import { BaitlyWidget } from '../../sdk/BaitlyWidget';
 import { widgetThemeFromTokens } from '../../widgetTheme';
@@ -119,75 +120,80 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
     body = (
       <Centered>
         <Wand2 size={30} strokeWidth={1.6} />
-        <Box sx={{ fontSize: 'var(--text-md)', maxWidth: 360, textAlign: 'center' }}>
+        <div className="text-[var(--text-md)] max-w-[360px] text-center">
           Lance d’abord <strong>Analyse du design</strong> (⌘K) avec l’URL du site du client :
           le site sera capturé ici et le widget posé dessus.
-        </Box>
+        </div>
       </Centered>
     );
   } else if (loading) {
-    body = <Centered><CircularProgress size={26} sx={{ color: 'var(--accent)' }} /></Centered>;
+    body = <Centered><Spinner className="size-[26px] text-[var(--accent)]" /></Centered>;
   } else if (error || !html) {
     body = (
       <Centered>
         <AlertTriangle size={28} strokeWidth={1.75} />
-        <Box sx={{ fontSize: 'var(--text-md)' }}>{error ?? 'Site indisponible.'}</Box>
+        <div className="text-[var(--text-md)]">{error ?? 'Site indisponible.'}</div>
       </Centered>
     );
   } else {
     body = (
-      <Box sx={{ flex: 1, minWidth: 0, height: '100%', overflow: 'auto', bgcolor: 'var(--bg-2, var(--bg))', display: 'flex', justifyContent: 'center', p: breakpoint === 'desktop' ? 0 : 3 }}>
-        <Box
-          component="iframe"
+      <div className={cn('flex-1 min-w-0 h-full overflow-auto bg-[var(--bg-2,_var(--bg))] flex justify-center', breakpoint === 'desktop' ? 'p-0' : 'p-[18px]')}>
+        {/* `width` vient de FRAME_WIDTH (nombre ou '100%') : valeur d'execution, donc style. */}
+        <iframe
           key={html.length}
           ref={iframeRef}
           title="Aperçu du site cible avec le widget"
           srcDoc={html}
           sandbox="allow-same-origin"
           onLoad={() => { loadedRef.current = true; mountWidget(); }}
-          sx={{
-            width, maxWidth: '100%', height: '100%', border: 'none', bgcolor: '#fff',
-            ...(breakpoint !== 'desktop' && { my: 'auto', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)', boxShadow: 'var(--shadow-card)', height: '90%' }),
-          }}
+          className={cn(
+            'max-w-full border-0 bg-white',
+            breakpoint === 'desktop'
+              ? 'h-full'
+              : 'h-[90%] my-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] shadow-[var(--shadow-card)]',
+          )}
+          style={{ width }}
         />
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+    <div className="flex flex-col h-full min-h-0">
       {/* Barre : sélecteur de placement du widget (bas / flottant / haut). */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 1.25, flexShrink: 0, borderBottom: '1px solid var(--line)', bgcolor: 'var(--card)' }}>
-        <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--muted)', mr: 0.5 }}>Position du widget</Box>
-        <Box sx={{ display: 'inline-flex', gap: 0.5, p: 0.5, borderRadius: 'var(--radius-md)', bgcolor: 'var(--bg)', border: '1px solid var(--line)' }}>
+      <div className="flex items-center gap-1.5 px-3 py-2 shrink-0 border-b border-[var(--line)] bg-[var(--card)]">
+        <div className="text-[var(--text-sm)] text-[var(--muted)] me-0.5">Position du widget</div>
+        <div className="inline-flex gap-0.5 p-0.5 rounded-[var(--radius-md)] bg-[var(--bg)] border border-[var(--line)]">
           {PLACEMENTS.map((p) => (
-            <ButtonBase
+            <button
               key={p.value}
+              type="button"
               onClick={() => setPlacement(p.value)}
-              sx={{
-                px: 1.5, height: 28, borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)',
-                fontWeight: 'var(--fw-medium)', cursor: 'pointer',
-                transition: 'background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
-                color: placement === p.value ? 'var(--on-accent)' : 'var(--body)',
-                bgcolor: placement === p.value ? 'var(--accent)' : 'transparent',
-                '&:hover': { bgcolor: placement === p.value ? 'var(--accent-deep)' : 'var(--hover, rgba(0,0,0,.04))' },
-                '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-              }}
+              aria-pressed={placement === p.value}
+              className={cn(
+                'inline-flex items-center justify-center border-0 px-[9px] h-7 cursor-pointer',
+                'rounded-[var(--radius-sm)] text-[var(--text-sm)] [font-weight:var(--fw-medium)]',
+                '[transition:background-color_var(--duration-fast)_var(--ease-out),color_var(--duration-fast)_var(--ease-out)] motion-reduce:transition-none',
+                'focus-visible:[outline:2px_solid_var(--accent)] focus-visible:outline-offset-2',
+                placement === p.value
+                  ? 'text-[var(--on-accent)] bg-[var(--accent)] hover:bg-[var(--accent-deep)]'
+                  : 'text-[var(--body)] bg-transparent hover:bg-[var(--hover,_rgba(0,0,0,.04))]',
+              )}
             >
               {p.label}
-            </ButtonBase>
+            </button>
           ))}
-        </Box>
-      </Box>
+        </div>
+      </div>
       {body}
-    </Box>
+    </div>
   );
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, color: 'var(--muted)', p: 3 }}>
+    <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-2 text-[var(--muted)] p-4">
       {children}
-    </Box>
+    </div>
   );
 }

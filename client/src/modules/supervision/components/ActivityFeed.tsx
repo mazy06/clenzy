@@ -6,13 +6,14 @@
    ============================================================ */
 
 import { memo, useState, type KeyboardEvent } from 'react';
-import { Box, IconButton } from '@mui/material';
+import { Button } from '../../../components/ui';
 import { AutoAwesome, ChevronDown } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { cn } from '../../../utils/cn';
 import { AGENT_META } from '../constants';
 import { AgentIcon } from '../renderers/agentIcon';
-import { toolIconFor } from '../renderers/toolIcon';
-import type { FeedEntry, PortfolioFeedEntry } from '../types';
+import { toolIconFor, isIncidentTool } from '../renderers/toolIcon';
+import type { FeedEntry, PendingAction, PortfolioFeedEntry, PortfolioPendingAction } from '../types';
 import { FeedMessageModal } from './FeedMessageModal';
 import { FeedInvoiceModal } from './FeedInvoiceModal';
 
@@ -21,11 +22,26 @@ function hhmm(iso: string): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-// Mémoïsé (audit perf) : ~40 lignes MUI — ne re-rendre que quand `entries` change,
+// Mémoïsé (audit perf) : ~40 lignes de JSX — ne re-rendre que quand `entries` change,
 // pas à chaque re-render du panneau (events SSE agents, toasts, report).
 export const ActivityFeed = memo(ActivityFeedInner);
 
-function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEntry)[] }) {
+/**
+ * Fenêtre de rapprochement entrée ↔ action en attente : le contrat FeedEntry
+ * ne porte pas le lien vers l'action, mais l'entrée qui ANNONCE une
+ * proposition naît au même instant qu'elle — même agent, même minute.
+ */
+const VALIDATION_MATCH_MS = 60_000;
+
+function ActivityFeedInner({
+  entries,
+  pending,
+}: {
+  entries: (FeedEntry | PortfolioFeedEntry)[];
+  /** File HITL courante — étiquette ambre « validation requise » sur les
+   *  entrées qui annoncent une action ENCORE en attente (cf. rapprochement). */
+  pending?: readonly (PendingAction | PortfolioPendingAction)[];
+}) {
   const { t } = useTranslation();
   // Détail métier replié par défaut : on ne montre que le libellé, la description
   // (motif d'échec, montant…) s'ouvre au clic sur le chevron.
@@ -57,7 +73,7 @@ function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEnt
   };
   return (
     <>
-    <Box data-activity-feed sx={{ display: 'flex', flexDirection: 'column' }}>
+    <div className="flex flex-col" data-activity-feed>
       {entries.map((entry) => {
         // Entrée orchestrateur (réponse chat) : identité d'accent + icône assistant.
         const isOrchestrator = 'orchestrator' in entry && entry.orchestrator;
@@ -80,8 +96,22 @@ function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEnt
         // ouvre la modale (le chevron ferait doublon).
         const detail = clickable ? null : detailFor(entry);
         const isOpen = expanded.has(entry.id);
+        // L'entrée annonce une action encore en attente de validation → l'ambre
+        // le dit, comme sur la carte et son attache.
+        const entryAt = new Date(entry.at).getTime();
+        const awaitsValidation = (pending ?? []).some(
+          (action) =>
+            action.agentId === entry.agentId
+            && Math.abs(new Date(action.createdAt).getTime() - entryAt) < VALIDATION_MATCH_MS,
+        );
+        // Nature incident (échec, anomalie, écart) : étiquetée en ambre — on
+        // n'étiquette que l'EXCEPTION, l'exécution ordinaire reste muette.
+        const incident = !isOrchestrator && isIncidentTool(entry.toolName);
         return (
-          <Box
+          // Ligne au dessin de la projection : icône discrète (la NATURE de
+          // l'action, monochrome — plus de tuile colorée), libellé, ligne
+          // « Agent X », horodatage à droite. Filets 1 px entre les lignes.
+          <div
             key={entry.id}
             {...(clickable
               ? {
@@ -99,78 +129,76 @@ function ActivityFeedInner({ entries }: { entries: (FeedEntry | PortfolioFeedEnt
                     : t('supervision.feed.openInvoice', { defaultValue: 'Voir la facture' }),
                 }
               : {})}
-            sx={{
-              display: 'flex',
-              gap: 1.25,
-              py: 1,
-              px: 0.5,
-              borderBottom: '1px solid var(--line, #eef0f4)',
-              '&:last-of-type': { borderBottom: 'none' },
-              ...(clickable
-                ? {
-                    cursor: 'pointer',
-                    borderRadius: '6px',
-                    transition: 'background 150ms ease',
-                    '&:hover': { background: 'var(--hover, rgba(107,138,154,0.08))' },
-                    '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '-2px' },
-                  }
-                : {}),
-            }}
+            className={cn(
+              'flex items-start gap-3 border-t border-solid border-border px-2 py-2.5 first-of-type:border-t-0 transition-colors duration-100 hover:bg-muted/60',
+              clickable && 'cursor-pointer focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+            )}
           >
-            <Box
-              sx={{
-                width: 26,
-                height: 26,
-                borderRadius: '8px',
-                background: isOrchestrator ? 'var(--accent)' : meta.color,
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
+            <span className="mt-px shrink-0 text-muted-foreground [&>svg]:size-3.5">
               {isOrchestrator ? <AutoAwesome size={14} strokeWidth={1.75} /> : (toolIcon ?? <AgentIcon token={meta.icon} size={14} />)}
-            </Box>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Box sx={{ fontSize: 11, color: 'var(--muted, #6b7196)', fontVariantNumeric: 'tabular-nums' }}>
-                {hhmm(entry.at)}
-                {propertyName ? ` · ${propertyName}` : ''}
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'space-between' }}>
-                <Box sx={{ fontSize: 12.5, color: 'var(--ink, #1b2240)', lineHeight: 1.4, minWidth: 0 }}>
-                  {labelFor(entry)}
-                </Box>
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="m-0 max-w-[75ch] text-xs text-foreground">{labelFor(entry)}</p>
+              <p className="m-0 mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                {isOrchestrator
+                  ? t('supervision.hud.orchestrator')
+                  : t('supervision.feed.agentLine', { name: t(meta.nameKey), defaultValue: 'Agent {{name}}' })}
+                {propertyName && <span className="min-w-0 truncate">· {propertyName}</span>}
+                {awaitsValidation && (
+                  <span className="font-medium text-warning-ink">
+                    {t('supervision.feed.validationRequired', 'validation requise')}
+                  </span>
+                )}
+                {incident && (
+                  <span className="font-medium text-warning-ink">
+                    {t('supervision.feed.incident', 'incident')}
+                  </span>
+                )}
+                {/* Natures persistées (Phase 5) — nommées mais MUETTES en couleur :
+                    seule l'exception qui appelle une décision reste ambre. */}
+                {entry.tag === 'GUARDRAIL' && (
+                  <span className="text-muted-foreground/80">
+                    {t('supervision.feed.guardrail', 'garde-fou')}
+                  </span>
+                )}
+                {entry.tag === 'LEARNED' && (
+                  <span className="text-muted-foreground/80">
+                    {t('supervision.feed.learned', 'règle apprise')}
+                  </span>
+                )}
+                {entry.tag === 'DEFERRED' && (
+                  <span className="text-muted-foreground/80">
+                    {t('supervision.feed.deferred', 'différé')}
+                  </span>
+                )}
                 {detail && (
-                  <IconButton
-                    size="small"
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
                     onClick={() => toggle(entry.id)}
                     aria-label={t('common.details', { defaultValue: 'Détails' })}
                     aria-expanded={isOpen}
-                    sx={{
-                      p: 0.25,
-                      color: 'var(--muted, #6b7196)',
-                      flexShrink: 0,
-                      '& svg': {
-                        transition: 'transform 200ms ease',
-                        transform: isOpen ? 'rotate(180deg)' : 'none',
-                      },
-                    }}
+                    className={cn(
+                      'size-4 text-muted-foreground',
+                      '[&_svg]:transition-transform [&_svg]:duration-200 [&_svg]:ease-[ease] motion-reduce:[&_svg]:transition-none',
+                      isOpen && '[&_svg]:rotate-180',
+                    )}
                   >
                     <ChevronDown size={14} />
-                  </IconButton>
+                  </Button>
                 )}
-              </Box>
+              </p>
               {detail && isOpen && (
-                <Box sx={{ fontSize: 11.5, color: 'var(--muted, #6b7196)', lineHeight: 1.35, mt: 0.25, wordBreak: 'break-word' }}>
+                <p className="m-0 mt-1 max-w-[75ch] text-xs leading-relaxed text-muted-foreground break-words">
                   {detail}
-                </Box>
+                </p>
               )}
-            </Box>
-          </Box>
+            </div>
+            <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{hhmm(entry.at)}</span>
+          </div>
         );
       })}
-    </Box>
+    </div>
     <FeedMessageModal logId={openMessageLogId} onClose={() => setOpenMessageLogId(null)} />
     <FeedInvoiceModal invoiceId={openInvoiceId} onClose={() => setOpenInvoiceId(null)} />
     </>

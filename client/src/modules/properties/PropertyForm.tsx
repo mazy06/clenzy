@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Paper,
-  Button,
-  Alert,
-  CircularProgress,
-} from '@mui/material';
+import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
+import { CircleCheck, TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import type { Property } from '../../services/api';
@@ -21,15 +17,10 @@ import PropertyFormDetails from './PropertyFormDetails';
 import PropertyFormSettings from './PropertyFormSettings';
 import CleaningPriceEstimator from './CleaningPriceEstimator';
 
-// ─── Stable sx constants ────────────────────────────────────────────────────
+// ─── Stable classes ─────────────────────────────────────────────────────────
 
-const FORM_PAPER_SX = {
-  border: '1px solid var(--line)',
-  bgcolor: 'var(--card)',
-  borderRadius: '14px',
-  boxShadow: 'none',
-  p: 2.5,
-} as const;
+// Carte hairline r14 plate — p: 2.5 = 15 px (spacing MUI 6).
+const FORM_PANEL_CLASS = 'border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] p-[15px] min-w-0 overflow-auto';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -126,43 +117,47 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
 
   if (isLoadingProperty) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '40vh' }}>
-        <CircularProgress size={28} />
-      </Box>
+      <div className="flex justify-center items-center h-[40vh]">
+        <Spinner className="size-7" />
+      </div>
     );
   }
 
   if (isSuccess) {
     return (
-      <Alert severity="success" sx={{ fontSize: '0.8125rem', py: 0.75 }}>
-        {isEditMode ? t('properties.updateSuccess') : `${t('properties.create')} ${t('common.success')} !`}
-      </Alert>
+      <UiAlert variant="success" className="text-[0.8125rem] py-1">
+        <CircleCheck />
+        <AlertDescription>{isEditMode ? t('properties.updateSuccess') : `${t('properties.create')} ${t('common.success')} !`}</AlertDescription>
+      </UiAlert>
     );
   }
 
   // ─── Render ───────────────────────────────────────────────────────────
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      <Box sx={{ flexShrink: 0 }}>
+    <div className="flex flex-col h-full min-h-0">
+      <div className="shrink-0">
         <CleaningPriceEstimator control={control} setValue={setValue} />
-      </Box>
+      </div>
       <form
         onSubmit={handleSubmit((data) => submitForm(data))}
         style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
       >
-        <Box sx={{ display: 'flex', gap: 2, flex: 1, minHeight: 0 }}>
+        <div className="flex gap-3 flex-1 min-h-0">
           {/* ── Colonne gauche : Infos principales ──────────────────── */}
-          <Paper sx={{ ...FORM_PAPER_SX, flex: 7, minWidth: 0, overflow: 'auto' }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {/* `flex: 7` / `flex: 5` MUI = flex-grow/shrink 1 avec basis 0 : la
+              repartition 7/5 des colonnes passe par un style (valeur numerique,
+              pas de classe Tailwind equivalente). */}
+          <div className={FORM_PANEL_CLASS} style={{ flex: 7 }}>
+            <div className="flex flex-col gap-4">
               <PropertyFormBasicInfo control={control} errors={errors} propertyTypes={propertyTypes} />
               <PropertyFormAddress control={control} errors={errors} setValue={setValue} />
               <PropertyFormDetails control={control} errors={errors} />
-            </Box>
-          </Paper>
+            </div>
+          </div>
 
           {/* ── Colonne droite : Configuration & Ménage ─────────────── */}
-          <Paper sx={{ ...FORM_PAPER_SX, flex: 5, minWidth: 0, overflow: 'auto' }}>
+          <div className={FORM_PANEL_CLASS} style={{ flex: 5 }}>
             <PropertyFormSettings
               control={control}
               errors={errors}
@@ -172,20 +167,23 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
               isAdmin={isAdmin}
               isManager={isManager}
             />
-          </Paper>
-        </Box>
+          </div>
+        </div>
 
         {/* Error message */}
         {submitError && (
-          <Alert severity="error" sx={{ fontSize: '0.8125rem', py: 0.5, mt: 1.5, flexShrink: 0 }}>{submitError}</Alert>
+          <UiAlert variant="destructive" className="text-[0.8125rem] py-0.5 mt-2 shrink-0">
+            <TriangleAlert />
+            <AlertDescription>{submitError}</AlertDescription>
+          </UiAlert>
         )}
 
         {/* Hidden submit button for PageHeader trigger */}
-        <Button type="submit" sx={{ display: 'none' }} data-submit-property disabled={isSubmitting}>
+        <Button type="submit" className="hidden" data-submit-property disabled={isSubmitting}>
           Soumettre
         </Button>
       </form>
-    </Box>
+    </div>
   );
 };
 

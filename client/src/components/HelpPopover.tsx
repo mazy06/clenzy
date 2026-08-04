@@ -1,5 +1,14 @@
-import React, { useCallback, useId, useState } from 'react';
-import { Box, Typography, IconButton, Popover, Tooltip } from '@mui/material';
+import React, { useState } from 'react';
+import { cn } from '../utils/cn';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  buttonVariants,
+} from './ui';
 import { Info as InfoIcon } from '../icons';
 import { HelpStepsGrid, type HelpStep } from './HelpBanner';
 
@@ -28,7 +37,7 @@ interface HelpPopoverProps {
  *   <li>Popover : filet 1 px en haut (accent), soft brand wash — pas de
  *   glassmorphism ni de side-stripe.</li>
  *   <li>Étapes en colonne unique (lecture verticale) via {@link HelpStepsGrid}.</li>
- *   <li>`prefers-reduced-motion` respecté par la transition MUI par défaut.</li>
+ *   <li>`prefers-reduced-motion` respecté par la transition du kit.</li>
  * </ul>
  */
 const HelpPopover: React.FC<HelpPopoverProps> = ({
@@ -37,131 +46,70 @@ const HelpPopover: React.FC<HelpPopoverProps> = ({
   steps = [],
   label = 'Aide',
 }) => {
-  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
-  const panelId = useId();
-  const open = Boolean(anchorEl);
-
-  const handleOpen = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(e.currentTarget);
-  }, []);
-  const handleClose = useCallback(() => setAnchorEl(null), []);
+  const [open, setOpen] = useState(false);
 
   return (
-    <>
-      <Tooltip title={label} arrow>
-        <IconButton
-          size="small"
-          onClick={handleOpen}
-          aria-label={label}
-          aria-haspopup="dialog"
-          aria-expanded={open}
-          aria-controls={open ? panelId : undefined}
-          sx={{
-            cursor: 'pointer',
-            color: open ? 'var(--accent)' : 'var(--faint)',
-            bgcolor: open ? 'var(--accent-soft)' : 'transparent',
-            p: 0.5,
-            borderRadius: '9px',
-            transition: 'color .18s ease, background-color .18s ease',
-            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            '&:hover': { color: 'var(--accent)', bgcolor: 'var(--accent-soft)' },
-          }}
-        >
-          <InfoIcon size={18} strokeWidth={1.75} />
-        </IconButton>
+    <Popover open={open} onOpenChange={setOpen}>
+      <Tooltip>
+        {/* span d'ancrage : PopoverTrigger est une fonction du kit, elle ne
+            transmet pas la ref DOM que TooltipTrigger asChild lui poserait. */}
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            <PopoverTrigger
+              aria-label={label}
+              className={cn(
+                buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
+                'cursor-pointer rounded-[9px] text-[var(--faint)] transition-colors duration-150',
+                'hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]',
+                'motion-reduce:transition-none',
+                open && 'text-[var(--accent)] bg-[var(--accent-soft)]',
+              )}
+            >
+              <InfoIcon size={18} strokeWidth={1.75} />
+            </PopoverTrigger>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>{label}</TooltipContent>
       </Tooltip>
 
-      <Popover
-        id={panelId}
-        open={open}
-        anchorEl={anchorEl}
-        onClose={handleClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        slotProps={{
-          paper: {
-            role: 'dialog',
-            'aria-label': title,
-            sx: {
-              position: 'relative',
-              mt: 0.75,
-              width: { xs: 'calc(100vw - 32px)', sm: 420 },
-              maxWidth: 460,
-              borderRadius: '14px',
-              border: '1px solid var(--line)',
-              bgcolor: 'var(--card)',
-              backgroundImage:
-                'radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, var(--accent) 4%, transparent) 0%, transparent 60%)',
-              boxShadow: '0 12px 32px -8px color-mix(in srgb, var(--ink) 22%, transparent)',
-              overflow: 'hidden',
-              p: { xs: 1.75, sm: 2.25 },
-              // Single allowed filet — 1 px top accent (pas un side-stripe).
-              '&::before': {
-                content: '""',
-                position: 'absolute',
-                top: 0, left: 0, right: 0,
-                height: '1px',
-                bgcolor: 'var(--accent)',
-                opacity: 0.5,
-              },
-            },
-          },
+      <PopoverContent
+        role="dialog"
+        aria-label={title}
+        side="bottom"
+        align="end"
+        sideOffset={4}
+        // Filet 1 px en haut (accent) — seul filet autorise, pas un side-stripe.
+        className={cn(
+          'relative overflow-hidden rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]',
+          'w-[calc(100vw-32px)] max-w-[460px] min-[600px]:w-[420px]',
+          'p-[10.5px] min-[600px]:p-[13.5px]',
+          "before:content-[''] before:absolute before:top-0 before:inset-x-0 before:h-px before:bg-[var(--accent)] before:opacity-50",
+        )}
+        style={{
+          backgroundImage:
+            'radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, var(--accent) 4%, transparent) 0%, transparent 60%)',
+          boxShadow: '0 12px 32px -8px color-mix(in srgb, var(--ink) 22%, transparent)',
         }}
       >
         {/* Header — chip AIDE + titre */}
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 0.75 }}>
-          <Box
-            sx={{
-              fontSize: '10.5px',
-              fontWeight: 700,
-              letterSpacing: '.06em',
-              textTransform: 'uppercase',
-              color: 'var(--accent)',
-              bgcolor: 'var(--accent-soft)',
-              border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
-              borderRadius: '8px',
-              px: 0.75,
-              py: 0.25,
-              mt: 0.25,
-              flexShrink: 0,
-              lineHeight: 1.2,
-            }}
-            aria-hidden
-          >
+        <div className="flex items-start gap-1.5 mb-1">
+          <div className="text-[10.5px] font-bold tracking-[.06em] uppercase text-[var(--accent)] bg-[var(--accent-soft)] border border-solid border-[color-mix(in_srgb,_var(--accent)_25%,_transparent)] rounded-[8px] px-[4.5px] py-[1.5px] mt-[1.5px] shrink-0 leading-[1.2]" aria-hidden>
             AIDE
-          </Box>
-          <Typography
-            sx={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 15,
-              fontWeight: 600,
-              color: 'var(--ink)',
-              lineHeight: 1.3,
-              letterSpacing: '-.01em',
-              flex: 1,
-              textWrap: 'balance',
-            }}
-          >
+          </div>
+          <p className="cn-text-body1 [font-family:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] leading-[1.3] tracking-[-.01em] flex-1 text-balance">
             {title}
-          </Typography>
-        </Box>
+          </p>
+        </div>
 
         {/* Description */}
-        <Typography
-          sx={{
-            fontSize: '12.5px',
-            color: 'var(--muted)',
-            lineHeight: 1.55,
-            mb: steps.length > 0 ? 2 : 0,
-          }}
-        >
+        <p className={cn('cn-text-body1 text-[12.5px] text-[var(--muted)] leading-[1.55]', steps.length > 0 ? 'mb-3' : 'mb-0')}>
           {description}
-        </Typography>
+        </p>
 
         {/* Étapes — colonne unique pour une lecture verticale dans le popover */}
         <HelpStepsGrid steps={steps} columns={1} />
-      </Popover>
-    </>
+      </PopoverContent>
+    </Popover>
   );
 };
 

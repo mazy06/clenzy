@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Box, IconButton, Popper, Paper, Grow, ClickAwayListener, Typography, useTheme, alpha, Tooltip } from '@mui/material';
-import type { PopperPlacementType } from '@mui/material';
-import type { Instance as PopperInstance } from '@popperjs/core';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from './ui';
+import { cn } from '../utils/cn';
 import { useLocation } from 'react-router-dom';
 import { Close as CloseIcon, Fullscreen as FullscreenIcon } from '../icons';
 import BaitlyMarkLogo from './BaitlyMarkLogo';
@@ -11,7 +10,10 @@ import { ChatInput } from '../modules/assistant/components/ChatInput';
 import { ToolConfirmationDialog } from '../modules/assistant/components/ToolConfirmationDialog';
 import AssistantExpandedDialog from '../modules/assistant/components/AssistantExpandedDialog';
 
-const BUBBLE_WIDTH = 400;
+/** Marge minimale entre la bulle et le bord de l'ecran. */
+const MARGE_ECRAN = 8;
+/** De combien la bulle mord dans le vide qui entoure l'orbe (cf. l'effet ci-dessous). */
+const MORSURE = 14;
 const FAB_SIZE = 80;
 const FAB_OFFSET = 24;
 
@@ -154,7 +156,7 @@ function positionToStyle(pos: FabPosition): Pick<React.CSSProperties, 'top' | 'r
  * dediee /assistant a ete supprimee, ce widget la remplace), present sur toutes
  * les pages.
  *
- * <p>Compose un FAB draggable (le logo Baitly) + une bulle (Popper) ancree a ce
+ * <p>Compose un FAB draggable (le logo Baitly) + une bulle ancree a ce
  * logo (mini chat), agrandissable en plein ecran via {@link AssistantExpandedDialog}
  * qui ajoute l'historique des conversations. Reutilise les memes primitives
  * ({@link MessageList}, {@link ChatInput}).</p>
@@ -173,7 +175,6 @@ function positionToStyle(pos: FabPosition): Pick<React.CSSProperties, 'top' | 'r
  * persistees backend et listees dans l'historique du mode plein ecran.</p>
  */
 const AssistantWidget: React.FC = () => {
-  const theme = useTheme();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   // Mode d'affichage : bulle compacte ancree au logo, ou plein ecran (Dialog
@@ -185,9 +186,9 @@ const AssistantWidget: React.FC = () => {
   // haut -> vers le bas ; a droite -> alignee a droite (s'etend vers le centre),
   // a gauche -> alignee a gauche.
   const fabRef = useRef<HTMLButtonElement | null>(null);
-  // Instance Popper.js : permet de forcer un repositionnement (update) quand le
-  // logo bouge, pour que la bulle suive l'orbe en temps reel.
-  const popperRef = useRef<PopperInstance | null>(null);
+  const bubbleRef = useRef<HTMLDivElement | null>(null);
+  // Boite de la bulle en coordonnees viewport, recalculee des que le logo bouge.
+  const [bubbleBox, setBubbleBox] = useState<React.CSSProperties>({});
   const [bubbleDir, setBubbleDir] = useState<{ up: boolean; right: boolean }>({ up: true, right: true });
 
   const {
@@ -252,12 +253,39 @@ const AssistantWidget: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // La bulle suit l'orbe en temps reel : a chaque mouvement du logo (offset de
-  // drag, snap au relache, ou bascule de cote/alignement), on force le Popper a
-  // recalculer sa position. update() est no-op si la bulle n'est pas montee.
+  // La bulle suit l'orbe en temps reel : a chaque mouvement du logo (glisser,
+  // retour au bord, ou bascule de cote) on recalcule sa boite depuis celle du
+  // logo. Le logo est en `fixed` et sa boite est connue, si bien qu'un moteur
+  // de positionnement generique n'apportait rien ici — c'est d'ailleurs pour
+  // cela que la version precedente devait lui reclamer un recalcul manuel a
+  // chaque image du geste.
   useEffect(() => {
-    popperRef.current?.update();
-  }, [fabPosition, dragOffset, bubbleDir]);
+    if (!open || view !== 'bubble') return;
+    const logo = fabRef.current?.getBoundingClientRect();
+    if (!logo) return;
+    const boite: React.CSSProperties = {};
+    // La bulle « mord » de 14px dans le vide qui entoure l'orbe a l'interieur
+    // de la zone cliquable de 80px, pour se coller a lui plutot qu'au bord.
+    if (bubbleDir.right) boite.right = Math.max(MARGE_ECRAN, window.innerWidth - logo.left - MORSURE);
+    else boite.left = Math.max(MARGE_ECRAN, logo.right - MORSURE);
+    if (bubbleDir.up) boite.bottom = Math.max(MARGE_ECRAN, window.innerHeight - logo.bottom);
+    else boite.top = Math.max(MARGE_ECRAN, logo.top);
+    setBubbleBox(boite);
+  }, [open, view, fabPosition, dragOffset, bubbleDir]);
+
+  // Fermeture au clic hors de la bulle. Le logo est exclu : c'est lui qui porte
+  // la bascule ouvrir/fermer, et le laisser passer ici la declencherait deux fois.
+  useEffect(() => {
+    if (!open || view !== 'bubble') return;
+    const surClicExterieur = (e: PointerEvent) => {
+      const cible = e.target as Node;
+      if (bubbleRef.current?.contains(cible)) return;
+      if (fabRef.current?.contains(cible)) return;
+      handleClose();
+    };
+    document.addEventListener('pointerdown', surClicExterieur);
+    return () => document.removeEventListener('pointerdown', surClicExterieur);
+  }, [open, view, handleClose]);
 
   const handleFabPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -289,7 +317,7 @@ const AssistantWidget: React.FC = () => {
       setDragOffset({ dx, dy });
       // Suivi temps reel : recalcule cote/alignement depuis la position courante
       // du logo (centre = depart + delta). Ne met a jour que si ca change, pour
-      // limiter les re-renders. Le useEffect ci-dessus force ensuite le Popper a
+      // limiter les re-renders. Le useEffect ci-dessus force ensuite la bulle a
       // suivre l'orbe.
       if (open) {
         const left = dragStateRef.current.startFabLeft + dx;
@@ -351,11 +379,9 @@ const AssistantWidget: React.FC = () => {
   // gauche du logo (donc sur le bord droit de l'ecran), logo a gauche -> bulle
   // a droite du logo. L'alignement vertical suit la moitie haute/basse (logo en
   // bas -> la bulle s'etend vers le haut, en haut -> vers le bas). L'origine du
-  // Grow est le coin face au logo, pour que la bulle "sorte" du logo.
-  const bubblePlacement: PopperPlacementType =
-    `${bubbleDir.right ? 'left' : 'right'}-${bubbleDir.up ? 'end' : 'start'}`;
+  // L'origine de l'animation est le coin face au logo, pour que la bulle
+  // "sorte" du logo.
   const growOrigin = `${bubbleDir.right ? 'right' : 'left'} ${bubbleDir.up ? 'bottom' : 'top'}`;
-  const bubbleBorder = alpha(theme.palette.text.primary, 0.08);
 
   return (
     <>
@@ -368,46 +394,39 @@ const AssistantWidget: React.FC = () => {
 
           Pas de bg color : le mark seul fait l'affordance visuelle.
           Pas de shadow : on laisse le mark anime "respirer" sur le fond
-          de page. La zone de clic reste le 80x80 du IconButton. */}
-      <Tooltip title={dragOffset ? '' : 'Assistant'} placement="left">
-        <IconButton
+          de page. La zone de clic reste le 80x80 du bouton. */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+        <button
+          type="button"
           ref={fabRef}
           onClick={handleFabClick}
           onPointerDown={handleFabPointerDown}
           onPointerMove={handleFabPointerMove}
           onPointerUp={handleFabPointerUp}
           aria-label="Ouvrir l'assistant"
-          disableRipple
-          sx={{
-            position: 'fixed',
+          className={cn(
+            'fixed flex items-center justify-center border-none bg-transparent p-0',
+            // `grab` hors glisser, `grabbing` pendant.
+            dragOffset ? 'cursor-grabbing' : 'cursor-grab',
+            // `touch-none` empeche le navigateur de prendre le geste pour un
+            // defilement sur mobile.
+            'touch-none',
+            // Au-dessus de la barre laterale (1200) pour que le logo ne passe
+            // jamais derriere, mais sous les modales (1300) qui le recouvrent.
+            'z-[1201]',
+            // Le retour au bord est anime quand la bulle est FERMEE, instantane
+            // quand elle est OUVERTE : sinon la bulle, qui suit l'orbe, courrait
+            // apres l'animation et se desynchroniserait.
+            dragOffset || open
+              ? 'transition-none'
+              : 'transition-[top,right,bottom,left,transform] duration-[280ms] ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none',
+          )}
+          style={{
             ...positionToStyle(fabPosition),
             width: FAB_SIZE,
             height: FAB_SIZE,
-            bgcolor: 'transparent',
-            // grab quand pas en drag, grabbing pendant, sinon pointer
-            cursor: dragOffset ? 'grabbing' : 'grab',
-            // touchAction: none empeche le browser de scroller pendant le drag
-            // tactile (sinon iOS/Android prennent le geste pour un scroll).
-            touchAction: 'none',
-            // Au-dessus de la navbar (Drawer MUI = zIndex.drawer 1200) pour que
-            // le logo ne passe jamais derriere la sidebar, ouverte ou fermee.
-            // Reste sous les modales (1300) : un dialog ouvert recouvre le FAB.
-            zIndex: theme.zIndex.drawer + 1,
-            // Transform pour drag visuel (free), CSS transition seulement
-            // hors drag (sinon snap n'est pas anime).
             transform: dragOffset ? `translate(${dragOffset.dx}px, ${dragOffset.dy}px)` : 'none',
-            // Snap anime quand la bulle est FERMEE ; instantane quand elle est
-            // OUVERTE (sinon la bulle, qui suit l'orbe via popperRef.update(),
-            // courrait apres l'animation de snap et se desynchroniserait).
-            transition: dragOffset || open
-              ? 'none'
-              : 'top 280ms cubic-bezier(0.4, 0, 0.2, 1), right 280ms cubic-bezier(0.4, 0, 0.2, 1), bottom 280ms cubic-bezier(0.4, 0, 0.2, 1), left 280ms cubic-bezier(0.4, 0, 0.2, 1), transform 200ms ease-out',
-            '&:hover': {
-              bgcolor: 'transparent', // empeche le hover MUI par defaut
-            },
-            '@media (prefers-reduced-motion: reduce)': {
-              transition: dragOffset ? 'none' : 'top 0ms, right 0ms, bottom 0ms, left 0ms',
-            },
           }}
         >
           {/* tone="auto" : couleur brand (#6B8A9A) sur le fond page clair.
@@ -419,15 +438,13 @@ const AssistantWidget: React.FC = () => {
           {/* Le logo retrecit quand la fenetre est ouverte et reprend sa taille
               a la fermeture (effet inverse), pour lier visuellement le logo a la
               bulle qui "sort" de lui. Scale applique sur ce wrapper (pas sur le
-              IconButton) pour ne pas entrer en conflit avec le translate du drag.
+              bouton) pour ne pas entrer en conflit avec le translate du drag.
               Easing legerement elastique (overshoot) pour un "pop". */}
-          <Box
-            sx={{
-              display: 'flex',
-              transform: open ? 'scale(0.62)' : 'scale(1)',
-              transition: 'transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            }}
+          <div
+            className={cn(
+              'flex transition-transform duration-[260ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none',
+              open ? 'scale-[0.62]' : 'scale-100',
+            )}
           >
             <BaitlyMarkLogo
               variant="mark"
@@ -435,85 +452,41 @@ const AssistantWidget: React.FC = () => {
               idleAnimation={false}
               active
             />
-          </Box>
-        </IconButton>
+          </div>
+        </button>
+        </TooltipTrigger>
+        {/* Pas d'infobulle pendant le glisser : elle suivrait le curseur au
+            milieu du geste. */}
+        {!dragOffset && <TooltipContent side="left">Assistant</TooltipContent>}
       </Tooltip>
 
       {/* ── Bulle ancree au logo (FAB) ─────────────────────────────────
-          Remplace l'ancien Drawer pleine hauteur : un Popper ancre au FAB,
+          Remplace l'ancien Drawer pleine hauteur : une bulle ancree au FAB,
           place TOUJOURS sur le COTE du logo (logo a droite -> bulle a sa gauche
           = bord droit de l'ecran ; logo a gauche -> a sa droite), aligne en haut
           ou en bas selon la moitie, et colle tout pres de l'orbe (offset negatif).
           flip desactive pour rester coherent ; preventOverflow garde la bulle a
           l'ecran. */}
-      <Popper
-        open={open && view === 'bubble'}
-        anchorEl={fabRef.current}
-        popperRef={popperRef}
-        placement={bubblePlacement}
-        transition
-        modifiers={[
-          // Offset NEGATIF : le FAB fait 80px avec l'orbe (reduit) centre dedans
-          // (~17px de vide jusqu'au bord). On "mord" dans ce vide pour coller la
-          // fenetre tout pres de l'orbe au lieu du bord de la zone de clic.
-          { name: 'offset', options: { offset: [0, -14] } },
-          { name: 'preventOverflow', options: { boundary: 'viewport', padding: 8 } },
-          { name: 'flip', enabled: false },
-        ]}
-        sx={{ zIndex: theme.zIndex.modal }}
-      >
-        {({ TransitionProps }) => (
-          <Grow {...TransitionProps} timeout={220} style={{ transformOrigin: growOrigin }}>
-            <Box sx={{ position: 'relative' }}>
-              {/* Fleche retiree : la bulle est collee tout pres de l'orbe et
-                  l'animation de retrecissement du logo suffit a les relier. */}
-              <ClickAwayListener
-                onClickAway={(e) => {
-                  // Ne pas fermer si on reclique le FAB (il gere le toggle).
-                  if (fabRef.current && fabRef.current.contains(e.target as Node)) return;
-                  handleClose();
-                }}
-              >
-                <Paper
-                  elevation={0}
-                  sx={{
-                    position: 'relative',
-                    zIndex: 1,
-                    width: { xs: 'calc(100vw - 32px)', sm: BUBBLE_WIDTH },
-                    maxWidth: 'calc(100vw - 32px)',
-                    height: { xs: 'calc(100dvh - 160px)', sm: 'min(70vh, 600px)' },
-                    maxHeight: 'calc(100dvh - 32px)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    overflow: 'hidden',
-                    borderRadius: '22px',
-                    border: `0.5px solid ${bubbleBorder}`,
-                    bgcolor: theme.palette.background.default,
-                    boxShadow: `0 20px 50px -12px ${alpha(theme.palette.primary.main, 0.42)}, 0 6px 16px -6px ${alpha(theme.palette.primary.main, 0.22)}`,
-                  }}
-                >
+      {open && view === 'bubble' && (
+        <div
+          ref={bubbleRef}
+          className={cn(
+            'fixed z-[1300] flex flex-col overflow-hidden',
+            'w-[calc(100vw-32px)] min-[600px]:w-[400px] max-w-[calc(100vw-32px)]',
+            'h-[calc(100dvh-160px)] min-[600px]:h-[min(70vh,600px)] max-h-[calc(100dvh-32px)]',
+            'rounded-[22px] border-[0.5px] border-solid border-[color-mix(in_srgb,var(--ink)_8%,transparent)]',
+            'bg-[var(--bg)]',
+            'shadow-[0_20px_50px_-12px_color-mix(in_srgb,var(--mui-primary)_42%,transparent),0_6px_16px_-6px_color-mix(in_srgb,var(--mui-primary)_22%,transparent)]',
+            // Remplace la transition `Grow` : meme duree, meme point d'origine
+            // — la bulle « sort » du coin qui fait face au logo.
+            'animate-in fade-in zoom-in-95 duration-[220ms] motion-reduce:animate-none',
+          )}
+          style={{ ...bubbleBox, transformOrigin: growOrigin }}
+        >
         {/* Header — L2 panel teinte, pas de border-bottom (le contraste bg-vs-flux
             de messages cree la separation visuelle) */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            px: 2,
-            py: 1.25,
-            bgcolor: alpha(theme.palette.text.primary, 0.025),
-            flexShrink: 0,
-          }}
-        >
-          <Box
-            sx={{
-              width: 28,
-              height: 28,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
+        <div className="flex items-center gap-1.5 px-3 py-[7.5px] shrink-0 bg-[color-mix(in_srgb,var(--ink)_2.5%,transparent)]">
+          <div className="w-[28px] h-[28px] flex items-center justify-center">
             {/* Header du drawer : pas de bg circulaire (le mark se suffit
                 a lui-meme). active={isWorking} declenche l'animation
                 hover-equivalent quand l'IA travaille. */}
@@ -523,94 +496,77 @@ const AssistantWidget: React.FC = () => {
               idleAnimation={false}
               active={isWorking}
             />
-          </Box>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="subtitle2" sx={{ lineHeight: 1.2, fontWeight: 600 }}>
+          </div>
+          <div className="flex-1">
+            <h6 className="cn-text-subtitle2 leading-[1.2] font-semibold">
               Assistant
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
+            </h6>
+            <span className="cn-text-caption text-muted-foreground leading-[1]">
               {messages.length === 0 ? 'Que veux-tu savoir ?' : `${messages.length} message${messages.length > 1 ? 's' : ''}`}
-            </Typography>
-          </Box>
-          <Tooltip title="Agrandir">
-            <IconButton
-              size="small"
-              onClick={handleExpand}
-              aria-label="Agrandir en plein ecran"
-              sx={{ cursor: 'pointer' }}
-            >
-              <FullscreenIcon size={16} />
-            </IconButton>
+            </span>
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon-sm" onClick={handleExpand} aria-label="Agrandir en plein ecran">
+                <FullscreenIcon size={16} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Agrandir</TooltipContent>
           </Tooltip>
-          <Tooltip title="Fermer">
-            <IconButton
-              size="small"
-              onClick={handleClose}
-              aria-label="Fermer"
-              sx={{ cursor: 'pointer' }}
-            >
-              <CloseIcon size={16} />
-            </IconButton>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon-sm" onClick={handleClose} aria-label="Fermer">
+                <CloseIcon size={16} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Fermer</TooltipContent>
           </Tooltip>
-        </Box>
+        </div>
 
         {/* Messages */}
         <MessageList
           messages={messages}
           emptyState={
-            <Box sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 1.5,
-              py: 4,
-              px: 3,
-              height: '100%',
-              textAlign: 'center',
-            }}>
-              <Box sx={{
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
-                bgcolor: alpha(theme.palette.primary.main, 0.1),
-                color: theme.palette.primary.main,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
+            <div className="flex flex-col items-center justify-center gap-2 py-6 px-4 h-full text-center">
+              <div className="w-[48px] h-[48px] rounded-[50%] flex items-center justify-center bg-[color-mix(in_srgb,var(--mui-primary)_10%,transparent)] text-[var(--mui-primary)]">
                 {/* Empty state du drawer : pas d'active (pas de conversation
                     en cours), mais animation idle gardee pour le wow d'arrivee. */}
                 <BaitlyMarkLogo variant="mark" size={26} />
-              </Box>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              </div>
+              <p className="cn-text-body2 font-semibold">
                 Pose ta question
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 280 }}>
+              </p>
+              <span className="cn-text-caption text-muted-foreground max-w-[280px]">
                 J&apos;utilise tes donnees Baitly en temps reel. Pour un historique
                 complet, ouvre la page Assistant.
-              </Typography>
-            </Box>
+              </span>
+              {/* Les puces de la projection — memes amorces que le dock. */}
+              <div className="mt-1 flex flex-wrap justify-center gap-1.5">
+                {[
+                  'Analyse tes réservations',
+                  'Quel est mon taux d’occupation ?',
+                  'Prépare les arrivées de la semaine',
+                ].map((phrase) => (
+                  <Button
+                    key={phrase}
+                    size="xs"
+                    variant="outline"
+                    className="rounded-full"
+                    onClick={() => sendMessage(phrase)}
+                  >
+                    {phrase}
+                  </Button>
+                ))}
+              </div>
+            </div>
           }
         />
 
         {/* Error banner — bg solide, pas de border */}
         {error && (
-          <Box
-            sx={{
-              mx: 1.5,
-              mb: 1,
-              px: 1.5,
-              py: 1,
-              bgcolor: alpha(theme.palette.error.main, 0.10),
-              color: theme.palette.error.dark,
-              fontSize: '0.8125rem',
-              fontWeight: 500,
-              borderRadius: 2,
-            }}
-          >
+          <div className="mx-[9px] mb-1.5 px-[9px] py-1.5 text-[0.8125rem] font-medium rounded-[16px] bg-[color-mix(in_srgb,var(--err)_10%,transparent)] text-[var(--err)]">
             {error}
-          </Box>
+          </div>
         )}
 
         {/* Input */}
@@ -624,45 +580,20 @@ const AssistantWidget: React.FC = () => {
         {/* Reset action visible only when there are messages — pas de border,
             le bg L2 + l'input panel L2 se touchent (pas besoin de separation) */}
         {messages.length > 0 && (
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'center',
-              py: 0.5,
-              bgcolor: alpha(theme.palette.text.primary, 0.025),
-              flexShrink: 0,
-            }}
-          >
-            <Typography
-              component="button"
-              variant="caption"
+          <div className="flex justify-center py-[3px] shrink-0 bg-[color-mix(in_srgb,var(--ink)_2.5%,transparent)]">
+            {/* color-mix(... 6%, transparent) est l'exact equivalent CSS de
+                l'ancien alpha(primary.main, 0.06) : un survol ne peut pas
+                vivre en style inline. */}
+            <button
               onClick={reset}
-              sx={{
-                background: 'none',
-                border: 'none',
-                color: theme.palette.text.secondary,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                fontSize: '0.75rem',
-                py: 0.5,
-                px: 1.5,
-                borderRadius: 1,
-                '&:hover': {
-                  color: theme.palette.primary.main,
-                  bgcolor: alpha(theme.palette.primary.main, 0.06),
-                },
-              }}
+              className="cn-text-caption bg-transparent border-none [font-family:inherit] text-[0.75rem] text-[var(--muted)] cursor-pointer py-[3px] px-[9px] rounded-[8px] hover:text-[var(--mui-primary)] hover:bg-[color-mix(in_srgb,var(--mui-primary)_6%,transparent)]"
             >
               Nouvelle conversation
-            </Typography>
-          </Box>
+            </button>
+          </div>
         )}
-                </Paper>
-              </ClickAwayListener>
-            </Box>
-          </Grow>
-        )}
-      </Popper>
+        </div>
+      )}
 
       {/* ── Vue agrandie : plein ecran + historique des conversations ──────
           Montee uniquement en mode plein ecran (les hooks d'historique/usage

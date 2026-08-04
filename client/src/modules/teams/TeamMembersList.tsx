@@ -1,20 +1,15 @@
 import React, { useState, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
 import {
-  Box,
+  Avatar,
+  AvatarFallback,
+  Button,
   Card,
   CardContent,
-  Typography,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Avatar,
-  Chip,
-  Divider,
-  IconButton,
-  ToggleButton,
-  ToggleButtonGroup,
-} from '@mui/material';
+  Separator,
+  ToggleGroup,
+  ToggleGroupItem,
+} from '../../components/ui';
 import {
   Delete,
   SortByAlpha,
@@ -123,8 +118,11 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
     return sorted;
   }, [members, sortBy]);
 
-  const handleSortChange = (_: React.MouseEvent<HTMLElement>, newSort: SortBy | null) => {
-    if (newSort !== null) {
+  // ToggleGroup rend une chaine vide quand on deselectionne l'item actif :
+  // on ignore ce cas pour garder un tri toujours defini (equivalent du
+  // `newSort !== null` de ToggleButtonGroup).
+  const handleSortChange = (newSort: string) => {
+    if (newSort === 'name' || newSort === 'role') {
       setSortBy(newSort);
     }
   };
@@ -144,25 +142,32 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
 
   return (
     <Card>
-      <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6" sx={{ color: 'var(--ink)', fontWeight: 600 }}>
+      <CardContent className="p-[18px]">
+        <div className="flex justify-between items-center mb-3">
+          <h6 className="cn-text-h6 text-[var(--ink)] font-semibold">
             {t('teams.members.title')} ({members.length})
-          </Typography>
-          <ToggleButtonGroup value={sortBy} exclusive onChange={handleSortChange} size="small">
-            <ToggleButton value="name" sx={{ px: 1.5, py: 0.5 }}>
-              <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><SortByAlpha size={16} strokeWidth={1.75} /></Box>
-              <Typography variant="caption">{t('teams.members.sortByName')}</Typography>
-            </ToggleButton>
-            <ToggleButton value="role" sx={{ px: 1.5, py: 0.5 }}>
-              <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><Badge size={16} strokeWidth={1.75} /></Box>
-              <Typography variant="caption">{t('teams.members.sortByRole')}</Typography>
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
+          </h6>
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            spacing={0}
+            value={sortBy}
+            onValueChange={handleSortChange}
+          >
+            <ToggleGroupItem value="name">
+              <SortByAlpha size={16} strokeWidth={1.75} />
+              <span className="cn-text-caption">{t('teams.members.sortByName')}</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="role">
+              <Badge size={16} strokeWidth={1.75} />
+              <span className="cn-text-caption">{t('teams.members.sortByRole')}</span>
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
 
         {sortedMembers.length > 0 ? (
-          <List>
+          <div>
             {sortedMembers.map((member, index) => {
               const memberId = member.userId || member.id;
               const interventionCount = memberInterventionCounts.counts[memberId] || 0;
@@ -171,66 +176,56 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
 
               return (
                 <React.Fragment key={memberId}>
-                  <ListItem
-                    sx={{ px: 1, py: 1.5 }}
-                    secondaryAction={
-                      canEdit && onRemoveMember ? (
-                        <IconButton edge="end" color="error" size="small" onClick={() => onRemoveMember(memberId)}>
-                          <Delete size={18} strokeWidth={1.75} />
-                        </IconButton>
-                      ) : undefined
-                    }
-                  >
-                    <ListItemAvatar>
-                      <Avatar sx={{ bgcolor: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-display)', fontWeight: 600, borderRadius: '10px', width: 36, height: 36 }}>
+                  <div className="flex items-center gap-3 px-1.5 py-[9px]">
+                    <Avatar className="size-9 rounded-[10px] shrink-0">
+                      <AvatarFallback className="rounded-[10px] bg-[var(--accent)] text-[var(--on-accent)] font-[family-name:var(--font-display)] font-semibold">
                         {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          <Typography variant="body1" fontWeight={500}>
-                            {member.firstName} {member.lastName}
-                          </Typography>
-                          {(() => { const c = getRoleHex(member.roleInTeam || member.role); return (
-                            <Chip
-                              label={getRoleLabel(member.roleInTeam || member.role)}
-                              size="small"
-                              sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, '& .MuiChip-label': { px: 0.75 } }}
-                            />
-                          ); })()}
-                          {(() => { const c = isAvailable ? '#4A9B8E' : '#D4A574'; return (
-                            <Chip
-                              label={isAvailable ? t('teams.workload.available') : t('teams.workload.busy')}
-                              size="small"
-                              sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, '& .MuiChip-label': { px: 0.75 } }}
-                            />
-                          ); })()}
-                        </Box>
-                      }
-                      secondary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            {member.email || member.userEmail}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            - {interventionCount} {t('teams.members.interventionCount')}
-                          </Typography>
-                        </Box>
-                      }
-                    />
-                  </ListItem>
-                  {index < sortedMembers.length - 1 && <Divider />}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="cn-text-body1 font-medium">
+                          {member.firstName} {member.lastName}
+                        </p>
+                        {(() => { const c = getRoleHex(member.roleInTeam || member.role); return (
+                          <StatusChip tokens={{ color: c, bg: `${c}18` }} label={getRoleLabel(member.roleInTeam || member.role)} className="h-[24px] text-[0.7rem]" />
+                        ); })()}
+                        {(() => { const c = isAvailable ? '#4A9B8E' : '#D4A574'; return (
+                          <StatusChip tokens={{ color: c, bg: `${c}18` }} label={isAvailable ? t('teams.workload.available') : t('teams.workload.busy')} className="h-[24px] text-[0.7rem]" />
+                        ); })()}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="cn-text-body2 text-muted-foreground">
+                          {member.email || member.userEmail}
+                        </p>
+                        <span className="cn-text-caption text-muted-foreground">
+                          - {interventionCount} {t('teams.members.interventionCount')}
+                        </span>
+                      </div>
+                    </div>
+                    {canEdit && onRemoveMember && (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t('teams.members.removeMember', 'Retirer le membre')}
+                        className="shrink-0 text-[var(--err)] hover:text-[var(--err)]"
+                        onClick={() => onRemoveMember(memberId)}
+                      >
+                        <Delete size={18} strokeWidth={1.75} />
+                      </Button>
+                    )}
+                  </div>
+                  {index < sortedMembers.length - 1 && <Separator />}
                 </React.Fragment>
               );
             })}
-          </List>
+          </div>
         ) : (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography variant="body1" color="text.secondary">
+          <div className="text-center py-6">
+            <p className="cn-text-body1 text-muted-foreground">
               {t('teams.members.noMembers')}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         )}
       </CardContent>
     </Card>

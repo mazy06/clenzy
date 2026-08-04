@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, Button, Skeleton } from '@mui/material';
+import { Button, Skeleton } from '../../components/ui';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, GridView, ChevronLeft } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/StatTile';
@@ -10,7 +10,7 @@ import DeviceCard from './components/DeviceCard';
 import AddDeviceWizard from './components/AddDeviceWizard';
 import type { DeviceAction } from './types';
 
-const GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(248px, 1fr))', gap: 1 } as const;
+const GRID = 'grid grid-cols-[repeat(auto-fill,_minmax(248px,_1fr))] gap-1.5';
 
 export default function PropertyDevicesView() {
   const { id } = useParams<{ id: string }>();
@@ -47,7 +47,7 @@ export default function PropertyDevicesView() {
   };
 
   return (
-    <Box>
+    <div>
       <PageHeader
         title={propertyName}
         subtitle="Objets connectés de ce logement"
@@ -55,46 +55,47 @@ export default function PropertyDevicesView() {
         backPath="/connected-objects"
         backLabel="Objets connectés"
         actions={
-          <Button variant="contained" size="small" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>
+          <Button size="sm" onClick={() => setWizardOpen(true)}>
+            <Add size={16} strokeWidth={2} />
             Ajouter un objet
           </Button>
         }
       />
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 1, mb: 1.5 }}>
+      <div className="grid grid-cols-[repeat(auto-fit,_minmax(140px,_1fr))] gap-1.5 mb-[9px]">
         <StatTile icon={<Inventory2 />} label="Objets" value={kpis.total} color="#6B8A9A" loading={loading} />
         <StatTile icon={<MonitorHeart />} label="En ligne" value={kpis.online} color="#4A9B8E" loading={loading} />
         <StatTile icon={<WifiOff />} label="Hors ligne" value={kpis.offline} color="#9CA3AF" loading={loading} />
         <StatTile icon={<BatteryAlert />} label="Batterie faible" value={kpis.lowBattery} color="#D4A574" loading={loading} />
-      </Box>
+      </div>
 
       {loading ? (
-        <Box sx={GRID}>
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} variant="rounded" height={132} sx={{ borderRadius: 'var(--radius-lg)' }} />)}
-        </Box>
+        <div className={GRID}>
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[132px] w-full rounded-[var(--radius-lg)]" />)}
+        </div>
       ) : propertyDevices.length === 0 ? (
         <EmptyState
           icon={<Inventory2 />}
           title="Aucun objet dans ce logement"
           description="Ajoutez une serrure, un capteur sonore ou un point de remise des clés pour ce logement."
-          action={<Button variant="outlined" startIcon={<Add size={16} strokeWidth={2} />} onClick={() => setWizardOpen(true)}>Ajouter un objet</Button>}
+          action={<Button variant="outline" onClick={() => setWizardOpen(true)}><Add size={16} strokeWidth={2} />Ajouter un objet</Button>}
         />
       ) : (
         rooms.map(([room, list]) => (
-          <Box key={room} sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.875 }}>
-              <Box component="span" sx={{ color: 'text.secondary', display: 'inline-flex' }}>
+          <div className="mb-3" key={room}>
+            <div className="flex items-center gap-1 mb-1.5">
+              <span className="text-muted-foreground inline-flex">
                 <GridView size={15} strokeWidth={1.75} />
-              </Box>
-              <Typography sx={{ fontWeight: 600, fontSize: '0.9375rem', color: 'text.primary' }}>
+              </span>
+              <p className="cn-text-body1 font-semibold text-[0.9375rem] text-foreground">
                 {room === '__none__' ? 'Sans pièce attribuée' : room}
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>· {list.length}</Typography>
-            </Box>
-            <Box sx={GRID}>
+              </p>
+              <span className="cn-text-caption text-muted-foreground opacity-60">· {list.length}</span>
+            </div>
+            <div className={GRID}>
               {list.map((d) => <DeviceCard key={d.uid} device={d} onAction={handleAction} acting={actingUid === d.uid} />)}
-            </Box>
-          </Box>
+            </div>
+          </div>
         ))
       )}
 
@@ -105,9 +106,10 @@ export default function PropertyDevicesView() {
         defaultPropertyId={propertyId}
       />
       {/* Lien retour secondaire pour les écrans étroits */}
-      <Button variant="text" size="small" startIcon={<ChevronLeft size={16} strokeWidth={1.75} />} onClick={() => navigate('/connected-objects')} sx={{ mt: 1, color: 'text.secondary' }}>
+      <Button variant="ghost" size="sm" onClick={() => navigate('/connected-objects')} className="mt-1.5 text-[var(--muted)]">
+        <ChevronLeft size={16} strokeWidth={1.75} />
         Tous les objets
       </Button>
-    </Box>
+    </div>
   );
 }

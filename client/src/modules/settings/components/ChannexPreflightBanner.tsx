@@ -21,17 +21,20 @@
  * existe.</p>
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import {
-  Box,
-  Typography,
-  IconButton,
-  CircularProgress,
   Alert,
-  Collapse,
-  Stack,
+  AlertDescription,
+  Button,
+  Collapsible,
+  CollapsibleContent,
   Skeleton,
+  Spinner,
   Tooltip,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import {
   CheckCircle2,
   AlertTriangle,
@@ -70,55 +73,24 @@ function SeverityIcon({ severity }: { severity: ChannexPreflightCheck['severity'
 function CheckRow({ check }: { check: ChannexPreflightCheck }) {
   const isIssue = check.severity !== 'OK';
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        gap: 1.25,
-        py: 0.65,
-        px: 1,
-        borderRadius: 0.75,
-        alignItems: 'flex-start',
-        bgcolor: isIssue
-          ? check.severity === 'BLOCKER'
-            ? 'color-mix(in srgb, var(--err) 5%, transparent)'
-            : 'color-mix(in srgb, var(--warn) 5%, transparent)'
-          : 'transparent',
-      }}
-    >
-      <Box sx={{ mt: 0.2, flexShrink: 0 }}>
+    <div className={cn('flex gap-[7.5px] py-[3.9000000000000004px] px-1.5 rounded-[6px] items-start', isIssue ? (check.severity === 'BLOCKER' ? 'bg-[color-mix(in_srgb,var(--err)_5%,transparent)]' : 'bg-[color-mix(in_srgb,var(--warn)_5%,transparent)]') : 'bg-[transparent]')}>
+      <div className="mt-0.5 shrink-0">
         <SeverityIcon severity={check.severity} />
-      </Box>
-      <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Typography
-          variant="body2"
-          fontWeight={isIssue ? 600 : 500}
-          sx={{ lineHeight: 1.3, color: 'text.primary' }}
-        >
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className={cn('cn-text-body2 leading-[1.3] text-[var(--ink)]', isIssue ? 'font-semibold' : 'font-medium')}>
           {check.label}
-        </Typography>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ display: 'block', lineHeight: 1.45, mt: 0.15 }}
-        >
+        </p>
+        <span className="cn-text-caption text-muted-foreground block leading-[1.45] mt-0">
           {check.detail}
-        </Typography>
+        </span>
         {check.remediation && (
-          <Typography
-            variant="caption"
-            sx={{
-              display: 'block',
-              lineHeight: 1.45,
-              mt: 0.4,
-              color: check.severity === 'BLOCKER' ? 'var(--err)' : 'var(--warn)',
-              fontStyle: 'italic',
-            }}
-          >
+          <span className={cn('cn-text-caption block leading-[1.45] mt-[2.4000000000000004px] italic', check.severity === 'BLOCKER' ? 'text-[var(--err)]' : 'text-[var(--warn)]')}>
             ↳ {check.remediation}
-          </Typography>
+          </span>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 
@@ -172,99 +144,77 @@ export default function ChannexPreflightBanner({
         : 'var(--ok)';
 
   return (
-    <Box
-      sx={{
-        border: `1px solid ${accent}33`,
-        bgcolor: `${accent}08`,
-        borderRadius: 1,
-        overflow: 'hidden',
-      }}
-    >
+    <div className="rounded-[8px] overflow-hidden" style={{ border: `1px solid ${accent}33`, backgroundColor: `${accent}08` }}>
       {/* Header (toujours visible) */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.25,
-          px: 1.5,
-          py: 1.25,
-          cursor: 'pointer',
-          userSelect: 'none',
-          '&:hover': { bgcolor: `${accent}12` },
-          transition: 'background-color 150ms',
-        }}
+      {/* La teinte de survol depend du verdict (calcule au rendu) : on la passe par
+          variable CSS, une classe Tailwind ne pouvant pas naitre d'une valeur d'execution. */}
+      <div
+        className="flex items-center gap-[7.5px] px-[9px] py-[7.5px] cursor-pointer select-none transition-[background-color] duration-150 hover:bg-[var(--pf-hover)]"
+        style={{ '--pf-hover': `${accent}12` } as React.CSSProperties}
         onClick={() => setCollapsed((c) => !c)}
       >
-        <Box
-          sx={{
-            width: 28,
-            height: 28,
-            borderRadius: 0.75,
-            bgcolor: `${accent}1A`,
-            color: accent,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
+        <div className="w-[28px] h-[28px] rounded-[6px] flex items-center justify-center shrink-0" style={{ backgroundColor: `${accent}1A`, color: accent }}>
           <Stethoscope size={16} strokeWidth={2.2} />
-        </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="cn-text-body2 font-semibold leading-[1.3]">
             Diagnostic Channex
             {propertyId != null && (
-              <Typography
-                component="span"
-                variant="caption"
-                color="text.secondary"
-                sx={{ ml: 0.75, fontWeight: 400 }}
-              >
+              <span className="cn-text-caption text-muted-foreground ms-1 font-normal">
                 · propriete #{propertyId}
-              </Typography>
+              </span>
             )}
-          </Typography>
+          </p>
           {loading && (
-            <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+            <span className="cn-text-caption text-muted-foreground leading-[1.4]">
               Verification en cours…
-            </Typography>
+            </span>
           )}
           {!loading && error && (
-            <Typography variant="caption" color="error" sx={{ lineHeight: 1.4 }}>
+            <span className="cn-text-caption text-destructive leading-[1.4]">
               {error}
-            </Typography>
+            </span>
           )}
           {!loading && report && (
-            <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+            <span className="cn-text-caption text-muted-foreground leading-[1.4]">
               {report.canProceed ? 'Pret a connecter' : 'Action requise avant connexion'}
               {okCount > 0 && ` · ${okCount} OK`}
               {warningCount > 0 && ` · ${warningCount} attention`}
               {blockerCount > 0 && ` · ${blockerCount} bloquant${blockerCount > 1 ? 's' : ''}`}
-            </Typography>
+            </span>
           )}
-        </Box>
-        <Tooltip title="Relancer le diagnostic" arrow placement="top">
-          <span>
-            <IconButton
-              size="small"
-              disabled={loading}
-              onClick={(e) => {
-                e.stopPropagation();
-                void runCheck();
-              }}
-              sx={{ width: 28, height: 28 }}
-            >
-              {loading ? (
-                <CircularProgress size={14} sx={{ color: accent }} />
-              ) : (
-                <RefreshCw size={14} color={accent} strokeWidth={2.2} />
-              )}
-            </IconButton>
-          </span>
+        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {/* Enveloppe : un bouton desactive n'emet plus d'evenement de survol,
+                l'infobulle a besoin d'une cible qui en emette. */}
+            <span className="inline-flex">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Relancer le diagnostic"
+                disabled={loading}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void runCheck();
+                }}
+              >
+                {loading ? (
+                  <Spinner className="size-[14px]" style={{ color: accent }} />
+                ) : (
+                  <RefreshCw size={14} color={accent} strokeWidth={2.2} />
+                )}
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top">Relancer le diagnostic</TooltipContent>
         </Tooltip>
-        <IconButton
-          size="small"
-          sx={{ width: 28, height: 28 }}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label={collapsed ? 'Deplier le diagnostic' : 'Replier le diagnostic'}
           onClick={(e) => {
             e.stopPropagation();
             setCollapsed((c) => !c);
@@ -275,33 +225,36 @@ export default function ChannexPreflightBanner({
           ) : (
             <ChevronUp size={16} color={accent} strokeWidth={2.2} />
           )}
-        </IconButton>
-      </Box>
+        </Button>
+      </div>
 
       {/* Corps (deroulable) */}
-      <Collapse in={!collapsed}>
-        <Box sx={{ px: 1.5, pb: 1.5, pt: 0.25 }}>
-          {loading && !report && (
-            <Stack spacing={0.5}>
-              <Skeleton variant="rounded" height={36} />
-              <Skeleton variant="rounded" height={36} />
-              <Skeleton variant="rounded" height={36} />
-            </Stack>
-          )}
-          {error && !loading && (
-            <Alert severity="error" sx={{ mt: 0.5 }}>
-              {error}
-            </Alert>
-          )}
-          {report && !loading && (
-            <Stack spacing={0.25}>
-              {report.checks.map((check) => (
-                <CheckRow key={check.code + '-' + check.label} check={check} />
-              ))}
-            </Stack>
-          )}
-        </Box>
-      </Collapse>
-    </Box>
+      <Collapsible open={!collapsed}>
+        <CollapsibleContent>
+          <div className="px-2 pb-2 pt-0.5">
+            {loading && !report && (
+              <div className="flex flex-col gap-[3px]">
+                <Skeleton className="h-9 rounded-[8px]" />
+                <Skeleton className="h-9 rounded-[8px]" />
+                <Skeleton className="h-9 rounded-[8px]" />
+              </div>
+            )}
+            {error && !loading && (
+              <Alert variant="destructive" className="mt-0.5">
+                <TriangleAlert />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            {report && !loading && (
+              <div className="flex flex-col gap-[1.5px]">
+                {report.checks.map((check) => (
+                  <CheckRow key={check.code + '-' + check.label} check={check} />
+                ))}
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
   );
 }

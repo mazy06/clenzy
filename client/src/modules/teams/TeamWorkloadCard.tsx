@@ -1,13 +1,7 @@
 import React from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  LinearProgress,
-  CircularProgress,
-} from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Spinner } from '../../components/ui';
+import { Card, CardContent, Progress } from '../../components/ui';
 import {
   Assignment,
   CheckCircle,
@@ -57,9 +51,9 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
 
   if (loading) {
     return (
-      <Card sx={{ height: '100%' }}>
-        <CardContent sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
-          <CircularProgress size={28} />
+      <Card className="h-full">
+        <CardContent className="flex justify-center items-center min-h-[300px]">
+          <Spinner className="size-7" />
         </CardContent>
       </Card>
     );
@@ -129,72 +123,70 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
     {
       label: t('teams.workload.active'),
       value: activeInterventions.length,
-      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Assignment size={24} strokeWidth={1.75} /></Box>,
+      icon: <span className="inline-flex text-[var(--accent)]"><Assignment size={24} strokeWidth={1.75} /></span>,
       color: 'var(--accent)',
     },
     {
       label: t('teams.workload.completedThisMonth'),
       value: completedThisMonth.length,
-      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={24} strokeWidth={1.75} /></Box>,
+      icon: <span className="inline-flex text-[var(--ok)]"><CheckCircle size={24} strokeWidth={1.75} /></span>,
       color: 'var(--ok)',
     },
     {
       label: t('teams.workload.pending'),
       value: pendingInterventions.length,
-      icon: <Box component="span" sx={{ display: 'inline-flex', color: 'var(--warn)' }}><HourglassEmpty size={24} strokeWidth={1.75} /></Box>,
+      icon: <span className="inline-flex text-[var(--warn)]"><HourglassEmpty size={24} strokeWidth={1.75} /></span>,
       color: 'var(--warn)',
     },
   ];
 
   return (
-    <Card sx={{ height: '100%' }}>
-      <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6" sx={{ color: 'var(--ink)', fontWeight: 600 }}>
+    <Card className="h-full">
+      <CardContent className="p-[18px]">
+        <div className="flex justify-between items-center mb-3">
+          <h6 className="cn-text-h6 text-[var(--ink)] font-semibold">
             {t('teams.workload.title')}
-          </Typography>
+          </h6>
           {(() => { const c = getWorkloadHex(); return (
-            <Box sx={{ px: 1.5, py: 0.5, borderRadius: '999px', backgroundColor: `${c}18`, color: c }}>
-              <Typography variant="caption" fontWeight={600}>{getWorkloadLabel()}</Typography>
-            </Box>
+            <div className="px-[9px] py-[3px] rounded-[999px]" style={{ backgroundColor: `${c}18`, color: c }}>
+              <span className="cn-text-caption font-semibold">{getWorkloadLabel()}</span>
+            </div>
           ); })()}
-        </Box>
+        </div>
 
-        <Grid container spacing={2} sx={{ mb: 3 }}>
+        <div className="grid grid-cols-12 gap-3 mb-[18px]">
           {metrics.map((metric) => (
-            <Grid item xs={4} key={metric.label}>
-              <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: '12px', bgcolor: 'var(--field)', border: '1px solid var(--field-line)' }}>
+            <div className="col-span-4" key={metric.label}>
+              <div className="text-center p-2 rounded-[12px] bg-[var(--field)] border border-[var(--field-line)]">
                 {metric.icon}
-                <Typography variant="h5" sx={{ color: metric.color, mt: 0.5, fontFamily: 'var(--font-display)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                <h5 className="cn-text-h5 mt-[3px] font-semibold tabular-nums" style={{ color: metric.color, fontFamily: 'var(--font-display)' }}>
                   {metric.value}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                </h5>
+                <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
                   {metric.label}
-                </Typography>
-              </Box>
-            </Grid>
+                </span>
+              </div>
+            </div>
           ))}
-        </Grid>
+        </div>
 
-        <Box sx={{ mb: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-            <Typography variant="body2" fontWeight={500}>{t('teams.workload.capacity')}</Typography>
-            <Typography variant="body2" fontWeight={600} sx={{ color: getWorkloadColor(), fontVariantNumeric: 'tabular-nums' }}>{capacityPercent}%</Typography>
-          </Box>
-          <LinearProgress
-            variant="determinate"
+        <div className="mb-4">
+          <div className="flex justify-between items-center mb-0.5">
+            <p className="cn-text-body2 font-medium">{t('teams.workload.capacity')}</p>
+            <p className="cn-text-body2 font-semibold tabular-nums" style={{ color: getWorkloadColor() }}>{capacityPercent}%</p>
+          </div>
+          {/* La teinte de la jauge se decide a l'execution : elle transite par
+              une variable CSS, une classe Tailwind ne peut pas naitre d'une
+              valeur runtime. */}
+          <Progress
             value={capacityPercent}
-            sx={{
-              height: 8,
-              borderRadius: 4,
-              bgcolor: 'var(--hover)',
-              '& .MuiLinearProgress-bar': { borderRadius: 4, bgcolor: getWorkloadColor() },
-            }}
+            className="h-2 rounded-[4px] bg-[var(--hover)] [&_[data-slot=progress-indicator]]:bg-[var(--workload-color)] [&_[data-slot=progress-indicator]]:rounded-[4px]"
+            style={{ '--workload-color': getWorkloadColor() } as React.CSSProperties}
           />
-        </Box>
+        </div>
 
         {chartData.length > 0 ? (
-          <Box sx={{ height: 200 }}>
+          <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -208,11 +200,11 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-          </Box>
+          </div>
         ) : (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography variant="body2" color="text.secondary">{t('dashboard.noData')}</Typography>
-          </Box>
+          <div className="text-center py-6">
+            <p className="cn-text-body2 text-muted-foreground">{t('dashboard.noData')}</p>
+          </div>
         )}
       </CardContent>
     </Card>

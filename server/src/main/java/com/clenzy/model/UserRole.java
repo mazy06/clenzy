@@ -16,6 +16,22 @@ public enum UserRole {
 
     // ── Roles metier (utilisables en org ou en independant) ─────────────────
     HOST("Hote", "Proprietaire de logements"),
+    /**
+     * Proprietaire TIERS disposant d'un compte : une PARTIE au contrat de
+     * gestion, pas un membre de l'organisation.
+     *
+     * <p>Sans lui, un proprietaire invite dans une conciergerie etait mappe sur
+     * {@link #HOST} — donc indiscernable, en permissions, du patron de l'org ;
+     * seule la coincidence {@code property.owner_id} les separait, verifiee a la
+     * main dans chaque controleur. Son perimetre est celui de SES biens : il
+     * consulte, il decide ce qui engage son patrimoine (travaux, mandat,
+     * releve), il n'exploite pas — tarifs, calendrier, menage et messages
+     * voyageurs restent l'objet du mandat.</p>
+     *
+     * <p>Le chemin nominal reste le portail par jeton, sans compte : ce role ne
+     * sert qu'au proprietaire qui en veut un.</p>
+     */
+    PROPERTY_OWNER("Proprietaire", "Proprietaire d'un bien confie en gestion"),
     TECHNICIAN("Technicien", "Maintenance et reparations"),
     HOUSEKEEPER("Housekeeper", "Nettoyage des logements"),
     SUPERVISOR("Superviseur", "Gere une equipe de techniciens/housekeepers"),
@@ -52,6 +68,16 @@ public enum UserRole {
      */
     public boolean isPlatformStaff() {
         return this == SUPER_ADMIN || this == SUPER_MANAGER;
+    }
+
+    /**
+     * Vrai si le role est borne aux logements dont l'utilisateur est
+     * proprietaire — le perimetre, et non le catalogue de permissions, est ce
+     * qui distingue ces profils. {@link #HOST} y figure : un hote independant
+     * n'exploite que ses propres biens.
+     */
+    public boolean isOwnerScoped() {
+        return this == HOST || this == PROPERTY_OWNER;
     }
 
     @Override

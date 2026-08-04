@@ -1,22 +1,25 @@
 import React, { useMemo, useState } from 'react';
+import { Alert as UiAlert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import {
-  Box,
-  Typography,
-  TextField,
-  Grid,
-  InputAdornment,
   Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  MenuItem,
-  Alert,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+  Button,
+  Field,
+  FieldError,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  NativeSelect,
+  NativeSelectOption,
   Skeleton,
   Switch,
-  FormControlLabel,
-  IconButton,
-  Button,
-} from '@mui/material';
-import { ExpandMore, Timer, Euro, CleaningServices, Speed, CalendarMonth, AutoAwesome, Add, Close } from '../../icons';
+} from '../../components/ui';
+import { Timer, Euro, CleaningServices, Speed, CalendarMonth, AutoAwesome, Add, Close } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
 import { propertiesApi } from '../../services/api/propertiesApi';
@@ -129,9 +132,11 @@ const numOrUndef = (value: string): number | undefined => {
   return isNaN(n) ? undefined : n;
 };
 
-const NUM_FIELD_SX = {
-  '& .MuiOutlinedInput-input': { fontVariantNumeric: 'tabular-nums' },
-} as const;
+/** Report en classes de l'ancien `NUM_FIELD_SX` (font-variant-numeric sur l'input). */
+const NUM_FIELD_CLASS = 'tabular-nums';
+
+/** Gabarit d'un panneau d'accordeon (l'ancien MuiAccordion portait sa propre surface). */
+const PANEL_CLASS = 'rounded-[var(--radius-md)] border border-solid border-[var(--line)] bg-[var(--card)] px-3';
 
 interface TabMenageProps {
   config: PricingConfig;
@@ -145,10 +150,6 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
   const [expandedSection, setExpandedSection] = useState<string | false>('workTime');
 
   const draft = useMemo(() => parseDraft(config.cleaningEngineConfig), [config.cleaningEngineConfig]);
-
-  const handleAccordionChange = (panel: string) => (_: React.SyntheticEvent, isExpanded: boolean) => {
-    setExpandedSection(isExpanded ? panel : false);
-  };
 
   // ── Écriture d'un champ : parse → modif → prune → re-stringify → onUpdate ──
   const write = (mutate: (d: EngineConfigDraft) => void) => {
@@ -255,7 +256,10 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
     staleTime: 0,
   });
 
+  // `id` est explicite (et non derive du libelle traduit) : c'est lui qui relie
+  // le FieldLabel a son champ, il doit rester stable quelle que soit la langue.
   const numberField = (
+    id: string,
     label: string,
     value: number | undefined,
     placeholder: number,
@@ -263,121 +267,150 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
     adornment?: string,
     step = 1,
   ) => (
-    <TextField
-      label={label}
-      type="number"
-      size="small"
-      fullWidth
-      value={value ?? ''}
-      placeholder={String(placeholder)}
-      onChange={(e) => onChange(e.target.value)}
-      disabled={!canEdit}
-      inputProps={{ min: 0, step }}
-      InputProps={adornment ? { endAdornment: <InputAdornment position="end">{adornment}</InputAdornment> } : undefined}
-      InputLabelProps={{ shrink: true }}
-      sx={NUM_FIELD_SX}
-    />
+    <Field>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      {adornment ? (
+        <InputGroup>
+          <InputGroupInput
+            id={id}
+            type="number"
+            min={0}
+            step={step}
+            className={NUM_FIELD_CLASS}
+            value={value ?? ''}
+            placeholder={String(placeholder)}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={!canEdit}
+          />
+          <InputGroupAddon align="inline-end">{adornment}</InputGroupAddon>
+        </InputGroup>
+      ) : (
+        <Input
+          id={id}
+          type="number"
+          min={0}
+          step={step}
+          className={`w-full ${NUM_FIELD_CLASS}`}
+          value={value ?? ''}
+          placeholder={String(placeholder)}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={!canEdit}
+        />
+      )}
+    </Field>
   );
 
   return (
-    <Box>
-      <Alert severity="info" icon={false} sx={{ mb: 2, fontSize: '12.5px' }}>
-        {t('tarification.cleaning.intro')}
-      </Alert>
+    <div>
+      <UiAlert variant="info" className="mb-3 text-[12.5px]">
+        <AlertDescription>{t('tarification.cleaning.intro')}</AlertDescription>
+      </UiAlert>
 
+      {/* Les panneaux MUI etaient des accordeons independants rendus exclusifs
+          par `expandedSection` : un seul Accordion `type="single"` porte
+          desormais cette exclusivite nativement. */}
+      <Accordion
+        type="single"
+        collapsible
+        value={expandedSection === false ? '' : expandedSection}
+        onValueChange={(next) => setExpandedSection(next === '' ? false : next)}
+        className="flex flex-col gap-1.5"
+      >
       {/* ─── Temps de travail (minutes normées par composant) ─────────────── */}
-      <Accordion expanded={expandedSection === 'workTime'} onChange={handleAccordionChange('workTime')}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Timer size={18} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>{t('tarification.cleaning.workTime')}</Typography>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Typography sx={{ fontSize: '12px', color: 'var(--muted)', mb: 1.5 }}>
+      <AccordionItem value="workTime" className={PANEL_CLASS}>
+        <AccordionTrigger>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--accent)]"><Timer size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.workTime')}</p>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent>
+          <p className="cn-text-body1 text-[12px] text-[var(--muted)] mb-2">
             {t('tarification.cleaning.baseByBedrooms')}
-          </Typography>
-          <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
+          </p>
+          <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
             {BEDROOM_KEYS.map((key) => (
-              <Grid item xs={6} sm={4} md={2} key={key}>
+              <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2" key={key}>
                 {numberField(
+                  `menage-base-bedrooms-${key}`,
                   key === '5plus' ? t('tarification.cleaning.bedrooms5plus') : t('tarification.cleaning.bedroomsN', { n: key }),
                   cm.baseByBedrooms?.[key],
                   ENGINE_DEFAULTS.baseByBedrooms[key],
                   (v) => setBedroomBase(key, v),
                   'min',
                 )}
-              </Grid>
+              </div>
             ))}
-          </Grid>
-          <Grid container spacing={1.5}>
-            <Grid item xs={12} sm={6} md={3}>
-              {numberField(t('tarification.cleaning.perExtraBathroom'), cm.perExtraBathroom, ENGINE_DEFAULTS.perExtraBathroom, (v) => setComponent('perExtraBathroom', v), 'min')}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              {numberField(t('tarification.cleaning.surfaceThreshold'), cm.surfaceThresholdSqm, ENGINE_DEFAULTS.surfaceThresholdSqm, (v) => setComponent('surfaceThresholdSqm', v), 'm²')}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              {numberField(t('tarification.cleaning.surfaceStep'), cm.perSurfaceStepSqm, ENGINE_DEFAULTS.perSurfaceStepSqm, (v) => setComponent('perSurfaceStepSqm', v), 'm²')}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              {numberField(t('tarification.cleaning.surfaceStepMinutes'), cm.surfaceStepMinutes, ENGINE_DEFAULTS.surfaceStepMinutes, (v) => setComponent('surfaceStepMinutes', v), 'min')}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              {numberField(t('tarification.cleaning.perExtraFloor'), cm.perExtraFloor, ENGINE_DEFAULTS.perExtraFloor, (v) => setComponent('perExtraFloor', v), 'min')}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              {numberField(t('tarification.cleaning.exterior'), cm.exterior, ENGINE_DEFAULTS.exterior, (v) => setComponent('exterior', v), 'min')}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              {numberField(t('tarification.cleaning.laundry'), cm.laundry, ENGINE_DEFAULTS.laundry, (v) => setComponent('laundry', v), 'min')}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              {numberField(t('tarification.cleaning.perGuestAbove4'), cm.perGuestAbove4, ENGINE_DEFAULTS.perGuestAbove4, (v) => setComponent('perGuestAbove4', v), 'min')}
-            </Grid>
-          </Grid>
-        </AccordionDetails>
-      </Accordion>
+          </div>
+          <div className="grid grid-cols-12 gap-[9px]">
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+              {numberField('menage-per-extra-bathroom', t('tarification.cleaning.perExtraBathroom'), cm.perExtraBathroom, ENGINE_DEFAULTS.perExtraBathroom, (v) => setComponent('perExtraBathroom', v), 'min')}
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+              {numberField('menage-surface-threshold', t('tarification.cleaning.surfaceThreshold'), cm.surfaceThresholdSqm, ENGINE_DEFAULTS.surfaceThresholdSqm, (v) => setComponent('surfaceThresholdSqm', v), 'm²')}
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+              {numberField('menage-surface-step', t('tarification.cleaning.surfaceStep'), cm.perSurfaceStepSqm, ENGINE_DEFAULTS.perSurfaceStepSqm, (v) => setComponent('perSurfaceStepSqm', v), 'm²')}
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+              {numberField('menage-surface-step-minutes', t('tarification.cleaning.surfaceStepMinutes'), cm.surfaceStepMinutes, ENGINE_DEFAULTS.surfaceStepMinutes, (v) => setComponent('surfaceStepMinutes', v), 'min')}
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+              {numberField('menage-per-extra-floor', t('tarification.cleaning.perExtraFloor'), cm.perExtraFloor, ENGINE_DEFAULTS.perExtraFloor, (v) => setComponent('perExtraFloor', v), 'min')}
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+              {numberField('menage-exterior', t('tarification.cleaning.exterior'), cm.exterior, ENGINE_DEFAULTS.exterior, (v) => setComponent('exterior', v), 'min')}
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+              {numberField('menage-laundry', t('tarification.cleaning.laundry'), cm.laundry, ENGINE_DEFAULTS.laundry, (v) => setComponent('laundry', v), 'min')}
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+              {numberField('menage-per-guest-above-4', t('tarification.cleaning.perGuestAbove4'), cm.perGuestAbove4, ENGINE_DEFAULTS.perGuestAbove4, (v) => setComponent('perGuestAbove4', v), 'min')}
+            </div>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
 
       {/* ─── Taux & arrondis ───────────────────────────────────────────────── */}
-      <Accordion expanded={expandedSection === 'rates'} onChange={handleAccordionChange('rates')}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Euro size={18} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>{t('tarification.cleaning.ratesAndRounding')}</Typography>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Grid container spacing={1.5}>
-            <Grid item xs={12} sm={6} md={3}>
-              {numberField(t('tarification.cleaning.hourlyRate'), draft.hourlyRate, ENGINE_DEFAULTS.hourlyRate, (v) => setRoot('hourlyRate', v), `${currencySymbol}/h`, 0.5)}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              {numberField(t('tarification.cleaning.rangePercent'), draft.rangePercent, ENGINE_DEFAULTS.rangePercent, (v) => setRoot('rangePercent', v), '%')}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              {numberField(t('tarification.cleaning.roundTo'), draft.roundTo, ENGINE_DEFAULTS.roundTo, (v) => setRoot('roundTo', v), currencySymbol)}
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              {numberField(t('tarification.cleaning.minPrice'), draft.minPrice, ENGINE_DEFAULTS.minPrice, (v) => setRoot('minPrice', v), currencySymbol)}
-            </Grid>
-          </Grid>
-        </AccordionDetails>
-      </Accordion>
+      <AccordionItem value="rates" className={PANEL_CLASS}>
+        <AccordionTrigger>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--accent)]"><Euro size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.ratesAndRounding')}</p>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent>
+          <div className="grid grid-cols-12 gap-[9px]">
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+              {numberField('menage-hourly-rate', t('tarification.cleaning.hourlyRate'), draft.hourlyRate, ENGINE_DEFAULTS.hourlyRate, (v) => setRoot('hourlyRate', v), `${currencySymbol}/h`, 0.5)}
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+              {numberField('menage-range-percent', t('tarification.cleaning.rangePercent'), draft.rangePercent, ENGINE_DEFAULTS.rangePercent, (v) => setRoot('rangePercent', v), '%')}
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+              {numberField('menage-round-to', t('tarification.cleaning.roundTo'), draft.roundTo, ENGINE_DEFAULTS.roundTo, (v) => setRoot('roundTo', v), currencySymbol)}
+            </div>
+            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+              {numberField('menage-min-price', t('tarification.cleaning.minPrice'), draft.minPrice, ENGINE_DEFAULTS.minPrice, (v) => setRoot('minPrice', v), currencySymbol)}
+            </div>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
 
       {/* ─── Types de ménage (multiplicateurs) ─────────────────────────────── */}
-      <Accordion expanded={expandedSection === 'types'} onChange={handleAccordionChange('types')}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CleaningServices size={18} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>{t('tarification.cleaning.cleaningTypes')}</Typography>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Grid container spacing={1.5}>
+      <AccordionItem value="types" className={PANEL_CLASS}>
+        <AccordionTrigger>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--accent)]"><CleaningServices size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.cleaningTypes')}</p>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent>
+          <div className="grid grid-cols-12 gap-[9px]">
             {MULTIPLIER_KEYS.map((key) => (
-              <Grid item xs={12} sm={4} key={key}>
+              <div className="col-span-12 min-[600px]:col-span-4" key={key}>
                 {numberField(
+                  `menage-multiplier-${key}`,
                   t(`properties.priceEstimation.cleaningTypes.${key}`),
                   draft.cleaningTypeMultipliers?.[key],
                   ENGINE_DEFAULTS.multipliers[key],
@@ -385,260 +418,283 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
                   '×',
                   0.05,
                 )}
-              </Grid>
+              </div>
             ))}
-          </Grid>
-        </AccordionDetails>
-      </Accordion>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
 
       {/* ─── Majorations saisonnières (conseil moteur uniquement) ──────────── */}
-      <Accordion expanded={expandedSection === 'seasonal'} onChange={handleAccordionChange('seasonal')}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><CalendarMonth size={18} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>{t('tarification.cleaning.seasonal.title')}</Typography>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Typography sx={{ fontSize: '12px', color: 'var(--muted)', mb: 1.5 }}>
+      <AccordionItem value="seasonal" className={PANEL_CLASS}>
+        <AccordionTrigger>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--accent)]"><CalendarMonth size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.seasonal.title')}</p>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent>
+          <p className="cn-text-body1 text-[12px] text-[var(--muted)] mb-2">
             {t('tarification.cleaning.seasonal.hint')}
-          </Typography>
+          </p>
           {seasonalModifiers.map((mod, index) => {
             const fromInvalid = mod.from != null && mod.from !== '' && !MONTH_DAY_RE.test(mod.from);
             const toInvalid = mod.to != null && mod.to !== '' && !MONTH_DAY_RE.test(mod.to);
             const percentInvalid = mod.percent != null && !isValidPercent(mod.percent);
             return (
-              <Box key={index} sx={{ display: 'flex', gap: 1.25, alignItems: 'flex-start', mb: 1.25, flexWrap: 'wrap' }}>
-                <TextField
-                  label={t('tarification.cleaning.seasonal.from')}
-                  size="small"
-                  value={mod.from ?? ''}
-                  placeholder="07-01"
-                  onChange={(e) => setSeasonalField(index, 'from', e.target.value)}
-                  disabled={!canEdit}
-                  error={fromInvalid}
-                  helperText={fromInvalid ? t('tarification.cleaning.seasonal.formatHint') : undefined}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ width: 110, ...NUM_FIELD_SX }}
-                />
-                <TextField
-                  label={t('tarification.cleaning.seasonal.to')}
-                  size="small"
-                  value={mod.to ?? ''}
-                  placeholder="08-31"
-                  onChange={(e) => setSeasonalField(index, 'to', e.target.value)}
-                  disabled={!canEdit}
-                  error={toInvalid}
-                  helperText={toInvalid ? t('tarification.cleaning.seasonal.formatHint') : undefined}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ width: 110, ...NUM_FIELD_SX }}
-                />
-                <TextField
-                  label={t('tarification.cleaning.seasonal.percent')}
-                  size="small"
-                  type="number"
-                  value={mod.percent ?? ''}
-                  placeholder="20"
-                  onChange={(e) => setSeasonalField(index, 'percent', e.target.value)}
-                  disabled={!canEdit}
-                  error={percentInvalid}
-                  helperText={percentInvalid ? t('tarification.cleaning.seasonal.percentHint') : undefined}
-                  inputProps={{ min: -50, max: 100, step: 1 }}
-                  InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ width: 130, ...NUM_FIELD_SX }}
-                />
-                <TextField
-                  label={t('tarification.cleaning.seasonal.label')}
-                  size="small"
-                  value={mod.label ?? ''}
-                  onChange={(e) => setSeasonalField(index, 'label', e.target.value)}
-                  disabled={!canEdit}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ flex: 1, minWidth: 160 }}
-                />
+              <div className="flex gap-2 items-start mb-2 flex-wrap" key={index}>
+                <Field className="w-[110px]">
+                  <FieldLabel htmlFor={`menage-seasonal-${index}-from`}>
+                    {t('tarification.cleaning.seasonal.from')}
+                  </FieldLabel>
+                  <Input
+                    id={`menage-seasonal-${index}-from`}
+                    className={NUM_FIELD_CLASS}
+                    value={mod.from ?? ''}
+                    placeholder="07-01"
+                    onChange={(e) => setSeasonalField(index, 'from', e.target.value)}
+                    disabled={!canEdit}
+                    aria-invalid={fromInvalid}
+                  />
+                  {fromInvalid && <FieldError>{t('tarification.cleaning.seasonal.formatHint')}</FieldError>}
+                </Field>
+                <Field className="w-[110px]">
+                  <FieldLabel htmlFor={`menage-seasonal-${index}-to`}>
+                    {t('tarification.cleaning.seasonal.to')}
+                  </FieldLabel>
+                  <Input
+                    id={`menage-seasonal-${index}-to`}
+                    className={NUM_FIELD_CLASS}
+                    value={mod.to ?? ''}
+                    placeholder="08-31"
+                    onChange={(e) => setSeasonalField(index, 'to', e.target.value)}
+                    disabled={!canEdit}
+                    aria-invalid={toInvalid}
+                  />
+                  {toInvalid && <FieldError>{t('tarification.cleaning.seasonal.formatHint')}</FieldError>}
+                </Field>
+                <Field className="w-[130px]">
+                  <FieldLabel htmlFor={`menage-seasonal-${index}-percent`}>
+                    {t('tarification.cleaning.seasonal.percent')}
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id={`menage-seasonal-${index}-percent`}
+                      type="number"
+                      min={-50}
+                      max={100}
+                      step={1}
+                      className={NUM_FIELD_CLASS}
+                      value={mod.percent ?? ''}
+                      placeholder="20"
+                      onChange={(e) => setSeasonalField(index, 'percent', e.target.value)}
+                      disabled={!canEdit}
+                      aria-invalid={percentInvalid}
+                    />
+                    <InputGroupAddon align="inline-end">%</InputGroupAddon>
+                  </InputGroup>
+                  {percentInvalid && <FieldError>{t('tarification.cleaning.seasonal.percentHint')}</FieldError>}
+                </Field>
+                <Field className="flex-1 min-w-[160px]">
+                  <FieldLabel htmlFor={`menage-seasonal-${index}-label`}>
+                    {t('tarification.cleaning.seasonal.label')}
+                  </FieldLabel>
+                  <Input
+                    id={`menage-seasonal-${index}-label`}
+                    value={mod.label ?? ''}
+                    onChange={(e) => setSeasonalField(index, 'label', e.target.value)}
+                    disabled={!canEdit}
+                  />
+                </Field>
                 {canEdit && (
-                  <IconButton
-                    size="small"
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="mt-[3px]"
                     onClick={() => removeSeasonalModifier(index)}
                     aria-label={t('tarification.cleaning.seasonal.remove')}
-                    sx={{ mt: 0.5 }}
                   >
                     <Close size={16} strokeWidth={1.75} />
-                  </IconButton>
+                  </Button>
                 )}
-              </Box>
+              </div>
             );
           })}
           {seasonalModifiers.length === 0 && (
-            <Typography sx={{ fontSize: '12.5px', color: 'var(--faint)', mb: 1.5 }}>
+            <p className="cn-text-body1 text-[12.5px] text-[var(--faint)] mb-2">
               {t('tarification.cleaning.seasonal.empty')}
-            </Typography>
+            </p>
           )}
           {canEdit && (
-            <Button size="small" variant="text" startIcon={<Add size={15} strokeWidth={1.75} />} onClick={addSeasonalModifier}>
+            <Button size="sm" variant="ghost" onClick={addSeasonalModifier}>
+              <Add size={15} strokeWidth={1.75} />
               {t('tarification.cleaning.seasonal.add')}
             </Button>
           )}
           {seasonalModifiers.length > 1 && (
-            <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', mt: 1 }}>
+            <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mt-1.5">
               {t('tarification.cleaning.seasonal.firstMatchHint')}
-            </Typography>
+            </p>
           )}
-        </AccordionDetails>
-      </Accordion>
+        </AccordionContent>
+      </AccordionItem>
 
       {/* ─── Assignation (auto-assignation du meilleur pro) ────────────────── */}
-      <Accordion expanded={expandedSection === 'assignment'} onChange={handleAccordionChange('assignment')}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><AutoAwesome size={18} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>{t('tarification.cleaning.assignment.title')}</Typography>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={draft.autoAssignBestPro ?? false}
-                onChange={(e) => setAutoAssignBestPro(e.target.checked)}
-                disabled={!canEdit}
-              />
-            }
-            label={
-              <Box>
-                <Typography sx={{ fontSize: '13.5px', fontWeight: 600 }}>{t('tarification.cleaning.assignment.autoBestPro')}</Typography>
-                <Typography sx={{ fontSize: '12px', color: 'var(--muted)' }}>{t('tarification.cleaning.assignment.autoBestProHint')}</Typography>
-              </Box>
-            }
-          />
-        </AccordionDetails>
-      </Accordion>
+      <AccordionItem value="assignment" className={PANEL_CLASS}>
+        <AccordionTrigger>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--accent)]"><AutoAwesome size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.assignment.title')}</p>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent>
+          <Field orientation="horizontal" className="gap-2 items-start">
+            <Switch
+              id="menage-auto-assign-best-pro"
+              className="mt-[3px]"
+              checked={draft.autoAssignBestPro ?? false}
+              onCheckedChange={(checked) => setAutoAssignBestPro(checked)}
+              disabled={!canEdit}
+            />
+            <FieldLabel htmlFor="menage-auto-assign-best-pro" className="flex-col items-start gap-0 font-normal">
+              <span className="text-[13.5px] font-semibold">{t('tarification.cleaning.assignment.autoBestPro')}</span>
+              <span className="text-[12px] text-[var(--muted)]">{t('tarification.cleaning.assignment.autoBestProHint')}</span>
+            </FieldLabel>
+          </Field>
+        </AccordionContent>
+      </AccordionItem>
 
       {/* ─── Simulateur (grille ENREGISTRÉE côté serveur) ──────────────────── */}
-      <Accordion expanded={expandedSection === 'simulator'} onChange={handleAccordionChange('simulator')}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Speed size={18} strokeWidth={1.75} /></Box>
-            <Typography sx={{ fontWeight: 600, fontSize: '14px' }}>{t('tarification.cleaning.simulator')}</Typography>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails>
+      <AccordionItem value="simulator" className={PANEL_CLASS}>
+        <AccordionTrigger>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex text-[var(--accent)]"><Speed size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.simulator')}</p>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent>
           {/* La preview backend calcule avec la config SAUVEGARDÉE — pas la grille en cours d'édition. */}
-          <Alert severity="warning" icon={false} sx={{ mb: 2, fontSize: '12px' }}>
-            {t('tarification.cleaning.simulatorSavedConfigHint')}
-          </Alert>
+          <UiAlert variant="warning" className="mb-3 text-[12px]">
+            <AlertDescription>{t('tarification.cleaning.simulatorSavedConfigHint')}</AlertDescription>
+          </UiAlert>
 
-          <Box sx={{ display: 'flex', gap: 1.5, mb: 2, flexWrap: 'wrap' }}>
-            <TextField
-              select
-              size="small"
-              label={t('tarification.cleaning.simulatorProperty')}
-              value={simPropertyId === '' ? '' : simPropertyId}
-              onChange={(e) => setSimPropertyId(Number(e.target.value))}
-              sx={{ minWidth: 280 }}
-              InputLabelProps={{ shrink: true }}
-              SelectProps={{ displayEmpty: true }}
-            >
-              <MenuItem value="" disabled>{t('tarification.cleaning.simulatorSelectProperty')}</MenuItem>
-              {(propertiesQuery.data ?? []).map((p) => (
-                <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              type="date"
-              size="small"
-              label={t('tarification.cleaning.simulatorDate')}
-              value={simServiceDate}
-              onChange={(e) => setSimServiceDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              sx={{ width: 180, ...NUM_FIELD_SX }}
-            />
-          </Box>
+          <div className="flex gap-2 mb-3 flex-wrap">
+            <Field className="w-auto min-w-[280px]">
+              <FieldLabel htmlFor="menage-sim-property">
+                {t('tarification.cleaning.simulatorProperty')}
+              </FieldLabel>
+              <NativeSelect
+                id="menage-sim-property"
+                className="w-full"
+                value={simPropertyId === '' ? '' : simPropertyId}
+                onChange={(e) => setSimPropertyId(Number(e.target.value))}
+              >
+                <NativeSelectOption value="" disabled>
+                  {t('tarification.cleaning.simulatorSelectProperty')}
+                </NativeSelectOption>
+                {(propertiesQuery.data ?? []).map((p) => (
+                  <NativeSelectOption key={p.id} value={p.id}>{p.name}</NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
+            <Field className="w-[180px]">
+              <FieldLabel htmlFor="menage-sim-date">
+                {t('tarification.cleaning.simulatorDate')}
+              </FieldLabel>
+              <Input
+                id="menage-sim-date"
+                type="date"
+                className={NUM_FIELD_CLASS}
+                value={simServiceDate}
+                onChange={(e) => setSimServiceDate(e.target.value)}
+              />
+            </Field>
+          </div>
 
           {typeof simPropertyId === 'number' && (estimateQuery.isPending || previewQuery.isPending) && (
-            <Skeleton variant="rounded" height={140} sx={{ borderRadius: '11px' }} />
+            <Skeleton className="h-[140px] w-full rounded-[11px]" />
           )}
 
           {(estimateQuery.isError || previewQuery.isError) && (
-            <Alert severity="error" sx={{ mb: 1.5, fontSize: '12.5px' }}>
-              {t('tarification.cleaning.simulatorError')}
-            </Alert>
+            <UiAlert variant="destructive" className="mb-2 text-[12.5px]">
+              <TriangleAlert />
+              <AlertDescription>{t('tarification.cleaning.simulatorError')}</AlertDescription>
+            </UiAlert>
           )}
 
           {simProperty && !simProperty.bedroomCount && !simProperty.squareMeters && (
-            <Alert severity="info" icon={false} sx={{ mb: 1.5, fontSize: '12.5px' }}>
-              {t('tarification.cleaning.simulatorInsufficientData')}
-            </Alert>
+            <UiAlert variant="info" className="mb-[9px] text-[12.5px]">
+              <AlertDescription>{t('tarification.cleaning.simulatorInsufficientData')}</AlertDescription>
+            </UiAlert>
           )}
 
           {estimateQuery.data && (
-            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.25, mb: 1.5, flexWrap: 'wrap' }}>
-              <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 600, color: 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>
+            <div className="flex items-baseline gap-2 mb-2 flex-wrap">
+              <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[22px] font-semibold text-[var(--accent)] tabular-nums">
                 {estimateQuery.data.estimate} {currencySymbol}
-              </Typography>
-              <Typography sx={{ fontSize: '12px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+              </p>
+              <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
                 {estimateQuery.data.min}–{estimateQuery.data.max} {currencySymbol} · {estimateQuery.data.durationMinutes} min
-              </Typography>
-              <Typography sx={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.04em' }}>
+              </p>
+              <p className="cn-text-body1 text-[11px] font-semibold text-[var(--muted)] uppercase tracking-[.04em]">
                 {estimateQuery.data.source === 'PROPERTY_OVERRIDE'
                   ? t('tarification.cleaning.sourceOverride')
                   : estimateQuery.data.source === 'HOUSEKEEPER_RATE'
                     ? t('tarification.cleaning.sourceHousekeeperRate')
                     : t('tarification.cleaning.sourceEngine')}
-              </Typography>
-            </Box>
+              </p>
+            </div>
           )}
 
           {previewQuery.data && (
             <>
               {/* Quotes par type */}
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1.5, mb: 2, '@media (max-width: 700px)': { gridTemplateColumns: '1fr' } }}>
+              <div className="mb-3 grid grid-cols-[repeat(3,_1fr)] gap-[9px] max-[700px]:grid-cols-[1fr]">
                 {MULTIPLIER_KEYS.map((type) => {
                   const q = previewQuery.data.quotes?.[type];
                   if (!q) return null;
                   return (
-                    <Box key={type} sx={{ border: '1px solid var(--line)', borderRadius: '11px', px: 1.75, py: 1.25 }}>
-                      <Typography sx={{ fontSize: '11px', fontWeight: 700, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '.05em', mb: 0.5 }}>
+                    <div className="border border-[var(--line)] rounded-[11px] px-2.5 py-2" key={type}>
+                      <p className="cn-text-body1 text-[11px] font-bold text-[var(--faint)] uppercase tracking-[.05em] mb-0.5">
                         {t(`properties.priceEstimation.cleaningTypes.${type}`)}
-                      </Typography>
-                      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+                      </p>
+                      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[18px] font-semibold text-[var(--ink)] tabular-nums">
                         {q.recommended} {currencySymbol}
-                      </Typography>
-                      <Typography sx={{ fontSize: '11.5px', color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+                      </p>
+                      <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums">
                         {q.min}–{q.max} {currencySymbol} · {q.durationMinutes} min
-                      </Typography>
-                    </Box>
+                      </p>
+                    </div>
                   );
                 })}
-              </Box>
+              </div>
 
               {/* Décomposition minutes */}
-              <Box sx={{ border: '1px solid var(--line)', borderRadius: '11px', overflow: 'hidden', maxWidth: 420 }}>
-                <Box sx={{ px: 1.75, py: 0.75, bgcolor: 'var(--surface-2)' }}>
-                  <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--faint)' }}>
+              <div className="border border-[var(--line)] rounded-[11px] overflow-hidden max-w-[420px]">
+                <div className="px-2.5 py-1 bg-[var(--surface-2)]">
+                  <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
                     {t('properties.cleaningEstimator.breakdownTitle')}
-                  </Typography>
-                </Box>
+                  </p>
+                </div>
                 {BREAKDOWN_KEYS.flatMap((key) => {
                   const minutes = previewQuery.data.minutesBreakdown?.[key] ?? 0;
                   if (!(key === 'base' || minutes > 0)) return [];
                   return [
-                    <Box key={key} sx={{ display: 'flex', justifyContent: 'space-between', px: 1.75, py: 0.6, borderTop: '1px solid var(--line)' }}>
-                      <Typography sx={{ fontSize: '12.5px', color: 'var(--body)' }}>
+                    <div className="flex justify-between px-2.5 py-1 border-t border-[var(--line)]" key={key}>
+                      <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
                         {t(`properties.cleaningEstimator.breakdown.${key}`)}
-                      </Typography>
-                      <Typography sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+                      </p>
+                      <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] tabular-nums">
                         {minutes} min
-                      </Typography>
-                    </Box>,
+                      </p>
+                    </div>,
                   ];
                 })}
-              </Box>
+              </div>
             </>
           )}
-        </AccordionDetails>
+        </AccordionContent>
+      </AccordionItem>
       </Accordion>
-    </Box>
+    </div>
   );
 }

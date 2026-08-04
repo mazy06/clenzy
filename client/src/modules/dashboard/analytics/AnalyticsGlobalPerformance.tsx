@@ -1,5 +1,7 @@
 import React from 'react';
-import { Box, Card, CardContent, Grid, Typography, Skeleton } from '@mui/material';
+import { cn } from '../../../utils/cn';
+import { Card, Skeleton } from '../../../components/ui';
+import StatTile from '../../../components/baitly/StatTile';
 import {
   Euro, Hotel, TrendingUp as TrendIcon, Percent,
   CalendarMonth, ShowChart, AccountBalance, Home,
@@ -28,27 +30,14 @@ interface KpiItem {
   tooltip?: string;
 }
 
-// ─── Stable sx constants ────────────────────────────────────────────────────
+// ─── Stable class constants ─────────────────────────────────────────────────
 
-const HERO_CARD_SX = {
-  height: '100%',
-  transition: 'border-color 0.2s ease, transform 0.2s ease',
-  '&:hover': { borderColor: 'primary.main', transform: 'translateY(-2px)' },
-} as const;
+const SECONDARY_CARD_CLASS =
+  'gap-0 py-0 p-[9px] transition-[box-shadow] duration-150 hover:ring-[var(--muted)]';
 
-const SECONDARY_CARD_SX = {
-  transition: 'border-color 0.15s ease',
-  '&:hover': { borderColor: 'text.secondary' },
-} as const;
-
-const SECTION_LABEL_SX = {
-  fontSize: '0.6875rem',
-  fontWeight: 700,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.05em',
-  color: 'text.disabled',
-  mb: 1,
-} as const;
+/** mb: 1 = 6 px, theme.spacing vaut 6. */
+const SECTION_LABEL_CLASS =
+  'cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-1.5';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -56,95 +45,70 @@ const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
   const isUp = value > 0;
   const isDown = value < 0;
   const Icon = isUp ? TrendingUp : isDown ? TrendingDown : Remove;
-  const color = isUp ? 'success.main' : isDown ? 'error.main' : 'text.disabled';
+  // Jetons semantiques en classes litterales : Tailwind ne peut pas fabriquer
+  // une classe depuis une variable.
+  const colorClass = isUp ? 'text-[var(--ok)]' : isDown ? 'text-[var(--err)]' : 'text-[var(--faint)]';
 
   return (
-    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, mt: 0.25 }}>
-      <Box component="span" sx={{ display: 'inline-flex', color }}>
+    <div className="inline-flex items-center gap-0.5 mt-0.5">
+      <span className={cn('inline-flex', colorClass)}>
         <Icon size={12} strokeWidth={1.75} />
-      </Box>
-      <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color, fontVariantNumeric: 'tabular-nums' }}>
+      </span>
+      <p className={cn('cn-text-body1 text-[0.625rem] font-semibold tabular-nums', colorClass)}>
         {isUp ? '+' : ''}{value}%
-      </Typography>
-    </Box>
+      </p>
+    </div>
   );
 };
 
-// ─── Hero KPI Card ──────────────────────────────────────────────────────────
+// ─── Hero — tuiles de la projection ─────────────────────────────────────────
 
-const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, loading }) => (
-  <Card sx={HERO_CARD_SX}>
-    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-      {loading ? (
-        <Box>
-          <Skeleton variant="text" width="50%" height={14} />
-          <Skeleton variant="text" width="70%" height={28} sx={{ mt: 0.5 }} />
-          <Skeleton variant="text" width="40%" height={12} sx={{ mt: 0.5 }} />
-        </Box>
-      ) : (
-        <>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
-            <Box
-              sx={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 32, height: 32, borderRadius: 1,
-                bgcolor: `${item.iconColor}12`,
-                '& .MuiSvgIcon-root': { fontSize: 18, color: item.iconColor },
-              }}
-            >
-              {item.icon}
-            </Box>
-            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.secondary', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-              {item.title}
-            </Typography>
-          </Box>
-          <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
-            {item.value}
-          </Typography>
-          {item.subtitle && (
-            <Typography sx={{ fontSize: '0.5625rem', color: 'text.disabled', mt: 0.25, lineHeight: 1.2 }}>
-              {item.subtitle}
-            </Typography>
-          )}
-          {item.trend !== undefined && <TrendBadge value={item.trend} />}
-        </>
-      )}
-    </CardContent>
-  </Card>
-);
+/**
+ * Variation vs periode precedente, en gras dans l'indice de la tuile — le
+ * dessin de la projection (meme forme que le TrendHint du Dashboard).
+ */
+const TrendHint: React.FC<{ growth: number; suffix?: string }> = ({ growth, suffix }) => {
+  const { t } = useTranslation();
+  return (
+    <>
+      <b>
+        {growth > 0 ? '+' : ''}
+        {growth} %
+      </b>{' '}
+      {t('dashboard.analytics.vsPreviousPeriod', 'vs période préc.')}
+      {suffix ? ` · ${suffix}` : ''}
+    </>
+  );
+};
 
 // ─── Secondary KPI row item ─────────────────────────────────────────────────
 
 const SecondaryKpiRow: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, loading }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, py: 1, px: 0.5 }}>
-    <Box
-      sx={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: 28, height: 28, borderRadius: 0.75, flexShrink: 0,
-        bgcolor: `${item.iconColor}10`,
-        '& .MuiSvgIcon-root': { fontSize: 15, color: item.iconColor },
-      }}
+  <div className="flex items-center gap-2 py-1.5 px-0.5">
+    <div
+      className="flex items-center justify-center w-[28px] h-[28px] rounded-[6px] shrink-0"
+      style={{ backgroundColor: `${item.iconColor}10` }}
     >
       {item.icon}
-    </Box>
-    <Box sx={{ flex: 1, minWidth: 0 }}>
-      <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 500, lineHeight: 1.2 }}>
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground font-medium leading-[1.2]">
         {item.title}
-      </Typography>
-    </Box>
-    <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+      </p>
+    </div>
+    <div className="text-end shrink-0">
       {loading ? (
-        <Skeleton variant="text" width={48} height={18} />
+        <Skeleton className="h-[18px] w-12" />
       ) : (
         <>
-          <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, lineHeight: 1.2, fontVariantNumeric: 'tabular-nums' }}>
+          <p className="cn-text-body1 text-[0.875rem] font-bold leading-[1.2] tabular-nums">
             {item.value}
-          </Typography>
+          </p>
           {item.trend !== undefined && <TrendBadge value={item.trend} />}
         </>
       )}
-    </Box>
-  </Box>
+    </div>
+  </div>
 );
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -152,44 +116,46 @@ const SecondaryKpiRow: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, 
 const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading }) => {
   const { t } = useTranslation();
 
-  // Hero KPIs (4 most important)
-  const heroKpis: KpiItem[] = [
+  // Hero — les tuiles de la projection. La teinte ne porte que sur l'icone,
+  // la ou elle dit quelque chose (l'argent en succes) ; les sous-titres
+  // migrent en suffixe de l'indice, rien n'est perdu (le `tooltip` des
+  // anciennes cartes n'etait rendu nulle part).
+  const heroKpis = [
     {
       key: 'revenue',
-      title: t('dashboard.analytics.totalRevenue'),
+      label: t('dashboard.analytics.totalRevenue'),
       value: data ? <Money value={data.totalRevenue.value} from="EUR" /> : '-',
-      trend: data?.totalRevenue.growth,
+      hint: data ? <TrendHint growth={data.totalRevenue.growth} /> : undefined,
       icon: <TrendIcon />,
-      iconColor: '#4A9B8E',
+      iconClassName: 'text-success',
     },
     {
       key: 'occupancy',
-      title: t('dashboard.analytics.occupancyRate'),
+      label: t('dashboard.analytics.occupancyRate'),
       value: data ? `${data.occupancyRate.value}%` : '-',
-      trend: data?.occupancyRate.growth,
+      hint: data ? <TrendHint growth={data.occupancyRate.growth} /> : undefined,
       icon: <Percent />,
-      iconColor: '#4A9B8E',
-      tooltip: t('dashboard.analytics.occupancyTooltip'),
+      iconClassName: undefined,
     },
     {
       key: 'adr',
-      title: 'ADR',
+      label: 'ADR',
       value: data ? <Money value={data.adr.value} from="EUR" decimals={2} /> : '-',
-      subtitle: t('dashboard.analytics.avgDailyRate'),
-      trend: data?.adr.growth,
+      hint: data
+        ? <TrendHint growth={data.adr.growth} suffix={t('dashboard.analytics.avgDailyRate')} />
+        : t('dashboard.analytics.avgDailyRate'),
       icon: <Hotel />,
-      iconColor: '#6B8A9A',
-      tooltip: t('dashboard.analytics.adrTooltip'),
+      iconClassName: undefined,
     },
     {
       key: 'revpan',
-      title: 'RevPAN',
+      label: 'RevPAN',
       value: data ? <Money value={data.revPAN.value} from="EUR" decimals={2} /> : '-',
-      subtitle: t('dashboard.analytics.revenuePerNight'),
-      trend: data?.revPAN.growth,
+      hint: data
+        ? <TrendHint growth={data.revPAN.growth} suffix={t('dashboard.analytics.revenuePerNight')} />
+        : t('dashboard.analytics.revenuePerNight'),
       icon: <Euro />,
-      iconColor: '#7B68A8',
-      tooltip: t('dashboard.analytics.revPANTooltip'),
+      iconClassName: undefined,
     },
   ];
 
@@ -247,53 +213,55 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
   ];
 
   return (
-    <Box sx={{ mb: 3 }}>
-      {/* ─── Hero KPIs ───────────────────────────────────────────── */}
-      <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
+    <div className="mb-4">
+      {/* ─── Hero — les tuiles de la projection ──────────────────── */}
+      <div className="grid grid-cols-2 gap-3 mb-[15px] lg:grid-cols-4">
         {heroKpis.map((kpi) => (
-          <Grid item xs={6} sm={3} key={kpi.key}>
-            <HeroKpiCard item={kpi} loading={loading} />
-          </Grid>
+          <StatTile
+            key={kpi.key}
+            icon={kpi.icon}
+            label={kpi.label}
+            value={kpi.value}
+            hint={kpi.hint}
+            iconClassName={kpi.iconClassName}
+            loading={loading}
+          />
         ))}
-      </Grid>
+      </div>
 
       {/* ─── Secondary KPIs (2 grouped cards) ────────────────────── */}
-      <Grid container spacing={1.5}>
+      <div className="grid grid-cols-12 gap-[9px]">
         {/* Financial group */}
-        <Grid item xs={12} md={6}>
-          <Card sx={SECONDARY_CARD_SX}>
-            <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-              <Typography sx={SECTION_LABEL_SX}>
-                {t('dashboard.analytics.financialMetrics', 'Indicateurs financiers')}
-              </Typography>
-              {financialKpis.map((kpi, i) => (
-                <React.Fragment key={kpi.key}>
-                  {i > 0 && <Box sx={{ borderTop: '1px solid', borderColor: 'divider' }} />}
-                  <SecondaryKpiRow item={kpi} loading={loading} />
-                </React.Fragment>
-              ))}
-            </CardContent>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <Card className={SECONDARY_CARD_CLASS}>
+            <p className={SECTION_LABEL_CLASS}>
+              {t('dashboard.analytics.financialMetrics', 'Indicateurs financiers')}
+            </p>
+            {financialKpis.map((kpi, i) => (
+              <React.Fragment key={kpi.key}>
+                {i > 0 && <div className="border-t border-solid border-[var(--line)]" />}
+                <SecondaryKpiRow item={kpi} loading={loading} />
+              </React.Fragment>
+            ))}
           </Card>
-        </Grid>
+        </div>
 
         {/* Operational group */}
-        <Grid item xs={12} md={6}>
-          <Card sx={SECONDARY_CARD_SX}>
-            <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-              <Typography sx={SECTION_LABEL_SX}>
-                {t('dashboard.analytics.operationalMetrics', 'Activite operationnelle')}
-              </Typography>
-              {operationalKpis.map((kpi, i) => (
-                <React.Fragment key={kpi.key}>
-                  {i > 0 && <Box sx={{ borderTop: '1px solid', borderColor: 'divider' }} />}
-                  <SecondaryKpiRow item={kpi} loading={loading} />
-                </React.Fragment>
-              ))}
-            </CardContent>
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <Card className={SECONDARY_CARD_CLASS}>
+            <p className={SECTION_LABEL_CLASS}>
+              {t('dashboard.analytics.operationalMetrics', 'Activite operationnelle')}
+            </p>
+            {operationalKpis.map((kpi, i) => (
+              <React.Fragment key={kpi.key}>
+                {i > 0 && <div className="border-t border-solid border-[var(--line)]" />}
+                <SecondaryKpiRow item={kpi} loading={loading} />
+              </React.Fragment>
+            ))}
           </Card>
-        </Grid>
-      </Grid>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 });
 

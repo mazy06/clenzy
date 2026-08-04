@@ -5,6 +5,7 @@ import StatusChip from './StatusChip';
 import GuestAvatar from './GuestAvatar';
 import { Money } from './Money';
 import { cn } from '../../utils/cn';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Baitly — remaster de components/ServiceRequestCard.tsx (MUI, 421 lignes).
@@ -52,6 +53,7 @@ export default function ServiceRequestCard({
   priorityColors,
   className,
 }: ServiceRequestCardProps) {
+  const { t } = useTranslation();
   return (
     <Card className={cn('gap-3 py-4', className)}>
       <div className="flex items-start justify-between gap-2 px-4">
@@ -76,7 +78,7 @@ export default function ServiceRequestCard({
           <Button
             size="icon-xs"
             variant="ghost"
-            aria-label="Actions"
+            aria-label={t('common.actions', 'Actions')}
             onClick={(event) => onMenuOpen(event, request)}
           >
             <MoreVerticalIcon />
@@ -123,7 +125,7 @@ export default function ServiceRequestCard({
           </span>
         ) : (
           <span className="ms-auto flex items-center gap-1 text-faint">
-            <UserIcon className="size-3.5" /> Non assignée
+            <UserIcon className="size-3.5" /> {t('serviceRequests.unassigned', 'Non assignée')}
           </span>
         )}
       </div>

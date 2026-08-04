@@ -1,13 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Alert,
-  CircularProgress,
-  Collapse,
-} from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Alert, AlertDescription, Button } from '../../components/ui';
+import { Info, TriangleAlert, CircleCheck } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Card } from '../../components/ui';
 import { ArrowBack } from "../../icons";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -32,6 +28,35 @@ import ServiceRequestFormProperty from './ServiceRequestFormProperty';
 import ServiceRequestFormPlanning from './ServiceRequestFormPlanning';
 import ServiceRequestFormAssignment from './ServiceRequestFormAssignment';
 import ServiceRequestPriceEstimate from './ServiceRequestPriceEstimate';
+
+/**
+ * Remplacant du `Collapse` MUI. La bascule `grid-template-rows: 0fr -> 1fr`
+ * anime la hauteur en CSS pur SANS demonter l'enfant : les champs restent
+ * enregistres aupres de react-hook-form, ce qu'un rendu conditionnel (ou le
+ * Collapsible Radix, qui demonte son contenu) casserait silencieusement.
+ */
+function Collapse({
+  open,
+  duration,
+  children,
+}: {
+  open: boolean;
+  duration: 300 | 400;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        'grid transition-[grid-template-rows] ease-out motion-reduce:transition-none',
+        // Branches litterales : Tailwind emet ses classes a la compilation.
+        duration === 300 ? 'duration-[300ms]' : 'duration-[400ms]',
+        open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+      )}
+    >
+      <div className="min-h-0 overflow-hidden">{children}</div>
+    </div>
+  );
+}
 
 // Types pour les demandes de service
 export interface ServiceRequestFormData {
@@ -585,62 +610,71 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   // En mode édition, si la demande est approuvée, empêcher l'édition
   if (isEditMode && approvedStatus) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="info" sx={{ mb: 3 }}>
-          {t('serviceRequests.approvedCannotEdit')}
+      <div className="p-4">
+        <Alert variant="info" className="mb-4">
+          <Info />
+          <AlertDescription>{t('serviceRequests.approvedCannotEdit')}</AlertDescription>
         </Alert>
-        <Button
-          variant="contained"
-          onClick={() => navigate(`/service-requests/${serviceRequestId}`)}
-          startIcon={<ArrowBack size={18} strokeWidth={1.75} />}
-        >
+        <Button onClick={() => navigate(`/service-requests/${serviceRequestId}`)}>
+          <ArrowBack size={18} strokeWidth={1.75} />
           {t('common.back')}
         </Button>
-      </Box>
+      </div>
     );
   }
 
   if (loadingData || loadingServiceRequest) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress size={32} />
-      </Box>
+      <div className="flex justify-center items-center h-[50vh]">
+        <Spinner className="size-8" />
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       {/* Messages d'erreur/succès */}
       {error && (
-        <Alert severity="error" sx={{ mb: 1.5, py: 0.75, fontSize: '0.8125rem' }}>
-          {error}
+        <Alert variant="destructive" className="mb-2 py-1 text-[0.8125rem]">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {isEditMode && success && (
-        <Alert severity="success" sx={{ mb: 1.5, py: 0.75, fontSize: '0.8125rem' }}>
-          {t('serviceRequests.updateRequestSuccess')}
+        <Alert variant="success" className="mb-2 py-1 text-[0.8125rem]">
+          <CircleCheck />
+          <AlertDescription>{t('serviceRequests.updateRequestSuccess')}</AlertDescription>
         </Alert>
       )}
 
       {/* Estimation prix — visible uniquement quand une propriété est sélectionnée */}
-      <Collapse in={isPropertySelected} timeout={400}>
-        <Box sx={{ flexShrink: 0, mb: 1.5 }}>
+      <Collapse open={isPropertySelected} duration={400}>
+        <div className="shrink-0 mb-2">
           <ServiceRequestPriceEstimate
             property={selectedProperty}
             forfaitConfigs={forfaitConfigs}
             selectedForfaitKey={selectedForfaitKey}
           />
-        </Box>
+        </div>
       </Collapse>
 
       {/* Formulaire */}
       <form onSubmit={rhfHandleSubmit(onSubmit)}>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+        <div className="flex gap-3 items-start">
           {/* ─── Colonne gauche : Propriété + Infos ─── */}
-          <Box sx={{ flex: isPropertySelected ? 7 : 1, display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0, transition: 'flex 0.4s ease' }}>
+          <div className={cn('flex flex-col gap-[9px] min-w-0', isPropertySelected ? 'flex-[7]' : 'flex-1')} style={{ transition: 'flex 0.4s ease' }}>
             {/* 1. Propriété — en premier pour auto-fill (anneau accent-soft tant que rien n'est sélectionné) */}
-            <Paper sx={{ border: '1px solid', borderColor: isPropertySelected ? 'var(--line)' : 'var(--accent)', bgcolor: 'var(--card)', boxShadow: isPropertySelected ? 'none' : '0 0 0 3px var(--accent-soft)', borderRadius: '14px', p: 2, transition: 'border-color 0.3s ease, box-shadow 0.3s ease' }}>
+            <div
+              className={cn(
+                'border border-solid bg-[var(--card)] rounded-[14px] p-3',
+                '[transition:border-color_0.3s_ease,box-shadow_0.3s_ease] motion-reduce:transition-none',
+                // Branches litterales : Tailwind emet ses classes a la compilation.
+                isPropertySelected
+                  ? 'border-[var(--line)] shadow-none'
+                  : 'border-[var(--accent)] shadow-[0_0_0_3px_var(--accent-soft)]',
+              )}
+            >
               <ServiceRequestFormProperty
                 control={control}
                 errors={errors}
@@ -650,18 +684,19 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                 selectedProperty={selectedProperty}
                 currentUser={currentUserInfo}
               />
-            </Paper>
+            </div>
 
             {/* Message d'aide quand aucune propriété n'est sélectionnée */}
-            <Collapse in={!isPropertySelected} timeout={300}>
-              <Alert severity="info" sx={{ py: 0.75, fontSize: '0.8125rem' }}>
-                {t('serviceRequests.selectPropertyFirst')}
+            <Collapse open={!isPropertySelected} duration={300}>
+              <Alert variant="info" className="py-1 text-[0.8125rem]">
+                <Info />
+                <AlertDescription>{t('serviceRequests.selectPropertyFirst')}</AlertDescription>
               </Alert>
             </Collapse>
 
             {/* 2. Informations de base — révélé quand propriété sélectionnée */}
-            <Collapse in={isPropertySelected} timeout={400}>
-              <Paper sx={{ border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none', borderRadius: '14px', p: 2 }}>
+            <Collapse open={isPropertySelected} duration={400}>
+              <Card className="gap-0 py-0 bg-[var(--card)] p-3">
                 <ServiceRequestFormInfo
                   control={control}
                   errors={errors}
@@ -675,15 +710,18 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                   extraPrestations={selectedForfait?.extraPrestations}
                   isEditMode={isEditMode}
                 />
-              </Paper>
+              </Card>
             </Collapse>
-          </Box>
+          </div>
 
           {/* ─── Colonne droite : Planification + Assignation — révélée quand propriété sélectionnée ─── */}
           {isPropertySelected && (
-            <Box sx={{ flex: 5, display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0, animation: 'fadeSlideIn 0.4s ease-out', '@keyframes fadeSlideIn': { from: { opacity: 0, transform: 'translateX(20px)' }, to: { opacity: 1, transform: 'translateX(0)' } } }}>
+            // `animate-in fade-in slide-in-from-right-5` rejoue le keyframe
+            // `fadeSlideIn` du sx (opacite 0->1 + translateX 20px->0) sans avoir
+            // a declarer de keyframes, impossible depuis une classe utilitaire.
+            <div className="flex-[5] flex flex-col gap-[9px] min-w-0 animate-in fade-in slide-in-from-right-5 duration-[400ms] motion-reduce:animate-none">
               {/* 3. Planification */}
-              <Paper sx={{ border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none', borderRadius: '14px', p: 2 }}>
+              <Card className="gap-0 py-0 bg-[var(--card)] p-3">
                 <ServiceRequestFormPlanning
                   control={control}
                   errors={errors}
@@ -692,13 +730,13 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                   isAdminOrManager={isAdminOrManager}
                   reservations={propertyReservations}
                 />
-              </Paper>
+              </Card>
 
               {/* 4. Assignation et statut */}
-              <Paper sx={{ border: '1px solid var(--line)', bgcolor: 'var(--card)', boxShadow: 'none', borderRadius: '14px', p: 2 }}>
-                <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)', mb: 1.5 }}>
+              <Card className="gap-0 py-0 bg-[var(--card)] p-3">
+                <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-2">
                   {t('serviceRequests.sections.requestorAssignment')}
-                </Typography>
+                </p>
 
                 <ServiceRequestFormAssignment
                   control={control}
@@ -713,21 +751,21 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                   disabled={!isPropertySelected}
                   eligibleTeamIds={eligibleTeamIds}
                 />
-              </Paper>
-            </Box>
+              </Card>
+            </div>
           )}
-        </Box>
+        </div>
       </form>
 
       {/* Bouton de soumission caché pour le PageHeader */}
       <Button
         type="submit"
-        sx={{ display: 'none' }}
+        className="hidden"
         data-submit-service-request
       >
         Soumettre
       </Button>
-    </Box>
+    </div>
   );
 };
 

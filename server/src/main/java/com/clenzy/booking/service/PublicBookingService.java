@@ -111,6 +111,7 @@ public class PublicBookingService {
     private final BookingDisplayCurrencyService displayCurrencyService;
     private final com.clenzy.service.UpsellService upsellService;
     private final BookingFraudScoringService fraudScoringService;
+    private final com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService;
     /** Jeu de démo servi quand la config est en mode {@link DataSourceMode#MOCK}. */
     private final BookingMockDataProvider mockDataProvider;
 
@@ -138,6 +139,7 @@ public class PublicBookingService {
             BookingDisplayCurrencyService displayCurrencyService,
             com.clenzy.service.UpsellService upsellService,
             BookingFraudScoringService fraudScoringService,
+            com.clenzy.service.agent.supervision.SupervisionSuggestionService supervisionSuggestionService,
             BookingMockDataProvider mockDataProvider,
             com.clenzy.service.PaymentOrchestrationService orchestrationService,
             org.springframework.transaction.PlatformTransactionManager transactionManager) {
@@ -164,6 +166,7 @@ public class PublicBookingService {
         this.displayCurrencyService = displayCurrencyService;
         this.upsellService = upsellService;
         this.fraudScoringService = fraudScoringService;
+        this.supervisionSuggestionService = supervisionSuggestionService;
         this.mockDataProvider = mockDataProvider;
         this.orchestrationService = orchestrationService;
         this.writeTx = new org.springframework.transaction.support.TransactionTemplate(transactionManager);
@@ -1207,10 +1210,13 @@ public class PublicBookingService {
         radarMetadata.put("risk_level", assessment.level().name());
 
         if (!fraudScoringService.isEnforcement()) {
-            // Advisory : on NE bloque ni n'altère jamais le paiement. On journalise seulement.
+            // Advisory : on NE bloque ni n'altère jamais le paiement. On journalise, et on
+            // pose la carte HITL FRAUD_BLOCK — surfacer le score pour décision HUMAINE est
+            // compatible advisory (rien ne se passe sans le clic « Bloquer » de l'opérateur).
             if (assessment.isMediumOrAbove()) {
                 log.warn("Booking Engine — checkout résa {} scoré {} ({}) [advisory] : {}",
                     reservation.getConfirmationCode(), assessment.score(), assessment.level(), assessment.reasons());
+                suggestFraudBlockCard(reservation, assessment);
             }
             return new RiskDecision(radarMetadata);
         }
@@ -1227,6 +1233,37 @@ public class PublicBookingService {
             flagForManualReview(reservation, assessment);
         }
         return new RiskDecision(radarMetadata);
+    }
+
+    /**
+     * Carte HITL {@code FRAUD_BLOCK} (agent Finance, constellation métiers Phase 2) :
+     * la réservation scorée MEDIUM/HIGH est proposée au blocage — « Bloquer » annule la
+     * réservation tant qu'elle est {@code pending} (calendrier libéré, session Stripe
+     * expirée). Best-effort : ne perturbe jamais le checkout.
+     */
+    private void suggestFraudBlockCard(Reservation reservation, RiskAssessment assessment) {
+        try {
+            if (reservation.getProperty() == null || reservation.getProperty().getId() == null) {
+                return;
+            }
+            supervisionSuggestionService.recordActionable(
+                reservation.getOrganizationId(), reservation.getProperty().getId(), "fin",
+                "Réservation à risque — score " + assessment.score() + "/100 ("
+                    + reservation.getConfirmationCode() + ")",
+                "Signaux : " + String.join(" ; ", assessment.reasons()) + ". « Bloquer » annule "
+                    + "la réservation tant qu'elle n'est pas payée (calendrier libéré, session de "
+                    + "paiement expirée) ; une fois payée, passer par la fiche réservation.",
+                com.clenzy.service.agent.supervision.SupervisionActionType.FRAUD_BLOCK,
+                "{\"reservationId\":" + reservation.getId() + "}",
+                reservation.getTotalPrice() != null
+                    ? reservation.getTotalPrice().movePointRight(2)
+                        .setScale(0, java.math.RoundingMode.HALF_UP).longValueExact()
+                    : null,
+                assessment.isHigh() ? "critical" : "warning");
+        } catch (Exception e) {
+            log.debug("Carte FRAUD_BLOCK non enregistrée (résa {}): {}",
+                reservation.getId(), e.getMessage());
+        }
     }
 
     /**
@@ -1250,6 +1287,7 @@ public class PublicBookingService {
             "La réservation " + code + " a été marquée pour revue par le scoring de risque ("
                 + assessment.level() + ", score " + assessment.score() + ").",
             "/reservations"));
+        suggestFraudBlockCard(reservation, assessment);
     }
 
     // ─── Retour Stripe template-driven : success_url valide (anti open-redirect, B3) ─────────────

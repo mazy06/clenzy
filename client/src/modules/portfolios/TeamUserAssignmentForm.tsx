@@ -1,31 +1,22 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
+import { Spinner, Button } from '../../components/ui';
+import { Card as BuiCard, CardContent } from '../../components/ui';
 import {
-  Box,
-  Typography,
-  Paper,
-  Container,
-  Stepper,
-  Step,
-  StepLabel,
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
-  CircularProgress,
-  Grid,
-  Card,
-  CardContent,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Checkbox,
-  TextField,
-  InputAdornment,
   Avatar,
-} from '@mui/material';
+  AvatarFallback,
+  Checkbox,
+  Field,
+  FieldLabel,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui';
+import { Stepper, Step, StepLabel } from '../../components/ui';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '../../components/ui';
 import {
   People,
   Group,
@@ -40,6 +31,18 @@ import {
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { useTeamUserAssignment } from './useTeamUserAssignment';
+
+// `getRoleColor` du hook rend un nom de couleur MUI : on le transpose ici, le
+// hook etant partage avec d'autres ecrans.
+const ROLE_TONE: Record<string, StatusTone> = {
+  primary: 'accent',
+  secondary: 'neutral',
+  success: 'ok',
+  warning: 'warn',
+  error: 'err',
+  info: 'info',
+  default: 'neutral',
+};
 
 // ─── Role Icon Helper ────────────────────────────────────────────────────────
 
@@ -85,17 +88,17 @@ const TeamUserAssignmentForm: React.FC = () => {
 
   if (!user?.id) {
     return (
-      <Container maxWidth="lg">
+      <div className="mx-auto w-full max-w-[1200px] px-3 min-[600px]:px-[18px]">
         <PageHeader
           title={t('portfolios.forms.teamUserAssociation')}
           subtitle={t('portfolios.forms.teamUserAssociationSubtitle')}
           backPath="/portfolios"
           showBackButton={true}
         />
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
-          <CircularProgress size={32} />
-        </Box>
-      </Container>
+        <div className="flex justify-center items-center min-h-[300px]">
+          <Spinner className="size-8" />
+        </div>
+      </div>
     );
   }
 
@@ -105,216 +108,191 @@ const TeamUserAssignmentForm: React.FC = () => {
     switch (step) {
       case 0:
         return (
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem', mb: 0.5 }}>
+          <div>
+            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-0.5">
               {t('portfolios.steps.selectManagerTitle')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.82rem', mb: 2.5 }}>
+            </h6>
+            <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-3.5">
               {t('portfolios.steps.selectManagerDescription')}
-            </Typography>
-            <FormControl fullWidth size="small">
-              <InputLabel>{t('portfolios.fields.manager')}</InputLabel>
+            </p>
+            <Field>
+              <FieldLabel htmlFor="team-user-manager">{t('portfolios.fields.manager')}</FieldLabel>
+              {/* Select « riche » et non NativeSelect : chaque option porte un
+                  avatar, qu'une <option> native ne peut pas afficher. */}
               <Select
-                value={selectedManager}
-                onChange={(e) => setSelectedManager(e.target.value as number)}
-                label={t('portfolios.fields.manager')}
-                displayEmpty
-                sx={{ borderRadius: 2, fontSize: '0.85rem' }}
+                value={selectedManager === '' ? '' : String(selectedManager)}
+                onValueChange={(value) => setSelectedManager(Number(value))}
               >
-                {managers.map((manager) => (
-                  <MenuItem key={manager.id} value={manager.id}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Avatar sx={{ width: 24, height: 24, fontSize: '0.6rem', fontFamily: 'var(--font-display)', fontWeight: 600, bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '8px' }}>
-                        {manager.firstName.charAt(0)}{manager.lastName.charAt(0)}
-                      </Avatar>
-                      <Typography sx={{ fontSize: '0.85rem' }}>
-                        {manager.firstName} {manager.lastName} - {manager.email}
-                      </Typography>
-                    </Box>
-                  </MenuItem>
-                ))}
+                <SelectTrigger id="team-user-manager" className="w-full text-[0.85rem]">
+                  <SelectValue placeholder={t('portfolios.fields.manager')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {managers.map((manager) => (
+                    <SelectItem key={manager.id} value={String(manager.id)}>
+                      <div className="flex items-center gap-1.5">
+                        <Avatar className="size-6 rounded-[8px] after:rounded-[8px]">
+                          <AvatarFallback className="rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)] text-[0.6rem] font-semibold font-[family-name:var(--font-display)]">
+                            {manager.firstName.charAt(0)}{manager.lastName.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="cn-text-body1 text-[0.85rem]">
+                          {manager.firstName} {manager.lastName} - {manager.email}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </FormControl>
-          </Box>
+            </Field>
+          </div>
         );
 
       case 1:
         return (
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem', mb: 0.5 }}>
+          <div>
+            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-0.5">
               {t('portfolios.fields.selectTeams')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.82rem', mb: 2.5 }}>
+            </h6>
+            <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-3.5">
               {t('portfolios.fields.selectTeamsDescription')}{' '}
               <strong>{t('portfolios.fields.optionalStep')}</strong>
-            </Typography>
-            <Grid container spacing={1.5}>
+            </p>
+            <div className="grid grid-cols-12 gap-[9px]">
               {teams.map((team) => (
-                <Grid item xs={12} sm={6} md={4} key={team.id}>
-                  <Card
-                    variant={selectedTeamsSet.has(team.id) ? 'elevation' : 'outlined'}
-                    sx={{
-                      cursor: 'pointer',
-                      borderRadius: 2,
-                      border: selectedTeamsSet.has(team.id) ? 2 : 1,
-                      borderColor: selectedTeamsSet.has(team.id) ? 'var(--accent)' : 'var(--line)',
-                      transition: 'border-color 0.2s ease',
-                      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                      '&:hover': {
-                        borderColor: 'var(--accent)',
-                      },
-                    }}
+                <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4" key={team.id}>
+                  <BuiCard
+                    className={cn(
+                      // `border-solid` obligatoire : le gabarit pose border-none,
+                      // sans quoi la largeur existe mais le lisere reste invisible.
+                      'cursor-pointer rounded-[16px] border-solid ring-0 gap-0 py-[9px] transition-[border-color] duration-200 motion-reduce:transition-none hover:border-[var(--accent)]',
+                      selectedTeamsSet.has(team.id)
+                        ? 'border-2 border-[var(--accent)]'
+                        : 'border border-[var(--line)]',
+                    )}
                     onClick={() => handleTeamToggle(team.id)}
                   >
-                    <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
+                    <CardContent className="px-3">
+                      <div className="flex items-center mb-1">
                         <Checkbox
+                          className="me-[4.5px]"
                           checked={selectedTeamsSet.has(team.id)}
-                          onChange={() => handleTeamToggle(team.id)}
-                          size="small"
-                          sx={{ p: 0.25, mr: 0.75 }}
+                          onCheckedChange={() => handleTeamToggle(team.id)}
                         />
-                        <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', mr: 0.75 }}><Group size={18} strokeWidth={1.75} /></Box>
-                        <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                        <span className="inline-flex text-[var(--accent)] me-1"><Group size={18} strokeWidth={1.75} /></span>
+                        <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold">
                           {team.name}
-                        </Typography>
-                      </Box>
+                        </h6>
+                      </div>
                       {team.description && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 3.5, fontSize: '0.72rem', mb: 0.5 }}>
+                        <span className="cn-text-caption text-muted-foreground block ms-5 text-[0.72rem] mb-0.5">
                           {team.description}
-                        </Typography>
+                        </span>
                       )}
-                      <Box sx={{ display: 'flex', gap: 0.75, ml: 3.5, alignItems: 'center' }}>
+                      <div className="flex gap-1 ms-5 items-center">
                         {team.interventionType && (
-                          <Chip
+                          <StatusChip
+                            tone={team.interventionType === 'CLEANING' ? 'ok' : 'info'}
                             label={team.interventionType}
-                            size="small"
-                            color={team.interventionType === 'CLEANING' ? 'success' : 'info'}
-                            sx={{ height: 20, fontSize: '0.6rem' }}
+                            className="h-[20px] text-[0.6rem]"
                           />
                         )}
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                        <span className="cn-text-caption text-muted-foreground text-[0.65rem]">
                           {team.memberCount ?? 0} {t('portfolios.fields.members')}
-                        </Typography>
-                      </Box>
+                        </span>
+                      </div>
                     </CardContent>
-                  </Card>
-                </Grid>
+                  </BuiCard>
+                </div>
               ))}
-            </Grid>
-          </Box>
+            </div>
+          </div>
         );
 
       case 2:
         return (
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem', mb: 0.5 }}>
+          <div>
+            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-0.5">
               {t('portfolios.fields.selectUsers')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.82rem', mb: 2 }}>
+            </h6>
+            <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-3">
               {t('portfolios.fields.selectUsersDescription')}
               {selectedTeams.length === 0 ? (
                 <strong> {t('portfolios.fields.mustSelectAtLeastOneUser')}</strong>
               ) : (
                 <strong> {t('portfolios.fields.optionalSelection')}</strong>
               )}
-            </Typography>
+            </p>
 
             {/* Search bar */}
-            <TextField
-              fullWidth
-              size="small"
-              placeholder={t('portfolios.fields.searchUser')}
-              value={userSearchTerm}
-              onChange={(e) => setUserSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={18} strokeWidth={1.75} /></Box>
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                mb: 2,
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                  fontSize: '0.85rem',
-                },
-              }}
-            />
+            {/* Champ sans libelle visible (la section porte deja son titre) :
+                l'aria-label reste la seule etiquette. */}
+            <InputGroup className="mb-3">
+              <InputGroupAddon align="inline-start">
+                <span className="inline-flex text-muted-foreground"><Search size={18} strokeWidth={1.75} /></span>
+              </InputGroupAddon>
+              <InputGroupInput
+                id="team-user-search"
+                aria-label={t('portfolios.fields.searchUser')}
+                placeholder={t('portfolios.fields.searchUser')}
+                value={userSearchTerm}
+                onChange={(e) => setUserSearchTerm(e.target.value)}
+              />
+            </InputGroup>
 
             {filteredUsers.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><People size={40} strokeWidth={1.75} /></Box>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
+              <div className="text-center py-6">
+                <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><People size={40} strokeWidth={1.75} /></span>
+                <p className="cn-text-body2 text-muted-foreground text-[0.85rem]">
                   {userSearchTerm ? t('portfolios.fields.noUserFound') : t('portfolios.fields.noUserAvailable')}
-                </Typography>
-              </Box>
+                </p>
+              </div>
             ) : (
-              <Grid container spacing={1.5}>
+              <div className="grid grid-cols-12 gap-[9px]">
                 {filteredUsers.map((userItem) => (
-                  <Grid item xs={12} sm={6} md={4} key={userItem.id}>
-                    <Card
-                      variant={selectedUsersSet.has(userItem.id) ? 'elevation' : 'outlined'}
-                      sx={{
-                        cursor: 'pointer',
-                        borderRadius: 2,
-                        border: selectedUsersSet.has(userItem.id) ? 2 : 1,
-                        borderColor: selectedUsersSet.has(userItem.id) ? 'var(--accent)' : 'var(--line)',
-                        transition: 'border-color 0.2s ease',
-                        '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-                        '&:hover': {
-                          borderColor: 'var(--accent)',
-                        },
-                      }}
+                  <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4" key={userItem.id}>
+                    <BuiCard
+                      className={cn(
+                        'cursor-pointer rounded-[16px] border-solid ring-0 gap-0 py-[9px] transition-[border-color] duration-200 motion-reduce:transition-none hover:border-[var(--accent)]',
+                        selectedUsersSet.has(userItem.id)
+                          ? 'border-2 border-[var(--accent)]'
+                          : 'border border-[var(--line)]',
+                      )}
                       onClick={() => handleUserToggle(userItem.id)}
                     >
-                      <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
+                      <CardContent className="px-3">
+                        <div className="flex items-center mb-1">
                           <Checkbox
+                            className="me-[4.5px]"
                             checked={selectedUsersSet.has(userItem.id)}
-                            onChange={() => handleUserToggle(userItem.id)}
-                            size="small"
-                            sx={{ p: 0.25, mr: 0.75 }}
+                            onCheckedChange={() => handleUserToggle(userItem.id)}
                           />
-                          <Avatar
-                            sx={{
-                              width: 24,
-                              height: 24,
-                              fontSize: '0.55rem',
-                              fontWeight: 600,
-                              bgcolor: 'var(--accent)',
-                              color: 'var(--on-accent)',
-                              fontFamily: 'var(--font-display)',
-                              borderRadius: '8px',
-                              mr: 0.75,
-                            }}
-                          >
-                            {userItem.firstName.charAt(0)}{userItem.lastName.charAt(0)}
+                          <Avatar className="size-6 rounded-[8px] after:rounded-[8px] me-[4.5px]">
+                            <AvatarFallback className="rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)] text-[0.55rem] font-semibold font-[family-name:var(--font-display)]">
+                              {userItem.firstName.charAt(0)}{userItem.lastName.charAt(0)}
+                            </AvatarFallback>
                           </Avatar>
-                          <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                          <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold">
                             {userItem.firstName} {userItem.lastName}
-                          </Typography>
-                        </Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 3.5, fontSize: '0.7rem', mb: 0.5 }}>
+                          </h6>
+                        </div>
+                        <span className="cn-text-caption text-muted-foreground block ms-5 text-[0.7rem] mb-0.5">
                           {userItem.email}
-                        </Typography>
-                        <Box sx={{ ml: 3.5 }}>
-                          <Chip
+                        </span>
+                        <div className="ms-5">
+                          <StatusChip
+                            tone={ROLE_TONE[getRoleColor(userItem.role)] ?? 'neutral'}
                             label={getRoleLabel(userItem.role)}
-                            size="small"
-                            color={getRoleColor(userItem.role)}
                             icon={getRoleIcon(userItem.role)}
-                            sx={{ height: 22, fontSize: '0.65rem' }}
+                            className="text-[0.65rem]"
                           />
-                        </Box>
+                        </div>
                       </CardContent>
-                    </Card>
-                  </Grid>
+                    </BuiCard>
+                  </div>
                 ))}
-              </Grid>
+              </div>
             )}
-          </Box>
+          </div>
         );
 
       case 3: {
@@ -326,98 +304,92 @@ const TeamUserAssignmentForm: React.FC = () => {
           : { firstName: user?.firstName, lastName: user?.lastName, email: user?.email };
 
         return (
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.9rem', mb: 2 }}>
+          <div>
+            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-3">
               {t('portfolios.fields.confirmAssignments')}
-            </Typography>
+            </h6>
 
             {/* Manager */}
-            <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2 }}>
-              <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', mb: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <BuiCard className="gap-0 py-0 p-3 mb-3">
+              <h6 className="cn-text-subtitle2 text-[0.82rem] mb-0.5 flex items-center gap-0.5">
                 <People size={16} strokeWidth={1.75} />
                 {t('portfolios.fields.selectedManager')}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                <Avatar sx={{ width: 28, height: 28, fontSize: '0.6rem', fontFamily: 'var(--font-display)', fontWeight: 600, bgcolor: 'var(--accent)', color: 'var(--on-accent)', borderRadius: '8px' }}>
-                  {selectedManagerData?.firstName?.charAt(0)}{selectedManagerData?.lastName?.charAt(0)}
+              </h6>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <Avatar className="size-7 rounded-[8px] after:rounded-[8px]">
+                  <AvatarFallback className="rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)] text-[0.6rem] font-semibold font-[family-name:var(--font-display)]">
+                    {selectedManagerData?.firstName?.charAt(0)}{selectedManagerData?.lastName?.charAt(0)}
+                  </AvatarFallback>
                 </Avatar>
-                <Box>
-                  <Typography variant="subtitle2" color="primary" sx={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                <div>
+                  <h6 className="cn-text-subtitle2 text-primary text-[0.85rem] font-semibold">
                     {selectedManagerData?.firstName} {selectedManagerData?.lastName}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                  </h6>
+                  <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
                     {selectedManagerData?.email}
-                  </Typography>
-                </Box>
-              </Box>
-            </Paper>
+                  </span>
+                </div>
+              </div>
+            </BuiCard>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-12 min-[900px]:col-span-6">
+                <BuiCard className="gap-0 py-0 p-3">
+                  <h6 className="cn-text-subtitle2 text-[0.82rem] mb-1.5 flex items-center gap-0.5">
                     <Group size={16} strokeWidth={1.75} />
                     {t('portfolios.fields.selectedTeams')} ({selectedTeamsData.length})
-                  </Typography>
+                  </h6>
                   {selectedTeamsData.length > 0 ? (
-                    <List dense disablePadding>
+                    <ul className="list-none m-0 p-0">
                       {selectedTeamsData.map((team) => (
-                        <ListItem key={team.id} disableGutters sx={{ py: 0.5 }}>
-                          <ListItemIcon sx={{ minWidth: 28 }}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={<Typography sx={{ fontSize: '0.82rem' }}>{team.name}</Typography>}
-                            secondary={
-                              <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
-                                {team.memberCount ?? 0} {t('portfolios.fields.members')} {team.interventionType ? `\u2022 ${team.interventionType}` : ''}
-                              </Typography>
-                            }
-                          />
-                        </ListItem>
+                        <li className="flex items-center py-[3px]" key={team.id}>
+                          <span className="inline-flex text-[var(--ok)] min-w-[28px]"><CheckCircle size={16} strokeWidth={1.75} /></span>
+                          <div className="min-w-0">
+                            <p className="cn-text-body1 text-[0.82rem]">{team.name}</p>
+                            <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
+                              {team.memberCount ?? 0} {t('portfolios.fields.members')} {team.interventionType ? `\u2022 ${team.interventionType}` : ''}
+                            </span>
+                          </div>
+                        </li>
                       ))}
-                    </List>
+                    </ul>
                   ) : (
-                    <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.75rem' }}>
+                    <span className="cn-text-caption text-muted-foreground italic text-[0.75rem]">
                       {t('portfolios.fields.noTeamSelected')}
-                    </Typography>
+                    </span>
                   )}
-                </Paper>
-              </Grid>
+                </BuiCard>
+              </div>
 
-              <Grid item xs={12} md={6}>
-                <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontSize: '0.82rem', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <div className="col-span-12 min-[900px]:col-span-6">
+                <BuiCard className="gap-0 py-0 p-3">
+                  <h6 className="cn-text-subtitle2 text-[0.82rem] mb-1.5 flex items-center gap-0.5">
                     <People size={16} strokeWidth={1.75} />
                     {t('portfolios.fields.selectedUsers')} ({selectedUsersData.length})
-                  </Typography>
+                  </h6>
                   {selectedUsersData.length > 0 ? (
-                    <List dense disablePadding>
+                    <ul className="list-none m-0 p-0">
                       {selectedUsersData.map((userItem) => (
-                        <ListItem key={userItem.id} disableGutters sx={{ py: 0.5 }}>
-                          <ListItemIcon sx={{ minWidth: 28 }}>
-                            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--ok)' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={<Typography sx={{ fontSize: '0.82rem' }}>{userItem.firstName} {userItem.lastName}</Typography>}
-                            secondary={
-                              <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
-                                {userItem.email} {'\u2022'} {getRoleLabel(userItem.role)}
-                              </Typography>
-                            }
-                          />
-                        </ListItem>
+                        <li className="flex items-center py-[3px]" key={userItem.id}>
+                          <span className="inline-flex text-[var(--ok)] min-w-[28px]"><CheckCircle size={16} strokeWidth={1.75} /></span>
+                          <div className="min-w-0">
+                            <p className="cn-text-body1 text-[0.82rem]">{userItem.firstName} {userItem.lastName}</p>
+                            <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
+                              {userItem.email} {'\u2022'} {getRoleLabel(userItem.role)}
+                            </span>
+                          </div>
+                        </li>
                       ))}
-                    </List>
+                    </ul>
                   ) : (
-                    <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.75rem' }}>
+                    <span className="cn-text-caption text-muted-foreground italic text-[0.75rem]">
                       {t('portfolios.fields.noUserAvailable')}
-                    </Typography>
+                    </span>
                   )}
-                </Paper>
-              </Grid>
-            </Grid>
-          </Box>
+                </BuiCard>
+              </div>
+            </div>
+          </div>
         );
       }
 
@@ -427,7 +399,7 @@ const TeamUserAssignmentForm: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="lg">
+    <div className="mx-auto w-full max-w-[1200px] px-3 min-[600px]:px-[18px]">
       <PageHeader
         title={t('portfolios.forms.teamUserAssociation')}
         subtitle={t('portfolios.forms.teamUserAssociationSubtitle')}
@@ -435,14 +407,8 @@ const TeamUserAssignmentForm: React.FC = () => {
         showBackButton={true}
       />
 
-      <Paper sx={{ p: 3, borderRadius: 2, mt: 2 }}>
-        <Stepper
-          activeStep={activeStep}
-          sx={{
-            mb: 4,
-            '& .MuiStepLabel-label': { fontSize: '0.82rem' },
-          }}
-        >
+      <BuiCard className="gap-0 py-0 p-4 mt-3">
+        <Stepper activeStep={activeStep} className="mb-6">
           {steps.map((label) => (
             <Step key={label}>
               <StepLabel>{label}</StepLabel>
@@ -450,47 +416,34 @@ const TeamUserAssignmentForm: React.FC = () => {
           ))}
         </Stepper>
 
-        <Box sx={{ mb: 4, minHeight: 200 }}>
+        <div className="mb-6 min-h-[200px]">
           {getStepContent(activeStep)}
-        </Box>
+        </div>
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button
-            disabled={activeStep === 0}
-            onClick={handleBack}
-            startIcon={<ArrowBack size={16} strokeWidth={1.75} />}
-            size="small"
-            sx={{ fontSize: '0.82rem' }}
-          >
+        <div className="flex justify-between">
+          <Button variant="ghost" size="sm" disabled={activeStep === 0} onClick={handleBack}>
+            <ArrowBack size={16} strokeWidth={1.75} />
             {t('portfolios.forms.back')}
           </Button>
 
           {activeStep === steps.length - 1 ? (
             <Button
-              variant="contained"
+              size="sm"
               onClick={handleSubmit}
               disabled={submitting || !selectedManager || (selectedTeams.length === 0 && selectedUsers.length === 0)}
-              startIcon={submitting ? <CircularProgress size={16} /> : <CheckCircle size={16} strokeWidth={1.75} />}
-              size="small"
-              sx={{ fontSize: '0.82rem' }}
             >
+              {submitting ? <Spinner className="size-4" /> : <CheckCircle size={16} strokeWidth={1.75} />}
               {submitting ? t('portfolios.forms.assigning') : t('portfolios.forms.confirmAssignments')}
             </Button>
           ) : (
-            <Button
-              variant="contained"
-              onClick={handleNext}
-              disabled={!canGoNext}
-              endIcon={<ArrowForward size={16} strokeWidth={1.75} />}
-              size="small"
-              sx={{ fontSize: '0.82rem' }}
-            >
+            <Button size="sm" onClick={handleNext} disabled={!canGoNext}>
               {t('portfolios.forms.next')}
+              <ArrowForward size={16} strokeWidth={1.75} />
             </Button>
           )}
-        </Box>
-      </Paper>
-    </Container>
+        </div>
+      </BuiCard>
+    </div>
   );
 };
 

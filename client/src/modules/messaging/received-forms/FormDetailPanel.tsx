@@ -1,17 +1,18 @@
 import React, { useEffect, useState } from 'react';
+import { cn } from '../../../utils/cn';
+import { Button, Spinner } from '../../../components/ui';
+import { Field, FieldLabel, FieldDescription, Input, Textarea } from '../../../components/ui';
 import {
-  Box,
-  Button,
-  CircularProgress,
   Dialog,
-  DialogActions,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  IconButton,
-  TextField,
   Tooltip,
-  Typography,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import {
   Archive as ArchiveIcon,
   ArrowBack as ArrowBackIcon,
@@ -191,416 +192,374 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
   const pill = STATUS_PILL[form.status] ?? STATUS_PILL.NEW;
 
   return (
-    <Box sx={{ flex: 1, minWidth: 0, overflowY: 'auto', p: '26px 30px', bgcolor: 'var(--bg)' }}>
+    <div className="flex-1 min-w-0 overflow-y-auto p-[26px 30px] bg-[var(--bg)]">
       {/* Retour mobile vers la liste */}
       {showBack && (
-        <Box
-          component="button"
-          onClick={onBack}
-          aria-label="Retour"
-          sx={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: 32, height: 32, mb: '14px', borderRadius: '8px',
-            border: '1px solid var(--line-2)', bgcolor: 'var(--card)', color: 'var(--muted)',
-            cursor: 'pointer', p: 0, transition: 'color .14s, border-color .14s',
-            '&:hover': { color: 'var(--accent)', borderColor: 'var(--accent)' },
-          }}
-        >
+        <button className="flex items-center justify-center w-[32px] h-[32px] mb-3.5 rounded-[8px] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] cursor-pointer p-0 hover:text-[var(--accent)] hover:border-[var(--accent)]" style={{ transition: 'color .14s, border-color .14s' }} onClick={onBack} aria-label="Retour">
           <ArrowBackIcon size={16} strokeWidth={1.75} />
-        </Box>
+        </button>
       )}
 
       {/* .fr-dhead : entête identité + statut */}
-      <Box sx={{
-        display: 'flex', alignItems: 'flex-start', gap: '14px',
-        pb: '18px', borderBottom: '1px solid var(--line)',
-      }}>
-        <Box sx={{
-          width: 60, height: 60, borderRadius: '50%', flexShrink: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '20px',
-          color: 'var(--on-accent)', bgcolor: 'var(--accent)',
-        }}>
+      <div className="flex items-start gap-3.5 pb-[18px]" style={{ borderBottom: '1px solid var(--line)' }}>
+        <div className="w-[60px] h-[60px] rounded-[50%] shrink-0 flex items-center justify-center font-[family-name:var(--font-display)] font-semibold text-[20px] text-[var(--on-accent)] bg-[var(--accent)]">
           {initialsOf(form.fullName)}
-        </Box>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{
-            fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 600,
-            color: 'var(--ink)', letterSpacing: '-.01em',
-          }}>
+        </div>
+        <div className="min-w-0">
+          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[20px] font-semibold text-[var(--ink)] tracking-[-.01em]">
             {form.fullName || 'Anonyme'}
-          </Typography>
-          <Typography sx={{ fontSize: '13px', color: 'var(--muted)', mt: '2px' }}>
+          </p>
+          <p className="cn-text-body1 text-[13px] text-[var(--muted)] mt-0.5">
             {form.subject || `Formulaire #${form.id}`}
-          </Typography>
+          </p>
           {/* .fr-dcontact : email / tél / adresse avec icônes accent */}
-          <Box sx={{
-            display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '7px 16px',
-            mt: '11px', fontSize: '13px', color: 'var(--body)',
-            '& svg': { color: 'var(--accent)', flexShrink: 0 },
-          }}>
+          <div className="flex flex-wrap items-center gap-y-[7px] gap-x-4 mt-[11px] text-[13px] text-[var(--body)] [&_svg]:text-[var(--accent)] [&_svg]:shrink-0">
             {form.email && (
-              <Box component="a" href={`mailto:${form.email}`} sx={{
-                display: 'inline-flex', alignItems: 'center', gap: '7px',
-                color: 'inherit', textDecoration: 'none', '&:hover': { color: 'var(--ink)' },
-              }}>
+              <a className="inline-flex items-center gap-[7px] text-[inherit] decoration-[none] hover:text-[var(--ink)]" href={`mailto:${form.email}`}>
                 <MailIcon size={15} strokeWidth={1.75} />
                 {form.email}
-              </Box>
+              </a>
             )}
             {form.phone && (
-              <Box component="a" href={`tel:${form.phone.replace(/\s/g, '')}`} sx={{
-                display: 'inline-flex', alignItems: 'center', gap: '7px',
-                color: 'inherit', textDecoration: 'none', '&:hover': { color: 'var(--ink)' },
-              }}>
+              <a className="inline-flex items-center gap-[7px] text-[inherit] decoration-[none] hover:text-[var(--ink)]" href={`tel:${form.phone.replace(/\s/g, '')}`}>
                 <PhoneIcon size={15} strokeWidth={1.75} />
                 {form.phone}
-              </Box>
+              </a>
             )}
             {(form.city || form.postalCode) && (
-              <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+              <span className="inline-flex items-center gap-[7px]">
                 <MapPinIcon size={15} strokeWidth={1.75} />
                 {[form.city, form.postalCode].filter(Boolean).join(' ')}
-              </Box>
+              </span>
             )}
-          </Box>
-        </Box>
+          </div>
+        </div>
         {/* .fr-dright : pilule statut + date + IP */}
-        <Box sx={{ ml: 'auto', textAlign: 'right', flexShrink: 0 }}>
-          <Box component="span" sx={{
-            display: 'inline-flex', alignItems: 'center', gap: '7px',
-            fontSize: '11px', fontWeight: 700, p: '5px 12px', borderRadius: '20px',
-            bgcolor: pill.bg, color: pill.fg,
-          }}>
-            <Box component="span" sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: 'currentColor' }} />
+        <div className="ms-auto text-end shrink-0">
+          <span className="inline-flex items-center gap-[7px] text-[11px] font-bold p-[5px 12px] rounded-[20px]" style={{ backgroundColor: pill.bg, color: pill.fg }}>
+            <span className="w-[7px] h-[7px] rounded-[50%] bg-[currentColor]" />
             {pill.label}
-          </Box>
-          <Typography sx={{ fontSize: '13px', color: 'var(--muted)', mt: '8px' }}>
+          </span>
+          <p className="cn-text-body1 text-[13px] text-[var(--muted)] mt-2">
             {formatFormDate(form.createdAt)}
-          </Typography>
+          </p>
           {form.ipAddress && (
-            <Typography component="span" sx={{
-              display: 'inline-block', fontFamily: 'var(--font-display)', fontSize: '11px',
-              color: 'var(--faint)', bgcolor: 'var(--field)', borderRadius: '6px',
-              p: '3px 8px', mt: '8px', fontVariantNumeric: 'tabular-nums',
-            }}>
+            <span className="cn-text-body1 inline-block text-[11px] text-[var(--faint)] bg-[var(--field)] rounded-[6px] p-[3px 8px] mt-2 tabular-nums" style={{ fontFamily: 'var(--font-display)' }}>
               IP : {form.ipAddress}
-            </Typography>
+            </span>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Sections payload (aperçu du bien / services / planning) */}
       <FormPayloadSections form={form} />
 
       {/* .fr-actions : filet top + boutons */}
-      <Box sx={{
-        display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-        m: '26px 0 0', pt: '20px', borderTop: '1px solid var(--line)',
-      }}>
+      <div className="flex items-center gap-2.5 flex-wrap m-[26px 0 0] pt-5" style={{ borderTop: '1px solid var(--line)' }}>
+        {/* Un bouton desactive n'emet pas d'evenement de survol : l'enveloppe
+            porte le declencheur du Tooltip a sa place. */}
         {tpl && (
-          <Tooltip title={`Génère un PDF à partir du template « ${tpl.name} »`} placement="top" arrow>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={generateDocumentMutation.isPending
-                ? <CircularProgress size={13} color="inherit" />
-                : <FileTextIcon size={15} strokeWidth={1.75} />}
-              onClick={() => handleGeneratePdf()}
-              disabled={generateDocumentMutation.isPending}
-            >
-              {generateDocumentMutation.isPending ? 'Génération…' : 'Générer PDF'}
-            </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Button
+                  onClick={() => handleGeneratePdf()}
+                  disabled={generateDocumentMutation.isPending}
+                >
+                  {generateDocumentMutation.isPending
+                    ? <Spinner className="size-[13px]" />
+                    : <FileTextIcon size={15} strokeWidth={1.75} />}
+                  {generateDocumentMutation.isPending ? 'Génération…' : 'Générer PDF'}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              {`Génère un PDF à partir du template « ${tpl.name} »`}
+            </TooltipContent>
           </Tooltip>
         )}
         {canResend && (
-          <Tooltip title={`Renvoyer le devis à ${form.email}`} placement="top" arrow>
-            <Button
-              variant="outlined"
-              startIcon={<SendIcon size={15} strokeWidth={1.75} />}
-              onClick={openResendModal}
-              disabled={generateDocumentMutation.isPending}
-            >
-              Renvoyer
-            </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Button
+                  variant="outline"
+                  onClick={openResendModal}
+                  disabled={generateDocumentMutation.isPending}
+                >
+                  <SendIcon size={15} strokeWidth={1.75} />
+                  Renvoyer
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">{`Renvoyer le devis à ${form.email}`}</TooltipContent>
           </Tooltip>
         )}
         {form.status !== 'PROCESSED' && form.status !== 'ARCHIVED' && (
           <Button
-            variant="outlined"
-            startIcon={<CheckCircleIcon size={15} strokeWidth={1.75} />}
+            variant="outline"
             onClick={() => handleUpdateStatus('PROCESSED')}
             disabled={updateStatusMutation.isPending}
           >
+            <CheckCircleIcon size={15} strokeWidth={1.75} />
             Marquer traité
           </Button>
         )}
         {form.status !== 'ARCHIVED' ? (
           <Button
-            variant="text"
-            startIcon={<ArchiveIcon size={15} strokeWidth={1.75} />}
+            variant="ghost"
+            className="text-[var(--muted)] hover:text-[var(--err)]"
             onClick={() => handleUpdateStatus('ARCHIVED')}
             disabled={updateStatusMutation.isPending}
-            sx={{
-              color: 'var(--muted)', px: '8px',
-              '&:hover': { color: 'var(--err)', bgcolor: 'transparent' },
-            }}
           >
+            <ArchiveIcon size={15} strokeWidth={1.75} />
             Archiver
           </Button>
         ) : (
           <Button
-            variant="outlined"
-            startIcon={<RestoreIcon size={15} strokeWidth={1.75} />}
+            variant="outline"
             onClick={() => handleUpdateStatus('READ')}
             disabled={updateStatusMutation.isPending}
           >
+            <RestoreIcon size={15} strokeWidth={1.75} />
             Restaurer
           </Button>
         )}
         {!tpl && form.formType === 'DEVIS' && (
-          <Typography sx={{ fontSize: '11px', color: 'var(--faint)', fontStyle: 'italic', flex: 1, minWidth: 200 }}>
+          <p className="cn-text-body1 text-[11px] text-[var(--faint)] italic flex-1 min-w-[200px]">
             Aucun template DEVIS actif — ajoute-en un dans Documents & Communications pour activer la génération PDF.
-          </Typography>
+          </p>
         )}
-      </Box>
+      </div>
 
       {/* .fr-docs : documents générés */}
       {priorGenerations && priorGenerations.length > 0 && (
-        <Box sx={{ mt: '24px' }}>
-          <Box sx={{
-            display: 'flex', alignItems: 'center', gap: '8px', mb: '12px',
-            fontSize: '13px', fontWeight: 700, color: 'var(--ink)',
-            '& svg': { color: 'var(--muted)' },
-          }}>
+        <div className="mt-6">
+          <div className="flex items-center gap-2 mb-3 text-[13px] font-bold text-[var(--ink)] [&_svg]:text-[var(--muted)]">
             <HistoryIcon size={15} strokeWidth={1.75} />
             Documents générés ({priorGenerations.length})
-          </Box>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          </div>
+          <div className="flex flex-col gap-2">
             {priorGenerations.slice(0, 5).map((gen) => {
               const isFailed = gen.status === 'FAILED';
               return (
-                <Box
+                <div
                   key={gen.id}
                   onClick={isFailed
                     ? () => setErrorDetail({ message: gen.errorMessage || 'Cause inconnue', date: gen.createdAt })
                     : () => openPreview(gen)}
-                  sx={{
-                    display: 'flex', alignItems: 'center', gap: '12px', p: '13px 15px',
-                    border: '1px solid', borderColor: isFailed ? 'var(--err)' : 'var(--line)',
-                    borderRadius: '12px', cursor: 'pointer',
-                    bgcolor: isFailed ? 'var(--err-soft)' : 'transparent',
-                    transition: 'border-color .14s, box-shadow .14s',
-                    '&:hover': isFailed
-                      ? { borderColor: 'var(--err)', boxShadow: '0 8px 22px -16px var(--err)' }
-                      : { borderColor: 'var(--accent)', boxShadow: '0 8px 22px -16px var(--accent)' },
-                  }}
+                  className={cn(
+                    'flex items-center gap-3 py-[13px] px-[15px] border border-solid rounded-[12px] cursor-pointer',
+                    'transition-[border-color,box-shadow] duration-[140ms]',
+                    isFailed
+                      ? 'border-[var(--err)] bg-[var(--err-soft)] hover:shadow-[0_8px_22px_-16px_var(--err)]'
+                      : 'border-[var(--line)] bg-transparent hover:border-[var(--accent)] hover:shadow-[0_8px_22px_-16px_var(--accent)]',
+                  )}
                 >
-                  <Box sx={{
-                    width: 34, height: 34, borderRadius: '9px', bgcolor: 'var(--err)', color: 'var(--on-accent)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    fontSize: '9px', fontWeight: 800,
-                  }}>
+                  <div className="w-[34px] h-[34px] rounded-[9px] bg-[var(--err)] text-[var(--on-accent)] flex items-center justify-center shrink-0 text-[9px] font-extrabold">
                     {isFailed ? <AlertTriangleIcon size={15} strokeWidth={1.75} /> : 'PDF'}
-                  </Box>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{
-                      fontSize: '13px', fontWeight: 600, color: isFailed ? 'var(--err)' : 'var(--ink)',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={cn(
+                      'cn-text-body1 text-[13px] font-semibold truncate',
+                      isFailed ? 'text-[var(--err)]' : 'text-[var(--ink)]',
+                    )}>
                       {isFailed ? 'Échec de génération' : (gen.fileName || `document-${gen.id}.pdf`)}
-                    </Typography>
+                    </p>
                     {/* Erreur : 1re ligne uniquement (tronquée) — détail complet dans la modale au clic. */}
-                    <Typography sx={{
-                      fontSize: '11.5px', color: 'var(--muted)', mt: '1px',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>
+                    <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mt-[1px] truncate">
                       {isFailed
                         ? `${gen.errorMessage || 'Cause inconnue'}${gen.createdAt ? ` · ${formatFormDate(gen.createdAt)}` : ''}`
                         : [gen.legalNumber, gen.createdAt ? formatFormDate(gen.createdAt) : '']
                             .filter(Boolean).join(' · ')}
-                    </Typography>
-                  </Box>
-                  <Box component="span" sx={{
-                    ml: 'auto', display: 'inline-flex', alignItems: 'center', gap: '4px',
-                    fontSize: '12.5px', fontWeight: 600,
-                    color: isFailed ? 'var(--err)' : 'var(--accent)', whiteSpace: 'nowrap', flexShrink: 0,
-                  }}>
+                    </p>
+                  </div>
+                  <span className={cn('ms-auto inline-flex items-center gap-1 text-[12.5px] font-semibold whitespace-nowrap shrink-0', isFailed ? 'text-[var(--err)]' : 'text-[var(--accent)]')}>
                     {isFailed ? 'Détail' : 'Aperçu'}
                     <ArrowRightIcon size={14} strokeWidth={1.75} />
-                  </Box>
-                </Box>
+                  </span>
+                </div>
               );
             })}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* ── Aperçu PDF inline ── */}
-      <Dialog
-        open={Boolean(previewUrl)}
-        onClose={closePreview}
-        fullWidth
-        maxWidth="lg"
-        PaperProps={{ sx: { height: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' } }}
-      >
-        <DialogTitle sx={{
-          display: 'flex', alignItems: 'center', gap: 1, py: 1.25, px: 2,
-          borderBottom: '1px solid var(--line)', bgcolor: 'var(--surface-2)',
-        }}>
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--err)' }}>
-            <FileTextIcon size={18} strokeWidth={1.75} />
-          </Box>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{
-              fontSize: '13px', fontWeight: 700, color: 'var(--ink)',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>
-              {previewMeta?.filename || 'Aperçu du document'}
-            </Typography>
-            {previewMeta?.createdAt && (
-              <Typography sx={{ fontSize: '11px', color: 'var(--muted)' }}>
-                Généré le {formatFormDate(previewMeta.createdAt)}
-              </Typography>
+      <Dialog open={Boolean(previewUrl)} onOpenChange={(next) => { if (!next) closePreview(); }}>
+        {/* Visionneuse plein cadre : padding annule, la croix maison remplace celle du kit. */}
+        <DialogContent
+          showCloseButton={false}
+          className="sm:max-w-5xl h-[92vh] flex flex-col gap-0 p-0 overflow-hidden"
+        >
+          <DialogHeader className="flex-row items-center gap-1.5 py-[7.5px] px-3 border-b border-solid border-b-[var(--line)] bg-[var(--surface-2)]">
+            <span className="inline-flex text-[var(--err)]">
+              <FileTextIcon size={18} strokeWidth={1.75} />
+            </span>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="text-[13px] font-bold text-[var(--ink)] overflow-hidden text-ellipsis whitespace-nowrap">
+                {previewMeta?.filename || 'Aperçu du document'}
+              </DialogTitle>
+              {previewMeta?.createdAt && (
+                <DialogDescription className="text-[11px] text-[var(--muted)]">
+                  Généré le {formatFormDate(previewMeta.createdAt)}
+                </DialogDescription>
+              )}
+            </div>
+            {previewUrl && (
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Ouvrir dans un nouvel onglet"
+                      onClick={() => window.open(previewUrl, '_blank', 'noopener,noreferrer')}
+                    >
+                      <OpenInNewIcon size={16} strokeWidth={1.75} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Ouvrir dans un nouvel onglet</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Télécharger"
+                      onClick={() => {
+                        if (!previewMeta) return;
+                        const link = document.createElement('a');
+                        link.href = previewUrl;
+                        link.download = previewMeta.filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                    >
+                      <DownloadIcon size={16} strokeWidth={1.75} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Télécharger</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon-sm" aria-label="Fermer" onClick={closePreview}>
+                      <CloseIcon size={18} strokeWidth={1.75} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Fermer</TooltipContent>
+                </Tooltip>
+              </>
             )}
-          </Box>
-          {previewUrl && (
-            <>
-              <Tooltip title="Ouvrir dans un nouvel onglet">
-                <IconButton size="small" onClick={() => window.open(previewUrl, '_blank', 'noopener,noreferrer')}>
-                  <OpenInNewIcon size={16} strokeWidth={1.75} />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Télécharger">
-                <IconButton
-                  size="small"
-                  onClick={() => {
-                    if (!previewMeta) return;
-                    const link = document.createElement('a');
-                    link.href = previewUrl;
-                    link.download = previewMeta.filename;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                  }}
-                >
-                  <DownloadIcon size={16} strokeWidth={1.75} />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Fermer">
-                <IconButton size="small" onClick={closePreview}>
-                  <CloseIcon size={18} strokeWidth={1.75} />
-                </IconButton>
-              </Tooltip>
-            </>
-          )}
-        </DialogTitle>
-        <DialogContent sx={{ p: 0, flex: 1, bgcolor: '#525659' /* gris viewer PDF standard */ }}>
-          {previewUrl && (
-            <Box
-              component="iframe"
-              src={previewUrl}
-              title={previewMeta?.filename || 'PDF'}
-              sx={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-            />
-          )}
+          </DialogHeader>
+          {/* #525659 : gris du visionneur PDF standard */}
+          <div className="flex-1 min-h-0 bg-[#525659]">
+            {previewUrl && (
+              <iframe className="w-full h-full border-none block" src={previewUrl} title={previewMeta?.filename || 'PDF'} />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* ── Éditeur de renvoi du devis (objet + corps modifiables) ── */}
       <Dialog
         open={resend.open}
-        onClose={() => setResend((r) => ({ ...r, open: false }))}
-        maxWidth="sm"
-        fullWidth
+        onOpenChange={(next) => { if (!next) setResend((r) => ({ ...r, open: false })); }}
       >
-        <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem' }}>
-          Renvoyer le devis
+        <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="font-bold text-[1rem]">
+            Renvoyer le devis
+          </DialogTitle>
           {form.email ? (
-            <Typography variant="body2" sx={{ color: 'var(--muted)', mt: 0.5 }}>
+            <DialogDescription className="cn-text-body2 text-[var(--muted)]">
               À {form.email} — info@clenzy.fr en copie
-            </Typography>
+            </DialogDescription>
           ) : null}
-        </DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+        </DialogHeader>
+        <div className="flex flex-col gap-3">
           {resend.loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress size={22} sx={{ color: 'var(--accent)' }} />
-            </Box>
+            <div className="flex justify-center py-6">
+              <Spinner className="size-[22px] text-[var(--accent)]" />
+            </div>
           ) : (
             <>
-              <TextField
-                label="Objet"
-                value={resend.subject}
-                onChange={(e) => setResend((r) => ({ ...r, subject: e.target.value }))}
-                fullWidth
-                size="small"
-              />
-              <TextField
-                label="Corps du message"
-                value={resend.body}
-                onChange={(e) => setResend((r) => ({ ...r, body: e.target.value }))}
-                fullWidth
-                multiline
-                minRows={6}
-                helperText="Conservez, modifiez ou videz le contenu. Le PDF du devis est joint automatiquement."
-              />
+              <Field>
+                <FieldLabel htmlFor="resend-quote-subject">Objet</FieldLabel>
+                <Input
+                  id="resend-quote-subject"
+                  className="w-full"
+                  value={resend.subject}
+                  onChange={(e) => setResend((r) => ({ ...r, subject: e.target.value }))}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="resend-quote-body">Corps du message</FieldLabel>
+                {/* Le primitif pose field-sizing:content, qui neutralise `rows` :
+                    la hauteur de 6 lignes est garantie par min-h. */}
+                <Textarea
+                  id="resend-quote-body"
+                  className="w-full min-h-[6lh]"
+                  value={resend.body}
+                  onChange={(e) => setResend((r) => ({ ...r, body: e.target.value }))}
+                />
+                <FieldDescription>
+                  Conservez, modifiez ou videz le contenu. Le PDF du devis est joint automatiquement.
+                </FieldDescription>
+              </Field>
             </>
           )}
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        </div>
+        <DialogFooter>
           <Button
-            variant="text"
+            variant="ghost"
+            className="me-auto"
             onClick={() => setResend((r) => ({ ...r, body: '' }))}
             disabled={resend.loading}
-            sx={{ mr: 'auto' }}
           >
             Vider le contenu
           </Button>
-          <Button variant="text" onClick={() => setResend((r) => ({ ...r, open: false }))}>
+          <Button variant="ghost" onClick={() => setResend((r) => ({ ...r, open: false }))}>
             Annuler
           </Button>
           <Button
-            variant="contained"
-            color="primary"
             onClick={confirmResend}
             disabled={resend.loading || generateDocumentMutation.isPending || !resend.subject.trim()}
           >
             Renvoyer
           </Button>
-        </DialogActions>
+        </DialogFooter>
+        </DialogContent>
       </Dialog>
 
       {/* Modale : message d'erreur de génération complet (la liste n'en montre que la 1re ligne). */}
       <Dialog
         open={errorDetail !== null}
-        onClose={() => setErrorDetail(null)}
-        maxWidth="sm"
-        fullWidth
+        onOpenChange={(next) => { if (!next) setErrorDetail(null); }}
       >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700, fontSize: '1rem', color: 'var(--err)' }}>
-          <AlertTriangleIcon size={18} strokeWidth={1.75} />
-          Échec de génération
-          <IconButton size="small" onClick={() => setErrorDetail(null)} sx={{ ml: 'auto' }}>
-            <CloseIcon size={16} strokeWidth={1.75} />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
-          {errorDetail?.date && (
-            <Typography sx={{ fontSize: '12px', color: 'var(--muted)', mb: 1 }}>
-              {formatFormDate(errorDetail.date)}
-            </Typography>
-          )}
-          <Box sx={{
-            fontFamily: 'monospace', fontSize: '12.5px', lineHeight: 1.6, color: 'var(--ink)',
-            whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-            bgcolor: 'var(--err-soft)', border: '1px solid var(--err)', borderRadius: '10px',
-            p: 1.5, maxHeight: '55vh', overflowY: 'auto', userSelect: 'text',
-          }}>
-            {errorDetail?.message}
-          </Box>
+        {/* La croix de fermeture est fournie par DialogContent : `pe-14` reserve sa place. */}
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader className="flex-row items-center gap-1.5 pe-14">
+            <span className="inline-flex text-[var(--err)]">
+              <AlertTriangleIcon size={18} strokeWidth={1.75} />
+            </span>
+            <DialogTitle className="font-bold text-[1rem] text-[var(--err)]">
+              Échec de génération
+            </DialogTitle>
+          </DialogHeader>
+          <div>
+            {errorDetail?.date && (
+              <p className="cn-text-body1 text-[12px] text-[var(--muted)] mb-1.5">
+                {formatFormDate(errorDetail.date)}
+              </p>
+            )}
+            <div className="text-[12.5px] leading-[1.6] text-[var(--ink)] whitespace-pre-wrap break-words bg-[var(--err-soft)] border border-solid border-[var(--err)] rounded-[10px] p-[9px] max-h-[55vh] overflow-y-auto select-text" style={{ fontFamily: 'monospace' }}>
+              {errorDetail?.message}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
-    </Box>
+    </div>
   );
 }

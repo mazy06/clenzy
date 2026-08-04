@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Paper, Typography, Chip } from '@mui/material';
+import { Badge } from '../../components/ui';
 import {
   Sync as SyncIcon,
   CheckCircle as CheckCircleIcon,
@@ -9,7 +9,10 @@ import {
 } from '../../icons';
 import type { AirbnbListingMapping } from '../../services/api/airbnbApi';
 import type { Property } from '../../services/api/propertiesApi';
-import { CARD_SX } from './channelsPageConstants';
+
+// Pendant en classes du CARD_SX partage (p: 2 = 12 px, theme.spacing vaut 6).
+// La constante reste utilisee telle quelle par les ecrans encore en MUI.
+const CARD_CLASS = 'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] p-3';
 
 interface AirbnbSyncStatusSectionProps {
   listings: AirbnbListingMapping[];
@@ -25,11 +28,11 @@ const AirbnbSyncStatusSection: React.FC<AirbnbSyncStatusSectionProps> = ({
   dateLocale,
   t,
 }) => (
-  <Paper sx={{ ...CARD_SX }}>
-    <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, mb: 1 }}>
+  <div className={CARD_CLASS}>
+    <p className="cn-text-body1 text-[0.875rem] font-bold mb-1.5">
       {t('channels.syncStatus.title')}
-    </Typography>
-    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 1 }}>
+    </p>
+    <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] min-[900px]:grid-cols-[1fr_1fr_1fr] gap-1.5">
       {listings.map((listing) => {
         const property = properties.find((p) => p.id === listing.propertyId);
         return (
@@ -42,8 +45,8 @@ const AirbnbSyncStatusSection: React.FC<AirbnbSyncStatusSectionProps> = ({
           />
         );
       })}
-    </Box>
-  </Paper>
+    </div>
+  </div>
 );
 
 export default AirbnbSyncStatusSection;
@@ -67,31 +70,23 @@ function SyncStatusCard({
   const statusSoft = syncOk ? 'var(--ok-soft)' : listing.syncEnabled ? 'var(--warn-soft)' : 'var(--field)';
 
   return (
-    <Box
-      sx={{
-        border: '1px solid',
-        borderColor: `color-mix(in srgb, ${statusColor} 30%, transparent)`,
-        borderRadius: '10px',
-        p: 1.25,
-        bgcolor: statusSoft,
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-        <Box component="span" sx={{ display: 'inline-flex', color: statusColor }}>
+    <div className="border border-solid rounded-[10px] p-[7.5px]" style={{ borderColor: `color-mix(in srgb, ${statusColor} 30%, transparent)`, backgroundColor: statusSoft }}>
+      <div className="flex items-center gap-0.5 mb-0.5">
+        <span className="inline-flex" style={{ color: statusColor }}>
           <StatusIcon size={14} strokeWidth={1.75} />
-        </Box>
-        <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
+        </span>
+        <p className="cn-text-body1 text-[0.75rem] font-semibold">
           {propertyName}
-        </Typography>
-      </Box>
-      <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
+        </p>
+      </div>
+      <p className="cn-text-body1 text-[0.625rem] text-muted-foreground">
         {listing.syncEnabled ? t('channels.syncStatus.syncOn') : t('channels.syncStatus.syncOff')}
         {listing.lastSyncAt && ` · ${t('channels.syncStatus.lastSync')}: ${new Date(listing.lastSyncAt).toLocaleString(dateLocale)}`}
-      </Typography>
-      <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
-        {listing.syncEnabled && <Chip label={<><SyncIcon size={'0.625rem'} strokeWidth={1.75} /> Sync</>} size="small" sx={{ fontSize: '0.5625rem', height: 18 }} color="success" variant="outlined" />}
-        {listing.autoCreateInterventions && <Chip label={<><CleaningIcon size={'0.625rem'} strokeWidth={1.75} /> Auto</>} size="small" sx={{ fontSize: '0.5625rem', height: 18 }} color="info" variant="outlined" />}
-      </Box>
-    </Box>
+      </p>
+      <div className="flex gap-0.5 mt-0.5">
+        {listing.syncEnabled && <Badge variant="success" className="text-[0.5625rem] h-[18px]">{<><SyncIcon size={'0.625rem'} strokeWidth={1.75} /> Sync</>}</Badge>}
+        {listing.autoCreateInterventions && <Badge variant="info" className="text-[0.5625rem] h-[18px]">{<><CleaningIcon size={'0.625rem'} strokeWidth={1.75} /> Auto</>}</Badge>}
+      </div>
+    </div>
   );
 }

@@ -1,11 +1,27 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { cn } from '../../utils/cn';
 import { Close, Home, Public as GlobeIcon, Schedule, CheckCircle } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ReservationStatus } from '../../services/api';
 import type { UseReservationFormResult } from './useReservationForm';
 import type { ReservationDialogEntryMode } from './ReservationDialog';
-import { SEG_WRAP_SX, segBtnSx } from './reservationDialogStyles';
+
+// Transcriptions en classes de `SEG_WRAP_SX` / `segBtnSx` (reservationDialogStyles),
+// sur le meme modele que FinalizeStep et PricingSection. Le `background: none` du sx
+// devient `bg-transparent` : sans lui le <button> reprendrait le fond gris de l'UA.
+const SEG_WRAP_CLASS =
+  'inline-flex shrink-0 bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[10px] p-[3px] gap-[2px]';
+
+const segBtnClass = (on: boolean) =>
+  cn(
+    'inline-flex items-center justify-center gap-[6px] border-0 rounded-[7px] px-3 py-1.5',
+    '[font-family:inherit] text-[12px] font-semibold whitespace-nowrap cursor-pointer',
+    'transition-[background-color,color] duration-[140ms]',
+    'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-1',
+    on
+      ? 'bg-[var(--card)] text-[var(--accent)] shadow-[0_1px_3px_rgba(21,36,45,.12)]'
+      : 'bg-transparent text-[var(--muted)] shadow-none',
+  );
 
 interface Props {
   form: UseReservationFormResult;
@@ -29,136 +45,85 @@ const ReservationDialogHeader: React.FC<Props> = ({ form, onClose, entryMode, on
   };
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        rowGap: '10px',
-        gap: '12px',
-        padding: '18px 22px',
-        borderBottom: '1px solid var(--line)',
-        flexShrink: 0,
-      }}
-    >
-      <Typography
-        component="span"
-        sx={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '18px',
-          fontWeight: 600,
-          color: 'var(--ink)',
-          letterSpacing: '-0.01em',
-          whiteSpace: 'nowrap',
-        }}
-      >
+    // `rowGap: '10px'` precedait `gap: '12px'` dans le sx : la shorthand `gap`,
+    // serialisee apres, ecrasait deja le row-gap. On garde le rendu reel (12px).
+    <div className="flex items-center flex-wrap gap-[12px] py-[18px] px-[22px] border-b border-solid border-[var(--line)] shrink-0">
+      <span className="font-[family-name:var(--font-display)] text-[18px] font-semibold text-[var(--ink)] tracking-[-0.01em] whitespace-nowrap">
         {isBlock ? t('reservations.dialog.blockTitle') : form.headerTitle}
-      </Typography>
+      </span>
 
       {/* Toggle réservation / blocage (création uniquement) */}
       {showModeToggle && (
-        <Box sx={{ ...SEG_WRAP_SX, flexShrink: 0 }}>
+        <div className={SEG_WRAP_CLASS}>
           {(['reservation', 'block'] as const).map((m) => (
-            <Box
+            <button
               key={m}
-              component="button"
               type="button"
               onClick={() => onEntryModeChange(m)}
-              sx={segBtnSx(entryMode === m)}
+              className={segBtnClass(entryMode === m)}
             >
               {m === 'reservation' ? t('reservations.dialog.modeReservation') : t('reservations.dialog.modeBlock')}
-            </Box>
+            </button>
           ))}
-        </Box>
+        </div>
       )}
 
       {/* Pilule canal (.rm-chan) — masquée en mode blocage (pas de canal). */}
       {!isBlock && (
-        <Box
-          sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '11px',
-            fontWeight: 700,
-            color: 'var(--accent)',
-            backgroundColor: 'var(--accent-soft)',
-            borderRadius: '20px',
-            padding: '4px 11px',
-            flexShrink: 0,
-          }}
-        >
+        <div className="inline-flex items-center gap-[6px] text-[11px] font-bold text-[var(--accent)] bg-[var(--accent-soft)] rounded-[20px] px-[11px] py-[4px] shrink-0">
           <GlobeIcon size={13} strokeWidth={2} />
           {t(`reservations.source.${form.sourceKey}`)}
-        </Box>
+        </div>
       )}
 
       {/* Édition : segmented STATUT (cycle de vie). Création : le statut dérive de
           l'intention de paiement, choisie à l'étape « Finalisation » du wizard. */}
       {form.isEdit && (
-        <Box sx={{ ...SEG_WRAP_SX, flexShrink: 0 }}>
+        <div className={SEG_WRAP_CLASS}>
           {form.statuses.map((s) => (
-            <Box key={s} component="button" type="button" onClick={() => form.setStatus(s)} sx={segBtnSx(form.status === s)}>
+            <button key={s} type="button" onClick={() => form.setStatus(s)} className={segBtnClass(form.status === s)}>
               {renderStatusIcon(s)}
               {t(`reservations.status.${s}`)}
-            </Box>
+            </button>
           ))}
-        </Box>
+        </div>
       )}
 
       {/* Propriété (.rm-prop) — nom seul, uniquement quand le logement est verrouillé.
           En création libre, le sélecteur vit dans le corps (étape 1 / blocage) → pas de doublon. */}
       {!form.showPropertySelector && (
-        <Box
-          sx={{
-            marginInlineStart: 'auto',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '7px',
-            fontSize: '13px',
-            fontWeight: 600,
-            color: form.propertyName ? 'var(--ink)' : 'var(--faint)',
-            minWidth: 0,
-          }}
+        <div
+          className={cn(
+            'ms-auto inline-flex items-center gap-[7px] text-[13px] font-semibold min-w-0',
+            form.propertyName ? 'text-[var(--ink)]' : 'text-[var(--faint)]',
+          )}
         >
-          <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)', flexShrink: 0 }}>
+          <span className="inline-flex text-[var(--accent)] shrink-0">
             <Home size={16} strokeWidth={1.75} />
-          </Box>
-          <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          </span>
+          <span className="overflow-hidden text-ellipsis whitespace-nowrap">
             {form.propertyName || t('reservations.dialog.propertyPlaceholder')}
-          </Box>
-        </Box>
+          </span>
+        </div>
       )}
 
       {/* ✕ (.rm-x) */}
-      <Box
-        component="button"
+      <button
         type="button"
         aria-label={t('common.cancel')}
         onClick={onClose}
-        sx={{
+        className={cn(
+          'w-[34px] h-[34px] rounded-[10px] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)]',
+          'cursor-pointer flex items-center justify-center shrink-0 p-0',
+          'transition-[color,border-color] duration-[140ms] hover:text-[var(--err)] hover:border-[var(--err)]',
+          'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
           // Quand le bloc logement est masqué (création libre), le X reprend le push à droite.
-          marginInlineStart: form.showPropertySelector ? 'auto' : undefined,
-          width: 34,
-          height: 34,
-          borderRadius: '10px',
-          border: '1px solid var(--line-2)',
-          backgroundColor: 'var(--card)',
-          color: 'var(--muted)',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          padding: 0,
-          transition: 'color .14s, border-color .14s',
-          '&:hover': { color: 'var(--err)', borderColor: 'var(--err)' },
-          '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: '2px' },
-        }}
+          form.showPropertySelector && 'ms-auto',
+        )}
       >
         <Close size={16} strokeWidth={1.75} />
-      </Box>
-    </Box>
+      </button>
+    </div>
   );
 };
 

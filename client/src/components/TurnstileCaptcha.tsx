@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useCallback } from 'react';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Spinner } from './ui';
+
 
 interface TurnstileCaptchaProps {
   onVerified: (token: string) => void;
@@ -84,23 +85,23 @@ export default function TurnstileCaptcha({ onVerified, onError }: TurnstileCaptc
 
   if (!SITE_KEY) {
     return (
-      <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem', textAlign: 'center', py: 1 }}>
+      <p className="cn-text-body2 text-muted-foreground text-[0.8rem] text-center py-1.5">
         Vérification CAPTCHA non configurée.
-      </Typography>
+      </p>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', minHeight: 65 }}>
+    <div className="flex justify-center min-h-[65px]">
       <div ref={containerRef} />
       {!widgetIdRef.current && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <CircularProgress size={20} sx={{ color: 'secondary.main' }} />
-          <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>
+        <div className="flex items-center gap-1.5">
+          <Spinner className="size-5 text-[var(--mui-secondary)]" />
+          <p className="cn-text-body2 text-muted-foreground text-[0.8rem]">
             Chargement...
-          </Typography>
-        </Box>
+          </p>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }

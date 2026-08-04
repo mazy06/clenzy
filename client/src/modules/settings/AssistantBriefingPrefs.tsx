@@ -1,19 +1,20 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { cn } from '../../utils/cn';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import {
-  Box,
-  Typography,
-  Switch,
-  FormControlLabel,
-  Select,
-  MenuItem,
-  TextField,
-  Checkbox,
+  Spinner,
   Button,
-  CircularProgress,
-  Alert,
-  Divider,
-} from '@mui/material';
-import { alpha } from '@mui/material/styles';
+  Checkbox,
+  Field,
+  FieldLabel,
+  FieldDescription,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+  Separator,
+  Switch,
+} from '../../components/ui';
 import apiClient from '../../services/apiClient';
 import { useNotification } from '../../hooks/useNotification';
 import AiSettingsCard from './AiSettingsCard';
@@ -150,13 +151,16 @@ export const AssistantBriefingPrefs: React.FC = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" py={4}>
-        <CircularProgress size={24} />
-      </Box>
+      <div className="flex justify-center py-6">
+        <Spinner className="size-6" />
+      </div>
     );
   }
   if (error || !prefs) {
-    return <Alert severity="error">{error ?? 'Données indisponibles.'}</Alert>;
+    return <Alert variant="destructive">
+      <TriangleAlert />
+      <AlertDescription>{error ?? 'Données indisponibles.'}</AlertDescription>
+    </Alert>;
   }
 
   return (
@@ -164,196 +168,140 @@ export const AssistantBriefingPrefs: React.FC = () => {
       title="Briefings IA"
       subtitle="Reçois automatiquement un résumé proactif de ton activité aux horaires choisis. Sans configuration, l'assistant reste réactif uniquement."
       action={
-        <FormControlLabel
-          control={
-            <Switch
-              checked={prefs.enabled}
-              onChange={(e) => update('enabled', e.target.checked)}
-              size="small"
-            />
-          }
-          label={
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {prefs.enabled ? 'Activé' : 'Désactivé'}
-            </Typography>
-          }
-          sx={{ m: 0, gap: 0.5 }}
-        />
+        <Field orientation="horizontal" className="w-auto gap-1">
+          <Switch
+            id="briefing-enabled"
+            size="sm"
+            checked={prefs.enabled}
+            onCheckedChange={(checked) => update('enabled', checked)}
+          />
+          <FieldLabel htmlFor="briefing-enabled" className="cn-text-body2 font-semibold">
+            {prefs.enabled ? 'Activé' : 'Désactivé'}
+          </FieldLabel>
+        </Field>
       }
     >
-      <Box
-        sx={{
-          opacity: prefs.enabled ? 1 : 0.5,
-          pointerEvents: prefs.enabled ? 'auto' : 'none',
-          transition: 'opacity 150ms ease',
-        }}
-      >
+      <div className={cn(prefs.enabled ? 'opacity-100' : 'opacity-50', prefs.enabled ? 'pointer-events-auto' : 'pointer-events-none')} style={{ transition: 'opacity 150ms ease' }}>
         {/* ── Ligne 1 : Frequence + Heure + Fuseau ─────────────────────── */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: '1fr',
-              sm: '1fr 1fr',
-              md: 'minmax(240px, 2fr) 140px minmax(220px, 1fr)',
-            },
-            gap: 2,
-            alignItems: 'start',
-            mb: 3,
-          }}
-        >
-          <Box>
-            <Typography
-              variant="overline"
-              sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
+        <div className="mb-[18px] grid grid-cols-[1fr] items-start gap-3 min-[600px]:grid-cols-[1fr_1fr] min-[900px]:grid-cols-[minmax(240px,_2fr)_140px_minmax(220px,_1fr)]">
+          <Field>
+            <FieldLabel
+              htmlFor="briefing-frequency"
+              className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]"
             >
               Fréquence
-            </Typography>
-            <Select
+            </FieldLabel>
+            <NativeSelect
+              id="briefing-frequency"
+              className="w-full"
               value={prefs.frequency}
               onChange={(e) => update('frequency', e.target.value as Frequency)}
-              size="small"
-              fullWidth
-              sx={{ mt: 0.5 }}
             >
               {FREQUENCY_OPTIONS.map((o) => (
-                <MenuItem key={o.value} value={o.value}>
+                <NativeSelectOption key={o.value} value={o.value}>
                   {o.label}
-                </MenuItem>
+                </NativeSelectOption>
               ))}
-            </Select>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ display: 'block', mt: 0.75, lineHeight: 1.4 }}
-            >
+            </NativeSelect>
+            <FieldDescription className="leading-[1.4]">
               {FREQUENCY_OPTIONS.find((o) => o.value === prefs.frequency)?.description}
-            </Typography>
-          </Box>
+            </FieldDescription>
+          </Field>
 
-          <Box>
-            <Typography
-              variant="overline"
-              sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
+          <Field>
+            {/* La typo overline est celle de toute la ligne (Frequence / Heure / Fuseau). */}
+            <FieldLabel
+              htmlFor="briefing-time-local"
+              className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]"
             >
               Heure d'envoi
-            </Typography>
-            <TextField
+            </FieldLabel>
+            <Input
+              id="briefing-time-local"
               type="time"
-              size="small"
-              fullWidth
               value={prefs.timeLocal}
               onChange={(e) => update('timeLocal', e.target.value)}
-              inputProps={{ step: 300 }}
-              sx={{ mt: 0.5 }}
+              step={300}
+              className="w-full"
             />
-          </Box>
+          </Field>
 
-          <Box>
-            <Typography
-              variant="overline"
-              sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
+          <Field>
+            <FieldLabel
+              htmlFor="briefing-timezone"
+              className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]"
             >
               Fuseau horaire
-            </Typography>
-            <TextField
-              size="small"
-              fullWidth
+            </FieldLabel>
+            <Input
+              id="briefing-timezone"
               value={prefs.timezone}
               onChange={(e) => update('timezone', e.target.value)}
-              helperText={`Détecté : ${detectTimezone()}`}
-              sx={{ mt: 0.5 }}
-              FormHelperTextProps={{ sx: { ml: 0, fontSize: '0.7rem' } }}
+              className="w-full"
             />
-          </Box>
-        </Box>
+            <FieldDescription className="text-[0.7rem]">{`Détecté : ${detectTimezone()}`}</FieldDescription>
+          </Field>
+        </div>
 
         {/* ── Ligne 2 : Canaux en grille 3 colonnes ───────────────────── */}
-        <Box>
-          <Typography
-            variant="overline"
-            sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.6, fontSize: '0.7rem' }}
-          >
+        <div>
+          <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]">
             Canaux
-          </Typography>
-          <Box
-            sx={{
-              mt: 0.75,
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' },
-              gap: 1.5,
-            }}
-          >
+          </span>
+          <div className="mt-[4.5px] grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] min-[900px]:grid-cols-[repeat(3,_1fr)] gap-[9px]">
             {CHANNEL_OPTIONS.map((opt) => {
               const checked = prefs.channels.includes(opt.value);
               return (
-                <Box
+                <div
                   key={opt.value}
                   onClick={() => toggleChannel(opt.value)}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 1,
-                    p: 1.25,
-                    borderRadius: 1.5,
-                    border: '1px solid',
-                    borderColor: checked ? 'primary.main' : 'divider',
-                    bgcolor: checked
-                      ? (theme) => alpha(theme.palette.primary.main, 0.04)
-                      : 'transparent',
-                    cursor: 'pointer',
-                    transition: 'border-color 150ms ease, background-color 150ms ease',
-                    '&:hover': {
-                      borderColor: 'primary.light',
-                    },
-                  }}
+                  className={cn(
+                    'flex items-start gap-1.5 p-[7.5px] rounded-[12px] border border-solid cursor-pointer',
+                    'transition-[border-color,background-color] duration-150 ease-out motion-reduce:transition-none',
+                    'hover:border-[color-mix(in_srgb,var(--mui-primary)_50%,transparent)]',
+                    checked
+                      ? 'border-[var(--mui-primary)] bg-[color-mix(in_srgb,var(--mui-primary)_4%,transparent)]'
+                      : 'border-[var(--line)] bg-transparent',
+                  )}
                 >
                   <Checkbox
                     checked={checked}
-                    onChange={() => toggleChannel(opt.value)}
+                    onCheckedChange={() => toggleChannel(opt.value)}
                     onClick={(e) => e.stopPropagation()}
-                    size="small"
-                    sx={{ p: 0, mt: 0.25 }}
+                    className="mt-[1.5px]"
                   />
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
+                  <div className="min-w-0">
+                    <p className="cn-text-body2 font-semibold leading-[1.3]">
                       {opt.label}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ display: 'block', lineHeight: 1.4 }}
-                    >
+                    </p>
+                    <span className="cn-text-caption text-muted-foreground block leading-[1.4]">
                       {opt.description}
-                    </Typography>
-                  </Box>
-                </Box>
+                    </span>
+                  </div>
+                </div>
               );
             })}
-          </Box>
-        </Box>
-      </Box>
+          </div>
+        </div>
+      </div>
 
       {/* ── Actions ───────────────────────────────────────────────────── */}
-      <Divider sx={{ my: 3 }} />
-      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+      <Separator className="my-[18px]" />
+      <div className="flex gap-1.5 justify-end flex-wrap">
         <Button
-          variant="outlined"
+          variant="outline"
           onClick={triggerTest}
           disabled={triggering || !prefs.enabled}
-          sx={{ textTransform: 'none', cursor: 'pointer' }}
         >
           {triggering ? 'Envoi en cours...' : 'Envoyer un test'}
         </Button>
         <Button
-          variant="contained"
           onClick={save}
           disabled={saving || loading}
-          sx={{ textTransform: 'none', cursor: 'pointer' }}
         >
           {saving ? 'Enregistrement...' : 'Enregistrer'}
         </Button>
-      </Box>
+      </div>
     </AiSettingsCard>
   );
 };

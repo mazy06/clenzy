@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { Snackbar, Alert, Button, Box, Typography } from '@mui/material';
+import { Info } from 'lucide-react';
+import { Alert, AlertAction, AlertDescription, Button } from './ui';
 // Module virtuel injecte par vite-plugin-pwa au build. Types resolus via
 // /// <reference types="vite-plugin-pwa/react" /> dans vite-env.d.ts.
 import { useRegisterSW } from 'virtual:pwa-register/react';
@@ -18,8 +19,8 @@ import { useTranslation } from '../hooks/useTranslation';
  * <h2>Flow</h2>
  * <ol>
  *   <li>Au mount : enregistre le SW + poll toutes les 60 min pour detecter une nouvelle version</li>
- *   <li>Quand {@code needRefresh = true} (nouveau SW en "waiting") : affiche le Snackbar</li>
- *   <li>User clique <b>Plus tard</b> : on cache le Snackbar mais on garde le SW en waiting</li>
+ *   <li>Quand {@code needRefresh = true} (nouveau SW en "waiting") : affiche la banniere</li>
+ *   <li>User clique <b>Plus tard</b> : on cache la banniere mais on garde le SW en waiting</li>
  *   <li>User clique <b>Recharger maintenant</b> : on appelle {@code updateServiceWorker(true)}
  *       qui envoie SKIP_WAITING au SW + reload la page automatiquement</li>
  * </ol>
@@ -69,7 +70,7 @@ export default function AppUpdateBanner() {
     },
   });
 
-  // Si le SW est desactive (dev, ou erreur d'install) : never affiche le Snackbar
+  // Si le SW est desactive (dev, ou erreur d'install) : never affiche la banniere
   useEffect(() => {
     // Aucun setup particulier — useRegisterSW gere tout en interne
   }, []);
@@ -91,55 +92,43 @@ export default function AppUpdateBanner() {
 
   if (!needRefresh) return null;
 
+  // Ce n'est PAS un toast : la banniere reste jusqu'au choix de l'utilisateur et
+  // porte deux actions, elle garde donc son propre ancrage flottant plutot que de
+  // passer par useNotification. z-index 1500 = au-dessus des modales (1300), pour
+  // rester visible meme quand une modale est ouverte.
   return (
-    <Snackbar
-      open={needRefresh}
-      // Stay open until user clicks — pas d'autoHide
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      sx={{
-        // Z-index au-dessus des Dialogs MUI (qui sont a 1300 par defaut) pour
-        // garantir que la banniere reste visible meme si une modale est ouverte
-        zIndex: 1500,
-      }}
-    >
-      <Alert
-        severity="info"
-        sx={{
-          // Alerte -soft hairline flottante : fond opaque (card) + couche
-          // info-soft plate, border color-mix 30%, ombre pop teintée encre
-          bgcolor: 'var(--card)',
-          backgroundImage: 'linear-gradient(var(--info-soft), var(--info-soft))',
-          border: '1px solid color-mix(in srgb, var(--info) 30%, transparent)',
-          color: 'var(--body)',
-          '& .MuiAlert-icon': { color: 'var(--info)' },
-          minWidth: 320,
-          boxShadow: 'var(--shadow-pop)',
-          borderRadius: '12px',
-          alignItems: 'center',
-        }}
-        action={
-          <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-            <Button
-              size="small"
-              variant="text"
-              onClick={handleLater}
-            >
-              {t('appUpdate.later', 'Plus tard')}
-            </Button>
-            <Button
-              size="small"
-              variant="contained"
-              onClick={handleReload}
-            >
-              {t('appUpdate.reload', 'Recharger maintenant')}
-            </Button>
-          </Box>
-        }
-      >
-        <Typography variant="body2" sx={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)' }}>
-          {t('appUpdate.message', 'Une nouvelle version est disponible.')}
-        </Typography>
-      </Alert>
-    </Snackbar>
+    <div className="fixed bottom-3 left-1/2 z-[1500] -translate-x-1/2 px-3">
+      {/* Fond OPAQUE sous l'alerte : la teinte `info` du primitif est translucide
+          et la banniere flotte au-dessus du contenu de la page. Le liseré et
+          l'ombre pop vivent sur cette coque pour ne pas se battre avec le
+          `border-transparent` de la variante. */}
+      <div className="min-w-[320px] overflow-hidden rounded-[12px] border border-solid border-[color-mix(in_srgb,var(--info)_30%,transparent)] bg-[var(--card)] shadow-[var(--shadow-pop)]">
+        <Alert variant="info" className="items-center">
+          <Info />
+          <AlertDescription>
+            <p className="cn-text-body2 text-[12.5px] font-semibold text-[var(--ink)]">
+              {t('appUpdate.message', 'Une nouvelle version est disponible.')}
+            </p>
+          </AlertDescription>
+          <AlertAction>
+            <div className="flex gap-0.5 items-center">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleLater}
+              >
+                {t('appUpdate.later', 'Plus tard')}
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleReload}
+              >
+                {t('appUpdate.reload', 'Recharger maintenant')}
+              </Button>
+            </div>
+          </AlertAction>
+        </Alert>
+      </div>
+    </div>
   );
 }

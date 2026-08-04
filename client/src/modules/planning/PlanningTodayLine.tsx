@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box } from '@mui/material';
+
 import { isToday } from './utils/dateUtils';
 import { TODAY_LINE_COLOR, TODAY_LINE_WIDTH } from './constants';
 
@@ -41,35 +41,11 @@ const PlanningTodayLine: React.FC<PlanningTodayLineProps> = React.memo(({
       {/* Trait vertical du jour (spec .pl-now : 2px #E5484D, z-6 — au-dessus
           des briques z-3/hover z-5) : ancré au conteneur des rangées, limité
           à la hauteur des logements affichés. */}
-      <Box
-        sx={{
-          position: 'absolute',
-          left: todayOffset,
-          top: 0,
-          width: TODAY_LINE_WIDTH,
-          height: totalHeight,
-          backgroundColor: TODAY_LINE_COLOR,
-          zIndex: 6,
-          pointerEvents: 'none',
-        }}
-      />
+      <div className="absolute top-0 z-[6] pointer-events-none" style={{ left: todayOffset, width: TODAY_LINE_WIDTH, height: totalHeight, backgroundColor: TODAY_LINE_COLOR }} />
       {/* Point d'ancrage (spec .pl-now::before : 10px, top -1, left -4,
           halo 0 0 0 3px à 25 % d'alpha). Box séparée plutôt que ::before
           pour rester hors du clipping du trait. */}
-      <Box
-        sx={{
-          position: 'absolute',
-          left: todayOffset - 4,
-          top: -1,
-          width: 10,
-          height: 10,
-          borderRadius: '50%',
-          backgroundColor: TODAY_LINE_COLOR,
-          boxShadow: `0 0 0 3px color-mix(in srgb, ${TODAY_LINE_COLOR} 25%, transparent)`,
-          zIndex: 6,
-          pointerEvents: 'none',
-        }}
-      />
+      <div className="absolute w-[10px] h-[10px] rounded-[50%] z-[6] pointer-events-none" style={{ left: todayOffset - 4, top: -1, backgroundColor: TODAY_LINE_COLOR, boxShadow: `0 0 0 3px color-mix(in srgb, ${TODAY_LINE_COLOR} 25%, transparent)` }} />
     </>
   );
 });

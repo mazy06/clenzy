@@ -9,7 +9,8 @@
    ============================================================ */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Box, Button, CircularProgress, TextField, Typography } from '@mui/material';
+import { cn } from '../../../utils/cn';
+import { Button, Spinner, Textarea } from '../../../components/ui';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { reviewsApi, type GuestReview } from '../../../services/api/reviewsApi';
 
@@ -62,80 +63,60 @@ export function SupervisionReviewDrafts({ propertyId }: { propertyId: number }) 
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-        <CircularProgress size={18} />
-      </Box>
+      <div className="flex justify-center py-3">
+        <Spinner className="size-[18px]" />
+      </div>
     );
   }
 
   if (drafts.length === 0) {
     return (
-      <Typography sx={{ fontSize: 12.5, color: 'var(--muted, #6b7196)' }}>
+      <p className="cn-text-body1 text-[12.5px] text-[var(--muted,_#6b7196)]">
         {t('supervision.reviewDrafts.empty', 'Aucun brouillon de réponse en attente.')}
-      </Typography>
+      </p>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-      <Typography
-        sx={{
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '.06em',
-          textTransform: 'uppercase',
-          color: 'var(--muted, #6b7196)',
-        }}
-      >
+    <div className="flex flex-col gap-2">
+      <p className="cn-text-body1 text-[11px] font-bold tracking-[.06em] uppercase text-[var(--muted,_#6b7196)]">
         {t('supervision.reviewDrafts.title', 'Brouillons de réponse (IA)')}
-      </Typography>
+      </p>
       {drafts.map((review) => (
-        <Box
-          key={review.id}
-          sx={{
-            p: 1.25,
-            borderRadius: '10px',
-            bgcolor: 'var(--surface-2, #f6f7fb)',
-            border: '1px solid var(--line, #e6e8ef)',
-          }}
-        >
-          <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'var(--muted, #6b7196)', mb: 0.5 }}>
+        <div className="p-[7.5px] rounded-[10px] bg-[var(--surface-2,_#f6f7fb)] border border-solid border-[var(--line,_#e6e8ef)]" key={review.id}>
+          <p className="cn-text-body1 text-[12px] font-bold text-[var(--muted,_#6b7196)] mb-[3px]">
             {(review.rating != null ? `${review.rating}/5 · ` : '') + (review.guestName || 'Voyageur')}
-          </Typography>
+          </p>
           {review.reviewText && (
-            <Typography
-              sx={{ fontSize: 12, color: 'var(--body, #3a3f5a)', fontStyle: 'italic', mb: 1, lineHeight: 1.4 }}
-            >
+            <p className="cn-text-body1 text-[12px] text-[var(--body,_#3a3f5a)] italic mb-1.5 leading-[1.4]">
               «&nbsp;{review.reviewText.length > 160 ? `${review.reviewText.slice(0, 160)}…` : review.reviewText}&nbsp;»
-            </Typography>
+            </p>
           )}
-          <TextField
+          {/* Pas de libelle visible : le bloc d'avis fait office d'intitule, le
+              champ porte donc son nom en aria-label. */}
+          <Textarea
+            id={`review-draft-${review.id}`}
+            rows={3}
+            aria-label={t('supervision.reviewDrafts.title', 'Brouillon de réponse')}
+            className="mb-1.5 text-[12.5px] leading-[1.5]"
             value={edited[review.id] ?? ''}
             onChange={(e) => setEdited((prev) => ({ ...prev, [review.id]: e.target.value }))}
-            multiline
-            minRows={3}
-            fullWidth
-            size="small"
-            aria-label={t('supervision.reviewDrafts.title', 'Brouillon de réponse')}
-            sx={{ mb: 1, '& .MuiInputBase-input': { fontSize: 12.5, lineHeight: 1.5 } }}
           />
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div className="flex justify-end">
             <Button
-              size="small"
-              variant="contained"
+              size="sm"
               onClick={() => publish(review)}
               disabled={publishing === review.id || !(edited[review.id] ?? '').trim()}
-              sx={{ textTransform: 'none', fontWeight: 700 }}
             >
               {publishing === review.id ? (
-                <CircularProgress size={13} sx={{ color: 'inherit' }} />
+                <Spinner className="size-[13px]" />
               ) : (
                 t('supervision.reviewDrafts.publish', 'Publier')
               )}
             </Button>
-          </Box>
-        </Box>
+          </div>
+        </div>
       ))}
-    </Box>
+    </div>
   );
 }

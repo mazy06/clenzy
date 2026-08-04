@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, InputBase, Modal } from '@mui/material';
+import { cn } from '../../../utils/cn';
+import { Dialog, DialogContent, DialogTitle } from '../../../components/ui';
 import { Search, CornerDownLeft, type LucideIcon } from 'lucide-react';
 
 /**
@@ -77,80 +78,60 @@ export default function StudioCommandPalette({
   };
 
   return (
-    <Modal open={open} onClose={onClose} aria-label="Palette de commandes" sx={{ '& .MuiBackdrop-root': { bgcolor: 'rgba(21,36,45,.45)' } }}>
-      <Box
-        sx={{
-          position: 'absolute',
-          top: '14%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: 'min(560px, 92vw)',
-          bgcolor: 'var(--card)',
-          color: 'var(--ink)',
-          border: '1px solid var(--line)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-pop)',
-          overflow: 'hidden',
-          outline: 'none',
-          animation: 'studioCmdIn .18s var(--ease-out)',
-          '@keyframes studioCmdIn': {
-            from: { opacity: 0, transform: 'translateX(-50%) translateY(-6px)' },
-            to: { opacity: 1, transform: 'translateX(-50%) translateY(0)' },
-          },
-        }}
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      {/* Ancree haut d'ecran (14 %) et non centree : on neutralise le centrage
+          vertical du gabarit. Pas de bouton de fermeture — Echap suffit. */}
+      <DialogContent
+        showCloseButton={false}
         onKeyDown={handleKeyDown}
+        className="top-[14%] translate-y-0 w-[min(560px,92vw)] max-w-none overflow-hidden rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)] p-0 text-[var(--ink)] shadow-[var(--shadow-pop)]"
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.75, height: 52, borderBottom: '1px solid var(--line)' }}>
-          <Box component="span" sx={{ color: 'var(--muted)', display: 'inline-flex' }}><Search size={18} strokeWidth={2} /></Box>
-          <InputBase
-            inputRef={inputRef}
+        <DialogTitle className="sr-only">Palette de commandes</DialogTitle>
+        <div className="flex items-center gap-1.5 px-2.5 h-[52px] border-b border-solid border-[var(--line)]">
+          <span className="text-[var(--muted)] inline-flex"><Search size={18} strokeWidth={2} /></span>
+          {/* input natif (et non le primitif Input) pour DEUX raisons : le champ
+              est nu dans une rangee deja filetee, et `inputRef` porte le focus a
+              l'ouverture — une fonction React 18 ne transmet pas de ref. */}
+          <input
+            ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={placeholder}
-            fullWidth
-            sx={{ fontSize: 'var(--text-lg)', color: 'var(--ink)', '& input::placeholder': { color: 'var(--faint)', opacity: 1 } }}
+            className="w-full min-w-0 flex-1 border-0 bg-transparent outline-none text-[length:var(--text-lg)] text-[var(--ink)] placeholder:text-[var(--faint)] placeholder:opacity-100"
           />
-        </Box>
+        </div>
 
-        <Box ref={listRef} role="listbox" sx={{ maxHeight: 340, overflowY: 'auto', py: 0.75 }}>
+        <div className="max-h-[340px] overflow-y-auto py-1" ref={listRef} role="listbox">
           {filtered.length === 0 && (
-            <Box sx={{ px: 2, py: 3, textAlign: 'center', color: 'var(--muted)', fontSize: 'var(--text-sm)' }}>
+            <div className="px-3 py-4 text-center text-[var(--muted)] text-[var(--text-sm)]">
               Aucun résultat
-            </Box>
+            </div>
           )}
           {filtered.map((c, i) => {
             const Icon = c.icon;
             const isActive = i === active;
             return (
-              <Box
+              // gap 1.25 = 7.5px, mx 0.75 = 4.5px, px 1.25 = 7.5px (theme.spacing = 6)
+              <div
                 key={c.id}
                 role="option"
                 aria-selected={isActive}
                 onMouseEnter={() => setActive(i)}
                 onClick={() => { onClose(); c.run(); }}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1.25,
-                  mx: 0.75,
-                  px: 1.25,
-                  height: 40,
-                  borderRadius: 'var(--radius-md)',
-                  cursor: 'pointer',
-                  color: 'var(--body)',
-                  bgcolor: isActive ? 'var(--accent-soft)' : 'transparent',
-                  ...(isActive && { color: 'var(--ink)' }),
-                }}
+                className={cn(
+                  'flex items-center gap-[7.5px] mx-[4.5px] px-[7.5px] h-[40px] rounded-[var(--radius-md)] cursor-pointer',
+                  isActive ? 'bg-[var(--accent-soft)] text-[var(--ink)]' : 'bg-transparent text-[var(--body)]',
+                )}
               >
-                {Icon && <Box component="span" sx={{ display: 'inline-flex', color: isActive ? 'var(--accent)' : 'var(--muted)' }}><Icon size={16} strokeWidth={2} /></Box>}
-                <Box component="span" sx={{ flex: 1, fontSize: 'var(--text-md)' }}>{c.label}</Box>
-                {c.group && <Box component="span" sx={{ fontSize: 'var(--text-2xs)', color: 'var(--faint)' }}>{c.group}</Box>}
-                {isActive && <Box component="span" sx={{ display: 'inline-flex', color: 'var(--faint)' }}><CornerDownLeft size={13} strokeWidth={2} /></Box>}
-              </Box>
+                {Icon && <span className={cn('inline-flex', isActive ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}><Icon size={16} strokeWidth={2} /></span>}
+                <span className="flex-1 text-[var(--text-md)]">{c.label}</span>
+                {c.group && <span className="text-[var(--text-2xs)] text-[var(--faint)]">{c.group}</span>}
+                {isActive && <span className="inline-flex text-[var(--faint)]"><CornerDownLeft size={13} strokeWidth={2} /></span>}
+              </div>
             );
           })}
-        </Box>
-      </Box>
-    </Modal>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

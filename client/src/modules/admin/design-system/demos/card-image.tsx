@@ -29,7 +29,7 @@ export function CardImage() {
         </CardDescription>
       </CardHeader>
       <CardFooter>
-        <Button className="w-full">View Event</Button>
+        <Button className="w-full shrink">View Event</Button>
       </CardFooter>
     </Card>
   )

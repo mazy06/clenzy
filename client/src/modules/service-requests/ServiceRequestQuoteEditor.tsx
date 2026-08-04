@@ -1,8 +1,11 @@
 import React, { useCallback, useMemo } from 'react';
-import { Box, Typography, TextField, IconButton, Chip } from '@mui/material';
+import { cn } from '../../utils/cn';
+import { Badge, Button } from '../../components/ui';
+import { Input } from '../../components/ui';
 import { Add, Close, Receipt } from '../../icons';
 import type { QuoteLine } from '../../schemas/serviceRequestSchema';
 import { useCurrency } from '../../hooks/useCurrency';
+import StatusChip from '../../components/StatusChip';
 
 // ─── Devis structuré (maintenance) ──────────────────────────────────────────
 //
@@ -26,19 +29,12 @@ function lineTotal(line: QuoteLine): number {
   return q * pu;
 }
 
-const NUM_INPUT_SX = {
-  '& .MuiOutlinedInput-root': {
-    fontSize: '12px',
-    fontVariantNumeric: 'tabular-nums',
-    bgcolor: 'var(--card)',
-  },
-  '& input': { textAlign: 'right' as const, py: '7px' },
-  '& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button': {
-    WebkitAppearance: 'none',
-    margin: 0,
-  },
-  '& input[type=number]': { MozAppearance: 'textfield' },
-};
+const TEXT_INPUT_CLASS = 'text-[12px] bg-[var(--card)]';
+
+// Colonnes chiffrees : alignees a droite, chiffres de meme chasse, et sans les
+// fleches natives du champ number qui mangeraient la largeur de la colonne.
+const NUM_INPUT_CLASS =
+  `${TEXT_INPUT_CLASS} text-end tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-inner-spin-button]:m-0`;
 
 const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = React.memo(
   ({ value, onChange, disabled = false }) => {
@@ -71,173 +67,117 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
     );
 
     return (
-      <Box
-        sx={{
-          border: '1px solid var(--line)',
-          borderRadius: '11px',
-          bgcolor: 'var(--field)',
-          p: 1.5,
-        }}
-      >
+      <div className="border border-[var(--line)] rounded-[11px] bg-[var(--field)] p-2">
         {/* En-tête : titre + total */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.25 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'var(--accent)' }}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1">
+            <span className="inline-flex text-[var(--accent)]">
               <Receipt size={16} strokeWidth={1.75} />
-            </Box>
-            <Typography sx={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--faint)' }}>
+            </span>
+            <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
               Devis
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
-            <Typography sx={{ fontSize: '10px', fontWeight: 600, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '.04em' }}>
+            </p>
+          </div>
+          <div className="flex items-baseline gap-0.5">
+            <p className="cn-text-body1 text-[10px] font-semibold text-[var(--faint)] uppercase tracking-[.04em]">
               Total estimé
-            </Typography>
-            <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 700, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
+            </p>
+            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.9375rem] font-bold text-[var(--ink)] tabular-nums">
               {convertAndFormat(total, 'EUR')}
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
 
         {/* Lignes */}
         {value.length > 0 && (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 1 }}>
+          <div className="flex flex-col gap-0.5 mb-1.5">
             {/* En-têtes de colonnes */}
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 56px 88px 84px 28px',
-                gap: 0.75,
-                px: 0.25,
-              }}
-            >
+            <div className="grid grid-cols-[1fr_56px_88px_84px_28px] gap-[4.5px] px-[1.5px]">
               {['Désignation', 'Qté', 'PU (€)', 'Total', ''].map((h, i) => (
-                <Typography
-                  key={h || 'actions'}
-                  sx={{
-                    fontSize: '9.5px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '.04em',
-                    color: 'var(--faint)',
-                    textAlign: i === 0 ? 'left' : i === 4 ? 'center' : 'right',
-                  }}
-                >
+                <p className={cn('cn-text-body1 text-[9.5px] font-bold uppercase tracking-[.04em] text-[var(--faint)]', i === 0 ? 'text-start' : i === 4 ? 'text-center' : 'text-end')} key={h || 'actions'}>
                   {h}
-                </Typography>
+                </p>
               ))}
-            </Box>
+            </div>
 
             {value.map((line, index) => (
-              <Box
-                key={index}
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 56px 88px 84px 28px',
-                  gap: 0.75,
-                  alignItems: 'center',
-                }}
-              >
-                <TextField
+              <div className="grid grid-cols-[1fr_56px_88px_84px_28px] gap-[4.5px] items-center" key={index}>
+                {/* Pas de libelle par champ : ce sont des colonnes, l'intitule est
+                    en tete de grille — d'ou l'aria-label qui nomme la ligne. */}
+                <Input
+                  aria-label={`Désignation ligne ${index + 1}`}
                   value={line.label}
                   onChange={(e) => updateLine(index, { label: e.target.value })}
                   placeholder="Désignation…"
                   disabled={disabled}
-                  size="small"
-                  sx={{ '& .MuiOutlinedInput-root': { fontSize: '12px', bgcolor: 'var(--card)' }, '& input': { py: '7px' } }}
+                  className={TEXT_INPUT_CLASS}
                 />
-                <TextField
+                <Input
+                  aria-label={`Quantité ligne ${index + 1}`}
                   value={Number.isFinite(line.quantity) ? line.quantity : ''}
                   onChange={(e) => updateLine(index, { quantity: e.target.value === '' ? 0 : Number(e.target.value) })}
                   type="number"
-                  inputProps={{ min: 0, step: 0.5 }}
+                  min={0}
+                  step={0.5}
                   disabled={disabled}
-                  size="small"
-                  sx={NUM_INPUT_SX}
+                  className={NUM_INPUT_CLASS}
                 />
-                <TextField
+                <Input
+                  aria-label={`Prix unitaire ligne ${index + 1}`}
                   value={Number.isFinite(line.unitPrice) ? line.unitPrice : ''}
                   onChange={(e) => updateLine(index, { unitPrice: e.target.value === '' ? 0 : Number(e.target.value) })}
                   type="number"
-                  inputProps={{ min: 0, step: 1 }}
+                  min={0}
+                  step={1}
                   disabled={disabled}
-                  size="small"
-                  sx={NUM_INPUT_SX}
+                  className={NUM_INPUT_CLASS}
                 />
-                <Typography
-                  sx={{
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: 'var(--ink)',
-                    textAlign: 'right',
-                    fontVariantNumeric: 'tabular-nums',
-                    pr: 0.25,
-                  }}
-                >
+                <p className="cn-text-body1 text-[12px] font-semibold text-[var(--ink)] text-end tabular-nums pe-0.5">
                   {convertAndFormat(lineTotal(line), 'EUR')}
-                </Typography>
-                <IconButton
-                  size="small"
+                </p>
+                <Button
+                  // type explicite : l'editeur vit dans un formulaire, et le
+                  // primitif n'impose pas `button` la ou MUI le faisait.
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
                   onClick={() => removeLine(index)}
                   disabled={disabled}
-                  sx={{ p: 0.25, color: 'var(--faint)', '&:hover': { color: 'var(--err)' } }}
-                  aria-label="Supprimer la ligne"
+                  className="text-[var(--faint)] hover:text-[var(--err)]"
+                  aria-label={`Supprimer la ligne ${index + 1}`}
                 >
                   <Close size={14} strokeWidth={1.75} />
-                </IconButton>
-              </Box>
+                </Button>
+              </div>
             ))}
-          </Box>
+          </div>
         )}
 
         {/* Ajouts : raccourcis + ligne vierge */}
         {!disabled && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-            <Chip
+          <div className="flex items-center gap-1 flex-wrap">
+            {/* `border-solid` est indispensable : le gabarit de la primitive pose
+                `border-none` (border-STYLE), que `border` (border-WIDTH) ne
+                supplante pas — la bordure resterait invisible. */}
+            <StatusChip
+              tone="accent"
               icon={<Add size={14} strokeWidth={1.75} />}
               label="Ligne"
               onClick={() => addLine()}
-              size="small"
-              sx={{
-                height: 26,
-                fontSize: '11.5px',
-                fontWeight: 600,
-                color: 'var(--accent)',
-                border: '1px solid var(--accent)',
-                bgcolor: 'var(--accent-soft)',
-                '& .MuiChip-icon': { fontSize: 14, ml: 0.5, color: 'var(--accent)' },
-                '&:hover': { bgcolor: 'var(--accent-soft)' },
-                cursor: 'pointer',
-              }}
+              className="h-[26px] text-[11.5px] border border-solid border-[var(--accent)]"
             />
             {PRESETS.map((preset) => (
-              <Chip
-                key={preset}
-                label={preset}
-                onClick={() => addLine(preset)}
-                size="small"
-                variant="outlined"
-                sx={{
-                  height: 26,
-                  fontSize: '11.5px',
-                  fontWeight: 500,
-                  color: 'var(--muted)',
-                  borderColor: 'var(--line-2)',
-                  bgcolor: 'var(--card)',
-                  '&:hover': { borderColor: 'var(--accent)', color: 'var(--accent)', bgcolor: 'var(--hover)' },
-                  cursor: 'pointer',
-                }}
-              />
+              <Badge variant="outline" className="h-[26px] text-[11.5px] font-medium text-[var(--muted)] border-[var(--line-2)] bg-[var(--card)] hover:border-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--hover)] cursor-pointer" key={preset} onClick={() => addLine(preset)}>{preset}</Badge>
             ))}
-          </Box>
+          </div>
         )}
 
         {value.length === 0 && disabled && (
-          <Typography sx={{ fontSize: '11.5px', color: 'var(--faint)', fontStyle: 'italic' }}>
+          <p className="cn-text-body1 text-[11.5px] text-[var(--faint)] italic">
             Aucune ligne de devis
-          </Typography>
+          </p>
         )}
-      </Box>
+      </div>
     );
   },
 );

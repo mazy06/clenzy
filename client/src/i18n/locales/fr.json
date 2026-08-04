@@ -53,6 +53,26 @@
       "rep": {
         "name": "Avis & Réputation",
         "role": "Avis & note"
+      },
+      "sync": {
+        "name": "Synchronisation",
+        "role": "Canaux et calendriers"
+      },
+      "cmp": {
+        "name": "Conformité",
+        "role": "Conformité et sécurité"
+      },
+      "gst": {
+        "name": "Voyageur",
+        "role": "Expérience voyageur"
+      },
+      "own": {
+        "name": "Propriétaire",
+        "role": "Relation propriétaire"
+      },
+      "gro": {
+        "name": "Croissance",
+        "role": "Distribution et croissance"
       }
     },
     "status": {
@@ -187,7 +207,10 @@
       "SEND_GUIDE_FAILED": "Échec d'envoi du livret d'accueil (automatisation)",
       "SEND_CHECKIN_LINK_FAILED": "Échec d'envoi du lien de check-in (automatisation)",
       "SEND_NOISE_WARNING_FAILED": "Échec d'envoi de l'alerte bruit (automatisation)",
-      "SEND_REVIEW_REQUEST_FAILED": "Échec d'envoi de la demande d'avis (automatisation)"
+      "SEND_REVIEW_REQUEST_FAILED": "Échec d'envoi de la demande d'avis (automatisation)",
+      "yield_guardrail": "Ajustement retenu par le garde-fou d'impact",
+      "auto_rule_suggested": "Automatisation suggérée après approbations répétées",
+      "payment_dispute": "Litige bancaire reçu"
     },
     "approval": {
       "title": "Validation requise",
@@ -217,7 +240,10 @@
       "empty": "Aucune action récente des agents",
       "emptyOnboarding": "Les agents observent vos logements. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord.",
       "openMessage": "Voir le message envoyé",
-      "openInvoice": "Voir la facture"
+      "openInvoice": "Voir la facture",
+      "guardrail": "garde-fou",
+      "learned": "règle apprise",
+      "deferred": "différé"
     },
     "messageModal": {
       "title": "Message envoyé",
@@ -308,6 +334,35 @@
     },
     "compact": {
       "hitl": "À traiter"
+    },
+    "verbs": {
+      "block": "Bloquer",
+      "schedule": "Planifier",
+      "reassign": "Réaffecter",
+      "refund": "Rembourser",
+      "release": "Libérer",
+      "remind": "Relancer",
+      "retry": "Relancer",
+      "republish": "Republier",
+      "send": "Envoyer",
+      "pay": "Verser",
+      "declare": "Télédéclarer",
+      "signSend": "Envoyer pour signature",
+      "restrict": "Restreindre",
+      "deactivate": "Désactiver",
+      "withhold": "Retenir",
+      "approve": "Approuver",
+      "translate": "Traduire",
+      "resolve": "Résoudre",
+      "takeover": "Reprendre la main",
+      "markFiled": "Marquer déclarée",
+      "propose": "Proposer",
+      "markNoShow": "Marquer no-show",
+      "submit": "Soumettre",
+      "order": "Commander",
+      "accept": "Accepter",
+      "erase": "Effacer",
+      "publish": "Publier"
     }
   },
   "channexGuided": {
@@ -423,12 +478,7 @@
       "dialogTitle": "Commissions & ma part"
     },
     "orgCommission": {
-      "title": "Ma commission (conciergerie)",
-      "note": "Votre part sur le reste après la commission plateforme. Le propriétaire reçoit le solde.",
-      "platformInfo": "Commission plateforme (fixée par la plateforme)",
-      "upsell": "Ma part (upsells)",
-      "activity": "Ma part (activités)",
-      "saved": "Commission enregistrée"
+      "movedToPayment": "Votre part sur les upsells se règle dans Paramètres › Paiement, onglet « Services & activités »."
     }
   },
   "welcomeGuide": {
@@ -756,7 +806,9 @@
     "expandMenu": "Ouvrir le menu",
     "collapseMenu": "Réduire le menu",
     "ratesAt": "Taux au",
-    "download": "Télécharger"
+    "download": "Télécharger",
+    "tabsMenu": "Onglets",
+    "tabsMenuCount": "{{count}} onglets"
   },
   "connectedObjects": {
     "previewBadge": "Aperçu",
@@ -2312,7 +2364,22 @@
     "invalidDate": "Date invalide",
     "notFound": "Demande de service non trouvée",
     "team": "Équipe",
-    "approvedDateShort": "Approuvé le"
+    "approvedDateShort": "Approuvé le",
+    "unassigned": "Non assignée",
+    "kpi": {
+      "late": "En retard",
+      "today": "Aujourd'hui",
+      "done7d": "Terminées (7 j)",
+      "sinceDays_one": "depuis {{count}} j",
+      "sinceDays_other": "depuis {{count}} j",
+      "avgDuration": "de durée moyenne estimée"
+    },
+    "family": {
+      "all": "Tous types",
+      "cleaning": "Ménage",
+      "maintenance": "Maintenance",
+      "other": "Autre"
+    }
   },
   "interventions": {
     "due": {
@@ -3253,7 +3320,8 @@
       "projectionHint": "Projection sur 100 € encaissés, à répartition constante. Ce n'est pas un relevé de reversements.",
       "detailTitle": "Détail par canal",
       "tabChannels": "Canaux de distribution",
-      "tabServices": "Services & activités"
+      "tabServices": "Services & activités",
+      "contractOverride": "{{count}} logement(s) sous contrat de gestion ne suivent pas cette répartition : le propriétaire y reçoit le solde après le taux de son contrat, et la commission se partage 25 % plateforme / 75 % conciergerie."
     },
     "commissions": {
       "title": "Commissions canaux",
@@ -3289,6 +3357,8 @@
       "daysOfMonthHelper": "Sélectionnez les jours du mois où les reversements seront générés (1-28).",
       "gracePeriod": "Délai de rappel (jours)",
       "gracePeriodHelper": "Nombre de jours après la génération avant d'envoyer un rappel d'approbation.",
+      "reminderSentenceStart": "Envoyer un rappel d'approbation",
+      "reminderSentenceEnd": "jours après la génération.",
       "save": "Enregistrer le calendrier",
       "saved": "Calendrier de reversement mis à jour",
       "error": "Erreur lors de la mise à jour du calendrier",
@@ -4008,6 +4078,8 @@
     "onCapLabel": "Au plafond",
     "onCapNotify": "Notifier seulement (suggestions sans exécution)",
     "onCapPause": "Mettre l'autonomie en pause",
+    "capSentenceStart": "Plafonner à",
+    "capSentenceMiddle": "crédits par mois, puis",
     "save": "Enregistrer",
     "noBehaviors": "Aucun comportement premium branché pour le moment — les interrupteurs apparaîtront ici (ex. optimisation tarifaire proactive).",
     "trustTitle": "Règles de Confiance",
@@ -4044,7 +4116,14 @@
       "logoHelp": "Laisser vide pour ne pas afficher de logo",
       "primaryColor": "Couleur d'accent (#RRGGBB)",
       "saveError": "Enregistrement impossible"
-    }
+    },
+    "showcase": {
+      "title": "Vos propriétaires suivent leurs biens sans vous appeler",
+      "description": "Occupation, revenus, reversements et documents, dans un espace dédié que vous ouvrez bien par bien.",
+      "action": "Inviter un propriétaire"
+    },
+    "propertiesCount_one": "{{count}} propriété",
+    "propertiesCount_other": "{{count}} propriétés"
   },
   "ownerConstellation": {
     "subtitle": "Espace propriétaire",
@@ -4606,6 +4685,13 @@
       "notAvailable": "La synchronisation sortante des prix sera disponible prochainement.",
       "success": "Prix synchronises avec succes vers Airbnb",
       "error": "Erreur lors de la synchronisation des prix"
+    },
+    "health": {
+      "ok": "Channel manager opérationnel",
+      "errors_one": "{{count}} logement en erreur de synchronisation",
+      "errors_other": "{{count}} logements en erreur de synchronisation",
+      "detail": "{{active}}/{{total}} mappings actifs · calculé à {{time}}",
+      "journal": "Journal de sync"
     }
   },
   "systemEmailTemplates": {
@@ -4752,7 +4838,9 @@
       "locked": "Verrouille",
       "countryChanged": "Pays de conformite mis a jour avec succes",
       "countryChangeError": "Erreur lors du changement de pays de conformite"
-    }
+    },
+    "failedBadge_one": "{{count}} échec",
+    "failedBadge_other": "{{count}} échecs"
   },
   "messaging": {
     "whatsappStatus": {
@@ -4881,7 +4969,15 @@
       "draft": "Brouillons",
       "issued": "Emises",
       "paid": "Payees",
-      "totalTtc": "Total TTC"
+      "totalTtc": "Total TTC",
+      "issuedTotal": "Émis",
+      "collected": "Encaissé",
+      "overdue": "En retard",
+      "count_one": "{{count}} facture",
+      "count_other": "{{count}} factures",
+      "collectedShare": "{{rate}} % du montant émis",
+      "overdueCount_one": "{{count}} facture",
+      "overdueCount_other": "{{count}} factures"
     },
     "columns": {
       "number": "N°",
@@ -4903,7 +4999,8 @@
       "PAID": "Payee",
       "CANCELLED": "Annulee",
       "CREDIT_NOTE": "Avoir"
-    }
+    },
+    "totalPeriod": "Total période"
   },
   "notifications": {
     "title": "Notifications",
@@ -5010,6 +5107,16 @@
       "NOISE_ALERT_RESOLVED": "Alerte bruit résolue",
       "CONTACT_MESSAGE_RECEIVED": "Message reçu",
       "CONTACT_FORM_RECEIVED": "Formulaire de contact reçu"
+    },
+    "groups": {
+      "today": "Aujourd'hui",
+      "yesterday": "Hier"
+    },
+    "preferences": "Préférences de notifications",
+    "showcase": {
+      "title": "Soyez prévenu de ce qui compte, pas du reste",
+      "description": "Nouvelle réservation, annulation, incident de paiement, alerte de bruit : vous choisissez le canal et la fréquence.",
+      "action": "Régler mes notifications"
     }
   },
   "fiscal": {
@@ -5899,6 +6006,10 @@
       }
     },
     "skip": "Passer",
+    "dock": {
+      "title": "Guide de démarrage",
+      "continue": "Continuer"
+    },
     "completionMessage": "Complétez la configuration initiale pour accéder au tableau de bord complet"
   },
   "shop": {
@@ -6176,7 +6287,7 @@
       "trustSupport": "Support 7j/7"
     },
     "login": {
-      "title": "Bon retour parmi nous",
+      "title": "Connexion",
       "subtitle": "Connecte-toi pour accéder à ton tableau de bord.",
       "inscriptionSuccess": "Votre compte a été créé avec succès. Connectez-vous pour accéder à votre espace.",
       "emailLabel": "Email ou nom d'utilisateur",
@@ -6951,5 +7062,8 @@
   },
   "search": {
     "goToScreen": "Aller à un écran…"
+  },
+  "messagingHub": {
+    "viewReservation": "Voir la réservation"
   }
 }

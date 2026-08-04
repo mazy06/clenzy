@@ -1,16 +1,14 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Box,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  CircularProgress,
-  Typography,
   Button,
+  NativeSelect,
+  NativeSelectOption,
+  Spinner,
   Tooltip,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from '../../components/ui';
 import {
   CloudUpload as PushIcon,
   TrendingUp,
@@ -19,7 +17,6 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { useDynamicPricing } from '../../hooks/useDynamicPricing';
 import PageHeader from '../../components/PageHeader';
-import { SPACING } from '../../theme/spacing';
 import PricingCalendarView from './PricingCalendarView';
 import RatePlanManager from './RatePlanManager';
 import RatePlanForm from './RatePlanForm';
@@ -178,86 +175,85 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
     [editingPlan, updateRatePlan, createRatePlan],
   );
 
+  // Ces selecteurs sont portes dans la barre d'onglets : pas de libelle empile qui
+  // doublerait la hauteur de la rangee. Le nom du champ passe par `aria-label` et
+  // par l'option vide, qui sert aussi d'etat de chargement (une <option> native ne
+  // peut pas contenir de Spinner).
   const filterSelectors = (
     <>
       {isPlatformStaff && (
-        <FormControl size="small" sx={{ minWidth: 180 }}>
-          <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('dynamicPricing.selectOwner')}</InputLabel>
-          <Select
-            value={selectedOwnerId ?? ''}
-            label={t('dynamicPricing.selectOwner')}
-            onChange={(e) => {
-              const val = e.target.value;
-              handleOwnerChange(val === '' ? null : Number(val));
-            }}
-            sx={{ fontSize: '0.8125rem', '& .MuiSelect-select': { py: 0.75 } }}
-          >
-            <MenuItem value="">
-              <em>{t('dynamicPricing.allOwners')}</em>
-            </MenuItem>
-            {propertiesLoading && (
-              <MenuItem disabled>
-                <CircularProgress size={14} sx={{ mr: 1 }} /> {t('common.loading')}
-              </MenuItem>
-            )}
-            {owners.map((o) => (
-              <MenuItem key={o.id} value={o.id}>
-                {o.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      )}
-      <FormControl size="small" sx={{ minWidth: 200 }}>
-        <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('dynamicPricing.calendar.selectProperty')}</InputLabel>
-        <Select
-          value={selectedPropertyId ?? ''}
-          label={t('dynamicPricing.calendar.selectProperty')}
-          onChange={(e) => {
-            const val = e.target.value;
-            handlePropertyChange(val === '' ? null : Number(val));
-          }}
-          disabled={isPlatformStaff && selectedOwnerId === null}
-          sx={{ fontSize: '0.8125rem', '& .MuiSelect-select': { py: 0.75 } }}
+        <NativeSelect
+          size="sm"
+          className="w-[180px]"
+          aria-label={t('dynamicPricing.selectOwner')}
+          value={selectedOwnerId ?? ''}
+          onChange={(e) => handleOwnerChange(e.target.value === '' ? null : Number(e.target.value))}
         >
-          {propertiesLoading && (
-            <MenuItem disabled>
-              <CircularProgress size={14} sx={{ mr: 1 }} /> {t('common.loading')}
-            </MenuItem>
-          )}
-          {filteredProperties.map((p) => (
-            <MenuItem key={p.id} value={p.id}>
-              {p.name}
-            </MenuItem>
+          <NativeSelectOption value="">
+            {propertiesLoading ? t('common.loading') : t('dynamicPricing.allOwners')}
+          </NativeSelectOption>
+          {owners.map((o) => (
+            <NativeSelectOption key={o.id} value={o.id}>
+              {o.name}
+            </NativeSelectOption>
           ))}
-        </Select>
-      </FormControl>
+        </NativeSelect>
+      )}
+      <NativeSelect
+        size="sm"
+        className="w-[200px]"
+        aria-label={t('dynamicPricing.calendar.selectProperty')}
+        value={selectedPropertyId ?? ''}
+        onChange={(e) => handlePropertyChange(e.target.value === '' ? null : Number(e.target.value))}
+        disabled={isPlatformStaff && selectedOwnerId === null}
+      >
+        <NativeSelectOption value="">
+          {propertiesLoading ? t('common.loading') : t('dynamicPricing.calendar.selectProperty')}
+        </NativeSelectOption>
+        {filteredProperties.map((p) => (
+          <NativeSelectOption key={p.id} value={p.id}>
+            {p.name}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
       {isPlatformStaff && selectedOwnerId !== null && (
-        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', whiteSpace: 'nowrap' }}>
+        <span className="cn-text-caption text-muted-foreground text-[0.6875rem] whitespace-nowrap">
           {filteredProperties.length} {t('dynamicPricing.propertiesCount')}
-        </Typography>
+        </span>
       )}
     </>
   );
 
   const actionButtons = selectedPropertyId ? (
-    <Tooltip title={pushResult || t('channels.pushPricing.tooltip')}>
-      <Button
-        variant="outlined"
-        size="small"
-        startIcon={pushLoading ? <CircularProgress size={14} /> : <PushIcon size={16} strokeWidth={1.75} />}
-        onClick={handlePushPricing}
-        disabled={pushLoading}
-        color={pushResult?.includes('succes') || pushResult?.includes('success') ? 'success' : 'primary'}
-        sx={{ whiteSpace: 'nowrap' }}
-      >
-        {pushLoading ? t('channels.pushPricing.pushing') : t('channels.pushPricing.button')}
-      </Button>
+    // Le Button du kit ne transmet pas de ref : le Tooltip s'accroche au span.
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePushPricing}
+            disabled={pushLoading}
+            // Le succes du push se signale par la teinte --ok ; les deux branches
+            // sont ecrites en litteral, une classe ne peut pas naitre d'une variable.
+            className={
+              pushResult?.includes('succes') || pushResult?.includes('success')
+                ? 'text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]'
+                : ''
+            }
+          >
+            {pushLoading ? <Spinner className="size-3.5" /> : <PushIcon size={16} strokeWidth={1.75} />}
+            {pushLoading ? t('channels.pushPricing.pushing') : t('channels.pushPricing.button')}
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{pushResult || t('channels.pushPricing.tooltip')}</TooltipContent>
     </Tooltip>
   ) : null;
 
   return (
-    <Box sx={{ p: embedded ? 0 : SPACING.PAGE_PADDING }}>
+    // Padding de page : SPACING.PAGE_PADDING (2) = 12px avec theme.spacing = 6
+    <div className={embedded ? 'p-0' : 'p-3'}>
       {/* Portal actions into parent's PageHeader when embedded */}
       {embedded && actionsContainer && actionButtons && createPortal(actionButtons, actionsContainer)}
 
@@ -276,9 +272,9 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
       {/* ── Filter selectors — portaled into tab bar when embedded ── */}
       {embedded && tabInlineContainer && createPortal(filterSelectors, tabInlineContainer)}
       {!embedded && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+        <div className="flex items-center gap-2 mb-2">
           {filterSelectors}
-        </Box>
+        </div>
       )}
 
       {/* Tabs */}
@@ -295,11 +291,11 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
 
       {/* ─── Tab: Par propriété ─── */}
       {activeTab === 0 && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <div className="flex flex-col gap-2">
           {/* Top row: Calendar (left) + Form (right) — same height */}
-          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'stretch', flexWrap: { xs: 'wrap', lg: 'nowrap' } }}>
+          <div className="flex gap-[9px] items-stretch flex-wrap min-[1200px]:flex-nowrap">
             {/* Left column — Calendar (stretches to match right column) */}
-            <Box sx={{ flex: 7, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+            <div className="flex-[7] min-w-0 flex flex-col">
               <PricingCalendarView
                 selectedPropertyId={selectedPropertyId}
                 currentMonth={currentMonth}
@@ -311,11 +307,11 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
                 updatePriceLoading={updatePriceLoading}
                 currency={selectedPropertyCurrency}
               />
-            </Box>
+            </div>
 
             {/* Right column — Always-visible inline form */}
             {selectedPropertyId && (
-              <Box sx={{ flex: 5, minWidth: 0 }}>
+              <div className="flex-[5] min-w-0">
                 <RatePlanForm
                   propertyId={selectedPropertyId}
                   editingPlan={editingPlan}
@@ -323,9 +319,9 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
                   onCancel={handleFormReset}
                   loading={createRatePlanLoading || updateRatePlanLoading}
                 />
-              </Box>
+              </div>
             )}
-          </Box>
+          </div>
 
           {/* Positionnement marché — double signal réseau/marché (roadmap market data) */}
           {selectedPropertyId && (
@@ -353,7 +349,7 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
               deleteLoading={deleteRatePlanLoading}
             />
           )}
-        </Box>
+        </div>
       )}
 
       {/* ─── Tab: Vue d'ensemble ─── */}
@@ -374,7 +370,7 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
 
       {/* ─── Tab: Restrictions de séjour (min/max stay, CTA/CTD → OTAs) ─── */}
       {activeTab === 3 && <RestrictionsPanel propertyId={selectedPropertyId} />}
-    </Box>
+    </div>
   );
 };
 

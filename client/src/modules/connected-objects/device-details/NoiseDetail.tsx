@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
-import { Box, Button, Chip, Alert } from '@mui/material';
+import { Badge, Button } from '../../../components/ui';
+import { Alert, AlertDescription } from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { Settings, History, Save, VolumeUp, Wifi, WifiOff, TrendingUp, ArrowUpward } from '../../../icons';
 import NoiseMonitorChart from '../../dashboard/NoiseMonitorChart';
 import NoiseAlertConfigPanel, {
@@ -56,9 +58,9 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
       : 'Hors ligne';
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div className="flex flex-col gap-3">
       {/* 1. Lecture live du capteur — remplace la tuile « Connexion » orpheline */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 1 }}>
+      <div className="grid grid-cols-[repeat(auto-fit,_minmax(150px,_1fr))] gap-1.5">
         <StatTile
           icon={device.online ? <Wifi /> : <WifiOff />}
           label="Connexion"
@@ -83,10 +85,10 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
           value={reading(sensor?.maxLevel ?? 0)}
           color={hasData ? levelAccent(sensor?.maxLevel ?? 0) : NEUTRAL}
         />
-      </Box>
+      </div>
 
       {/* 2. Monitoring — pleine largeur, hauteur fixe pour amorcer le graphique */}
-      <Box sx={{ width: '100%', height: { xs: 320, md: 380 } }}>
+      <div className="w-full h-[320px] min-[900px]:h-[380px]">
         <NoiseMonitorChart
           variant="device"
           data={data}
@@ -94,11 +96,11 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
           activeThresholds={activeThresholds}
           loading={loading}
         />
-      </Box>
+      </div>
 
       {/* 3. Configuration | Historique */}
-      <Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
+      <div>
+        <div className="flex items-center justify-between border-b border-solid border-[var(--line)]">
           <PageTabs
             options={[
               { label: 'Configuration', icon: <Settings /> },
@@ -112,31 +114,29 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
           />
 
           {subTab === 0 && propertyId != null && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: 0.5 }}>
+            <div className="flex items-center gap-1.5 pe-0.5">
               {configStatus.hasError && (
-                <Alert severity="error" sx={{ py: 0, px: 1, fontSize: '0.6875rem' }}>Erreur</Alert>
+                <Alert variant="destructive" className="py-0 px-1.5 text-[0.6875rem]">
+                  <TriangleAlert />
+                  <AlertDescription>Erreur</AlertDescription>
+                </Alert>
               )}
               {configStatus.isSaved && (
-                <Chip
-                  label="Sauvegardé"
-                  size="small"
-                  sx={{ fontSize: '0.6875rem', height: 22, fontWeight: 600, bgcolor: 'var(--ok-soft)', color: 'var(--ok)', borderRadius: 'var(--radius-pill)' }}
-                />
+                <Badge variant="secondary" className="text-[0.6875rem] h-[22px] font-semibold bg-[var(--ok-soft)] text-[var(--ok)] rounded-[var(--radius-pill)]">Sauvegardé</Badge>
               )}
               <Button
-                variant="contained"
-                size="small"
-                startIcon={<Save size={14} strokeWidth={1.75} />}
+                size="sm"
                 onClick={() => configRef.current?.save()}
                 disabled={!configStatus.canSave || configStatus.isSaving}
               >
+                <Save strokeWidth={1.75} />
                 {configStatus.isSaving ? 'Sauvegarde…' : 'Sauvegarder'}
               </Button>
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
 
-        <Box sx={{ pt: 2 }}>
+        <div className="pt-3">
           {subTab === 0 && (
             propertyId != null ? (
               <NoiseAlertConfigPanel
@@ -155,8 +155,8 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
             )
           )}
           {subTab === 1 && <NoiseAlertHistory propertyId={propertyId ?? undefined} />}
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }

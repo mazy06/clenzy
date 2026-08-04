@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Box } from '@mui/material';
 import {
   LayoutTemplate,
   Palette,

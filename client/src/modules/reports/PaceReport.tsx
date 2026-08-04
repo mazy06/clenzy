@@ -1,18 +1,15 @@
 import React, { useMemo, useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import {
-  Alert,
-  Box,
   Card,
-  MenuItem,
-  Select,
+  CardContent,
+  NativeSelect,
+  NativeSelectOption,
   Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-} from '@mui/material';
+} from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import { useQuery } from '@tanstack/react-query';
 import {
   CartesianGrid,
@@ -37,7 +34,6 @@ import {
 } from './chartTheme';
 
 const MONTHS_AHEAD = 6;
-const NUM_SX = { fontVariantNumeric: 'tabular-nums' } as const;
 
 /**
  * Onglet « Pace » du module Reports (fondations RMS R1) — données 100 % backend
@@ -88,15 +84,18 @@ const PaceReport: React.FC = () => {
   );
 
   if (summaryQuery.isError) {
-    return <Alert severity="error">{t('reports.pace.loadError', 'Impossible de charger le pace.')}</Alert>;
+    return <Alert variant="destructive">
+      <TriangleAlert />
+      <AlertDescription>{t('reports.pace.loadError', 'Impossible de charger le pace.')}</AlertDescription>
+    </Alert>;
   }
 
   const loading = summaryQuery.isLoading;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <div className="flex flex-col gap-2">
       {/* ── Tuiles de synthèse ── */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(3, 1fr)' }, gap: 1.5 }}>
+      <div className="grid grid-cols-[1fr_1fr] min-[900px]:grid-cols-[repeat(3,_1fr)] gap-[9px]">
         <StatTile
           icon={<CalendarIcon size={18} />}
           label={t('reports.pace.otbNights', 'Nuits réservées (6 mois)')}
@@ -117,15 +116,16 @@ const PaceReport: React.FC = () => {
           color={totals.pacePct != null && totals.pacePct < 0 ? 'var(--warn)' : 'var(--ok)'}
           loading={loading}
         />
-      </Box>
+      </div>
 
       {/* ── Tableau mensuel ── */}
-      <Card variant="outlined" sx={{ p: 1.5 }}>
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>
+      <Card size="sm">
+        <CardContent>
+        <h6 className="cn-text-subtitle2 mb-1.5">
           {t('reports.pace.byMonth', 'On-the-books par mois de séjour')}
-        </Typography>
+        </h6>
         {loading ? (
-          <Skeleton variant="rounded" height={220} />
+          <Skeleton className="h-[220px] w-full rounded-[var(--radius-sm)]" />
         ) : months.length === 0 ? (
           <EmptyState
             icon={<CalendarIcon />}
@@ -133,37 +133,36 @@ const PaceReport: React.FC = () => {
             variant="plain"
           />
         ) : (
-          <Table size="small">
-            <TableHead>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('reports.pace.month', 'Mois')}</TableCell>
-                <TableCell align="right">{t('reports.pace.colOtb', 'Nuits OTB')}</TableCell>
-                <TableCell align="right">{t('reports.pace.colStly', 'N-1 (même recul)')}</TableCell>
-                <TableCell align="right">{t('reports.pace.colPace', 'Pace')}</TableCell>
-                <TableCell align="right">{t('reports.pace.colPickup7', 'Pickup 7 j')}</TableCell>
-                <TableCell align="right">{t('reports.pace.colPickup28', 'Pickup 28 j')}</TableCell>
-                <TableCell align="right">{t('reports.pace.colOccupancy', 'Occupation OTB')}</TableCell>
+                <TableHead>{t('reports.pace.month', 'Mois')}</TableHead>
+                <TableHead className="text-end">{t('reports.pace.colOtb', 'Nuits OTB')}</TableHead>
+                <TableHead className="text-end">{t('reports.pace.colStly', 'N-1 (même recul)')}</TableHead>
+                <TableHead className="text-end">{t('reports.pace.colPace', 'Pace')}</TableHead>
+                <TableHead className="text-end">{t('reports.pace.colPickup7', 'Pickup 7 j')}</TableHead>
+                <TableHead className="text-end">{t('reports.pace.colPickup28', 'Pickup 28 j')}</TableHead>
+                <TableHead className="text-end">{t('reports.pace.colOccupancy', 'Occupation OTB')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {months.map((m) => (
-                <TableRow key={m.month} hover>
-                  <TableCell sx={NUM_SX}>{m.month}</TableCell>
-                  <TableCell align="right" sx={NUM_SX}>{m.otbNights}</TableCell>
-                  <TableCell align="right" sx={{ ...NUM_SX, color: 'var(--muted)' }}>{m.stlyNights}</TableCell>
+                <TableRow key={m.month}>
+                  <TableCell className="tabular-nums">{m.month}</TableCell>
+                  <TableCell className="text-end tabular-nums">{m.otbNights}</TableCell>
+                  <TableCell className="text-end tabular-nums text-[var(--muted)]">{m.stlyNights}</TableCell>
                   <TableCell
-                    align="right"
-                    sx={{
-                      ...NUM_SX,
-                      color: m.paceVsStlyPct == null ? 'var(--muted)'
-                        : m.paceVsStlyPct < 0 ? 'var(--warn)' : 'var(--ok)',
-                    }}
+                    className={cn(
+                      'text-end tabular-nums',
+                      m.paceVsStlyPct == null ? 'text-[var(--muted)]'
+                        : m.paceVsStlyPct < 0 ? 'text-[var(--warn)]' : 'text-[var(--ok)]',
+                    )}
                   >
                     {m.paceVsStlyPct == null ? '—' : `${m.paceVsStlyPct > 0 ? '+' : ''}${m.paceVsStlyPct} %`}
                   </TableCell>
-                  <TableCell align="right" sx={NUM_SX}>{m.pickup7Nights}</TableCell>
-                  <TableCell align="right" sx={NUM_SX}>{m.pickup28Nights}</TableCell>
-                  <TableCell align="right" sx={NUM_SX}>
+                  <TableCell className="text-end tabular-nums">{m.pickup7Nights}</TableCell>
+                  <TableCell className="text-end tabular-nums">{m.pickup28Nights}</TableCell>
+                  <TableCell className="text-end tabular-nums">
                     {m.occupancyOtbPct == null ? '—' : `${m.occupancyOtbPct} %`}
                   </TableCell>
                 </TableRow>
@@ -171,28 +170,31 @@ const PaceReport: React.FC = () => {
             </TableBody>
           </Table>
         )}
+        </CardContent>
       </Card>
 
       {/* ── Booking curve ── */}
-      <Card variant="outlined" sx={{ p: 1.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-          <Typography variant="subtitle2">
+      <Card size="sm">
+        <CardContent>
+        <div className="flex items-center justify-between mb-1.5">
+          <h6 className="cn-text-subtitle2">
             {t('reports.pace.bookingCurve', 'Montée des réservations (booking curve)')}
-          </Typography>
+          </h6>
           {months.length > 0 && (
-            <Select
-              size="small"
+            <NativeSelect
+              size="sm"
+              aria-label={t('reports.pace.month', 'Mois')}
               value={effectiveCurveMonth ?? ''}
               onChange={(e) => setCurveMonth(e.target.value)}
             >
               {months.map((m) => (
-                <MenuItem key={m.month} value={m.month}>{m.month}</MenuItem>
+                <NativeSelectOption key={m.month} value={m.month}>{m.month}</NativeSelectOption>
               ))}
-            </Select>
+            </NativeSelect>
           )}
-        </Box>
+        </div>
         {curveQuery.isLoading ? (
-          <Skeleton variant="rounded" height={240} />
+          <Skeleton className="h-[240px] w-full rounded-[var(--radius-sm)]" />
         ) : curveData.length === 0 ? (
           <EmptyState
             icon={<TrendingUp />}
@@ -200,7 +202,7 @@ const PaceReport: React.FC = () => {
             variant="plain"
           />
         ) : (
-          <Box sx={{ height: 240 }}>
+          <div className="h-[240px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={curveData} margin={{ top: 4, right: 6, left: -18, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={ct.line} />
@@ -230,10 +232,11 @@ const PaceReport: React.FC = () => {
                 />
               </LineChart>
             </ResponsiveContainer>
-          </Box>
+          </div>
         )}
+        </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

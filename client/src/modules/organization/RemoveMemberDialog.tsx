@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import { Button } from '../../components/ui';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
 
 interface Props {
@@ -48,36 +49,42 @@ export default function RemoveMemberDialog({ open, onClose, member, organization
   const memberName = member ? `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email : '';
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>Retirer un membre</DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          Etes-vous sur de vouloir retirer <strong>{memberName}</strong> de l'organisation ?
-        </Typography>
-        <Typography variant="body2" sx={{ color: 'var(--err)' }}>
-          Cette action retirera son acces a toutes les ressources de l'organisation.
-        </Typography>
+    <Dialog open={open} onOpenChange={(next) => { if (!next && !loading) onClose(); }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Retirer un membre</DialogTitle>
+        </DialogHeader>
 
-        {error && (
-          <Alert severity="error" sx={{ mt: 2 }}>
-            {error}
-          </Alert>
-        )}
+        <div>
+          <p className="cn-text-body2 text-muted-foreground mb-1.5">
+            Etes-vous sur de vouloir retirer <strong>{memberName}</strong> de l'organisation ?
+          </p>
+          <p className="cn-text-body2 text-[var(--err)]">
+            Cette action retirera son acces a toutes les ressources de l'organisation.
+          </p>
+
+          {error && (
+            <Alert variant="destructive" className="mt-3">
+              <TriangleAlert />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={loading}>
+            Annuler
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={handleRemove}
+            disabled={loading}
+          >
+            {loading ? <Spinner className="size-4" /> : null}
+            {loading ? 'Retrait...' : 'Retirer'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={loading}>
-          Annuler
-        </Button>
-        <Button
-          variant="contained"
-          color="error"
-          onClick={handleRemove}
-          disabled={loading}
-          startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
-        >
-          {loading ? 'Retrait...' : 'Retirer'}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

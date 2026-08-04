@@ -34,11 +34,13 @@ function Tooltip({
   )
 }
 
-function TooltipTrigger({
-  ...props
-}: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {
-  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
-}
+/** `forwardRef` ajoute localement pour React 18 — cf. la note dans `button.tsx`. */
+const TooltipTrigger = React.forwardRef<
+  React.ElementRef<typeof TooltipPrimitive.Trigger>,
+  React.ComponentProps<typeof TooltipPrimitive.Trigger>
+>(function TooltipTrigger(props, ref) {
+  return <TooltipPrimitive.Trigger ref={ref} data-slot="tooltip-trigger" {...props} />
+})
 
 function TooltipContent({
   className,

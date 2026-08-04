@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 /**
@@ -43,6 +44,21 @@ public class SupervisionModuleSettings {
     @Column(name = "thresholds", columnDefinition = "TEXT")
     private String thresholds;
 
+    /**
+     * Acceptation de la PLEINE autonomie (agir seul ET en silence) : qui, quand,
+     * et sur quelle version du texte d'avertissement. Trois champs plutôt qu'un
+     * booléen — une acceptation sans auteur, sans date ni version du texte
+     * accepté ne prouve rien. Absents ⇒ le passage en FULL est refusé.
+     */
+    @Column(name = "full_autonomy_accepted_at")
+    private Instant fullAutonomyAcceptedAt;
+
+    @Column(name = "full_autonomy_accepted_by", length = 120)
+    private String fullAutonomyAcceptedBy;
+
+    @Column(name = "full_autonomy_notice_version", length = 20)
+    private String fullAutonomyNoticeVersion;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -78,6 +94,15 @@ public class SupervisionModuleSettings {
 
     public String getThresholds() { return thresholds; }
     public void setThresholds(String thresholds) { this.thresholds = thresholds; }
+
+    public Instant getFullAutonomyAcceptedAt() { return fullAutonomyAcceptedAt; }
+    public void setFullAutonomyAcceptedAt(Instant fullAutonomyAcceptedAt) { this.fullAutonomyAcceptedAt = fullAutonomyAcceptedAt; }
+
+    public String getFullAutonomyAcceptedBy() { return fullAutonomyAcceptedBy; }
+    public void setFullAutonomyAcceptedBy(String fullAutonomyAcceptedBy) { this.fullAutonomyAcceptedBy = fullAutonomyAcceptedBy; }
+
+    public String getFullAutonomyNoticeVersion() { return fullAutonomyNoticeVersion; }
+    public void setFullAutonomyNoticeVersion(String fullAutonomyNoticeVersion) { this.fullAutonomyNoticeVersion = fullAutonomyNoticeVersion; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

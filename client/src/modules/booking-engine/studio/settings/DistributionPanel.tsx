@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Box, ButtonBase, InputBase, Skeleton } from '@mui/material';
+import { cn } from '../../../../utils/cn';
+import { Input, Skeleton } from '../../../../components/ui';
 import { Copy, Check, ExternalLink, Eye, EyeOff, RefreshCw, AlertTriangle, Globe, Code2, Terminal } from 'lucide-react';
 import type { StudioConfigState } from '../useStudioConfig';
 import { SettingsPage, SettingCard, SettingRow, ToggleControl } from './settingsControls';
@@ -14,6 +15,19 @@ export interface DistributionPanelProps {
   cfg: StudioConfigState;
 }
 
+// Pendant en classes de l'ancien `miniBtnSx`. Les deux tokens typographiques
+// restent en style : Tailwind n'infere pas le type derriere `var(`.
+const MINI_BTN_CLASS =
+  'inline-flex items-center gap-[3px] h-[34px] px-[9px] rounded-[var(--radius-md)] border border-solid border-[var(--line)] '
+  + 'bg-[var(--card)] text-[var(--body)] cursor-pointer transition-[border-color,color] duration-[var(--duration-fast)] ease-[var(--ease-out)] '
+  + 'hover:border-[var(--accent)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] '
+  + 'focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-default';
+
+const MINI_BTN_STYLE: React.CSSProperties = {
+  fontWeight: 'var(--fw-medium)',
+  fontSize: 'var(--text-sm)',
+};
+
 export default function DistributionPanel({ cfg }: DistributionPanelProps) {
   const { config } = cfg;
   const [showKey, setShowKey] = useState(false);
@@ -23,11 +37,11 @@ export default function DistributionPanel({ cfg }: DistributionPanelProps) {
 
   if (cfg.loading || !config) {
     return (
-      <Box sx={{ maxWidth: 720, mx: 'auto', px: 4, py: 4 }}>
+      <div className="max-w-[720px] mx-auto px-6 py-6">
         {cfg.error
-          ? <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 'var(--text-sm)' }}><AlertTriangle size={18} /> {cfg.error}</Box>
-          : [0, 1, 2].map((i) => <Skeleton key={i} variant="rounded" height={150} sx={{ mb: 2.5, borderRadius: 'var(--radius-lg)', bgcolor: 'var(--hover)' }} />)}
-      </Box>
+          ? <div className="flex items-center gap-1.5 p-3 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]"><AlertTriangle size={18} /> {cfg.error}</div>
+          : [0, 1, 2].map((i) => <Skeleton key={i} className="h-[150px] mb-[15px] rounded-[var(--radius-lg)] bg-[var(--hover)]" />)}
+      </div>
     );
   }
 
@@ -79,33 +93,40 @@ const properties = await booking.getProperties();`;
       </SettingCard>
 
       {cfg.error && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2.5, p: 1.5, borderRadius: 'var(--radius-md)', bgcolor: 'var(--err-soft)', color: 'var(--err)', fontSize: 'var(--text-sm)' }}>
+        <div className="flex items-center gap-1.5 mb-3.5 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
           <AlertTriangle size={16} /> {cfg.error}
-        </Box>
+        </div>
       )}
 
       <SettingCard title="Site hébergé" description="Une page de réservation prête à l'emploi, sans rien installer.">
-        <Box sx={{ py: 1.5, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-          <Box sx={{ display: 'inline-flex', color: 'var(--accent)' }}><Globe size={18} strokeWidth={2} /></Box>
-          <Box sx={{ flex: 1, minWidth: 220, fontFamily: 'var(--font-mono, monospace)', fontSize: 'var(--text-sm)', color: 'var(--body)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div className="py-2 flex items-center gap-1.5 flex-wrap">
+          <div className="inline-flex text-[var(--accent)]"><Globe size={18} strokeWidth={2} /></div>
+          <div className="flex-1 min-w-[220px] [font-family:var(--font-mono,_monospace)] text-[var(--text-sm)] text-[var(--body)] whitespace-nowrap overflow-hidden text-ellipsis">
             {hostedUrl}
-          </Box>
-          <ButtonBase onClick={() => copy('hosted', hostedUrl)} sx={miniBtnSx}>
+          </div>
+          <button type="button" onClick={() => copy('hosted', hostedUrl)} className={MINI_BTN_CLASS} style={MINI_BTN_STYLE}>
             {copiedId === 'hosted' ? <Check size={14} strokeWidth={2.4} /> : <Copy size={14} strokeWidth={2} />}
             {copiedId === 'hosted' ? 'Copié' : 'Copier'}
-          </ButtonBase>
-          <Box component="a" href={hostedUrl} target="_blank" rel="noopener noreferrer" sx={{ ...miniBtnSx, textDecoration: 'none' }}>
+          </button>
+          {/* Meme gabarit que les boutons voisins ; `disabled` est sans objet sur une ancre. */}
+          <a
+            href={hostedUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(MINI_BTN_CLASS, 'no-underline')}
+            style={MINI_BTN_STYLE}
+          >
             <ExternalLink size={14} strokeWidth={2} /> Ouvrir
-          </Box>
-        </Box>
+          </a>
+        </div>
       </SettingCard>
 
       <SettingCard title="Widget intégrable" description="Collez ce code dans votre site pour afficher le moteur de réservation.">
-        <Box sx={{ py: 1.5 }}>
+        <div className="py-2">
           <CodeBlock icon={Code2} code={embedCode} copied={copiedId === 'embed'} onCopy={() => copy('embed', embedCode)} />
-          <Box sx={{ fontSize: 'var(--text-2xs)', color: 'var(--faint)', mt: 1.5, mb: 0.75 }}>Ou en iframe :</Box>
+          <div className="text-[var(--text-2xs)] text-[var(--faint)] mt-2 mb-1">Ou en iframe :</div>
           <CodeBlock code={iframeCode} copied={copiedId === 'iframe'} onCopy={() => copy('iframe', iframeCode)} />
-        </Box>
+        </div>
       </SettingCard>
 
       <SettingCard title="SDK & API" description="Pour une intégration sur mesure dans votre application.">
@@ -113,12 +134,13 @@ const properties = await booking.getProperties();`;
           label="Clé API"
           helper="Authentifie vos requêtes. Régénérer invalide l'ancienne clé immédiatement."
           control={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, width: '100%' }}>
-              <InputBase
+            <div className="flex items-center gap-0.5 w-full">
+              <Input
                 value={apiKey}
                 readOnly
                 type={showKey ? 'text' : 'password'}
-                sx={{ flex: 1, px: 1.25, py: 0.5, fontFamily: 'var(--font-mono, monospace)', fontSize: 'var(--text-sm)', color: 'var(--ink)', bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)' }}
+                className="flex-1 h-[34px] rounded-[var(--radius-md)] border-[var(--line)] bg-[var(--field)] text-[var(--ink)]"
+                style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 'var(--text-sm)' }}
               />
               <IconBtn label={showKey ? 'Masquer' : 'Afficher'} onClick={() => setShowKey((s) => !s)}>
                 {showKey ? <EyeOff size={15} strokeWidth={2} /> : <Eye size={15} strokeWidth={2} />}
@@ -126,25 +148,35 @@ const properties = await booking.getProperties();`;
               <IconBtn label="Copier la clé" onClick={() => copy('key', apiKey)}>
                 {copiedId === 'key' ? <Check size={15} strokeWidth={2.4} /> : <Copy size={15} strokeWidth={2} />}
               </IconBtn>
-            </Box>
+            </div>
           }
         />
-        <Box sx={{ py: 1.5 }}>
+        <div className="py-2">
           <CodeBlock icon={Terminal} code={sdkCode} copied={copiedId === 'sdk'} onCopy={() => copy('sdk', sdkCode)} />
-        </Box>
-        <Box sx={{ pb: 1.75, display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+        </div>
+        <div className="pb-2.5 flex items-center gap-2 flex-wrap">
           {regenConfirm ? (
             <>
-              <Box sx={{ fontSize: 'var(--text-sm)', color: 'var(--err)' }}>L'ancienne clé cessera de fonctionner. Confirmer ?</Box>
-              <ButtonBase onClick={onRegenerate} disabled={busy} sx={{ ...miniBtnSx, color: 'var(--err)', borderColor: 'var(--err)' }}>Oui, régénérer</ButtonBase>
-              <ButtonBase onClick={() => setRegenConfirm(false)} sx={miniBtnSx}>Annuler</ButtonBase>
+              <div className="text-[var(--text-sm)] text-[var(--err)]">L'ancienne clé cessera de fonctionner. Confirmer ?</div>
+              <button
+                type="button"
+                onClick={onRegenerate}
+                disabled={busy}
+                className={cn(MINI_BTN_CLASS, 'text-[var(--err)] border-[var(--err)]')}
+                style={MINI_BTN_STYLE}
+              >
+                Oui, régénérer
+              </button>
+              <button type="button" onClick={() => setRegenConfirm(false)} className={MINI_BTN_CLASS} style={MINI_BTN_STYLE}>
+                Annuler
+              </button>
             </>
           ) : (
-            <ButtonBase onClick={() => setRegenConfirm(true)} disabled={busy} sx={miniBtnSx}>
+            <button type="button" onClick={() => setRegenConfirm(true)} disabled={busy} className={MINI_BTN_CLASS} style={MINI_BTN_STYLE}>
               <RefreshCw size={14} strokeWidth={2} /> Régénérer la clé
-            </ButtonBase>
+            </button>
           )}
-        </Box>
+        </div>
       </SettingCard>
     </SettingsPage>
   );
@@ -152,44 +184,40 @@ const properties = await booking.getProperties();`;
 
 function CodeBlock({ code, onCopy, copied, icon: Icon }: { code: string; onCopy: () => void; copied: boolean; icon?: typeof Code2 }) {
   return (
-    <Box sx={{ position: 'relative' }}>
-      {Icon && <Box sx={{ position: 'absolute', top: 10, left: 10, color: 'var(--faint)', display: 'inline-flex' }}><Icon size={15} strokeWidth={2} /></Box>}
-      <Box component="pre" sx={{
-        m: 0, p: 1.5, pl: Icon ? 4.5 : 1.5, pr: 5.5, fontFamily: 'var(--font-mono, monospace)', fontSize: 13, lineHeight: 1.6,
-        color: 'var(--ink)', bgcolor: 'var(--field)', border: '1px solid var(--line)', borderRadius: 'var(--radius-md)',
-        overflowX: 'auto', whiteSpace: 'pre',
-      }}>{code}</Box>
-      <ButtonBase onClick={onCopy} aria-label="Copier" sx={{
-        position: 'absolute', top: 8, right: 8, width: 30, height: 30, borderRadius: 'var(--radius-sm)',
-        color: copied ? 'var(--ok)' : 'var(--muted)', bgcolor: 'var(--card)', border: '1px solid var(--line)', cursor: 'pointer',
-        '&:hover': { color: 'var(--ink)', borderColor: 'var(--accent)' },
-        '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-      }}>
+    <div className="relative">
+      {Icon && <div className="absolute top-[10px] start-[10px] text-[var(--faint)] inline-flex"><Icon size={15} strokeWidth={2} /></div>}
+      <pre className={cn('m-0 p-[9px] pe-[33px] text-[13px] leading-[1.6] text-[var(--ink)] bg-[var(--field)] border border-solid border-[var(--line)] rounded-[var(--radius-md)] overflow-x-auto whitespace-pre', Icon ? 'ps-[27px]' : 'ps-[9px]')} style={{ fontFamily: 'var(--font-mono, monospace)' }}>{code}</pre>
+      <button
+        type="button"
+        onClick={onCopy}
+        aria-label="Copier"
+        className={cn(
+          'absolute top-2 right-2 w-[30px] h-[30px] inline-flex items-center justify-center rounded-[var(--radius-sm)]',
+          'bg-[var(--card)] border border-solid border-[var(--line)] cursor-pointer',
+          'hover:text-[var(--ink)] hover:border-[var(--accent)]',
+          'focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+          copied ? 'text-[var(--ok)]' : 'text-[var(--muted)]',
+        )}
+      >
         {copied ? <Check size={15} strokeWidth={2.4} /> : <Copy size={15} strokeWidth={2} />}
-      </ButtonBase>
-    </Box>
+      </button>
+    </div>
   );
 }
 
 function IconBtn({ children, label, onClick }: { children: React.ReactNode; label: string; onClick: () => void }) {
   return (
-    <ButtonBase onClick={onClick} aria-label={label} sx={{
-      width: 34, height: 34, flexShrink: 0, borderRadius: 'var(--radius-md)', color: 'var(--muted)', cursor: 'pointer',
-      border: '1px solid var(--line)', bgcolor: 'var(--card)',
-      '&:hover': { color: 'var(--ink)', borderColor: 'var(--accent)' },
-      '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-    }}>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className={
+        'w-[34px] h-[34px] shrink-0 inline-flex items-center justify-center rounded-[var(--radius-md)] text-[var(--muted)] cursor-pointer '
+        + 'border border-solid border-[var(--line)] bg-[var(--card)] hover:text-[var(--ink)] hover:border-[var(--accent)] '
+        + 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2'
+      }
+    >
       {children}
-    </ButtonBase>
+    </button>
   );
 }
-
-const miniBtnSx = {
-  display: 'inline-flex', alignItems: 'center', gap: 0.5, height: 34, px: 1.5,
-  borderRadius: 'var(--radius-md)', border: '1px solid var(--line)', bgcolor: 'var(--card)', color: 'var(--body)',
-  fontWeight: 'var(--fw-medium)', fontSize: 'var(--text-sm)', cursor: 'pointer',
-  transition: 'border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
-  '&:hover': { borderColor: 'var(--accent)', color: 'var(--ink)' },
-  '&.Mui-disabled': { opacity: 0.5 },
-  '&:focus-visible': { outline: '2px solid var(--accent)', outlineOffset: 2 },
-} as const;

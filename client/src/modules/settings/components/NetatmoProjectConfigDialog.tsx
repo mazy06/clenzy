@@ -1,7 +1,19 @@
 import { useState, useEffect } from 'react';
 import {
-  Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Link, TextField, Typography,
-} from '@mui/material';
+  Alert,
+  AlertDescription,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldDescription,
+  FieldLabel,
+  Input,
+} from '../../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import { KeyRound } from 'lucide-react';
 import { netatmoApi, type NetatmoConfigStatus } from '../../../services/api/netatmoApi';
 
@@ -70,60 +82,84 @@ export default function NetatmoProjectConfigDialog({ open, onClose, current, onS
   };
 
   return (
-    <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700 }}>
-        <KeyRound size={18} />
-        Configurer l'app Netatmo
-      </DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+    // maxWidth="sm" MUI = 600 px. L'enregistrement en cours verrouille la fermeture.
+    <Dialog open={open} onOpenChange={(next) => { if (!next && !saving) onClose(); }}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-[6px] font-bold">
+            <KeyRound size={18} />
+            Configurer l'app Netatmo
+          </DialogTitle>
+        </DialogHeader>
+        <p className="cn-text-body2 text-muted-foreground mb-3">
           Renseignez le <strong>Client ID</strong> et le <strong>Client Secret</strong> de l'app créée sur{' '}
-          <Link href="https://dev.netatmo.com/apps/" target="_blank" rel="noopener noreferrer">
+          <a
+            href="https://dev.netatmo.com/apps/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[var(--mui-primary)] underline underline-offset-2"
+          >
             dev.netatmo.com
-          </Link>
+          </a>
           . La <strong>Redirect URI</strong> doit être <u>identique</u> à celle déclarée dans l'app Netatmo.
           Les identifiants sont stockés chiffrés en base.
-        </Typography>
+        </p>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {error && <Alert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>}
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <TextField
-            label="Client ID"
-            value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
-            fullWidth
-            autoComplete="off"
-            disabled={saving}
-          />
-          <TextField
-            label="Client Secret"
-            value={clientSecret}
-            onChange={(e) => setClientSecret(e.target.value)}
-            type="password"
-            fullWidth
-            autoComplete="new-password"
-            disabled={saving}
-            placeholder={alreadyConfigured ? '•••••••• (inchangé si laissé vide)' : undefined}
-            helperText={alreadyConfigured ? 'Laissez vide pour conserver le secret déjà enregistré.' : undefined}
-          />
-          <TextField
-            label="Redirect URI"
-            value={redirectUri}
-            onChange={(e) => setRedirectUri(e.target.value)}
-            fullWidth
-            autoComplete="off"
-            disabled={saving}
-            helperText="Doit correspondre exactement à l'URI de redirection déclarée dans l'app Netatmo."
-          />
-        </Box>
+        <div className="flex flex-col gap-3">
+          <Field>
+            <FieldLabel htmlFor="netatmo-client-id">Client ID</FieldLabel>
+            <Input
+              id="netatmo-client-id"
+              className="w-full"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              autoComplete="off"
+              disabled={saving}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="netatmo-client-secret">Client Secret</FieldLabel>
+            <Input
+              id="netatmo-client-secret"
+              className="w-full"
+              value={clientSecret}
+              onChange={(e) => setClientSecret(e.target.value)}
+              type="password"
+              autoComplete="new-password"
+              disabled={saving}
+              placeholder={alreadyConfigured ? '•••••••• (inchangé si laissé vide)' : undefined}
+            />
+            {alreadyConfigured && (
+              <FieldDescription>Laissez vide pour conserver le secret déjà enregistré.</FieldDescription>
+            )}
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="netatmo-redirect-uri">Redirect URI</FieldLabel>
+            <Input
+              id="netatmo-redirect-uri"
+              className="w-full"
+              value={redirectUri}
+              onChange={(e) => setRedirectUri(e.target.value)}
+              autoComplete="off"
+              disabled={saving}
+            />
+            <FieldDescription>
+              Doit correspondre exactement à l'URI de redirection déclarée dans l'app Netatmo.
+            </FieldDescription>
+          </Field>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={saving}>Annuler</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? 'Enregistrement…' : 'Enregistrer'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} disabled={saving} sx={{ cursor: 'pointer' }}>Annuler</Button>
-        <Button onClick={handleSave} variant="contained" disabled={saving} sx={{ cursor: 'pointer' }}>
-          {saving ? 'Enregistrement…' : 'Enregistrer'}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

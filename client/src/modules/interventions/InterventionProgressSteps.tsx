@@ -1,9 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { cn } from '../../utils/cn';
+import { Badge, Button } from '../../components/ui';
+import { Alert, AlertDescription } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
 import {
-  Box, Typography, Button, Chip,
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  CircularProgress, Alert,
-} from '@mui/material';
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui';
+import StatusChip from '../../components/StatusChip';
 import {
   CheckCircle as CheckCircleIcon,
   RadioButtonUnchecked as UncheckedIcon,
@@ -88,25 +96,13 @@ interface InterventionProgressStepsProps {
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
-const roomChipSx = (validated: boolean) => ({
-  height: 32,
-  fontSize: '0.8125rem',
-  fontWeight: 500,
-  borderRadius: '16px',
-  transition: 'all 0.15s ease',
-  ...(!validated && {
-    cursor: 'pointer',
-    '&:hover': { transform: 'translateY(-1px)', boxShadow: 'var(--shadow-card)' },
-    '@media (prefers-reduced-motion: reduce)': { transition: 'none', '&:hover': { transform: 'none' } },
-  }),
-});
+const roomChipClass = [
+  'h-8 text-[0.8125rem] font-medium',
+  'transition-all duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-card)]',
+  'motion-reduce:transition-none motion-reduce:hover:translate-y-0',
+].join(' ');
 
-const noteBoxSx = {
-  p: 1.5, bgcolor: 'var(--surface-2)', borderRadius: 1.5,
-  border: '1px solid', borderColor: 'var(--line)',
-};
-
-const actionBtnSx = { textTransform: 'none', fontSize: '0.8125rem', borderRadius: 1.5 };
+const noteBoxClass = 'p-[9px] bg-[var(--surface-2)] rounded-[12px] border border-solid border-[var(--line)]';
 
 // ─── Stepper header ─────────────────────────────────────────────────────────
 
@@ -125,100 +121,59 @@ const StepperHeader: React.FC<{
   activeStep: StepId;
   onStepClick: (id: StepId) => void;
 }> = ({ steps, activeStep, onStepClick }) => (
-  <Box sx={{
-    display: 'flex', alignItems: 'flex-start',
-    gap: 0, mb: 2, position: 'relative',
-  }}>
+  <div className="flex items-start gap-0 mb-3 relative">
     {steps.map((step, idx) => {
       const isActive = activeStep === step.id;
       return (
         <React.Fragment key={step.id}>
           {idx > 0 && (
-            <Box sx={{
-              flex: 1, height: 2, mt: 1.75,
-              bgcolor: step.completed ? 'var(--ok)' : 'var(--line-2)',
-              transition: 'background-color 0.3s',
-            }} />
+            <div className={cn('flex-1 h-[2px] mt-[10.5px]', step.completed ? 'bg-[var(--ok)]' : 'bg-[var(--line-2)]')} style={{ transition: 'background-color 0.3s' }} />
           )}
-          <Box
-            onClick={() => !step.locked && onStepClick(step.id)}
-            sx={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              cursor: step.locked ? 'default' : 'pointer',
-              opacity: step.locked ? 0.4 : 1,
-              minWidth: 80, maxWidth: 120,
-              transition: 'opacity 0.2s',
-            }}
-          >
-            <Box sx={{
-              width: 28, height: 28, borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              bgcolor: step.completed ? 'var(--ok)' : isActive ? 'var(--accent)' : 'var(--hover)',
-              color: step.completed || isActive ? 'var(--on-accent)' : 'var(--muted)',
-              transition: 'all 0.2s',
-              mb: 0.5,
-              ...(isActive && !step.completed && {
-                boxShadow: '0 0 0 3px var(--accent-soft)',
-              }),
-            }}>
+          <div className={cn('flex flex-col items-center min-w-[80px] max-w-[120px]', step.locked ? 'cursor-default' : 'cursor-pointer', step.locked ? 'opacity-40' : 'opacity-100')} style={{ transition: 'opacity 0.2s' }} onClick={() => !step.locked && onStepClick(step.id)}>
+            <div className={cn(
+              'w-[28px] h-[28px] rounded-[50%] flex items-center justify-center mb-[3px] transition-all duration-200',
+              step.completed ? 'bg-[var(--ok)]' : isActive ? 'bg-[var(--accent)]' : 'bg-[var(--hover)]',
+              step.completed || isActive ? 'text-[var(--on-accent)]' : 'text-[var(--muted)]',
+              isActive && !step.completed && 'shadow-[0_0_0_3px_var(--accent-soft)]',
+            )}>
               {step.completed ? (
                 <CheckCircleIcon size={18} strokeWidth={1.75} />
               ) : step.locked ? (
                 <LockIcon size={14} strokeWidth={1.75} />
               ) : (
-                <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.75rem' }}>
+                <span className="cn-text-caption font-bold text-[0.75rem]">
                   {step.id + 1}
-                </Typography>
+                </span>
               )}
-            </Box>
-            <Typography
-              variant="caption"
-              fontWeight={isActive ? 700 : 500}
-              sx={{ fontSize: '0.7rem', textAlign: 'center', lineHeight: 1.2, px: 0.25, color: isActive ? 'var(--accent)' : step.completed ? 'var(--ok)' : 'var(--muted)' }}
-            >
+            </div>
+            <span className={cn('cn-text-caption text-[0.7rem] text-center leading-[1.2] px-[1.5px]', isActive ? 'font-bold' : 'font-medium', isActive ? 'text-[var(--accent)]' : step.completed ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}>
               {step.label}
-            </Typography>
-          </Box>
+            </span>
+          </div>
         </React.Fragment>
       );
     })}
-  </Box>
+  </div>
 );
 
 const handleDownloadPdf = async (doc: DocumentGeneration) => {
   await documentsApi.downloadGeneration(doc.id, doc.fileName);
 };
 
-const recapCardSx = {
-  p: 2.5,
-  borderRadius: '14px',
-  bgcolor: 'var(--card)',
-  border: '1px solid',
-  borderColor: 'color-mix(in srgb, var(--ok) 30%, transparent)',
-  transition: 'border-color 0.2s',
-  '&:hover': { borderColor: 'var(--line-2)' },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-};
+const recapCardClass = [
+  'p-[15px] rounded-[14px] bg-[var(--card)]',
+  'border border-solid border-[color-mix(in_srgb,var(--ok)_30%,transparent)]',
+  'transition-[border-color] duration-200 hover:border-[var(--line-2)] motion-reduce:transition-none',
+].join(' ');
 
-const docCardSx = {
-  display: 'flex',
-  alignItems: { xs: 'flex-start', sm: 'center' },
-  flexDirection: { xs: 'column', sm: 'row' },
-  justifyContent: 'space-between',
-  gap: { xs: 1.5, sm: 1 },
-  p: 2,
-  borderRadius: '14px',
-  bgcolor: 'var(--card)',
-  border: '1px solid',
-  borderColor: 'var(--line)',
-  cursor: 'pointer',
-  transition: 'border-color 0.2s, box-shadow 0.2s',
-  '&:hover': {
-    borderColor: 'var(--line-2)',
-    boxShadow: 'var(--shadow-card)',
-  },
-  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-};
+// Le breakpoint `sm` de MUI vaut 600px (non configure), pas les 640px de Tailwind.
+const docCardClass = [
+  'flex flex-col items-start gap-[9px] min-[600px]:flex-row min-[600px]:items-center min-[600px]:gap-[6px]',
+  'justify-between p-3 rounded-[14px] bg-[var(--card)] cursor-pointer',
+  'border border-solid border-[var(--line)]',
+  'transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none',
+  'hover:border-[var(--line-2)] hover:shadow-[var(--shadow-card)]',
+].join(' ');
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -336,20 +291,20 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
   // ── Step content renderers ────────────────────────────────────────────
 
   const renderInspection = () => (
-    <Box>
-      <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
+    <div>
+      <p className="cn-text-body2 font-semibold mb-1.5">
         {t('interventions.progressSteps.inspectionTitle')}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      </p>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('interventions.progressSteps.inspectionDescription')}
-      </Typography>
+      </p>
 
       {beforePhotos.length > 0 && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: inspectionComplete ? 'var(--ok)' : 'var(--muted)' }}><CheckCircleOutlineIcon size={16} strokeWidth={1.75} /></Box>
+        <div className="mb-3">
+          <p className="cn-text-body2 text-muted-foreground flex items-center gap-0.5 mb-1.5">
+            <span className={cn('inline-flex', inspectionComplete ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}><CheckCircleOutlineIcon size={16} strokeWidth={1.75} /></span>
             {t('interventions.progressSteps.beforePhotosCount', { count: beforePhotos.length })}
-          </Typography>
+          </p>
           <PhotoGallery
             photos={beforePhotos}
             photoIds={beforePhotoIds}
@@ -357,36 +312,34 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             onDelete={!inspectionComplete ? handleDeletePhoto : undefined}
             deletingPhotoId={deletingPhotoId}
           />
-        </Box>
+        </div>
       )}
 
       {getStepNote('inspection') && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="caption" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>{t('interventions.detail.notes')}</Typography>
-          <Box sx={noteBoxSx}>
-            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+        <div className="mb-3">
+          <span className="cn-text-caption font-semibold block mb-0.5">{t('interventions.detail.notes')}</span>
+          <div className={noteBoxClass}>
+            <p className="cn-text-body2 text-muted-foreground whitespace-pre-wrap">
               {getStepNote('inspection')}
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
       )}
 
-      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-        <Button variant="outlined" size="small" startIcon={<PhotoCameraIcon size={18} strokeWidth={1.75} />} sx={actionBtnSx}
+      <div className="flex gap-1.5 flex-wrap">
+        <Button variant="outline" size="sm"
           onClick={() => { setPhotoType('before'); setPhotosDialogOpen(true); }}>
+          <PhotoCameraIcon size={18} strokeWidth={1.75} />
           {t('interventions.progressSteps.addPhotos')}
         </Button>
-        <Button variant="outlined" size="small" startIcon={<CommentIcon size={18} strokeWidth={1.75} />} sx={actionBtnSx}
+        <Button variant="outline" size="sm"
           onClick={() => handleOpenNotesDialog('inspection')}>
+          <CommentIcon size={18} strokeWidth={1.75} />
           {getStepNote('inspection') ? t('interventions.progressSteps.editNote') : t('interventions.progressSteps.addNote')}
         </Button>
         {!inspectionComplete && beforePhotos.length > 0 && (
-          <Button variant="contained" size="small" startIcon={<CheckCircleOutlineIcon size={18} strokeWidth={1.75} />} sx={{
-            ...actionBtnSx,
-            animation: 'pulse 2s infinite',
-            '@keyframes pulse': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.7 } },
-            '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-          }}
+          // Seule action qui fait AVANCER l'etape : elle domine les deux autres.
+          <Button variant="default" size="sm" className="animate-pulse motion-reduce:animate-none"
           onClick={() => {
             setInspectionComplete(true);
             setCompletedSteps(prev => new Set(prev).add('inspection'));
@@ -400,76 +353,90 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             handleUpdateProgressValue(newProgress);
             setActiveStep(1);
           }}>
+            <CheckCircleOutlineIcon size={18} strokeWidth={1.75} />
             {t('interventions.progressSteps.validateInspection')}
           </Button>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 
   const renderRooms = () => (
-    <Box>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-        <Typography variant="body2" fontWeight={600}>
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <p className="cn-text-body2 font-semibold">
           {t('interventions.progressSteps.roomValidation')}
-        </Typography>
+        </p>
         {totalRooms > 0 && (
-          <Chip label={`${validatedRooms.size}/${totalRooms}`} size="small"
-            color={allRoomsValidated ? 'success' : 'primary'} variant="outlined"
-            sx={{ height: 24, fontSize: '0.75rem' }}
+          <StatusChip
+            tone={allRoomsValidated ? 'ok' : 'accent'}
+            label={`${validatedRooms.size}/${totalRooms}`}
+            className="h-6 text-[0.75rem]"
           />
         )}
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      </div>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('interventions.progressSteps.roomValidationDesc')}
-      </Typography>
+      </p>
 
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 2 }}>
-        {roomNames.map((name, idx) => (
-          <Chip key={name}
-            icon={validatedRooms.has(idx) ? <CheckCircleOutlineIcon size={18} strokeWidth={1.75} /> : <RoomIcon size={18} strokeWidth={1.75} />}
-            label={name} size="small"
-            color={validatedRooms.has(idx) ? 'success' : 'primary'}
-            variant={validatedRooms.has(idx) ? 'filled' : 'outlined'}
-            onClick={() => handleRoomValidation(idx)}
-            sx={roomChipSx(false)}
-          />
-        ))}
-      </Box>
+      <div className="flex flex-wrap gap-1 mb-3">
+        {roomNames.map((name, idx) => {
+          const validated = validatedRooms.has(idx);
+          return (
+            <StatusChip
+              key={name}
+              tone="ok"
+              // La piece se COCHE : puce de selection (bordure au repos, teinte
+              // une fois validee), et non un statut subi.
+              outlined
+              selected={validated}
+              pressed={validated}
+              icon={validated
+                ? <CheckCircleOutlineIcon size={18} strokeWidth={1.75} />
+                : <RoomIcon size={18} strokeWidth={1.75} />}
+              label={name}
+              pill
+              onClick={() => handleRoomValidation(idx)}
+              className={roomChipClass}
+            />
+          );
+        })}
+      </div>
 
       {getStepNote('rooms') && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="caption" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>{t('interventions.detail.notes')}</Typography>
-          <Box sx={noteBoxSx}>
-            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+        <div className="mb-3">
+          <span className="cn-text-caption font-semibold block mb-0.5">{t('interventions.detail.notes')}</span>
+          <div className={noteBoxClass}>
+            <p className="cn-text-body2 text-muted-foreground whitespace-pre-wrap">
               {getStepNote('rooms')}
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
       )}
 
-      <Button variant="outlined" size="small" startIcon={<CommentIcon size={18} strokeWidth={1.75} />} sx={actionBtnSx}
+      <Button variant="outline" size="sm"
         onClick={() => handleOpenNotesDialog('rooms')}>
+        <CommentIcon size={18} strokeWidth={1.75} />
         {getStepNote('rooms') ? t('interventions.progressSteps.editNote') : t('interventions.progressSteps.addNote')}
       </Button>
-    </Box>
+    </div>
   );
 
   const renderPhotos = () => (
-    <Box>
-      <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
+    <div>
+      <p className="cn-text-body2 font-semibold mb-1.5">
         {t('interventions.progressSteps.afterPhotosTitle')}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      </p>
+      <p className="cn-text-body2 text-muted-foreground mb-3">
         {t('interventions.progressSteps.afterPhotosDesc')}
-      </Typography>
+      </p>
 
       {afterPhotos.length > 0 && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-            <Box component="span" sx={{ display: "inline-flex", color: "var(--ok)" }}><CheckCircleOutlineIcon size={16} strokeWidth={1.75} /></Box>
+        <div className="mb-3">
+          <p className="cn-text-body2 text-muted-foreground flex items-center gap-0.5 mb-1.5">
+            <span className="inline-flex text-[var(--ok)]"><CheckCircleOutlineIcon size={16} strokeWidth={1.75} /></span>
             {t('interventions.progressSteps.afterPhotosCount', { count: afterPhotos.length })}
-          </Typography>
+          </p>
           <PhotoGallery
             photos={afterPhotos}
             photoIds={afterPhotoIds}
@@ -477,195 +444,178 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             onDelete={handleDeletePhoto}
             deletingPhotoId={deletingPhotoId}
           />
-        </Box>
+        </div>
       )}
 
       {getStepNote('after_photos') && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="caption" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>{t('interventions.detail.notes')}</Typography>
-          <Box sx={noteBoxSx}>
-            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+        <div className="mb-3">
+          <span className="cn-text-caption font-semibold block mb-0.5">{t('interventions.detail.notes')}</span>
+          <div className={noteBoxClass}>
+            <p className="cn-text-body2 text-muted-foreground whitespace-pre-wrap">
               {getStepNote('after_photos')}
-            </Typography>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
       )}
 
-      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-        <Button variant="outlined" size="small" startIcon={<PhotoCameraIcon size={18} strokeWidth={1.75} />} sx={actionBtnSx}
+      <div className="flex gap-1.5 flex-wrap">
+        <Button variant="outline" size="sm"
           onClick={() => { setPhotoType('after'); setPhotosDialogOpen(true); }}>
+          <PhotoCameraIcon size={18} strokeWidth={1.75} />
           {t('interventions.progressSteps.addPhotos')}
         </Button>
-        <Button variant="outlined" size="small" startIcon={<CommentIcon size={18} strokeWidth={1.75} />} sx={actionBtnSx}
+        <Button variant="outline" size="sm"
           onClick={() => handleOpenNotesDialog('after_photos')}>
+          <CommentIcon size={18} strokeWidth={1.75} />
           {getStepNote('after_photos') ? t('interventions.progressSteps.editNote') : t('interventions.progressSteps.addNote')}
         </Button>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 
   const renderRecap = () => (
-    <Box>
-      <Typography variant="body2" fontWeight={600} sx={{ mb: 2.5 }}>
+    <div>
+      <p className="cn-text-body2 font-semibold mb-3.5">
         {t('interventions.progressSteps.recapTitle')}
-      </Typography>
+      </p>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' }, gap: 2.5 }}>
+      <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr_1fr] gap-[15px]">
         {/* Inspection */}
-        <Box sx={recapCardSx}>
-          <Box display="flex" alignItems="center" gap={0.75} mb={1.5}>
-            <Box component="span" sx={{ display: "inline-flex", color: "var(--ok)" }}><CheckCircleIcon size={18} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" fontWeight={600}>{t('interventions.progressSteps.recapInspection')}</Typography>
-          </Box>
+        <div className={recapCardClass}>
+          <div className="flex items-center gap-[4.5px] mb-[9px]">
+            <span className="inline-flex text-[var(--ok)]"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2 font-semibold">{t('interventions.progressSteps.recapInspection')}</p>
+          </div>
           {beforePhotos.length > 0 && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+            <span className="cn-text-caption text-muted-foreground block mb-1.5">
               {t('interventions.progressSteps.beforePhotosShort', { count: beforePhotos.length })}
-            </Typography>
+            </span>
           )}
           {getStepNote('inspection') && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontStyle: 'italic', mb: 1 }}>
+            <span className="cn-text-caption text-muted-foreground block italic mb-1.5">
               "{getStepNote('inspection').substring(0, 60)}{getStepNote('inspection').length > 60 ? '...' : ''}"
-            </Typography>
+            </span>
           )}
           {beforePhotos.length > 0 && (
-            <Box sx={{ mt: 0.5 }}>
+            <div className="mt-0.5">
               <PhotoGallery photos={beforePhotos} columns={3} />
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
 
         {/* Rooms */}
-        <Box sx={recapCardSx}>
-          <Box display="flex" alignItems="center" gap={0.75} mb={1.5}>
-            <Box component="span" sx={{ display: "inline-flex", color: "var(--ok)" }}><CheckCircleIcon size={18} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" fontWeight={600}>{t('interventions.progressSteps.recapRooms', { validated: validatedRooms.size, total: totalRooms })}</Typography>
-          </Box>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+        <div className={recapCardClass}>
+          <div className="flex items-center gap-[4.5px] mb-[9px]">
+            <span className="inline-flex text-[var(--ok)]"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2 font-semibold">{t('interventions.progressSteps.recapRooms', { validated: validatedRooms.size, total: totalRooms })}</p>
+          </div>
+          <div className="flex flex-wrap gap-1">
             {roomNames.map((name, idx) => (
               validatedRooms.has(idx) && (
-                <Chip key={name} icon={<CheckCircleOutlineIcon size={18} strokeWidth={1.75} />} label={name} size="small"
-                  color="success" variant="filled" sx={{ height: 28, fontSize: '0.75rem' }} />
+                <Badge variant="success" className="h-[28px] text-[0.75rem]" key={name}><CheckCircleOutlineIcon size={18} strokeWidth={1.75} />{name}</Badge>
               )
             ))}
-          </Box>
+          </div>
           {getStepNote('rooms') && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontStyle: 'italic' }}>
+            <span className="cn-text-caption text-muted-foreground block mt-1.5 italic">
               "{getStepNote('rooms').substring(0, 60)}{getStepNote('rooms').length > 60 ? '...' : ''}"
-            </Typography>
+            </span>
           )}
-        </Box>
+        </div>
 
         {/* Photos */}
-        <Box sx={recapCardSx}>
-          <Box display="flex" alignItems="center" gap={0.75} mb={1.5}>
-            <Box component="span" sx={{ display: "inline-flex", color: "var(--ok)" }}><CheckCircleIcon size={18} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" fontWeight={600}>{t('interventions.progressSteps.recapAfterPhotos')}</Typography>
-          </Box>
+        <div className={recapCardClass}>
+          <div className="flex items-center gap-[4.5px] mb-[9px]">
+            <span className="inline-flex text-[var(--ok)]"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2 font-semibold">{t('interventions.progressSteps.recapAfterPhotos')}</p>
+          </div>
           {afterPhotos.length > 0 && (
             <>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+              <span className="cn-text-caption text-muted-foreground block mb-1.5">
                 {t('interventions.progressSteps.afterPhotosShort', { count: afterPhotos.length })}
-              </Typography>
+              </span>
               <PhotoGallery photos={afterPhotos} columns={3} />
             </>
           )}
           {getStepNote('after_photos') && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontStyle: 'italic' }}>
+            <span className="cn-text-caption text-muted-foreground block mt-1.5 italic">
               "{getStepNote('after_photos').substring(0, 60)}{getStepNote('after_photos').length > 60 ? '...' : ''}"
-            </Typography>
+            </span>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* Documents */}
       {documents.length > 0 && (
-        <Box sx={{ mt: 3 }}>
-          <Box display="flex" alignItems="center" gap={0.75} mb={2}>
-            <Box component="span" sx={{ display: "inline-flex", color: "var(--accent)" }}><DescriptionIcon size={18} strokeWidth={1.75} /></Box>
-            <Typography variant="body2" fontWeight={600}>
+        <div className="mt-4">
+          <div className="flex items-center gap-[4.5px] mb-3">
+            <span className="inline-flex text-[var(--accent)]"><DescriptionIcon size={18} strokeWidth={1.75} /></span>
+            <p className="cn-text-body2 font-semibold">
               {t('interventions.progressSteps.documents', { count: documents.length })}
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
             {documents.map((doc) => {
               const hasFile = !!doc.fileName;
               return (
-                <Box key={doc.id} sx={docCardSx} onClick={() => hasFile && handleViewPdf(doc)}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0, flex: 1 }}>
-                    <Box sx={{
-                      width: 40, height: 40, borderRadius: 1.5,
-                      bgcolor: 'var(--accent-soft)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    }}>
-                      <Box component="span" sx={{ display: "inline-flex", color: "var(--accent)" }}><DescriptionIcon size={22} strokeWidth={1.75} /></Box>
-                    </Box>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="body2" fontWeight={600} noWrap sx={{ mb: 0.5 }}>
+                <div key={doc.id} className={docCardClass} onClick={() => hasFile && handleViewPdf(doc)}>
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="w-[40px] h-[40px] rounded-[12px] bg-[var(--accent-soft)] flex items-center justify-center shrink-0">
+                      <span className="inline-flex text-[var(--accent)]"><DescriptionIcon size={22} strokeWidth={1.75} /></span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="cn-text-body2 font-semibold truncate mb-0.5">
                         {doc.fileName}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                        <Chip label={doc.documentType.replace(/_/g, ' ')} size="small"
-                          sx={{ height: 22, fontSize: '0.675rem', fontWeight: 500, bgcolor: 'var(--hover)', color: 'var(--muted)' }} />
+                      </p>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <Badge variant="secondary" className="h-[22px] text-[0.675rem] font-medium bg-[var(--hover)] text-[var(--muted)]">{doc.documentType.replace(/_/g, ' ')}</Badge>
                         {doc.emailStatus === 'SENT' && (
-                          <Chip icon={<EmailSentIcon size={14} strokeWidth={1.75} />}
-                            label={doc.emailTo} size="small" color="info" variant="outlined"
-                            sx={{ height: 22, fontSize: '0.675rem' }} />
+                          <Badge variant="info" className="h-[22px] text-[0.675rem]"><EmailSentIcon size={14} strokeWidth={1.75} />{doc.emailTo}</Badge>
                         )}
                         {doc.emailStatus === 'FAILED' && (
-                          <Chip icon={<EmailFailedIcon size={14} strokeWidth={1.75} />}
-                            label={t('interventions.progressSteps.emailFailed')} size="small" color="error" variant="outlined"
-                            sx={{ height: 22, fontSize: '0.675rem' }} />
+                          <Badge variant="destructive" className="h-[22px] text-[0.675rem]"><EmailFailedIcon size={14} strokeWidth={1.75} />{t('interventions.progressSteps.emailFailed')}</Badge>
                         )}
-                      </Box>
-                    </Box>
-                  </Box>
+                      </div>
+                    </div>
+                  </div>
                   {hasFile && (
-                    <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-                      <Button size="small" variant="outlined" startIcon={<VisibilityIcon size={18} strokeWidth={1.75} />}
-                        onClick={() => handleViewPdf(doc)}
-                        sx={{
-                          textTransform: 'none', fontSize: '0.75rem', minWidth: 0,
-                          borderRadius: 1.5, py: 0.5, px: 1.5,
-                        }}>
+                    <div className="flex gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <Button size="xs" variant="outline"
+                        onClick={() => handleViewPdf(doc)}>
+                        <VisibilityIcon size={18} strokeWidth={1.75} />
                         {t('interventions.progressSteps.viewPdf')}
                       </Button>
-                      <Button size="small" variant="text" startIcon={<DownloadIcon size={18} strokeWidth={1.75} />}
-                        onClick={() => handleDownloadPdf(doc)}
-                        sx={{
-                          textTransform: 'none', fontSize: '0.75rem', minWidth: 0,
-                          borderRadius: 1.5, py: 0.5, px: 1.5, color: 'text.secondary',
-                        }}>
+                      <Button size="xs" variant="ghost" className="text-[var(--muted)]"
+                        onClick={() => handleDownloadPdf(doc)}>
+                        <DownloadIcon size={18} strokeWidth={1.75} />
                         {t('interventions.progressSteps.download')}
                       </Button>
-                    </Box>
+                    </div>
                   )}
-                </Box>
+                </div>
               );
             })}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* Complete intervention button */}
       {intervention.status !== 'COMPLETED' && (
-        <Box sx={{ mt: 3.5, textAlign: 'center' }}>
-          <Button variant="contained" color="success" size="large" startIcon={<DoneIcon size={18} strokeWidth={1.75} />}
+        <div className="mt-5 text-center">
+          {/* Unique action de la zone et aboutissement du parcours : elle reste en
+              encre pleine (`default`). La teinte `success` de MUI n'est pas reportee —
+              le kit n'a pas de variante succes et l'etat "termine" est deja porte par
+              l'icone et le libelle. */}
+          <Button variant="default" size="lg"
+            className={cn('px-6', areAllStepsCompleted && !completing && 'animate-pulse motion-reduce:animate-none')}
             onClick={handleCompleteIntervention}
-            disabled={!areAllStepsCompleted || completing}
-            sx={{
-              py: 1.25, px: 4, textTransform: 'none', fontWeight: 600,
-              fontSize: '0.875rem', borderRadius: 2,
-              ...(areAllStepsCompleted && !completing ? {
-                animation: 'pulse 2s infinite',
-                '@keyframes pulse': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.7 } },
-                '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-              } : {}),
-            }}>
+            disabled={!areAllStepsCompleted || completing}>
+            <DoneIcon size={18} strokeWidth={1.75} />
             {completing ? t('interventions.progressSteps.completing') : t('interventions.progressSteps.complete')}
           </Button>
-        </Box>
+        </div>
       )}
-    </Box>
+    </div>
   );
 
   const renderStepContent = () => {
@@ -685,123 +635,95 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         <>
           <StepperHeader steps={steps} activeStep={activeStep} onStepClick={(id) => setActiveStep(id)} />
 
-          <Box sx={{
-            p: 2.5, borderRadius: '14px',
-            border: '1px solid', borderColor: 'var(--line)',
-            bgcolor: 'var(--card)',
-            minHeight: 120,
-          }}>
+          <div className="p-3.5 rounded-[14px] border border-[var(--line)] bg-[var(--card)] min-h-[120px]">
             {renderStepContent()}
-          </Box>
+          </div>
         </>
       )}
 
       {/* ── Start CTA ────────────────────────────────────────────── */}
       {(canStartIntervention || (isBeforeScheduledDate && intervention?.status === 'PENDING')) && (
-        <Box sx={{
-          mt: 2, p: 2.5, borderRadius: '14px',
-          bgcolor: isBeforeScheduledDate ? 'var(--warn-soft)' : 'var(--accent-soft)',
-          border: '1px solid',
-          borderColor: isBeforeScheduledDate
-            ? 'color-mix(in srgb, var(--warn) 30%, transparent)'
-            : 'color-mix(in srgb, var(--accent) 30%, transparent)',
-          textAlign: 'center',
-        }}>
+        <div className={cn('mt-3 p-[15px] rounded-[14px] border border-solid text-center', isBeforeScheduledDate ? 'bg-[var(--warn-soft)]' : 'bg-[var(--accent-soft)]', isBeforeScheduledDate ? 'border-[color-mix(in_srgb,_var(--warn)_30%,_transparent)]' : 'border-[color-mix(in_srgb,_var(--accent)_30%,_transparent)]')}>
           {isBeforeScheduledDate && intervention?.scheduledDate && (
             <>
-              <Typography variant="body2" fontWeight={600} sx={{ mb: 1, color: 'var(--warn)' }}>
+              <p className="cn-text-body2 font-semibold mb-1.5 text-[var(--warn)]">
                 Planifiee pour le{' '}
                 {new Date(intervention.scheduledDate).toLocaleDateString('fr-FR', {
                   weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
                   hour: '2-digit', minute: '2-digit',
                 })}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+              </p>
+              <span className="cn-text-caption text-muted-foreground mb-3 block">
                 Le demarrage sera possible a partir de cette date.
-              </Typography>
+              </span>
             </>
           )}
           {!isBeforeScheduledDate && (
             <>
-              <Box component="span" sx={{ display: "inline-flex", color: "var(--accent)", mb: 1 }}><RocketIcon size={32} strokeWidth={1.5} /></Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              <span className="inline-flex text-[var(--accent)] mb-1.5"><RocketIcon size={32} strokeWidth={1.5} /></span>
+              <p className="cn-text-body2 text-muted-foreground mb-3">
                 {t('interventions.progressSteps.startDescription')}
-              </Typography>
+              </p>
             </>
           )}
-          <Button variant="contained" color="primary" startIcon={<PlayArrowIcon size={18} strokeWidth={1.75} />}
-            onClick={handleStartIntervention} disabled={starting || isBeforeScheduledDate}
-            sx={{
-              py: 1.25, px: 4, textTransform: 'none', fontWeight: 600,
-              fontSize: '0.875rem', borderRadius: 2,
-            }}>
+          <Button variant="default" size="lg" className="px-6"
+            onClick={handleStartIntervention} disabled={starting || isBeforeScheduledDate}>
+            <PlayArrowIcon size={18} strokeWidth={1.75} />
             {starting ? t('interventions.progressSteps.starting') : t('interventions.progressSteps.startIntervention')}
           </Button>
-        </Box>
+        </div>
       )}
 
       {/* ── Reopen CTA + Recap when COMPLETED ─────────────────────── */}
       {intervention?.status === 'COMPLETED' && canStartOrUpdateIntervention && (
         <>
-          <Box sx={{
-            mt: 2.5, p: 2.5, borderRadius: '14px',
-            bgcolor: 'var(--warn-soft)',
-            border: '1px solid', borderColor: 'color-mix(in srgb, var(--warn) 30%, transparent)',
-            display: 'flex', flexDirection: { xs: 'column', sm: 'row' },
-            alignItems: { xs: 'stretch', sm: 'center' }, gap: 2,
-          }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
-              <Box sx={{
-                width: 36, height: 36, borderRadius: '50%', bgcolor: 'var(--ok-soft)', color: 'var(--ok)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
+          <div className="mt-[15px] p-[15px] rounded-[14px] bg-[var(--warn-soft)] border border-solid border-[color-mix(in_srgb,_var(--warn)_30%,_transparent)] flex flex-col min-[600px]:flex-row items-stretch min-[600px]:items-center gap-3">
+            <div className="flex items-center gap-2 flex-1">
+              <div className="w-[36px] h-[36px] rounded-[50%] bg-[var(--ok-soft)] text-[var(--ok)] flex items-center justify-center shrink-0">
                 <CheckCircleIcon size={20} strokeWidth={1.75} />
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+              </div>
+              <p className="cn-text-body2 text-muted-foreground leading-[1.5]">
                 {t('interventions.progressSteps.completedMessage')}
-              </Typography>
-            </Box>
-            <Button variant="contained" color="warning" startIcon={<ReplayIcon size={18} strokeWidth={1.75} />}
-              onClick={handleReopenIntervention} disabled={completing}
-              sx={{
-                py: 1.25, px: 3, fontWeight: 600, textTransform: 'none',
-                fontSize: '0.875rem', whiteSpace: 'nowrap', flexShrink: 0, borderRadius: 2,
-              }}>
+              </p>
+            </div>
+            {/* Rouvrir revient en arriere sur une intervention close : action a poids
+                mesure, teintee avertissement plutot qu'encre pleine. */}
+            <Button variant="outline" size="lg"
+              className="shrink-0 whitespace-nowrap text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              onClick={handleReopenIntervention} disabled={completing}>
+              <ReplayIcon size={18} strokeWidth={1.75} />
               {completing ? t('interventions.progressSteps.reopening') : t('interventions.progressSteps.reopen')}
             </Button>
-          </Box>
+          </div>
 
           {/* Recap visible when completed */}
-          <Box sx={{ mt: 3, p: { xs: 0, sm: 0 } }}>
+          <div className="mt-[18px] p-0 min-[600px]:p-0">
             {renderRecap()}
-          </Box>
+          </div>
         </>
       )}
 
       {/* ── Photos avant standalone ──────────────────────────────── */}
       {canUpdateProgress && beforePhotos.length > 0 && !inspectionComplete && activeStep !== 0 && (
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>{t('interventions.detail.beforePhotosStandalone')}</Typography>
+        <div className="mt-3">
+          <p className="cn-text-body2 font-semibold mb-1.5">{t('interventions.detail.beforePhotosStandalone')}</p>
           <PhotoGallery photos={beforePhotos} columns={3} />
-        </Box>
+        </div>
       )}
 
       {/* ── PDF Preview Dialog ──────────────────────────────────── */}
-      <Dialog
-        open={pdfDialogOpen}
-        onClose={handleClosePdfDialog}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: '12px', height: '85vh' } }}
-      >
-        <DialogTitle sx={{ fontSize: '0.9375rem', fontWeight: 600, py: 1.5 }}>
-          {pdfFileName || t('interventions.progressSteps.pdfPreview', 'Apercu du document')}
-        </DialogTitle>
-        <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      <Dialog open={pdfDialogOpen} onOpenChange={(next) => { if (!next) handleClosePdfDialog(); }}>
+        <DialogContent className="max-w-[900px] h-[85vh] rounded-[12px] flex flex-col overflow-hidden p-0 gap-0">
+        <DialogHeader className="px-4 py-2.5">
+          <DialogTitle className="text-[0.9375rem] font-semibold">
+            {pdfFileName || t('interventions.progressSteps.pdfPreview', 'Apercu du document')}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col flex-1 overflow-hidden">
           {pdfLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
-              <CircularProgress />
-            </Box>
+            <div className="flex justify-center items-center flex-1">
+              <Spinner className="size-10" />
+            </div>
           ) : pdfUrl ? (
             <object
               data={pdfUrl}
@@ -809,29 +731,35 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
               width="100%"
               style={{ flex: 1, border: 'none', minHeight: 0 }}
             >
-              <Box sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+              <div className="p-4 text-center">
+                <p className="cn-text-body2 text-muted-foreground mb-3">
                   {t('interventions.progressSteps.pdfNotSupported', 'Votre navigateur ne supporte pas la visualisation PDF.')}
-                </Typography>
-                <Button variant="contained" href={pdfUrl} download={pdfFileName || 'document.pdf'}
-                  startIcon={<DownloadIcon size={18} strokeWidth={1.75} />} sx={{ textTransform: 'none' }}>
-                  {t('interventions.progressSteps.download')}
+                </p>
+                <Button asChild variant="default">
+                  <a href={pdfUrl} download={pdfFileName || 'document.pdf'}>
+                    <DownloadIcon size={18} strokeWidth={1.75} />
+                    {t('interventions.progressSteps.download')}
+                  </a>
                 </Button>
-              </Box>
+              </div>
             </object>
           ) : (
-            <Box sx={{ p: 3, textAlign: 'center' }}>
-              <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
-                {t('interventions.progressSteps.pdfLoadError', 'Erreur lors du chargement du PDF')}
+            <div className="p-4 text-center">
+              <Alert variant="destructive" className="text-[0.8125rem]">
+                <TriangleAlert />
+                <AlertDescription>{t('interventions.progressSteps.pdfLoadError', 'Erreur lors du chargement du PDF')}</AlertDescription>
               </Alert>
-            </Box>
+            </div>
           )}
-        </DialogContent>
-        <DialogActions sx={{ px: 2, py: 1.5 }}>
-          <Button onClick={handleClosePdfDialog} sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
+        </div>
+        {/* mx-0/mb-0 : le pied de modale deborde de 16 px par defaut pour
+            compenser le padding du contenu, ici mis a zero. */}
+        <DialogFooter className="mx-0 mb-0 px-3 py-2.5">
+          <Button variant="ghost" size="sm" onClick={handleClosePdfDialog}>
             {t('common.close', 'Fermer')}
           </Button>
-        </DialogActions>
+        </DialogFooter>
+        </DialogContent>
       </Dialog>
     </>
   );

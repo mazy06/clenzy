@@ -1,21 +1,9 @@
 import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  Alert,
-  CircularProgress,
-  IconButton,
-  Tooltip,
-  Button,
-} from '@mui/material';
+import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert, X } from 'lucide-react';
+import { Spinner, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Add,
   Edit,
@@ -36,13 +24,13 @@ import EmptyState from '../../components/EmptyState';
 
 /** Tons sémantiques (tokens Signature) pour les chips -soft. */
 const TONE = {
-  ok:    { color: 'var(--ok)',    bgcolor: 'var(--ok-soft)' },
-  warn:  { color: 'var(--warn)',  bgcolor: 'var(--warn-soft)' },
-  info:  { color: 'var(--info)',  bgcolor: 'var(--info-soft)' },
-  muted: { color: 'var(--muted)', bgcolor: 'var(--hover)' },
+  ok: STATUS_TONES.ok,
+  warn: STATUS_TONES.warn,
+  info: STATUS_TONES.info,
+  muted: STATUS_TONES.neutral,
 } as const;
 
-const TYPE_TONE: Record<string, { color: string; bgcolor: string }> = {
+const TYPE_TONE: Record<string, ToneTokens> = {
   CHECK_IN: TONE.ok,
   CHECK_OUT: TONE.warn,
   WELCOME: TONE.info,
@@ -168,18 +156,24 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center p-6">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
   return (
-    <Box>
+    <div>
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <BuiAlert variant="destructive" className="mb-3">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+          <AlertAction>
+            <BuiButton variant="ghost" size="icon-xs" aria-label="Fermer" onClick={() => setError(null)}>
+              <X />
+            </BuiButton>
+          </AlertAction>
+        </BuiAlert>
       )}
 
       {rows.length === 0 ? (
@@ -188,34 +182,35 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
           title={t('messaging.templates.empty')}
           description={t('messaging.templates.emptyDesc')}
           action={(
-            <Button
-              variant="contained"
-              startIcon={<Add size={14} strokeWidth={1.75} />}
-              size="small"
+            <BuiButton
+              size="sm"
               onClick={() => {
                 setEditingTemplate(null);
                 setEditorOpen(true);
               }}
             >
+              <Add size={14} strokeWidth={1.75} />
               {t('messaging.templates.createFirst')}
-            </Button>
+            </BuiButton>
           )}
         />
       ) : (
-        <TableContainer component={Paper}>
+        // Rayon 10px + fond --card : report de la surface MUI par defaut
+        // (elevation 0, sans bordure) que portait l'ancien conteneur.
+        <div className="overflow-x-auto rounded-[10px] bg-[var(--card)]">
           <Table>
-            <TableHead>
+            <TableHeader>
               <TableRow>
-                <TableCell>{t('messaging.templates.name')}</TableCell>
-                <TableCell>{t('messaging.templates.origin')}</TableCell>
-                <TableCell>{t('messaging.templates.subject')}</TableCell>
-                <TableCell>{t('messaging.templates.language')}</TableCell>
-                <TableCell align="center">{t('messaging.templates.status')}</TableCell>
-                <TableCell align="center">{t('messaging.templates.version')}</TableCell>
-                <TableCell>{t('messaging.templates.createdBy')}</TableCell>
-                <TableCell align="right">{t('common.actions')}</TableCell>
+                <TableHead>{t('messaging.templates.name')}</TableHead>
+                <TableHead>{t('messaging.templates.origin')}</TableHead>
+                <TableHead>{t('messaging.templates.subject')}</TableHead>
+                <TableHead>{t('messaging.templates.language')}</TableHead>
+                <TableHead className="text-center">{t('messaging.templates.status')}</TableHead>
+                <TableHead className="text-center">{t('messaging.templates.version')}</TableHead>
+                <TableHead>{t('messaging.templates.createdBy')}</TableHead>
+                <TableHead className="text-end">{t('common.actions')}</TableHead>
               </TableRow>
-            </TableHead>
+            </TableHeader>
             <TableBody>
               {rows.map((row) => (
                 row.origin === 'user'
@@ -233,7 +228,7 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </div>
       )}
 
       {/* Editor user templates (flow existant inchange) */}
@@ -254,7 +249,7 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
           onClose={handleSystemDialogClose}
         />
       )}
-    </Box>
+    </div>
   );
 });
 
@@ -271,72 +266,76 @@ interface UserRowProps {
 const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
   const { t } = useTranslation();
   return (
-    <TableRow hover>
+    <TableRow>
       <TableCell>
         <Stack0Spaced>
-          <Typography variant="body2" fontWeight={600} sx={{ color: 'var(--ink)' }}>{template.name}</Typography>
-          <Chip
-            label={TYPE_LABELS[template.type] || template.type}
-            size="small"
-            sx={TYPE_TONE[template.type] ?? TONE.muted}
+          <p className="cn-text-body2 font-semibold text-[var(--ink)]">{template.name}</p>
+          <StatusChip
+            label={TYPE_LABELS[template.type] || template.type} tokens={TYPE_TONE[template.type] ?? TONE.muted}
           />
         </Stack0Spaced>
       </TableCell>
       <TableCell>
-        <Chip
-          label={t('messaging.templates.originUser')}
-          size="small"
-          sx={TONE.muted}
+        <StatusChip
+          label={t('messaging.templates.originUser')} tokens={TONE.muted}
         />
       </TableCell>
       <TableCell>
-        <Typography variant="body2" noWrap sx={{ maxWidth: 280, fontSize: '0.8125rem' }}>
+        <p className="cn-text-body2 truncate max-w-[280px] text-[0.8125rem]">
           {template.subject}
-        </Typography>
+        </p>
       </TableCell>
       <TableCell>
-        <Chip label={template.language?.toUpperCase()} size="small" sx={TONE.muted} />
+        <StatusChip label={template.language?.toUpperCase()} tokens={TONE.muted} />
       </TableCell>
-      <TableCell align="center">
-        <Chip
-          label={template.isActive ? t('messaging.templates.active') : t('messaging.templates.inactive')}
-          size="small"
-          sx={template.isActive ? TONE.ok : TONE.muted}
+      <TableCell className="text-center">
+        <StatusChip
+          label={template.isActive ? t('messaging.templates.active') : t('messaging.templates.inactive')} tokens={template.isActive ? TONE.ok : TONE.muted}
         />
       </TableCell>
-      <TableCell align="center">
-        <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>v1</Typography>
+      <TableCell className="text-center">
+        <span className="cn-text-caption font-mono text-muted-foreground">v1</span>
       </TableCell>
       <TableCell>
         {/* Pas de createdBy dans le DTO actuel pour les user templates.
             Affiche un dash pour ne pas mentir et garder la colonne alignee. */}
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>—</Typography>
+        <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">—</p>
       </TableCell>
-      <TableCell align="right">
-        <Tooltip title={t('common.edit')} arrow>
-          <IconButton
-            size="small"
-            onClick={() => onEdit(template)}
-            aria-label={t('common.edit')}
-            sx={{ cursor: 'pointer', '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' } }}
-          >
-            <Edit size={16} strokeWidth={1.75} />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title={t('common.delete')} arrow>
-          <IconButton
-            size="small"
-            onClick={() => onDelete(template.id)}
-            aria-label={t('common.delete')}
-            sx={{
-              cursor: 'pointer',
-              color: 'var(--muted)',
-              '&:hover': { color: 'var(--err)', backgroundColor: 'var(--err-soft)' },
-            }}
-          >
-            <Delete size={16} strokeWidth={1.75} />
-          </IconButton>
-        </Tooltip>
+      <TableCell className="text-end">
+        <div className="inline-flex items-center gap-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <BuiButton
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => onEdit(template)}
+                  aria-label={t('common.edit')}
+                  className="hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
+                >
+                  <Edit size={16} strokeWidth={1.75} />
+                </BuiButton>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t('common.edit')}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <BuiButton
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => onDelete(template.id)}
+                  aria-label={t('common.delete')}
+                  className="text-[var(--muted)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+                >
+                  <Delete size={16} strokeWidth={1.75} />
+                </BuiButton>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{t('common.delete')}</TooltipContent>
+          </Tooltip>
+        </div>
       </TableCell>
     </TableRow>
   );
@@ -356,68 +355,66 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
   const firstLang = Object.values(group.languages)[0];
 
   return (
-    <TableRow hover>
+    <TableRow>
       <TableCell>
         <Stack0Spaced>
-          <Typography variant="body2" fontWeight={600} sx={{ color: 'var(--ink)' }}>
+          <p className="cn-text-body2 font-semibold text-[var(--ink)]">
             {t(`systemEmailTemplates.keys.${group.templateKey}`)}
-          </Typography>
-          <Chip
-            label={t(`systemEmailTemplates.recipientShort.${group.recipientType}`)}
-            size="small"
-            sx={group.recipientType === 'GUEST' ? TONE.info : group.recipientType === 'OWNER' ? TONE.ok : TONE.muted}
+          </p>
+          <StatusChip
+            label={t(`systemEmailTemplates.recipientShort.${group.recipientType}`)} tokens={group.recipientType === 'GUEST' ? TONE.info : group.recipientType === 'OWNER' ? TONE.ok : TONE.muted}
           />
         </Stack0Spaced>
       </TableCell>
       <TableCell>
-        <Chip
+        <StatusChip
           label={group.isCustomized
             ? t('messaging.templates.originCustomized')
-            : t('messaging.templates.originSystem')}
-          size="small"
-          sx={group.isCustomized ? TONE.ok : TONE.muted}
+            : t('messaging.templates.originSystem')} tokens={group.isCustomized ? TONE.ok : TONE.muted}
         />
       </TableCell>
       <TableCell>
-        <Typography variant="body2" noWrap sx={{ maxWidth: 280, fontSize: '0.8125rem' }}>
+        <p className="cn-text-body2 truncate max-w-[280px] text-[0.8125rem]">
           {firstLang?.subject ?? '—'}
-        </Typography>
+        </p>
       </TableCell>
       <TableCell>
         {/* Chip langue identique a UserRow pour coherence (1ere langue dispo —
             les autres sont accessibles dans le dialog d'edition via le selecteur). */}
-        <Chip
-          label={Object.keys(group.languages)[0]?.toUpperCase() ?? '—'}
-          size="small"
-          sx={TONE.muted}
+        <StatusChip
+          label={Object.keys(group.languages)[0]?.toUpperCase() ?? '—'} tokens={TONE.muted}
         />
       </TableCell>
-      <TableCell align="center">
+      <TableCell className="text-center">
         {/* Templates systeme toujours actifs (pas de notion d'activation cote BDD). */}
-        <Chip
-          label={t('messaging.templates.active')}
-          size="small"
-          sx={TONE.ok}
+        <StatusChip
+          label={t('messaging.templates.active')} tokens={TONE.ok}
         />
       </TableCell>
-      <TableCell align="center">
-        <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>v1</Typography>
+      <TableCell className="text-center">
+        <span className="cn-text-caption font-mono text-muted-foreground">v1</span>
       </TableCell>
       <TableCell>
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+        <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
           {t('messaging.templates.systemAuthor')}
-        </Typography>
+        </p>
       </TableCell>
-      <TableCell align="right">
-        <Tooltip title={t('common.edit')} arrow>
-          <IconButton
-            size="small"
-            onClick={() => onEdit(group.templateKey)}
-            aria-label={t('common.edit')}
-            sx={{ cursor: 'pointer', '&:hover': { color: 'var(--accent)', backgroundColor: 'var(--accent-soft)' } }}
-          >
-            <Edit size={16} strokeWidth={1.75} />
-          </IconButton>
+      <TableCell className="text-end">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">
+              <BuiButton
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => onEdit(group.templateKey)}
+                aria-label={t('common.edit')}
+                className="hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
+              >
+                <Edit size={16} strokeWidth={1.75} />
+              </BuiButton>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t('common.edit')}</TooltipContent>
         </Tooltip>
       </TableCell>
     </TableRow>
@@ -426,7 +423,7 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
 
 // Petit helper layout : inline-flex stack horizontale avec gap.
 const Stack0Spaced: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>{children}</Box>
+  <div className="inline-flex items-center gap-1.5">{children}</div>
 );
 
 export default MessageTemplatesSection;

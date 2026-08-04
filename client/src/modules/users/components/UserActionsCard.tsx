@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography, Button } from '@mui/material';
+import { cn } from '../../../utils/cn';
+import { Button } from '../../../components/ui';
 import { Lock, LockOpen } from '../../../icons';
 import type { LockoutStatus } from '../../../services/api';
 
@@ -20,46 +21,47 @@ const UserActionsCard: React.FC<UserActionsCardProps> = ({
   if (!lockoutStatus.isLocked && lockoutStatus.failedAttempts === 0) return null;
 
   return (
-    <Box sx={{
-      border: '1px solid',
-      borderColor: lockoutStatus.isLocked ? 'var(--err)' : 'var(--warn)',
-      borderRadius: '12px',
-      p: 2,
-      bgcolor: lockoutStatus.isLocked ? 'var(--err-soft)' : 'var(--warn-soft)',
-    }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: lockoutStatus.isLocked ? 'var(--err)' : 'var(--warn)' }}><Lock size={20} strokeWidth={1.75} /></Box>
-            <Box>
-              <Typography variant="body2" fontWeight={600}>
+    <div className={cn('border border-solid rounded-[12px] p-3', lockoutStatus.isLocked ? 'border-[var(--err)]' : 'border-[var(--warn)]', lockoutStatus.isLocked ? 'bg-[var(--err-soft)]' : 'bg-[var(--warn-soft)]')}>
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-1.5">
+            <span className={cn('inline-flex', lockoutStatus.isLocked ? 'text-[var(--err)]' : 'text-[var(--warn)]')}><Lock size={20} strokeWidth={1.75} /></span>
+            <div>
+              <p className="cn-text-body2 font-semibold">
                 {lockoutStatus.isLocked
                   ? 'Compte temporairement bloque'
                   : `${lockoutStatus.failedAttempts} tentative${lockoutStatus.failedAttempts > 1 ? 's' : ''} de connexion echouee${lockoutStatus.failedAttempts > 1 ? 's' : ''}`
                 }
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
+              </p>
+              <span className="cn-text-caption text-muted-foreground">
                 {lockoutStatus.isLocked
                   ? `Bloque pendant encore ${Math.ceil(lockoutStatus.remainingSeconds / 60)} minute${Math.ceil(lockoutStatus.remainingSeconds / 60) > 1 ? 's' : ''} (deblocage automatique)`
                   : lockoutStatus.captchaRequired
                     ? 'CAPTCHA requis a la prochaine connexion'
                     : 'Le verrouillage se declenche apres 5 tentatives'
                 }
-              </Typography>
-            </Box>
-          </Box>
+              </span>
+            </div>
+          </div>
+          {/* Debloquer n'est pas destructif (c'est le remede) : outline teinte comme la carte,
+              err si le compte est bloque, warn s'il n'y a que des tentatives echouees.
+              Branches litterales — une classe Tailwind ne peut pas naitre d'une variable. */}
           <Button
-            variant="contained"
-            size="small"
-            startIcon={<LockOpen size={16} strokeWidth={1.75} />}
+            variant="outline"
+            size="sm"
             onClick={onUnlockUser}
             disabled={unlocking}
-            color={lockoutStatus.isLocked ? 'error' : 'warning'}
-            sx={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+            className={cn(
+              'whitespace-nowrap',
+              lockoutStatus.isLocked
+                ? 'text-[var(--err)] border-[var(--err)] hover:bg-[var(--err-soft)]'
+                : 'text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]',
+            )}
           >
+            <LockOpen size={16} strokeWidth={1.75} />
             {unlocking ? 'Deblocage...' : 'Debloquer'}
           </Button>
-        </Box>
-    </Box>
+        </div>
+    </div>
   );
 };
 

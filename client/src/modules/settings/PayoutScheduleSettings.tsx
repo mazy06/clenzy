@@ -1,21 +1,14 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Switch,
-  TextField,
-  Alert,
-  Snackbar,
-  CircularProgress,
-} from '@mui/material';
+import { Spinner, Switch, Input } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import { CalendarMonth } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useNotification } from '../../hooks/useNotification';
 import { usePayoutSchedule, useUpdatePayoutSchedule } from '../../hooks/usePayoutSchedule';
 import SettingsSection from './components/SettingsSection';
+import SettingSentence from '../../components/baitly/SettingSentence';
 
 const VALID_DAYS = Array.from({ length: 28 }, (_, i) => i + 1);
-
-const ACCENT = 'var(--accent)';
 
 const sameDays = (a: number[], b: number[]) => {
   if (a.length !== b.length) return false;
@@ -38,17 +31,13 @@ interface PayoutScheduleSettingsProps {
 const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSettingsProps>(
   function PayoutScheduleSettings({ onChangeState }, ref) {
     const { t } = useTranslation();
+    const { notify } = useNotification();
     const { data: config, isLoading } = usePayoutSchedule();
     const updateMutation = useUpdatePayoutSchedule();
 
     const [selectedDays, setSelectedDays] = useState<number[]>([1, 15]);
     const [gracePeriod, setGracePeriod] = useState(2);
     const [autoGenerate, setAutoGenerate] = useState(true);
-    const [snackbar, setSnackbar] = useState({
-      open: false,
-      message: '',
-      severity: 'success' as 'success' | 'error',
-    });
 
     useEffect(() => {
       if (!config) return;
@@ -84,11 +73,7 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
 
     const handleSave = async () => {
       if (!isValid()) {
-        setSnackbar({
-          open: true,
-          message: t('settings.payoutSchedule.validationDays'),
-          severity: 'error',
-        });
+        notify.error(t('settings.payoutSchedule.validationDays'));
         throw new Error('Validation: au moins un jour requis');
       }
 
@@ -98,17 +83,9 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
           gracePeriodDays: gracePeriod,
           autoGenerateEnabled: autoGenerate,
         });
-        setSnackbar({
-          open: true,
-          message: t('settings.payoutSchedule.saved'),
-          severity: 'success',
-        });
+        notify.success(t('settings.payoutSchedule.saved'));
       } catch (err) {
-        setSnackbar({
-          open: true,
-          message: t('settings.payoutSchedule.error'),
-          severity: 'error',
-        });
+        notify.error(t('settings.payoutSchedule.error'));
         throw err;
       }
     };
@@ -131,9 +108,9 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
           icon={CalendarMonth}
           accent="info"
         >
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-            <CircularProgress size={24} />
-          </Box>
+          <div className="flex justify-center py-3">
+            <Spinner className="size-6" />
+          </div>
         </SettingsSection>
       );
     }
@@ -146,66 +123,42 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
         description={t('settings.payoutSchedule.subtitle')}
       >
         {/* Auto-generate toggle */}
-        <Box
-          sx={{
-            p: 1.5,
-            mb: 1.5,
-            borderRadius: '8px',
-            border: '1px solid',
-            borderColor: 'divider',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 1.5,
-          }}
-        >
-          <Box sx={{ minWidth: 0 }}>
-            <Typography
-              sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}
-            >
+        <div className="p-2 mb-2 rounded-[8px] border border-[var(--line)] flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground leading-[1.3]">
               {t('settings.payoutSchedule.autoGenerate')}
-            </Typography>
-            <Typography
-              sx={{ fontSize: '0.72rem', color: 'text.secondary', lineHeight: 1.4, mt: 0.125 }}
-            >
+            </p>
+            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.4] mt-0">
               {t('settings.payoutSchedule.autoGenerateHelper')}
-            </Typography>
-          </Box>
+            </p>
+          </div>
           <Switch
-            size="small"
+            size="sm"
+            aria-label={t('settings.payoutSchedule.autoGenerate')}
             checked={autoGenerate}
-            onChange={(e) => setAutoGenerate(e.target.checked)}
+            onCheckedChange={setAutoGenerate}
           />
-        </Box>
+        </div>
 
         {/* Days of month selector */}
-        <Box
-          sx={{
-            p: 1.5,
-            mb: 1.5,
-            borderRadius: '8px',
-            border: '1px solid',
-            borderColor: 'divider',
-            opacity: autoGenerate ? 1 : 0.5,
-            pointerEvents: autoGenerate ? 'auto' : 'none',
-            transition: 'opacity 180ms cubic-bezier(0.22, 1, 0.36, 1)',
-          }}
+        <div
+          className={cn(
+            'p-[9px] mb-[9px] rounded-[8px] border border-solid border-[var(--line)]',
+            autoGenerate ? 'opacity-100 pointer-events-auto' : 'opacity-50 pointer-events-none',
+          )}
+          style={{ transition: 'opacity 180ms cubic-bezier(0.22, 1, 0.36, 1)' }}
         >
-          <Typography
-            sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}
-          >
+          <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground leading-[1.3]">
             {t('settings.payoutSchedule.daysOfMonth')}
-          </Typography>
-          <Typography
-            sx={{ fontSize: '0.72rem', color: 'text.secondary', lineHeight: 1.4, mt: 0.125, mb: 1.25 }}
-          >
+          </p>
+          <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.4] mt-0 mb-2">
             {t('settings.payoutSchedule.daysOfMonthHelper')}
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+          </p>
+          <div className="flex flex-wrap gap-0.5">
             {VALID_DAYS.map((day) => {
               const active = selectedDays.includes(day);
               return (
-                <Box
+                <div
                   key={day}
                   role="button"
                   tabIndex={0}
@@ -217,99 +170,48 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
                       toggleDay(day);
                     }
                   }}
-                  sx={{
-                    minWidth: 30,
-                    height: 26,
-                    px: 1,
-                    borderRadius: '6px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    fontSize: '0.72rem',
-                    fontWeight: active ? 700 : 500,
-                    fontVariantNumeric: 'tabular-nums',
-                    letterSpacing: '0.01em',
-                    border: '1px solid',
-                    borderColor: active ? ACCENT : 'divider',
-                    backgroundColor: active ? ACCENT : 'background.paper',
-                    color: active ? 'var(--on-accent)' : 'text.primary',
+                  className={cn(
+                    'min-w-[30px] h-[26px] px-1.5 rounded-[6px] inline-flex items-center justify-center',
+                    'cursor-pointer select-none text-[0.72rem] tabular-nums tracking-[0.01em] border border-solid',
+                    'focus-visible:[outline:2px_solid_var(--accent)] focus-visible:[outline-offset:2px]',
+                    active
+                      ? 'font-bold border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]'
+                      : 'font-medium border-[var(--line)] bg-[var(--card)] text-[var(--ink)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] hover:bg-[var(--accent-soft)]',
+                  )}
+                  style={{
                     transition:
                       'border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1)',
-                    '&:hover': {
-                      borderColor: active ? ACCENT : 'color-mix(in srgb, var(--accent) 40%, transparent)',
-                      backgroundColor: active ? ACCENT : 'var(--accent-soft)',
-                    },
-                    '&:focus-visible': {
-                      outline: `2px solid ${ACCENT}`,
-                      outlineOffset: 2,
-                    },
                   }}
                 >
                   {day}
-                </Box>
+                </div>
               );
             })}
-          </Box>
-        </Box>
+          </div>
+        </div>
 
-        {/* Grace period */}
-        <Box
-          sx={{
-            p: 1.5,
-            borderRadius: '8px',
-            border: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Typography
-            sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}
-          >
-            {t('settings.payoutSchedule.gracePeriod')}
-          </Typography>
-          <Typography
-            sx={{ fontSize: '0.72rem', color: 'text.secondary', lineHeight: 1.4, mt: 0.125, mb: 1 }}
-          >
-            {t('settings.payoutSchedule.gracePeriodHelper')}
-          </Typography>
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.625 }}>
-            <TextField
+        {/* Délai de rappel — premier usage réel du primitive SettingSentence
+            (projection « Réglages en phrase ») : la règle s'écrit telle
+            qu'elle se lit, au lieu d'une pile libellé / champ. */}
+        <div className="p-2 rounded-[8px] border border-[var(--line)]">
+          <SettingSentence label={t('settings.payoutSchedule.gracePeriod')}>
+            {t('settings.payoutSchedule.reminderSentenceStart', "Envoyer un rappel d'approbation")}
+            <Input
+              id="payout-grace-period"
+              aria-label={t('settings.payoutSchedule.gracePeriod')}
+              className="w-16 text-center tabular-nums font-semibold"
               type="number"
+              min={0}
+              max={30}
               value={gracePeriod}
               onChange={(e) => {
                 const val = parseInt(e.target.value, 10);
                 if (!isNaN(val) && val >= 0 && val <= 30) setGracePeriod(val);
               }}
-              size="small"
-              inputProps={{
-                min: 0,
-                max: 30,
-                style: { textAlign: 'center', fontVariantNumeric: 'tabular-nums', fontWeight: 600 },
-              }}
-              sx={{ width: 80 }}
             />
-            <Typography
-              sx={{ fontSize: '0.72rem', color: 'text.secondary', fontWeight: 600, letterSpacing: '0.02em' }}
-            >
-              {t('common.daysShort', 'jours')}
-            </Typography>
-          </Box>
-        </Box>
-
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={4000}
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        >
-          <Alert
-            onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-            severity={snackbar.severity}
-            sx={{ borderRadius: '8px' }}
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
+            {t('settings.payoutSchedule.reminderSentenceEnd', 'jours après la génération.')}
+          </SettingSentence>
+        </div>
       </SettingsSection>
     );
   },

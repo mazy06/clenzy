@@ -1,20 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import StatusChip from '../../components/StatusChip';
 import { useNavigate } from 'react-router-dom';
-import {
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Box,
-  Chip,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Grid,
-  Divider,
-} from '@mui/material';
 import {
   Edit,
   Delete,
@@ -29,14 +15,25 @@ import {
   Bed as BedIcon,
   Bathroom as BathroomIcon,
   BroomFill,
-  Close,
   SquareFoot,
   Build,
   Logout,
   CheckCircle,
 } from '../../icons';
+import { Button } from '../../components/ui';
+import {
+  Card,
+  CardContent,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Separator,
+} from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
+import { cn } from '../../utils/cn';
 import { getPropertyTypeBannerUrl } from '../../utils/propertyTypeBanner';
 import {
   getPropertyStatusLabel,
@@ -44,7 +41,7 @@ import {
   getPropertyTypeLabel,
   getCleaningFrequencyLabel,
 } from '../../utils/statusUtils';
-import { FIELD_CHIP_SX, propertyGradientCss } from './propertiesListConstants';
+import { FIELD_TOKENS, FIELD_CHIP_CLASS, propertyGradientCss } from './propertiesListConstants';
 import { Money } from '../../components/Money';
 import type { PropertyKpiSummary } from '../../services/api/propertyKpiApi';
 import ChannexHealthBadge from '../settings/components/ChannexHealthBadge';
@@ -114,210 +111,33 @@ interface PropertyCardProps {
 }
 
 // Styles alignés sur DESIGN_BASELINE + référence maquette .pr-card (screen-properties).
-const styles = {
-  // ── Card ── (.pr-card : hairline r14 du thème, hover border --line-2 + shadow-card)
-  cardRoot: {
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-    cursor: 'pointer',
-    transition: 'border-color .14s, box-shadow .14s, transform .14s',
-    '&:hover': {
-      borderColor: 'var(--line-2)',
-      boxShadow: 'var(--shadow-card)',
-      transform: 'translateY(-2px)',
-    },
-    '@media (prefers-reduced-motion: reduce)': {
-      transition: 'none',
-      '&:hover': { transform: 'none' },
-    },
-  },
-  // .pr-img — bandeau dégradé déterministe (h118), photo réelle en overlay (fallback),
-  // icône immeuble centrée + pastille statut (top-left) + slot canal/santé (top-right).
-  bannerBox: {
-    position: 'relative',
-    height: 118,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  bannerIcon: {
-    position: 'relative',
-    zIndex: 1,
-    display: 'inline-flex',
-    color: 'rgba(255,255,255,.7)',
-  },
-  // .pr-status — pastille statut top-left (fond translucide + blur, dot coloré + libellé).
-  statusPill: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    zIndex: 2,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 0.625,
-    fontSize: '10.5px',
-    fontWeight: 700,
-    px: '9px',
-    py: '4px',
-    borderRadius: '20px',
-    bgcolor: 'rgba(255,255,255,.92)',
-    backdropFilter: 'blur(4px)',
-    color: '#2A3942',
-    lineHeight: 1,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: '50%',
-    flexShrink: 0,
-  },
-  // .pr-ch — slot canal/santé top-right.
-  channelSlot: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    zIndex: 2,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.5,
-  },
-  priceChip: {
-    color: 'var(--body)',
-    borderColor: 'var(--line-2)',
-    bgcolor: 'var(--card)',
-    '& .MuiChip-label': { px: 1 },
-  },
-  infoContent: {
-    flexGrow: 1,
-    p: 1.75,
-    pb: '12px !important',
-  },
-  // .pr-nm — nom d'entité en display
-  nameText: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    fontFamily: 'var(--font-display)',
-    fontSize: '15px',
-    fontWeight: 600,
-    letterSpacing: '-.01em',
-    mb: 0.5,
-    color: 'var(--ink)',
-  },
-  addressText: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    flex: 1,
-    fontSize: '11.5px',
-    color: 'var(--muted)',
-  },
-  // .pr-stats — bande de stats hairline (valeurs display tabular-nums)
-  statsBand: {
-    display: 'flex',
-    borderTop: '1px solid var(--line)',
-    borderBottom: '1px solid var(--line)',
-    mb: 1.25,
-  },
-  statCell: {
-    flex: 1,
-    py: '9px',
-    textAlign: 'center',
-    borderRight: '1px solid var(--line)',
-    minWidth: 0,
-    '&:last-child': { borderRight: 0 },
-  },
-  statValue: {
-    fontFamily: 'var(--font-display)',
-    fontSize: '15px',
-    fontWeight: 600,
-    color: 'var(--ink)',
-    fontVariantNumeric: 'tabular-nums',
-    lineHeight: 1.2,
-  },
-  statLabel: {
-    fontSize: '9.5px',
-    fontWeight: 700,
-    letterSpacing: '.04em',
-    textTransform: 'uppercase',
-    color: 'var(--faint)',
-    mt: '1px',
-  },
-  // .pr-foot — pied de carte : icône accent + libellé fort + reste muted.
-  footRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.875,
-    fontSize: '11.5px',
-    color: 'var(--muted)',
-    minWidth: 0,
-  },
-  footIcon: {
-    display: 'inline-flex',
-    color: 'var(--accent)',
-    flexShrink: 0,
-  },
-  footStrong: {
-    color: 'var(--body)',
-    fontWeight: 600,
-  },
-  actionBar: {
-    px: 1.75,
-    pb: 1.25,
-    pt: 0,
-    display: 'flex',
-    gap: 0.75,
-  },
+// `--card-spacing: 0px` neutralise le rembourrage vertical du primitif Card : la
+// carte logement colle son bandeau image au bord, comme l'ancienne Card MUI.
+const CARD_ROOT_CLASS =
+  'h-full cursor-pointer [--card-spacing:0px] '
+  + '[transition:border-color_.14s,box-shadow_.14s,transform_.14s] '
+  + 'hover:-translate-y-[2px] hover:shadow-[var(--shadow-card)] hover:ring-[color:var(--line-2)] '
+  + 'motion-reduce:transition-none motion-reduce:hover:translate-y-0';
 
-  // ── Dialog ── (skin global MuiDialog ; surfaces internes en tokens)
-  dialogTitleBox: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  dialogIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: '11px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dialogCharacteristicsRow: {
-    display: 'flex',
-    gap: 2,
-    flexWrap: 'wrap',
-  },
-  dialogMetricBox: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 1,
-    bgcolor: 'var(--field)',
-    border: '1px solid var(--field-line)',
-    borderRadius: '11px',
-    px: 1.5,
-    py: 1,
-    minWidth: 120,
-  },
-  dialogSectionTitle: {
-    fontSize: '10.5px',
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: '.06em',
-    color: 'var(--faint)',
-    mb: 0.75,
-  },
-  dialogDescription: {
-    overflow: 'hidden',
-    display: '-webkit-box',
-    WebkitLineClamp: 4,
-    WebkitBoxOrient: 'vertical',
-    lineHeight: 1.4,
-  },
-} as const;
+// Typographie de la carte et du dialogue, transcrite en classes.
+// `font-[family-name:var(...)]` et non `font-[var(...)]` : sur une valeur `var()`,
+// Tailwind ne peut pas trancher entre famille et graisse et emettrait un
+// `font-weight` invalide, silencieusement ignore par le navigateur.
+
+/** .pr-nm — nom d'entité en display (la graisse du `sx` primait sur la prop 700). */
+const NAME_CLASS =
+  'cn-text-subtitle1 mb-[3px] min-w-0 flex-1 truncate font-[family-name:var(--font-display)] text-[15px] font-semibold tracking-[-.01em] text-[var(--ink)]';
+const ADDRESS_CLASS = 'cn-text-caption flex-1 truncate text-[11.5px] text-[var(--muted)]';
+/** .pr-stats — bande de stats hairline (valeurs display tabular-nums) */
+const STAT_VALUE_CLASS =
+  'cn-text-body1 font-[family-name:var(--font-display)] text-[15px] font-semibold leading-[1.2] text-[var(--ink)] tabular-nums';
+const STAT_LABEL_CLASS =
+  'cn-text-body1 mt-px text-[9.5px] font-bold uppercase tracking-[.04em] text-[var(--faint)]';
+// ── Dialog ── (skin global MuiDialog ; surfaces internes en tokens)
+const DIALOG_SECTION_TITLE_CLASS =
+  'cn-text-body1 mb-[4.5px] text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]';
+const DIALOG_DESCRIPTION_CLASS =
+  'cn-text-body2 line-clamp-4 leading-[1.4] text-[var(--muted)]';
 
 // ─── Duration estimation (lightweight version for cards) ─────────────────────
 
@@ -464,16 +284,14 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
   return (
     <>
       {/* Carte principale — Design moderne */}
-      <Card
-        sx={styles.cardRoot}
-        onClick={handleViewDetails}
-      >
+      <Card className={CARD_ROOT_CLASS} onClick={handleViewDetails}>
         {/* ─── .pr-img : bandeau dégradé déterministe + photo réelle en overlay ─── */}
-        <Box
-          sx={{
-            ...styles.bannerBox,
-            // Dégradé déterministe (placeholder) en base ; la vraie photo se
-            // superpose dessus en fallback (couvre le dégradé si dispo).
+        {/* Dégradé déterministe (placeholder) en base ; la vraie photo se superpose
+            dessus en fallback. Tout le fond reste inline : la shorthand `background`
+            reinitialiserait background-size/position poses par des classes. */}
+        <div
+          className="relative h-[118px] flex items-center justify-center overflow-hidden"
+          style={{
             background: `${propertyGradientCss(property.id || property.name)}`,
             backgroundImage: `linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0.32)), url(${getPropertyTypeBannerUrl(property.propertyType)}), ${propertyGradientCss(property.id || property.name)}`,
             backgroundSize: 'cover',
@@ -481,19 +299,19 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
           }}
         >
           {/* Icône immeuble centrée (blanc .7) */}
-          <Box sx={styles.bannerIcon}>
+          <div className="relative z-[1] inline-flex text-[rgba(255,255,255,.7)]">
             <Business size={30} strokeWidth={1.75} />
-          </Box>
+          </div>
 
           {/* .pr-status — pastille statut opérationnel top-left (dot coloré + libellé) */}
-          <Box sx={styles.statusPill}>
-            <Box sx={{ ...styles.statusDot, bgcolor: pill.color }} />
+          <div className="absolute top-[10px] left-[10px] z-[2] inline-flex items-center gap-[3.75px] text-[10.5px] font-bold px-[9px] py-[4px] rounded-[20px] bg-[rgba(255,255,255,.92)] backdrop-blur-[4px] text-[#2A3942] leading-none">
+            <div className="w-[6px] h-[6px] rounded-[50%] shrink-0" style={{ backgroundColor: pill.color }} />
             {pill.label}
-          </Box>
+          </div>
 
           {/* .pr-ch — slot canal/santé top-right (badge santé Channex + contrat) */}
           {(channexMapping || missingContract) && (
-            <Box sx={styles.channelSlot}>
+            <div className="absolute top-[10px] right-[10px] z-[2] flex items-center gap-[3px]">
               {channexMapping && (
                 <ChannexHealthBadge
                   mapping={channexMapping}
@@ -507,287 +325,251 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                   onClick={(e) => { e.stopPropagation(); onMissingContractClick?.(); }}
                 />
               )}
-            </Box>
+            </div>
           )}
-        </Box>
+        </div>
 
         {/* ─── Zone info ─── */}
-        <CardContent sx={styles.infoContent}>
+        <CardContent className="flex-1 p-[10.5px] pb-3">
           {/* Nom + prix/nuit (si renseigné) */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.75,
-              minWidth: 0,
-            }}
-          >
-            <Typography
-              variant="subtitle1"
-              fontWeight={700}
-              sx={{ ...styles.nameText, minWidth: 0, flex: 1 }}
-              title={property.name}
-            >
+          <div className="flex items-center gap-1 min-w-0">
+            <h6 className={NAME_CLASS} title={property.name}>
               {property.name}
-            </Typography>
+            </h6>
             {property.nightlyPrice > 0 && (
-              <Chip
+              <StatusChip
+                tokens={{ color: 'var(--body)', bg: 'var(--card)' }}
                 label={<><Money value={property.nightlyPrice} from="EUR" decimals={0} />/nuit</>}
-                size="small"
-                variant="outlined"
-                sx={{ ...styles.priceChip, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}
+                className="shrink-0 border border-solid border-[var(--line-2)] tabular-nums"
               />
             )}
-          </Box>
+          </div>
 
           {/* Adresse */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.25 }}>
-            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}><LocationOn size={14} strokeWidth={1.75} /></Box>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={styles.addressText}
+          <div className="flex items-center gap-0.5 mb-2">
+            <span className="inline-flex text-muted-foreground shrink-0"><LocationOn size={14} strokeWidth={1.75} /></span>
+            <span
+              className={ADDRESS_CLASS}
               title={`${property.address}, ${property.postalCode} ${property.city}, ${property.country}`}
             >
               {property.address}, {property.postalCode} {property.city}
-            </Typography>
-          </Box>
+            </span>
+          </div>
 
           {/* Bande de KPI opérationnels (.pr-stats) — occupation / ADR / revenu */}
-          <Box sx={styles.statsBand}>
+          <div className="flex border-t border-b border-solid border-[var(--line)] mb-[7.5px]">
             {kpiCells.map((metric) => (
-              <Box key={metric.label} sx={styles.statCell}>
-                <Typography sx={styles.statValue}>{metric.value}</Typography>
-                <Typography sx={styles.statLabel}>{metric.label}</Typography>
-              </Box>
+              <div key={metric.label} className="flex-1 py-[9px] text-center border-r border-solid border-[var(--line)] min-w-0 last:border-r-0">
+                <p className={STAT_VALUE_CLASS}>{metric.value}</p>
+                <p className={STAT_LABEL_CLASS}>{metric.label}</p>
+              </div>
             ))}
-          </Box>
+          </div>
 
           {/* .pr-foot — pied opérationnel : statut dynamique du logement
               (intervention en cours > check-out si occupé > disponible) */}
-          <Box sx={{ ...styles.footRow, minHeight: 18 }} onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-[5.25px] text-[11.5px] text-[var(--muted)] min-w-0 min-h-[18px]" onClick={(e) => e.stopPropagation()}>
             {ops && (
               <>
-                <Box component="span" sx={{ ...styles.footIcon, color: ops.color }}>{ops.icon}</Box>
-                <Box component="span" sx={styles.footStrong}>{ops.strong}</Box>
+                <span className="inline-flex shrink-0" style={{ color: ops.color }}>{ops.icon}</span>
+                <span className="text-[var(--body)] font-semibold">{ops.strong}</span>
                 {ops.rest && (
-                  <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                  <span className="overflow-hidden text-ellipsis whitespace-nowrap tabular-nums">
                     {ops.rest}
-                  </Box>
+                  </span>
                 )}
               </>
             )}
-          </Box>
+          </div>
         </CardContent>
 
         {/* ─── Zone actions ─── */}
-        <Box sx={styles.actionBar}>
+        <div className="px-[10.5px] pb-[7.5px] pt-0 flex gap-[4.5px]">
           <Button
-            fullWidth
-            size="small"
-            startIcon={<Visibility size={15} strokeWidth={1.75} />}
+            className="w-full shrink"
+            size="sm"
             onClick={(e) => { e.stopPropagation(); handleViewDetails(); }}
-            variant="outlined"
+            variant="outline"
           >
+            <Visibility size={15} strokeWidth={1.75} />
             Détails
           </Button>
           {canEdit && onEdit && (
             <Button
-              fullWidth
-              size="small"
-              startIcon={<Edit size={15} strokeWidth={1.75} />}
+              className="w-full shrink"
+              size="sm"
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              variant="contained"
             >
+              <Edit size={15} strokeWidth={1.75} />
               Modifier
             </Button>
           )}
-        </Box>
+        </div>
       </Card>
 
       {/* ─── Dialog des détails complets ─── */}
-      <Dialog
-        open={detailsOpen}
-        onClose={() => setDetailsOpen(false)}
-        maxWidth="md"
-        fullWidth
-        onClick={(e) => e.stopPropagation()}
-      >
-        <DialogTitle sx={{ pb: 1 }}>
-          <Box sx={styles.dialogTitleBox}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Box
-                sx={{
-                  ...styles.dialogIconBox,
-                  bgcolor: 'var(--accent-soft)',
-                }}
-              >
+      <Dialog open={detailsOpen} onOpenChange={(next) => { if (!next) setDetailsOpen(false); }}>
+        {/* La carte parente est cliquable : on arrete la propagation ICI, la modale
+            etant portalisee, un clic dedans ne doit pas rouvrir le detail. */}
+        <DialogContent
+          className="max-w-[900px] max-h-[85vh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <DialogHeader>
+            <div className="flex items-center gap-2 pe-8">
+              <div className="w-10 h-10 rounded-[11px] flex items-center justify-center bg-[var(--accent-soft)] shrink-0">
                 {getPropertyTypeIcon(property.propertyType, 22)}
-              </Box>
-              <Box>
-                <Typography variant="h6" component="h2" sx={{ lineHeight: 1.2 }}>
+              </div>
+              <div className="min-w-0">
+                <DialogTitle className="cn-text-h6 leading-[1.2]">
                   {property.name}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
+                </DialogTitle>
+                <span className="cn-text-caption text-muted-foreground">
                   {getPropertyTypeLabel(property.propertyType, t)} • {getPropertyStatusLabel(property.status, t)}
-                </Typography>
-              </Box>
-            </Box>
-            <IconButton onClick={() => setDetailsOpen(false)} size="small">
-              <Close size={18} strokeWidth={1.75} />
-            </IconButton>
-          </Box>
-        </DialogTitle>
+                </span>
+              </div>
+            </div>
+          </DialogHeader>
 
-        <DialogContent sx={{ pt: 1.5 }}>
-          <Grid container spacing={2}>
+          <div className="grid grid-cols-12 gap-3">
             {/* Adresse */}
-            <Grid item xs={12}>
-              <Typography sx={styles.dialogSectionTitle}>
+            <div className="col-span-12">
+              <p className={DIALOG_SECTION_TITLE_CLASS}>
                 Adresse
-              </Typography>
-              <Typography variant="body2">
+              </p>
+              <p className="cn-text-body2">
                 {property.address}, {property.postalCode} {property.city}, {property.country}
-              </Typography>
-            </Grid>
+              </p>
+            </div>
 
-            <Grid item xs={12}>
-              <Divider />
-            </Grid>
+            <div className="col-span-12">
+              <Separator />
+            </div>
 
             {/* Caractéristiques */}
-            <Grid item xs={12}>
-              <Typography sx={{ ...styles.dialogSectionTitle, mb: 1 }}>
+            <div className="col-span-12">
+              <p className={cn(DIALOG_SECTION_TITLE_CLASS, 'mb-[6px]')}>
                 Caractéristiques
-              </Typography>
-              <Box sx={styles.dialogCharacteristicsRow}>
+              </p>
+              <div className="flex gap-3 flex-wrap">
                 {[
                   { icon: <BedIcon size={18} strokeWidth={1.75} />, value: property.bedrooms, label: 'Chambres' },
                   { icon: <BathroomIcon size={18} strokeWidth={1.75} />, value: property.bathrooms, label: 'Salles de bain' },
                   { icon: <SquareFoot size={18} strokeWidth={1.75} />, value: `${property.surfaceArea} m²`, label: 'Surface' },
                   { icon: <PersonIcon size={18} strokeWidth={1.75} />, value: property.maxGuests, label: 'Voyageurs max' },
                 ].map((item) => (
-                  <Box
+                  <div
                     key={item.label}
-                    sx={styles.dialogMetricBox}
+                    className="flex items-center gap-[6px] bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[11px] px-[9px] py-[6px] min-w-[120px]"
                   >
-                    <Box sx={{ color: 'var(--accent)', display: 'flex' }}>{item.icon}</Box>
-                    <Box>
-                      <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>{item.value}</Typography>
-                      <Typography sx={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--faint)' }}>{item.label}</Typography>
-                    </Box>
-                  </Box>
+                    <div className="text-[var(--accent)] flex">{item.icon}</div>
+                    <div>
+                      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] tabular-nums">{item.value}</p>
+                      <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.04em] uppercase text-[var(--faint)]">{item.label}</p>
+                    </div>
+                  </div>
                 ))}
-              </Box>
-            </Grid>
+              </div>
+            </div>
 
-            <Grid item xs={12}>
-              <Divider />
-            </Grid>
+            <div className="col-span-12">
+              <Separator />
+            </div>
 
             {/* Estimation ménage + prix nuit */}
-            <Grid item xs={12} md={6}>
-              <Typography sx={styles.dialogSectionTitle}>
+            <div className="col-span-12 min-[900px]:col-span-6">
+              <p className={DIALOG_SECTION_TITLE_CLASS}>
                 {t('properties.cleaningEstimate')}
-              </Typography>
+              </p>
               {cleaningPrice != null ? (
-                <Typography sx={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 600, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-.01em' }}>
-                  <Money value={cleaningPrice} from="EUR" decimals={0} /> <Typography component="span" variant="caption" color="text.secondary">{t('properties.priceEstimation.perIntervention')}</Typography>
-                </Typography>
+                <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[22px] font-semibold text-[var(--ink)] tabular-nums tracking-[-.01em]">
+                  <Money value={cleaningPrice} from="EUR" decimals={0} /> <span className="cn-text-caption text-muted-foreground">{t('properties.priceEstimation.perIntervention')}</span>
+                </p>
               ) : (
-                <Typography variant="body2" color="text.secondary">—</Typography>
+                <p className="cn-text-body2 text-muted-foreground">—</p>
               )}
               {property.nightlyPrice > 0 && (
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                <p className="cn-text-body2 text-muted-foreground mt-0.5">
                   <Money value={property.nightlyPrice} from="EUR" decimals={0} /> / {t('properties.perNight')}
-                </Typography>
+                </p>
               )}
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Typography sx={styles.dialogSectionTitle}>
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
+              <p className={DIALOG_SECTION_TITLE_CLASS}>
                 Nettoyage
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><BroomFill size={18} /></Box>
-                <Typography variant="body2">{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Typography>
-              </Box>
-            </Grid>
+              </p>
+              <div className="flex items-center gap-1">
+                <span className="inline-flex text-muted-foreground"><BroomFill size={18} /></span>
+                <p className="cn-text-body2">{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</p>
+              </div>
+            </div>
 
             {/* Commodités */}
             {property.amenities && property.amenities.length > 0 && (
               <>
-                <Grid item xs={12}>
-                  <Divider />
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography sx={{ ...styles.dialogSectionTitle, mb: 1 }}>
+                <div className="col-span-12">
+                  <Separator />
+                </div>
+                <div className="col-span-12">
+                  <p className={cn(DIALOG_SECTION_TITLE_CLASS, 'mb-[6px]')}>
                     Commodités
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                  </p>
+                  <div className="flex flex-wrap gap-1">
                     {property.amenities.map((amenity) => (
-                      <Chip
+                      <StatusChip
                         key={amenity}
+                        tokens={FIELD_TOKENS}
                         label={t(`properties.amenities.items.${amenity}`)}
-                        size="small"
-                        sx={{ ...FIELD_CHIP_SX, '& .MuiChip-label': { px: 1 } }}
+                        className={FIELD_CHIP_CLASS}
                       />
                     ))}
-                  </Box>
-                </Grid>
+                  </div>
+                </div>
               </>
             )}
 
             {/* Contact */}
-            <Grid item xs={12}>
-              <Divider />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Typography sx={styles.dialogSectionTitle}>
+            <div className="col-span-12">
+              <Separator />
+            </div>
+            <div className="col-span-12 min-[900px]:col-span-6">
+              <p className={DIALOG_SECTION_TITLE_CLASS}>
                 Contact
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 0.25 }}>
+              </p>
+              <p className="cn-text-body2 mb-0.5">
                 {property.contactPhone || 'Téléphone non renseigné'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+              </p>
+              <p className="cn-text-body2 text-muted-foreground">
                 {property.contactEmail || 'Email non renseigné'}
-              </Typography>
-            </Grid>
+              </p>
+            </div>
 
             {/* Description */}
             {property.description && (
-              <Grid item xs={12} md={6}>
-                <Typography sx={styles.dialogSectionTitle}>
+              <div className="col-span-12 min-[900px]:col-span-6">
+                <p className={DIALOG_SECTION_TITLE_CLASS}>
                   Description
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={styles.dialogDescription}
-                >
+                </p>
+                <p className={DIALOG_DESCRIPTION_CLASS}>
                   {property.description}
-                </Typography>
-              </Grid>
+                </p>
+              </div>
             )}
-          </Grid>
-        </DialogContent>
-
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          {canDelete && onDelete && (
-            <Button
-              onClick={onDelete}
-              color="error"
-              variant="outlined"
-              size="small"
-              startIcon={<Delete size={16} strokeWidth={1.75} />}
-            >
-              Supprimer
+          </div>
+          <DialogFooter>
+            {/* `me-auto` remplace l'ancien ressort `flex-1` : DialogFooter empile en
+                colonne inversee sous 640px, ou un div vide creerait une ligne morte. */}
+            {canDelete && onDelete && (
+              <Button onClick={onDelete} variant="destructive" size="sm" className="sm:me-auto">
+                <Delete size={16} strokeWidth={1.75} />
+                Supprimer
+              </Button>
+            )}
+            <Button onClick={() => setDetailsOpen(false)} size="sm" variant="outline">
+              Fermer
             </Button>
-          )}
-          <Box sx={{ flex: 1 }} />
-          <Button onClick={() => setDetailsOpen(false)} size="small" variant="outlined">
-            Fermer
-          </Button>
-        </DialogActions>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </>
   );

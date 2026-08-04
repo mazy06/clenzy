@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import StatusChip from './StatusChip';
 import {
-  Box,
+  Alert as UiAlert,
+  AlertAction,
+  AlertDescription,
+  Button,
   Card,
   CardContent,
-  Typography,
-  Grid,
-  Chip,
-  CircularProgress,
-  Alert,
-  Button,
-  IconButton,
+  Progress,
+  Spinner,
   Tooltip,
-  LinearProgress,
-} from '@mui/material';
+  TooltipContent,
+  TooltipTrigger,
+} from './ui';
+import { TriangleAlert } from 'lucide-react';
+import { cn } from '../utils/cn';
 import {
   TrendingUp,
   Refresh,
@@ -26,11 +28,6 @@ import type { KeycloakMetricsResponse, TestCoverageMetrics } from '../services/a
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 
 /** Chip -soft : texte couleur + fond -soft (pilule/typo via theme global MuiChip) */
-const chipSx = (fg: string, bg: string) => ({
-  color: fg,
-  backgroundColor: bg,
-  '& .MuiChip-icon': { color: fg },
-});
 
 const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
 const INFO_TOKEN = { fg: 'var(--info)', bg: 'var(--info-soft)' };
@@ -43,11 +40,17 @@ const SEM_TOKEN: Record<'success' | 'warning' | 'error', { fg: string; bg: strin
 };
 
 /** Grosse valeur de carte : display + tabular-nums (pattern StatTile) */
-const displayValueSx = (color: string) => ({
-  fontFamily: 'var(--font-display)',
-  fontVariantNumeric: 'tabular-nums',
-  color,
-});
+const DISPLAY_VALUE_CLASS = 'font-[family-name:var(--font-display)] tabular-nums';
+
+/**
+ * Barre de couverture : la teinte depend du niveau atteint. Les trois branches sont
+ * ecrites en litteral — une classe Tailwind ne peut pas naitre d'une variable.
+ */
+const COVERAGE_BAR_CLASS: Record<'success' | 'warning' | 'error', string> = {
+  success: 'h-1.5 [&>[data-slot=progress-indicator]]:bg-[var(--ok)]',
+  warning: 'h-1.5 [&>[data-slot=progress-indicator]]:bg-[var(--warn)]',
+  error: 'h-1.5 [&>[data-slot=progress-indicator]]:bg-[var(--err)]',
+};
 
 const getStatusColor = (value: number, threshold: number) => {
   if (value <= threshold * 0.7) return 'success';
@@ -106,10 +109,17 @@ const KeycloakMetrics: React.FC = () => {
   // Register page-header actions and last-update timestamp.
   useEffect(() => {
     setHeaderActions(
-      <Tooltip title="Actualiser les métriques">
-        <IconButton onClick={handleRefresh} size="small">
-          <Refresh size={20} strokeWidth={1.75} />
-        </IconButton>
+      <Tooltip>
+        {/* Radix pose sa ref d'ancrage sur l'enfant : un <span> hote, le Button
+            du kit etant une fonction qui ne transmet pas de ref (React 18). */}
+        <TooltipTrigger asChild>
+          <span className="inline-flex">
+            <Button variant="ghost" size="icon-sm" onClick={handleRefresh} aria-label="Actualiser les métriques">
+              <Refresh size={20} strokeWidth={1.75} />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>Actualiser les métriques</TooltipContent>
       </Tooltip>,
     );
     return () => setHeaderActions(null);
@@ -121,394 +131,354 @@ const KeycloakMetrics: React.FC = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center items-center min-h-[200px]">
+        <Spinner className="size-10" />
+      </div>
     );
   }
 
+  // `outline` et non `ghost` pour le bouton d'action : pose sur le fond teinte de
+  // l'alerte, un bouton sans cadre disparaitrait.
   if (error) {
     return (
-      <Alert severity="error" action={
-        <Button color="inherit" size="small" onClick={handleRefresh}>
-          Réessayer
-        </Button>
-      }>
-        {error}
-      </Alert>
+      <UiAlert variant="destructive">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+        <AlertAction>
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
+            Réessayer
+          </Button>
+        </AlertAction>
+      </UiAlert>
     );
   }
 
   if (!metrics) {
     return (
-      <Alert severity="warning">
-        Aucune donnée de métriques disponible
-      </Alert>
+      <UiAlert variant="warning">
+        <TriangleAlert />
+        <AlertDescription>Aucune donnée de métriques disponible</AlertDescription>
+      </UiAlert>
     );
   }
 
   return (
-    <Box>
-      <Grid container spacing={3}>
+    <div>
+      <div className="grid grid-cols-12 gap-[18px]">
         {/* Utilisateurs */}
-        <Grid item xs={12} md={6}>
-          <Card variant="outlined">
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'var(--accent)' }}><Group size={20} strokeWidth={1.75} /></Box>
+              <h6 className="cn-text-h6 mb-[0.35em] flex items-center">
+                <span className="inline-flex me-1.5 text-[var(--accent)]"><Group size={20} strokeWidth={1.75} /></span>
                 Utilisateurs
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Box textAlign="center">
-                    <Typography variant="h4" sx={displayValueSx('var(--ink)')}>
+              </h6>
+              <div className="grid grid-cols-12 gap-3">
+                <div className="col-span-6">
+                  <div className="text-center">
+                    <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS, 'text-[var(--ink)]')}>
                       {metrics.users.total}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    </h4>
+                    <p className="cn-text-body2 text-muted-foreground">
                       Total
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6}>
-                  <Box textAlign="center">
-                    <Typography variant="h4" sx={displayValueSx('var(--ok)')}>
+                    </p>
+                  </div>
+                </div>
+                <div className="col-span-6">
+                  <div className="text-center">
+                    <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS, 'text-[var(--ok)]')}>
                       {metrics.users.active}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    </h4>
+                    <p className="cn-text-body2 text-muted-foreground">
                       Actifs
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={12}>
-                  <Box display="flex" gap={1} flexWrap="wrap">
-                    <Chip
-                      label={`${metrics.users.newThisWeek} nouveaux`}
-                      size="small"
-                      icon={<TrendingUp size={16} strokeWidth={1.75} />}
-                      sx={chipSx(INFO_TOKEN.fg, INFO_TOKEN.bg)}
-                    />
-                    <Chip
-                      label={`${metrics.users.inactive} inactifs`}
-                      size="small"
-                      sx={chipSx(NEUTRAL_TOKEN.fg, NEUTRAL_TOKEN.bg)}
-                    />
-                  </Box>
-                </Grid>
-              </Grid>
+                    </p>
+                  </div>
+                </div>
+                <div className="col-span-12">
+                  <div className="flex gap-1.5 flex-wrap">
+                    <StatusChip tokens={{ color: INFO_TOKEN.fg, bg: INFO_TOKEN.bg }} label={`${metrics.users.newThisWeek} nouveaux`} icon={<TrendingUp size={16} strokeWidth={1.75} />} />
+                    <StatusChip tokens={{ color: NEUTRAL_TOKEN.fg, bg: NEUTRAL_TOKEN.bg }} label={`${metrics.users.inactive} inactifs`} />
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Sessions / Tokens */}
-        <Grid item xs={12} md={6}>
-          <Card variant="outlined">
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'var(--accent)' }}><Wifi size={20} strokeWidth={1.75} /></Box>
+              <h6 className="cn-text-h6 mb-[0.35em] flex items-center">
+                <span className="inline-flex me-1.5 text-[var(--accent)]"><Wifi size={20} strokeWidth={1.75} /></span>
                 Tokens JWT
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Box textAlign="center">
-                    <Typography variant="h4" sx={displayValueSx('var(--ink)')}>
+              </h6>
+              <div className="grid grid-cols-12 gap-3">
+                <div className="col-span-6">
+                  <div className="text-center">
+                    <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS, 'text-[var(--ink)]')}>
                       {metrics.sessions.totalTokens}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    </h4>
+                    <p className="cn-text-body2 text-muted-foreground">
                       Total traités
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6}>
-                  <Box textAlign="center">
-                    <Typography variant="h4" sx={displayValueSx('var(--ok)')}>
+                    </p>
+                  </div>
+                </div>
+                <div className="col-span-6">
+                  <div className="text-center">
+                    <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS, 'text-[var(--ok)]')}>
                       {metrics.sessions.validTokens}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    </h4>
+                    <p className="cn-text-body2 text-muted-foreground">
                       Valides
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={12}>
-                  <Box display="flex" gap={1} flexWrap="wrap">
-                    <Chip
-                      label={`${metrics.sessions.cacheHits} cache hits`}
-                      size="small"
-                      sx={chipSx(INFO_TOKEN.fg, INFO_TOKEN.bg)}
-                    />
-                    <Chip
-                      label={`${metrics.sessions.revokedTokens} révoqués`}
-                      size="small"
-                      sx={chipSx(NEUTRAL_TOKEN.fg, NEUTRAL_TOKEN.bg)}
-                    />
-                  </Box>
-                </Grid>
-              </Grid>
+                    </p>
+                  </div>
+                </div>
+                <div className="col-span-12">
+                  <div className="flex gap-1.5 flex-wrap">
+                    <StatusChip tokens={{ color: INFO_TOKEN.fg, bg: INFO_TOKEN.bg }} label={`${metrics.sessions.cacheHits} cache hits`} />
+                    <StatusChip tokens={{ color: NEUTRAL_TOKEN.fg, bg: NEUTRAL_TOKEN.bg }} label={`${metrics.sessions.revokedTokens} révoqués`} />
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Performance */}
-        <Grid item xs={12} md={6}>
-          <Card variant="outlined">
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'var(--accent)' }}><TrendingUp size={20} strokeWidth={1.75} /></Box>
+              <h6 className="cn-text-h6 mb-[0.35em] flex items-center">
+                <span className="inline-flex me-1.5 text-[var(--accent)]"><TrendingUp size={20} strokeWidth={1.75} /></span>
                 Performance API
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Box textAlign="center">
-                    <Typography variant="h6" sx={displayValueSx(SEM_TOKEN[getPerformanceColor(metrics.performance.avgResponseTimeMs, true)].fg)}>
+              </h6>
+              <div className="grid grid-cols-12 gap-3">
+                <div className="col-span-6">
+                  <div className="text-center">
+                    {/* Couleur calculee a l'execution : style inline, une classe Tailwind ne peut pas naitre d'une variable */}
+                    <h6 className={cn('cn-text-h6', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getPerformanceColor(metrics.performance.avgResponseTimeMs, true)].fg }}>
                       {metrics.performance.avgResponseTimeMs}ms
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    </h6>
+                    <p className="cn-text-body2 text-muted-foreground">
                       Temps de réponse moy.
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6}>
-                  <Box textAlign="center">
-                    <Typography variant="h6" sx={displayValueSx(SEM_TOKEN[getPerformanceColor(metrics.performance.uptimePercent)].fg)}>
+                    </p>
+                  </div>
+                </div>
+                <div className="col-span-6">
+                  <div className="text-center">
+                    <h6 className={cn('cn-text-h6', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getPerformanceColor(metrics.performance.uptimePercent)].fg }}>
                       {metrics.performance.uptimePercent}%
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    </h6>
+                    <p className="cn-text-body2 text-muted-foreground">
                       Uptime
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={12}>
-                  <Box display="flex" gap={1} flexWrap="wrap">
-                    <Chip
-                      label={`${metrics.performance.totalRequests} requêtes`}
-                      size="small"
-                      sx={chipSx(INFO_TOKEN.fg, INFO_TOKEN.bg)}
-                    />
-                    <Chip
-                      label={`${metrics.performance.errorRate}% erreurs`}
-                      size="small"
-                      sx={chipSx(SEM_TOKEN[getPerformanceColor(100 - metrics.performance.errorRate)].fg, SEM_TOKEN[getPerformanceColor(100 - metrics.performance.errorRate)].bg)}
-                    />
-                  </Box>
-                </Grid>
-              </Grid>
+                    </p>
+                  </div>
+                </div>
+                <div className="col-span-12">
+                  <div className="flex gap-1.5 flex-wrap">
+                    <StatusChip tokens={{ color: INFO_TOKEN.fg, bg: INFO_TOKEN.bg }} label={`${metrics.performance.totalRequests} requêtes`} />
+                    <StatusChip tokens={{ color: SEM_TOKEN[getPerformanceColor(100 - metrics.performance.errorRate)].fg, bg: SEM_TOKEN[getPerformanceColor(100 - metrics.performance.errorRate)].bg }} label={`${metrics.performance.errorRate}% erreurs`} />
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Sécurité */}
-        <Grid item xs={12} md={6}>
-          <Card variant="outlined">
+        <div className="col-span-12 min-[900px]:col-span-6">
+          <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'var(--accent)' }}><Security size={20} strokeWidth={1.75} /></Box>
+              <h6 className="cn-text-h6 mb-[0.35em] flex items-center">
+                <span className="inline-flex me-1.5 text-[var(--accent)]"><Security size={20} strokeWidth={1.75} /></span>
                 Sécurité (7 derniers jours)
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Box textAlign="center">
-                    <Typography variant="h6" sx={displayValueSx(SEM_TOKEN[getStatusColor(metrics.security.failedLogins, 20)].fg)}>
+              </h6>
+              <div className="grid grid-cols-12 gap-3">
+                <div className="col-span-6">
+                  <div className="text-center">
+                    <h6 className={cn('cn-text-h6', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getStatusColor(metrics.security.failedLogins, 20)].fg }}>
                       {metrics.security.failedLogins}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    </h6>
+                    <p className="cn-text-body2 text-muted-foreground">
                       Échecs de connexion
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6}>
-                  <Box textAlign="center">
-                    <Typography variant="h6" sx={displayValueSx(SEM_TOKEN[getStatusColor(metrics.security.permissionDenied, 10)].fg)}>
+                    </p>
+                  </div>
+                </div>
+                <div className="col-span-6">
+                  <div className="text-center">
+                    <h6 className={cn('cn-text-h6', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getStatusColor(metrics.security.permissionDenied, 10)].fg }}>
                       {metrics.security.permissionDenied}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    </h6>
+                    <p className="cn-text-body2 text-muted-foreground">
                       Accès refusés
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={12}>
-                  <Box display="flex" gap={1} flexWrap="wrap">
-                    <Chip
-                      label={`${metrics.security.suspiciousActivity} activité suspecte`}
-                      size="small"
-                      sx={chipSx(SEM_TOKEN[metrics.security.suspiciousActivity > 0 ? 'warning' : 'success'].fg, SEM_TOKEN[metrics.security.suspiciousActivity > 0 ? 'warning' : 'success'].bg)}
-                    />
+                    </p>
+                  </div>
+                </div>
+                <div className="col-span-12">
+                  <div className="flex gap-1.5 flex-wrap">
+                    <StatusChip tokens={{ color: SEM_TOKEN[metrics.security.suspiciousActivity > 0 ? 'warning' : 'success'].fg, bg: SEM_TOKEN[metrics.security.suspiciousActivity > 0 ? 'warning' : 'success'].bg }} label={`${metrics.security.suspiciousActivity} activité suspecte`} />
                     {metrics.security.lastIncident && (
-                      <Chip
-                        label={`Dernier incident: ${new Date(metrics.security.lastIncident).toLocaleString()}`}
-                        size="small"
-                        sx={chipSx(NEUTRAL_TOKEN.fg, NEUTRAL_TOKEN.bg)}
-                      />
+                      <StatusChip tokens={{ color: NEUTRAL_TOKEN.fg, bg: NEUTRAL_TOKEN.bg }} label={`Dernier incident: ${new Date(metrics.security.lastIncident).toLocaleString()}`} />
                     )}
-                  </Box>
-                </Grid>
-              </Grid>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        </Grid>
+        </div>
         {/* Couverture de tests */}
         {coverage && coverage.available && (
-          <Grid item xs={12}>
-            <Card variant="outlined">
+          <div className="col-span-12">
+            <Card>
               <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'var(--accent)' }}><BugReport size={20} strokeWidth={1.75} /></Box>
+                <h6 className="cn-text-h6 mb-[0.35em] flex items-center">
+                  <span className="inline-flex me-1.5 text-[var(--accent)]"><BugReport size={20} strokeWidth={1.75} /></span>
                   Couverture de Tests
                   {coverage.reportDate && (
-                    <Chip
-                      label={`Rapport du ${new Date(coverage.reportDate).toLocaleDateString()}`}
-                      size="small"
-                      sx={{ ...chipSx(NEUTRAL_TOKEN.fg, NEUTRAL_TOKEN.bg), ml: 2 }}
-                    />
+                    <StatusChip tokens={{ color: NEUTRAL_TOKEN.fg, bg: NEUTRAL_TOKEN.bg }} label={`Rapport du ${new Date(coverage.reportDate).toLocaleDateString()}`} className="ms-3" />
                   )}
-                </Typography>
-                <Grid container spacing={3}>
+                </h6>
+                <div className="grid grid-cols-12 gap-[18px]">
                   {/* Lignes */}
                   {coverage.linePercent != null && (
-                    <Grid item xs={12} sm={6} md={2}>
-                      <Box textAlign="center">
-                        <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.linePercent)].fg)}>
+                    <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-2">
+                      <div className="text-center">
+                        <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getCoverageColor(coverage.linePercent)].fg }}>
                           {coverage.linePercent}%
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                        </h4>
+                        <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                           Lignes
-                        </Typography>
-                        <LinearProgress
-                          variant="determinate"
+                        </p>
+                        <Progress
                           value={Math.min(coverage.linePercent, 100)}
-                          color={getCoverageColor(coverage.linePercent)}
-                          sx={{ height: 6, borderRadius: 3 }}
+                          className={COVERAGE_BAR_CLASS[getCoverageColor(coverage.linePercent)]}
                         />
-                        <Typography variant="caption" color="text.secondary">
+                        <span className="cn-text-caption text-muted-foreground">
                           {coverage.lineCovered}/{coverage.lineTotal}
-                        </Typography>
-                      </Box>
-                    </Grid>
+                        </span>
+                      </div>
+                    </div>
                   )}
                   {/* Branches */}
                   {coverage.branchPercent != null && (
-                    <Grid item xs={12} sm={6} md={2}>
-                      <Box textAlign="center">
-                        <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.branchPercent)].fg)}>
+                    <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-2">
+                      <div className="text-center">
+                        <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getCoverageColor(coverage.branchPercent)].fg }}>
                           {coverage.branchPercent}%
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                        </h4>
+                        <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                           Branches
-                        </Typography>
-                        <LinearProgress
-                          variant="determinate"
+                        </p>
+                        <Progress
                           value={Math.min(coverage.branchPercent, 100)}
-                          color={getCoverageColor(coverage.branchPercent)}
-                          sx={{ height: 6, borderRadius: 3 }}
+                          className={COVERAGE_BAR_CLASS[getCoverageColor(coverage.branchPercent)]}
                         />
-                        <Typography variant="caption" color="text.secondary">
+                        <span className="cn-text-caption text-muted-foreground">
                           {coverage.branchCovered}/{coverage.branchTotal}
-                        </Typography>
-                      </Box>
-                    </Grid>
+                        </span>
+                      </div>
+                    </div>
                   )}
                   {/* Instructions */}
                   {coverage.instructionPercent != null && (
-                    <Grid item xs={12} sm={6} md={2}>
-                      <Box textAlign="center">
-                        <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.instructionPercent)].fg)}>
+                    <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-2">
+                      <div className="text-center">
+                        <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getCoverageColor(coverage.instructionPercent)].fg }}>
                           {coverage.instructionPercent}%
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                        </h4>
+                        <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                           Instructions
-                        </Typography>
-                        <LinearProgress
-                          variant="determinate"
+                        </p>
+                        <Progress
                           value={Math.min(coverage.instructionPercent, 100)}
-                          color={getCoverageColor(coverage.instructionPercent)}
-                          sx={{ height: 6, borderRadius: 3 }}
+                          className={COVERAGE_BAR_CLASS[getCoverageColor(coverage.instructionPercent)]}
                         />
-                        <Typography variant="caption" color="text.secondary">
+                        <span className="cn-text-caption text-muted-foreground">
                           {coverage.instructionCovered}/{coverage.instructionTotal}
-                        </Typography>
-                      </Box>
-                    </Grid>
+                        </span>
+                      </div>
+                    </div>
                   )}
                   {/* Méthodes */}
                   {coverage.methodPercent != null && (
-                    <Grid item xs={12} sm={6} md={2}>
-                      <Box textAlign="center">
-                        <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.methodPercent)].fg)}>
+                    <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-2">
+                      <div className="text-center">
+                        <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getCoverageColor(coverage.methodPercent)].fg }}>
                           {coverage.methodPercent}%
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                        </h4>
+                        <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                           Méthodes
-                        </Typography>
-                        <LinearProgress
-                          variant="determinate"
+                        </p>
+                        <Progress
                           value={Math.min(coverage.methodPercent, 100)}
-                          color={getCoverageColor(coverage.methodPercent)}
-                          sx={{ height: 6, borderRadius: 3 }}
+                          className={COVERAGE_BAR_CLASS[getCoverageColor(coverage.methodPercent)]}
                         />
-                        <Typography variant="caption" color="text.secondary">
+                        <span className="cn-text-caption text-muted-foreground">
                           {coverage.methodCovered}/{coverage.methodTotal}
-                        </Typography>
-                      </Box>
-                    </Grid>
+                        </span>
+                      </div>
+                    </div>
                   )}
                   {/* Classes */}
                   {coverage.classPercent != null && (
-                    <Grid item xs={12} sm={6} md={2}>
-                      <Box textAlign="center">
-                        <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.classPercent)].fg)}>
+                    <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-2">
+                      <div className="text-center">
+                        <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getCoverageColor(coverage.classPercent)].fg }}>
                           {coverage.classPercent}%
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                        </h4>
+                        <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                           Classes
-                        </Typography>
-                        <LinearProgress
-                          variant="determinate"
+                        </p>
+                        <Progress
                           value={Math.min(coverage.classPercent, 100)}
-                          color={getCoverageColor(coverage.classPercent)}
-                          sx={{ height: 6, borderRadius: 3 }}
+                          className={COVERAGE_BAR_CLASS[getCoverageColor(coverage.classPercent)]}
                         />
-                        <Typography variant="caption" color="text.secondary">
+                        <span className="cn-text-caption text-muted-foreground">
                           {coverage.classCovered}/{coverage.classTotal}
-                        </Typography>
-                      </Box>
-                    </Grid>
+                        </span>
+                      </div>
+                    </div>
                   )}
                   {/* Complexité */}
                   {coverage.complexityPercent != null && (
-                    <Grid item xs={12} sm={6} md={2}>
-                      <Box textAlign="center">
-                        <Typography variant="h4" sx={displayValueSx(SEM_TOKEN[getCoverageColor(coverage.complexityPercent)].fg)}>
+                    <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-2">
+                      <div className="text-center">
+                        <h4 className={cn('cn-text-h4', DISPLAY_VALUE_CLASS)} style={{ color: SEM_TOKEN[getCoverageColor(coverage.complexityPercent)].fg }}>
                           {coverage.complexityPercent}%
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                        </h4>
+                        <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
                           Complexité
-                        </Typography>
-                        <LinearProgress
-                          variant="determinate"
+                        </p>
+                        <Progress
                           value={Math.min(coverage.complexityPercent, 100)}
-                          color={getCoverageColor(coverage.complexityPercent)}
-                          sx={{ height: 6, borderRadius: 3 }}
+                          className={COVERAGE_BAR_CLASS[getCoverageColor(coverage.complexityPercent)]}
                         />
-                        <Typography variant="caption" color="text.secondary">
+                        <span className="cn-text-caption text-muted-foreground">
                           {coverage.complexityCovered}/{coverage.complexityTotal}
-                        </Typography>
-                      </Box>
-                    </Grid>
+                        </span>
+                      </div>
+                    </div>
                   )}
-                </Grid>
+                </div>
               </CardContent>
             </Card>
-          </Grid>
+          </div>
         )}
 
         {/* Message si couverture non disponible */}
         {coverage && !coverage.available && (
-          <Grid item xs={12}>
-            <Alert severity="info" icon={<BugReport size={20} strokeWidth={1.75} />}>
-              {coverage.message || 'Rapport de couverture non disponible. Lancez les tests pour le générer.'}
-            </Alert>
-          </Grid>
+          <div className="col-span-12">
+            <UiAlert variant="info">
+              <BugReport size={20} strokeWidth={1.75} />
+              <AlertDescription>
+                {coverage.message || 'Rapport de couverture non disponible. Lancez les tests pour le générer.'}
+              </AlertDescription>
+            </UiAlert>
+          </div>
         )}
-      </Grid>
-    </Box>
+      </div>
+    </div>
   );
 };
 

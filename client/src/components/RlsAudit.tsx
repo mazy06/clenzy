@@ -1,24 +1,24 @@
 import React from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
+  AlertDescription,
   AlertTitle,
-  Box,
+  Badge,
   Button,
   Card,
   CardContent,
-  Chip,
-  Grid,
   Table,
+  TableHeader,
   TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
   TableRow,
+  TableHead,
+  TableCell,
   Tooltip,
-  Typography,
-} from '@mui/material';
-import { ShieldCheck, ShieldAlert, Layers, Clock, Check } from 'lucide-react';
+  TooltipContent,
+  TooltipTrigger,
+} from './ui';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ShieldCheck, ShieldAlert, Layers, Clock, Check, Info, TriangleAlert, CircleAlert } from 'lucide-react';
 import { rlsAuditApi } from '../services/api/rlsAuditApi';
 import type { RlsAuditFinding } from '../services/api/rlsAuditApi';
 import StatTile from './StatTile';
@@ -70,27 +70,36 @@ const RlsAudit: React.FC = () => {
     const status = (error as { status?: number }).status;
     if (status === 404) {
       return (
-        <Alert severity="warning">
+        <Alert variant="warning">
+          <TriangleAlert />
           <AlertTitle>Backend non a jour</AlertTitle>
-          Cette instance ne connait pas encore l'endpoint <code>/api/admin/rls-audit</code>.
-          Le front a ete recharge a chaud, mais le serveur tourne un build anterieur —
-          le reconstruire et le relancer.
+          <AlertDescription>
+            Cette instance ne connait pas encore l'endpoint <code>/api/admin/rls-audit</code>.
+            Le front a ete recharge a chaud, mais le serveur tourne un build anterieur —
+            le reconstruire et le relancer.
+          </AlertDescription>
         </Alert>
       );
     }
     if (status === 403) {
       return (
-        <Alert severity="warning">
+        <Alert variant="warning">
+          <TriangleAlert />
           <AlertTitle>Acces reserve</AlertTitle>
-          Cet inventaire designe du code et sert une decision d'infrastructure : il est
-          reserve au personnel plateforme (SUPER_ADMIN ou SUPER_MANAGER).
+          <AlertDescription>
+            Cet inventaire designe du code et sert une decision d'infrastructure : il est
+            reserve au personnel plateforme (SUPER_ADMIN ou SUPER_MANAGER).
+          </AlertDescription>
         </Alert>
       );
     }
     return (
-      <Alert severity="error">
+      <Alert variant="destructive">
+        <CircleAlert />
         <AlertTitle>Inventaire indisponible</AlertTitle>
-        {(error as { message?: string }).message ?? 'Erreur inattendue lors du chargement.'}
+        <AlertDescription>
+          {(error as { message?: string }).message ?? 'Erreur inattendue lors du chargement.'}
+        </AlertDescription>
       </Alert>
     );
   }
@@ -103,57 +112,72 @@ const RlsAudit: React.FC = () => {
     : null;
 
   return (
-    <Box>
+    <div>
       {/* Le drapeau le plus important de l'ecran : sans lui, on lirait un inventaire
           trompeur comme un vrai constat. */}
       {data && data.auditActif && !data.mesureExploitable && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert variant="destructive" className="mb-[18px]">
+          <CircleAlert />
           <AlertTitle>Cet inventaire est sans valeur</AlertTitle>
-          L'instrumentation tourne, mais l'aspect qui pose le contexte tenant est inactif
-          (<code>clenzy.security.rls.enabled=false</code>). Toutes les requetes sont donc
-          signalees, pas seulement les chemins a risque — et un inventaire vide ne
-          signifierait rien non plus. Poser ce parametre a <code>true</code> : sans risque
-          tant que la RLS n'est pas appliquee en base, puisque aucune politique ne lit ces
-          valeurs.
+          <AlertDescription>
+            L'instrumentation tourne, mais l'aspect qui pose le contexte tenant est inactif
+            (<code>clenzy.security.rls.enabled=false</code>). Toutes les requetes sont donc
+            signalees, pas seulement les chemins a risque — et un inventaire vide ne
+            signifierait rien non plus. Poser ce parametre a <code>true</code> : sans risque
+            tant que la RLS n'est pas appliquee en base, puisque aucune politique ne lit ces
+            valeurs.
+          </AlertDescription>
         </Alert>
       )}
 
       {data && !data.auditActif && (
-        <Alert severity="info" sx={{ mb: 3 }}>
+        <Alert variant="info" className="mb-[18px]">
+          <Info />
           <AlertTitle>Mesure a l'arret</AlertTitle>
-          L'instrumentation est desactivee. Les chemins ci-dessous datent de la derniere
-          campagne ; aucun nouveau constat n'est enregistre.
+          <AlertDescription>
+            L'instrumentation est desactivee. Les chemins ci-dessous datent de la derniere
+            campagne ; aucun nouveau constat n'est enregistre.
+          </AlertDescription>
         </Alert>
       )}
 
       {data?.sature && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
+        <Alert variant="warning" className="mb-[18px]">
+          <TriangleAlert />
           <AlertTitle>Inventaire incomplet</AlertTitle>
-          Le tampon a atteint son plafond : de nouveaux chemins ne sont plus enregistres.
-          Traiter ceux deja remontes avant de poursuivre la mesure — d'ici la, l'absence de
-          nouveaux constats ne prouve rien.
+          <AlertDescription>
+            Le tampon a atteint son plafond : de nouveaux chemins ne sont plus enregistres.
+            Traiter ceux deja remontes avant de poursuivre la mesure — d'ici la, l'absence de
+            nouveaux constats ne prouve rien.
+          </AlertDescription>
         </Alert>
       )}
 
       {data?.rlsDejaActive && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
+        <Alert variant="warning" className="mb-[18px]">
+          <TriangleAlert />
           <AlertTitle>La RLS est deja active</AlertTitle>
-          Les chemins listes ci-dessous ne renvoient plus zero ligne « en cas d'activation » :
-          ils le font <strong>deja</strong>. A traiter en priorite.
+          <AlertDescription>
+            Les chemins listes ci-dessous ne renvoient plus zero ligne « en cas d'activation » :
+            ils le font <strong>deja</strong>. A traiter en priorite.
+          </AlertDescription>
         </Alert>
       )}
 
       {enAttente > 0 && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
+        <Alert variant="warning" className="mb-[18px]">
+          <TriangleAlert />
           <AlertTitle>{enAttente} constat(s) en attente d'ecriture</AlertTitle>
-          Des chemins viennent d'etre detectes mais ne sont pas encore enregistres — le
-          vidage a lieu toutes les 5 minutes. Ils apparaitront ci-dessous au prochain
-          passage. D'ici la, ne pas lire cet ecran comme « aucun chemin a traiter ».
+          <AlertDescription>
+            Des chemins viennent d'etre detectes mais ne sont pas encore enregistres — le
+            vidage a lieu toutes les 5 minutes. Ils apparaitront ci-dessous au prochain
+            passage. D'ici la, ne pas lire cet ecran comme « aucun chemin a traiter ».
+          </AlertDescription>
         </Alert>
       )}
 
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      <div className="grid grid-cols-12 gap-3 mb-[18px]">
+        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={ouverts.length === 0 ? <ShieldCheck /> : <ShieldAlert />}
             label="Chemins a traiter"
@@ -168,8 +192,8 @@ const RlsAudit: React.FC = () => {
                   : 'La RLS ne peut pas etre activee'
             }
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={<Check />}
             label="Chemins traites"
@@ -178,8 +202,8 @@ const RlsAudit: React.FC = () => {
             loading={isLoading}
             hint="Conserves : une reapparition serait visible"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={<Clock />}
             label="Plus ancien constat"
@@ -188,8 +212,8 @@ const RlsAudit: React.FC = () => {
             loading={isLoading}
             hint="Anciennete du plus vieux chemin ouvert"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
           <StatTile
             icon={<Layers />}
             label="En attente d'ecriture"
@@ -198,19 +222,19 @@ const RlsAudit: React.FC = () => {
             loading={isLoading}
             hint="Vidage automatique toutes les 5 min"
           />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
-      <Card variant="outlined">
+      <Card>
         <CardContent>
-          <Typography variant="h6" sx={{ color: 'var(--ink)', mb: 0.5 }}>
+          <h6 className="cn-text-h6 text-[var(--ink)] mb-0.5">
             Chemins sans contexte tenant
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'var(--ink-muted)', mb: 2 }}>
+          </h6>
+          <p className="cn-text-body2 text-[var(--ink-muted)] mb-3">
             Une fois la RLS active, ces requetes renverront zero ligne — sans lever
             d'erreur. Le nombre d'occurrences indique l'urgence : un chemin tres emprunte
             casserait plus d'ecrans qu'un chemin marginal.
-          </Typography>
+          </p>
 
           {!isLoading && ouverts.length === 0 && traites.length === 0 && enAttente === 0 ? (
             <EmptyState
@@ -223,60 +247,62 @@ const RlsAudit: React.FC = () => {
               }
             />
           ) : (
-            <TableContainer sx={{ overflowX: 'auto' }}>
-              <Table size="small">
-                <TableHead>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell>Origine</TableCell>
-                    <TableCell>Table</TableCell>
-                    <TableCell align="right">Occurrences</TableCell>
-                    <TableCell>Premier constat</TableCell>
-                    <TableCell>Dernier constat</TableCell>
-                    <TableCell align="right">Action</TableCell>
+                    <TableHead>Origine</TableHead>
+                    <TableHead>Table</TableHead>
+                    <TableHead className="text-end">Occurrences</TableHead>
+                    <TableHead>Premier constat</TableHead>
+                    <TableHead>Dernier constat</TableHead>
+                    <TableHead className="text-end">Action</TableHead>
                   </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                   {[...ouverts, ...traites].map((chemin: RlsAuditFinding) => {
                     const reapparu =
                       chemin.resolvedAt !== null && chemin.lastSeenAt > chemin.resolvedAt;
                     return (
-                      <TableRow key={chemin.id} hover>
-                        <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>
-                          <Tooltip title={chemin.sqlExcerpt ?? ''} placement="top-start">
+                      <TableRow key={chemin.id}>
+                        <TableCell className="font-mono text-[0.8125rem]">
+                          {/* Sans extrait SQL il n'y a rien a survoler : le Tooltip du kit
+                              afficherait une bulle vide la ou MUI n'en montrait aucune. */}
+                          {chemin.sqlExcerpt ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span>{chemin.origin}</span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" align="start">
+                                {chemin.sqlExcerpt}
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
                             <span>{chemin.origin}</span>
-                          </Tooltip>
+                          )}
                           {reapparu && (
-                            <Chip
-                              size="small"
-                              label="reapparu apres correction"
-                              sx={{ ml: 1, bgcolor: 'var(--warn-soft)', color: 'var(--warn)' }}
-                            />
+                            <Badge variant="secondary" className="ms-1.5 bg-[var(--warn-soft)] text-[var(--warn)]">reapparu apres correction</Badge>
                           )}
                         </TableCell>
                         <TableCell>
-                          <Chip size="small" label={chemin.tableName} variant="outlined" />
+                          <Badge variant="outline">{chemin.tableName}</Badge>
                         </TableCell>
-                        <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                        <TableCell className="text-end tabular-nums">
                           {chemin.occurrences.toLocaleString('fr-FR')}
                         </TableCell>
-                        <TableCell sx={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                        <TableCell className="tabular-nums whitespace-nowrap">
                           {dateCourte(chemin.firstSeenAt)}
                         </TableCell>
-                        <TableCell sx={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                        <TableCell className="tabular-nums whitespace-nowrap">
                           {dateCourte(chemin.lastSeenAt)}
                         </TableCell>
-                        <TableCell align="right">
+                        <TableCell className="text-end">
                           {chemin.resolvedAt && !reapparu ? (
-                            <Chip
-                              size="small"
-                              label="traite"
-                              sx={{ bgcolor: 'var(--ok-soft)', color: 'var(--ok)' }}
-                            />
+                            <Badge variant="secondary" className="bg-[var(--ok-soft)] text-[var(--ok)]">traite</Badge>
                           ) : (
                             <Button
-                              size="small"
-                              variant="text"
-                              sx={{ cursor: 'pointer' }}
+                              variant="ghost"
+                              size="sm"
                               disabled={marquerTraite.isPending}
                               onClick={() => marquerTraite.mutate(chemin.id)}
                             >
@@ -289,11 +315,11 @@ const RlsAudit: React.FC = () => {
                   })}
                 </TableBody>
               </Table>
-            </TableContainer>
+            </div>
           )}
         </CardContent>
       </Card>
-    </Box>
+    </div>
   );
 };
 

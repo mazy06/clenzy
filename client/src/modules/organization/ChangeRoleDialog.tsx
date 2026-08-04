@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
+import { Alert, AlertDescription, Button } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  MenuItem,
-  Typography,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+  FieldLabel,
+  NativeSelect,
+  NativeSelectOption,
+  Spinner,
+} from '../../components/ui';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
 import { ASSIGNABLE_ORG_ROLES, getOrgRoleLabel } from '../../utils/orgRoleLabels';
 
@@ -56,48 +58,56 @@ export default function ChangeRoleDialog({ open, onClose, member, organizationId
   const memberName = member ? `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.email : '';
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>Changer le role</DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+    // maxWidth="xs" MUI = 444 px.
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className="sm:max-w-[444px]">
+        <DialogHeader>
+          <DialogTitle>Changer le role</DialogTitle>
+        </DialogHeader>
+        <p className="cn-text-body2 text-muted-foreground mb-3">
           Modifier le role de <strong>{memberName}</strong> dans l'organisation.
           Role actuel : <strong>{member ? getOrgRoleLabel(member.roleInOrg) : ''}</strong>
-        </Typography>
+        </p>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
+          <Alert variant="destructive" className="mb-3">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
-        <TextField
-          select
-          fullWidth
-          label="Nouveau role"
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          size="small"
-        >
-          {ASSIGNABLE_ORG_ROLES.map((r) => (
-            <MenuItem key={r.value} value={r.value}>
-              {r.label}
-            </MenuItem>
-          ))}
-        </TextField>
+        <Field>
+          <FieldLabel htmlFor="change-role-new-role">Nouveau role</FieldLabel>
+          <NativeSelect
+            id="change-role-new-role"
+            className="w-full"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+          >
+            {/* Option vide : le role actuel peut ne pas etre assignable (OWNER),
+                le select natif afficherait alors le 1er role de la liste sans
+                que l'etat ait change. */}
+            <NativeSelectOption value="">—</NativeSelectOption>
+            {ASSIGNABLE_ORG_ROLES.map((r) => (
+              <NativeSelectOption key={r.value} value={r.value}>
+                {r.label}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </Field>
+        <DialogFooter>
+          <Button onClick={onClose} variant="ghost" disabled={loading}>
+            Annuler
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={loading || !role || role === member?.roleInOrg}
+          >
+            {loading && <Spinner className="size-4" />}
+            {loading ? 'Modification...' : 'Modifier'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={loading}>
-          Annuler
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleSubmit}
-          disabled={loading || !role || role === member?.roleInOrg}
-          startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
-        >
-          {loading ? 'Modification...' : 'Modifier'}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

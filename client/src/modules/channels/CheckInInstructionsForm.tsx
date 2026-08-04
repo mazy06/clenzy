@@ -1,23 +1,29 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { cn } from '../../utils/cn';
+import StatusChip from '../../components/StatusChip';
+import { Alert as UiAlert, AlertDescription, Button as BuiButton } from '../../components/ui';
+import { TriangleAlert } from 'lucide-react';
+import { Spinner } from '../../components/ui';
+import {
+  Field,
+  FieldContent,
+  FieldLabel,
+  Input,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+  Textarea,
+} from '../../components/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { propertyDetailsKeys } from '../../hooks/usePropertyDetails';
 import {
-  Box,
-  Paper,
-  Typography,
-  TextField,
-  Button,
-  CircularProgress,
-  Alert,
-  Chip,
-  IconButton,
-  InputAdornment,
-  Tooltip,
-  LinearProgress,
-  Stack,
+  Progress,
   Switch,
-  FormControlLabel,
-} from '@mui/material';
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '../../components/ui';
 import {
   VpnKey as KeyIcon,
   Wifi as WifiIcon,
@@ -91,93 +97,61 @@ function SectionCard({ icon, accentColor, title, description, children, filledCo
   const allFilled = showProgress && filledCount === totalCount;
 
   return (
-    <Paper
-      variant="outlined"
-      sx={{
-        position: 'relative',
-        p: 2.5,
-        borderRadius: 2,
-        borderColor: 'divider',
-        overflow: 'hidden',
-        transition: 'border-color 200ms, box-shadow 200ms',
-        '&:hover': {
-          borderColor: accentColor,
-          boxShadow: `0 1px 2px ${accentColor}1a`,
-        },
-        // Liseré gauche coloré
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          bottom: 0,
-          width: 3,
-          bgcolor: accentColor,
-          opacity: 0.7,
-        },
-      }}
+    // La teinte d'accent est connue a l'execution : elle passe par des variables
+    // CSS inline, ce qui permet aux classes de survol (litterales, donc emises a
+    // la compilation) de la consommer.
+    <div
+      className="relative p-[15px] rounded-2xl border border-solid border-[var(--line)] bg-[var(--card)] overflow-hidden transition-[border-color,box-shadow] duration-200 hover:border-[var(--section-accent)] hover:shadow-[0_1px_2px_var(--section-accent-shadow)]"
+      style={{
+        '--section-accent': accentColor,
+        '--section-accent-shadow': `${accentColor}1a`,
+      } as React.CSSProperties}
     >
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 2 }}>
-        <Box
-          sx={{
-            width: 36,
-            height: 36,
-            borderRadius: 1.5,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: accentColor,
-            bgcolor: `${accentColor}15`,
-            flexShrink: 0,
-          }}
-        >
+      {/* Liseré gauche coloré (ancien ::before) */}
+      <span
+        aria-hidden
+        className="absolute top-0 left-0 bottom-0 w-[3px] opacity-70"
+        style={{ backgroundColor: accentColor }}
+      />
+      <div className="flex items-start gap-2 mb-3">
+        <div className="w-[36px] h-[36px] rounded-[12px] flex items-center justify-center shrink-0" style={{ color: accentColor, backgroundColor: `${accentColor}15` }}>
           {React.cloneElement(icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
             size: 18,
             strokeWidth: 1.75,
           })}
-        </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography sx={{ fontSize: '0.9375rem', fontWeight: 600, lineHeight: 1.2 }}>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p className="cn-text-body1 text-[0.9375rem] font-semibold leading-[1.2]">
               {title}
-            </Typography>
+            </p>
             {showProgress && (
-              <Chip
-                size="small"
-                label={`${filledCount}/${totalCount}`}
-                icon={allFilled ? <CheckCircle size={12} strokeWidth={2} color={accentColor} /> : undefined}
-                sx={{
-                  height: 18,
-                  fontSize: '0.625rem',
-                  fontWeight: 600,
-                  bgcolor: allFilled ? `${accentColor}1f` : 'transparent',
-                  color: allFilled ? accentColor : 'text.secondary',
-                  border: '1px solid',
-                  borderColor: allFilled ? `${accentColor}40` : 'divider',
-                  '& .MuiChip-icon': { ml: 0.5, mr: -0.25 },
-                  '& .MuiChip-label': { px: 0.75 },
+              <StatusChip
+                size="sm"
+                tokens={{
+                  color: allFilled ? accentColor : 'var(--muted)',
+                  bg: allFilled ? `${accentColor}1f` : 'transparent',
                 }}
+                icon={allFilled ? <CheckCircle size={12} strokeWidth={2} /> : undefined}
+                label={`${filledCount}/${totalCount}`}
+                // La teinte de bordure derive de `accentColor`, connu a
+                // l'execution : style inline, une classe ne peut pas la porter.
+                sx={{ borderColor: allFilled ? `${accentColor}40` : 'var(--line)' }}
+                className="border border-solid"
               />
             )}
-          </Box>
+          </div>
           {description && (
-            <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 0.25 }}>
+            <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mt-0.5">
               {description}
-            </Typography>
+            </p>
           )}
-        </Box>
-      </Box>
+        </div>
+      </div>
       {children}
-    </Paper>
+    </div>
   );
 }
-
-// ─── Field styles ───────────────────────────────────────────────────────────
-
-const FIELD_SX = {
-  '& .MuiInputBase-input': { fontSize: '0.8125rem' },
-  '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
-} as const;
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -217,6 +191,9 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
   const [extraCodes, setExtraCodes] = useState<Array<{ label: string; code: string }>>([]);
   // Ouverture de la porte depuis le livret guest (opt-in, serrure connectée requise).
   const [guestUnlock, setGuestUnlock] = useState(false);
+  // Prefixe d'id pour les codes additionnels : la liste est dynamique, seul un id
+  // genere garantit que chaque libelle designe bien son propre champ.
+  const extraCodesFieldId = React.useId();
 
   // Fetch existing instructions
   useEffect(() => {
@@ -407,83 +384,58 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-        <CircularProgress size={28} />
-      </Box>
+      <div className="flex justify-center py-9">
+        <Spinner className="size-7" />
+      </div>
     );
   }
 
   return (
-    <Box sx={{ pb: 10 /* room for the sticky save bar */ }}>
+    <div className="pb-14">
       {/* ─── Header with progress ─────────────────────────────────────── */}
-      <Box
-        sx={{
-          mb: 3,
-          p: 2.5,
-          borderRadius: 2,
-          background: (theme) =>
-            theme.palette.mode === 'dark'
-              ? 'linear-gradient(135deg, rgba(107,138,154,0.12) 0%, rgba(107,138,154,0.04) 100%)'
-              : 'linear-gradient(135deg, rgba(107,138,154,0.08) 0%, rgba(107,138,154,0.02) 100%)',
-          border: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-          <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography sx={{ fontSize: '1rem', fontWeight: 700, mb: 0.25 }}>
+      {/* `data-theme="dark"` sur <html> suit le mode MUI resolu (main.tsx) :
+          la variante `dark:` remplace donc fidelement le callback de theme. */}
+      <div className="mb-[18px] p-[15px] rounded-2xl border border-solid border-[var(--line)] bg-[linear-gradient(135deg,rgba(107,138,154,0.08)_0%,rgba(107,138,154,0.02)_100%)] dark:bg-[linear-gradient(135deg,rgba(107,138,154,0.12)_0%,rgba(107,138,154,0.04)_100%)]">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="min-w-0 flex-1">
+            <p className="cn-text-body1 text-[1rem] font-bold mb-0.5">
               {t('channels.checkIn.title')}
-            </Typography>
-            <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
+            </p>
+            <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground">
               Informations partagées avec les voyageurs avant et pendant leur séjour
-            </Typography>
-          </Box>
-          <Stack spacing={0.75} alignItems="flex-end" sx={{ minWidth: 200 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            </p>
+          </div>
+          <div className="flex flex-col gap-[4.5px] items-end min-w-[200px]">
+            <div className="flex items-center gap-1.5">
+              <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] font-semibold uppercase tracking-[0.5px]">
                 Complétude
-              </Typography>
-              <Chip
-                size="small"
-                label={`${stats.filled}/${stats.total}`}
-                sx={{
-                  height: 20,
-                  fontSize: '0.6875rem',
-                  fontWeight: 700,
-                  bgcolor: stats.filled === stats.total ? '#3E9C8015' : 'primary.main',
-                  color: stats.filled === stats.total ? '#3E9C80' : 'primary.contrastText',
-                  border: stats.filled === stats.total ? '1px solid #3E9C8040' : 'none',
-                  '& .MuiChip-label': { px: 1 },
-                }}
-              />
-            </Box>
-            <LinearProgress
-              variant="determinate"
+              </p>
+              <StatusChip tokens={{ color: stats.filled === stats.total ? '#3E9C80' : 'primary.contrastText', bg: stats.filled === stats.total ? '#3E9C8015' : 'primary.main' }} label={`${stats.filled}/${stats.total}`} className="h-[20px]" />
+            </div>
+            {/* Teinte de la barre : deux branches litterales (jamais un objet),
+                sinon la classe ne serait pas emise a la compilation. */}
+            <Progress
               value={stats.percentage}
-              sx={{
-                width: '100%',
-                height: 4,
-                borderRadius: 2,
-                bgcolor: 'action.hover',
-                '& .MuiLinearProgress-bar': {
-                  bgcolor: stats.percentage === 100 ? '#3E9C80' : 'primary.main',
-                  borderRadius: 2,
-                },
-              }}
+              className={cn(
+                'w-full bg-[var(--hover)]',
+                stats.percentage === 100
+                  ? '[&>[data-slot=progress-indicator]]:bg-[#3E9C80]'
+                  : '[&>[data-slot=progress-indicator]]:bg-[var(--mui-primary)]',
+              )}
             />
             {instructions?.updatedAt && (
-              <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled' }}>
+              <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60">
                 {t('channels.checkIn.lastUpdated')} : {new Date(instructions.updatedAt).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-              </Typography>
+              </p>
             )}
-          </Stack>
-        </Box>
-      </Box>
+          </div>
+        </div>
+      </div>
 
       {/* ─── Section cards grid ────────────────────────────────────────── */}
-      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}>
+      <div className="grid gap-3 grid-cols-[1fr] min-[900px]:grid-cols-[1fr_1fr]">
         {/* Accès & WiFi */}
-        <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
+        <div className="col-span-[1] min-[900px]:col-span-[1_/_-1]">
           <SectionCard
             icon={<KeyIcon />}
             accentColor="#C28A52"
@@ -492,198 +444,246 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
             filledCount={stats.access}
             totalCount={3}
           >
-            <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr' } }}>
-              <TextField
-                label={t('channels.checkIn.accessCode')}
-                value={form.accessCode ?? ''}
-                placeholder={t('channels.checkIn.generator.open', 'Cliquer pour générer')}
-                size="small"
-                onClick={() => setGenOpen(true)}
-                sx={{
-                  ...FIELD_SX,
-                  '& .MuiInputBase-root': { cursor: 'pointer' },
-                  '& .MuiInputBase-input': { fontFamily: 'monospace', fontSize: '0.9375rem', fontWeight: 600, letterSpacing: '0.05em', cursor: 'pointer' },
-                }}
-                InputProps={{
-                  readOnly: true,
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      {hasSmartLock ? (
-                        <Tooltip title={t('channels.checkIn.smartLockFetch', 'Récupérer le code de la serrure connectée')}>
-                          <span>
-                            <IconButton size="small" edge="end" disabled={fetchingLock} onClick={(e) => { e.stopPropagation(); fetchSmartLockCode(); }}>
+            <div className="grid gap-[9px] grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr_1fr]">
+              <Field>
+                <FieldLabel htmlFor="checkin-access-code">{t('channels.checkIn.accessCode')}</FieldLabel>
+                <InputGroup>
+                  <InputGroupInput
+                    id="checkin-access-code"
+                    value={form.accessCode ?? ''}
+                    placeholder={t('channels.checkIn.generator.open', 'Cliquer pour générer')}
+                    readOnly
+                    // Champ non saisissable : le clic ouvre le generateur, d'ou le
+                    // curseur pointeur au lieu du caret.
+                    className="cursor-pointer font-mono text-[0.9375rem] font-semibold tracking-[0.05em]"
+                    onClick={() => setGenOpen(true)}
+                  />
+                  <InputGroupAddon align="inline-end">
+                    {hasSmartLock ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <InputGroupButton
+                              size="icon-xs"
+                              disabled={fetchingLock}
+                              aria-label={t('channels.checkIn.smartLockFetch', 'Récupérer le code de la serrure connectée')}
+                              onClick={(e) => { e.stopPropagation(); fetchSmartLockCode(); }}
+                            >
                               <CloudDownload size={15} strokeWidth={1.85} />
-                            </IconButton>
+                            </InputGroupButton>
                           </span>
-                        </Tooltip>
-                      ) : null}
-                      <Tooltip title={t('channels.checkIn.generator.regenerate', 'Régénérer le code')}>
-                        <IconButton size="small" edge="end" onClick={(e) => { e.stopPropagation(); regenerateAccessCode(); }}>
-                          <Autorenew size={15} strokeWidth={1.85} />
-                        </IconButton>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('channels.checkIn.smartLockFetch', 'Récupérer le code de la serrure connectée')}</TooltipContent>
                       </Tooltip>
-                      {form.accessCode ? (
-                        <Tooltip title={copiedField === 'accessCode' ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.generator.copy', 'Copier')}>
-                          <IconButton size="small" edge="end" onClick={(e) => { e.stopPropagation(); handleCopy('accessCode', form.accessCode); }}>
+                    ) : null}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InputGroupButton
+                          size="icon-xs"
+                          aria-label={t('channels.checkIn.generator.regenerate', 'Régénérer le code')}
+                          onClick={(e) => { e.stopPropagation(); regenerateAccessCode(); }}
+                        >
+                          <Autorenew size={15} strokeWidth={1.85} />
+                        </InputGroupButton>
+                      </TooltipTrigger>
+                      <TooltipContent>{t('channels.checkIn.generator.regenerate', 'Régénérer le code')}</TooltipContent>
+                    </Tooltip>
+                    {form.accessCode ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <InputGroupButton
+                            size="icon-xs"
+                            aria-label={t('channels.checkIn.generator.copy', 'Copier')}
+                            onClick={(e) => { e.stopPropagation(); handleCopy('accessCode', form.accessCode); }}
+                          >
                             {copiedField === 'accessCode' ? (
                               <CheckCircle size={16} strokeWidth={2} color="#3E9C80" />
                             ) : (
                               <ContentCopy size={14} strokeWidth={1.75} />
                             )}
-                          </IconButton>
-                        </Tooltip>
-                      ) : null}
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <TextField
-                label={t('channels.checkIn.wifiName')}
-                value={form.wifiName ?? ''}
-                onChange={(e) => handleChange('wifiName', e.target.value)}
-                size="small"
-                sx={FIELD_SX}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}>
-                        <WifiIcon size={16} strokeWidth={1.75} />
-                      </Box>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <TextField
-                label={t('channels.checkIn.wifiPassword')}
-                value={form.wifiPassword ?? ''}
-                onChange={(e) => handleChange('wifiPassword', e.target.value)}
-                size="small"
-                type={showWifiPassword ? 'text' : 'password'}
-                sx={FIELD_SX}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <Stack direction="row" spacing={0}>
-                        {form.wifiPassword && (
-                          <Tooltip title={copiedField === 'wifiPassword' ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.generator.copy', 'Copier')}>
-                            <IconButton size="small" onClick={() => handleCopy('wifiPassword', form.wifiPassword)}>
-                              {copiedField === 'wifiPassword' ? (
-                                <CheckCircle size={16} strokeWidth={2} color="#3E9C80" />
-                              ) : (
-                                <ContentCopy size={14} strokeWidth={1.75} />
-                              )}
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        <IconButton
-                          size="small"
-                          onClick={() => setShowWifiPassword((v) => !v)}
-                          edge="end"
-                        >
-                          {showWifiPassword ? (
-                            <VisibilityOff size={16} strokeWidth={1.75} />
-                          ) : (
-                            <Visibility size={16} strokeWidth={1.75} />
-                          )}
-                        </IconButton>
-                      </Stack>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Box>
-            {hasSmartLock ? (
-              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1, maxWidth: 560 }}>
-                {t('channels.checkIn.smartLockManaged', 'Serrure connectée détectée : le code du séjour est généré et géré par la serrure (un code par réservation). Ce champ sert de secours (boîte à clé).')}
-              </Typography>
-            ) : (
-              <FormControlLabel
-                sx={{ mt: 1.5, ml: 0, alignItems: 'flex-start' }}
-                control={
-                  <Switch
-                    checked={autoRotate}
-                    onChange={(e) => { setAutoRotate(e.target.checked); setDirty(true); setSuccess(false); }}
-                    size="small"
+                          </InputGroupButton>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {copiedField === 'accessCode'
+                            ? t('channels.checkIn.generator.copied', 'Copié !')
+                            : t('channels.checkIn.generator.copy', 'Copier')}
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : null}
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="checkin-wifi-name">{t('channels.checkIn.wifiName')}</FieldLabel>
+                <InputGroup>
+                  <InputGroupAddon>
+                    <span className="inline-flex text-muted-foreground">
+                      <WifiIcon size={16} strokeWidth={1.75} />
+                    </span>
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="checkin-wifi-name"
+                    value={form.wifiName ?? ''}
+                    onChange={(e) => handleChange('wifiName', e.target.value)}
                   />
-                }
-                label={
-                  <Box sx={{ ml: 0.5, mt: 0.25 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {t('channels.checkIn.autoRotate', 'Régénérer le code après chaque départ')}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', maxWidth: 520 }}>
-                      {t('channels.checkIn.autoRotateHint', 'Un nouveau code (même format) est généré après le checkout — pensez à mettre à jour le code de la boîte à clé. Les serrures connectées tournent déjà automatiquement.')}
-                    </Typography>
-                  </Box>
-                }
-              />
+                </InputGroup>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="checkin-wifi-password">{t('channels.checkIn.wifiPassword')}</FieldLabel>
+                <InputGroup>
+                  <InputGroupInput
+                    id="checkin-wifi-password"
+                    value={form.wifiPassword ?? ''}
+                    onChange={(e) => handleChange('wifiPassword', e.target.value)}
+                    type={showWifiPassword ? 'text' : 'password'}
+                  />
+                  <InputGroupAddon align="inline-end">
+                    {form.wifiPassword && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <InputGroupButton
+                            size="icon-xs"
+                            aria-label={t('channels.checkIn.generator.copy', 'Copier')}
+                            onClick={() => handleCopy('wifiPassword', form.wifiPassword)}
+                          >
+                            {copiedField === 'wifiPassword' ? (
+                              <CheckCircle size={16} strokeWidth={2} color="#3E9C80" />
+                            ) : (
+                              <ContentCopy size={14} strokeWidth={1.75} />
+                            )}
+                          </InputGroupButton>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {copiedField === 'wifiPassword'
+                            ? t('channels.checkIn.generator.copied', 'Copié !')
+                            : t('channels.checkIn.generator.copy', 'Copier')}
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    <InputGroupButton
+                      size="icon-xs"
+                      onClick={() => setShowWifiPassword((v) => !v)}
+                      aria-label={showWifiPassword
+                        ? t('channels.checkIn.hidePassword', 'Masquer le mot de passe')
+                        : t('channels.checkIn.showPassword', 'Afficher le mot de passe')}
+                    >
+                      {showWifiPassword ? (
+                        <VisibilityOff size={16} strokeWidth={1.75} />
+                      ) : (
+                        <Visibility size={16} strokeWidth={1.75} />
+                      )}
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                </InputGroup>
+              </Field>
+            </div>
+            {hasSmartLock ? (
+              <span className="cn-text-caption text-muted-foreground block mt-1.5 max-w-[560px]">
+                {t('channels.checkIn.smartLockManaged', 'Serrure connectée détectée : le code du séjour est généré et géré par la serrure (un code par réservation). Ce champ sert de secours (boîte à clé).')}
+              </span>
+            ) : (
+              <Field orientation="horizontal" className="mt-[9px] items-start">
+                <Switch
+                  id="checkin-auto-rotate"
+                  size="sm"
+                  checked={autoRotate}
+                  onCheckedChange={(checked) => { setAutoRotate(checked); setDirty(true); setSuccess(false); }}
+                />
+                <FieldContent className="ms-0.5 mt-0.5">
+                  <FieldLabel htmlFor="checkin-auto-rotate" className="cn-text-body2 font-semibold">
+                    {t('channels.checkIn.autoRotate', 'Régénérer le code après chaque départ')}
+                  </FieldLabel>
+                  <span className="cn-text-caption text-muted-foreground block max-w-[520px]">
+                    {t('channels.checkIn.autoRotateHint', 'Un nouveau code (même format) est généré après le checkout — pensez à mettre à jour le code de la boîte à clé. Les serrures connectées tournent déjà automatiquement.')}
+                  </span>
+                </FieldContent>
+              </Field>
             )}
             {hasSmartLock ? (
-              <FormControlLabel
-                sx={{ mt: 1, ml: 0, alignItems: 'flex-start' }}
-                control={
-                  <Switch
-                    checked={guestUnlock}
-                    onChange={(e) => { setGuestUnlock(e.target.checked); setDirty(true); setSuccess(false); }}
-                    size="small"
-                  />
-                }
-                label={
-                  <Box sx={{ ml: 0.5, mt: 0.25 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {t('channels.checkIn.guestUnlock', "Autoriser l'ouverture de la porte depuis le livret")}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', maxWidth: 520 }}>
-                      {t('channels.checkIn.guestUnlockHint', "Le voyageur voit un bouton « Ouvrir la porte » dans son livret, actif uniquement pendant son séjour (à partir de l'heure de check-in). Chaque ouverture vous est notifiée.")}
-                    </Typography>
-                  </Box>
-                }
-              />
+              <Field orientation="horizontal" className="mt-1.5 items-start">
+                <Switch
+                  id="checkin-guest-unlock"
+                  size="sm"
+                  checked={guestUnlock}
+                  onCheckedChange={(checked) => { setGuestUnlock(checked); setDirty(true); setSuccess(false); }}
+                />
+                <FieldContent className="ms-0.5 mt-0.5">
+                  <FieldLabel htmlFor="checkin-guest-unlock" className="cn-text-body2 font-semibold">
+                    {t('channels.checkIn.guestUnlock', "Autoriser l'ouverture de la porte depuis le livret")}
+                  </FieldLabel>
+                  <span className="cn-text-caption text-muted-foreground block max-w-[520px]">
+                    {t('channels.checkIn.guestUnlockHint', "Le voyageur voit un bouton « Ouvrir la porte » dans son livret, actif uniquement pendant son séjour (à partir de l'heure de check-in). Chaque ouverture vous est notifiée.")}
+                  </span>
+                </FieldContent>
+              </Field>
             ) : null}
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+            <div className="mt-3">
+              <p className="cn-text-body2 font-semibold mb-1.5">
                 {t('channels.checkIn.extraCodes', 'Codes additionnels')}
-              </Typography>
-              <Stack spacing={1}>
+              </p>
+              <div className="flex flex-col gap-1.5">
                 {extraCodes.map((ec, i) => {
                   const slug = slugify(ec.label);
                   return (
-                    <Box key={i} sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <TextField
-                        size="small" label={t('channels.checkIn.extraCodeLabel', 'Libellé')}
-                        value={ec.label} onChange={(e) => updateExtraCode(i, 'label', e.target.value)}
-                        sx={{ flex: '1 1 150px' }}
-                      />
-                      <TextField
-                        size="small" label={t('channels.checkIn.extraCodeValue', 'Code')}
-                        value={ec.code} onChange={(e) => updateExtraCode(i, 'code', e.target.value)}
-                        sx={{ flex: '1 1 110px', '& .MuiInputBase-input': { fontFamily: 'monospace' } }}
-                      />
+                    <div className="flex gap-1.5 items-end flex-wrap" key={i}>
+                      <Field className="flex-[1_1_150px]">
+                        <FieldLabel htmlFor={`${extraCodesFieldId}-label-${i}`}>
+                          {t('channels.checkIn.extraCodeLabel', 'Libellé')}
+                        </FieldLabel>
+                        <Input
+                          id={`${extraCodesFieldId}-label-${i}`}
+                          value={ec.label}
+                          onChange={(e) => updateExtraCode(i, 'label', e.target.value)}
+                        />
+                      </Field>
+                      <Field className="flex-[1_1_110px]">
+                        <FieldLabel htmlFor={`${extraCodesFieldId}-code-${i}`}>
+                          {t('channels.checkIn.extraCodeValue', 'Code')}
+                        </FieldLabel>
+                        <Input
+                          id={`${extraCodesFieldId}-code-${i}`}
+                          className="font-mono"
+                          value={ec.code}
+                          onChange={(e) => updateExtraCode(i, 'code', e.target.value)}
+                        />
+                      </Field>
                       {slug ? (
-                        <Tooltip title={copiedField === `extraTag${i}` ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.extraCodeTagCopy', 'Copier le tag email')}>
-                          <Chip
-                            size="small" label={`{code_${slug}}`}
-                            onClick={() => handleCopy(`extraTag${i}`, `{code_${slug}}`)}
-                            sx={{ fontFamily: 'monospace', cursor: 'pointer' }}
-                          />
+                        <Tooltip>
+                          {/* Le span porte la ref que TooltipTrigger pose sur son
+                              enfant : StatusChip est une fonction et n'en transmet pas. */}
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                              <StatusChip
+                                tone="neutral"
+                                label={`{code_${slug}}`}
+                                onClick={() => handleCopy(`extraTag${i}`, `{code_${slug}}`)}
+                                className="font-mono"
+                              />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {copiedField === `extraTag${i}`
+                              ? t('channels.checkIn.generator.copied', 'Copié !')
+                              : t('channels.checkIn.extraCodeTagCopy', 'Copier le tag email')}
+                          </TooltipContent>
                         </Tooltip>
                       ) : null}
-                      <IconButton size="small" onClick={() => removeExtraCode(i)} aria-label="Supprimer">
+                      <BuiButton variant="ghost" size="icon-sm" onClick={() => removeExtraCode(i)} aria-label="Supprimer">
                         <CloseIcon size={16} strokeWidth={1.8} />
-                      </IconButton>
-                    </Box>
+                      </BuiButton>
+                    </div>
                   );
                 })}
-              </Stack>
-              <Button size="small" onClick={addExtraCode} sx={{ mt: 1, textTransform: 'none' }}>
+              </div>
+              <BuiButton variant="ghost" size="sm" onClick={addExtraCode} className="mt-1.5">
                 + {t('channels.checkIn.extraCodeAdd', 'Ajouter un code')}
-              </Button>
-              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+              </BuiButton>
+              <span className="cn-text-caption text-muted-foreground block mt-0.5">
                 {t('channels.checkIn.extraCodesHint', 'Affichés dans le livret. Chaque code fournit un tag à coller dans vos emails.')}
-              </Typography>
-            </Box>
+              </span>
+            </div>
           </SectionCard>
-        </Box>
+        </div>
 
         {/* Parking */}
         <SectionCard
@@ -694,17 +694,16 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           filledCount={stats.parking}
           totalCount={1}
         >
-          <TextField
-            label={t('channels.checkIn.parkingInfo')}
-            value={form.parkingInfo ?? ''}
-            onChange={(e) => handleChange('parkingInfo', e.target.value)}
-            size="small"
-            multiline
-            rows={2}
-            fullWidth
-            sx={FIELD_SX}
-            placeholder="Ex : Parking gratuit en face du bâtiment, place numéro 12..."
-          />
+          <Field>
+            <FieldLabel htmlFor="checkin-parking-info">{t('channels.checkIn.parkingInfo')}</FieldLabel>
+            <Textarea
+              id="checkin-parking-info"
+              rows={2}
+              value={form.parkingInfo ?? ''}
+              onChange={(e) => handleChange('parkingInfo', e.target.value)}
+              placeholder="Ex : Parking gratuit en face du bâtiment, place numéro 12..."
+            />
+          </Field>
         </SectionCard>
 
         {/* Arrivée */}
@@ -716,21 +715,20 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           filledCount={stats.arrival}
           totalCount={1}
         >
-          <TextField
-            label={t('channels.checkIn.arrivalInstructions')}
-            value={form.arrivalInstructions ?? ''}
-            onChange={(e) => handleChange('arrivalInstructions', e.target.value)}
-            size="small"
-            multiline
-            rows={3}
-            fullWidth
-            sx={FIELD_SX}
-            placeholder={t('channels.checkIn.arrivalPlaceholder')}
-          />
+          <Field>
+            <FieldLabel htmlFor="checkin-arrival-instructions">{t('channels.checkIn.arrivalInstructions')}</FieldLabel>
+            <Textarea
+              id="checkin-arrival-instructions"
+              rows={3}
+              value={form.arrivalInstructions ?? ''}
+              onChange={(e) => handleChange('arrivalInstructions', e.target.value)}
+              placeholder={t('channels.checkIn.arrivalPlaceholder')}
+            />
+          </Field>
         </SectionCard>
 
         {/* Photos d'accès */}
-        <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
+        <div className="col-span-[1] min-[900px]:col-span-[1_/_-1]">
           <SectionCard
             icon={<PhotoIcon />}
             accentColor="#9A7FA3"
@@ -739,58 +737,63 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
             filledCount={accessPhotos.length > 0 ? 1 : 0}
             totalCount={1}
           >
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+            <div className="flex flex-wrap gap-2">
               {accessPhotos.map((p) => (
-                <Box key={p.key} sx={{ width: 140 }}>
-                  <Box sx={{ position: 'relative', width: 140, height: 100, borderRadius: 1.5, overflow: 'hidden', border: '1px solid', borderColor: 'divider', bgcolor: 'action.hover' }}>
-                    <Box
-                      component="img"
-                      src={p.preview ?? `/api/properties/${propertyId}/check-in-instructions/access-photos?key=${encodeURIComponent(p.key)}`}
-                      alt={p.caption || 'photo'}
-                      sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                    />
-                    <IconButton
-                      size="small"
+                <div className="w-[140px]" key={p.key}>
+                  <div className="relative w-[140px] h-[100px] rounded-[12px] overflow-hidden border border-[var(--line)] bg-[var(--hover)]">
+                    <img className="w-full h-full object-cover block" src={p.preview ?? `/api/properties/${propertyId}/check-in-instructions/access-photos?key=${encodeURIComponent(p.key)}`} alt={p.caption || 'photo'} />
+                    <BuiButton
+                      variant="ghost"
+                      size="icon-xs"
                       onClick={() => handleRemovePhoto(p.key)}
                       aria-label={t('common.delete', 'Supprimer')}
-                      sx={{ position: 'absolute', top: 2, right: 2, p: 0.25, bgcolor: 'rgba(0,0,0,0.55)', color: '#fff', '&:hover': { bgcolor: 'rgba(0,0,0,0.75)' } }}
+                      className="absolute top-0.5 right-0.5 p-0 bg-[rgba(0,0,0,0.55)] text-white hover:bg-[rgba(0,0,0,0.75)] hover:text-white"
                     >
                       <CloseIcon size={14} strokeWidth={2} />
-                    </IconButton>
-                  </Box>
-                  <TextField
+                    </BuiButton>
+                  </div>
+                  {/* Legende sans libelle visible : la vignette la porte, d'ou
+                      l'aria-label plutot qu'un FieldLabel. */}
+                  <Input
+                    className="mt-1 text-[0.75rem]"
                     value={p.caption}
                     onChange={(e) => handlePhotoCaption(p.key, e.target.value)}
-                    size="small"
-                    fullWidth
-                    variant="standard"
+                    aria-label={t('channels.checkIn.photoCaption', 'Légende…')}
                     placeholder={t('channels.checkIn.photoCaption', 'Légende…')}
-                    sx={{ mt: 0.5, '& .MuiInputBase-input': { fontSize: '0.75rem' } }}
                   />
-                </Box>
+                </div>
               ))}
-              <Button
-                component="label"
-                variant="outlined"
-                disabled={uploadingPhoto}
-                sx={{ width: 140, height: 100, flexDirection: 'column', gap: 0.5, textTransform: 'none', fontSize: '0.75rem', borderStyle: 'dashed', color: 'text.secondary' }}
+              {/* `asChild` + <label> : le champ fichier reste declenche par le
+                  clic sur le bouton, comme le faisait `component="label"`. */}
+              {/* `disabled` n'existe pas sur <label> : l'etat inactif passe par
+                  les classes (et par le champ fichier, lui, desactivable). */}
+              <BuiButton
+                asChild
+                variant="outline"
+                className={cn(
+                  'w-[140px] h-[100px] flex-col gap-[3px] text-[0.75rem] border-dashed text-[var(--muted)] cursor-pointer',
+                  uploadingPhoto && 'pointer-events-none opacity-50',
+                )}
               >
-                {uploadingPhoto ? <CircularProgress size={18} /> : <PhotoIcon size={20} strokeWidth={1.75} />}
-                {t('channels.checkIn.addPhoto', 'Ajouter')}
-                <input
-                  hidden
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleAddPhoto(file);
-                    e.target.value = '';
-                  }}
-                />
-              </Button>
-            </Box>
+                <label>
+                  {uploadingPhoto ? <Spinner className="size-[18px]" /> : <PhotoIcon size={20} strokeWidth={1.75} />}
+                  {t('channels.checkIn.addPhoto', 'Ajouter')}
+                  <input
+                    hidden
+                    type="file"
+                    disabled={uploadingPhoto}
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleAddPhoto(file);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+              </BuiButton>
+            </div>
           </SectionCard>
-        </Box>
+        </div>
 
         {/* Départ */}
         <SectionCard
@@ -801,17 +804,16 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           filledCount={stats.departure}
           totalCount={1}
         >
-          <TextField
-            label={t('channels.checkIn.departureInstructions')}
-            value={form.departureInstructions ?? ''}
-            onChange={(e) => handleChange('departureInstructions', e.target.value)}
-            size="small"
-            multiline
-            rows={3}
-            fullWidth
-            sx={FIELD_SX}
-            placeholder={t('channels.checkIn.departurePlaceholder')}
-          />
+          <Field>
+            <FieldLabel htmlFor="checkin-departure-instructions">{t('channels.checkIn.departureInstructions')}</FieldLabel>
+            <Textarea
+              id="checkin-departure-instructions"
+              rows={3}
+              value={form.departureInstructions ?? ''}
+              onChange={(e) => handleChange('departureInstructions', e.target.value)}
+              placeholder={t('channels.checkIn.departurePlaceholder')}
+            />
+          </Field>
         </SectionCard>
 
         {/* Règlement */}
@@ -823,21 +825,20 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
           filledCount={stats.rules}
           totalCount={1}
         >
-          <TextField
-            label={t('channels.checkIn.houseRules')}
-            value={form.houseRules ?? ''}
-            onChange={(e) => handleChange('houseRules', e.target.value)}
-            size="small"
-            multiline
-            rows={3}
-            fullWidth
-            sx={FIELD_SX}
-            placeholder="Pas de fête, pas de fumeurs, animaux acceptés..."
-          />
+          <Field>
+            <FieldLabel htmlFor="checkin-house-rules">{t('channels.checkIn.houseRules')}</FieldLabel>
+            <Textarea
+              id="checkin-house-rules"
+              rows={3}
+              value={form.houseRules ?? ''}
+              onChange={(e) => handleChange('houseRules', e.target.value)}
+              placeholder="Pas de fête, pas de fumeurs, animaux acceptés..."
+            />
+          </Field>
         </SectionCard>
 
         {/* Urgence — full width, alert-styled */}
-        <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
+        <div className="col-span-[1] min-[900px]:col-span-[1_/_-1]">
           <SectionCard
             icon={<PhoneIcon />}
             accentColor="#E5484D"
@@ -846,29 +847,27 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
             filledCount={stats.emergency}
             totalCount={1}
           >
-            <TextField
-              label={t('channels.checkIn.emergencyContact')}
-              value={form.emergencyContact ?? ''}
-              onChange={(e) => handleChange('emergencyContact', e.target.value)}
-              size="small"
-              fullWidth
-              sx={FIELD_SX}
-              placeholder="Ex : +33 6 12 34 56 78 — Marie (gestionnaire)"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Box component="span" sx={{ display: 'inline-flex', color: '#E5484D' }}>
-                      <PhoneIcon size={16} strokeWidth={1.75} />
-                    </Box>
-                  </InputAdornment>
-                ),
-              }}
-            />
+            <Field>
+              <FieldLabel htmlFor="checkin-emergency-contact">{t('channels.checkIn.emergencyContact')}</FieldLabel>
+              <InputGroup>
+                <InputGroupAddon>
+                  <span className="inline-flex text-[#E5484D]">
+                    <PhoneIcon size={16} strokeWidth={1.75} />
+                  </span>
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="checkin-emergency-contact"
+                  value={form.emergencyContact ?? ''}
+                  onChange={(e) => handleChange('emergencyContact', e.target.value)}
+                  placeholder="Ex : +33 6 12 34 56 78 — Marie (gestionnaire)"
+                />
+              </InputGroup>
+            </Field>
           </SectionCard>
-        </Box>
+        </div>
 
         {/* Compléments — full width */}
-        <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
+        <div className="col-span-[1] min-[900px]:col-span-[1_/_-1]">
           <SectionCard
             icon={<NotesIcon />}
             accentColor="#8BA0B3"
@@ -877,83 +876,57 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
             filledCount={stats.additional}
             totalCount={1}
           >
-            <TextField
-              label={t('channels.checkIn.additionalNotes')}
-              value={form.additionalNotes ?? ''}
-              onChange={(e) => handleChange('additionalNotes', e.target.value)}
-              size="small"
-              multiline
-              rows={3}
-              fullWidth
-              sx={FIELD_SX}
-              placeholder="Boulangerie au coin de la rue, supermarché à 200m, conseils transports..."
-            />
+            <Field>
+              <FieldLabel htmlFor="checkin-additional-notes">{t('channels.checkIn.additionalNotes')}</FieldLabel>
+              <Textarea
+                id="checkin-additional-notes"
+                rows={3}
+                value={form.additionalNotes ?? ''}
+                onChange={(e) => handleChange('additionalNotes', e.target.value)}
+                placeholder="Boulangerie au coin de la rue, supermarché à 200m, conseils transports..."
+              />
+            </Field>
           </SectionCard>
-        </Box>
-      </Box>
+        </div>
+      </div>
 
       {/* ─── Sticky save bar ──────────────────────────────────────────── */}
-      <Box
-        sx={{
-          position: 'sticky',
-          bottom: 0,
-          mt: 3,
-          mx: -3,
-          px: 3,
-          py: 1.5,
-          bgcolor: (theme) =>
-            theme.palette.mode === 'dark' ? 'rgba(18,18,18,0.95)' : 'rgba(255,255,255,0.95)',
-          backdropFilter: 'blur(8px)',
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 2,
-          zIndex: 2,
-        }}
-      >
-        <Box sx={{ minWidth: 0, flex: 1 }}>
+      <div className="sticky bottom-0 mt-[18px] -mx-[18px] px-[18px] py-[9px] bg-[rgba(255,255,255,0.95)] dark:bg-[rgba(18,18,18,0.95)] backdrop-blur-[8px] border-t border-solid border-[var(--line)] flex items-center justify-between gap-3 z-[2]">
+        <div className="min-w-0 flex-1">
           {error && (
-            <Alert severity="error" sx={{ fontSize: '0.75rem', py: 0.5 }}>
-              {error}
-            </Alert>
+            <UiAlert variant="destructive" className="text-[0.75rem] py-0.5">
+              <TriangleAlert />
+              <AlertDescription>{error}</AlertDescription>
+            </UiAlert>
           )}
           {success && !error && (
-            <Alert
-              severity="success"
-              icon={<CheckCircle size={16} strokeWidth={2} />}
-              sx={{ fontSize: '0.75rem', py: 0.5 }}
-            >
-              {t('channels.checkIn.saved')}
-            </Alert>
+            <UiAlert variant="success" className="text-[0.75rem] py-[3px]">
+              <CheckCircle size={16} strokeWidth={2} />
+              <AlertDescription>{t('channels.checkIn.saved')}</AlertDescription>
+            </UiAlert>
           )}
           {!error && !success && dirty && (
-            <Typography sx={{ fontSize: '0.75rem', color: 'warning.main', fontWeight: 600 }}>
+            <p className="cn-text-body1 text-[0.75rem] text-[var(--bui-warning-ink)] font-semibold">
               ● Modifications non enregistrées
-            </Typography>
+            </p>
           )}
           {!error && !success && !dirty && instructions?.updatedAt && (
-            <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled' }}>
+            <p className="cn-text-body1 text-[0.75rem] text-muted-foreground opacity-60">
               Aucune modification en cours
-            </Typography>
+            </p>
           )}
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <SaveIcon size={16} strokeWidth={1.75} />}
+        </div>
+        {/* Largeur plancher conservee : evite que la barre sursaute entre
+            « Enregistrement… » et « Enregistrer ». */}
+        <BuiButton
           onClick={handleSave}
           disabled={saving || !dirty}
-          sx={{
-            fontSize: '0.8125rem',
-            fontWeight: 600,
-            textTransform: 'none',
-            minWidth: 140,
-          }}
+          className="min-w-[140px]"
         >
+          {saving ? <Spinner className="size-3.5" /> : <SaveIcon strokeWidth={1.75} />}
           {saving ? 'Enregistrement…' : t('common.save')}
-        </Button>
-      </Box>
+        </BuiButton>
+      </div>
 
       <AccessCodeGeneratorDialog
         open={genOpen}
@@ -963,7 +936,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         onClose={() => setGenOpen(false)}
         onApply={(code, format) => { handleChange('accessCode', code); setCodeFormat(format); setGenOpen(false); }}
       />
-    </Box>
+    </div>
   );
 };
 
