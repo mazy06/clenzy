@@ -93,9 +93,15 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onMinimize(); }}>
+      {/* `inset-0` et NON `top-0 start-0` : le gabarit pose `top-1/2 left-1/2`,
+          et `start-*` est une propriete LOGIQUE que tailwind-merge ne considere
+          pas en conflit avec `left`. Le `left: 50%` survivait donc, sans
+          translation pour le compenser — le plein ecran demarrait au milieu de
+          la dalle et debordait a droite. `inset-0` couvre les quatre cotes dans
+          le meme groupe et neutralise les deux ancrages d'un coup. */}
       <DialogContent
         showCloseButton={false}
-        className="top-0 start-0 flex h-screen w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 rounded-none bg-background p-0"
+        className="inset-0 flex h-screen w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 rounded-none bg-background p-0"
       >
         {/* Le gabarit de modale exige un titre et une description accessibles :
             l'en-tête visible vit dans AssistantSurface, on les pose donc hors
