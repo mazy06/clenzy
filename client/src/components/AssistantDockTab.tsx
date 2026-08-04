@@ -126,15 +126,20 @@ const AssistantDockTab: React.FC = () => {
   // `pointerdown` plutot que `click` : le panneau contient des elements qui se
   // demontent au clic, et `contains()` serait alors deja faux au moment ou le
   // `click` remonte.
+  //
+  // UNIQUEMENT en vue dockee. En plein ecran, la modale est portee hors de
+  // `dockRef` : le moindre clic dans la conversation tombait « a l'exterieur »
+  // et fermait tout l'assistant. Le plein ecran a ses propres sorties (Reduire,
+  // Fermer, Echap, clic sur le voile), gerees par le gabarit de modale.
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open || view !== 'panel') return undefined;
     const handlePointerDown = (event: PointerEvent) => {
       const node = dockRef.current;
       if (node && !node.contains(event.target as Node)) handleClose();
     };
     document.addEventListener('pointerdown', handlePointerDown);
     return () => document.removeEventListener('pointerdown', handlePointerDown);
-  }, [open, handleClose]);
+  }, [open, view, handleClose]);
 
   // ─── Rotation des phrases de l'encoche ──────────────────────────────────
   const [phraseIndex, setPhraseIndex] = useState(0);
@@ -159,7 +164,13 @@ const AssistantDockTab: React.FC = () => {
           cote du panneau ; ses enfants les reprennent.
           Les deux z-index sont les valeurs du theme MUI par defaut, que ce
           projet ne surcharge pas : modal = 1300, drawer + 1 = 1201. Ecrits en
-          litteraux car une classe Tailwind ne peut pas naitre d'une variable. */}
+          litteraux car une classe Tailwind ne peut pas naitre d'une variable.
+
+          Demonte entierement en plein ecran : son z-index (1300) passait par
+          dessus la modale, et l'encoche « Assistant Baitly » restait collee en
+          bas de l'ecran par dessus la conversation agrandie. La vue plein ecran
+          porte ses propres commandes, l'encoche n'y a rien a faire. */}
+      {view === 'panel' && (
       <div
         ref={dockRef}
         className={cn(
@@ -327,6 +338,7 @@ const AssistantDockTab: React.FC = () => {
             </div>
           </button>
       </div>
+      )}
 
       {/* ── Vue plein ecran : meme surface + historique des conversations ── */}
       {open && view === 'expanded' && (

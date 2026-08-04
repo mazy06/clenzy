@@ -31,8 +31,9 @@ import type { UseAgentResult } from '../../../hooks/useAgent';
  * <p><b>Mise en page</b> : le contenu est borné en largeur et centré. Sans
  * cette borne, sur un écran large la colonne de conversation s'étirait sur
  * toute la dalle — des lignes interminables et un composeur d'un mètre de long.
- * La conversation occupe l'espace restant, l'historique une colonne fixe de
- * 280 px, masquée en dessous de 900 px pour ne pas voler la place au fil.</p>
+ * L'historique occupe une colonne fixe de 280 px au DÉBUT de la ligne (à gauche
+ * en LTR, à droite en arabe — c'est l'ordre du DOM qui s'en charge), masquée en
+ * dessous de 900 px ; la conversation prend le reste.</p>
  */
 type AgentProps = Pick<
   UseAgentResult,
@@ -110,6 +111,24 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
         <DialogDescription className="sr-only">{t('assistant.subtitle')}</DialogDescription>
 
         <div className="mx-auto flex min-h-0 w-full max-w-[1280px] flex-1 gap-4 px-2 min-[900px]:px-4">
+          {/* Historique EN PREMIER dans le DOM — masqué sur mobile pour ne pas
+              voler l'espace au fil. Le seuil md de MUI vaut 900 px, pas les
+              768 px de Tailwind.
+
+              L'ordre du DOM suffit à le placer à gauche en LTR et à droite en
+              RTL : un `flex-row` suit le sens d'écriture du document. Pas de
+              `order-*` ni de variante `rtl:` à maintenir. */}
+          <div className="hidden w-[280px] shrink-0 py-4 min-[900px]:block">
+            <ConversationSidebar
+              conversations={conversations}
+              activeConversationId={conversationId}
+              loading={conversationsLoading}
+              onSelect={handleSelect}
+              onNew={reset}
+              onArchive={handleArchive}
+            />
+          </div>
+
           <AssistantSurface
             autoFocus
             messages={messages}
@@ -145,19 +164,6 @@ const AssistantExpandedDialog: React.FC<AssistantExpandedDialogProps> = ({
               </>
             }
           />
-
-          {/* Historique — masqué sur mobile pour ne pas voler l'espace au fil.
-              Le seuil md de MUI vaut 900 px, pas les 768 px de Tailwind. */}
-          <div className="hidden w-[280px] shrink-0 py-4 min-[900px]:block">
-            <ConversationSidebar
-              conversations={conversations}
-              activeConversationId={conversationId}
-              loading={conversationsLoading}
-              onSelect={handleSelect}
-              onNew={reset}
-              onArchive={handleArchive}
-            />
-          </div>
         </div>
       </DialogContent>
     </Dialog>
