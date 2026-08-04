@@ -214,10 +214,16 @@ export function PropertyImageCarousel({
 
       {canFullscreen && (
         <Dialog open={fullscreenOpen} onOpenChange={(next) => { if (!next) setFullscreenOpen(false); }}>
-          {/* fullScreen MUI : on neutralise le centrage/gabarit du DialogContent du kit. */}
+          {/* Plein ecran : on neutralise le centrage du gabarit DialogContent.
+              `inset-0` et NON `top-0 start-0` — `start-*` est une propriete
+              LOGIQUE que tailwind-merge ne met pas en conflit avec le `left-1/2`
+              du gabarit, qui survivait donc et decalait la visionneuse d'une
+              demi-largeur. On laisse aussi le `fixed` du gabarit s'appliquer
+              (le `relative` d'origine sortait la boite du viewport) : il ancre
+              tout aussi bien le bouton de fermeture en absolu. */}
           <DialogContent
             showCloseButton={false}
-            className="relative top-0 start-0 translate-x-0 translate-y-0 w-screen h-screen max-w-none rounded-none border-0 p-0 bg-[rgba(0,0,0,0.95)]"
+            className="inset-0 translate-x-0 translate-y-0 max-w-none rounded-none border-0 p-0 bg-[rgba(0,0,0,0.95)]"
           >
             {/* Titre requis par le dialogue du kit pour l'accessibilite. */}
             <DialogTitle className="sr-only">{alt}</DialogTitle>
