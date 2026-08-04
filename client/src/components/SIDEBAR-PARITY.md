@@ -32,7 +32,9 @@ sous cette carte, disposés en **ligne** (déplié) ou en **colonne** (réduit) 
         seulement si `currency !== 'EUR'`
   - [x] Ancrage du menu inversé en RTL (`anchorOrigin`/`transformOrigin`)
 - [x] **Notifications** (cloche) → `/notifications`
-  - [x] **Pastille de non-lus** : composant isolé `UnreadNotificationsDot`,
+  - [x] **Pastille de non-lus** : composant isolé `UnreadNotificationsBadge`,
+        rendu par `NavCornerCountBadge` (la MÊME pastille que la navigation
+        repliée, avec le nombre — pas un point),
         React Query, `refetchInterval` 30 s, **poll coupé si l'onglet est caché**,
         **poll arrêté** si `notificationsApi._endpointAvailable === false`.
         ⚠️ L'isolation est délibérée : le tick ne doit re-rendre que la pastille,

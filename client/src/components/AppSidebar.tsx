@@ -84,8 +84,14 @@ const GROUP_ORDER: NavGroup[] = ['main', 'management', 'admin'];
  * Pastille « non lus » de la cloche, isolée pour que le tick du poll ne re-rende
  * que ce composant. React Query met le `refetchInterval` en pause quand l'onglet
  * est caché, et le poll s'arrête si le backend signale l'endpoint indisponible.
+ *
+ * Rend la MÊME pastille que la navigation repliée ({@link NavCornerCountBadge}) :
+ * la cloche est un bouton icône, donc c'est la variante « coin d'icône » qui
+ * s'applique, pas la pilule pleine largeur des lignes de menu. Elle affiche le
+ * NOMBRE de non-lus, comme le compteur de Planning — un simple point perdrait
+ * l'information alors que le backend la fournit déjà.
  */
-function UnreadNotificationsDot() {
+function UnreadNotificationsBadge() {
   const { data } = useQuery({
     queryKey: ['notifications', 'unread-count'],
     queryFn: () => notificationsApi.getUnreadCount(),
@@ -94,11 +100,7 @@ function UnreadNotificationsDot() {
     refetchOnWindowFocus: false,
   });
 
-  if (!data || data.count === 0) return null;
-
-  return (
-    <span className="pointer-events-none absolute -top-0.5 -end-0.5 size-[7px] rounded-full bg-destructive ring-2 ring-sidebar" />
-  );
+  return <NavCornerCountBadge count={data?.count} tone="error" />;
 }
 
 function NavBadge({ item }: { item: MenuItem }) {
@@ -527,7 +529,7 @@ export default function AppSidebar({
               >
                 <span className="relative inline-flex">
                   <Notifications size={16} strokeWidth={1.75} />
-                  <UnreadNotificationsDot />
+                  <UnreadNotificationsBadge />
                 </span>
               </button>
             </TooltipTrigger>
