@@ -83,12 +83,16 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({
       <InputGroupAddon align="block-end">
         {hint && <span className="text-2xs text-faint">{hint}</span>}
 
+        {/* Pastille RONDE : le gabarit `icon-xs` pose un rayon calcule sur
+            --radius, qui donnait un carre a peine adouci. `rounded-full` le
+            remplace — l'envoi et l'arret partagent la meme forme pour que la
+            bascule entre les deux ne fasse pas sauter le bouton. */}
         {isBusy && onAbort ? (
           <InputGroupButton
             size="icon-xs"
             aria-label={t('assistant.composer.stop')}
             onClick={onAbort}
-            className="ms-auto bg-destructive-soft text-destructive-ink hover:brightness-95"
+            className="ms-auto rounded-full bg-destructive-soft text-destructive-ink hover:brightness-95"
           >
             {status === 'sending' ? <Spinner className="size-3.5" /> : <XIcon size={14} strokeWidth={1.75} />}
           </InputGroupButton>
@@ -98,9 +102,22 @@ export const AssistantComposer: React.FC<AssistantComposerProps> = ({
             aria-label={t('assistant.composer.send')}
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className={cn('ms-auto', canSubmit && 'bg-primary text-primary-foreground hover:bg-primary/90')}
+            className={cn(
+              'ms-auto rounded-full',
+              canSubmit && 'bg-primary text-primary-foreground hover:bg-primary/90',
+            )}
           >
-            <SendIcon size={14} strokeWidth={1.75} />
+            {/* Correction OPTIQUE. L'avion de papier de lucide est un triangle
+                dont la pointe monte a droite et dont la masse retombe en bas a
+                gauche : centre geometriquement, il se lit decale vers le bas et
+                la gauche du cercle. Un demi-pixel vers le haut-droite ramene son
+                centre de gravite sur celui du bouton. Le decalage horizontal
+                s'inverse en RTL, ou toute la boite de composition est miroir. */}
+            <SendIcon
+              size={14}
+              strokeWidth={1.75}
+              className="translate-x-[0.5px] -translate-y-[0.5px] rtl:-translate-x-[0.5px]"
+            />
           </InputGroupButton>
         )}
       </InputGroupAddon>
