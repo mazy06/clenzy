@@ -1052,7 +1052,12 @@ export default function Settings() {
         </TabPanel>
       )}
 
-      {/* ─── Onglet IA (permission ai:view) ───────────────────────── */}
+      {/* ─── Onglet IA (permission ai:view — équipe PLATEFORME uniquement) ───
+          ai:view n'est plus accordée au rôle HOST : les réglages IA sont réservés
+          à SUPER_ADMIN / SUPER_MANAGER (cf. PermissionInitializer). L'assistant
+          et le briefing hebdomadaire n'en dépendent pas et restent accessibles à
+          tous. La permission reste l'unique source de vérité : pas de contrôle de
+          rôle dupliqué ici, qui divergerait au premier changement de catalogue. */}
       {canViewAi && (
         <TabPanel value={tabValue} index={tabIdx.ai}>
           <AiSettingsSection />
