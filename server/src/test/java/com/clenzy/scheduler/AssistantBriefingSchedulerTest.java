@@ -214,4 +214,74 @@ class AssistantBriefingSchedulerTest {
         // user-ok est bien delivere malgre l'echec de user-bad
         verify(delivery).dispatch(any(), eq("user-ok"), any(), any());
     }
+
+    // ─── Desabonnement (preference de notification) ─────────────────────────
+
+    @org.junit.jupiter.api.Nested
+    class Desabonnement {
+
+        private com.clenzy.service.NotificationPreferenceService preferenceService;
+        private AssistantBriefingScheduler withPreferences;
+
+        @BeforeEach
+        void setUp() {
+            preferenceService = mock(com.clenzy.service.NotificationPreferenceService.class);
+            withPreferences = new AssistantBriefingScheduler(prefService, composer, delivery,
+                    logRepository, new ObjectMapper(), preferenceService);
+        }
+
+        @Test
+        void inAppCoupe_aucunBriefingNestGenere() {
+            // Le coeur du desabonnement : on ne doit meme pas APPELER le LLM.
+            when(preferenceService.isEnabled(anyString(),
+                    eq(com.clenzy.model.NotificationKey.BRIEFING_READY))).thenReturn(false);
+            AssistantBriefingPref p = pref("Europe/Paris", LocalTime.of(8, 0),
+                    AssistantBriefingPref.Frequency.WEEKLY_SUNDAY, true);
+            when(prefService.listEffectivePrefs()).thenReturn(List.of(p));
+
+            // 2026-01-18 est un dimanche ; 07:00 UTC = 08:00 Paris.
+            withPreferences.runFor(LocalDateTime.of(2026, 1, 18, 7, 0));
+
+            verify(composer, never()).compose(any());
+            verify(delivery, never()).dispatch(any(), anyString(), any(), any());
+            verify(logRepository, never()).save(any(AssistantBriefingLog.class));
+        }
+
+        @Test
+        void inAppActif_leBriefingPart() {
+            when(preferenceService.isEnabled(anyString(),
+                    eq(com.clenzy.model.NotificationKey.BRIEFING_READY))).thenReturn(true);
+            AssistantBriefingPref p = pref("Europe/Paris", LocalTime.of(8, 0),
+                    AssistantBriefingPref.Frequency.WEEKLY_SUNDAY, true);
+            when(prefService.listEffectivePrefs()).thenReturn(List.of(p));
+            when(composer.compose(any())).thenReturn(new BriefingComposer.BriefingResult(
+                    9L, "Revue", AssistantBriefingPref.Frequency.WEEKLY_SUNDAY));
+            when(delivery.dispatch(any(), anyString(), any(), any())).thenReturn(List.of("in_app"));
+
+            withPreferences.runFor(LocalDateTime.of(2026, 1, 18, 7, 0));
+
+            verify(composer).compose(any());
+        }
+
+        @Test
+        void emailDemande_lePreferenceInAppNeCoupePas() {
+            // Email n'a pas d'interrupteur dedie : couper la notification in-app
+            // ne doit pas priver l'utilisateur de son email.
+            when(preferenceService.isEnabled(anyString(), any())).thenReturn(false);
+            when(prefService.parseChannels(any(AssistantBriefingPref.class)))
+                    .thenReturn(List.of("in_app", "email"));
+
+            assertFalse(withPreferences.isFullyMuted("user-x", List.of("in_app", "email")));
+        }
+
+        @Test
+        void preferencesIllisibles_leBriefingEstMaintenu() {
+            // Mieux vaut un briefing de trop qu'un desabonnement silencieux
+            // provoque par une panne de base.
+            when(preferenceService.isEnabled(anyString(), any()))
+                    .thenThrow(new RuntimeException("base indisponible"));
+
+            assertFalse(withPreferences.isFullyMuted("user-x", List.of("in_app")));
+        }
+    }
 }

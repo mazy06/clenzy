@@ -34,6 +34,7 @@ import {
   Shield,
   Home,
   Email,
+  AutoAwesome,
 } from '../../icons';
 import { notificationPreferencesApi, type NotificationPreferencesMap } from '../../services/api/notificationPreferencesApi';
 
@@ -233,6 +234,24 @@ const CATEGORIES: CategoryGroup[] = [
       { key: 'DOCUMENT_GENERATION_FAILED', title: 'Echec de generation', description: 'Quand la generation d\'un document echoue' },
       { key: 'DOCUMENT_TEMPLATE_UPLOADED', title: 'Template uploade', description: 'Quand un nouveau template de document est uploade' },
       { key: 'DOCUMENT_SENT_BY_EMAIL', title: 'Document envoye par email', description: 'Quand un document est envoye par email au destinataire' },
+    ],
+  },
+  {
+    // Seule surface de desabonnement de la synthese hebdomadaire : les reglages
+    // IA sont reserves a l'equipe plateforme, cet ecran-ci reste celui de
+    // l'utilisateur. Couper l'interrupteur n'eteint pas que la notification —
+    // le scheduler saute le tour, donc plus d'appel LLM ni de conversation
+    // creee (cf. AssistantBriefingScheduler).
+    id: 'assistant',
+    label: 'Assistant & syntheses',
+    icon: <AutoAwesome fontSize="small" />,
+    color: 'var(--accent)',
+    keys: [
+      {
+        key: 'BRIEFING_READY',
+        title: 'Synthese periodique',
+        description: 'Votre revue hebdomadaire : performance, evenements marquants et priorites de la semaine',
+      },
     ],
   },
 ];
