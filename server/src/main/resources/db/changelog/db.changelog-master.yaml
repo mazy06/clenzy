@@ -3708,3 +3708,17 @@ databaseChangeLog:
       sqlFile:
         path: changes/0393__supervision_suggestion_org_level.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0394-management-contract-declarative-mandate"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0394__management_contract_declarative_mandate.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0395-tax-filings-per-property"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0395__tax_filings_per_property.sql
+        relativeToChangelogFile: true

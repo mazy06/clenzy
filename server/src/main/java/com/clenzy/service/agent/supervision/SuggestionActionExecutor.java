@@ -638,12 +638,38 @@ public class SuggestionActionExecutor {
 
     /**
      * TAX_MARK_FILED — trace le dépôt manuel au registre (CAS DUE → FILED, org validée
-     * par la requête). La référence de dépôt se complète ensuite dans Rapports.
-     * Écriture DB pure.
+     * par la requête). La carte porte UNE commune et donc PLUSIEURS déclarations depuis
+     * la ventilation par logement : un dépôt vaut pour tous les logements de la commune,
+     * on les marque ensemble. Ancien format {@code filingId} accepté (cartes en vol).
+     * La référence de dépôt se complète ensuite dans Rapports. Écriture DB pure.
      */
     private void applyTaxMarkFiled(SupervisionSuggestion suggestion) {
-        final long filingId = requiredLongParam(suggestion, "filingId");
-        taxFilingService.getObject().markFiled(filingId, suggestion.getOrganizationId(), null);
+        final java.util.List<Long> filingIds = longListParam(suggestion, "filingIds");
+        if (filingIds.isEmpty()) {
+            taxFilingService.getObject().markFiled(
+                    requiredLongParam(suggestion, "filingId"), suggestion.getOrganizationId(), null);
+            return;
+        }
+        for (Long filingId : filingIds) {
+            taxFilingService.getObject().markFiled(filingId, suggestion.getOrganizationId(), null);
+        }
+    }
+
+    /** Liste d'identifiants d'un paramètre tableau — vide si absent ou illisible. */
+    private java.util.List<Long> longListParam(SupervisionSuggestion suggestion, String field) {
+        try {
+            final JsonNode node = objectMapper.readTree(suggestion.getActionParams()).get(field);
+            if (node == null || !node.isArray()) {
+                return java.util.List.of();
+            }
+            final java.util.List<Long> ids = new java.util.ArrayList<>();
+            node.forEach(element -> {
+                if (element.canConvertToLong()) ids.add(element.asLong());
+            });
+            return ids;
+        } catch (Exception e) {
+            return java.util.List.of();
+        }
     }
 
     /**

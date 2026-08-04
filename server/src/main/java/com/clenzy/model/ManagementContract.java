@@ -57,6 +57,16 @@ public class ManagementContract {
         AGENCY, OWNER
     }
 
+    /**
+     * Qui porte une obligation RÉGLEMENTAIRE — distinct de {@link OtaFeeBearer},
+     * qui porte une charge financière. Même vocabulaire volontairement : dans
+     * ce contrat, une responsabilité se répartit toujours entre le mandataire
+     * (l'agence) et le mandant (le propriétaire).
+     */
+    public enum ObligationBearer {
+        AGENCY, OWNER
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -108,6 +118,32 @@ public class ManagementContract {
     @Enumerated(EnumType.STRING)
     @Column(name = "ota_fee_borne_by", nullable = false, length = 20)
     private OtaFeeBearer otaFeeBorneBy = OtaFeeBearer.AGENCY;
+
+    /**
+     * Mandat DÉCLARATIF — qui porte chaque obligation réglementaire.
+     *
+     * <p>Le contrat répartissait l'argent et le périmètre opérationnel, jamais
+     * le déclaratif : la conciergerie télédéclarait avec ses propres accès pour
+     * tous les biens de son périmètre, sans qu'aucune trace n'établisse qu'elle
+     * y était autorisée. Ces trois champs le disent, obligation par obligation
+     * — dans la pratique une conciergerie déclare volontiers la fiche de police
+     * mais rarement la taxe de séjour.</p>
+     *
+     * <p>Défaut AGENCY : l'existant garde son comportement, le choix devient
+     * explicite à la signature. Le texte du mandat doit les reprendre — sans
+     * quoi le champ n'est qu'un réglage, pas une autorisation.</p>
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "police_declaration_by", nullable = false, length = 20)
+    private ObligationBearer policeDeclarationBy = ObligationBearer.AGENCY;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tourist_tax_by", nullable = false, length = 20)
+    private ObligationBearer touristTaxBy = ObligationBearer.AGENCY;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "licence_held_by", nullable = false, length = 20)
+    private ObligationBearer licenceHeldBy = ObligationBearer.AGENCY;
 
     @Column(name = "minimum_stay_nights")
     private Integer minimumStayNights;
@@ -186,6 +222,15 @@ public class ManagementContract {
 
     public OtaFeeBearer getOtaFeeBorneBy() { return otaFeeBorneBy; }
     public void setOtaFeeBorneBy(OtaFeeBearer otaFeeBorneBy) { this.otaFeeBorneBy = otaFeeBorneBy; }
+
+    public ObligationBearer getPoliceDeclarationBy() { return policeDeclarationBy; }
+    public void setPoliceDeclarationBy(ObligationBearer policeDeclarationBy) { this.policeDeclarationBy = policeDeclarationBy; }
+
+    public ObligationBearer getTouristTaxBy() { return touristTaxBy; }
+    public void setTouristTaxBy(ObligationBearer touristTaxBy) { this.touristTaxBy = touristTaxBy; }
+
+    public ObligationBearer getLicenceHeldBy() { return licenceHeldBy; }
+    public void setLicenceHeldBy(ObligationBearer licenceHeldBy) { this.licenceHeldBy = licenceHeldBy; }
     public Integer getMinimumStayNights() { return minimumStayNights; }
     public void setMinimumStayNights(Integer minimumStayNights) { this.minimumStayNights = minimumStayNights; }
     public Boolean getAutoRenew() { return autoRenew; }

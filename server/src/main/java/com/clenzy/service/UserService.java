@@ -501,6 +501,10 @@ public class UserService {
         return switch (userRole) {
             case SUPER_ADMIN, SUPER_MANAGER -> OrgMemberRole.ADMIN;
             case HOST -> OrgMemberRole.OWNER;
+            // Le proprietaire tiers est une PARTIE au contrat, pas un dirigeant :
+            // OrgMemberRole.HOST (« proprietaire rattache a l'organisation »), et
+            // surtout pas OWNER, qui designe le createur de l'organisation.
+            case PROPERTY_OWNER -> OrgMemberRole.HOST;
             case SUPERVISOR -> OrgMemberRole.SUPERVISOR;
             case HOUSEKEEPER -> OrgMemberRole.HOUSEKEEPER;
             case TECHNICIAN -> OrgMemberRole.TECHNICIAN;

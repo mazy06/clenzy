@@ -5,6 +5,7 @@ import com.clenzy.model.GuestDeclaration;
 import com.clenzy.model.ManagementContract;
 import com.clenzy.repository.GuestDeclarationRepository;
 import com.clenzy.repository.ManagementContractRepository;
+import com.clenzy.service.compliance.ObligationOwnership;
 import com.clenzy.service.signature.ContractSignatureService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,7 @@ public class ComplianceScanner {
     private final com.clenzy.repository.PropertyRepository propertyRepository;
     private final com.clenzy.repository.PropertyLicenseRepository propertyLicenseRepository;
     private final com.clenzy.repository.PrivacyRequestRepository privacyRequestRepository;
+    private final com.clenzy.service.compliance.ObligationOwnership obligationOwnership;
     private final SupervisionSuggestionService suggestionService;
     private final java.time.Clock clock;
 
@@ -54,6 +56,7 @@ public class ComplianceScanner {
                              com.clenzy.repository.PropertyRepository propertyRepository,
                              com.clenzy.repository.PropertyLicenseRepository propertyLicenseRepository,
                              com.clenzy.repository.PrivacyRequestRepository privacyRequestRepository,
+                             com.clenzy.service.compliance.ObligationOwnership obligationOwnership,
                              SupervisionSuggestionService suggestionService,
                              java.time.Clock clock) {
         this.declarationRepository = declarationRepository;
@@ -64,6 +67,7 @@ public class ComplianceScanner {
         this.propertyRepository = propertyRepository;
         this.propertyLicenseRepository = propertyLicenseRepository;
         this.privacyRequestRepository = privacyRequestRepository;
+        this.obligationOwnership = obligationOwnership;
         this.suggestionService = suggestionService;
         this.clock = clock;
     }
@@ -153,6 +157,10 @@ public class ComplianceScanner {
      */
     private void scanExpiringLicenses(Long orgId, Long propertyId) {
         final java.time.LocalDate today = java.time.LocalDate.now(clock);
+        // Licence détenue par le propriétaire : la conciergerie ne peut pas la
+        // renouveler, elle peut prévenir. Le texte change, pas la vigilance.
+        final boolean orgHolds = obligationOwnership.orgBears(
+                orgId, propertyId, ObligationOwnership.Obligation.LICENCE);
         for (com.clenzy.model.PropertyLicense license : propertyLicenseRepository
                 .findByPropertyIdAndOrganizationIdOrderByExpiresAtAsc(propertyId, orgId)) {
             if (license.getExpiresAt() == null
@@ -171,10 +179,14 @@ public class ComplianceScanner {
                             + license.getExpiresAt()
                             + (license.getLicenseNumber() != null
                                 ? " (n° " + license.getLicenseNumber() + ")" : ""),
-                    "Le renouvellement est à déposer auprès de "
-                            + (license.getIssuedBy() != null ? license.getIssuedBy() : "l'autorité émettrice")
-                            + ". Sans licence valide, l'annonce peut être retirée des canaux — "
-                            + "mettre à jour l'échéance dans la fiche du logement une fois renouvelée.");
+                    orgHolds
+                            ? "Le renouvellement est à déposer auprès de "
+                                    + (license.getIssuedBy() != null ? license.getIssuedBy() : "l'autorité émettrice")
+                                    + ". Sans licence valide, l'annonce peut être retirée des canaux — "
+                                    + "mettre à jour l'échéance dans la fiche du logement une fois renouvelée."
+                            : "La licence est détenue par le propriétaire selon le mandat de gestion : "
+                                    + "le renouvellement lui revient. Sans licence valide, l'annonce peut "
+                                    + "être retirée des canaux — le prévenir dès maintenant.");
         }
     }
 
@@ -198,50 +210,111 @@ public class ComplianceScanner {
         final java.time.LocalDate quarterStart = today
                 .withMonth(((today.getMonthValue() - 1) / 3) * 3 + 1).withDayOfMonth(1);
         final java.time.LocalDate prevQuarterStart = quarterStart.minusMonths(3);
-        final var report = touristTaxService.computeForPeriod(
-                orgId, prevQuarterStart, quarterStart.minusDays(1));
-        if (report == null || report.totalTax() == null || report.totalTax().signum() <= 0) {
+        final java.time.LocalDate prevQuarterEnd = quarterStart.minusDays(1);
+        final var report = touristTaxService.computeForPeriod(orgId, prevQuarterStart, prevQuarterEnd);
+        if (report == null || report.lines() == null || report.lines().isEmpty()) {
             return; // rien de taxable sur le trimestre
         }
-        // Registre (M2) : l'entrée DUE du trimestre est créée (idempotent, unique
-        // org+période) ; la carte ne se lève que tant qu'elle n'est pas déposée.
-        final com.clenzy.model.TaxFiling filing = taxFilingService.ensureDueFiling(
-                orgId, prevQuarterStart, quarterStart.minusDays(1), report.totalTax(), "EUR");
-        if (filing.getStatus() != com.clenzy.model.TaxFiling.Status.DUE) {
-            return; // déjà déposée/payée
+
+        // Ventilation PAR LOGEMENT : c'est lui qui porte la commune (donc l'autorité
+        // à qui l'on dépose), le barème dérogatoire, et le mandat déclaratif. Un
+        // total d'organisation mélangeait des communes qui ne se déclarent ni au
+        // même endroit ni au même calendrier.
+        final java.util.Map<Long, java.math.BigDecimal> byProperty = new java.util.LinkedHashMap<>();
+        final java.util.Map<Long, String> communeOf = new java.util.HashMap<>();
+        for (var line : report.lines()) {
+            if (line.propertyId() == null || line.taxAmount() == null) {
+                continue;
+            }
+            byProperty.merge(line.propertyId(), line.taxAmount(), java.math.BigDecimal::add);
+            if (line.communeName() != null) {
+                communeOf.putIfAbsent(line.propertyId(), line.communeName());
+            }
         }
+
+        // Une carte par COMMUNE : c'est l'acte réel (« j'ai déposé à Marrakech »),
+        // et chaque commune porte les identifiants de déclaration de ses logements.
+        final java.util.Map<String, java.util.List<Long>> filingsByCommune = new java.util.LinkedHashMap<>();
+        final java.util.Map<String, java.math.BigDecimal> totalByCommune = new java.util.LinkedHashMap<>();
+        for (var entry : byProperty.entrySet()) {
+            final Long taxedPropertyId = entry.getKey();
+            if (entry.getValue().signum() <= 0) {
+                continue;
+            }
+            // Le mandat peut laisser la taxe au propriétaire : elle sort alors du
+            // périmètre déclaratif de la conciergerie — et de son total.
+            if (!obligationOwnership.orgBears(orgId, taxedPropertyId,
+                    ObligationOwnership.Obligation.TOURIST_TAX)) {
+                continue;
+            }
+            final com.clenzy.model.TaxFiling filing = taxFilingService.ensureDueFiling(
+                    orgId, taxedPropertyId, prevQuarterStart, prevQuarterEnd, entry.getValue(), "EUR");
+            if (filing.getStatus() != com.clenzy.model.TaxFiling.Status.DUE) {
+                continue; // déjà déposée/payée pour ce logement
+            }
+            final String commune = communeOf.getOrDefault(taxedPropertyId, "commune non renseignée");
+            filingsByCommune.computeIfAbsent(commune, k -> new java.util.ArrayList<>()).add(filing.getId());
+            totalByCommune.merge(commune, filing.getAmount(), java.math.BigDecimal::add);
+        }
+        if (filingsByCommune.isEmpty()) {
+            return;
+        }
+
         final int quarter = ((prevQuarterStart.getMonthValue() - 1) / 3) + 1;
-        suggestionService.recordOrgActionable(orgId, propertyId, MODULE_CMP,
-                "Taxe de séjour T" + quarter + " " + prevQuarterStart.getYear()
-                        + " : " + filing.getAmount() + " " + filing.getCurrency(),
-                "Trimestre " + prevQuarterStart + " → " + quarterStart.minusDays(1)
-                        + " clôturé, " + filing.getAmount() + " " + filing.getCurrency()
-                        + " calculés (exonérations déduites, détail dans Rapports > Taxe de "
-                        + "séjour). Après votre dépôt auprès de l'autorité, « Marquer déclarée » "
-                        + "trace le dépôt au registre — rien n'est télédéclaré automatiquement.",
-                SupervisionActionType.TAX_MARK_FILED,
-                "{\"filingId\":" + filing.getId() + "}",
-                filing.getAmount().movePointRight(2)
-                        .setScale(0, java.math.RoundingMode.HALF_UP).longValueExact(),
-                "info");
+        for (var commune : filingsByCommune.entrySet()) {
+            final java.math.BigDecimal total = totalByCommune.get(commune.getKey());
+            final String ids = commune.getValue().stream().map(String::valueOf)
+                    .collect(java.util.stream.Collectors.joining(","));
+            suggestionService.recordOrgActionable(orgId, propertyId, MODULE_CMP,
+                    "Taxe de séjour T" + quarter + " " + prevQuarterStart.getYear()
+                            + " — " + commune.getKey() + " : " + total + " EUR",
+                    "Trimestre " + prevQuarterStart + " → " + prevQuarterEnd + " clôturé pour "
+                            + commune.getValue().size() + " logement(s) de " + commune.getKey()
+                            + ", " + total + " EUR calculés (exonérations déduites, détail dans "
+                            + "Rapports > Taxe de séjour). Après votre dépôt auprès de la commune, "
+                            + "« Marquer déclarée » trace le dépôt au registre — rien n'est "
+                            + "télédéclaré automatiquement.",
+                    SupervisionActionType.TAX_MARK_FILED,
+                    "{\"filingIds\":[" + ids + "]}",
+                    total.movePointRight(2).setScale(0, java.math.RoundingMode.HALF_UP).longValueExact(),
+                    "info");
+        }
     }
 
     private void scanPoliceDeclarations(Long orgId, Long propertyId) {
         final List<GuestDeclaration> submittable = declarationRepository
                 .findSubmittableByProperty(orgId, propertyId, DeclarationStatus.COMPLETED);
+        // Qui déclare ? Le mandat le dit (défaut : l'exploitant). Quand le
+        // propriétaire déclare, la conciergerie ne peut PAS le faire à sa place —
+        // ses identifiants de téléservice ne l'engagent pas. Le geste qui lui
+        // reste est la relance, et c'est celui qu'on lui propose.
+        final boolean orgDeclares = obligationOwnership.orgBears(
+                orgId, propertyId, ObligationOwnership.Obligation.POLICE_DECLARATION);
         // Une carte par RÉSERVATION (l'apply soumet toutes les fiches complétées du séjour).
         submittable.stream()
                 .map(d -> d.getReservation())
                 .filter(r -> r != null && r.getId() != null)
                 .distinct()
-                .forEach(reservation -> suggestionService.recordActionableStrict(
-                        orgId, propertyId, MODULE_CMP, reservation.getId(),
-                        "Fiche police à télédéclarer (réservation #" + reservation.getId() + ")",
-                        "Fiche(s) voyageur complétée(s) mais pas encore déposée(s) auprès de "
-                                + "l'autorité. « Télédéclarer » soumet toutes les fiches complétées "
-                                + "du séjour via le canal configuré.",
-                        SupervisionActionType.POLICE_DECLARE,
-                        "{\"reservationId\":" + reservation.getId() + "}", null, "warning"));
+                .forEach(reservation -> {
+                    if (orgDeclares) {
+                        suggestionService.recordActionableStrict(
+                                orgId, propertyId, MODULE_CMP, reservation.getId(),
+                                "Fiche police à télédéclarer (réservation #" + reservation.getId() + ")",
+                                "Fiche(s) voyageur complétée(s) mais pas encore déposée(s) auprès de "
+                                        + "l'autorité. « Télédéclarer » soumet toutes les fiches complétées "
+                                        + "du séjour via le canal configuré.",
+                                SupervisionActionType.POLICE_DECLARE,
+                                "{\"reservationId\":" + reservation.getId() + "}", null, "warning");
+                    } else {
+                        suggestionService.record(orgId, propertyId, MODULE_CMP, "police_owner_bears",
+                                "Fiche police à faire déposer par le propriétaire (réservation #"
+                                        + reservation.getId() + ")",
+                                "Le mandat de gestion laisse la télédéclaration au propriétaire : "
+                                        + "vos identifiants de téléservice ne l'engagent pas. Les fiches "
+                                        + "sont complétées et prêtes — il reste à le relancer.",
+                                reservation.getId(), "warning");
+                    }
+                });
     }
 
     private void scanUnsignedMandates(Long orgId, Long propertyId) {

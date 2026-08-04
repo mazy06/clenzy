@@ -15,6 +15,10 @@ public interface TaxFilingRepository extends JpaRepository<TaxFiling, Long> {
 
     Optional<TaxFiling> findByOrganizationIdAndPeriodStart(Long organizationId, LocalDate periodStart);
 
+    /** Déclaration d'UN logement pour une période (granularité depuis la ventilation). */
+    Optional<TaxFiling> findByOrganizationIdAndPropertyIdAndPeriodStart(
+            Long organizationId, Long propertyId, LocalDate periodStart);
+
     Optional<TaxFiling> findByIdAndOrganizationId(Long id, Long organizationId);
 
     List<TaxFiling> findByOrganizationIdOrderByPeriodStartDesc(Long organizationId);

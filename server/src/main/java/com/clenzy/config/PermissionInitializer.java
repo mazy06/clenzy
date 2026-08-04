@@ -84,8 +84,12 @@ public class PermissionInitializer {
                 List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST", "TECHNICIAN", "HOUSEKEEPER", "SUPERVISOR", "LAUNDRY", "EXTERIOR_TECH"));
 
         // --- Properties ---
+        // PROPERTY_OWNER : partie au contrat, pas membre de l org. Il CONSULTE ce qui
+        // le concerne (ses biens, ses reservations, ses paiements, ses documents) et
+        // decide de ce qui engage son patrimoine. Il n exploite pas : ni tarifs, ni
+        // calendrier, ni menage, ni messages voyageurs — objets du mandat de gestion.
         anyCreated |= ensurePermission("properties:view", "Voir les proprietes", "properties",
-                List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
+                List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST", "PROPERTY_OWNER"));
         anyCreated |= ensurePermission("properties:create", "Creer des proprietes", "properties",
                 List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
         anyCreated |= ensurePermission("properties:edit", "Modifier des proprietes", "properties",
@@ -193,14 +197,14 @@ public class PermissionInitializer {
                 List.of("TECHNICIAN", "EXTERIOR_TECH"));
 
         // --- Payments ---
-        anyCreated |= ensurePermission("payments:view", "Voir l'historique des paiements", "payments",
-                List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
+        anyCreated |= ensurePermission("payments:view", "Voir l historique des paiements", "payments",
+                List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST", "PROPERTY_OWNER"));
         anyCreated |= ensurePermission("payments:manage", "Gerer les paiements, remboursements et portefeuilles", "payments",
                 List.of("SUPER_ADMIN", "SUPER_MANAGER"));
 
         // --- Reservations ---
         anyCreated |= ensurePermission("reservations:view", "Voir les reservations", "reservations",
-                List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST", "SUPERVISOR"));
+                List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST", "SUPERVISOR", "PROPERTY_OWNER"));
         anyCreated |= ensurePermission("reservations:create", "Creer des reservations", "reservations",
                 List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
         anyCreated |= ensurePermission("reservations:edit", "Modifier des reservations", "reservations",

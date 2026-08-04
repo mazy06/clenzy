@@ -100,14 +100,17 @@ class ActionItemQueryServiceTest {
     }
 
     @Test
-    void whenTheViewerIsAHost_thenOrganizationWideActionsStayOutOfSight() {
+    void whenTheViewerIsAHost_thenOrganizationWideActionsRemainVisible() {
         when(propertyRepository.findIdsByOwnerKeycloakId("kc-owner", ORG))
                 .thenReturn(List.of(300L));
-        // Une invitation ou un litige ne se rattache à aucun logement : ce sont
-        // des affaires d'organisation, pas d'un hôte en particulier.
+        // Une ligne sans logement porte une obligation de l ORGANISATION : RGPD,
+        // taxe, invitation. La masquer à l exploitant revenait à lui cacher ses
+        // propres échéances — un propriétaire tiers, lui, n a pas cet écran.
         queueContains(row(ActionItemKind.INVITATION_EXPIRED, "invitation:7", null));
 
-        assertThat(service.getActionItems(ORG, UserRole.HOST, "kc-owner").items()).isEmpty();
+        assertThat(service.getActionItems(ORG, UserRole.HOST, "kc-owner").items())
+                .extracting(item -> item.id())
+                .containsExactly("invitation:7");
     }
 
     @Test

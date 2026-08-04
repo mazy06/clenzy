@@ -29,6 +29,15 @@ public class TaxFiling {
     @Column(name = "organization_id", nullable = false)
     private Long organizationId;
 
+    /**
+     * Logement déclaré. NULL = ligne historique « org, ancien format » : avant la
+     * ventilation, une déclaration valait pour toute l organisation — ce qui était
+     * faux dès que le portefeuille couvrait plusieurs communes, chacune ayant son
+     * barème et son calendrier.
+     */
+    @Column(name = "property_id")
+    private Long propertyId;
+
     @Column(name = "period_start", nullable = false)
     private LocalDate periodStart;
 
@@ -69,6 +78,9 @@ public class TaxFiling {
     public void setId(Long id) { this.id = id; }
     public Long getOrganizationId() { return organizationId; }
     public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
+    public Long getPropertyId() { return propertyId; }
+    public void setPropertyId(Long propertyId) { this.propertyId = propertyId; }
+
     public LocalDate getPeriodStart() { return periodStart; }
     public void setPeriodStart(LocalDate periodStart) { this.periodStart = periodStart; }
     public LocalDate getPeriodEnd() { return periodEnd; }

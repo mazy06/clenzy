@@ -48,7 +48,8 @@ class ComplianceSubmissionServiceTest {
     @BeforeEach
     void setUp() {
         service = new ComplianceSubmissionService(
-                declarationRepository, connectionService, strategyRegistry, accessGuard, selfProvider);
+                declarationRepository, connectionService, strategyRegistry, accessGuard, selfProvider,
+                org.mockito.Mockito.mock(com.clenzy.service.compliance.ObligationOwnership.class));
         // self.getObject() renvoie l'instance réelle pour que applySubmissionResult s'exécute.
         lenient().when(selfProvider.getObject()).thenReturn(service);
     }

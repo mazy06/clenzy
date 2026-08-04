@@ -18,7 +18,7 @@ class EnumCoverageTest {
     @DisplayName("UserRole")
     class UserRoleTests {
         @Test void allValuesExist() {
-            assertThat(UserRole.values()).hasSize(8);
+            assertThat(UserRole.values()).hasSize(9);
         }
         @Test void displayNamesNotBlank() {
             for (UserRole r : UserRole.values()) {

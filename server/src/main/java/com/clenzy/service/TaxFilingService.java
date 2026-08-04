@@ -39,15 +39,16 @@ public class TaxFilingService {
      * une fois l'entrée créée (le calcul de clôture fait foi).
      */
     @Transactional
-    public TaxFiling ensureDueFiling(Long orgId, LocalDate periodStart, LocalDate periodEnd,
-                                     BigDecimal amount, String currency) {
-        final Optional<TaxFiling> existing =
-                repository.findByOrganizationIdAndPeriodStart(orgId, periodStart);
+    public TaxFiling ensureDueFiling(Long orgId, Long propertyId, LocalDate periodStart,
+                                     LocalDate periodEnd, BigDecimal amount, String currency) {
+        final Optional<TaxFiling> existing = repository
+                .findByOrganizationIdAndPropertyIdAndPeriodStart(orgId, propertyId, periodStart);
         if (existing.isPresent()) {
             return existing.get();
         }
         final TaxFiling filing = new TaxFiling();
         filing.setOrganizationId(orgId);
+        filing.setPropertyId(propertyId);
         filing.setPeriodStart(periodStart);
         filing.setPeriodEnd(periodEnd);
         filing.setAmount(amount);
@@ -56,7 +57,8 @@ public class TaxFilingService {
             return repository.save(filing);
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
             // Course entre deux scans : l'unique a tranché, on relit le gagnant.
-            return repository.findByOrganizationIdAndPeriodStart(orgId, periodStart)
+            return repository.findByOrganizationIdAndPropertyIdAndPeriodStart(
+                            orgId, propertyId, periodStart)
                     .orElseThrow(() -> e);
         }
     }
