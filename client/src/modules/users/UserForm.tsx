@@ -183,9 +183,11 @@ const UserForm: React.FC = () => {
       <div className="p-3">
         <Alert variant="info" className="p-3 py-1.5">
           <Info />
-          <AlertDescription><h6 className="cn-text-subtitle1 mb-1.5">
+          {/* `m-0` reprend ce que portait `cn-text-*` : sans preflight Tailwind,
+              un <h6>/<p> natif recupere sinon les marges du navigateur. */}
+          <AlertDescription><h6 className="m-0 mb-1.5 text-sm font-medium">
             Accès non autorisé
-          </h6><p className="cn-text-body2 text-[0.85rem]">
+          </h6><p className="m-0 text-sm">
             Vous n'avez pas les permissions nécessaires pour créer des utilisateurs.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
@@ -278,7 +280,7 @@ const UserForm: React.FC = () => {
         <CardContent className="p-3">
           <form onSubmit={handleSubmit(onSubmit)}>
             {/* Informations personnelles */}
-            <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
+            <h6 className="m-0 mb-2 text-sm font-semibold text-primary">
               Informations personnelles
             </h6>
 
@@ -321,7 +323,7 @@ const UserForm: React.FC = () => {
             </div>
 
             {/* Informations de contact */}
-            <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
+            <h6 className="m-0 mb-2 text-sm font-semibold text-primary">
               Informations de contact
             </h6>
 
@@ -365,7 +367,7 @@ const UserForm: React.FC = () => {
             </div>
 
             {/* Sécurité */}
-            <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
+            <h6 className="m-0 mb-2 text-sm font-semibold text-primary">
               Sécurité
             </h6>
 
@@ -418,7 +420,7 @@ const UserForm: React.FC = () => {
             </div>
 
             {/* Rôle et statut */}
-            <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
+            <h6 className="m-0 mb-2 text-sm font-semibold text-primary">
               Rôle et statut
             </h6>
 
@@ -489,13 +491,17 @@ const UserForm: React.FC = () => {
               </div>
             </div>
 
-            {/* Aperçu du rôle sélectionné */}
+            {/* Aperçu du rôle sélectionné. Icone lucide et non un emoji (interdit
+                produit) ; les deux lignes sont des blocs, sans quoi `mb-1` sur un
+                <span> inline n'a aucun effet et les deux textes se suivent sur la
+                meme ligne. */}
             {watchedRole && (
-              <div className="mb-3 p-2 bg-[var(--field)] border border-[var(--field-line)] rounded-[8px]">
-                <span className="cn-text-caption text-primary mb-1 font-semibold text-[0.75rem]">
-                  📋 Rôle sélectionné : {userRoles.find(r => r.value === watchedRole)?.label}
+              <div className="mb-3 p-2 bg-field border border-solid border-field-line rounded-md">
+                <span className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-primary">
+                  <AdminPanelSettings size={14} strokeWidth={1.75} />
+                  Rôle sélectionné : {userRoles.find(r => r.value === watchedRole)?.label}
                 </span>
-                <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
+                <span className="block text-[0.7rem] text-muted-foreground">
                   {watchedRole === 'SUPER_ADMIN' && 'Super administrateur avec accès complet multi-organisations'}
                   {watchedRole === 'SUPER_MANAGER' && 'Super manager avec gestion étendue multi-équipes'}
                   {watchedRole === 'SUPERVISOR' && 'Supervision des interventions et du personnel'}
@@ -509,7 +515,7 @@ const UserForm: React.FC = () => {
             )}
 
             {/* Organisation */}
-            <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
+            <h6 className="m-0 mb-2 text-sm font-semibold text-primary">
               Organisation
             </h6>
 

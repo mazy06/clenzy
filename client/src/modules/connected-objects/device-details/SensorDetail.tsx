@@ -1,28 +1,32 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import StatusChip from '../../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
 import { Button } from '../../../components/ui';
 import { useNotification } from '../../../hooks/useNotification';
 import { Refresh } from '../../../icons';
 import { environmentSensorsApi, type EnvironmentSensorDto } from '../../../services/api/environmentSensorsApi';
-import { STATUS_TOKENS } from '../deviceRegistry';
 import BatteryIndicator from '../components/BatteryIndicator';
 import { type ReactNode } from 'react';
 import type { ConnectedDevice, DeviceStatusLevel } from '../types';
 
-// Pilule statut : texte couleur + fond `-soft` (tokens sémantiques Signature,
-// mêmes niveaux que StatusPill — remplace l'ancien helper hex softChipSx).
-/** Tokens de la primitive pour un niveau de statut d'appareil. */
-const statusTokens = (level: DeviceStatusLevel) => {
-  const { color, soft } = STATUS_TOKENS[level];
-  return { color, bg: soft };
+/**
+ * Niveau de statut d'appareil → ton sémantique de la primitive. La table des
+ * tons porte le couple encre `-ink` / fond `-soft` conforme AA ; un niveau
+ * hors ligne ou inconnu n'est pas une couleur, c'est du neutre.
+ */
+const STATUS_LEVEL_TONES: Record<DeviceStatusLevel, StatusTone> = {
+  ok: 'ok',
+  warning: 'warn',
+  critical: 'err',
+  offline: 'neutral',
+  unknown: 'neutral',
 };
 
 function InfoRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex justify-between items-center gap-3 py-1">
-      <span className="cn-text-caption text-muted-foreground">{label}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
       <div className="font-semibold text-foreground text-end tabular-nums">{value}</div>
     </div>
   );
@@ -57,19 +61,19 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
   const primary = (() => {
     switch (sensor.sensorType) {
       case 'CONTACT': {
-        if (sensor.contactOpen == null) return { label: 'État', node: <StatusChip pill tokens={statusTokens('unknown')} label="Inconnu" /> };
+        if (sensor.contactOpen == null) return { label: 'État', node: <StatusChip pill tone={STATUS_LEVEL_TONES.unknown} label="Inconnu" /> };
         const open = sensor.contactOpen === true;
-        return { label: 'État', node: <StatusChip pill tokens={statusTokens(open ? 'warning' : 'ok')} label={open ? 'Ouvert' : 'Fermé'} /> };
+        return { label: 'État', node: <StatusChip pill tone={STATUS_LEVEL_TONES[open ? 'warning' : 'ok']} label={open ? 'Ouvert' : 'Fermé'} /> };
       }
       case 'MOTION': {
-        if (sensor.motionDetected == null) return { label: 'Mouvement', node: <StatusChip pill tokens={statusTokens('unknown')} label="Inconnu" /> };
+        if (sensor.motionDetected == null) return { label: 'Mouvement', node: <StatusChip pill tone={STATUS_LEVEL_TONES.unknown} label="Inconnu" /> };
         const m = sensor.motionDetected === true;
-        return { label: 'Mouvement', node: <StatusChip pill tokens={statusTokens(m ? 'warning' : 'ok')} label={m ? 'Détecté' : 'Aucun'} /> };
+        return { label: 'Mouvement', node: <StatusChip pill tone={STATUS_LEVEL_TONES[m ? 'warning' : 'ok']} label={m ? 'Détecté' : 'Aucun'} /> };
       }
       case 'SMOKE': {
-        if (sensor.smokeDetected == null) return { label: 'Fumée / vape', node: <StatusChip pill tokens={statusTokens('unknown')} label="Inconnu" /> };
+        if (sensor.smokeDetected == null) return { label: 'Fumée / vape', node: <StatusChip pill tone={STATUS_LEVEL_TONES.unknown} label="Inconnu" /> };
         const s = sensor.smokeDetected === true;
-        return { label: 'Fumée / vape', node: <StatusChip pill tokens={statusTokens(s ? 'critical' : 'ok')} label={s ? 'Détectée' : 'Aucune'} /> };
+        return { label: 'Fumée / vape', node: <StatusChip pill tone={STATUS_LEVEL_TONES[s ? 'critical' : 'ok']} label={s ? 'Détectée' : 'Aucune'} /> };
       }
       default:
         return null; // climate : pas de chip binaire, on montre les mesures
@@ -80,7 +84,7 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
     <div className="flex flex-col gap-3">
       <Card className="gap-0 py-0 p-3">
         <div className="flex justify-between items-center mb-1.5">
-          <h6 className="cn-text-subtitle2 font-bold">État du capteur</h6>
+          <h6 className="text-xs font-semibold">État du capteur</h6>
           <Button
             size="sm"
             variant="outline"
@@ -115,14 +119,14 @@ export default function SensorDetail({ device }: { device: ConnectedDevice }) {
       </Card>
 
       <Card className="gap-0 py-0 p-3">
-        <h6 className="cn-text-subtitle2 font-bold mb-1.5">Identité</h6>
+        <h6 className="text-xs font-semibold mb-1.5">Identité</h6>
         <InfoRow label="Pièce" value={device.roomName || '—'} />
         <InfoRow label="Fournisseur" value={sensor.brand || '—'} />
         <InfoRow label="Logement" value={device.propertyName} />
       </Card>
 
       {(sensor.sensorType === 'SMOKE' || sensor.sensorType === 'MOTION') && (
-        <span className="cn-text-caption text-muted-foreground px-0.5">
+        <span className="text-xs text-muted-foreground px-0.5">
           Une notification est envoyée aux administrateurs et managers de l'organisation à chaque détection
           {sensor.sensorType === 'SMOKE' ? ' de fumée ou de vape' : ' de mouvement'} (avec anti-spam).
         </span>

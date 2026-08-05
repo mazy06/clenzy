@@ -43,13 +43,13 @@ import {
   useTemplates,
   useCheckTemplateCompliance,
 } from './hooks/useDocuments';
-import StatTile from '../../components/StatTile';
+import StatTile from '../../components/baitly/StatTile';
 
-// ─── Palette (hex requis par l'API StatTile — équivalents des tokens) ────────
-const PRIMARY = '#6B8A9A';
-const ACCENT_TEAL = '#4A9B8E';
-const SOFT_BLUE = '#7BA3C2';
-const WARM = '#D4A574';
+// ─── Teintes d'icone des tuiles KPI (classes Baitly UI) ─────────────────────
+const PRIMARY = 'text-primary';
+const ACCENT_TEAL = 'text-success';
+const SOFT_BLUE = 'text-info';
+const WARM = 'text-warning';
 
 // ─── Country display ─────────────────────────────────────────────────────────
 
@@ -277,17 +277,17 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                   <span className="w-8 shrink-0 text-[1.1rem] leading-none">{opt.flag}</span>
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="text-[0.85rem] font-medium">{opt.label}</span>
-                    <span className="text-[0.72rem] text-[var(--muted)]">{opt.standard}</span>
+                    <span className="text-[0.72rem] text-muted-foreground">{opt.standard}</span>
                   </span>
                   {opt.code === countryCode && (
-                    <span className="inline-flex text-[var(--ok)] ms-1.5"><Check size={18} strokeWidth={1.75} /></span>
+                    <span className="inline-flex text-success ms-1.5"><Check size={18} strokeWidth={1.75} /></span>
                   )}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <Badge variant="secondary" className="text-[var(--accent)] bg-[var(--accent-soft)] [&>svg]:text-[var(--accent)]"><Public size={14} strokeWidth={1.75} />{`${countryFlag} ${countryLabel} \u2014 ${standardName}`}</Badge>
+          <Badge variant="secondary" className="text-primary bg-primary-soft [&>svg]:text-primary"><Public size={14} strokeWidth={1.75} />{`${countryFlag} ${countryLabel} \u2014 ${standardName}`}</Badge>
         )}
       </div>
 
@@ -298,25 +298,25 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
             icon={<Description size={16} strokeWidth={1.75} />}
             label={t('documents.compliance.totalDocuments')}
             value={stats.totalDocuments}
-            color={PRIMARY}
+            iconClassName={PRIMARY}
           />
           <StatTile
             icon={<Lock size={16} strokeWidth={1.75} />}
             label={t('documents.compliance.totalLocked')}
             value={stats.totalLocked}
-            color={WARM}
+            iconClassName={WARM}
           />
           <StatTile
             icon={<Receipt size={16} strokeWidth={1.75} />}
             label={t('documents.compliance.invoicesLocked')}
             value={`${stats.totalFacturesLocked}/${stats.totalFactures}`}
-            color={SOFT_BLUE}
+            iconClassName={SOFT_BLUE}
           />
           <StatTile
             icon={<GppGood size={16} strokeWidth={1.75} />}
             label={t('documents.compliance.averageScore')}
             value={`${stats.averageComplianceScore}%`}
-            color={ACCENT_TEAL}
+            iconClassName={ACCENT_TEAL}
           />
         </div>
       )}
@@ -332,27 +332,27 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
         </AlertAction>
       </UiAlert>}
       {searchResult && (
-        <div className="mb-3 p-3 bg-[var(--surface-2)] border border-[var(--line)] rounded-[12px]">
-          <p className="cn-text-body2">
+        <Card className="mb-3 gap-0 p-3 py-0">
+          <p className="text-xs">
             <strong>N. Legal :</strong> {searchResult.legalNumber} &nbsp;|&nbsp;
             <strong>Type :</strong> {searchResult.documentType} &nbsp;|&nbsp;
             <strong>{t('documents.compliance.file')} :</strong> {searchResult.fileName || '\u2014'} &nbsp;|&nbsp;
             <strong>Date :</strong> {formatDate(searchResult.createdAt)} &nbsp;|&nbsp;
             <strong>{t('documents.compliance.locked')} :</strong>{' '}
             {searchResult.locked ? (
-              <Badge variant="secondary" className="text-[var(--warn)] bg-[var(--warn-soft)] [&>svg]:text-[var(--warn)]"><Lock size={14} strokeWidth={1.75} />{t('common.yes')}</Badge>
+              <Badge variant="secondary" className="text-warning-ink bg-warning-soft [&>svg]:text-warning"><Lock size={14} strokeWidth={1.75} />{t('common.yes')}</Badge>
             ) : (
-              <Badge variant="secondary" className="text-[var(--muted)] bg-[var(--hover)]">{t('common.no')}</Badge>
+              <Badge variant="secondary" className="text-muted-foreground bg-muted">{t('common.no')}</Badge>
             )}
           </p>
-        </div>
+        </Card>
       )}
 
       {/* ─── Template compliance check ────────────────────────────────── */}
       <Card>
         <CardContent>
           <div className="flex items-center justify-between mb-3">
-            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[16px] font-semibold text-[var(--ink)]">
+            <p className="font-[family-name:var(--font-display)] text-base font-semibold tracking-tight text-balance text-foreground">
               {t('documents.compliance.templateVerification')}
             </p>
             <Tooltip>
@@ -366,7 +366,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                     onClick={handleManualRecheck}
                     disabled={autoCheckRunning}
                     aria-label="Relancer la verification"
-                    className="text-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
+                    className="text-primary hover:text-primary hover:bg-primary-soft"
                   >
                     {/* `animate-spin` de Tailwind = animation: spin 1s linear infinite, identique aux keyframes locales remplacees. */}
                     <span className={cn('inline-flex', autoCheckRunning && 'animate-spin motion-reduce:animate-none')}>
@@ -383,19 +383,19 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
           {autoCheckRunning && (
             <div className="mb-3">
               <div className="flex items-center justify-between mb-0.5">
-                <span className="cn-text-caption text-muted-foreground">
+                <span className="text-xs text-muted-foreground tabular-nums">
                   Verification en cours... {autoCheckProgress}/{autoCheckTotal}
                 </span>
-                <span className="cn-text-caption font-semibold text-[var(--accent)] tabular-nums font-[family-name:var(--font-display)]">
+                <span className="text-xs font-semibold text-primary tabular-nums font-[family-name:var(--font-display)]">
                   {autoCheckTotal > 0 ? Math.round((autoCheckProgress / autoCheckTotal) * 100) : 0}%
                 </span>
               </div>
               <Progress
                 value={autoCheckTotal > 0 ? (autoCheckProgress / autoCheckTotal) * 100 : 0}
                 className={cn(
-                  'h-1.5 rounded-[3px] bg-[var(--accent-soft)]',
+                  'h-1.5 rounded-[3px] bg-primary-soft',
                   '[&_[data-slot=progress-indicator]]:rounded-[24px]',
-                  '[&_[data-slot=progress-indicator]]:bg-[var(--accent)]',
+                  '[&_[data-slot=progress-indicator]]:bg-primary',
                   '[&_[data-slot=progress-indicator]]:duration-[600ms]',
                   'motion-reduce:[&_[data-slot=progress-indicator]]:transition-none',
                 )}
@@ -413,8 +413,8 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
             </UiAlert>
           )}
 
-          {/* Report du Paper variant="outlined" : rayon theme.shape 8px, filet --line, fond --card. */}
-          <div className="overflow-x-auto rounded-lg border border-solid border-[var(--line)] bg-[var(--card)]">
+          {/* Surface de tableau : filet `border` + fond `card` de Baitly UI. */}
+          <div className="overflow-x-auto rounded-lg border border-solid border-border bg-card">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -430,7 +430,7 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                 {templates.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-[18px]">
-                      <p className="cn-text-body1 text-muted-foreground">{t('documents.compliance.noTemplates')}</p>
+                      <p className="text-sm text-muted-foreground">{t('documents.compliance.noTemplates')}</p>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -443,14 +443,14 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                         className={cn(
                           'transition-colors duration-[.4s] motion-reduce:transition-none',
                           // Pas de side-stripe (interdit absolu) : surlignage -soft seul.
-                          isChecking && 'bg-[var(--accent-soft)]',
+                          isChecking && 'bg-primary-soft',
                         )}
                       >
                         <TableCell>
-                          <p className="cn-text-body2 font-medium">{tpl.name}</p>
+                          <p className="text-xs font-medium">{tpl.name}</p>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary" className="text-[var(--accent)] bg-[var(--accent-soft)]">{tpl.documentType}</Badge>
+                          <Badge variant="secondary" className="text-primary bg-primary-soft">{tpl.documentType}</Badge>
                         </TableCell>
                         <TableCell>
                           <StatusChip
@@ -461,8 +461,8 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                         <TableCell>
                           {isChecking ? (
                             <div className="flex items-center gap-1.5">
-                              <Spinner className="size-4 text-[var(--accent)]" />
-                              <span className="cn-text-caption text-muted-foreground">Verification...</span>
+                              <Spinner className="size-4 text-primary" />
+                              <span className="text-xs text-muted-foreground">Verification...</span>
                             </div>
                           ) : report ? (
                             <Tooltip>
@@ -490,17 +490,17 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                               </TooltipContent>
                             </Tooltip>
                           ) : (
-                            <span className="cn-text-caption text-muted-foreground">En attente</span>
+                            <span className="text-xs text-muted-foreground">En attente</span>
                           )}
                         </TableCell>
                         <TableCell>
                           {isChecking ? (
-                            <Spinner className="size-4 text-[var(--accent)]" />
+                            <Spinner className="size-4 text-primary" />
                           ) : report ? (
                             <p
                               className={cn(
-                                'cn-text-body2 font-semibold tabular-nums [font-family:var(--font-display)] animate-[fadeIn_0.4s_ease] motion-reduce:animate-none',
-                                report.score >= 80 ? 'text-[var(--ok)]' : report.score >= 50 ? 'text-[var(--warn)]' : 'text-[var(--err)]',
+                                'text-xs font-semibold tabular-nums [font-family:var(--font-display)] animate-[fadeIn_0.4s_ease] motion-reduce:animate-none',
+                                report.score >= 80 ? 'text-success-ink' : report.score >= 50 ? 'text-warning-ink' : 'text-destructive-ink',
                               )}
                             >
                               {report.score}%
@@ -512,11 +512,11 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 {report.compliant ? (
-                                  <span className="inline-flex text-[var(--ok)] animate-[fadeIn_0.4s_ease] motion-reduce:animate-none">
+                                  <span className="inline-flex text-success animate-[fadeIn_0.4s_ease] motion-reduce:animate-none">
                                     <GppGood size={20} strokeWidth={1.75} />
                                   </span>
                                 ) : (
-                                  <span className="inline-flex text-[var(--err)] animate-[fadeIn_0.4s_ease] motion-reduce:animate-none">
+                                  <span className="inline-flex text-destructive animate-[fadeIn_0.4s_ease] motion-reduce:animate-none">
                                     <GppBad size={20} strokeWidth={1.75} />
                                   </span>
                                 )}
@@ -524,9 +524,9 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                               <TooltipContent>{report.compliant ? 'Conforme' : 'Non conforme'}</TooltipContent>
                             </Tooltip>
                           ) : isChecking ? (
-                            <Spinner className="size-[18px] text-[var(--accent)]" />
+                            <Spinner className="size-[18px] text-primary" />
                           ) : (
-                            <span className="inline-flex text-[var(--faint)]"><VerifiedUser size={20} strokeWidth={1.75} /></span>
+                            <span className="inline-flex text-faint"><VerifiedUser size={20} strokeWidth={1.75} /></span>
                           )}
                         </TableCell>
                       </TableRow>

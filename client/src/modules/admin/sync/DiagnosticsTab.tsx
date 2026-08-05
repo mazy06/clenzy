@@ -17,20 +17,11 @@ import {
   ErrorOutline,
   Schedule,
 } from '../../../icons';
-import StatTile from '../../../components/StatTile';
+import StatTile from '../../../components/baitly/StatTile';
 import { syncAdminApi, DiagnosticsSummary, MetricsSnapshot } from '../../../services/api/syncAdminApi';
 
-/** Label overline (pattern entête de tuile/section) */
-const OVERLINE_SX = {
-  fontSize: '10.5px',
-  fontWeight: 700,
-  letterSpacing: '.05em',
-  textTransform: 'uppercase',
-  color: 'var(--faint)',
-} as const;
-
-/** Report en classes de `OVERLINE_SX`. */
-const OVERLINE_CLASS = 'text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)]';
+/** Label overline d'entête de carte — échelle Baitly UI. */
+const OVERLINE_CLASS = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground';
 
 const DiagnosticsTab: React.FC = () => {
   const [diagnostics, setDiagnostics] = useState<DiagnosticsSummary | null>(null);
@@ -63,7 +54,7 @@ const DiagnosticsTab: React.FC = () => {
       <div className="grid grid-cols-12 gap-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2" key={i}>
-            <Skeleton className="h-24 w-full rounded-[14px]" />
+            <Skeleton className="h-24 w-full rounded-xl" />
           </div>
         ))}
       </div>
@@ -82,24 +73,24 @@ const DiagnosticsTab: React.FC = () => {
       {/* Diagnostics Summary — StatTile (carte plate hairline, valeur display) */}
       {diagnostics && (
         <>
-          <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
+          <h6 className="text-sm font-semibold text-foreground mb-[0.35em]">
             Vue d'ensemble
           </h6>
           <div className="grid grid-cols-12 gap-3 mb-[18px]">
             <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
-              <StatTile icon={<Hub />} label="Total Connexions" value={diagnostics.totalConnections} color="#6B8A9A" />
+              <StatTile icon={<Hub />} label="Total Connexions" value={diagnostics.totalConnections} iconClassName="text-primary" />
             </div>
             <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
-              <StatTile icon={<CheckCircle />} label="Actives" value={diagnostics.activeConnections} color="#4A9B8E" />
+              <StatTile icon={<CheckCircle />} label="Actives" value={diagnostics.activeConnections} iconClassName="text-success" />
             </div>
             <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
-              <StatTile icon={<HealthAndSafety />} label="Healthy" value={diagnostics.healthyConnections} color="#4A9B8E" />
+              <StatTile icon={<HealthAndSafety />} label="Healthy" value={diagnostics.healthyConnections} iconClassName="text-success" />
             </div>
             <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
-              <StatTile icon={<HourglassEmpty />} label="Outbox Pending" value={diagnostics.pendingOutbox} color="#7BA3C2" />
+              <StatTile icon={<HourglassEmpty />} label="Outbox Pending" value={diagnostics.pendingOutbox} iconClassName="text-info" />
             </div>
             <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
-              <StatTile icon={<ErrorOutline />} label="Outbox Failed" value={diagnostics.failedOutbox} color="#C97A7A" />
+              <StatTile icon={<ErrorOutline />} label="Outbox Failed" value={diagnostics.failedOutbox} iconClassName="text-destructive" />
             </div>
             <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <StatTile
@@ -110,7 +101,7 @@ const DiagnosticsTab: React.FC = () => {
                     ? new Date(diagnostics.oldestPendingEvent).toLocaleString()
                     : '—'
                 }
-                color="#D4A574"
+                iconClassName="text-warning"
               />
             </div>
           </div>
@@ -119,13 +110,13 @@ const DiagnosticsTab: React.FC = () => {
           {Object.keys(diagnostics.syncLogsByStatus).length > 0 && (
             <Card className="mb-[18px]">
               <CardContent>
-                <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
+                <p className={cn(OVERLINE_CLASS, 'mb-1.5')}>
                   Sync Logs par Status
                 </p>
                 <div className="grid grid-cols-12 gap-1.5">
                   {Object.entries(diagnostics.syncLogsByStatus).map(([status, count]) => (
                     <div className="col-span-6 min-[600px]:col-span-3" key={status}>
-                      <p className="cn-text-body2 tabular-nums">
+                      <p className="text-xs tabular-nums">
                         <strong>{status}:</strong> {count}
                       </p>
                     </div>
@@ -142,7 +133,7 @@ const DiagnosticsTab: React.FC = () => {
       {/* Metrics */}
       {metrics && (
         <>
-          <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
+          <h6 className="text-sm font-semibold text-foreground mb-[0.35em]">
             Metriques
           </h6>
           <div className="grid grid-cols-12 gap-3">
@@ -150,17 +141,17 @@ const DiagnosticsTab: React.FC = () => {
             <div className="col-span-12 min-[900px]:col-span-4">
               <Card>
                 <CardContent>
-                  <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
+                  <p className={cn(OVERLINE_CLASS, 'mb-1.5')}>
                     Sync Latency P95 (ms)
                   </p>
                   {Object.keys(metrics.syncLatencyP95).length > 0 ? (
                     Object.entries(metrics.syncLatencyP95).map(([channel, latency]) => (
-                      <p className="cn-text-body2 tabular-nums" key={channel}>
+                      <p className="text-xs tabular-nums" key={channel}>
                         {channel}: <strong>{latency}ms</strong>
                       </p>
                     ))
                   ) : (
-                    <p className="cn-text-body2 text-[var(--muted)]">Aucune donnee</p>
+                    <p className="text-xs text-muted-foreground">Aucune donnee</p>
                   )}
                 </CardContent>
               </Card>
@@ -170,24 +161,25 @@ const DiagnosticsTab: React.FC = () => {
             <div className="col-span-12 min-[900px]:col-span-4">
               <Card>
                 <CardContent>
-                  <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
+                  <p className={cn(OVERLINE_CLASS, 'mb-1.5')}>
                     Sync Success / Failure
                   </p>
                   {Object.keys(metrics.syncSuccessCount).length > 0 || Object.keys(metrics.syncFailureCount).length > 0 ? (
                     <>
+                      {/* Encre `-ink` : la teinte vive plafonne à ~2,2:1 sur une carte claire. */}
                       {Object.entries(metrics.syncSuccessCount).map(([channel, count]) => (
-                        <p className="cn-text-body2 text-[var(--ok)] tabular-nums" key={`s-${channel}`}>
+                        <p className="text-xs text-success-ink tabular-nums" key={`s-${channel}`}>
                           {channel} success: {count}
                         </p>
                       ))}
                       {Object.entries(metrics.syncFailureCount).map(([channel, count]) => (
-                        <p className="cn-text-body2 text-[var(--err)] tabular-nums" key={`f-${channel}`}>
+                        <p className="text-xs text-destructive-ink tabular-nums" key={`f-${channel}`}>
                           {channel} failure: {count}
                         </p>
                       ))}
                     </>
                   ) : (
-                    <p className="cn-text-body2 text-[var(--muted)]">Aucune donnee</p>
+                    <p className="text-xs text-muted-foreground">Aucune donnee</p>
                   )}
                 </CardContent>
               </Card>
@@ -197,13 +189,13 @@ const DiagnosticsTab: React.FC = () => {
             <div className="col-span-12 min-[900px]:col-span-4">
               <Card>
                 <CardContent>
-                  <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-1.5')}>
+                  <p className={cn(OVERLINE_CLASS, 'mb-1.5')}>
                     Calendrier
                   </p>
-                  <p className="cn-text-body2 tabular-nums">
+                  <p className="text-xs tabular-nums">
                     Conflits: <strong>{metrics.calendarConflicts}</strong>
                   </p>
-                  <p className="cn-text-body2 tabular-nums">
+                  <p className="text-xs tabular-nums">
                     Double bookings bloques: <strong>{metrics.doubleBookingsPrevented}</strong>
                   </p>
                 </CardContent>

@@ -1,5 +1,6 @@
 import React from 'react';
 import StatusChip from '../../components/StatusChip';
+import EmptyState from '../../components/EmptyState';
 import {
   Card,
   Button,
@@ -23,9 +24,9 @@ import {
 import { getStatusTokens, getPriorityTokens, getTypeTokens } from './interventionUtils';
 import { stripPropertySuffix, getProgress } from './interventionsListConstants';
 
-/** Report en classes de `LIST_PAPER_SX` (hairline plate r14). */
+/** Report en classes de `LIST_PAPER_SX` (hairline, rayon xl, surface de carte). */
 const LIST_SURFACE_CLS =
-  'border border-solid border-[var(--line)] shadow-none rounded-[14px] bg-[var(--card)]';
+  'border border-solid border-border shadow-none rounded-xl bg-card';
 
 interface InterventionsMapViewProps {
   mapMarkers: PropertyMarker[];
@@ -55,28 +56,30 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
             onBoundsChange={onBoundsChange}
           />
         ) : (
-          <div className="h-[400px] flex flex-col items-center justify-center gap-1.5">
-            <span className="inline-flex text-muted-foreground opacity-50"><Build size={36} strokeWidth={1.5} /></span>
-            <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
-              Aucune intervention avec coordonnées GPS
-            </p>
-          </div>
+          <EmptyState
+            variant="transparent"
+            minHeight={400}
+            icon={<Build />}
+            title="Aucune intervention avec coordonnées GPS"
+            description="Renseignez l'adresse des logements concernés pour les voir apparaître sur la carte."
+          />
         )}
       </div>
 
       {/* Liste scrollable en dessous */}
       {mapMarkers.length > 0 && (
         <div className="mt-2 flex-1 min-h-0 flex flex-col">
-          <h6 className="cn-text-subtitle2 mb-1.5 text-[0.8125rem] font-semibold text-muted-foreground shrink-0">
+          <h6 className="mb-1.5 shrink-0 text-2xs font-semibold uppercase tracking-wide text-muted-foreground tabular-nums">
             {viewportInterventions.length} {viewportInterventions.length > 1 ? 'interventions' : 'intervention'} dans la zone visible
           </h6>
 
           {viewportInterventions.length === 0 ? (
-            <Card className="gap-0 py-0 border-[var(--line)] p-3 text-center">
-              <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
-                Aucune intervention dans cette zone. Déplacez ou dézoomez la carte.
-              </p>
-            </Card>
+            <EmptyState
+              variant="plain"
+              icon={<LocationOn />}
+              title="Aucune intervention dans cette zone"
+              description="Déplacez ou dézoomez la carte."
+            />
           ) : (
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 pe-0.5">
               {viewportInterventions.map((intervention) => {
@@ -85,15 +88,15 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
                 const priorityTokens = getPriorityTokens(intervention.priority);
                 const progress = getProgress(intervention);
                 return (
-                  <div
+                  <Card
                     key={intervention.id}
                     role="button"
                     tabIndex={0}
                     className={cn(
-                      LIST_SURFACE_CLS,
-                      'p-[9px] cursor-pointer shrink-0',
-                      'transition-[border-color,box-shadow] duration-150 motion-reduce:transition-none',
-                      'hover:border-[var(--line-2)] hover:shadow-[var(--shadow-card)]',
+                      'gap-0 py-0 p-[9px] cursor-pointer shrink-0',
+                      'transition-colors duration-200 motion-reduce:transition-none',
+                      'hover:bg-muted',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     )}
                     onClick={() => navigate(`/interventions/${intervention.id}`)}
                     onKeyDown={(e) => {
@@ -106,12 +109,12 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
                     <div className="flex items-center gap-2">
                       {/* Titre + adresse */}
                       <div className="flex-1 min-w-0">
-                        <p className="cn-text-body2 font-semibold text-[0.84rem] overflow-hidden text-ellipsis whitespace-nowrap">
+                        <p className="text-[13.5px] font-semibold text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                           {stripPropertySuffix(intervention.title, intervention.propertyName)}
                         </p>
                         <div className="flex items-center gap-0.5 mt-0.5">
-                          <span className="inline-flex text-muted-foreground shrink-0"><LocationOn size={13} strokeWidth={1.75} /></span>
-                          <span className="cn-text-caption text-muted-foreground text-[0.72rem] overflow-hidden text-ellipsis whitespace-nowrap">
+                          <span className="inline-flex text-primary shrink-0"><LocationOn size={13} strokeWidth={1.75} /></span>
+                          <span className="text-[11.5px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                             {intervention.propertyName} — {intervention.propertyAddress}
                           </span>
                         </div>
@@ -133,21 +136,21 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
                           <Progress
                             value={progress}
                             className={cn(
-                              'flex-1 h-[5px] rounded-[24px] bg-[var(--hover)]',
-                              '[&_[data-slot=progress-indicator]]:rounded-[24px]',
+                              'flex-1 h-[5px] rounded-full bg-muted',
+                              '[&_[data-slot=progress-indicator]]:rounded-full',
                               progress === 100
-                                ? '[&_[data-slot=progress-indicator]]:bg-[var(--ok)]'
+                                ? '[&_[data-slot=progress-indicator]]:bg-success'
                                 : progress >= 50
-                                  ? '[&_[data-slot=progress-indicator]]:bg-[var(--info)]'
-                                  : '[&_[data-slot=progress-indicator]]:bg-[var(--warn)]',
+                                  ? '[&_[data-slot=progress-indicator]]:bg-info'
+                                  : '[&_[data-slot=progress-indicator]]:bg-warning',
                             )}
                           />
-                          <span className="cn-text-caption font-semibold text-[0.68rem] min-w-[24px] tabular-nums">
+                          <span className="text-[11px] font-semibold text-foreground min-w-[24px] tabular-nums">
                             {progress}%
                           </span>
                         </div>
                         {intervention.assignedToName && (
-                          <span className="cn-text-caption text-muted-foreground text-[0.72rem] max-w-[90px] overflow-hidden text-ellipsis whitespace-nowrap">
+                          <span className="text-[11.5px] text-muted-foreground max-w-[90px] overflow-hidden text-ellipsis whitespace-nowrap">
                             {intervention.assignedToName}
                           </span>
                         )}
@@ -170,7 +173,7 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
                         </Tooltip>
                       </div>
                     </div>
-                  </div>
+                  </Card>
                 );
               })}
             </div>

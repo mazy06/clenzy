@@ -5,19 +5,17 @@ import { Button, Skeleton, Spinner } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { Refresh } from '../../../icons';
 import { syncAdminApi, ConnectionSummary } from '../../../services/api/syncAdminApi';
-import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 
-const NEUTRAL_TOKEN: ToneTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
+// Statut connexion → ton sémantique (ACTIVE = succès, sinon neutre)
+const statusTone = (status: string): StatusTone => (status === 'ACTIVE' ? 'ok' : 'neutral');
 
-// Statut connexion → tokens sémantiques (ACTIVE = --ok, sinon neutre)
-const statusToken = (status: string): ToneTokens =>
-  status === 'ACTIVE' ? { color: 'var(--ok)', bg: 'var(--ok-soft)' } : NEUTRAL_TOKEN;
-
-// Santé → tokens sémantiques (HEALTHY --ok, DEGRADED --warn, UNHEALTHY --err)
-const HEALTH_TOKEN: Record<string, ToneTokens> = {
-  HEALTHY: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
-  DEGRADED: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
-  UNHEALTHY: { color: 'var(--err)', bg: 'var(--err-soft)' },
+// Santé → ton sémantique. Le couple encre/fond conforme AA est tenu par
+// StatusChip (STATUS_TONES) : ici on ne dit que le SENS, pas la couleur.
+const HEALTH_TONE: Record<string, StatusTone> = {
+  HEALTHY: 'ok',
+  DEGRADED: 'warn',
+  UNHEALTHY: 'err',
 };
 
 const ConnectionsTab: React.FC = () => {
@@ -63,7 +61,7 @@ const ConnectionsTab: React.FC = () => {
     return (
       <div className="flex flex-col gap-1.5">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-[36px] w-full rounded-[9px]" />
+          <Skeleton key={i} className="h-9 w-full rounded-lg" />
         ))}
       </div>
     );
@@ -78,11 +76,11 @@ const ConnectionsTab: React.FC = () => {
 
   return (
     <div>
-      <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
+      <h6 className="text-sm font-semibold text-foreground mb-[0.35em]">
         Connexions Channel
       </h6>
 
-      <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+      <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -99,7 +97,7 @@ const ConnectionsTab: React.FC = () => {
           <TableBody>
             {connections.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-[var(--muted)] py-[18px]">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-[18px]">
                   Aucune connexion
                 </TableCell>
               </TableRow>
@@ -109,13 +107,13 @@ const ConnectionsTab: React.FC = () => {
                   <TableCell className="tabular-nums">{conn.id}</TableCell>
                   <TableCell>{conn.channel}</TableCell>
                   <TableCell>
-                    <StatusChip label={conn.status} tokens={statusToken(conn.status)} />
+                    <StatusChip label={conn.status} tone={statusTone(conn.status)} />
                   </TableCell>
                   <TableCell>
                     {conn.lastSyncAt ? new Date(conn.lastSyncAt).toLocaleString() : '—'}
                   </TableCell>
                   <TableCell>
-                    <p className="cn-text-body2 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title={conn.lastError || undefined}>
+                    <p className="text-xs max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title={conn.lastError || undefined}>
                       {conn.lastError || '—'}
                     </p>
                   </TableCell>
@@ -123,7 +121,7 @@ const ConnectionsTab: React.FC = () => {
                   <TableCell>
                     <StatusChip
                       label={conn.healthStatus}
-                      tokens={HEALTH_TOKEN[conn.healthStatus] ?? NEUTRAL_TOKEN}
+                      tone={HEALTH_TONE[conn.healthStatus] ?? 'neutral'}
                     />
                   </TableCell>
                   <TableCell>

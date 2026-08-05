@@ -17,12 +17,10 @@ interface TemplateTagsViewerProps {
   tags: DocumentTemplateTag[];
 }
 
-// ─── Tons sémantiques (tokens Signature — pattern TONES/chipSx) ──────────────
+// ─── Tons sémantiques (tokens StatusChip — pattern TONES) ────────────────────
 
-
-
-// Mapping catégorie → ton sémantique (remplace l'ancienne palette hex Baitly :
-// bleu doux → info, teal → ok, warm → warn, rouge doux → err, primary/violet → accent).
+// Mapping catégorie → ton sémantique. La couleur étant résolue à l'exécution,
+// elle reste une valeur CSS : Tailwind n'émet ses classes qu'à la compilation.
 const CATEGORY_TONES: Record<string, ToneTokens> = {
   CLIENT: STATUS_TONES.info,
   PROPERTY: STATUS_TONES.ok,
@@ -88,14 +86,14 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
   const handleValueChange = (value: string) => setExpanded(value || false);
 
   return (
-    <Card className="gap-0 py-0 p-3 border-[var(--line)]">
+    <Card className="gap-0 py-0 p-3 border-border">
       <div className="flex justify-between items-center mb-3">
-        <h6 className="cn-text-h6">Tags détectés</h6>
+        <h6 className="text-sm font-semibold">Tags détectés</h6>
         <StatusChip tokens={STATUS_TONES.accent} label={`${tags.length} tags`} />
       </div>
 
       {categories.length === 0 ? (
-        <p className="cn-text-body1 text-muted-foreground py-3 text-center">
+        <p className="text-sm text-muted-foreground py-3 text-center">
           Aucun tag détecté dans ce template
         </p>
       ) : (
@@ -105,7 +103,7 @@ const TemplateTagsViewer: React.FC<TemplateTagsViewerProps> = ({ tags }) => {
               <AccordionTrigger>
                 <span className="flex items-center gap-1.5">
                   <span className="w-[12px] h-[12px] rounded-[50%]" style={{ backgroundColor: (CATEGORY_TONES[cat] ?? STATUS_TONES.neutral).color }} />
-                  <span className="cn-text-body1 font-medium">
+                  <span className="text-sm font-medium">
                     {CATEGORY_LABELS[cat] || cat}
                   </span>
                   <StatusChip tokens={CATEGORY_TONES[cat] ?? STATUS_TONES.neutral} label={groupedTags[cat].length} className="ms-1.5" />

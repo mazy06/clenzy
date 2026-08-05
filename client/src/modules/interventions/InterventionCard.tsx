@@ -74,28 +74,30 @@ const getTypeGradient = (type: string): string => {
 const CARD_ROOT_CLASS = cn(
   'h-full flex flex-col overflow-hidden cursor-pointer',
   'transition-[border-color,box-shadow,transform] duration-[140ms]',
-  'hover:border-[var(--line-2)] hover:shadow-[var(--shadow-card)] hover:-translate-y-[2px]',
+  'hover:border-border hover:shadow-sm hover:-translate-y-[2px]',
   'motion-reduce:transition-none motion-reduce:hover:translate-y-0',
 );
 
 // `end-3` (logique) : la pastille reste au bord opposé au sens de lecture en RTL.
+// Le blanc translucide n'est pas décoratif : il est la seule encre lisible
+// par-dessus une photo dont on ne connaît pas la luminance.
 const MENU_BUTTON_CLASS = cn(
   'absolute top-[10px] end-3 z-[2]',
   'text-[rgba(255,255,255,0.6)] bg-[rgba(255,255,255,0.06)]',
   'border border-solid border-[rgba(255,255,255,0.08)] backdrop-blur-[8px]',
-  'hover:bg-[rgba(255,255,255,0.15)] hover:text-[var(--on-accent)]',
+  'hover:bg-[rgba(255,255,255,0.15)] hover:text-primary-foreground',
 );
 
 // pb 12px : le pied d'actions apporte deja sa propre respiration.
 const INFO_CONTENT_CLASS = 'grow p-[10.5px] pb-3';
 
 // Nom d'entité en display.
-const NAME_TEXT_CLASS = 'cn-text-body1 truncate font-[family-name:var(--font-display)] text-[15px] font-semibold tracking-[-.01em] text-[var(--ink)]';
+const NAME_TEXT_CLASS = 'truncate font-[family-name:var(--font-display)] text-[15px] font-semibold tracking-[-.01em] text-foreground';
 // Ligne localisation (propriété).
-const LOCATION_TEXT_CLASS = 'cn-text-body1 truncate flex-1 text-[11.5px] text-[var(--muted)]';
+const LOCATION_TEXT_CLASS = 'truncate flex-1 text-[11.5px] text-muted-foreground';
 // Bande de KPI (valeurs display tabular-nums).
-const STAT_VALUE_CLASS = 'cn-text-body1 font-[family-name:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] tabular-nums leading-[1.2]';
-const STAT_LABEL_CLASS = 'cn-text-body1 text-[9.5px] font-bold tracking-[.04em] uppercase text-[var(--faint)] mt-px';
+const STAT_VALUE_CLASS = 'font-[family-name:var(--font-display)] text-[15px] font-semibold text-foreground tabular-nums leading-[1.2]';
+const STAT_LABEL_CLASS = 'text-2xs font-bold tracking-[.04em] uppercase text-faint mt-px';
 
 const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
   intervention,
@@ -138,8 +140,11 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
           backgroundPosition: 'center',
         }}
       >
-        {/* Pastille statut top-left (dot coloré + libellé) */}
-        <div className="absolute top-[10px] left-3 z-[2] inline-flex items-center gap-[3.75px] px-[9px] py-[4px] rounded-[20px] bg-[rgba(255,255,255,.92)] backdrop-blur-[4px] text-[10.5px] font-bold leading-none text-[#2A3942]">
+        {/* Pastille statut en tête de bandeau (dot coloré + libellé).
+            `start-3` (logique) : elle suit le sens de lecture en RTL.
+            Le couple blanc/ardoise est figé dans les deux thèmes : le fond est
+            une photo, pas une surface de l'application. */}
+        <div className="absolute top-[10px] start-3 z-[2] inline-flex items-center gap-[3.75px] px-[9px] py-[4px] rounded-full bg-[rgba(255,255,255,.92)] backdrop-blur-[4px] text-[10.5px] font-bold leading-none text-[#2A3942]">
           <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: statusTokens.color }} />
           {getInterventionStatusLabel(intervention.status, t)}
         </div>
@@ -165,7 +170,9 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
             {intervention.title}
           </p>
           <StatusChip
-            tokens={{ color: typeHex, bg: `${typeHex}18` }}
+            // `color` : la teinte du type est une couleur data (hex resolu a
+            // l'execution) — la primitive en derive son fond doux en color-mix.
+            color={typeHex}
             label={getInterventionTypeLabel(intervention.type, t)}
             className="shrink-0 text-[0.62rem]"
             // Le liseré reprend la teinte du type, connue seulement a l'execution.
@@ -175,7 +182,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
 
         {/* Propriété */}
         <div className="flex items-center gap-[3px] mb-[7.5px]">
-          <span className="inline-flex text-[var(--muted)] shrink-0">
+          <span className="inline-flex text-muted-foreground shrink-0">
             <LocationOn size={14} strokeWidth={1.75} />
           </span>
           <p
@@ -187,11 +194,11 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
         </div>
 
         {/* Bande de KPI : échéance / avancement / durée */}
-        <div className="flex border-t border-b border-solid border-[var(--line)] mb-[7.5px]">
+        <div className="flex border-t border-b border-solid border-border mb-[7.5px]">
           {kpiCells.map((cell) => (
             <div
               key={cell.label}
-              className="flex-1 py-[9px] text-center min-w-0 border-r border-solid border-[var(--line)] last:border-r-0"
+              className="flex-1 py-[9px] text-center min-w-0 border-e border-solid border-border last:border-e-0"
             >
               {/* La teinte d'echeance est calculee a l'execution : style inline obligatoire. */}
               <p className={STAT_VALUE_CLASS} style={cell.color ? { color: cell.color } : undefined}>
@@ -203,13 +210,13 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
         </div>
 
         {/* Pied opérationnel : assigné (gauche) + priorité (droite) */}
-        <div className="flex items-center gap-[5.25px] min-h-[20px] min-w-0 text-[11.5px] text-[var(--muted)]">
-          <span className="inline-flex shrink-0 text-[var(--accent)]">
+        <div className="flex items-center gap-[5.25px] min-h-[20px] min-w-0 text-[11.5px] text-muted-foreground">
+          <span className="inline-flex shrink-0 text-primary">
             {intervention.assignedToType === 'team'
               ? <GroupIcon size={13} strokeWidth={2} />
               : <PersonIcon size={13} strokeWidth={2} />}
           </span>
-          <span className="overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-[var(--body)]">{assigneeName}</span>
+          <span className="overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-foreground">{assigneeName}</span>
           <div className="flex-1" />
           <StatusChip
             tokens={priorityTokens}

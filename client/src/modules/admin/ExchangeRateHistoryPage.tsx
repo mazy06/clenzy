@@ -10,7 +10,7 @@ import { Field, FieldLabel, Input, NativeSelect, NativeSelectOption } from '../.
 import { Refresh, CurrencyExchange, TrendingUp } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../../components/PageHeader';
-import StatTile from '../../components/StatTile';
+import StatTile from '../../components/baitly/StatTile';
 import { exchangeRateApi, type ExchangeRateHistoryParams } from '../../services/api/exchangeRateApi';
 import { useCurrency } from '../../hooks/useCurrency';
 import PagePagination from '../../components/PagePagination';
@@ -26,15 +26,31 @@ const CURRENCY_COLORS: Record<string, string> = {
 
 const currencyHex = (code: string): string => CURRENCY_COLORS[code] ?? '#8A8378';
 
-/** Chip -soft : texte couleur + fond soft (pilule/typo via thème global MuiChip) */
-const chipSx = (fg: string, bg: string) => ({
-  color: fg,
-  backgroundColor: bg,
-  '& .MuiChip-icon': { color: fg, marginLeft: '6px' },
-});
+// Equivalents Baitly UI de la palette ci-dessus, pour les icones de tuile (classe, pas hex).
+const CURRENCY_ICON_CLASSES: Record<string, string> = {
+  EUR: 'text-success',
+  MAD: 'text-warning',
+  SAR: 'text-primary',
+  USD: 'text-primary',
+  GBP: 'text-destructive',
+};
 
-/** Variante hex (devises) : fond soft dérivé de l'accent catégoriel */
-const hexChipSx = (hex: string) => chipSx(hex, `${hex}18`);
+const currencyIconClass = (code: string): string =>
+  CURRENCY_ICON_CLASSES[code] ?? 'text-muted-foreground';
+
+/**
+ * Tokens des puces de statistique. Baitly UI expose trois jetons par famille et
+ * ils ne sont pas interchangeables : `-ink` pour le TEXTE (la teinte vive
+ * plafonne a ~2,2:1 en clair), `-soft` pour le fond pastel. Ils restent en
+ * VALEUR CSS : StatusChip peint en style inline, une classe Tailwind ne pouvant
+ * naitre d'une valeur resolue au rendu.
+ */
+const STAT_TOKENS = {
+  min: { color: 'var(--bui-info-ink)', bg: 'var(--bui-info-soft)' },
+  max: { color: 'var(--bui-warning-ink)', bg: 'var(--bui-warning-soft)' },
+  avg: { color: 'var(--bui-primary)', bg: 'var(--bui-primary-soft)' },
+  neutral: { color: 'var(--bui-muted-foreground)', bg: 'var(--bui-muted)' },
+} as const;
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -177,7 +193,7 @@ export default function ExchangeRateHistoryPage() {
                 icon={<CurrencyExchange />}
                 label={p.label}
                 value={formatRate(rate)}
-                color={currencyHex(p.base)}
+                iconClassName={currencyIconClass(p.base)}
                 hint={`Au ${rateDate ?? matrix.date}`}
               />
             ) : null;
@@ -186,7 +202,7 @@ export default function ExchangeRateHistoryPage() {
       )}
 
       {/* Filters */}
-      <Card className="gap-0 py-0 p-3 mb-4 border-[var(--line)]">
+      <Card className="gap-0 py-0 p-3 mb-4">
         <div className="flex gap-3 items-center flex-wrap">
           {/* Largeurs figees : ces champs vivent dans une rangee flex, le `w-full`
               du kit les ferait passer chacun sur sa propre ligne. */}
@@ -242,7 +258,7 @@ export default function ExchangeRateHistoryPage() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="inline-flex">
-                    <StatusChip tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={`Min: ${formatRate(stats.min)}`} />
+                    <StatusChip tokens={STAT_TOKENS.min} label={`Min: ${formatRate(stats.min)}`} />
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>Minimum sur la periode</TooltipContent>
@@ -250,7 +266,7 @@ export default function ExchangeRateHistoryPage() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="inline-flex">
-                    <StatusChip tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }} label={`Max: ${formatRate(stats.max)}`} />
+                    <StatusChip tokens={STAT_TOKENS.max} label={`Max: ${formatRate(stats.max)}`} />
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>Maximum sur la periode</TooltipContent>
@@ -258,7 +274,7 @@ export default function ExchangeRateHistoryPage() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="inline-flex">
-                    <StatusChip tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={`Moy: ${formatRate(stats.avg)}`} icon={<TrendingUp size={14} strokeWidth={1.75} />} />
+                    <StatusChip tokens={STAT_TOKENS.avg} label={`Moy: ${formatRate(stats.avg)}`} icon={<TrendingUp size={14} strokeWidth={1.75} />} />
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>Moyenne sur la periode</TooltipContent>
@@ -287,66 +303,69 @@ export default function ExchangeRateHistoryPage() {
         </BuiAlert>
       )}
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
-        {isLoading ? (
-          <div className="flex flex-col gap-1.5 p-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-[36px] w-full rounded-[9px]" />
-            ))}
-          </div>
-        ) : (
-          <>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Base</TableHead>
-                  <TableHead>Cible</TableHead>
-                  <TableHead className="text-end">Taux</TableHead>
-                  <TableHead>Source</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.length === 0 && (
+      {/* Table — `Card` porte le fond, l'arrondi, le filet et l'ecretage ; le
+          defilement horizontal vit dans un conteneur interne. */}
+      <Card className="gap-0 py-0">
+        <div className="overflow-x-auto">
+          {isLoading ? (
+            <div className="flex flex-col gap-1.5 p-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-9 w-full rounded-md" />
+              ))}
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-6">
-                      <p className="cn-text-body1 text-muted-foreground">
-                        Aucun taux de change sur cette periode.
-                      </p>
-                    </TableCell>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Base</TableHead>
+                    <TableHead>Cible</TableHead>
+                    <TableHead className="text-end">Taux</TableHead>
+                    <TableHead>Source</TableHead>
                   </TableRow>
-                )}
-                {rows.map((rate) => (
-                  <TableRow key={rate.id}>
-                    <TableCell>{formatDate(rate.rateDate)}</TableCell>
-                    <TableCell>
-                      <StatusChip color={currencyHex(rate.baseCurrency)} label={rate.baseCurrency} />
-                    </TableCell>
-                    <TableCell>
-                      <StatusChip color={currencyHex(rate.targetCurrency)} label={rate.targetCurrency} />
-                    </TableCell>
-                    <TableCell className="text-end font-mono tabular-nums font-medium">
-                      {formatRate(rate.rate)}
-                    </TableCell>
-                    <TableCell>
-                      <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--hover)' }} label={rate.source} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <PagePagination
-              count={rows.length}
-              page={page}
-              onPageChange={handlePageChange}
-              rowsPerPage={rowsPerPage}
-              rowsPerPageOptions={[10, 25, 50]}
-              onRowsPerPageChange={handleRowsPerPageChange}
-            />
-          </>
-        )}
-      </div>
+                </TableHeader>
+                <TableBody>
+                  {rows.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-6">
+                        <p className="text-sm text-muted-foreground">
+                          Aucun taux de change sur cette periode.
+                        </p>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {rows.map((rate) => (
+                    <TableRow key={rate.id}>
+                      <TableCell>{formatDate(rate.rateDate)}</TableCell>
+                      <TableCell>
+                        <StatusChip color={currencyHex(rate.baseCurrency)} label={rate.baseCurrency} />
+                      </TableCell>
+                      <TableCell>
+                        <StatusChip color={currencyHex(rate.targetCurrency)} label={rate.targetCurrency} />
+                      </TableCell>
+                      <TableCell className="text-end font-mono tabular-nums font-medium">
+                        {formatRate(rate.rate)}
+                      </TableCell>
+                      <TableCell>
+                        <StatusChip tokens={STAT_TOKENS.neutral} label={rate.source} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <PagePagination
+                count={rows.length}
+                page={page}
+                onPageChange={handlePageChange}
+                rowsPerPage={rowsPerPage}
+                rowsPerPageOptions={[10, 25, 50]}
+                onRowsPerPageChange={handleRowsPerPageChange}
+              />
+            </>
+          )}
+        </div>
+      </Card>
     </div>
   );
 }

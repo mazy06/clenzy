@@ -3,7 +3,7 @@ import StatusChip from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, CardContent, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Payment as PaymentIcon,
@@ -19,15 +19,16 @@ import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import PaymentCheckoutModal from '../../components/PaymentCheckoutModal';
-import StatTile from '../../components/StatTile';
+import StatTile from '../../components/baitly/StatTile';
 import { interventionsKeys } from './useInterventionsList';
 import { Money } from '../../components/Money';
 import { getTypeTokens } from './interventionUtils';
 
-// Couleurs sémantiques Signature (hex requis par StatTile/alpha — valeurs tokens.css)
-const WARN_HEX = '#C28A52';
-const ERR_HEX = '#C97A7A';
+// Teintes d'icone des tuiles KPI (classes Baitly UI)
+const WARN_TONE = 'text-warning';
+const ERR_TONE = 'text-destructive';
 
 interface Intervention {
   id: number;
@@ -141,7 +142,7 @@ const InterventionsPendingPayment: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
-        <Spinner className="size-10 text-[var(--accent)]" />
+        <Spinner className="size-10 text-primary" />
       </div>
     );
   }
@@ -190,36 +191,30 @@ const InterventionsPendingPayment: React.FC = () => {
           icon={<HourglassIcon size={16} strokeWidth={1.75} />}
           label="Interventions en attente"
           value={interventions.length}
-          color={WARN_HEX}
+          iconClassName={WARN_TONE}
         />
         <StatTile
           icon={<EuroIcon size={16} strokeWidth={1.75} />}
           label="Total a regler"
           value={<Money value={totalDue} from="EUR" />}
-          color={ERR_HEX}
+          iconClassName={ERR_TONE}
         />
       </div>
 
       {/* ─── Tableau ───────────────────────────────────────────────────── */}
       {interventions.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-9">
-            <div className="w-[56px] h-[56px] rounded-[50%] bg-[var(--ok-soft)] text-[var(--ok)] flex items-center justify-center mx-auto mb-3">
-              <PaymentIcon size={28} strokeWidth={1.5} />
-            </div>
-            <h6 className="cn-text-h6 font-semibold text-[0.9375rem] text-[var(--ink)] mb-0.5">
-              Aucun paiement en attente
-            </h6>
-            <p className="cn-text-body2 text-[var(--muted)] text-[0.8125rem]">
-              Toutes vos interventions sont a jour.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          variant="plain"
+          icon={<PaymentIcon />}
+          title="Aucun paiement en attente"
+          description="Toutes vos interventions sont a jour."
+        />
       ) : (
-        <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+        <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
           <Table>
-            {/* Fond --surface-2 : seul ecart de l'ancien sx vis-a-vis du primitif. */}
-            <TableHeader className="bg-[var(--surface-2)]">
+            {/* L'en-tete garde la surface de carte : le filet du primitif suffit
+                a le detacher des lignes. */}
+            <TableHeader className="bg-card">
               <TableRow>
                 <TableHead>Intervention</TableHead>
                 <TableHead>Demandeur</TableHead>
@@ -234,20 +229,20 @@ const InterventionsPendingPayment: React.FC = () => {
               {interventions.map((intervention) => (
                 <TableRow key={intervention.id} className="cursor-pointer">
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <p className="cn-text-body2 font-semibold text-[0.8125rem] text-[var(--ink)]">
+                    <p className="text-[13px] font-semibold text-foreground">
                       {intervention.title}
                     </p>
                   </TableCell>
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <p className="cn-text-body2 text-[0.8125rem] text-[var(--body)]">
+                    <p className="text-[13px] text-foreground">
                       {intervention.requestorName}
                     </p>
                   </TableCell>
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <p className="cn-text-body2 font-medium text-[0.8125rem]">
+                    <p className="text-[13px] font-medium text-foreground">
                       {intervention.propertyName}
                     </p>
-                    <span className="cn-text-caption text-[var(--muted)] text-[0.6875rem]">
+                    <span className="text-[11px] text-muted-foreground">
                       {intervention.propertyAddress}
                     </span>
                   </TableCell>
@@ -257,12 +252,13 @@ const InterventionsPendingPayment: React.FC = () => {
                     ); })()}
                   </TableCell>
                   <TableCell onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <p className="cn-text-body2 text-[0.8125rem]">
+                    <p className="text-[13px] text-foreground tabular-nums">
                       {formatDate(intervention.scheduledDate)}
                     </p>
                   </TableCell>
                   <TableCell className="text-end" onClick={() => navigate(`/interventions/${intervention.id}`)}>
-                    <p className="cn-text-body2 font-semibold text-[0.875rem] text-[var(--warn)] font-[family-name:var(--font-display)] tabular-nums">
+                    {/* Montant du : encre `-ink` (la teinte vive plafonne a 2,2:1). */}
+                    <p className="text-sm font-semibold text-warning-ink font-[family-name:var(--font-display)] tabular-nums">
                       <Money value={intervention.estimatedCost} from="EUR" />
                     </p>
                   </TableCell>
@@ -278,7 +274,7 @@ const InterventionsPendingPayment: React.FC = () => {
                               size="icon-sm"
                               aria-label="Voir les details"
                               onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
-                              className="text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--hover)]"
+                              className="text-muted-foreground hover:text-foreground hover:bg-muted"
                             >
                               <VisibilityIcon size={18} strokeWidth={1.75} />
                             </BuiButton>

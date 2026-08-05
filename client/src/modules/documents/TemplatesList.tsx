@@ -111,14 +111,14 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
             <div
               key={t.id}
               onClick={() => navigate(`/documents/templates/${t.id}`)}
-              className="flex flex-col gap-[4.5px] py-[14px] px-4 border border-solid border-[var(--line)] rounded-[var(--radius-lg)] bg-[var(--card)] cursor-pointer transition-[border-color,box-shadow] duration-[140ms] hover:border-[var(--accent)] hover:shadow-[0_8px_22px_-16px_var(--accent)] focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2 motion-reduce:transition-none"
+              className="flex flex-col gap-[4.5px] py-[14px] px-4 border border-solid border-border rounded-lg bg-card cursor-pointer transition-[border-color,box-shadow] duration-[140ms] hover:border-primary hover:shadow-[0_8px_22px_-16px_var(--bui-primary)] focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 motion-reduce:transition-none"
               role="link"
               tabIndex={0}
               onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/documents/templates/${t.id}`); }}
             >
               {/* Overline type + statut -soft */}
               <div className="flex items-center justify-between gap-1.5">
-                <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
+                <p className="text-2xs font-bold uppercase tracking-[.06em] text-faint">
                   {t.documentType}
                 </p>
                 <StatusChip
@@ -129,25 +129,25 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
 
               {/* Nom + description */}
               <div className="min-w-0">
-                <p className="cn-text-body1 truncate text-[13.5px] font-semibold text-[var(--ink)]">
+                <p className="truncate text-[13.5px] font-semibold text-foreground">
                   {t.name}
                 </p>
                 {t.description && (
-                  <p className="cn-text-body1 truncate text-[11.5px] text-[var(--muted)] mt-px">
+                  <p className="truncate text-[11.5px] text-muted-foreground mt-px">
                     {t.description}
                   </p>
                 )}
               </div>
 
               {/* Méta muted */}
-              <p className="cn-text-body1 truncate text-[11.5px] text-[var(--muted)]">
+              <p className="truncate text-[11.5px] text-muted-foreground">
                 {[t.originalFilename, `v${t.version}`, `${t.tags?.length || 0} tags`, t.createdBy]
                   .filter(Boolean).join(' · ')}
               </p>
 
-              {/* Pied : action accent + actions secondaires */}
+              {/* Pied : action de marque + actions secondaires */}
               <div className="flex items-center justify-between mt-0.5" onClick={(e) => e.stopPropagation()}>
-                <span className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-[var(--accent)] whitespace-nowrap cursor-pointer hover:text-[var(--accent-deep)]" onClick={() => navigate(`/documents/templates/${t.id}`)}>
+                <span className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-primary whitespace-nowrap cursor-pointer hover:text-primary-deep" onClick={() => navigate(`/documents/templates/${t.id}`)}>
                   Aperçu
                   <ArrowRightIcon size={14} strokeWidth={1.75} />
                 </span>
@@ -161,7 +161,7 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
                             size="icon-sm"
                             onClick={() => handleActivate(t.id)}
                             aria-label="Activer"
-                            className="cursor-pointer text-[var(--muted)] hover:text-[var(--ok)] hover:bg-[var(--ok-soft)]"
+                            className="cursor-pointer text-muted-foreground hover:text-success-ink hover:bg-success-soft"
                           >
                             <CheckCircle size={16} strokeWidth={1.75} />
                           </Button>
@@ -178,7 +178,7 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
                           size="icon-sm"
                           onClick={() => setDeleteTarget({ id: t.id, name: t.name })}
                           aria-label="Supprimer"
-                          className="cursor-pointer text-[var(--muted)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+                          className="cursor-pointer text-muted-foreground hover:text-destructive-ink hover:bg-destructive-soft"
                         >
                           <Delete size={16} strokeWidth={1.75} />
                         </Button>

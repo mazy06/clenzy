@@ -87,7 +87,7 @@ export default function ThermostatsScreen() {
 
       {isLoading ? (
         <div className={GRID_CLS}>
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[170px] rounded-[var(--radius-lg)]" />)}
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[170px] rounded-xl" />)}
         </div>
       ) : thermostats.length === 0 ? (
         <EmptyState
@@ -102,8 +102,8 @@ export default function ThermostatsScreen() {
           <div className="mb-3" key={propertyName}>
             <div className="flex items-center gap-1 mb-1.5">
               <span className="text-muted-foreground inline-flex"><Home size={15} strokeWidth={1.75} /></span>
-              <p className="cn-text-body1 font-semibold text-[0.9375rem] text-foreground">{propertyName}</p>
-              <span className="cn-text-caption text-muted-foreground opacity-60">· {items.length} thermostat{items.length > 1 ? 's' : ''}</span>
+              <p className="text-sm font-semibold tracking-tight text-foreground">{propertyName}</p>
+              <span className="text-xs text-muted-foreground opacity-60 tabular-nums">· {items.length} thermostat{items.length > 1 ? 's' : ''}</span>
             </div>
             <div className={GRID_CLS}>
               {items.map((th) => (

@@ -45,7 +45,7 @@ const InterventionFormAssignment: React.FC<InterventionFormAssignmentProps> = Re
     return (
       <Card className="gap-0 py-0 mb-[9px]">
         <CardContent className="p-3">
-          <h6 className="cn-text-subtitle1 font-semibold mb-2">
+          <h6 className="text-sm font-semibold tracking-tight mb-2">
             {t('interventions.sections.assignment')}
           </h6>
 

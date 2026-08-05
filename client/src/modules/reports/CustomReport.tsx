@@ -95,7 +95,7 @@ const CustomReport: React.FC = () => {
       {/* ── Définition ── */}
       <Card className="p-[9px] gap-[7.5px] [--card-spacing:0px]">
         <div>
-          <span className="cn-text-caption text-[var(--muted)]">
+          <span className="text-xs text-muted-foreground">
             {t('reports.custom.dimensionsLabel', 'Dimensions')}
           </span>
           <div className="flex gap-1 flex-wrap mt-0.5">
@@ -105,7 +105,7 @@ const CustomReport: React.FC = () => {
                 outlined
                 selected={dimensions.includes(d)}
                 pressed={dimensions.includes(d)}
-                tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
+                tone="accent"
                 label={dimensionLabel(d)}
                 onClick={() => toggle(dimensions, d, setDimensions)}
               />
@@ -113,7 +113,7 @@ const CustomReport: React.FC = () => {
           </div>
         </div>
         <div>
-          <span className="cn-text-caption text-[var(--muted)]">
+          <span className="text-xs text-muted-foreground">
             {t('reports.custom.metricsLabel', 'Métriques')}
           </span>
           <div className="flex gap-1 flex-wrap mt-0.5">
@@ -123,7 +123,7 @@ const CustomReport: React.FC = () => {
                 outlined
                 selected={metrics.includes(m)}
                 pressed={metrics.includes(m)}
-                tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
+                tone="accent"
                 label={metricLabel(m)}
                 onClick={() => toggle(metrics, m, setMetrics)}
               />
@@ -192,14 +192,14 @@ const CustomReport: React.FC = () => {
         </div>
         {(viewsQuery.data?.length ?? 0) > 0 && (
           <div className="flex gap-1 flex-wrap items-center">
-            <span className="cn-text-caption text-[var(--muted)]">
+            <span className="text-xs text-muted-foreground">
               {t('reports.custom.savedViews', 'Vues sauvegardées :')}
             </span>
             {viewsQuery.data?.map((v) => (
               <StatusChip
                 key={v.id}
                 outlined
-                tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
+                tone="accent"
                 label={v.name}
                 onClick={() => loadView(v.id)}
                 onDelete={() => deleteMutation.mutate(v.id)}
@@ -224,7 +224,7 @@ const CustomReport: React.FC = () => {
       )}
       {result && !runMutation.isPending && (
         <Card className="p-[9px] [--card-spacing:0px]">
-          <span className="cn-text-caption text-[var(--muted)]">
+          <span className="text-xs text-muted-foreground">
             {t('reports.custom.resultCurrency', 'Montants en')} {result.currency}
           </span>
           {result.rows.length === 0 ? (

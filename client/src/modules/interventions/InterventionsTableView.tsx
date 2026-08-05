@@ -41,7 +41,7 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
   return (
     <div
       ref={containerRef}
-      className="border border-solid border-[var(--line)] rounded-[14px] bg-[var(--card)] flex-1 min-h-0 flex flex-col overflow-hidden"
+      className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-xl border border-solid border-border bg-card shadow-none"
     >
       <div className="flex-1 overflow-hidden">
         <Table>
@@ -70,10 +70,10 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                   onClick={() => navigate(`/interventions/${intervention.id}`)}
                 >
                   <TableCell>
-                    <p className="cn-text-body2 font-semibold text-[0.82rem]">
+                    <p className="text-[13px] font-semibold text-foreground">
                       {stripPropertySuffix(intervention.title, intervention.propertyName)}
                     </p>
-                    <span className="cn-text-caption text-muted-foreground text-[0.68rem]">
+                    <span className="text-[11px] text-muted-foreground">
                       {intervention.requestorName}
                     </span>
                   </TableCell>
@@ -83,19 +83,19 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                     ); })()}
                   </TableCell>
                   <TableCell>
-                    <p className="cn-text-body2 text-[0.82rem]">
+                    <p className="text-[13px] text-foreground">
                       {intervention.propertyName}
                     </p>
-                    <span className="cn-text-caption text-muted-foreground text-[0.68rem]">
+                    <span className="text-[11px] text-muted-foreground">
                       {intervention.propertyAddress}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <p className="cn-text-body2 text-[0.82rem]">
+                    <p className="text-[13px] text-foreground">
                       {intervention.assignedToName || '—'}
                     </p>
                     {intervention.assignedToType && (
-                      <span className="cn-text-caption text-muted-foreground text-[0.68rem]">
+                      <span className="text-[11px] text-muted-foreground">
                         {intervention.assignedToType === 'team' ? 'Équipe' : 'Utilisateur'}
                       </span>
                     )}
@@ -119,22 +119,22 @@ const InterventionsTableView: React.FC<InterventionsTableViewProps> = ({
                         value={getProgress(intervention)}
                         style={{
                           '--progress-tint':
-                            getProgress(intervention) === 100 ? 'var(--ok)'
-                              : getProgress(intervention) >= 50 ? 'var(--info)' : 'var(--warn)',
+                            getProgress(intervention) === 100 ? 'var(--bui-success)'
+                              : getProgress(intervention) >= 50 ? 'var(--bui-info)' : 'var(--bui-warning)',
                         } as React.CSSProperties}
-                        className="flex-1 h-1.5 rounded-full bg-[var(--hover)] [&>[data-slot=progress-indicator]]:rounded-full [&>[data-slot=progress-indicator]]:bg-[var(--progress-tint)]"
+                        className="flex-1 h-1.5 rounded-full bg-muted [&>[data-slot=progress-indicator]]:rounded-full [&>[data-slot=progress-indicator]]:bg-[var(--progress-tint)]"
                       />
-                      <span className="cn-text-caption font-semibold text-[0.68rem] min-w-[28px] tabular-nums">
+                      <span className="text-[11px] font-semibold text-foreground min-w-[28px] tabular-nums">
                         {getProgress(intervention)}%
                       </span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <p className="cn-text-body2 text-[0.82rem]">
+                    <p className="text-[13px] text-foreground tabular-nums">
                       {formatDateShort(intervention.scheduledDate)}
                     </p>
                     {intervention.estimatedDurationHours > 0 && (
-                      <span className="cn-text-caption text-muted-foreground text-[0.68rem]">
+                      <span className="text-[11px] text-muted-foreground tabular-nums">
                         ~{intervention.estimatedDurationHours}h
                       </span>
                     )}

@@ -13,6 +13,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Separator,
   Skeleton,
   Tooltip,
   TooltipTrigger,
@@ -44,7 +45,8 @@ import {
   Inventory as StepFormatIcon,
   Visibility as VisibilityIcon,
 } from '../../icons';
-import FilterChipRow from '../../components/FilterChipRow';
+import FilterChipRow from '../../components/baitly/FilterChipRow';
+import StatTile from '../../components/baitly/StatTile';
 import HelpPopover from '../../components/HelpPopover';
 import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import EmptyState from '../../components/EmptyState';
@@ -87,23 +89,17 @@ const PAYOUT_STATUS_VALUES: (PayoutStatus | '')[] = [
   '', 'PENDING', 'APPROVED', 'PROCESSING', 'PAID', 'FAILED', 'CANCELLED',
 ];
 
-// Carte/panneau : hairline --line, r14 (baseline §2 Cartes), aucune ombre.
-const PANEL_CLASS = 'rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]';
+// Carte/panneau : hairline Baitly UI, r14 (baseline §2 Cartes), aucune ombre.
+const PANEL_CLASS = 'rounded-xl border border-solid border-border bg-card';
 
 // Tableaux : la typo / le padding / le filet viennent des primitifs du kit ;
 // il ne reste ici que ce que les cellules ajoutent EN PLUS.
 const CELL_CLASS = 'tabular-nums';
 // Tableau de detail (modale SEPA) : mise en page cle/valeur, donc plus serree et sans filet.
 const DETAIL_CELL_CLASS = 'py-[4.5px] border-b-0 tabular-nums';
-const DETAIL_LABEL_CLASS = `${DETAIL_CELL_CLASS} font-semibold text-[var(--muted)]`;
+const DETAIL_LABEL_CLASS = `${DETAIL_CELL_CLASS} font-semibold text-muted-foreground`;
 // Conteneurs de tableau : meme surface que `PANEL_CLASS`, plus le defilement.
 const CARD_CLASS = `overflow-x-auto ${PANEL_CLASS}`;
-
-/** Label overline des tuiles KPI (pattern StatTile). */
-const KPI_LABEL_CLASS = 'block text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-[3px]';
-
-/** Valeur KPI : display tabular-nums (pattern StatTile). */
-const KPI_VALUE_CLASS = 'cn-text-body1 [font-family:var(--font-display)] text-[1.125rem] font-semibold tracking-[-0.025em] tabular-nums text-[var(--ink)]';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -376,7 +372,7 @@ export const PayoutsTab: React.FC = () => {
       {isLoading ? (
         <div className="flex flex-col gap-1.5">
           {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-11 rounded-[var(--radius-sm)]" />
+            <Skeleton key={i} className="h-11 rounded-md" />
           ))}
         </div>
       ) : isError ? (
@@ -431,7 +427,7 @@ export const PayoutsTab: React.FC = () => {
                     {fmtCurrency(payout.netAmount)}
                   </TableCell>
                   <TableCell className="text-center">
-                    <StatusChip color={PAYOUT_STATUS_COLORS[payout.status] ?? 'var(--muted)'} label={t(`accounting.payoutStatuses.${payout.status}`, payout.status)} />
+                    <StatusChip color={PAYOUT_STATUS_COLORS[payout.status] ?? 'var(--bui-muted-foreground)'} label={t(`accounting.payoutStatuses.${payout.status}`, payout.status)} />
                   </TableCell>
                   <TableCell className="text-end whitespace-nowrap">
                     <div className="flex items-center justify-end gap-0.5">
@@ -442,7 +438,7 @@ export const PayoutsTab: React.FC = () => {
                             <BuiButton
                               variant="ghost"
                               size="icon-sm"
-                              className="text-[var(--mui-primary)]"
+                              className="text-primary"
                               aria-label={t('accounting.approve', 'Approuver')}
                               onClick={() => handleApprove(payout.id)}
                               disabled={approveMutation.isPending}
@@ -462,7 +458,7 @@ export const PayoutsTab: React.FC = () => {
                               <BuiButton
                                 variant="ghost"
                                 size="icon-sm"
-                                className="text-[var(--mui-primary)]"
+                                className="text-primary"
                                 aria-label={t('accounting.executePayout', 'Executer le virement')}
                                 onClick={() => executeMutation.mutate(payout.id)}
                                 disabled={executeMutation.isPending}
@@ -483,7 +479,7 @@ export const PayoutsTab: React.FC = () => {
                               <BuiButton
                                 variant="ghost"
                                 size="icon-sm"
-                                className="text-[var(--ok)]"
+                                className="text-success"
                                 aria-label={t('accounting.markPaid', 'Marquer paye')}
                                 onClick={() => openPayDialog(payout)}
                                 disabled={markPaidMutation.isPending}
@@ -504,7 +500,7 @@ export const PayoutsTab: React.FC = () => {
                               <BuiButton
                                 variant="ghost"
                                 size="icon-sm"
-                                className="text-[var(--ok)]"
+                                className="text-success"
                                 aria-label={t('accounting.markAsPaid', 'Marquer comme payé')}
                                 onClick={() => openPayDialog(payout)}
                                 disabled={markPaidMutation.isPending}
@@ -541,7 +537,7 @@ export const PayoutsTab: React.FC = () => {
                             <BuiButton
                               variant="ghost"
                               size="icon-sm"
-                              className="text-[var(--warn)]"
+                              className="text-warning"
                               aria-label={payout.failureReason ?? t('accounting.failedPayout', 'Echec du reversement')}
                               onClick={() => retryMutation.mutate(payout.id)}
                               disabled={retryMutation.isPending || payout.retryCount >= 3}
@@ -560,7 +556,7 @@ export const PayoutsTab: React.FC = () => {
                     {payout.status === 'PAID' && payout.paymentReference && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] cursor-help">
+                          <span className="text-[0.6875rem] text-muted-foreground cursor-help">
                             {payout.paymentReference}
                           </span>
                         </TooltipTrigger>
@@ -603,7 +599,7 @@ export const PayoutsTab: React.FC = () => {
             </DialogTitle>
           </DialogHeader>
           {payTarget && (
-            <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground">
+            <p className="text-[0.8125rem] text-muted-foreground">
               {t('accounting.paySubtitle', 'Payout')} #{payTarget.id} — {fmtCurrency(payTarget.netAmount)}
             </p>
           )}
@@ -643,7 +639,7 @@ export const PayoutsTab: React.FC = () => {
         <DialogContent aria-describedby={undefined} className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle className="flex flex-row items-center gap-1.5">
-              <span className="inline-flex text-[var(--accent)]"><AccountIcon size={'1.25rem'} strokeWidth={1.75} /></span>
+              <span className="inline-flex text-primary"><AccountIcon size={'1.25rem'} strokeWidth={1.75} /></span>
               {t('accounting.payoutDetail', 'Détail du reversement')}
             </DialogTitle>
           </DialogHeader>
@@ -667,10 +663,10 @@ export const PayoutsTab: React.FC = () => {
                   <TableRow>
                     <TableCell className={DETAIL_LABEL_CLASS}>Méthode</TableCell>
                     <TableCell className={DETAIL_CELL_CLASS}>
-                      <StatusChip color={'var(--info)'} label={detailPayout.payoutMethod === 'SEPA_TRANSFER' ? 'Virement SEPA' : detailPayout.payoutMethod === 'STRIPE_CONNECT' ? 'Stripe Connect' : 'Manuel'} />
+                      <StatusChip tone="info" label={detailPayout.payoutMethod === 'SEPA_TRANSFER' ? 'Virement SEPA' : detailPayout.payoutMethod === 'STRIPE_CONNECT' ? 'Stripe Connect' : 'Manuel'} />
                     </TableCell>
                   </TableRow>
-                  <TableRow><TableCell colSpan={2} className={`${DETAIL_CELL_CLASS} pt-[12px]`}><div className="border-b border-[var(--line)]" /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={2} className={`${DETAIL_CELL_CLASS} pt-[12px]`}><Separator /></TableCell></TableRow>
                   <TableRow>
                     <TableCell className={DETAIL_LABEL_CLASS}>Période</TableCell>
                     <TableCell className={DETAIL_CELL_CLASS}>{detailPayout.periodStart} → {detailPayout.periodEnd}</TableCell>
@@ -681,18 +677,18 @@ export const PayoutsTab: React.FC = () => {
                   </TableRow>
                   <TableRow>
                     <TableCell className={DETAIL_LABEL_CLASS}>Commission ({(detailPayout.commissionRate * 100).toFixed(1)}%)</TableCell>
-                    <TableCell className={`${DETAIL_CELL_CLASS} text-[var(--err)]`}>- {fmtCurrency(detailPayout.commissionAmount)}</TableCell>
+                    <TableCell className={`${DETAIL_CELL_CLASS} text-destructive-ink`}>- {fmtCurrency(detailPayout.commissionAmount)}</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell className={DETAIL_LABEL_CLASS}>Dépenses</TableCell>
-                    <TableCell className={detailPayout.expenses > 0 ? `${DETAIL_CELL_CLASS} text-[var(--err)]` : `${DETAIL_CELL_CLASS} text-[var(--muted)]`}>
+                    <TableCell className={detailPayout.expenses > 0 ? `${DETAIL_CELL_CLASS} text-destructive-ink` : `${DETAIL_CELL_CLASS} text-muted-foreground`}>
                       {detailPayout.expenses > 0 ? `- ${fmtCurrency(detailPayout.expenses)}` : fmtCurrency(0)}
                     </TableCell>
                   </TableRow>
-                  <TableRow><TableCell colSpan={2} className={DETAIL_CELL_CLASS}><div className="border-b border-[var(--line)]" /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={2} className={DETAIL_CELL_CLASS}><Separator /></TableCell></TableRow>
                   <TableRow>
                     <TableCell className={`${DETAIL_CELL_CLASS} font-bold text-sm`}>Net à virer</TableCell>
-                    <TableCell className={`${DETAIL_CELL_CLASS} font-[family-name:var(--font-display)] font-semibold text-sm text-[var(--ok)]`}>{fmtCurrency(detailPayout.netAmount)}</TableCell>
+                    <TableCell className={`${DETAIL_CELL_CLASS} font-[family-name:var(--font-display)] font-semibold text-sm text-success-ink`}>{fmtCurrency(detailPayout.netAmount)}</TableCell>
                   </TableRow>
                   {detailPayout.paymentReference && (
                     <TableRow>
@@ -703,7 +699,7 @@ export const PayoutsTab: React.FC = () => {
                   <TableRow>
                     <TableCell className={DETAIL_LABEL_CLASS}>Statut</TableCell>
                     <TableCell className={DETAIL_CELL_CLASS}>
-                      <StatusChip color={PAYOUT_STATUS_COLORS[detailPayout.status] ?? 'var(--muted)'} label={detailPayout.status} />
+                      <StatusChip color={PAYOUT_STATUS_COLORS[detailPayout.status] ?? 'var(--bui-muted-foreground)'} label={detailPayout.status} />
                     </TableCell>
                   </TableRow>
                 </TableBody>
@@ -904,34 +900,30 @@ export const ExpensesTab: React.FC = () => {
         onChange={handleReceiptFileChange}
       />
 
-      {/* ── Stats — pattern StatTile : label overline + valeur display tabular-nums ── */}
+      {/* ── Stats — primitive StatTile ──
+          La teinte de statut porte desormais l'ICONE et non le nombre : une
+          valeur chiffree est du texte, et la teinte vive n'y tient pas le 4,5:1. */}
       <div className="flex gap-2 mb-2">
-        <div className={cn(PANEL_CLASS, 'p-[9px] flex-1')}>
-          <p className={cn(KPI_LABEL_CLASS, 'cn-text-body1')}>
-            {t('accounting.expenses.totalExpenses', 'Total depenses')}
-          </p>
-          <p className={KPI_VALUE_CLASS}>
-            {fmtCurrency(stats.total)}
-          </p>
-        </div>
-        <div className={cn(PANEL_CLASS, 'p-[9px] flex-1')}>
-          <p className={cn(KPI_LABEL_CLASS, 'cn-text-body1')}>
-            {t('accounting.expenses.pendingCount', 'En attente')}
-          </p>
-          {/* Couleur issue d'une map importee (valeurs hex) : resolue a l'execution,
-              donc en style inline — une classe Tailwind ne peut pas en naitre. */}
-          <p className={KPI_VALUE_CLASS} style={{ color: EXPENSE_STATUS_COLORS.DRAFT }}>
-            {stats.pending}
-          </p>
-        </div>
-        <div className={cn(PANEL_CLASS, 'p-[9px] flex-1')}>
-          <p className={cn(KPI_LABEL_CLASS, 'cn-text-body1')}>
-            {t('accounting.expenses.approvedCount', 'Approuvees')}
-          </p>
-          <p className={KPI_VALUE_CLASS} style={{ color: EXPENSE_STATUS_COLORS.APPROVED }}>
-            {stats.approved}
-          </p>
-        </div>
+        <StatTile
+          className="flex-1"
+          icon={<AttachMoneyIcon />}
+          label={t('accounting.expenses.totalExpenses', 'Total depenses')}
+          value={fmtCurrency(stats.total)}
+        />
+        <StatTile
+          className="flex-1"
+          icon={<StepCategoryIcon />}
+          label={t('accounting.expenses.pendingCount', 'En attente')}
+          value={stats.pending}
+          iconClassName="text-warning"
+        />
+        <StatTile
+          className="flex-1"
+          icon={<ApproveIcon />}
+          label={t('accounting.expenses.approvedCount', 'Approuvees')}
+          value={stats.approved}
+          iconClassName="text-success"
+        />
       </div>
 
       {/* ── Filters + Actions ── */}
@@ -942,7 +934,7 @@ export const ExpensesTab: React.FC = () => {
             .map((opt) => ({
               value: opt.value as ExpenseStatus,
               label: t(opt.labelKey, opt.label),
-              color: EXPENSE_STATUS_COLORS[opt.value as ExpenseStatus] ?? 'var(--muted)',
+              color: EXPENSE_STATUS_COLORS[opt.value as ExpenseStatus] ?? 'var(--bui-muted-foreground)',
             }))}
           value={filterStatus}
           onChange={(v) => setFilterStatus(v as ExpenseStatus | '')}
@@ -1030,7 +1022,7 @@ export const ExpensesTab: React.FC = () => {
       {isLoading ? (
         <div className="flex flex-col gap-1.5">
           {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-11 rounded-[var(--radius-sm)]" />
+            <Skeleton key={i} className="h-11 rounded-md" />
           ))}
         </div>
       ) : isError ? (
@@ -1071,13 +1063,13 @@ export const ExpensesTab: React.FC = () => {
                     {expense.description}
                   </TableCell>
                   <TableCell className="text-center">
-                    <StatusChip color={EXPENSE_CATEGORY_COLORS[expense.category] ?? '#666'} label={t(`accounting.expenses.categories.${expense.category}`, expense.category)} />
+                    <StatusChip color={EXPENSE_CATEGORY_COLORS[expense.category] ?? 'var(--bui-muted-foreground)'} label={t(`accounting.expenses.categories.${expense.category}`, expense.category)} />
                   </TableCell>
                   <TableCell className={`${CELL_CLASS} text-end font-bold`}>
                     {fmtCurrency(expense.amountTtc, expense.currency)}
                   </TableCell>
                   <TableCell className="text-center">
-                    <StatusChip color={EXPENSE_STATUS_COLORS[expense.status] ?? 'var(--muted)'} label={t(`accounting.expenses.statuses.${expense.status}`, expense.status)} />
+                    <StatusChip color={EXPENSE_STATUS_COLORS[expense.status] ?? 'var(--bui-muted-foreground)'} label={t(`accounting.expenses.statuses.${expense.status}`, expense.status)} />
                   </TableCell>
                   <TableCell className="text-end whitespace-nowrap">
                     {expense.status === 'DRAFT' && (
@@ -1088,7 +1080,7 @@ export const ExpensesTab: React.FC = () => {
                               <BuiButton
                                 variant="ghost"
                                 size="icon-sm"
-                                className="text-[var(--mui-primary)]"
+                                className="text-primary"
                                 aria-label={t('accounting.expenses.approve', 'Approuver')}
                                 onClick={() => approveMutation.mutate(expense.id)}
                                 disabled={approveMutation.isPending}
@@ -1124,7 +1116,7 @@ export const ExpensesTab: React.FC = () => {
                             <BuiButton
                               variant="ghost"
                               size="icon-sm"
-                              className="text-[var(--ok)]"
+                              className="text-success"
                               aria-label={t('accounting.expenses.markPaid', 'Marquer paye')}
                               onClick={() => openPayDialog(expense)}
                               disabled={payMutation.isPending}
@@ -1146,7 +1138,7 @@ export const ExpensesTab: React.FC = () => {
                               asChild
                               variant="ghost"
                               size="icon-sm"
-                              className="text-[var(--ok)]"
+                              className="text-success"
                             >
                               <a
                                 href={providerExpensesApi.getReceiptDownloadUrl(expense.id)}
@@ -1311,7 +1303,7 @@ export const ExpensesTab: React.FC = () => {
                 onChange={(e) => setForm((prev) => ({ ...prev, taxRate: (parseFloat(e.target.value) || 0) / 100 }))}
               />
             </Field>
-            <p className="cn-text-body1 self-center text-[0.8125rem] font-semibold min-w-[100px]">
+            <p className="self-center text-[0.8125rem] font-semibold min-w-[100px]">
               TTC: {fmtCurrency((form.amountHt ?? 0) * (1 + (form.taxRate ?? 0)))}
             </p>
           </div>
@@ -1399,7 +1391,7 @@ export const ExpensesTab: React.FC = () => {
             </DialogTitle>
           </DialogHeader>
           {payTarget && (
-            <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground">
+            <p className="text-[0.8125rem] text-muted-foreground">
               {payTarget.description} — {fmtCurrency(payTarget.amountTtc, payTarget.currency)}
             </p>
           )}
@@ -1450,7 +1442,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'fec',
     titleKey: 'accounting.exports.fec',
     descKey: 'accounting.exports.fecDesc',
-    icon: <span className="inline-flex text-[var(--accent)]"><AccountIcon size={32} strokeWidth={1.75} /></span>,
+    icon: <span className="inline-flex text-primary"><AccountIcon size={32} strokeWidth={1.75} /></span>,
     format: 'txt',
     download: (from, to) => accountingExportApi.downloadFec(from, to),
     preview: (from, to) => accountingExportApi.previewFec(from, to),
@@ -1459,7 +1451,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'reservations',
     titleKey: 'accounting.exports.reservationsCsv',
     descKey: 'accounting.exports.reservationsCsvDesc',
-    icon: <span className="inline-flex text-[var(--ok)]"><ListAltIcon size={32} strokeWidth={1.75} /></span>,
+    icon: <span className="inline-flex text-success"><ListAltIcon size={32} strokeWidth={1.75} /></span>,
     format: 'csv',
     download: (from, to) => accountingExportApi.downloadReservationsCsv(from, to),
     preview: (from, to) => accountingExportApi.previewReservationsCsv(from, to),
@@ -1468,7 +1460,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'payouts',
     titleKey: 'accounting.exports.payoutsCsv',
     descKey: 'accounting.exports.payoutsCsvDesc',
-    icon: <span className="inline-flex text-[var(--info)]"><AttachMoneyIcon size={32} strokeWidth={1.75} /></span>,
+    icon: <span className="inline-flex text-info"><AttachMoneyIcon size={32} strokeWidth={1.75} /></span>,
     format: 'csv',
     download: (from, to) => accountingExportApi.downloadPayoutsCsv(from, to),
     preview: (from, to) => accountingExportApi.previewPayoutsCsv(from, to),
@@ -1477,7 +1469,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'expenses',
     titleKey: 'accounting.exports.expensesCsv',
     descKey: 'accounting.exports.expensesCsvDesc',
-    icon: <span className="inline-flex text-[var(--warn)]"><BuildIcon size={32} strokeWidth={1.75} /></span>,
+    icon: <span className="inline-flex text-warning"><BuildIcon size={32} strokeWidth={1.75} /></span>,
     format: 'csv',
     download: (from, to) => accountingExportApi.downloadExpensesCsv(from, to),
     preview: (from, to) => accountingExportApi.previewExpensesCsv(from, to),
@@ -1486,7 +1478,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
     key: 'invoices',
     titleKey: 'accounting.exports.invoicesCsv',
     descKey: 'accounting.exports.invoicesCsvDesc',
-    icon: <span className="inline-flex text-[var(--muted)]"><ArticleIcon size={32} strokeWidth={1.75} /></span>,
+    icon: <span className="inline-flex text-muted-foreground"><ArticleIcon size={32} strokeWidth={1.75} /></span>,
     format: 'csv',
     download: (from, to) => accountingExportApi.downloadInvoicesCsv(from, to),
     preview: (from, to) => accountingExportApi.previewInvoicesCsv(from, to),
@@ -1564,7 +1556,7 @@ export const ExportsTab: React.FC = () => {
 
       {/* Period selector */}
       <div className={cn(PANEL_CLASS, 'p-3 mb-3')}>
-        <p className="cn-text-body1 mb-2 text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)]">
+        <p className="mb-2 text-2xs font-semibold uppercase tracking-wide text-faint">
           {t('accounting.exports.period', 'Periode d\'export')}
         </p>
         <div className="flex gap-3 flex-wrap items-center">
@@ -1611,11 +1603,11 @@ export const ExportsTab: React.FC = () => {
               <CardContent className="flex flex-col h-full p-3">
                 <div className="flex items-center gap-2 mb-2">
                   {card.icon}
-                  <p className="cn-text-body1 font-semibold text-[13.5px] text-[var(--ink)]">
+                  <p className="text-sm font-semibold text-foreground">
                     {t(card.titleKey)}
                   </p>
                 </div>
-                <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mb-3 flex-1">
+                <p className="text-xs text-muted-foreground mb-3 flex-1">
                   {t(card.descKey)}
                 </p>
                 <div className="flex gap-1.5">

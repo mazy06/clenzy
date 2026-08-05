@@ -28,8 +28,8 @@ type PeriodMode = 'monthly' | 'quarterly' | 'annual';
 // Seul l'ecart au gabarit reste ici : padding vertical 7.5px et tabular-nums.
 const CELL_CLASS = 'py-[7.5px] tabular-nums';
 
-// Carte/panneau : hairline --line, r14 (baseline §2 Cartes), aucune ombre.
-const PANEL_CLASS = 'border border-solid border-[var(--line)] shadow-none rounded-[var(--radius-lg)] bg-[var(--card)]';
+// Carte/panneau : filet discret, rayon lg (baseline §2 Cartes), aucune ombre.
+const PANEL_CLASS = 'border border-solid border-border shadow-none rounded-lg bg-card';
 
 const PERIOD_MODE_OPTIONS: { value: PeriodMode; label: string }[] = [
   { value: 'monthly', label: 'Mensuel' },
@@ -157,8 +157,8 @@ const FiscalReportSection: React.FC = () => {
       {/* Loading / Error */}
       {activeQuery.isLoading ? (
         <div className="flex flex-col gap-2">
-          <Skeleton className="h-[76px] w-full rounded-[var(--radius-lg)]" />
-          <Skeleton className="h-[200px] w-full rounded-[var(--radius-lg)]" />
+          <Skeleton className="h-[76px] w-full rounded-lg" />
+          <Skeleton className="h-[200px] w-full rounded-lg" />
         </div>
       ) : activeQuery.error ? (
         <Alert variant="destructive" className="mb-3">
@@ -188,14 +188,14 @@ const FiscalReportSection: React.FC = () => {
                 className={cn(
                   PANEL_CLASS,
                   'p-[9px] flex-1 min-w-[130px]',
-                  // KPI accentué (Total TTC) : fond accent-soft + hairline accent 30 %
-                  card.primary && 'bg-[var(--accent-soft)] border-[color-mix(in_srgb,var(--accent)_30%,transparent)]',
+                  // KPI accentué (Total TTC) : fond pastel de marque + filet à 30 %
+                  card.primary && 'bg-primary-soft border-primary/30',
                 )}
               >
-                <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-0.5">
+                <p className="block text-2xs font-bold uppercase tracking-[0.05em] text-faint mb-0.5">
                   {card.label}
                 </p>
-                <p className={cn('cn-text-body1 font-semibold tracking-[-0.025em] tabular-nums', card.isText ? 'text-[0.9rem]' : 'text-[1.1rem]', card.primary ? 'text-[var(--accent)]' : 'text-[var(--ink)]')} style={{ fontFamily: 'var(--font-display)' }}>
+                <p className={cn('font-semibold tracking-[-0.025em] tabular-nums', card.isText ? 'text-[0.9rem]' : 'text-[1.1rem]', card.primary ? 'text-primary' : 'text-foreground')} style={{ fontFamily: 'var(--font-display)' }}>
                   {card.value}
                 </p>
               </div>
@@ -204,7 +204,7 @@ const FiscalReportSection: React.FC = () => {
 
           {/* Breakdown table */}
           {summary.breakdown?.length > 0 && (
-            <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]">
+            <div className="overflow-x-auto rounded-lg border border-solid border-border bg-card">
               <Table>
                 <TableHeader>
                   <TableRow>

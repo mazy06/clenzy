@@ -151,16 +151,16 @@ const ManagementContractFormModal: React.FC<ManagementContractFormModalProps> = 
     >
       <DialogContent className="sm:max-w-[900px]" showCloseButton={false}>
         <DialogHeader className="flex-row items-center gap-[9px]">
-          <span className="inline-flex items-center justify-center w-[32px] h-[32px] rounded-[10px] shrink-0 bg-[var(--accent-soft)] text-[var(--accent)]">
+          <span className="inline-flex items-center justify-center size-8 rounded-lg shrink-0 bg-primary-soft text-primary">
             <Handshake size={18} strokeWidth={1.75} />
           </span>
           <div className="flex-1 min-w-0">
-            <DialogTitle className="text-[16px] font-semibold leading-[1.25] text-balance text-[var(--ink)]">
+            <DialogTitle className="text-base font-semibold leading-[1.25] text-balance text-foreground">
               {isEdit
                 ? t('contracts.editTitle', 'Modifier le contrat')
                 : t('contracts.createTitle', 'Créer un contrat de gestion')}
             </DialogTitle>
-            <DialogDescription className="text-[0.78rem] text-[var(--muted)] mt-0.5">
+            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
               {isEdit && contract
                 ? contract.contractNumber
                 : t('contracts.modalSubtitle', "L'encaissement et la commission pilotent la répartition automatique des revenus.")}
@@ -177,7 +177,7 @@ const ManagementContractFormModal: React.FC<ManagementContractFormModalProps> = 
                   aria-label={t('contracts.cancel', 'Annuler')}
                   onClick={onClose}
                   disabled={saving}
-                  className="size-[34px] rounded-[10px] border border-solid border-[var(--line)] text-[var(--muted)] hover:bg-transparent hover:text-[var(--err)] hover:border-[var(--err)]"
+                  className="size-[34px] rounded-lg border border-solid border-border text-muted-foreground hover:bg-transparent hover:text-destructive-ink hover:border-destructive"
                 >
                   <Close size={18} strokeWidth={1.75} />
                 </Button>
@@ -189,7 +189,7 @@ const ManagementContractFormModal: React.FC<ManagementContractFormModalProps> = 
 
         {/* Pendant du `dividers` de l'ancienne DialogContent MUI : filets haut
             et bas, contenu defilant sur les petits ecrans. */}
-        <div className="-mx-4 px-4 py-3 max-h-[65vh] overflow-y-auto border-y border-solid border-[var(--line)]">
+        <div className="-mx-4 px-4 py-3 max-h-[65vh] overflow-y-auto border-y border-solid border-border">
           {loadingProperties && properties.length === 0 ? (
             <div className="flex justify-center py-9">
               <Spinner className="size-7" />

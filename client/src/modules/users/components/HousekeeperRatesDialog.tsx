@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription, Button } from '../../../components/ui';
+import StatusChip from '../../../components/StatusChip';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import {
@@ -44,20 +45,17 @@ function RateNudge({ amount, rate }: { amount: number | null; rate: HousekeeperP
   const deltaPct = rate.advisoryRecommended > 0
     ? Math.round(((amount - rate.advisoryRecommended) / rate.advisoryRecommended) * 100)
     : 0;
+  // Pastille de statut = primitive StatusChip, qui porte le couple `-ink`/`-soft`
+  // conforme AA, plutot qu'un badge redessine a la main.
   return (
-    <span
-      className="text-[10.5px] font-bold rounded-[7px] px-[7px] py-[2px] whitespace-nowrap"
-      style={{
-        color: inMarket ? 'var(--ok)' : 'var(--muted)',
-        backgroundColor: inMarket
-          ? 'color-mix(in srgb, var(--ok) 12%, transparent)'
-          : 'var(--hover)',
-      }}
-    >
-      {inMarket
+    <StatusChip
+      tone={inMarket ? 'ok' : 'neutral'}
+      size="sm"
+      className="whitespace-nowrap tabular-nums"
+      label={inMarket
         ? t('users.ratesDialog.inMarket', 'Dans le marché')
         : `${deltaPct > 0 ? '+' : ''}${deltaPct} %`}
-    </span>
+    />
   );
 }
 
@@ -118,8 +116,8 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
             {userName ? ` — ${userName}` : ''}
           </DialogTitle>
         </DialogHeader>
-        {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
-        <div className="border-y border-solid border-[var(--line)] py-3">
+        {/* Les filets haut/bas remplacent le `dividers` de l'ancienne modale. */}
+        <div className="border-y border-solid border-border py-3">
         {ratesQuery.isPending && (
           <div className="flex justify-center py-6">
             <Spinner className="size-[26px]" />
@@ -136,15 +134,15 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
             {/* ── Score qualité 30 j ── */}
             {score != null && (
               <div>
-                <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-1">
+                <p className="m-0 mb-1 text-2xs font-bold uppercase tracking-[.06em] text-faint">
                   {t('settings.myRates.scoreSection', 'Score qualité (30 jours)')}
                 </p>
                 <div className="flex items-baseline gap-2 flex-wrap">
-                  <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[24px] font-semibold text-[var(--accent)] tabular-nums">
+                  <p className="m-0 font-[family-name:var(--font-display)] text-[24px] font-semibold text-primary tabular-nums">
                     {score.score}
-                    <span className="text-[13px] text-[var(--muted)] font-medium">/100</span>
+                    <span className="text-[13px] text-muted-foreground font-medium">/100</span>
                   </p>
-                  <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
+                  <p className="m-0 text-[12px] text-muted-foreground tabular-nums">
                     {t('settings.myRates.scoreDetail', {
                       count: score.completedCount,
                       proof: Math.round(score.proofRate * 100),
@@ -156,7 +154,7 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
 
             {/* ── Taux horaire ── */}
             <div>
-              <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-1">
+              <p className="m-0 mb-1 text-2xs font-bold uppercase tracking-[.06em] text-faint">
                 {t('settings.myRates.hourlySection', 'Taux horaire')}
               </p>
               <div className="flex items-center gap-3 flex-wrap">
@@ -179,7 +177,7 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
                     </InputGroupAddon>
                   </InputGroup>
                 </Field>
-                <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
+                <p className="m-0 text-[12px] text-muted-foreground tabular-nums">
                   {t('settings.myRates.referenceRate', 'Taux de référence plateforme')} : {data.referenceHourlyRate} €/h
                 </p>
               </div>
@@ -187,11 +185,11 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
 
             {/* ── Forfaits par logement + nudge ── */}
             <div>
-              <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-1">
+              <p className="m-0 mb-1 text-2xs font-bold uppercase tracking-[.06em] text-faint">
                 {t('settings.myRates.flatSection', 'Forfaits par logement')}
               </p>
               {data.properties.length === 0 ? (
-                <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] italic">
+                <p className="m-0 text-[12.5px] text-muted-foreground italic">
                   {t('settings.myRates.noProperties', 'Aucun logement accessible.')}
                 </p>
               ) : (
@@ -201,7 +199,7 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
                     const amount = raw.trim() !== '' && !isNaN(parseFloat(raw)) ? parseFloat(raw) : null;
                     return (
                       <div className="flex items-center gap-2 flex-wrap" key={property.propertyId}>
-                        <p className="cn-text-body1 flex-1 min-w-[140px] text-[13px] font-semibold text-[var(--ink)]">
+                        <p className="m-0 flex-1 min-w-[140px] text-[13px] font-semibold text-foreground">
                           {property.propertyName}
                         </p>
                         {/* Champ sans libelle visible (le nom du logement est a
@@ -222,7 +220,7 @@ export default function HousekeeperRatesDialog({ userId, userName, onClose }: Ho
                             <InputGroupText>€</InputGroupText>
                           </InputGroupAddon>
                         </InputGroup>
-                        <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums whitespace-nowrap">
+                        <p className="m-0 text-[11.5px] text-muted-foreground tabular-nums whitespace-nowrap">
                           {property.advisoryMin}–{property.advisoryMax} €
                         </p>
                         <RateNudge amount={amount} rate={property} />

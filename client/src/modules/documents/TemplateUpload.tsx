@@ -108,22 +108,22 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
         </Alert>}
 
         <div className="mt-1.5 flex flex-col gap-3">
-          {/* Upload zone — tokens Signature (pas encore de pattern dropzone baseline) */}
+          {/* Zone de dépôt — Baitly UI (pas encore de primitive dropzone dans le kit) */}
           <label
             className={cn(
-              'border-2 border-dashed rounded-[12px] p-[18px] text-center cursor-pointer',
+              'border-2 border-dashed rounded-xl p-[18px] text-center cursor-pointer',
               'transition-[border-color,background-color] duration-150 motion-reduce:transition-none',
-              'hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]',
-              file ? 'border-[var(--ok)] bg-[var(--ok-soft)]' : 'border-[var(--line-2)] bg-[var(--field)]',
+              'hover:border-primary hover:bg-primary-soft',
+              file ? 'border-success bg-success-soft' : 'border-border bg-field',
             )}
           >
             <input type="file" accept=".odt" hidden onChange={handleFileChange} aria-label="Sélectionner un fichier template ODT" />
-            <span className={cn('inline-flex mb-1.5', file ? 'text-[var(--ok)]' : 'text-[var(--faint)]')}><CloudUpload size={40} strokeWidth={1.75} /></span>
-            <p className="cn-text-body1 font-medium">
+            <span className={cn('inline-flex mb-1.5', file ? 'text-success' : 'text-faint')}><CloudUpload size={40} strokeWidth={1.75} /></span>
+            <p className="text-sm font-medium">
               {file ? file.name : 'Cliquez pour sélectionner un fichier .odt'}
             </p>
             {file && (
-              <span className="cn-text-caption text-muted-foreground">
+              <span className="text-xs text-muted-foreground tabular-nums">
                 {(file.size / 1024).toFixed(1)} KB
               </span>
             )}
@@ -170,7 +170,7 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
           {/* FieldSeparator = le primitif « filet a legende centree » du kit,
               equivalent direct du <Divider> a enfant. */}
           <FieldSeparator className="my-1.5">
-            <span className="cn-text-caption text-muted-foreground">Configuration email (optionnel)</span>
+            <span className="text-xs text-muted-foreground">Configuration email (optionnel)</span>
           </FieldSeparator>
 
           <Field>

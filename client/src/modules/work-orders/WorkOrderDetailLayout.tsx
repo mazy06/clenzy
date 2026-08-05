@@ -68,89 +68,49 @@ const ICAL_SOURCE_LOGOS: Record<string, string> = {
   direct: baitlyMark,
 };
 
-// ─── Stable sx constants (tokens DESIGN_BASELINE) ───────────────────────────
+// ─── Recettes de classes partagees (palette Baitly UI) ──────────────────────
 
 /**
- * Peau de carte : hairline sur surface --card, r14, rembourrage 12 px
+ * Peau de carte : filet sur surface de carte, rayon xl, rembourrage 12 px
  * (ex-`p: 2`). `border-solid` est indispensable — le projet n'a pas de preflight
  * Tailwind, une bordure sans style declare reste invisible.
  */
 const CARD_CLASS =
-  'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] p-3';
+  'border border-solid border-border bg-card shadow-none rounded-xl p-3';
 
-const SECTION_TITLE_SX = {
-  fontSize: '10.5px',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '.05em',
-  color: 'var(--faint)',
-  mb: 1.5,
-} as const;
+/** Titre de section, en petites capitales discretes. */
+const SECTION_TITLE_CLASS = 'text-2xs font-bold uppercase tracking-[.05em] text-faint mb-[9px]';
 
-/** Report en classes de `SECTION_TITLE_SX`. */
-const SECTION_TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-[9px]';
+/** Libelle d'une ligne d'information. */
+const INFO_LABEL_CLASS = 'text-[11px] font-medium text-muted-foreground';
 
-const INFO_LABEL_SX = {
-  fontSize: '11px',
-  fontWeight: 500,
-  color: 'var(--muted)',
-} as const;
+/** Valeur d'une ligne d'information. */
+const INFO_VALUE_CLASS = 'text-[13px] font-semibold text-foreground mt-px';
 
-/** Report en classes de `INFO_LABEL_SX`. */
-const INFO_LABEL_CLASS = 'text-[11px] font-medium text-[var(--muted)]';
-
-const INFO_VALUE_SX = {
-  fontSize: '13px',
-  fontWeight: 600,
-  color: 'var(--ink)',
-  mt: '1px',
-} as const;
-
-/** Report en classes de `INFO_VALUE_SX`. */
-const INFO_VALUE_CLASS = 'text-[13px] font-semibold text-[var(--ink)] mt-px';
-
-const METRIC_VALUE_SX = {
-  fontSize: '15px',
-  fontWeight: 600,
-  color: 'var(--ink)',
-  lineHeight: 1.2,
-  fontFamily: 'var(--font-display)',
-  fontVariantNumeric: 'tabular-nums',
-} as const;
-
-/** Report en classes de `METRIC_VALUE_SX`. */
+/** Valeur chiffree d'une tuile metrique. */
 const METRIC_VALUE_CLASS =
-  'text-[15px] font-semibold text-[var(--ink)] leading-[1.2] font-[family-name:var(--font-display)] tabular-nums';
+  'text-[15px] font-semibold text-foreground leading-[1.2] font-[family-name:var(--font-display)] tabular-nums';
 
-const METRIC_LABEL_SX = {
-  fontSize: '10.5px',
-  fontWeight: 700,
-  color: 'var(--faint)',
-  textTransform: 'uppercase',
-  letterSpacing: '.05em',
-  mt: 0.25,
-} as const;
-
-/** Report en classes de `METRIC_LABEL_SX`. */
-const METRIC_LABEL_CLASS = 'text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[.05em] mt-[1.5px]';
+/** Libelle d'une tuile metrique. */
+const METRIC_LABEL_CLASS = 'text-2xs font-bold text-faint uppercase tracking-[.05em] mt-[1.5px]';
 
 /**
  * Puce « caracteristique du logement » : encre de corps sur fond de champ,
- * cernee d'une hairline. Ce n'est pas un statut — la bordure vient donc d'une
+ * cernee d'un filet. Ce n'est pas un statut — la bordure vient donc d'une
  * classe, pas de la recette `-soft` de la primitive.
  *
  * `border-solid` est indispensable : le gabarit pose `border-none`
  * (border-STYLE), que tailwind-merge ne considere pas en conflit avec `border`
  * (border-WIDTH) — sans lui le lisere reste invisible.
  */
-const PROPERTY_TAG_TOKENS = { color: 'var(--body)', bg: 'var(--field)' } as const;
+const PROPERTY_TAG_TOKENS = { color: 'var(--bui-foreground)', bg: 'var(--bui-field)' } as const;
 const PROPERTY_TAG_CLASS =
-  'h-[26px] font-medium border border-solid border-[var(--field-line)] [&>svg]:text-[var(--accent)]';
+  'h-[26px] font-medium border border-solid border-field-line [&>svg]:text-primary';
 
 // ─── Type icon helper ────────────────────────────────────────────────────────
 
 function getTypeIcon(type: string) {
-  const iconProps = { size: 18, color: 'var(--accent)', strokeWidth: 1.75 };
+  const iconProps = { size: 18, color: 'var(--bui-primary)', strokeWidth: 1.75 };
   const upper = type?.toUpperCase() || '';
 
   const cleaningTypes = [
@@ -191,7 +151,7 @@ function getStatusProgress(status: string): number {
   }
 }
 
-function getStatusProgressColor(status: string): 'primary' | 'success' | 'error' | 'info' {
+function getStatusProgressColor(status: string): ProgressTone {
   const upper = status?.toUpperCase() || '';
   if (upper === 'COMPLETED') return 'success';
   if (upper === 'CANCELLED' || upper === 'REJECTED') return 'error';
@@ -199,17 +159,28 @@ function getStatusProgressColor(status: string): 'primary' | 'success' | 'error'
   return 'primary';
 }
 
+type ProgressTone = 'primary' | 'success' | 'error' | 'info';
+
 /**
- * `getStatusProgressColor` rend un nom de palette MUI ; la barre comme le texte
- * ont besoin d'une VRAIE valeur CSS : `'success.main'` hors du theme donnerait
- * une declaration jetee sans erreur. Les ponts `--mui-*` suivent deja le mode
- * clair/sombre.
+ * `getStatusProgressColor` rend un nom de ton ; la barre comme le texte ont
+ * besoin d'une VRAIE valeur CSS — la teinte est choisie a l'execution, aucune
+ * classe Tailwind ne pourrait etre emise a la compilation.
+ *
+ * Deux tables et non une : un aplat de barre prend la teinte VIVE, un libelle
+ * prend l'encre `-ink` (la teinte vive plafonne a ~2,2:1 en texte).
  */
-const PROGRESS_TONE_VAR: Record<'primary' | 'success' | 'error' | 'info', string> = {
-  primary: 'var(--mui-primary)',
-  success: 'var(--ok)',
-  error: 'var(--err)',
-  info: 'var(--info)',
+const PROGRESS_BAR_TONE: Record<ProgressTone, string> = {
+  primary: 'var(--bui-primary)',
+  success: 'var(--bui-success)',
+  error: 'var(--bui-destructive)',
+  info: 'var(--bui-info)',
+};
+
+const PROGRESS_TEXT_TONE: Record<ProgressTone, string> = {
+  primary: 'var(--bui-primary)',
+  success: 'var(--bui-success-ink)',
+  error: 'var(--bui-destructive-ink)',
+  info: 'var(--bui-info-ink)',
 };
 
 // ─── View-model ──────────────────────────────────────────────────────────────
@@ -254,7 +225,7 @@ export interface WorkOrderAssignee {
 /** Tuile métrique secondaire (au-delà des tuiles standard type/durée/échéance). */
 export interface WorkOrderMetric {
   icon: React.ReactNode;
-  /** Couleur de l'icône et de la valeur. Default --accent / --ink. */
+  /** Couleur CSS de l'icône et de la valeur. Défaut : la teinte de marque. */
   tone?: string;
   value: string;
   label: string;
@@ -348,7 +319,8 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
 
   const statusProgress = getStatusProgress(vm.status);
   const statusProgressColor = getStatusProgressColor(vm.status);
-  const statusToneColor = PROGRESS_TONE_VAR[statusProgressColor];
+  const statusBarColor = PROGRESS_BAR_TONE[statusProgressColor];
+  const statusTextColor = PROGRESS_TEXT_TONE[statusProgressColor];
   const consigneVariant = getConsigneVariant(vm.type);
 
   const progressSteps = [
@@ -381,10 +353,10 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
       {/* ── Status progress bar ──────────────────────────────────────── */}
       <div className={cn(CARD_CLASS, 'p-[9px] mb-[9px]')}>
         <div className="flex items-center justify-between mb-1">
-          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0')}>
+          <p className={cn(SECTION_TITLE_CLASS, 'mb-0')}>
             {t('serviceRequests.details.progression')}
           </p>
-          <p className="cn-text-body1 text-[12px] font-bold" style={{ color: statusToneColor }}>
+          <p className="text-[12px] font-bold" style={{ color: statusTextColor }}>
             {vm.statusLabel}
           </p>
         </div>
@@ -392,12 +364,12 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
             variable CSS, une classe Tailwind ne pouvant pas naitre d'une variable. */}
         <Progress
           value={statusProgress}
-          className="h-1.5 rounded-[3px] bg-[var(--field)] [&_[data-slot=progress-indicator]]:bg-[var(--wo-progress-tone)]"
-          style={{ '--wo-progress-tone': statusToneColor } as React.CSSProperties}
+          className="h-1.5 rounded-[3px] bg-field [&_[data-slot=progress-indicator]]:bg-[var(--wo-progress-tone)]"
+          style={{ '--wo-progress-tone': statusBarColor } as React.CSSProperties}
         />
         <div className="flex justify-between mt-0.5">
           {progressSteps.map((label, i) => (
-            <p className={cn('cn-text-body1 text-[10px]', statusProgress >= PROGRESS_VALUES[i] ? 'font-semibold' : 'font-normal')} style={{ color: statusProgress >= PROGRESS_VALUES[i] ? statusToneColor : 'var(--faint)' }} key={label}>
+            <p className={cn('text-[10px]', statusProgress >= PROGRESS_VALUES[i] ? 'font-semibold' : 'font-normal')} style={{ color: statusProgress >= PROGRESS_VALUES[i] ? statusTextColor : 'var(--bui-faint)' }} key={label}>
               {label}
             </p>
           ))}
@@ -407,42 +379,42 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
       {/* ── Key metrics grid ─────────────────────────────────────────── */}
       <div className="grid grid-cols-12 gap-1.5 mb-[9px]">
         <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
-          <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
+          <div className="p-[9px] flex flex-col items-center text-center border border-solid border-border bg-card rounded-xl shadow-none min-h-[72px] justify-center">
             {getTypeIcon(vm.type)}
-            <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1 text-[12px]')}>
+            <p className={cn(METRIC_VALUE_CLASS, 'text-[12px]')}>
               {getInterventionTypeLabel(vm.type, t)}
             </p>
-            <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('common.type')}</p>
+            <p className={METRIC_LABEL_CLASS}>{t('common.type')}</p>
           </div>
         </div>
         {vm.estimatedDurationHours != null && (
           <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
-            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
-              <span className="inline-flex text-[var(--accent)] mb-0.5"><AccessTime size={18} strokeWidth={1.75} /></span>
-              <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1')}>
+            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-border bg-card rounded-xl shadow-none min-h-[72px] justify-center">
+              <span className="inline-flex text-primary mb-0.5"><AccessTime size={18} strokeWidth={1.75} /></span>
+              <p className={METRIC_VALUE_CLASS}>
                 {formatDuration(vm.estimatedDurationHours)}
               </p>
-              <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.estimatedDurationLabel')}</p>
+              <p className={METRIC_LABEL_CLASS}>{t('serviceRequests.estimatedDurationLabel')}</p>
             </div>
           </div>
         )}
         <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
-          <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
-            <span className="inline-flex text-[var(--accent)] mb-0.5"><CalendarToday size={18} strokeWidth={1.75} /></span>
-            <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1 text-[12px]')}>
+          <div className="p-[9px] flex flex-col items-center text-center border border-solid border-border bg-card rounded-xl shadow-none min-h-[72px] justify-center">
+            <span className="inline-flex text-primary mb-0.5"><CalendarToday size={18} strokeWidth={1.75} /></span>
+            <p className={cn(METRIC_VALUE_CLASS, 'text-[12px]')}>
               {formatDateTime(vm.dueDate) || '—'}
             </p>
-            <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.dueDateShort')}</p>
+            <p className={METRIC_LABEL_CLASS}>{t('serviceRequests.dueDateShort')}</p>
           </div>
         </div>
         {vm.estimatedCost != null && (
           <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
-            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
-              <span className="inline-flex text-[var(--accent)] mb-0.5"><Euro size={18} strokeWidth={1.75} /></span>
-              <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1')}>
+            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-border bg-card rounded-xl shadow-none min-h-[72px] justify-center">
+              <span className="inline-flex text-primary mb-0.5"><Euro size={18} strokeWidth={1.75} /></span>
+              <p className={METRIC_VALUE_CLASS}>
                 <Money value={vm.estimatedCost} from="EUR" />
               </p>
-              <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.details.estimatedCost')}</p>
+              <p className={METRIC_LABEL_CLASS}>{t('serviceRequests.details.estimatedCost')}</p>
               {/* Moteur Ménage 2A : écart vs barème conseil (snapshot recommended_cost). */}
               {vm.recommendedCost != null && vm.recommendedCost > 0 && (() => {
                 const delta = vm.estimatedCost! - vm.recommendedCost!;
@@ -458,8 +430,8 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                         className={cn(
                           'mt-[3px] text-[10px] font-bold rounded-[7px] px-1.5 py-px whitespace-nowrap cursor-default tabular-nums',
                           conform
-                            ? 'text-[var(--ok,_#4A9B8E)] bg-[color-mix(in_srgb,_var(--ok,_#4A9B8E)_12%,_transparent)]'
-                            : 'text-[var(--muted)] bg-[var(--field)] border border-solid border-[var(--field-line)]',
+                            ? 'text-success-ink bg-success-soft'
+                            : 'text-muted-foreground bg-field border border-solid border-field-line',
                         )}
                       >
                         {label}
@@ -474,36 +446,36 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
         )}
         {vm.actualCost != null && vm.actualCost > 0 && (
           <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
-            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
-              <span className="inline-flex text-[var(--ok)] mb-0.5"><AttachMoney size={18} strokeWidth={1.75} /></span>
-              <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1 text-[var(--ok)]')}>
+            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-border bg-card rounded-xl shadow-none min-h-[72px] justify-center">
+              <span className="inline-flex text-success mb-0.5"><AttachMoney size={18} strokeWidth={1.75} /></span>
+              <p className={cn(METRIC_VALUE_CLASS, 'text-success-ink')}>
                 <Money value={vm.actualCost} from="EUR" />
               </p>
-              <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.details.actualCost')}</p>
+              <p className={METRIC_LABEL_CLASS}>{t('serviceRequests.details.actualCost')}</p>
             </div>
           </div>
         )}
         {vm.createdAt && (
           <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
-            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
-              <span className="inline-flex text-[var(--accent)] mb-0.5"><Schedule size={18} strokeWidth={1.75} /></span>
-              <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1 text-[12px]')}>
+            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-border bg-card rounded-xl shadow-none min-h-[72px] justify-center">
+              <span className="inline-flex text-primary mb-0.5"><Schedule size={18} strokeWidth={1.75} /></span>
+              <p className={cn(METRIC_VALUE_CLASS, 'text-[12px]')}>
                 {formatDateTime(vm.createdAt)}
               </p>
-              <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.createdDateShort')}</p>
+              <p className={METRIC_LABEL_CLASS}>{t('serviceRequests.createdDateShort')}</p>
             </div>
           </div>
         )}
         {vm.extraMetrics?.map((m) => (
           <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2" key={`extra-metric-${m.label}`}>
-            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] shadow-none min-h-[72px] justify-center">
-              <span className="inline-flex mb-[1.5px]" style={{ color: m.tone ?? 'var(--accent)' }}>{m.icon}</span>
+            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-border bg-card rounded-xl shadow-none min-h-[72px] justify-center">
+              <span className="inline-flex mb-[1.5px]" style={{ color: m.tone ?? 'var(--bui-primary)' }}>{m.icon}</span>
               {/* `m.tone` est une valeur d'execution : elle ne peut pas donner
                   naissance a une classe Tailwind, d'ou le style inline. */}
-              <p className={cn(METRIC_VALUE_CLASS, 'cn-text-body1 text-[12px]')} style={m.tone ? { color: m.tone } : undefined}>
+              <p className={cn(METRIC_VALUE_CLASS, 'text-[12px]')} style={m.tone ? { color: m.tone } : undefined}>
                 {m.value}
               </p>
-              <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{m.label}</p>
+              <p className={METRIC_LABEL_CLASS}>{m.label}</p>
             </div>
           </div>
         ))}
@@ -517,13 +489,13 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
           {/* Description */}
           {vm.description && (
             <div className={CARD_CLASS}>
-              <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
+              <p className={SECTION_TITLE_CLASS}>
                 <Description size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
                 {t('serviceRequests.fields.detailedDescription')}
               </p>
               <div className="flex items-start gap-1.5">
                 {vm.importSource && ICAL_SOURCE_LOGOS[vm.importSource.toLowerCase()] && (
-                  <div className="w-[22px] h-[22px] min-w-[22px] rounded-[50%] border-[1.5px] border-solid border-[var(--line)] bg-[#fff] flex items-center justify-center shrink-0 mt-[1.5px]">
+                  <div className="size-[22px] min-w-[22px] rounded-full border-[1.5px] border-solid border-border bg-card flex items-center justify-center shrink-0 mt-[1.5px]">
                     <img
                       src={ICAL_SOURCE_LOGOS[vm.importSource.toLowerCase()]}
                       alt={vm.importSource}
@@ -533,7 +505,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                     />
                   </div>
                 )}
-                <p className="cn-text-body1 text-[13px] text-[var(--body)] leading-[1.6] whitespace-pre-line">
+                <p className="text-[13px] text-foreground leading-[1.6] whitespace-pre-line">
                   {vm.description}
                 </p>
               </div>
@@ -543,7 +515,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
           {/* Propriété */}
           <div className={CARD_CLASS}>
             <div className="flex items-center justify-between mb-1.5">
-              <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0')}>
+              <p className={cn(SECTION_TITLE_CLASS, 'mb-0')}>
                 <Home size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
                 {t('serviceRequests.sections.property')}
               </p>
@@ -551,10 +523,10 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
             </div>
 
             <div className="flex items-center gap-1.5 py-[4.5px]">
-              <span className="inline-flex text-[var(--muted)]"><LocationOn size={16} strokeWidth={1.75} /></span>
+              <span className="inline-flex text-muted-foreground"><LocationOn size={16} strokeWidth={1.75} /></span>
               <div className="flex-1">
-                <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.propertyNameLabel')}</p>
-                <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{p.name}</p>
+                <p className={INFO_LABEL_CLASS}>{t('serviceRequests.propertyNameLabel')}</p>
+                <p className={INFO_VALUE_CLASS}>{p.name}</p>
               </div>
             </div>
 
@@ -562,10 +534,10 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               <>
                 <Separator className="my-[3px]" />
                 <div className="flex items-center gap-1.5 py-[4.5px]">
-                  <span className="inline-flex text-[var(--muted)]"><LocationOn size={16} strokeWidth={1.75} /></span>
+                  <span className="inline-flex text-muted-foreground"><LocationOn size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
-                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.fullAddressLabel')}</p>
-                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{addressLine}</p>
+                    <p className={INFO_LABEL_CLASS}>{t('serviceRequests.fullAddressLabel')}</p>
+                    <p className={INFO_VALUE_CLASS}>{addressLine}</p>
                   </div>
                 </div>
               </>
@@ -575,10 +547,10 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               <>
                 <Separator className="my-[3px]" />
                 <div className="flex items-center gap-1.5 py-[4.5px]">
-                  <span className="inline-flex text-[var(--muted)]"><Flag size={16} strokeWidth={1.75} /></span>
+                  <span className="inline-flex text-muted-foreground"><Flag size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
-                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.country')}</p>
-                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{p.country}</p>
+                    <p className={INFO_LABEL_CLASS}>{t('properties.country')}</p>
+                    <p className={INFO_VALUE_CLASS}>{p.country}</p>
                   </div>
                 </div>
               </>
@@ -605,7 +577,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
           {/* Notes et Consignes */}
           {hasNotesSection && (
             <div className={CARD_CLASS}>
-              <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-[9px]')}>
+              <p className={SECTION_TITLE_CLASS}>
                 <NoteAlt size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
                 {t('serviceRequests.details.notesInstructions')}
               </p>
@@ -618,10 +590,10 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
 
               {vm.specialInstructions && (
                 <div className="mt-2">
-                  <p className="cn-text-body1 text-[11px] font-semibold text-[var(--muted)] mb-0.5">
+                  <p className="text-[11px] font-semibold text-muted-foreground mb-0.5">
                     {t('serviceRequests.details.specialInstructions')}
                   </p>
-                  <p className="cn-text-body1 text-[13px] text-[var(--body)] leading-[1.5] whitespace-pre-line bg-[var(--field)] p-2 rounded-[9px] border border-[var(--field-line)]">
+                  <p className="text-[13px] text-foreground leading-[1.5] whitespace-pre-line bg-field p-2 rounded-md border border-solid border-field-line">
                     {vm.specialInstructions}
                   </p>
                 </div>
@@ -629,11 +601,11 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
 
               {vm.accessNotes && (
                 <div className="mt-2">
-                  <p className="cn-text-body1 text-[11px] font-semibold text-[var(--muted)] mb-0.5">
+                  <p className="text-[11px] font-semibold text-muted-foreground mb-0.5">
                     <VpnKey size={12} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
                     {t('serviceRequests.details.accessNotes')}
                   </p>
-                  <p className="cn-text-body1 text-[13px] text-[var(--body)] leading-[1.5] whitespace-pre-line bg-[var(--warn-soft)] p-[7.5px] rounded-[9px] border border-solid border-[color-mix(in_srgb,_var(--warn)_30%,_transparent)]">
+                  <p className="text-[13px] text-foreground leading-[1.5] whitespace-pre-line bg-warning-soft p-[7.5px] rounded-md border border-solid border-warning/30">
                     {vm.accessNotes}
                   </p>
                 </div>
@@ -648,23 +620,23 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
           {/* Personnes impliquées */}
           {(vm.requestor || vm.assignee) && (
             <div className={CARD_CLASS}>
-              <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
+              <p className={SECTION_TITLE_CLASS}>
                 {t('serviceRequests.peopleInvolved')}
               </p>
 
               {vm.requestor && (
                 <div className="flex items-center gap-1.5 py-[4.5px]">
-                  <span className="inline-flex text-[var(--muted)]"><Person size={16} strokeWidth={1.75} /></span>
+                  <span className="inline-flex text-muted-foreground"><Person size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
-                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.fields.requestor')}</p>
+                    <p className={INFO_LABEL_CLASS}>{t('serviceRequests.fields.requestor')}</p>
                     <div className="flex items-center gap-1">
-                      <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{vm.requestor.name}</p>
+                      <p className={INFO_VALUE_CLASS}>{vm.requestor.name}</p>
                       {vm.requestor.roleLabel && (
                         <Badge variant="outline" className="h-[18px] text-[0.5625rem] px-0.5">{vm.requestor.roleLabel}</Badge>
                       )}
                     </div>
                     {vm.requestor.email && (
-                      <p className="cn-text-body1 text-[11px] text-[var(--muted)]">
+                      <p className="text-[11px] text-muted-foreground">
                         {vm.requestor.email}
                       </p>
                     )}
@@ -677,15 +649,15 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               {vm.assignee && (
                 <div className="flex items-center gap-1.5 py-[4.5px]">
                   {vm.assignee.type === 'team' ? (
-                    <span className="inline-flex text-[var(--muted)]"><Group size={16} strokeWidth={1.75} /></span>
+                    <span className="inline-flex text-muted-foreground"><Group size={16} strokeWidth={1.75} /></span>
                   ) : (
-                    <span className="inline-flex text-[var(--muted)]"><Assignment size={16} strokeWidth={1.75} /></span>
+                    <span className="inline-flex text-muted-foreground"><Assignment size={16} strokeWidth={1.75} /></span>
                   )}
                   <div className="flex-1">
-                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.assignedTo')}</p>
+                    <p className={INFO_LABEL_CLASS}>{t('serviceRequests.assignedTo')}</p>
                     {vm.assignee.name ? (
                       <div className="flex items-center gap-1">
-                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{vm.assignee.name}</p>
+                        <p className={INFO_VALUE_CLASS}>{vm.assignee.name}</p>
                         {vm.assignee.typeLabel && (
                           <StatusChip
                             tone={vm.assignee.type === 'team' ? 'info' : 'neutral'}
@@ -696,12 +668,12 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                         )}
                       </div>
                     ) : (
-                      <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1 text-[var(--faint)] italic')}>
+                      <p className={cn(INFO_VALUE_CLASS, 'text-faint italic')}>
                         {t('serviceRequests.fields.noAssignment')}
                       </p>
                     )}
                     {vm.assignee.email && vm.assignee.type === 'user' && (
-                      <p className="cn-text-body1 text-[11px] text-[var(--muted)]">
+                      <p className="text-[11px] text-muted-foreground">
                         {vm.assignee.email}
                       </p>
                     )}
@@ -713,16 +685,16 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
 
           {/* Détail du temps */}
           <div className={CARD_CLASS}>
-            <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
+            <p className={SECTION_TITLE_CLASS}>
               <AccessTime size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
               {t('serviceRequests.layout.timeDetail', 'Détail du temps')}
             </p>
 
             <div className="flex items-center gap-1.5 py-[4.5px]">
-              <span className="inline-flex text-[var(--muted)]"><CalendarToday size={16} strokeWidth={1.75} /></span>
+              <span className="inline-flex text-muted-foreground"><CalendarToday size={16} strokeWidth={1.75} /></span>
               <div className="flex-1">
-                <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.dueDateLabel')}</p>
-                <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{formatDateTime(vm.dueDate) || '—'}</p>
+                <p className={INFO_LABEL_CLASS}>{t('serviceRequests.dueDateLabel')}</p>
+                <p className={INFO_VALUE_CLASS}>{formatDateTime(vm.dueDate) || '—'}</p>
               </div>
             </div>
 
@@ -730,10 +702,10 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               <>
                 <Separator className="my-[3px]" />
                 <div className="flex items-center gap-1.5 py-[4.5px]">
-                  <span className="inline-flex text-[var(--muted)]"><Schedule size={16} strokeWidth={1.75} /></span>
+                  <span className="inline-flex text-muted-foreground"><Schedule size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
-                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.estimatedDurationLabel')}</p>
-                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{formatDuration(vm.estimatedDurationHours)}</p>
+                    <p className={INFO_LABEL_CLASS}>{t('serviceRequests.estimatedDurationLabel')}</p>
+                    <p className={INFO_VALUE_CLASS}>{formatDuration(vm.estimatedDurationHours)}</p>
                   </div>
                 </div>
               </>
@@ -743,10 +715,10 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               <>
                 <Separator className="my-[3px]" />
                 <div className="flex items-center gap-1.5 py-[4.5px]">
-                  <span className="inline-flex text-[var(--muted)]"><Schedule size={16} strokeWidth={1.75} /></span>
+                  <span className="inline-flex text-muted-foreground"><Schedule size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
-                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.layout.propertyCleaningDuration', 'Durée ménage (propriété)')}</p>
-                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>
+                    <p className={INFO_LABEL_CLASS}>{t('serviceRequests.layout.propertyCleaningDuration', 'Durée ménage (propriété)')}</p>
+                    <p className={INFO_VALUE_CLASS}>
                       {vm.property.cleaningDurationMinutes >= 60
                         ? `${Math.floor(vm.property.cleaningDurationMinutes / 60)}h${vm.property.cleaningDurationMinutes % 60 > 0 ? String(vm.property.cleaningDurationMinutes % 60).padStart(2, '0') : ''}`
                         : `${vm.property.cleaningDurationMinutes} min`}
@@ -760,10 +732,10 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               <React.Fragment key={`time-row-${row.label}`}>
                 <Separator className="my-[3px]" />
                 <div className="flex items-center gap-1.5 py-[4.5px]">
-                  <span className="inline-flex text-[var(--muted)]">{row.icon}</span>
+                  <span className="inline-flex text-muted-foreground">{row.icon}</span>
                   <div className="flex-1">
-                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{row.label}</p>
-                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{row.value}</p>
+                    <p className={INFO_LABEL_CLASS}>{row.label}</p>
+                    <p className={INFO_VALUE_CLASS}>{row.value}</p>
                   </div>
                 </div>
               </React.Fragment>
@@ -773,10 +745,10 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               <>
                 <Separator className="my-[3px]" />
                 <div className="flex items-center gap-1.5 py-[4.5px]">
-                  <span className="inline-flex text-[var(--muted)]"><CalendarMonth size={16} strokeWidth={1.75} /></span>
+                  <span className="inline-flex text-muted-foreground"><CalendarMonth size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
-                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('serviceRequests.createdDateLabel')}</p>
-                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{formatDateTime(vm.createdAt)}</p>
+                    <p className={INFO_LABEL_CLASS}>{t('serviceRequests.createdDateLabel')}</p>
+                    <p className={INFO_VALUE_CLASS}>{formatDateTime(vm.createdAt)}</p>
                   </div>
                 </div>
               </>

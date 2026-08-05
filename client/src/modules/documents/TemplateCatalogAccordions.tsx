@@ -24,7 +24,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import type { DocumentTemplate } from '../../services/api/documentsApi';
 
-// ─── Tons sémantiques (tokens Signature) ─────────────────────────────────────
+// ─── Tons sémantiques (tokens StatusChip) ─────────────────────────────────────
 // Mapping : étapes du parcours → ok/accent/warn ; documents PDF → err (pastille
 // type), admin → muted. Les -soft viennent des tokens (dark mode automatique).
 
@@ -391,7 +391,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
   return (
     <div className="mb-6">
       {/* Section title — no forced uppercase, no aggressive letter-spacing (anti-pattern templated) */}
-      <h6 className="cn-text-subtitle2 mb-2 text-muted-foreground text-[0.78rem] font-semibold">
+      <h6 className="mb-2 text-muted-foreground text-[0.78rem] font-semibold">
         Catalogue des templates par étape du parcours
       </h6>
 
@@ -408,12 +408,12 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
         <AccordionItem
           key={group.id}
           value={group.id}
-          className="mb-1.5 border border-solid border-[var(--line)] rounded-[8px] transition-[border-color] duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-[var(--faint)]"
+          className="mb-1.5 border border-solid border-border rounded-md transition-[border-color] duration-[180ms] ease-out-quart hover:border-faint"
         >
-          <AccordionTrigger className="px-3 py-2 rounded-[8px] cursor-pointer data-[state=open]:rounded-b-none data-[state=open]:border-b data-[state=open]:border-solid data-[state=open]:border-b-[var(--line)]">
+          <AccordionTrigger className="px-3 py-2 rounded-md cursor-pointer data-[state=open]:rounded-b-none data-[state=open]:border-b data-[state=open]:border-solid data-[state=open]:border-b-border">
             <div className="flex items-center gap-2 w-full">
               {/* Badge icone Baitly (tile 26x26, accent color, contraste WCAG AA+) */}
-              <div className="w-[26px] h-[26px] rounded-[8px] inline-flex items-center justify-center shrink-0" style={{ backgroundColor: group.tone.bg, color: group.tone.color }}>
+              <div className="w-[26px] h-[26px] rounded-md inline-flex items-center justify-center shrink-0" style={{ backgroundColor: group.tone.bg, color: group.tone.color }}>
                 {React.isValidElement(group.icon)
                   ? React.cloneElement(group.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
                       size: 16,
@@ -421,7 +421,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                     })
                   : group.icon}
               </div>
-              <p className="cn-text-body1 font-semibold text-[0.875rem] flex-1 text-foreground">
+              <p className="font-semibold text-[0.875rem] flex-1 text-foreground">
                 {group.label}
               </p>
               <StatusChip tokens={group.tone} label={`${group.items.length} template${group.items.length > 1 ? 's' : ''}`} />
@@ -439,7 +439,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                   <div className="p-3">
                     {/* Header : titre + chips meta uniformes (toutes en softChipSx) */}
                     <div className="flex items-center gap-1 mb-1.5 flex-wrap">
-                      <p className="cn-text-body1 font-semibold text-[0.8125rem] flex-1 min-w-0">
+                      <p className="font-semibold text-[0.8125rem] flex-1 min-w-0">
                         {item.name}
                       </p>
                       <StatusChip tokens={trigger.tone} label={trigger.label} />
@@ -448,12 +448,12 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                     </div>
 
                     {/* Description */}
-                    <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] mb-2 leading-[1.5]">
+                    <p className="text-muted-foreground text-[0.8125rem] mb-2 leading-[1.5]">
                       {item.description}
                     </p>
 
                     {/* Trigger detail */}
-                    <span className="cn-text-caption block text-muted-foreground mb-0.5">
+                    <span className="text-xs block text-muted-foreground mb-0.5">
                       <strong className="text-foreground font-semibold">Déclencheur :</strong> {item.triggerDetail}
                     </span>
 
@@ -464,13 +464,13 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                           <span className="inline-flex text-muted-foreground">
                             <Code size={13} strokeWidth={1.75} />
                           </span>
-                          <span className="cn-text-caption font-semibold text-muted-foreground text-[0.7rem]">
+                          <span className="font-semibold text-muted-foreground text-[0.7rem]">
                             Variables disponibles
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-0.5">
                           {item.variables.map((v) => (
-                            <code className="text-[0.6875rem] text-[var(--accent)] bg-[var(--accent-soft)] border border-solid border-[color-mix(in_srgb,_var(--accent)_24%,_transparent)] rounded-[4px] px-[3.75px] py-0.5 leading-[1.5] whitespace-nowrap" style={{ fontFamily: '"SF Mono", Menlo, Consolas, monospace' }} key={v}>
+                            <code className="text-[0.6875rem] text-primary bg-primary-soft border border-solid border-primary/25 rounded-[4px] px-[3.75px] py-0.5 leading-[1.5] whitespace-nowrap" style={{ fontFamily: '"SF Mono", Menlo, Consolas, monospace' }} key={v}>
                               {`{${v}}`}
                             </code>
                           ))}
@@ -499,10 +499,10 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                           {item.templateKind === 'document' && linkedTemplate && (
                             <>
                               <div className="flex-1 min-w-0">
-                                <p className="cn-text-body1 text-[0.75rem] font-semibold text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+                                <p className="text-[0.75rem] font-semibold text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                                   {linkedTemplate.originalFilename}
                                 </p>
-                                <span className="cn-text-caption text-muted-foreground text-[0.6875rem]">
+                                <span className="text-muted-foreground text-[0.6875rem]">
                                   {linkedTemplate.active ? 'Actif' : 'Inactif'} · v{linkedTemplate.version}
                                 </span>
                               </div>
@@ -522,7 +522,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
 
                           {item.templateKind === 'document' && !linkedTemplate && (
                             <>
-                              <p className="cn-text-body1 flex-1 text-[0.75rem] text-foreground font-medium">
+                              <p className="flex-1 text-[0.75rem] text-foreground font-medium">
                                 Aucun template uploadé
                               </p>
                               <Button
@@ -539,7 +539,7 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
 
                           {item.templateKind === 'message' && (
                             <>
-                              <p className="cn-text-body1 flex-1 text-[0.75rem] text-foreground">
+                              <p className="flex-1 text-[0.75rem] text-foreground">
                                 Template de messagerie — configurable dans <span className="font-semibold">Templates messages</span>
                               </p>
                               {onSwitchToMessagingTab && (
@@ -557,14 +557,14 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                           )}
 
                           {item.templateKind === 'hardcoded' && (
-                            <p className="cn-text-body1 flex-1 text-[0.75rem] text-muted-foreground">
+                            <p className="flex-1 text-[0.75rem] text-muted-foreground">
                               Template intégré au système — non modifiable
                             </p>
                           )}
 
                           {item.templateKind === 'system-email' && (
                             <>
-                              <p className="cn-text-body1 flex-1 text-[0.75rem] text-foreground">
+                              <p className="flex-1 text-[0.75rem] text-foreground">
                                 Template email systeme — éditable dans <span className="font-semibold">Templates email</span>
                               </p>
                               {onOpenSystemEmail && item.systemEmailKey && (

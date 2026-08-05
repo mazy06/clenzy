@@ -6,18 +6,17 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import { syncAdminApi, CalendarCommand, CalendarConflict } from '../../../services/api/syncAdminApi';
 import { useSyncAdminHeader } from '../SyncAdminPage';
 import PagePagination from '../../../components/PagePagination';
-import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 
-// Types de commande → tokens sémantiques (chips -soft : texte couleur + fond -soft)
-const COMMAND_TOKEN: Record<string, ToneTokens> = {
-  BOOK: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
-  CANCEL: { color: 'var(--err)', bg: 'var(--err-soft)' },
-  BLOCK: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
-  UNBLOCK: { color: 'var(--info)', bg: 'var(--info-soft)' },
-  UPDATE_PRICE: { color: 'var(--accent)', bg: 'var(--accent-soft)' },
+// Type de commande → ton sémantique. Le couple encre/fond conforme AA est tenu
+// par StatusChip (STATUS_TONES) : ici on ne dit que le SENS, pas la couleur.
+const COMMAND_TONE: Record<string, StatusTone> = {
+  BOOK: 'ok',
+  CANCEL: 'err',
+  BLOCK: 'warn',
+  UNBLOCK: 'info',
+  UPDATE_PRICE: 'accent',
 };
-
-const NEUTRAL_TOKEN: ToneTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
 
 const CalendarAuditTab: React.FC = () => {
   const [commands, setCommands] = useState<CalendarCommand[]>([]);
@@ -98,7 +97,7 @@ const CalendarAuditTab: React.FC = () => {
       {conflicts.length > 0 && (
         <Alert variant="warning" className="mb-4">
           <TriangleAlert />
-          <AlertDescription><h6 className="cn-text-subtitle2 mb-[0.35em]">
+          <AlertDescription><h6 className="text-xs font-medium mb-[0.35em]">
             {conflicts.length} conflit(s) calendrier detecte(s)
           </h6><Table>
             <TableHeader>
@@ -133,12 +132,12 @@ const CalendarAuditTab: React.FC = () => {
       {loading ? (
         <div className="flex flex-col gap-1.5">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-9 w-full rounded-[9px]" />
+            <Skeleton key={i} className="h-9 w-full rounded-lg" />
           ))}
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+          <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -156,7 +155,7 @@ const CalendarAuditTab: React.FC = () => {
               <TableBody>
                 {commands.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-[var(--muted)] py-[18px]">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-[18px]">
                       Aucune commande
                     </TableCell>
                   </TableRow>
@@ -168,7 +167,7 @@ const CalendarAuditTab: React.FC = () => {
                       <TableCell>
                         <StatusChip
                           label={cmd.commandType}
-                          tokens={COMMAND_TOKEN[cmd.commandType] ?? NEUTRAL_TOKEN}
+                          tone={COMMAND_TONE[cmd.commandType] ?? 'neutral'}
                         />
                       </TableCell>
                       <TableCell>

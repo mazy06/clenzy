@@ -104,15 +104,15 @@ const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalP
       >
         <DialogHeader>
           <div className="flex items-center gap-1.5">
-            <span className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-[8px] bg-[var(--accent-soft)] text-[var(--accent)] shrink-0">
+            <span className="inline-flex items-center justify-center size-7 rounded-md bg-primary-soft text-primary shrink-0">
               <Handshake size={16} strokeWidth={2} />
             </span>
             <div className="min-w-0">
-              <DialogTitle className="text-[16px] font-semibold leading-[1.2] text-[var(--ink)]">
+              <DialogTitle className="text-base font-semibold leading-[1.2] text-foreground">
                 {t('contracts.required.title', 'Contrat de gestion requis')}
               </DialogTitle>
               {property && (
-                <DialogDescription className="text-[0.75rem] text-[var(--muted)]">
+                <DialogDescription className="text-xs text-muted-foreground">
                   {property.name}
                 </DialogDescription>
               )}
@@ -120,8 +120,8 @@ const ManagementContractRequiredModal: React.FC<ManagementContractRequiredModalP
           </div>
         </DialogHeader>
 
-        <div className="border-y border-solid border-[var(--line)] py-4">
-        <p className="cn-text-body1 text-[0.8125rem] text-[var(--muted)] mb-4">
+        <div className="border-y border-solid border-border py-4">
+        <p className="text-[0.8125rem] text-muted-foreground mb-4">
           {t(
             'contracts.required.intro',
             "Avant d'exploiter ce logement, définissez le contrat de gestion : il fixe le modèle d'encaissement (taxonomie OTA) et la commission qui pilotent la répartition des paiements. Choisissez un modèle pour préremplir, puis ajustez les détails.",

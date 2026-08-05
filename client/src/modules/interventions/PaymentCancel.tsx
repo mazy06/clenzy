@@ -13,11 +13,11 @@ const PaymentCancel: React.FC = () => {
       <Card>
         {/* p: 4 = 24 px (spacing MUI 6). */}
         <CardContent className="text-center p-6">
-          <span className="inline-flex text-[var(--err)] mb-3"><Cancel size={80} strokeWidth={1.5} /></span>
-          <h4 className="cn-text-h4 mb-[0.35em]">
+          <span className="inline-flex text-destructive mb-3"><Cancel size={80} strokeWidth={1.5} /></span>
+          <h4 className="text-base font-semibold tracking-tight text-balance mb-[0.35em]">
             Paiement annulé
           </h4>
-          <p className="cn-text-body1 text-muted-foreground mb-4">
+          <p className="text-sm text-muted-foreground mb-4">
             Le paiement a ete annule. Vous pouvez reessayer depuis la page de facturation.
           </p>
           <Button onClick={() => navigate('/billing')}>

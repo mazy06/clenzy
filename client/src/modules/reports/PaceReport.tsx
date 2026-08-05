@@ -21,7 +21,7 @@ import {
   YAxis,
 } from 'recharts';
 import { CalendarMonth as CalendarIcon, TrendingUp } from '../../icons';
-import StatTile from '../../components/StatTile';
+import StatTile from '../../components/baitly/StatTile';
 import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import { paceApi } from '../../services/api/paceApi';
@@ -106,14 +106,14 @@ const PaceReport: React.FC = () => {
           icon={<TrendingUp size={18} />}
           label={t('reports.pace.pickup7', 'Pickup 7 jours')}
           value={loading ? '—' : `+${totals.pickup7.toLocaleString()}`}
-          color="var(--ok)"
+          iconClassName="text-success"
           loading={loading}
         />
         <StatTile
           icon={<TrendingUp size={18} />}
           label={t('reports.pace.vsLastYear', 'Pace vs N-1')}
           value={loading || totals.pacePct == null ? '—' : `${totals.pacePct > 0 ? '+' : ''}${totals.pacePct} %`}
-          color={totals.pacePct != null && totals.pacePct < 0 ? 'var(--warn)' : 'var(--ok)'}
+          iconClassName={totals.pacePct != null && totals.pacePct < 0 ? 'text-warning' : 'text-success'}
           loading={loading}
         />
       </div>
@@ -121,11 +121,11 @@ const PaceReport: React.FC = () => {
       {/* ── Tableau mensuel ── */}
       <Card size="sm">
         <CardContent>
-        <h6 className="cn-text-subtitle2 mb-1.5">
+        <h6 className="text-xs font-medium mb-1.5">
           {t('reports.pace.byMonth', 'On-the-books par mois de séjour')}
         </h6>
         {loading ? (
-          <Skeleton className="h-[220px] w-full rounded-[var(--radius-sm)]" />
+          <Skeleton className="h-[220px] w-full rounded-md" />
         ) : months.length === 0 ? (
           <EmptyState
             icon={<CalendarIcon />}
@@ -150,12 +150,12 @@ const PaceReport: React.FC = () => {
                 <TableRow key={m.month}>
                   <TableCell className="tabular-nums">{m.month}</TableCell>
                   <TableCell className="text-end tabular-nums">{m.otbNights}</TableCell>
-                  <TableCell className="text-end tabular-nums text-[var(--muted)]">{m.stlyNights}</TableCell>
+                  <TableCell className="text-end tabular-nums text-muted-foreground">{m.stlyNights}</TableCell>
                   <TableCell
                     className={cn(
                       'text-end tabular-nums',
-                      m.paceVsStlyPct == null ? 'text-[var(--muted)]'
-                        : m.paceVsStlyPct < 0 ? 'text-[var(--warn)]' : 'text-[var(--ok)]',
+                      m.paceVsStlyPct == null ? 'text-muted-foreground'
+                        : m.paceVsStlyPct < 0 ? 'text-warning-ink' : 'text-success-ink',
                     )}
                   >
                     {m.paceVsStlyPct == null ? '—' : `${m.paceVsStlyPct > 0 ? '+' : ''}${m.paceVsStlyPct} %`}
@@ -177,7 +177,7 @@ const PaceReport: React.FC = () => {
       <Card size="sm">
         <CardContent>
         <div className="flex items-center justify-between mb-1.5">
-          <h6 className="cn-text-subtitle2">
+          <h6 className="text-xs font-medium">
             {t('reports.pace.bookingCurve', 'Montée des réservations (booking curve)')}
           </h6>
           {months.length > 0 && (
@@ -194,7 +194,7 @@ const PaceReport: React.FC = () => {
           )}
         </div>
         {curveQuery.isLoading ? (
-          <Skeleton className="h-[240px] w-full rounded-[var(--radius-sm)]" />
+          <Skeleton className="h-[240px] w-full rounded-md" />
         ) : curveData.length === 0 ? (
           <EmptyState
             icon={<TrendingUp />}

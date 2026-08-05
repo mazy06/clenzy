@@ -1,6 +1,5 @@
 import React from 'react';
-import { cn } from '../../utils/cn';
-import StatusChip from '../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import {
   Avatar,
   AvatarFallback,
@@ -37,6 +36,7 @@ import {
   BarChart,
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import PortfolioStatsTab from './PortfolioStatsTab';
 import { ReassignmentDialog } from './PortfoliosDialogs';
@@ -69,27 +69,29 @@ function TabPanel(props: TabPanelProps) {
 
 // ─── Section Header ──────────────────────────────────────────────────────────
 
-// Couleur semantique → tokens (chips -soft : texte couleur + fond -soft)
-const SEM_CHIP_TOKEN: Record<string, { fg: string; bg: string }> = {
-  primary: { fg: 'var(--accent)', bg: 'var(--accent-soft)' },
-  secondary: { fg: '#7B68A8', bg: '#7B68A818' },
-  success: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  warning: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  error: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  info: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-  default: { fg: 'var(--muted)', bg: 'var(--hover)' },
+// `getRoleColor` rend un nom de couleur semantique : on le transpose en ton de
+// puce, le hook etant partage avec d'autres ecrans.
+const ROLE_TONE: Record<string, StatusTone> = {
+  primary: 'accent',
+  secondary: 'neutral',
+  success: 'ok',
+  warning: 'warn',
+  error: 'err',
+  info: 'info',
+  default: 'neutral',
 };
-const semChip = (c: string) => SEM_CHIP_TOKEN[c] ?? SEM_CHIP_TOKEN.default;
 
 // Le contour de la Card du kit est un `ring`, pas un `border` : le survol se joue
 // donc sur la couleur de l'anneau, et la transition porte sur box-shadow.
+// `--line` et `--line-2` tombent tous deux sur `border` cote Baitly UI : le
+// survol prend donc la teinte primaire attenuee, sans quoi il serait inerte.
 const ROW_CARD_CLASS =
-  'gap-0 py-[9px] rounded-[16px] ring-[var(--line)] transition-[box-shadow] duration-200 '
-  + 'hover:ring-[var(--line-2)] motion-reduce:transition-none';
+  'gap-0 py-[9px] rounded-2xl ring-border transition-[box-shadow] duration-200 '
+  + 'hover:ring-primary/40 motion-reduce:transition-none';
 
 const NESTED_ROW_CARD_CLASS =
-  'gap-0 py-[7.5px] rounded-[12px] ring-[var(--line)] transition-[box-shadow] duration-200 '
-  + 'hover:ring-[var(--line-2)] motion-reduce:transition-none';
+  'gap-0 py-[7.5px] rounded-xl ring-border transition-[box-shadow] duration-200 '
+  + 'hover:ring-primary/40 motion-reduce:transition-none';
 
 interface SectionHeaderProps {
   icon: React.ReactNode;
@@ -98,35 +100,15 @@ interface SectionHeaderProps {
   color?: string;
 }
 
-function SectionHeader({ icon, title, count, color = 'var(--accent)' }: SectionHeaderProps) {
+function SectionHeader({ icon, title, count, color = 'var(--bui-primary)' }: SectionHeaderProps) {
   return (
     <div className="flex items-center gap-1.5 mb-2">
       {/* `color` est une prop : aucune classe Tailwind ne peut en naitre. */}
       <span className="flex items-center" style={{ color }}>{icon}</span>
-      <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem]">
+      <h6 className="text-sm font-semibold tracking-tight">
         {title}
       </h6>
-      <Badge variant="secondary" className="h-[22px] text-[0.7rem] font-semibold text-[var(--accent)] bg-[var(--accent-soft)] tabular-nums">{count}</Badge>
-    </div>
-  );
-}
-
-// ─── Empty State ─────────────────────────────────────────────────────────────
-
-interface EmptyStateProps {
-  icon: React.ReactNode;
-  message: string;
-  action?: React.ReactNode;
-}
-
-function EmptyState({ icon, message, action }: EmptyStateProps) {
-  return (
-    <div className="flex flex-col items-center justify-center py-[30px] text-center border border-dashed border-[var(--line-2)] bg-[var(--field)] rounded-[12px] flex-1">
-      <div className="text-muted-foreground opacity-60 mb-1.5">{icon}</div>
-      <p className={cn('cn-text-body2 text-[var(--muted)] text-[0.85rem]', action ? 'mb-3' : 'mb-0')}>
-        {message}
-      </p>
-      {action}
+      <Badge variant="secondary" className="h-[22px] text-[0.7rem] font-semibold text-primary bg-primary-soft tabular-nums">{count}</Badge>
     </div>
   );
 }
@@ -227,7 +209,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
       )}
 
       <BuiCard className="gap-0 py-0 w-full mt-3 overflow-hidden">
-        <div className="border-b border-solid border-[var(--line)]">
+        <div className="border-b border-solid border-border">
           <PageTabs
             options={[
               {
@@ -247,7 +229,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
         {/* ─── Tab 0: My Portfolios ─────────────────────────────────────── */}
         <TabPanel value={tabValue} index={0}>
           {error ? (
-            <p className="cn-text-body1 text-destructive text-center py-6 text-[0.85rem]">
+            <p className="text-sm text-destructive text-center py-6">
               {error}
             </p>
           ) : (
@@ -269,20 +251,20 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                         <CardContent className="py-[9px] px-3">
                           <div className="flex items-center">
                             <Avatar className="size-8 rounded-[10px] after:rounded-[10px] me-1.5">
-                              <AvatarFallback className="rounded-[10px] bg-[var(--accent)] text-[var(--on-accent)] [font-family:var(--font-display)] text-[0.7rem] font-semibold">
+                              <AvatarFallback className="rounded-[10px] bg-primary text-primary-foreground [font-family:var(--font-display)] text-[0.7rem] font-semibold">
                                 {client.firstName.charAt(0)}{client.lastName.charAt(0)}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <h6 className="cn-text-subtitle2 text-[0.85rem] font-semibold truncate">
+                              <h6 className="text-[0.85rem] font-semibold truncate">
                                 {client.firstName} {client.lastName}
                               </h6>
-                              <span className="cn-text-caption text-muted-foreground text-[0.72rem] truncate">
+                              <span className="text-[0.72rem] text-muted-foreground truncate">
                                 {client.email}
                               </span>
                             </div>
                             <div className="flex items-center gap-[3px] ms-1.5">
-                              <StatusChip tokens={{ color: semChip(getRoleColor(client.role)).fg, bg: semChip(getRoleColor(client.role)).bg }} label={getRoleLabel(client.role)} className="text-[0.65rem]" />
+                              <StatusChip tone={ROLE_TONE[getRoleColor(client.role)] ?? 'neutral'} label={getRoleLabel(client.role)} className="text-[0.65rem]" />
                               <Tooltip>
                                 {/* Radix pose sa ref d'ancrage sur l'enfant : un <span> hote,
                                     le Button du kit ne transmettant pas de ref (React 18). */}
@@ -293,7 +275,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                       size="icon-xs"
                                       onClick={() => setEditingClient(client)}
                                       aria-label={t('portfolios.fields.reassignClient')}
-                                      className="text-[var(--accent)]"
+                                      className="text-primary"
                                     >
                                       <EditIcon size={16} strokeWidth={1.75} />
                                     </Button>
@@ -309,7 +291,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                       size="icon-xs"
                                       onClick={() => handleUnassignClient(client.id)}
                                       aria-label={t('portfolios.fields.unassignClient')}
-                                      className="text-[var(--err)]"
+                                      className="text-destructive"
                                     >
                                       <DeleteIcon size={16} strokeWidth={1.75} />
                                     </Button>
@@ -322,12 +304,12 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                           {client.phoneNumber && (
                             <div className="flex items-center mt-[4.5px] ms-[33px]">
                               <span className="inline-flex text-muted-foreground me-0.5"><Phone size={14} strokeWidth={1.75} /></span>
-                              <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
+                              <span className="text-[0.7rem] text-muted-foreground">
                                 {client.phoneNumber}
                               </span>
                             </div>
                           )}
-                          <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-8 text-[0.65rem]">
+                          <span className="block mt-0.5 ms-8 text-[0.65rem] text-muted-foreground">
                             {t('portfolios.fields.associatedOn')} {formatDate(client.associatedAt)}
                           </span>
                         </CardContent>
@@ -336,8 +318,8 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                   </div>
                 ) : (
                   <EmptyState
-                    icon={<Person size={40} strokeWidth={1.75} />}
-                    message={t('portfolios.fields.noClientAssociated')}
+                    icon={<Person />}
+                    title={t('portfolios.fields.noClientAssociated')}
                     action={
                       <Button
                         variant="outline"
@@ -369,18 +351,18 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                           <div className="flex items-center justify-between mb-[4.5px] cursor-pointer hover:opacity-80" onClick={() => toggleClientExpansion(client.id)}>
                             <div className="flex items-center gap-1">
                               <Avatar className="size-6 rounded-[8px] after:rounded-[8px]">
-                                <AvatarFallback className="rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)] [font-family:var(--font-display)] text-[0.55rem] font-semibold">
+                                <AvatarFallback className="rounded-md bg-primary text-primary-foreground [font-family:var(--font-display)] text-[0.55rem] font-semibold">
                                   {client.firstName.charAt(0)}{client.lastName.charAt(0)}
                                 </AvatarFallback>
                               </Avatar>
-                              <h6 className="cn-text-subtitle2 text-primary text-[0.82rem] font-semibold">
+                              <h6 className="text-primary text-xs font-semibold">
                                 {client.firstName} {client.lastName}
                               </h6>
-                              <Badge variant="secondary" className="h-[20px] text-[0.65rem] text-[var(--accent)] bg-[var(--accent-soft)] tabular-nums">{`${clientProperties.length} ${t('portfolios.fields.properties')}`}</Badge>
+                              <Badge variant="secondary" className="h-[20px] text-[0.65rem] text-primary bg-primary-soft tabular-nums">{`${clientProperties.length} ${t('portfolios.fields.properties')}`}</Badge>
                             </div>
                             {/* Chevron purement indicatif : le clic est porte par la rangee entiere.
                                 Un <span> evite d'imbriquer un bouton dans une zone deja cliquable. */}
-                            <span className="inline-flex p-0.5 text-[var(--accent)]" aria-hidden>
+                            <span className="inline-flex p-0.5 text-primary" aria-hidden>
                               {expandedClients.has(client.id) ? (
                                 <ExpandLessIcon size={18} strokeWidth={1.75} />
                               ) : (
@@ -405,12 +387,12 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                           </AvatarFallback>
                                         </Avatar>
                                         <div className="flex-1 min-w-0">
-                                          <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold truncate">
+                                          <h6 className="text-xs font-semibold truncate">
                                             {property.name}
                                           </h6>
                                           <div className="flex items-center">
                                             <span className="inline-flex text-muted-foreground me-0.5"><LocationOn size={13} strokeWidth={1.75} /></span>
-                                            <span className="cn-text-caption text-muted-foreground text-[0.7rem] truncate">
+                                            <span className="text-[0.7rem] text-muted-foreground truncate">
                                               {property.address}, {property.city}
                                             </span>
                                           </div>
@@ -443,7 +425,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                                     key={team.id}
                                                     onSelect={() => handleAssignTeamToProperty(property.id, team.id)}
                                                   >
-                                                    <span className="inline-flex text-[var(--ok)] me-1.5"><Group size={16} strokeWidth={1.75} /></span>
+                                                    <span className="inline-flex text-success me-1.5"><Group size={16} strokeWidth={1.75} /></span>
                                                     {team.name}
                                                   </DropdownMenuItem>
                                                 )) : (
@@ -462,7 +444,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                                   size="icon-xs"
                                                   onClick={() => handleUnassignProperty(property.id)}
                                                   aria-label={t('portfolios.fields.unassignProperty')}
-                                                  className="text-[var(--err)]"
+                                                  className="text-destructive"
                                                 >
                                                   <DeleteIcon size={14} strokeWidth={1.75} />
                                                 </Button>
@@ -472,7 +454,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                           </Tooltip>
                                         </div>
                                       </div>
-                                      <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-7 text-[0.62rem]">
+                                      <span className="block mt-0.5 ms-7 text-[0.62rem] text-muted-foreground">
                                         {t('portfolios.fields.createdOn')} {formatDate(property.createdAt)}
                                       </span>
                                     </CardContent>
@@ -480,12 +462,12 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                 ))}
                               </div>
                             ) : (
-                              <span className="cn-text-caption text-muted-foreground ms-6 italic text-[0.72rem]">
+                              <span className="ms-6 italic text-[0.72rem] text-muted-foreground">
                                 {t('portfolios.fields.clickArrowToSee', { count: clientProperties.length })}
                               </span>
                             )
                           ) : (
-                            <span className="cn-text-caption text-muted-foreground ms-6 italic text-[0.72rem]">
+                            <span className="ms-6 italic text-[0.72rem] text-muted-foreground">
                               {t('portfolios.fields.noClientAssociated')}
                             </span>
                           )}
@@ -495,8 +477,8 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                   </div>
                 ) : (
                   <EmptyState
-                    icon={<Home size={40} strokeWidth={1.75} />}
-                    message={t('portfolios.fields.noClientAssociated')}
+                    icon={<Home />}
+                    title={t('portfolios.fields.noClientAssociated')}
                   />
                 )}
               </div>
@@ -513,7 +495,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                 icon={<Group size={20} strokeWidth={1.75} />}
                 title={t('teams.title')}
                 count={teams.length}
-                color="var(--ok)"
+                color="var(--bui-success)"
               />
               {teams.length > 0 ? (
                 <div className="flex flex-col gap-2">
@@ -525,15 +507,15 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                       <CardContent className="py-[9px] px-3">
                         <div className="flex items-center">
                           <Avatar className="size-8 rounded-[10px] after:rounded-[10px] me-1.5">
-                            <AvatarFallback className="rounded-[10px] bg-[var(--ok-soft)] text-[var(--ok)]">
+                            <AvatarFallback className="rounded-[10px] bg-success-soft text-success">
                               <Group size={16} strokeWidth={1.75} />
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <h6 className="cn-text-subtitle2 text-[0.85rem] font-semibold truncate">
+                            <h6 className="text-[0.85rem] font-semibold truncate">
                               {team.name}
                             </h6>
-                            <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
+                            <span className="text-[0.72rem] text-muted-foreground">
                               {team.memberCount} {t('portfolios.fields.members')}
                             </span>
                           </div>
@@ -545,7 +527,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                   size="icon-xs"
                                   onClick={() => handleUnassignTeam(team.id)}
                                   aria-label={t('portfolios.confirmations.unassignTeamTitle')}
-                                  className="text-[var(--err)]"
+                                  className="text-destructive"
                                 >
                                   <DeleteIcon size={16} strokeWidth={1.75} />
                                 </Button>
@@ -555,11 +537,11 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                           </Tooltip>
                         </div>
                         {team.description && (
-                          <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-8 text-[0.72rem]">
+                          <span className="block mt-0.5 ms-8 text-[0.72rem] text-muted-foreground">
                             {team.description}
                           </span>
                         )}
-                        <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-8 text-[0.62rem]">
+                        <span className="block mt-0.5 ms-8 text-[0.62rem] text-muted-foreground">
                           {t('portfolios.fields.createdOn')} {formatDate(team.assignedAt)}
                         </span>
                       </CardContent>
@@ -568,8 +550,8 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                 </div>
               ) : (
                 <EmptyState
-                  icon={<Group size={40} strokeWidth={1.75} />}
-                  message={t('portfolios.fields.noClientAssociated')}
+                  icon={<Group />}
+                  title={t('portfolios.fields.noClientAssociated')}
                   action={
                     <Button
                       variant="outline"
@@ -590,7 +572,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                 icon={<Person size={20} strokeWidth={1.75} />}
                 title={t('users.title')}
                 count={users.length}
-                color="var(--warn)"
+                color="var(--bui-warning)"
               />
               {users.length > 0 ? (
                 <div className="flex flex-col gap-2">
@@ -602,20 +584,20 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                       <CardContent className="py-[9px] px-3">
                         <div className="flex items-center">
                           <Avatar className="size-8 rounded-[10px] after:rounded-[10px] me-1.5">
-                            <AvatarFallback className="rounded-[10px] bg-[var(--warn-soft)] text-[var(--warn)] [font-family:var(--font-display)] text-[0.7rem] font-semibold">
+                            <AvatarFallback className="rounded-[10px] bg-warning-soft text-warning [font-family:var(--font-display)] text-[0.7rem] font-semibold">
                               {portfolioUser.firstName.charAt(0)}{portfolioUser.lastName.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <h6 className="cn-text-subtitle2 text-[0.85rem] font-semibold truncate">
+                            <h6 className="text-[0.85rem] font-semibold truncate">
                               {portfolioUser.firstName} {portfolioUser.lastName}
                             </h6>
-                            <span className="cn-text-caption text-muted-foreground text-[0.72rem] truncate">
+                            <span className="text-[0.72rem] text-muted-foreground truncate">
                               {portfolioUser.email}
                             </span>
                           </div>
                           <div className="flex items-center gap-[3px] ms-1.5">
-                            <StatusChip tokens={{ color: semChip(getRoleColor(portfolioUser.role)).fg, bg: semChip(getRoleColor(portfolioUser.role)).bg }} label={getRoleLabel(portfolioUser.role)} className="text-[0.65rem]" />
+                            <StatusChip tone={ROLE_TONE[getRoleColor(portfolioUser.role)] ?? 'neutral'} label={getRoleLabel(portfolioUser.role)} className="text-[0.65rem]" />
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <span className="inline-flex">
@@ -624,7 +606,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                                     size="icon-xs"
                                     onClick={() => handleUnassignUser(portfolioUser.id)}
                                     aria-label={t('portfolios.confirmations.unassignUserTitle')}
-                                    className="text-[var(--err)]"
+                                    className="text-destructive"
                                   >
                                     <DeleteIcon size={16} strokeWidth={1.75} />
                                   </Button>
@@ -634,7 +616,7 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                             </Tooltip>
                           </div>
                         </div>
-                        <span className="cn-text-caption text-muted-foreground block mt-0.5 ms-8 text-[0.62rem]">
+                        <span className="block mt-0.5 ms-8 text-[0.62rem] text-muted-foreground">
                           {t('portfolios.fields.associatedOn')} {formatDate(portfolioUser.assignedAt)}
                         </span>
                       </CardContent>
@@ -643,8 +625,8 @@ const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actio
                 </div>
               ) : (
                 <EmptyState
-                  icon={<Person size={40} strokeWidth={1.75} />}
-                  message={t('portfolios.fields.noClientAssociated')}
+                  icon={<Person />}
+                  title={t('portfolios.fields.noClientAssociated')}
                   action={
                     <Button
                       variant="outline"

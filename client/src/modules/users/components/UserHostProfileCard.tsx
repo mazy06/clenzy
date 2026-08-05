@@ -1,5 +1,5 @@
 import React from 'react';
-import StatusChip from '../../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 import { Badge } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
@@ -93,12 +93,24 @@ const CALENDAR_SYNC_LABELS: Record<string, string> = {
   non: 'Pas de calendrier',
 };
 
-// Mode de synchronisation → tokens (chips -soft : texte couleur + fond -soft)
-const CALENDAR_SYNC_TOKEN: Record<string, { fg: string; bg: string }> = {
-  sync: { fg: 'var(--accent)', bg: 'var(--accent-soft)' },
-  manuel: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-  non: { fg: 'var(--muted)', bg: 'var(--hover)' },
+// Mode de synchronisation → ton de la primitive StatusChip, qui porte deja le
+// couple Baitly UI conforme AA (encre `-ink` sur fond `-soft`).
+const CALENDAR_SYNC_TONE: Record<string, StatusTone> = {
+  sync: 'accent',
+  manuel: 'info',
+  non: 'neutral',
 };
+
+// Statut de paiement d'une intervention → meme grille de tons.
+const PAYMENT_STATUS_TONE: Record<string, StatusTone> = {
+  PAID: 'ok',
+  PROCESSING: 'info',
+};
+
+// Douze champs partagent exactement le meme couple libelle/valeur : une seule
+// definition, plutot que la meme chaine recopiee douze fois.
+const FIELD_LABEL_CLASS = 'm-0 text-xs font-medium text-muted-foreground';
+const FIELD_VALUE_CLASS = 'm-0 mb-3 text-sm text-foreground';
 
 const hasHostData = (user: UserDetailsData): boolean =>
   user.role === 'HOST' &&
@@ -119,33 +131,35 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
   if (!hasHostData(user)) return null;
 
   return (
-    <Card className="rounded-[var(--radius-lg)] bg-[var(--card)] ring-0 border border-solid border-[var(--line)] p-0">
+    <Card className="rounded-lg bg-card ring-0 border border-solid border-border p-0">
       <CardContent className="p-3">
         <div className="grid grid-cols-12 gap-3">
       <div className="col-span-12">
-        <h6 className="cn-text-subtitle1 mb-2 text-[var(--accent)] font-semibold">
+        {/* `m-0` sur les <h6>/<p> natifs : sans preflight Tailwind, ils reprennent
+            sinon les marges du navigateur que `cn-text-*` neutralisait. */}
+        <h6 className="m-0 mb-2 text-sm font-semibold text-primary">
           Profil proprietaire
         </h6>
       </div>
 
       {user.companyName && (
         <div className="col-span-12 min-[900px]:col-span-6">
-          <h6 className="cn-text-subtitle2 text-muted-foreground">Entreprise</h6>
-          <p className="cn-text-body1 mb-3">{user.companyName}</p>
+          <h6 className={FIELD_LABEL_CLASS}>Entreprise</h6>
+          <p className={FIELD_VALUE_CLASS}>{user.companyName}</p>
         </div>
       )}
 
       {user.forfait && (
         <div className="col-span-12 min-[900px]:col-span-6">
-          <h6 className="cn-text-subtitle2 text-muted-foreground">Forfait souscrit</h6>
-          <Badge variant="secondary" className="mt-0.5 mb-3 text-[var(--accent)] bg-[var(--accent-soft)] [&>svg]:text-[var(--accent)]"><Star />{user.forfait.charAt(0).toUpperCase() + user.forfait.slice(1)}</Badge>
+          <h6 className={FIELD_LABEL_CLASS}>Forfait souscrit</h6>
+          <Badge variant="secondary" className="mt-0.5 mb-3 text-primary bg-primary-soft [&>svg]:text-primary"><Star />{user.forfait.charAt(0).toUpperCase() + user.forfait.slice(1)}</Badge>
         </div>
       )}
 
       {(user.city || user.postalCode) && (
         <div className="col-span-12 min-[900px]:col-span-6">
-          <h6 className="cn-text-subtitle2 text-muted-foreground">Localisation</h6>
-          <p className="cn-text-body1 mb-3">
+          <h6 className={FIELD_LABEL_CLASS}>Localisation</h6>
+          <p className={FIELD_VALUE_CLASS}>
             {[user.city, user.postalCode].filter(Boolean).join(' - ')}
           </p>
         </div>
@@ -153,8 +167,8 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
 
       {user.propertyType && (
         <div className="col-span-12 min-[900px]:col-span-6">
-          <h6 className="cn-text-subtitle2 text-muted-foreground">Type de propriete</h6>
-          <p className="cn-text-body1 mb-3">
+          <h6 className={FIELD_LABEL_CLASS}>Type de propriete</h6>
+          <p className={FIELD_VALUE_CLASS}>
             {PROPERTY_TYPE_LABELS[user.propertyType] || user.propertyType}
           </p>
         </div>
@@ -162,22 +176,22 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
 
       {user.propertyCount != null && (
         <div className="col-span-12 min-[900px]:col-span-6">
-          <h6 className="cn-text-subtitle2 text-muted-foreground">Nombre de proprietes</h6>
-          <p className="cn-text-body1 mb-3">{user.propertyCount}</p>
+          <h6 className={FIELD_LABEL_CLASS}>Nombre de proprietes</h6>
+          <p className={`${FIELD_VALUE_CLASS} tabular-nums`}>{user.propertyCount}</p>
         </div>
       )}
 
       {user.surface != null && (
         <div className="col-span-12 min-[900px]:col-span-6">
-          <h6 className="cn-text-subtitle2 text-muted-foreground">Surface</h6>
-          <p className="cn-text-body1 mb-3">{user.surface} m2</p>
+          <h6 className={FIELD_LABEL_CLASS}>Surface</h6>
+          <p className={`${FIELD_VALUE_CLASS} tabular-nums`}>{user.surface} m2</p>
         </div>
       )}
 
       {user.guestCapacity != null && (
         <div className="col-span-12 min-[900px]:col-span-6">
-          <h6 className="cn-text-subtitle2 text-muted-foreground">Capacite d'accueil</h6>
-          <p className="cn-text-body1 mb-3">
+          <h6 className={FIELD_LABEL_CLASS}>Capacite d'accueil</h6>
+          <p className={`${FIELD_VALUE_CLASS} tabular-nums`}>
             {user.guestCapacity} {user.guestCapacity > 1 ? 'personnes' : 'personne'}
           </p>
         </div>
@@ -185,8 +199,8 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
 
       {user.bookingFrequency && (
         <div className="col-span-12 min-[900px]:col-span-6">
-          <h6 className="cn-text-subtitle2 text-muted-foreground">Frequence de reservation</h6>
-          <p className="cn-text-body1 mb-3">
+          <h6 className={FIELD_LABEL_CLASS}>Frequence de reservation</h6>
+          <p className={FIELD_VALUE_CLASS}>
             {BOOKING_FREQUENCY_LABELS[user.bookingFrequency] || user.bookingFrequency}
           </p>
         </div>
@@ -194,8 +208,8 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
 
       {user.cleaningSchedule && (
         <div className="col-span-12 min-[900px]:col-span-6">
-          <h6 className="cn-text-subtitle2 text-muted-foreground">Planning menage</h6>
-          <p className="cn-text-body1 mb-3">
+          <h6 className={FIELD_LABEL_CLASS}>Planning menage</h6>
+          <p className={FIELD_VALUE_CLASS}>
             {CLEANING_SCHEDULE_LABELS[user.cleaningSchedule] || user.cleaningSchedule}
           </p>
         </div>
@@ -203,17 +217,17 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
 
       {user.calendarSync && (
         <div className="col-span-12 min-[900px]:col-span-6">
-          <h6 className="cn-text-subtitle2 text-muted-foreground">Synchronisation calendrier</h6>
-          <StatusChip tokens={{ color: (CALENDAR_SYNC_TOKEN[user.calendarSync] ?? CALENDAR_SYNC_TOKEN.non).fg, bg: (CALENDAR_SYNC_TOKEN[user.calendarSync] ?? CALENDAR_SYNC_TOKEN.non).bg }} label={CALENDAR_SYNC_LABELS[user.calendarSync] || user.calendarSync} className="mt-0.5 mb-3" />
+          <h6 className={FIELD_LABEL_CLASS}>Synchronisation calendrier</h6>
+          <StatusChip tone={CALENDAR_SYNC_TONE[user.calendarSync] ?? 'neutral'} label={CALENDAR_SYNC_LABELS[user.calendarSync] || user.calendarSync} className="mt-0.5 mb-3" />
         </div>
       )}
 
       {user.services && (
         <div className="col-span-12">
-          <h6 className="cn-text-subtitle2 text-muted-foreground">Services forfait</h6>
+          <h6 className={FIELD_LABEL_CLASS}>Services forfait</h6>
           <div className="flex flex-wrap gap-0.5 mt-0.5 mb-3">
             {user.services.split(',').map((s) => (
-              <Badge variant="secondary" className="text-[var(--accent)] bg-[var(--accent-soft)]" key={s}>{SERVICE_LABELS[s.trim()] || s.trim()}</Badge>
+              <Badge variant="secondary" className="text-primary bg-primary-soft" key={s}>{SERVICE_LABELS[s.trim()] || s.trim()}</Badge>
             ))}
           </div>
         </div>
@@ -221,10 +235,12 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
 
       {user.servicesDevis && (
         <div className="col-span-12">
-          <h6 className="cn-text-subtitle2 text-muted-foreground">Services sur devis</h6>
+          <h6 className={FIELD_LABEL_CLASS}>Services sur devis</h6>
           <div className="flex flex-wrap gap-0.5 mt-0.5 mb-3">
             {user.servicesDevis.split(',').map((s) => (
-              <Badge variant="secondary" className="text-[var(--warn)] bg-[var(--warn-soft)]" key={s}>{SERVICE_DEVIS_LABELS[s.trim()] || s.trim()}</Badge>
+              // Encre `-ink` et non la teinte vive : sur fond pastel, #D4A574 en
+              // texte plafonne tres en dessous du 4,5:1.
+              <Badge variant="secondary" className="text-warning-ink bg-warning-soft" key={s}>{SERVICE_DEVIS_LABELS[s.trim()] || s.trim()}</Badge>
             ))}
           </div>
         </div>
@@ -233,7 +249,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
       {/* Toggle paiement differe (ADMIN/MANAGER uniquement) */}
       {isAdminOrManager && (
         <div className="col-span-12">
-          <div className="border border-[var(--line)] rounded-[12px] p-3 mb-1.5">
+          <div className="border border-solid border-border rounded-lg p-3 mb-1.5">
             <Field orientation="horizontal">
               <Switch
                 id="deferred-payment"
@@ -242,7 +258,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                 disabled={deferredToggling}
               />
               <FieldContent>
-                <FieldLabel htmlFor="deferred-payment" className="cn-text-body2 font-medium">
+                <FieldLabel htmlFor="deferred-payment" className="text-xs font-medium">
                   Paiement differe
                 </FieldLabel>
                 <FieldDescription>
@@ -258,17 +274,17 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
       {/* Carte cumul impayes */}
       {isAdminOrManager && (
         <div className="col-span-12">
-          <div className="border border-[var(--line)] rounded-[12px] p-3">
+          <div className="border border-solid border-border rounded-lg p-3">
             <div className="flex justify-between items-center mb-1.5">
               <div className="flex items-center gap-1.5">
                 <span className="inline-flex text-muted-foreground"><Payment size={20} strokeWidth={1.75} /></span>
-                <p className="cn-text-body1 font-semibold">Solde impaye</p>
+                <p className="m-0 text-sm font-semibold text-foreground">Solde impaye</p>
               </div>
               {balance && balance.totalUnpaid > 0 && (
-                <Badge variant="secondary" className="font-bold tabular-nums text-[var(--err)] bg-[var(--err-soft)] [&>svg]:text-[var(--err)]"><Warning size={14} strokeWidth={1.75} />{`${balance.totalUnpaid.toFixed(2)} EUR`}</Badge>
+                <Badge variant="secondary" className="font-bold tabular-nums text-destructive-ink bg-destructive-soft [&>svg]:text-destructive-ink"><Warning size={14} strokeWidth={1.75} />{`${balance.totalUnpaid.toFixed(2)} EUR`}</Badge>
               )}
               {balance && balance.totalUnpaid === 0 && (
-                <Badge variant="secondary" className="text-[var(--ok)] bg-[var(--ok-soft)]">Aucun impaye</Badge>
+                <Badge variant="secondary" className="text-success-ink bg-success-soft">Aucun impaye</Badge>
               )}
             </div>
 
@@ -319,7 +335,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                         {expandedProperty === prop.propertyId && prop.interventions.map((iv) => (
                           // `ps` (padding-inline-start) plutot que `pl` : le kit raisonne en
                           // proprietes logiques, l'indentation doit suivre le sens de lecture.
-                          <TableRow key={iv.id} className="bg-[var(--hover)]">
+                          <TableRow key={iv.id} className="bg-muted">
                             <TableCell className="text-[0.75rem] ps-6">{iv.title}</TableCell>
                             <TableCell className="text-center text-[0.75rem]">
                               {iv.scheduledDate ? new Date(iv.scheduledDate).toLocaleDateString('fr-FR') : '-'}
@@ -328,7 +344,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
                               {iv.estimatedCost.toFixed(2)} EUR
                             </TableCell>
                             <TableCell className="text-center">
-                              <StatusChip tokens={{ color: iv.paymentStatus === 'PAID' ? 'var(--ok)' : iv.paymentStatus === 'PROCESSING' ? 'var(--info)' : 'var(--muted)', bg: iv.paymentStatus === 'PAID' ? 'var(--ok-soft)' : iv.paymentStatus === 'PROCESSING' ? 'var(--info-soft)' : 'var(--hover)' }} label={iv.paymentStatus || 'N/A'} className="h-[20px] text-[0.65rem]" />
+                              <StatusChip tone={PAYMENT_STATUS_TONE[iv.paymentStatus ?? ''] ?? 'neutral'} label={iv.paymentStatus || 'N/A'} className="h-[20px] text-[0.65rem]" />
                             </TableCell>
                           </TableRow>
                         ))}
@@ -361,7 +377,7 @@ const UserHostProfileCard: React.FC<UserHostProfileCardProps> = ({
             )}
 
             {!balanceLoading && (!balance || balance.properties.length === 0) && (
-              <p className="cn-text-body2 text-muted-foreground text-center py-1.5">
+              <p className="m-0 py-1.5 text-center text-xs text-muted-foreground">
                 Aucune intervention impayee pour ce proprietaire.
               </p>
             )}

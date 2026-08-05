@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Spinner, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from '../../components/ui';
+import { Button, Card, CardContent, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, FieldLabel, Input, Spinner, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from '../../components/ui';
 import { Add, CheckCircleOutline, DeleteOutline, Receipt } from '../../icons';
 import StatusChip from '../../components/StatusChip';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -93,176 +93,203 @@ export default function InterventionQuotesSection({ interventionId, canEdit, onQ
   const hasApproved = (quotes ?? []).some((q) => q.status === 'APPROVED');
 
   return (
-    <div className="p-3 mb-[9px] rounded-[14px] bg-[var(--card)] shadow-none border border-solid border-[var(--line)]">
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Receipt size={16} strokeWidth={1.75} className="text-[var(--muted)]" />
-          <p className="m-0 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
-            {t('interventions.quotes.title', 'Devis prestataires')}
-          </p>
+    <Card size="sm" className="mb-[9px] shadow-none">
+      <CardContent>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Receipt size={16} strokeWidth={1.75} className="text-muted-foreground" />
+            <p className="m-0 text-2xs font-bold uppercase tracking-wider text-faint">
+              {t('interventions.quotes.title', 'Devis prestataires')}
+            </p>
+          </div>
+          {canEdit && (
+            <Button variant="outline" size="xs" onClick={() => setForm(EMPTY_FORM)}>
+              <Add size={14} />
+              {t('interventions.quotes.add', 'Saisir un devis')}
+            </Button>
+          )}
         </div>
-        {canEdit && (
-          <Button variant="outline" size="xs" onClick={() => setForm(EMPTY_FORM)}>
-            <Add size={14} />
-            {t('interventions.quotes.add', 'Saisir un devis')}
-          </Button>
-        )}
-      </div>
 
-      {quotes === null ? (
-        <div className="flex justify-center py-5">
-          <Spinner className="size-6" />
-        </div>
-      ) : quotes.length === 0 ? (
-        <p className="m-0 py-2 text-[12.5px] text-[var(--muted)]">
-          {t('interventions.quotes.empty',
-            "Aucun devis saisi. Dès qu'un devis est enregistré ici, l'agent Opérations propose son approbation dans la constellation.")}
-        </p>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('interventions.quotes.provider', 'Prestataire')}</TableHead>
-              <TableHead>{t('interventions.quotes.amount', 'Montant')}</TableHead>
-              <TableHead>{t('interventions.quotes.validUntil', 'Valide jusqu’au')}</TableHead>
-              <TableHead>{t('interventions.quotes.earliestStart', 'Début possible')}</TableHead>
-              <TableHead>{t('interventions.quotes.statusHeader', 'Statut')}</TableHead>
-              {canEdit && <TableHead aria-label="actions" />}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {quotes.map((quote) => (
-              <TableRow key={quote.id}>
-                <TableCell>
-                  <span className="font-medium">{quote.providerName}</span>
-                  {quote.description && (
-                    <span className="block text-[11.5px] text-[var(--muted)]">{quote.description}</span>
-                  )}
-                </TableCell>
-                <TableCell className="tabular-nums">{formatCurrency(quote.amount, quote.currency)}</TableCell>
-                <TableCell className="tabular-nums">{quote.validUntil ?? '—'}</TableCell>
-                <TableCell className="tabular-nums">{quote.earliestStartDate ?? '—'}</TableCell>
-                <TableCell>
-                  <StatusChip tone={STATUS_TONE[quote.status]} label={statusLabel(quote.status)} size="sm" />
-                </TableCell>
-                {canEdit && (
-                  <TableCell className="text-right whitespace-nowrap">
-                    {quote.status === 'RECEIVED' && !hasApproved && (
-                      <Button
-                        variant="outline" size="xs"
-                        disabled={approvingId != null}
-                        onClick={() => approve(quote.id)}
-                      >
-                        {approvingId === quote.id
-                          ? <Spinner className="size-[13px]" />
-                          : <CheckCircleOutline size={14} />}
-                        {t('interventions.quotes.approve', 'Approuver')}
-                      </Button>
-                    )}
-                    {quote.status !== 'APPROVED' && (
-                      <Button
-                        variant="ghost" size="icon-sm"
-                        aria-label={t('common.delete', 'Supprimer')}
-                        onClick={() => remove(quote.id)}
-                      >
-                        <DeleteOutline size={15} />
-                      </Button>
+        {quotes === null ? (
+          <div className="flex justify-center py-5">
+            <Spinner className="size-6" />
+          </div>
+        ) : quotes.length === 0 ? (
+          <p className="m-0 py-2 text-xs text-muted-foreground">
+            {t('interventions.quotes.empty',
+              "Aucun devis saisi. Dès qu'un devis est enregistré ici, l'agent Opérations propose son approbation dans la constellation.")}
+          </p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('interventions.quotes.provider', 'Prestataire')}</TableHead>
+                <TableHead>{t('interventions.quotes.amount', 'Montant')}</TableHead>
+                <TableHead>{t('interventions.quotes.validUntil', 'Valide jusqu’au')}</TableHead>
+                <TableHead>{t('interventions.quotes.earliestStart', 'Début possible')}</TableHead>
+                <TableHead>{t('interventions.quotes.statusHeader', 'Statut')}</TableHead>
+                {canEdit && <TableHead aria-label="actions" />}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {quotes.map((quote) => (
+                <TableRow key={quote.id}>
+                  <TableCell>
+                    <span className="font-medium">{quote.providerName}</span>
+                    {quote.description && (
+                      <span className="block text-xs text-muted-foreground">{quote.description}</span>
                     )}
                   </TableCell>
-                )}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+                  <TableCell className="tabular-nums">{formatCurrency(quote.amount, quote.currency)}</TableCell>
+                  <TableCell className="tabular-nums">{quote.validUntil ?? '—'}</TableCell>
+                  <TableCell className="tabular-nums">{quote.earliestStartDate ?? '—'}</TableCell>
+                  <TableCell>
+                    <StatusChip tone={STATUS_TONE[quote.status]} label={statusLabel(quote.status)} size="sm" />
+                  </TableCell>
+                  {canEdit && (
+                    <TableCell className="text-right whitespace-nowrap">
+                      {quote.status === 'RECEIVED' && !hasApproved && (
+                        <Button
+                          variant="outline" size="xs"
+                          disabled={approvingId != null}
+                          onClick={() => approve(quote.id)}
+                        >
+                          {approvingId === quote.id
+                            ? <Spinner className="size-[13px]" />
+                            : <CheckCircleOutline size={14} />}
+                          {t('interventions.quotes.approve', 'Approuver')}
+                        </Button>
+                      )}
+                      {quote.status !== 'APPROVED' && (
+                        <Button
+                          variant="ghost" size="icon-sm"
+                          aria-label={t('common.delete', 'Supprimer')}
+                          onClick={() => remove(quote.id)}
+                        >
+                          <DeleteOutline size={15} />
+                        </Button>
+                      )}
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
 
-      {form && (
-        <Dialog open onOpenChange={(next) => { if (!next && !saving) setForm(null); }}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t('interventions.quotes.addTitle', 'Saisir un devis reçu')}</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-3 py-1">
-              <label className="grid gap-1 text-[12px] font-medium">
-                {t('interventions.quotes.provider', 'Prestataire')}
-                <Input
-                  value={form.providerName}
-                  onChange={(e) => setField('providerName', e.target.value)}
-                />
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('interventions.quotes.providerEmail', 'Email')}
+        {form && (
+          <Dialog open onOpenChange={(next) => { if (!next && !saving) setForm(null); }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{t('interventions.quotes.addTitle', 'Saisir un devis reçu')}</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-3 py-1">
+                <Field>
+                  <FieldLabel htmlFor="quote-provider-name">
+                    {t('interventions.quotes.provider', 'Prestataire')}
+                  </FieldLabel>
                   <Input
-                    type="email"
-                    value={form.providerEmail ?? ''}
-                    onChange={(e) => setField('providerEmail', e.target.value || null)}
+                    id="quote-provider-name"
+                    value={form.providerName}
+                    onChange={(e) => setField('providerName', e.target.value)}
                   />
-                </label>
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('interventions.quotes.providerPhone', 'Téléphone')}
-                  <Input
-                    value={form.providerPhone ?? ''}
-                    onChange={(e) => setField('providerPhone', e.target.value || null)}
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field>
+                    <FieldLabel htmlFor="quote-provider-email">
+                      {t('interventions.quotes.providerEmail', 'Email')}
+                    </FieldLabel>
+                    <Input
+                      id="quote-provider-email"
+                      type="email"
+                      value={form.providerEmail ?? ''}
+                      onChange={(e) => setField('providerEmail', e.target.value || null)}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="quote-provider-phone">
+                      {t('interventions.quotes.providerPhone', 'Téléphone')}
+                    </FieldLabel>
+                    <Input
+                      id="quote-provider-phone"
+                      value={form.providerPhone ?? ''}
+                      onChange={(e) => setField('providerPhone', e.target.value || null)}
+                    />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field>
+                    <FieldLabel htmlFor="quote-amount">
+                      {t('interventions.quotes.amount', 'Montant')}
+                    </FieldLabel>
+                    <Input
+                      id="quote-amount"
+                      className="tabular-nums"
+                      type="number" min={0} step="0.01"
+                      value={form.amount || ''}
+                      onChange={(e) => setField('amount', Number(e.target.value) || 0)}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="quote-currency">
+                      {t('interventions.quotes.currency', 'Devise')}
+                    </FieldLabel>
+                    <Input
+                      id="quote-currency"
+                      value={form.currency}
+                      onChange={(e) => setField('currency', e.target.value.toUpperCase())}
+                    />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field>
+                    <FieldLabel htmlFor="quote-valid-until">
+                      {t('interventions.quotes.validUntil', 'Valide jusqu’au')}
+                    </FieldLabel>
+                    <Input
+                      id="quote-valid-until"
+                      type="date"
+                      value={form.validUntil ?? ''}
+                      onChange={(e) => setField('validUntil', e.target.value || null)}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="quote-earliest-start">
+                      {t('interventions.quotes.earliestStart', 'Début possible')}
+                    </FieldLabel>
+                    <Input
+                      id="quote-earliest-start"
+                      type="date"
+                      value={form.earliestStartDate ?? ''}
+                      onChange={(e) => setField('earliestStartDate', e.target.value || null)}
+                    />
+                  </Field>
+                </div>
+                <Field>
+                  <FieldLabel htmlFor="quote-description">
+                    {t('interventions.quotes.description', 'Description')}
+                  </FieldLabel>
+                  <Textarea
+                    id="quote-description"
+                    rows={2}
+                    value={form.description ?? ''}
+                    onChange={(e) => setField('description', e.target.value || null)}
                   />
-                </label>
+                </Field>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('interventions.quotes.amount', 'Montant')}
-                  <Input
-                    type="number" min={0} step="0.01"
-                    value={form.amount || ''}
-                    onChange={(e) => setField('amount', Number(e.target.value) || 0)}
-                  />
-                </label>
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('interventions.quotes.currency', 'Devise')}
-                  <Input
-                    value={form.currency}
-                    onChange={(e) => setField('currency', e.target.value.toUpperCase())}
-                  />
-                </label>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('interventions.quotes.validUntil', 'Valide jusqu’au')}
-                  <Input
-                    type="date"
-                    value={form.validUntil ?? ''}
-                    onChange={(e) => setField('validUntil', e.target.value || null)}
-                  />
-                </label>
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('interventions.quotes.earliestStart', 'Début possible')}
-                  <Input
-                    type="date"
-                    value={form.earliestStartDate ?? ''}
-                    onChange={(e) => setField('earliestStartDate', e.target.value || null)}
-                  />
-                </label>
-              </div>
-              <label className="grid gap-1 text-[12px] font-medium">
-                {t('interventions.quotes.description', 'Description')}
-                <Textarea
-                  rows={2}
-                  value={form.description ?? ''}
-                  onChange={(e) => setField('description', e.target.value || null)}
-                />
-              </label>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" disabled={saving} onClick={() => setForm(null)}>
-                {t('common.cancel', 'Annuler')}
-              </Button>
-              <Button disabled={saving || !form.providerName.trim() || !(form.amount > 0)} onClick={save}>
-                {saving ? <Spinner className="size-[13px]" /> : null}
-                {t('common.save', 'Enregistrer')}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-    </div>
+              <DialogFooter>
+                <Button variant="outline" disabled={saving} onClick={() => setForm(null)}>
+                  {t('common.cancel', 'Annuler')}
+                </Button>
+                <Button disabled={saving || !form.providerName.trim() || !(form.amount > 0)} onClick={save}>
+                  {saving ? <Spinner className="size-[13px]" /> : null}
+                  {t('common.save', 'Enregistrer')}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+      </CardContent>
+    </Card>
   );
 }

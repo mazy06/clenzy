@@ -11,7 +11,7 @@ import {
 } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { Field, FieldLabel, Input } from '../../../components/ui';
-import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 import {
   Replay,
   InfoOutlined,
@@ -20,9 +20,9 @@ import {
   ErrorOutline,
 } from '../../../icons';
 import { syncAdminApi, OutboxEvent, OutboxStats } from '../../../services/api/syncAdminApi';
-import FilterChipRow from '../../../components/FilterChipRow';
+import FilterChipRow from '../../../components/baitly/FilterChipRow';
 import HelpPopover from '../../../components/HelpPopover';
-import StatTile from '../../../components/StatTile';
+import StatTile from '../../../components/baitly/StatTile';
 import { useSyncAdminHeader } from '../SyncAdminPage';
 import PagePagination from '../../../components/PagePagination';
 
@@ -88,9 +88,10 @@ const renderStatusTooltip = (status: string) => {
   if (!help) return status;
   return (
     <div className="p-0.5 max-w-[300px]">
-      <p className="cn-text-body1 text-[0.75rem] font-bold mb-0.5">{help.title}</p>
-      <p className="cn-text-body1 text-[0.6875rem] leading-[1.4] mb-0.5">{help.what}</p>
-      <p className="cn-text-body1 text-[0.6875rem] leading-[1.4] italic text-[var(--bg)] opacity-85">
+      <p className="text-xs font-bold mb-0.5">{help.title}</p>
+      <p className="text-[0.6875rem] leading-[1.4] mb-0.5">{help.what}</p>
+      {/* L'encre du tooltip (text-background sur bg-foreground) est déjà héritée. */}
+      <p className="text-[0.6875rem] leading-[1.4] italic opacity-85">
         → {help.todo}
       </p>
     </div>
@@ -106,7 +107,7 @@ const HeaderHint: React.FC<{ label: string; hint: string }> = ({ label, hint }) 
     <span>{label}</span>
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="inline-flex text-[var(--faint)] cursor-help hover:text-[var(--muted)]">
+        <span className="inline-flex text-faint cursor-help hover:text-muted-foreground">
           <InfoOutlined size={13} strokeWidth={1.75} />
         </span>
       </TooltipTrigger>
@@ -117,20 +118,21 @@ const HeaderHint: React.FC<{ label: string; hint: string }> = ({ label, hint }) 
 
 type OutboxStatus = 'PENDING' | 'SENT' | 'FAILED';
 
+// Teinte vive de chaque option : FilterChipRow la passe dans un color-mix évalué
+// à l'exécution → valeur CSS `--bui-*`, une utility Tailwind ne serait pas générée.
 const STATUS_OPTIONS: { value: OutboxStatus; label: string; color: string }[] = [
-  { value: 'PENDING', label: 'Pending', color: 'var(--info)' },
-  { value: 'SENT',    label: 'Sent',    color: 'var(--ok)' },
-  { value: 'FAILED',  label: 'Failed',  color: 'var(--err)' },
+  { value: 'PENDING', label: 'Pending', color: 'var(--bui-info)' },
+  { value: 'SENT',    label: 'Sent',    color: 'var(--bui-success)' },
+  { value: 'FAILED',  label: 'Failed',  color: 'var(--bui-destructive)' },
 ];
 
-// Statuts outbox → tokens sémantiques (chips -soft : texte couleur + fond -soft)
-const STATUS_TOKEN: Record<string, ToneTokens> = {
-  PENDING: { color: 'var(--info)', bg: 'var(--info-soft)' },
-  SENT: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
-  FAILED: { color: 'var(--err)', bg: 'var(--err-soft)' },
+// Statut outbox → ton sémantique. Le couple encre/fond conforme AA est tenu par
+// StatusChip (STATUS_TONES) : ici on ne dit que le SENS, pas la couleur.
+const STATUS_TONE: Record<string, StatusTone> = {
+  PENDING: 'info',
+  SENT: 'ok',
+  FAILED: 'err',
 };
-
-const NEUTRAL_TOKEN: ToneTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
 
 const OutboxTab: React.FC = () => {
   const [events, setEvents] = useState<OutboxEvent[]>([]);
@@ -276,11 +278,12 @@ const OutboxTab: React.FC = () => {
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="inline-flex">
-              {/* Teinte warn posee en classes : le kit n'a pas de variante « warning ». */}
+              {/* Teinte warn posee en classes : le kit n'a pas de variante « warning ».
+                  Encre en `-ink` (AA), bordure et fond pastel sur la teinte vive. */}
               <Button
                 size="sm"
                 variant="outline"
-                className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+                className="text-warning-ink border-warning hover:bg-warning-soft"
                 onClick={handleRetry}
                 disabled={selectedIds.size === 0 || retrying}
               >
@@ -320,7 +323,7 @@ const OutboxTab: React.FC = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
-                  <StatTile icon={<HourglassEmpty />} label="Pending" value={stats.pending} color="#7BA3C2" />
+                  <StatTile icon={<HourglassEmpty />} label="Pending" value={stats.pending} iconClassName="text-info" />
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -332,7 +335,7 @@ const OutboxTab: React.FC = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
-                  <StatTile icon={<SendIcon />} label="Sent" value={stats.sent} color="#4A9B8E" />
+                  <StatTile icon={<SendIcon />} label="Sent" value={stats.sent} iconClassName="text-success" />
                 </div>
               </TooltipTrigger>
               <TooltipContent>Events publiés avec succès dans Kafka. Aucune action requise.</TooltipContent>
@@ -342,7 +345,7 @@ const OutboxTab: React.FC = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
-                  <StatTile icon={<ErrorOutline />} label="Failed" value={stats.failed} color="#C97A7A" />
+                  <StatTile icon={<ErrorOutline />} label="Failed" value={stats.failed} iconClassName="text-destructive" />
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -354,7 +357,7 @@ const OutboxTab: React.FC = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
-                  <StatTile icon={<InfoOutlined />} label="Total" value={stats.total} color="#6B8A9A" />
+                  <StatTile icon={<InfoOutlined />} label="Total" value={stats.total} iconClassName="text-primary" />
                 </div>
               </TooltipTrigger>
               <TooltipContent>Total cumulé d&apos;events écrits dans l&apos;outbox depuis sa création.</TooltipContent>
@@ -375,12 +378,12 @@ const OutboxTab: React.FC = () => {
       {loading ? (
         <div className="flex flex-col gap-1.5">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-9 w-full rounded-[9px]" />
+            <Skeleton key={i} className="h-9 w-full rounded-lg" />
           ))}
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+          <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -447,7 +450,7 @@ const OutboxTab: React.FC = () => {
               <TableBody>
                 {events.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center text-[var(--muted)] py-[18px]">
+                    <TableCell colSpan={10} className="text-center text-muted-foreground py-[18px]">
                       Aucun event
                     </TableCell>
                   </TableRow>
@@ -475,7 +478,7 @@ const OutboxTab: React.FC = () => {
                                 StatusChip est une fonction et n'en transmet pas. */}
                             <span className="inline-flex">
                               <StatusChip
-                                tokens={STATUS_TOKEN[evt.status] ?? NEUTRAL_TOKEN}
+                                tone={STATUS_TONE[evt.status] ?? 'neutral'}
                                 label={evt.status}
                                 className="cursor-help"
                               />
@@ -497,7 +500,7 @@ const OutboxTab: React.FC = () => {
                         </Tooltip>
                       </TableCell>
                       <TableCell>
-                        <p className="cn-text-body2 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title={evt.errorMessage || undefined}>
+                        <p className="text-xs max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title={evt.errorMessage || undefined}>
                           {evt.errorMessage || '—'}
                         </p>
                       </TableCell>

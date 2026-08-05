@@ -109,11 +109,11 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
         </Tooltip>
 
         {isLoading ? (
-          <span className="cn-text-caption text-muted-foreground opacity-60">Code d'accès…</span>
+          <span className="text-xs text-muted-foreground opacity-60">Code d'accès…</span>
         ) : hasCode ? (
           <>
-            {/* Code PIN : display (Space Grotesk) tabular-nums sur fond --field */}
-            <p className={cn('cn-text-body1 tabular-nums font-semibold text-[0.875rem] text-[var(--ink)] bg-[var(--field)] rounded-[9px] px-1.5 py-[1.5px] leading-[1.4]', revealed ? 'tracking-[0.06em]' : 'tracking-[0.18em]')} style={{ fontFamily: 'var(--font-display)' }}>
+            {/* Code PIN : display (Space Grotesk) tabular-nums sur fond de champ */}
+            <p className={cn('text-sm tabular-nums font-semibold text-foreground bg-field rounded-md px-1.5 py-[1.5px] leading-[1.4]', revealed ? 'tracking-[0.06em]' : 'tracking-[0.18em]')} style={{ fontFamily: 'var(--font-display)' }}>
               {revealed ? code!.code : '••••••'}
             </p>
             {/* Le Button du kit est une fonction : il ne transmet pas de ref
@@ -154,7 +154,7 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
                     aria-label="Régénérer le code"
                     onClick={() => setConfirmOpen(true)}
                     disabled={rotating}
-                    className="text-[var(--muted)]"
+                    className="text-muted-foreground"
                   >
                     {rotating ? <Spinner className="size-3.5" /> : <Refresh size={14} strokeWidth={1.75} />}
                   </Button>
@@ -165,7 +165,7 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
           </>
         ) : (
           <>
-            <span className="cn-text-caption text-muted-foreground">Aucun code actif</span>
+            <span className="text-xs text-muted-foreground">Aucun code actif</span>
             <Button
               variant="ghost"
               size="sm"
@@ -181,7 +181,7 @@ export default function AccessCodeSection({ deviceId }: AccessCodeSectionProps) 
       </div>
 
       {hasCode && code!.validUntil && (
-        <span className="cn-text-caption text-muted-foreground opacity-60 ps-3.5 block leading-[1.2]">
+        <span className="text-xs text-muted-foreground opacity-60 ps-3.5 block leading-[1.2]">
           Valide jusqu'au {formatUntil(code!.validUntil)}
         </span>
       )}

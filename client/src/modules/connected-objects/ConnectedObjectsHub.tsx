@@ -11,7 +11,7 @@ import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, Warning, Home, Ch
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/baitly/StatTile';
 import EmptyState from '../../components/EmptyState';
-import FilterChipRow from '../../components/FilterChipRow';
+import FilterChipRow from '../../components/baitly/FilterChipRow';
 import { useConnectedObjects } from './useConnectedObjects';
 import { DEVICE_KINDS, DEVICE_KIND_ORDER } from './deviceRegistry';
 import DeviceCard from './components/DeviceCard';
@@ -121,31 +121,27 @@ export default function ConnectedObjectsHub({
       {embedded && actionsContainer ? createPortal(headerAction, actionsContainer) : null}
 
       {/* Bandeau de connexion — pont vers les Settings */}
-      <Card className="gap-0 py-0 p-1.5 mb-2 border-[var(--line)] flex items-center gap-1.5 flex-wrap">
-        <span className="cn-text-caption text-[var(--faint)] font-bold text-[10.5px] uppercase tracking-[0.06em] me-0.5">
+      <Card className="gap-0 py-0 p-1.5 mb-2 border-border flex items-center gap-1.5 flex-wrap">
+        <span className="text-2xs font-semibold uppercase tracking-wide text-faint me-0.5">
           Services reliés
         </span>
         {visibleProviders.length === 0 && !loading ? (
-          <span className="cn-text-caption text-muted-foreground opacity-60">Aucun service relié pour l'instant.</span>
+          <span className="text-xs text-muted-foreground opacity-60">Aucun service relié pour l'instant.</span>
         ) : (
-          visibleProviders.map((p) => {
-            // Statut -soft : connecté = --ok, à reconnecter = --warn (tokens thémables)
-            const tokens = p.connected
-              ? { color: 'var(--ok)', soft: 'var(--ok-soft)' }
-              : { color: 'var(--warn)', soft: 'var(--warn-soft)' };
-            return (
-              <Tooltip key={p.provider}>
-                {/* Le declencheur pose une ref sur son enfant, que StatusChip ne transmet
-                    pas (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
-                <TooltipTrigger asChild>
-                  <span className="inline-flex">
-                    <StatusChip tokens={{ color: tokens.color, bg: tokens.soft }} label={`${PROVIDER_LABELS[p.provider] ?? p.provider} · ${p.deviceCount}`} className="h-[24px] tabular-nums" />
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>{p.connected ? 'Connecté' : 'Déconnecté — à reconnecter dans les intégrations'}</TooltipContent>
-              </Tooltip>
-            );
-          })
+          visibleProviders.map((p) => (
+            <Tooltip key={p.provider}>
+              {/* Le declencheur pose une ref sur son enfant, que StatusChip ne transmet
+                  pas (React 18, composant fonction) : sans ce span, l'infobulle ne s'ancre pas. */}
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  {/* Ton sémantique du kit : connecté = succès, à reconnecter = avertissement.
+                      Le couple `-ink` / `-soft` de StatusChip tient l'AA dans les deux thèmes. */}
+                  <StatusChip tone={p.connected ? 'ok' : 'warn'} label={`${PROVIDER_LABELS[p.provider] ?? p.provider} · ${p.deviceCount}`} className="h-[24px] tabular-nums" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{p.connected ? 'Connecté' : 'Déconnecté — à reconnecter dans les intégrations'}</TooltipContent>
+            </Tooltip>
+          ))
         )}
         {/* Action du bandeau, pas de l'ecran : `outline` pour ne pas concurrencer
             « Ajouter un objet » qui reste l'action principale de la page. */}
@@ -158,7 +154,7 @@ export default function ConnectedObjectsHub({
           variant="ghost"
           size="sm"
           onClick={() => navigate('/settings?tab=integrations')}
-          className={cn('text-[var(--muted)]', netatmoConnected ? 'ms-auto' : 'ms-1.5')}
+          className={cn('text-muted-foreground', netatmoConnected ? 'ms-auto' : 'ms-1.5')}
         >
           Gérer les intégrations
           <ChevronRight size={14} strokeWidth={1.75} />
@@ -190,7 +186,6 @@ export default function ConnectedObjectsHub({
             value={kindFilter}
             onChange={setKindFilter}
             allLabel="Tous les objets"
-            allColor="#6B8A9A"
             allCount={devices.length}
             options={kindsPresent.map((k) => ({
               value: k,
@@ -206,7 +201,7 @@ export default function ConnectedObjectsHub({
       {loading ? (
         <div className={GRID}>
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-[132px] rounded-[var(--radius-lg)]" />
+            <Skeleton key={i} className="h-[132px] rounded-xl" />
           ))}
         </div>
       ) : filteredGroups.length === 0 ? (
@@ -236,12 +231,11 @@ export default function ConnectedObjectsHub({
               </span>
               <p
                 className={cn(
-                  'cn-text-body1 font-semibold text-[0.9375rem] text-[var(--ink)]',
-                  group.propertyId != null && 'group-hover:text-[var(--accent)]',
+                  'text-[0.9375rem] font-semibold text-foreground transition-colors duration-150',
+                  group.propertyId != null && 'group-hover:text-primary',
                 )}
-                style={{ transition: 'color 150ms' }}
               >{group.propertyName}</p>
-              <span className="cn-text-caption text-muted-foreground opacity-60">· {group.devices.length} objet{group.devices.length > 1 ? 's' : ''}</span>
+              <span className="text-xs text-muted-foreground opacity-60">· {group.devices.length} objet{group.devices.length > 1 ? 's' : ''}</span>
               {group.propertyId != null && (
                 <span className="text-muted-foreground opacity-60 inline-flex ms-0.5">
                   <ChevronRight size={15} strokeWidth={1.75} />
@@ -260,7 +254,7 @@ export default function ConnectedObjectsHub({
       {/* Types à venir (caméras, thermostats) — place réservée */}
       {comingSoon.length > 0 && (
         <div className="mt-1.5">
-          <span className="cn-text-caption text-[var(--faint)] font-bold text-[10.5px] uppercase tracking-[0.06em] block mb-1">
+          <span className="text-2xs font-semibold uppercase tracking-wide text-faint block mb-1">
             Bientôt disponible
           </span>
           <div className="flex gap-1.5 flex-wrap">
@@ -274,7 +268,7 @@ export default function ConnectedObjectsHub({
                       onClick={previewRoute ? () => navigate(previewRoute) : undefined}
                       className={cn(
                         'inline-flex items-center gap-[5.25px] px-[7.5px] py-[5.25px]',
-                        'rounded-[var(--radius-md)] border border-dashed border-[var(--line)] bg-[var(--card)]',
+                        'rounded-lg border border-dashed border-border bg-card',
                         'transition-[border-color,background-color] duration-200',
                         previewRoute
                           ? 'opacity-100 cursor-pointer hover:border-[var(--co-preview)] hover:bg-[var(--co-preview-soft)]'
@@ -288,10 +282,11 @@ export default function ConnectedObjectsHub({
                       } as CSSProperties}
                     >
                       <span className="inline-flex" style={{ color: meta.color }}>{meta.icon(16)}</span>
-                      <p className="cn-text-body2 text-muted-foreground font-medium">{meta.label}</p>
+                      <p className="text-xs text-muted-foreground font-medium">{meta.label}</p>
                       {previewRoute ? (
                         <>
-                          <StatusChip size="sm" tokens={{ color: meta.color, bg: `color-mix(in srgb, ${meta.color} 15%, transparent)` }} label="Aperçu" className="text-[0.65rem]" />
+                          {/* Couleur de TYPE (hex du registre) : `color` compose lui-même le fond doux. */}
+                          <StatusChip size="sm" color={meta.color} label="Aperçu" className="text-[0.65rem]" />
                           <span className="text-muted-foreground opacity-60 inline-flex"><ChevronRight size={14} strokeWidth={1.75} /></span>
                         </>
                       ) : (

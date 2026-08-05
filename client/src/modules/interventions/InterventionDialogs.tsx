@@ -66,7 +66,7 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
         </DialogHeader>
         <UiAlert variant="info" className="mb-3 mt-1.5">
           <Info />
-          <AlertDescription><p className="cn-text-body2 text-[0.85rem]">
+          <AlertDescription><p className="text-sm">
             {currentStep === 'inspection' && t('interventions.dialogs.notesInspectionAlert')}
             {currentStep === 'rooms' && t('interventions.dialogs.notesRoomsAlert')}
             {currentStep === 'after_photos' && t('interventions.dialogs.notesAfterAlert')}
@@ -105,7 +105,7 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
         />
         <UiAlert variant="info" className="mt-1.5 py-0.5">
           <Info />
-          <AlertDescription><span className="cn-text-caption text-[0.75rem]">
+          <AlertDescription><span className="text-xs">
             {t('interventions.dialogs.notesAutoSave')}
           </span></AlertDescription>
         </UiAlert>
@@ -153,14 +153,14 @@ export const PhotosDialog: React.FC<PhotosDialogProps> = ({
         <DialogHeader>
           {/* Le titre porte deja la typo h6 du gabarit : plus de <h6> imbrique. */}
           <DialogTitle className="flex items-center gap-1.5">
-            <span className={cn('inline-flex', photoType === 'before' ? 'text-[var(--accent)]' : 'text-[var(--ok)]')}><PhotoCameraIcon size={20} strokeWidth={1.75} /></span>
+            <span className={cn('inline-flex', photoType === 'before' ? 'text-primary' : 'text-success')}><PhotoCameraIcon size={20} strokeWidth={1.75} /></span>
             {photoType === 'before' ? t('interventions.dialogs.photosBeforeTitle') : t('interventions.dialogs.photosAfterTitle')}
           </DialogTitle>
         </DialogHeader>
         <div className="pt-3">
           <UiAlert variant={photoType === 'before' ? 'info' : 'success'} className="mb-3">
             {photoType === 'before' ? <Info /> : <CircleCheck />}
-            <AlertDescription><p className="cn-text-body2 text-[0.85rem]">
+            <AlertDescription><p className="text-sm">
               {photoType === 'before'
                 ? t('interventions.dialogs.photosBeforeAlert')
                 : t('interventions.dialogs.photosAfterAlert')}

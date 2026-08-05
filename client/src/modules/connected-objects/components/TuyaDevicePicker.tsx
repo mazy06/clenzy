@@ -37,7 +37,7 @@ export default function TuyaDevicePicker({ category, selectedId, onSelect }: Tuy
     return (
       <div className="flex items-center gap-1.5 py-1.5">
         <Spinner className="size-4" />
-        <p className="cn-text-body2 text-muted-foreground">Recherche des appareils Tuya…</p>
+        <p className="text-xs text-muted-foreground">Recherche des appareils Tuya…</p>
       </div>
     );
   }

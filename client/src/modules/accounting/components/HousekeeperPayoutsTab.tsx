@@ -10,7 +10,7 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import StatusChip from '../../../components/StatusChip';
+import StatusChip, { STATUS_TONES, type StatusTone } from '../../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../../components/ui';
 import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
@@ -28,7 +28,7 @@ import {
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { Link as RouterLink } from 'react-router-dom';
 import { Build as RetryIcon, AccountBalance as PayoutIcon } from '../../../icons';
-import FilterChipRow from '../../../components/FilterChipRow';
+import FilterChipRow from '../../../components/baitly/FilterChipRow';
 import HelpPopover from '../../../components/HelpPopover';
 import { usePageHeaderActions } from '../../../components/PageHeaderActionsContext';
 import EmptyState from '../../../components/EmptyState';
@@ -44,27 +44,17 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PagePagination from '../../../components/PagePagination';
 
-// Cartes/tableaux : hairline --line, r14, pas d'ombre (baseline §2, aligné AccountingPage).
-const CARD_CLASS =
-  'border border-solid border-[var(--line)] rounded-[var(--radius-lg)] bg-[var(--card)]';
-
-// Chip statut sobre (pattern softChipSx AccountingPage) : texte couleur + fond 9 %.
-const softChipSx = (color: string) => ({
-  backgroundColor: `color-mix(in srgb, ${color} 9%, transparent)`,
-  color,
-  borderRadius: 999,
-  fontWeight: 700,
-  fontSize: '10.5px',
-  height: 22,
-  '& .MuiChip-label': { px: 1.25 },
-});
+// Cartes/tableaux : hairline Baitly UI, r14, pas d'ombre (baseline §2, aligné AccountingPage).
+const CARD_CLASS = 'border border-solid border-border rounded-xl bg-card';
 
 // Statuts : SENT vert doux, PENDING neutre, FAILED/BLOCKED ambre (jamais rouge criard).
-const STATUS_COLORS: Record<HousekeeperPayoutStatus, string> = {
-  SENT: 'var(--ok)',
-  PENDING: 'var(--muted)',
-  FAILED: 'var(--warn)',
-  BLOCKED: 'var(--warn)',
+// Un SEUL mapping domaine → ton sémantique : la puce le consomme tel quel, la
+// rangée de filtres en dérive sa teinte via STATUS_TONES.
+const STATUS_TONE: Record<HousekeeperPayoutStatus, StatusTone> = {
+  SENT: 'ok',
+  PENDING: 'neutral',
+  FAILED: 'warn',
+  BLOCKED: 'warn',
 };
 const STATUS_VALUES: HousekeeperPayoutStatus[] = ['PENDING', 'SENT', 'FAILED', 'BLOCKED'];
 
@@ -153,7 +143,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
           options={STATUS_VALUES.map((v) => ({
             value: v,
             label: t(`accounting.housekeeperPayouts.statuses.${v}`, v),
-            color: STATUS_COLORS[v],
+            color: STATUS_TONES[STATUS_TONE[v]].color,
           }))}
           value={filterStatus}
           onChange={(v) => { setFilterStatus(v as HousekeeperPayoutStatus | ''); setPage(0); }}
@@ -191,7 +181,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
       {isLoading ? (
         <div className="flex flex-col gap-1.5">
           {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-11 w-full rounded-[var(--radius-sm)]" />
+            <Skeleton key={i} className="h-11 w-full rounded-md" />
           ))}
         </div>
       ) : isError ? (
@@ -210,7 +200,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
           variant="plain"
         />
       ) : (
-        <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]">
+        <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -235,7 +225,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
                     <TableCell className="py-[7.5px] tabular-nums">
                       <RouterLink
                         to={`/interventions/${r.interventionId}`}
-                        className="text-[12.5px] text-[var(--accent)] no-underline tabular-nums hover:underline"
+                        className="text-xs text-primary no-underline tabular-nums hover:underline"
                       >
                         {t('accounting.housekeeperPayouts.missionRef', 'Mission')} #{r.interventionId}
                       </RouterLink>
@@ -246,11 +236,11 @@ export const HousekeeperPayoutsTab: React.FC = () => {
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="inline-flex items-center gap-0.5">
-                        <StatusChip color={STATUS_COLORS[r.status]} label={t(`accounting.housekeeperPayouts.statuses.${r.status}`, r.status)} />
+                        <StatusChip tone={STATUS_TONE[r.status]} label={t(`accounting.housekeeperPayouts.statuses.${r.status}`, r.status)} />
                         {showReason && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="cn-text-body1 text-[0.6875rem] text-[var(--warn)] cursor-help">
+                              <span className="text-[0.6875rem] text-warning-ink cursor-help">
                                 ({reason})
                               </span>
                             </TooltipTrigger>
@@ -270,7 +260,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
                               <BuiButton
                                 variant="ghost"
                                 size="icon-sm"
-                                className="text-[var(--warn)]"
+                                className="text-warning"
                                 aria-label={t('accounting.housekeeperPayouts.retry', 'Relancer le versement')}
                                 onClick={() => setRetryTarget(r)}
                                 disabled={retryMutation.isPending}
@@ -310,7 +300,7 @@ export const HousekeeperPayoutsTab: React.FC = () => {
             <DialogTitle>{t('accounting.housekeeperPayouts.retryTitle', 'Relancer le versement')}</DialogTitle>
           </DialogHeader>
           {retryTarget && (
-            <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground">
+            <p className="text-[0.8125rem] text-muted-foreground">
               {t(
                 'accounting.housekeeperPayouts.retryConfirm',
                 'Relancer le versement de {{amount}} à {{provider}} ?',
@@ -323,11 +313,11 @@ export const HousekeeperPayoutsTab: React.FC = () => {
               {t('common.cancel', 'Annuler')}
             </BuiButton>
             {/* Relance d'un versement (money-path) : le `color="warning"` d'origine
-                se reporte en outline teinte --warn, faute de variante dediee. */}
+                se reporte en outline teinte avertissement, faute de variante dediee. */}
             <BuiButton
               variant="outline"
               size="sm"
-              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              className="text-warning-ink border-warning hover:bg-warning-soft"
               onClick={handleConfirmRetry}
             >
               {t('accounting.housekeeperPayouts.retryConfirmBtn', 'Relancer')}

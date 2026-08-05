@@ -37,6 +37,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import { kpiApi, KpiSnapshot, KpiItem, KpiHistory, KpiStatus } from '../../services/api/kpiApi';
 import { incidentApi, IncidentDto } from '../../services/api/incidentApi';
 import IncidentDetailDialog from '../dashboard/IncidentDetailDialog';
@@ -49,11 +50,19 @@ import {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-// Statuts KPI → tokens sémantiques Signature (texte couleur + fond -soft)
+/**
+ * Statuts KPI → tokens sémantiques Baitly UI. `fg` habille du TEXTE (valeur du
+ * KPI, libellé de la puce) : c'est donc la variante `-ink`, la teinte vive
+ * plafonnant à ~2,2:1 sur `bg-card` en clair. `bg` est le fond pastel `-soft`.
+ *
+ * Les valeurs restent des VALEURS CSS et non des utilities Tailwind : elles sont
+ * résolues au rendu depuis le statut, et Tailwind n'émet ses classes qu'à la
+ * compilation.
+ */
 const STATUS_TOKEN: Record<KpiStatus, { fg: string; bg: string }> = {
-  OK: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  WARNING: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  CRITICAL: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+  OK: { fg: 'var(--bui-success-ink)', bg: 'var(--bui-success-soft)' },
+  WARNING: { fg: 'var(--bui-warning-ink)', bg: 'var(--bui-warning-soft)' },
+  CRITICAL: { fg: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' },
 };
 
 const formatTimestamp = (ts: string): string => {
@@ -93,11 +102,14 @@ const GAUGE_RADIUS = GAUGE_SIZE / 2 - GAUGE_STROKE / 2;
 const GAUGE_CIRCUMFERENCE = 2 * Math.PI * GAUGE_RADIUS;
 
 const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
-  // Couleur du score → tokens sémantiques (réactifs thème/accent)
-  const color = criticalFailed ? 'var(--err)'
-    : score >= 80 ? 'var(--ok)'
-    : score >= 50 ? 'var(--warn)'
-    : 'var(--err)';
+  // Famille sémantique du score. L'arc est un APLAT graphique → teinte vive ;
+  // le nombre et l'icône sont du TEXTE → variante `-ink` (seule conforme AA).
+  const family = criticalFailed ? 'destructive'
+    : score >= 80 ? 'success'
+    : score >= 50 ? 'warning'
+    : 'destructive';
+  const arcColor = `var(--bui-${family})`;
+  const inkColor = `var(--bui-${family}-ink)`;
 
   const filled = Math.min(Math.max(score, 0), 100);
 
@@ -121,7 +133,7 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
               cy={GAUGE_SIZE / 2}
               r={GAUGE_RADIUS}
               fill="none"
-              stroke="var(--line)"
+              stroke="var(--bui-border)"
               strokeWidth={GAUGE_STROKE}
             />
             <circle
@@ -129,7 +141,7 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
               cy={GAUGE_SIZE / 2}
               r={GAUGE_RADIUS}
               fill="none"
-              stroke={color}
+              stroke={arcColor}
               strokeWidth={GAUGE_STROKE}
               strokeLinecap="round"
               strokeDasharray={GAUGE_CIRCUMFERENCE}
@@ -137,30 +149,32 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
               className="[transition:stroke-dashoffset_400ms_ease-out] motion-reduce:transition-none"
             />
           </svg>
-          <div className="top-[0px] start-[0px] bottom-[0px] end-[0px] absolute flex flex-col items-center justify-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
             {/* La teinte suit le score, calculee au rendu. */}
-            <span className="mb-[3px] inline-flex" style={{ color }}>
+            <span className="mb-[3px] inline-flex" style={{ color: inkColor }}>
               {criticalFailed ? (
                 <Warning size={32} strokeWidth={1.75} />
               ) : (
                 <Shield size={32} strokeWidth={1.75} />
               )}
             </span>
-            {/* Echelle h3 du theme (1rem / 1.125 / 1.25 selon le palier). */}
+            {/* Echelle d'affichage : base / lg / xl selon le palier. */}
             <p
-              className="text-[1rem] min-[1200px]:text-[1.125rem] min-[1536px]:text-[1.25rem] font-semibold leading-[1.25] tracking-[-0.015em] tabular-nums"
-              style={{ color }}
+              className="text-base min-[1200px]:text-lg min-[1536px]:text-xl font-semibold leading-tight tracking-tight tabular-nums"
+              style={{ color: inkColor }}
             >
               {criticalFailed ? '0' : Math.round(score)}
             </p>
-            <span className="cn-text-caption text-[var(--muted)]">/ 100</span>
+            <span className="text-xs text-muted-foreground tabular-nums">/ 100</span>
           </div>
         </div>
-        <h6 className="cn-text-h6 mt-3 font-semibold text-[var(--ink)]">
+        <h6 className="mt-3 text-sm font-semibold text-foreground">
           Readiness Score
         </h6>
         {criticalFailed && (
-          <Badge variant="secondary" className="mt-1.5 text-[var(--err)] bg-[var(--err-soft)]">KPI CRITIQUE EN ECHEC</Badge>
+          <Badge variant="secondary" className="mt-1.5 bg-destructive-soft text-destructive-ink">
+            KPI CRITIQUE EN ECHEC
+          </Badge>
         )}
       </CardContent>
     </BuiCard>
@@ -204,28 +218,28 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipCont
     <CardContent className="pb-3">
       <div className="flex justify-between items-start mb-1.5 gap-0.5">
         {/* Label en overline (pattern entête de tuile KPI) */}
-        <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)]">
+        <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
           {kpi.name}
         </p>
         <div className="flex gap-0.5 shrink-0">
           {badgeCount !== undefined && badgeCount > 0 && (
-            <Badge variant="secondary" className="text-[var(--err)] bg-[var(--err-soft)]">{`${badgeCount} ouvert${badgeCount > 1 ? 's' : ''}`}</Badge>
+            <Badge variant="secondary" className="bg-destructive-soft text-destructive-ink tabular-nums">{`${badgeCount} ouvert${badgeCount > 1 ? 's' : ''}`}</Badge>
           )}
           {kpi.critical && (
-            <Badge variant="secondary" className="text-[var(--err)] bg-[var(--err-soft)]">Critical</Badge>
+            <Badge variant="secondary" className="bg-destructive-soft text-destructive-ink">Critical</Badge>
           )}
         </div>
       </div>
 
       <div className="flex items-baseline gap-1.5 mb-1.5">
         {/* Valeur display tabular-nums — l'accent statut vit dans la valeur + le chip */}
-        <h4 className="cn-text-h4 font-semibold tabular-nums" style={{ color: tk.fg }}>
+        <h4 className="text-base font-semibold tracking-tight tabular-nums" style={{ color: tk.fg }}>
           {displayedValue}
         </h4>
       </div>
 
       <div className="flex justify-between items-center">
-        <span className="cn-text-caption text-[var(--muted)]">
+        <span className="text-xs text-muted-foreground">
           Target: {displayedTarget}
         </span>
         <StatusChip tokens={{ color: tk.fg, bg: tk.bg }} label={kpi.status} icon={<StatusIcon size={13} strokeWidth={1.75} />} />
@@ -238,7 +252,7 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipCont
     <BuiCard
       className={cn(
         'h-full',
-        onClick && 'cursor-pointer hover:border-[var(--line-2)] hover:shadow-[var(--shadow-card)]',
+        onClick && 'cursor-pointer transition-shadow duration-150 hover:shadow-sm',
       )}
     >
       {onClick ? (
@@ -283,16 +297,18 @@ interface CustomTooltipProps {
 
 const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
   if (!active || !payload || payload.length === 0) return null;
-  // Pattern tooltip Signature : encre sur fond (--ink / --bg), r8
+  // Infobulle inversee : encre en fond, fond d'application en texte.
+  // (L'ancienne classe `p-[6px 10px]` etait invalide — un arbitraire Tailwind ne
+  // prend pas d'espace — donc sans effet ; remplacee par l'echelle du kit.)
   return (
-    <div className="p-[6px 10px] rounded-[8px] bg-[var(--ink)] text-[var(--bg)]">
+    <div className="rounded-md bg-ink px-2.5 py-1.5 text-background shadow-sm">
       {label && (
-        <p className="cn-text-body1 font-bold mb-0.5 text-[11.5px]">
+        <p className="mb-0.5 text-xs font-bold tabular-nums">
           {new Date(label).toLocaleString()}
         </p>
       )}
       {payload.map((entry) => (
-        <p className="cn-text-body1 block text-[11.5px] font-semibold" key={entry.name}>
+        <p className="block text-xs font-semibold tabular-nums" key={entry.name}>
           {entry.name}: {typeof entry.value === 'number' ? entry.value.toFixed(1) : entry.value}
         </p>
       ))}
@@ -451,16 +467,16 @@ const KpiReadinessPage: React.FC = () => {
         <div className="mt-4">
           <div className="grid grid-cols-12 gap-[18px]">
             <div className="col-span-12 min-[900px]:col-span-4">
-              <Skeleton className="h-[260px] rounded-[14px]" />
+              <Skeleton className="h-[260px] rounded-xl" />
             </div>
             <div className="col-span-12 min-[900px]:col-span-8">
-              <Skeleton className="h-[260px] rounded-[14px]" />
+              <Skeleton className="h-[260px] rounded-xl" />
             </div>
           </div>
           <div className="grid grid-cols-12 gap-3 mt-[3px]">
             {Array.from({ length: 8 }).map((_, i) => (
               <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={i}>
-                <Skeleton className="h-[120px] rounded-[14px]" />
+                <Skeleton className="h-[120px] rounded-xl" />
               </div>
             ))}
           </div>
@@ -473,16 +489,16 @@ const KpiReadinessPage: React.FC = () => {
               <ScoreGauge score={snapshot.readinessScore} criticalFailed={snapshot.criticalFailed} />
             </div>
             <div className="col-span-12 min-[900px]:col-span-8">
-              <BuiCard className="gap-0 py-0 p-4 h-full flex flex-col justify-center border-[var(--line)]">
+              <BuiCard className="gap-0 py-0 p-4 h-full flex flex-col justify-center">
                 <div className="flex justify-between items-center flex-wrap gap-3">
                   <div>
-                    <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)]">
+                    <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Derniere capture
                     </p>
-                    <h6 className="cn-text-h6 font-semibold text-[var(--ink)]">
+                    <h6 className="text-sm font-semibold text-foreground tabular-nums">
                       {formatTimestamp(snapshot.capturedAt)}
                     </h6>
-                    <span className="cn-text-caption text-[var(--muted)]">
+                    <span className="text-xs text-muted-foreground">
                       Source: {snapshot.source}
                     </span>
                   </div>
@@ -533,9 +549,9 @@ const KpiReadinessPage: React.FC = () => {
           </div>
 
           {/* Historical Trend Chart */}
-          <BuiCard className="gap-0 py-0 mt-4 p-4 border-[var(--line)]">
+          <BuiCard className="gap-0 py-0 mt-4 p-4">
             <div className="flex justify-between items-center mb-3">
-              <h6 className="cn-text-h6 font-semibold text-[var(--ink)]">
+              <h6 className="text-sm font-semibold text-foreground">
                 Tendance historique
               </h6>
               {/* Filtre sans libelle visible (il jouxte le titre de la carte) :
@@ -591,14 +607,13 @@ const KpiReadinessPage: React.FC = () => {
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="text-center py-9">
-                <p className="cn-text-body1 text-muted-foreground">
-                  Aucune donnee historique disponible.
-                </p>
-                <p className="cn-text-body2 text-muted-foreground opacity-60 mt-1.5">
-                  Les snapshots sont captures automatiquement toutes les heures.
-                </p>
-              </div>
+              // La carte porte deja sa bordure : variante transparente.
+              <EmptyState
+                icon={<BarChartIcon />}
+                title="Aucune donnee historique disponible"
+                description="Les snapshots sont captures automatiquement toutes les heures."
+                variant="transparent"
+              />
             )}
           </BuiCard>
         </>

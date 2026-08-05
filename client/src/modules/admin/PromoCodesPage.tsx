@@ -3,6 +3,7 @@ import { cn } from '../../utils/cn';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
+import { Card } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import {
   Dialog,
@@ -35,7 +36,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Add, Percent, LocalOffer, Refresh, CheckCircle, TrendingUp } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { useNotification } from '../../hooks/useNotification';
-import StatTile from '../../components/StatTile';
+import StatTile from '../../components/baitly/StatTile';
 import EmptyState from '../../components/EmptyState';
 import {
   promoCodesApi,
@@ -367,14 +368,14 @@ export default function PromoCodesPage() {
       {/* KPIs */}
       {stats && (
         <div className="grid grid-cols-[1fr_1fr] min-[900px]:grid-cols-[repeat(4,_1fr)] gap-3 mb-[18px]">
-          <StatTile icon={<LocalOffer />} label="Total" value={stats.total} color="#6B8A9A" />
-          <StatTile icon={<CheckCircle />} label="Actifs" value={stats.active} color="#4A9B8E" />
-          <StatTile icon={<Percent />} label="Utilisations totales" value={stats.totalUses} color="#7BA3C2" />
+          <StatTile icon={<LocalOffer />} label="Total" value={stats.total} iconClassName="text-primary" />
+          <StatTile icon={<CheckCircle />} label="Actifs" value={stats.active} iconClassName="text-success" />
+          <StatTile icon={<Percent />} label="Utilisations totales" value={stats.totalUses} iconClassName="text-info" />
           <StatTile
             icon={<TrendingUp />}
             label="Top code"
             value={stats.topUsed?.code ?? '—'}
-            color="#D4A574"
+            iconClassName="text-warning"
             hint={stats.topUsed ? `${stats.topUsed.usedCount} usages` : undefined}
           />
         </div>
@@ -382,7 +383,7 @@ export default function PromoCodesPage() {
 
       {/* Filtre — segmented du kit (ToggleGroup jointif, variante contour) */}
       <div className="flex items-center gap-1.5 mb-3">
-        <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)]">
+        <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
           Filtre
         </p>
         <ToggleGroup
@@ -410,7 +411,7 @@ export default function PromoCodesPage() {
       {isLoading ? (
         <div className="flex flex-col gap-1.5">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-[44px] rounded-[9px]" />
+            <Skeleton key={i} className="h-11 rounded-md" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -424,99 +425,104 @@ export default function PromoCodesPage() {
           }
         />
       ) : (
-        <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Réduction</TableHead>
-                <TableHead>Utilisations</TableHead>
-                <TableHead>Validité</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Créé le</TableHead>
-                <TableHead className="text-center">Actif</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((promo) => {
-                const expired = isExpired(promo);
-                return (
-                  <TableRow key={promo.id}>
-                    <TableCell>
-                      <p className="cn-text-body2 font-mono font-semibold">
-                        {promo.code}
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      {/* Un code expire se lit comme un code eteint : meme ton neutre qu'un code desactive. */}
-                      <StatusChip
-                        tone={promo.active && !expired ? 'accent' : 'neutral'}
-                        label={discountLabel(promo)}
-                        icon={
-                          promo.discountType === 'PERCENTAGE' ? (
-                            <Percent size={12} strokeWidth={2} />
-                          ) : undefined
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <p className="cn-text-body2 tabular-nums">
-                        {usageLabel(promo)}
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      <span className="cn-text-caption block text-muted-foreground">
-                        Du {formatDate(promo.validFrom)}
-                      </span>
-                      <span className={cn('cn-text-caption block', expired ? 'text-[var(--err)]' : 'text-[var(--muted)]', expired ? 'font-semibold' : 'font-normal')}>
-                        Au {formatDate(promo.validUntil)}
-                        {expired && ' (expiré)'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="max-w-[200px]">
-                      {/* line-clamp-2 pose display/-webkit-box-orient/overflow d'un bloc */}
-                      <span className="cn-text-caption text-[var(--muted)] line-clamp-2">
-                        {promo.description || '—'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="cn-text-caption text-muted-foreground">
-                        {formatDate(promo.createdAt)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          {/* Enveloppe : un interrupteur desactive n'emet plus
-                              d'evenement de survol, l'infobulle a besoin d'une
-                              cible qui en emette. */}
-                          <span className="inline-flex">
-                            <Switch
-                              size="sm"
-                              aria-label={promo.active ? 'Désactiver' : 'Activer'}
-                              checked={promo.active}
-                              disabled={toggleMutation.isPending}
-                              onCheckedChange={(checked) =>
-                                toggleMutation.mutate({ id: promo.id, activate: checked })
-                              }
-                            />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {expired
-                            ? "Code expiré — le toggle n'a pas d'effet"
-                            : promo.active
-                              ? 'Désactiver'
-                              : 'Activer'}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+        // `Card` porte le fond, l'arrondi, le filet et l'ecretage ; le
+        // defilement horizontal vit dans un conteneur interne.
+        <Card className="gap-0 py-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Réduction</TableHead>
+                  <TableHead>Utilisations</TableHead>
+                  <TableHead>Validité</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Créé le</TableHead>
+                  <TableHead className="text-center">Actif</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((promo) => {
+                  const expired = isExpired(promo);
+                  return (
+                    <TableRow key={promo.id}>
+                      <TableCell>
+                        <p className="font-mono text-xs font-semibold">
+                          {promo.code}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        {/* Un code expire se lit comme un code eteint : meme ton neutre qu'un code desactive. */}
+                        <StatusChip
+                          tone={promo.active && !expired ? 'accent' : 'neutral'}
+                          label={discountLabel(promo)}
+                          icon={
+                            promo.discountType === 'PERCENTAGE' ? (
+                              <Percent size={12} strokeWidth={2} />
+                            ) : undefined
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-xs tabular-nums">
+                          {usageLabel(promo)}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <span className="block text-xs text-muted-foreground tabular-nums">
+                          Du {formatDate(promo.validFrom)}
+                        </span>
+                        {/* `-ink` et non la teinte vive : c'est du TEXTE. */}
+                        <span className={cn('block text-xs tabular-nums', expired ? 'text-destructive-ink font-semibold' : 'text-muted-foreground font-normal')}>
+                          Au {formatDate(promo.validUntil)}
+                          {expired && ' (expiré)'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="max-w-[200px]">
+                        {/* line-clamp-2 pose display/-webkit-box-orient/overflow d'un bloc */}
+                        <span className="text-xs text-muted-foreground line-clamp-2">
+                          {promo.description || '—'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {formatDate(promo.createdAt)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            {/* Enveloppe : un interrupteur desactive n'emet plus
+                                d'evenement de survol, l'infobulle a besoin d'une
+                                cible qui en emette. */}
+                            <span className="inline-flex">
+                              <Switch
+                                size="sm"
+                                aria-label={promo.active ? 'Désactiver' : 'Activer'}
+                                checked={promo.active}
+                                disabled={toggleMutation.isPending}
+                                onCheckedChange={(checked) =>
+                                  toggleMutation.mutate({ id: promo.id, activate: checked })
+                                }
+                              />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {expired
+                              ? "Code expiré — le toggle n'a pas d'effet"
+                              : promo.active
+                                ? 'Désactiver'
+                                : 'Activer'}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
       )}
 
       <CreateCodeDialog

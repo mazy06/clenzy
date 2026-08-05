@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from '../../utils/cn';
-import { Badge, Button } from '../../components/ui';
+import { Badge, Button, Item } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -98,11 +98,12 @@ interface InterventionProgressStepsProps {
 
 const roomChipClass = [
   'h-8 text-[0.8125rem] font-medium',
-  'transition-all duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-card)]',
+  'transition-all duration-150 hover:-translate-y-px hover:shadow-sm',
   'motion-reduce:transition-none motion-reduce:hover:translate-y-0',
 ].join(' ');
 
-const noteBoxClass = 'p-[9px] bg-[var(--surface-2)] rounded-[12px] border border-solid border-[var(--line)]';
+/** Note d'étape : encart en retrait DANS la carte d'étape, d'où le fond sourd. */
+const noteBoxClass = 'p-[9px] bg-muted/50 rounded-lg border border-solid border-border';
 
 // ─── Stepper header ─────────────────────────────────────────────────────────
 
@@ -127,26 +128,28 @@ const StepperHeader: React.FC<{
       return (
         <React.Fragment key={step.id}>
           {idx > 0 && (
-            <div className={cn('flex-1 h-[2px] mt-[10.5px]', step.completed ? 'bg-[var(--ok)]' : 'bg-[var(--line-2)]')} style={{ transition: 'background-color 0.3s' }} />
+            <div className={cn('flex-1 h-[2px] mt-[10.5px]', step.completed ? 'bg-success' : 'bg-border')} style={{ transition: 'background-color 0.3s' }} />
           )}
           <div className={cn('flex flex-col items-center min-w-[80px] max-w-[120px]', step.locked ? 'cursor-default' : 'cursor-pointer', step.locked ? 'opacity-40' : 'opacity-100')} style={{ transition: 'opacity 0.2s' }} onClick={() => !step.locked && onStepClick(step.id)}>
             <div className={cn(
-              'w-[28px] h-[28px] rounded-[50%] flex items-center justify-center mb-[3px] transition-all duration-200',
-              step.completed ? 'bg-[var(--ok)]' : isActive ? 'bg-[var(--accent)]' : 'bg-[var(--hover)]',
-              step.completed || isActive ? 'text-[var(--on-accent)]' : 'text-[var(--muted)]',
-              isActive && !step.completed && 'shadow-[0_0_0_3px_var(--accent-soft)]',
+              'w-[28px] h-[28px] rounded-full flex items-center justify-center mb-[3px] transition-all duration-200',
+              // Aplats : teinte vive, jamais l'encre `-ink` (réservée au texte).
+              step.completed ? 'bg-success' : isActive ? 'bg-primary' : 'bg-muted',
+              step.completed || isActive ? 'text-primary-foreground' : 'text-muted-foreground',
+              isActive && !step.completed && 'shadow-[0_0_0_3px_var(--bui-primary-soft)]',
             )}>
               {step.completed ? (
                 <CheckCircleIcon size={18} strokeWidth={1.75} />
               ) : step.locked ? (
                 <LockIcon size={14} strokeWidth={1.75} />
               ) : (
-                <span className="cn-text-caption font-bold text-[0.75rem]">
+                <span className="text-xs font-bold tabular-nums">
                   {step.id + 1}
                 </span>
               )}
             </div>
-            <span className={cn('cn-text-caption text-[0.7rem] text-center leading-[1.2] px-[1.5px]', isActive ? 'font-bold' : 'font-medium', isActive ? 'text-[var(--accent)]' : step.completed ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}>
+            {/* Le libellé est du TEXTE : encre `-ink` pour l'étape faite. */}
+            <span className={cn('text-2xs text-center leading-[1.2] px-[1.5px]', isActive ? 'font-bold' : 'font-medium', isActive ? 'text-primary' : step.completed ? 'text-success-ink' : 'text-muted-foreground')}>
               {step.label}
             </span>
           </div>
@@ -161,18 +164,19 @@ const handleDownloadPdf = async (doc: DocumentGeneration) => {
 };
 
 const recapCardClass = [
-  'p-[15px] rounded-[14px] bg-[var(--card)]',
-  'border border-solid border-[color-mix(in_srgb,var(--ok)_30%,transparent)]',
-  'transition-[border-color] duration-200 hover:border-[var(--line-2)] motion-reduce:transition-none',
+  'p-[15px] rounded-xl bg-card',
+  'border border-solid border-success/30',
+  'transition-[border-color] duration-200 hover:border-success/60 motion-reduce:transition-none',
 ].join(' ');
 
 // Le breakpoint `sm` de MUI vaut 600px (non configure), pas les 640px de Tailwind.
+// Rendu par `Item variant="outline"` : ne restent ici que la direction
+// responsive et l'affordance de survol, que le primitif ne porte pas.
 const docCardClass = [
-  'flex flex-col items-start gap-[9px] min-[600px]:flex-row min-[600px]:items-center min-[600px]:gap-[6px]',
-  'justify-between p-3 rounded-[14px] bg-[var(--card)] cursor-pointer',
-  'border border-solid border-[var(--line)]',
+  'flex-col items-start gap-[9px] min-[600px]:flex-row min-[600px]:items-center min-[600px]:gap-[6px]',
+  'justify-between p-3 rounded-xl bg-card cursor-pointer',
   'transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none',
-  'hover:border-[var(--line-2)] hover:shadow-[var(--shadow-card)]',
+  'hover:border-foreground/20 hover:shadow-sm',
 ].join(' ');
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -292,17 +296,17 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
   const renderInspection = () => (
     <div>
-      <p className="cn-text-body2 font-semibold mb-1.5">
+      <p className="text-xs font-semibold mb-1.5">
         {t('interventions.progressSteps.inspectionTitle')}
       </p>
-      <p className="cn-text-body2 text-muted-foreground mb-3">
+      <p className="text-xs text-muted-foreground mb-3">
         {t('interventions.progressSteps.inspectionDescription')}
       </p>
 
       {beforePhotos.length > 0 && (
         <div className="mb-3">
-          <p className="cn-text-body2 text-muted-foreground flex items-center gap-0.5 mb-1.5">
-            <span className={cn('inline-flex', inspectionComplete ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}><CheckCircleOutlineIcon size={16} strokeWidth={1.75} /></span>
+          <p className="text-xs text-muted-foreground flex items-center gap-0.5 mb-1.5">
+            <span className={cn('inline-flex', inspectionComplete ? 'text-success' : 'text-muted-foreground')}><CheckCircleOutlineIcon size={16} strokeWidth={1.75} /></span>
             {t('interventions.progressSteps.beforePhotosCount', { count: beforePhotos.length })}
           </p>
           <PhotoGallery
@@ -317,9 +321,9 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
       {getStepNote('inspection') && (
         <div className="mb-3">
-          <span className="cn-text-caption font-semibold block mb-0.5">{t('interventions.detail.notes')}</span>
+          <span className="text-xs font-semibold block mb-0.5">{t('interventions.detail.notes')}</span>
           <div className={noteBoxClass}>
-            <p className="cn-text-body2 text-muted-foreground whitespace-pre-wrap">
+            <p className="text-xs text-muted-foreground whitespace-pre-wrap">
               {getStepNote('inspection')}
             </p>
           </div>
@@ -364,7 +368,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
   const renderRooms = () => (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <p className="cn-text-body2 font-semibold">
+        <p className="text-xs font-semibold">
           {t('interventions.progressSteps.roomValidation')}
         </p>
         {totalRooms > 0 && (
@@ -375,7 +379,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
           />
         )}
       </div>
-      <p className="cn-text-body2 text-muted-foreground mb-3">
+      <p className="text-xs text-muted-foreground mb-3">
         {t('interventions.progressSteps.roomValidationDesc')}
       </p>
 
@@ -405,9 +409,9 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
       {getStepNote('rooms') && (
         <div className="mb-3">
-          <span className="cn-text-caption font-semibold block mb-0.5">{t('interventions.detail.notes')}</span>
+          <span className="text-xs font-semibold block mb-0.5">{t('interventions.detail.notes')}</span>
           <div className={noteBoxClass}>
-            <p className="cn-text-body2 text-muted-foreground whitespace-pre-wrap">
+            <p className="text-xs text-muted-foreground whitespace-pre-wrap">
               {getStepNote('rooms')}
             </p>
           </div>
@@ -424,17 +428,17 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
   const renderPhotos = () => (
     <div>
-      <p className="cn-text-body2 font-semibold mb-1.5">
+      <p className="text-xs font-semibold mb-1.5">
         {t('interventions.progressSteps.afterPhotosTitle')}
       </p>
-      <p className="cn-text-body2 text-muted-foreground mb-3">
+      <p className="text-xs text-muted-foreground mb-3">
         {t('interventions.progressSteps.afterPhotosDesc')}
       </p>
 
       {afterPhotos.length > 0 && (
         <div className="mb-3">
-          <p className="cn-text-body2 text-muted-foreground flex items-center gap-0.5 mb-1.5">
-            <span className="inline-flex text-[var(--ok)]"><CheckCircleOutlineIcon size={16} strokeWidth={1.75} /></span>
+          <p className="text-xs text-muted-foreground flex items-center gap-0.5 mb-1.5">
+            <span className="inline-flex text-success"><CheckCircleOutlineIcon size={16} strokeWidth={1.75} /></span>
             {t('interventions.progressSteps.afterPhotosCount', { count: afterPhotos.length })}
           </p>
           <PhotoGallery
@@ -449,9 +453,9 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
       {getStepNote('after_photos') && (
         <div className="mb-3">
-          <span className="cn-text-caption font-semibold block mb-0.5">{t('interventions.detail.notes')}</span>
+          <span className="text-xs font-semibold block mb-0.5">{t('interventions.detail.notes')}</span>
           <div className={noteBoxClass}>
-            <p className="cn-text-body2 text-muted-foreground whitespace-pre-wrap">
+            <p className="text-xs text-muted-foreground whitespace-pre-wrap">
               {getStepNote('after_photos')}
             </p>
           </div>
@@ -475,7 +479,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
   const renderRecap = () => (
     <div>
-      <p className="cn-text-body2 font-semibold mb-3.5">
+      <p className="text-xs font-semibold mb-3.5">
         {t('interventions.progressSteps.recapTitle')}
       </p>
 
@@ -483,16 +487,16 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         {/* Inspection */}
         <div className={recapCardClass}>
           <div className="flex items-center gap-[4.5px] mb-[9px]">
-            <span className="inline-flex text-[var(--ok)]"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
-            <p className="cn-text-body2 font-semibold">{t('interventions.progressSteps.recapInspection')}</p>
+            <span className="inline-flex text-success"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
+            <p className="text-xs font-semibold">{t('interventions.progressSteps.recapInspection')}</p>
           </div>
           {beforePhotos.length > 0 && (
-            <span className="cn-text-caption text-muted-foreground block mb-1.5">
+            <span className="text-xs text-muted-foreground block mb-1.5">
               {t('interventions.progressSteps.beforePhotosShort', { count: beforePhotos.length })}
             </span>
           )}
           {getStepNote('inspection') && (
-            <span className="cn-text-caption text-muted-foreground block italic mb-1.5">
+            <span className="text-xs text-muted-foreground block italic mb-1.5">
               "{getStepNote('inspection').substring(0, 60)}{getStepNote('inspection').length > 60 ? '...' : ''}"
             </span>
           )}
@@ -506,8 +510,8 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         {/* Rooms */}
         <div className={recapCardClass}>
           <div className="flex items-center gap-[4.5px] mb-[9px]">
-            <span className="inline-flex text-[var(--ok)]"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
-            <p className="cn-text-body2 font-semibold">{t('interventions.progressSteps.recapRooms', { validated: validatedRooms.size, total: totalRooms })}</p>
+            <span className="inline-flex text-success"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
+            <p className="text-xs font-semibold">{t('interventions.progressSteps.recapRooms', { validated: validatedRooms.size, total: totalRooms })}</p>
           </div>
           <div className="flex flex-wrap gap-1">
             {roomNames.map((name, idx) => (
@@ -517,7 +521,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             ))}
           </div>
           {getStepNote('rooms') && (
-            <span className="cn-text-caption text-muted-foreground block mt-1.5 italic">
+            <span className="text-xs text-muted-foreground block mt-1.5 italic">
               "{getStepNote('rooms').substring(0, 60)}{getStepNote('rooms').length > 60 ? '...' : ''}"
             </span>
           )}
@@ -526,19 +530,19 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         {/* Photos */}
         <div className={recapCardClass}>
           <div className="flex items-center gap-[4.5px] mb-[9px]">
-            <span className="inline-flex text-[var(--ok)]"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
-            <p className="cn-text-body2 font-semibold">{t('interventions.progressSteps.recapAfterPhotos')}</p>
+            <span className="inline-flex text-success"><CheckCircleIcon size={18} strokeWidth={1.75} /></span>
+            <p className="text-xs font-semibold">{t('interventions.progressSteps.recapAfterPhotos')}</p>
           </div>
           {afterPhotos.length > 0 && (
             <>
-              <span className="cn-text-caption text-muted-foreground block mb-1.5">
+              <span className="text-xs text-muted-foreground block mb-1.5">
                 {t('interventions.progressSteps.afterPhotosShort', { count: afterPhotos.length })}
               </span>
               <PhotoGallery photos={afterPhotos} columns={3} />
             </>
           )}
           {getStepNote('after_photos') && (
-            <span className="cn-text-caption text-muted-foreground block mt-1.5 italic">
+            <span className="text-xs text-muted-foreground block mt-1.5 italic">
               "{getStepNote('after_photos').substring(0, 60)}{getStepNote('after_photos').length > 60 ? '...' : ''}"
             </span>
           )}
@@ -549,8 +553,8 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       {documents.length > 0 && (
         <div className="mt-4">
           <div className="flex items-center gap-[4.5px] mb-3">
-            <span className="inline-flex text-[var(--accent)]"><DescriptionIcon size={18} strokeWidth={1.75} /></span>
-            <p className="cn-text-body2 font-semibold">
+            <span className="inline-flex text-primary"><DescriptionIcon size={18} strokeWidth={1.75} /></span>
+            <p className="text-xs font-semibold">
               {t('interventions.progressSteps.documents', { count: documents.length })}
             </p>
           </div>
@@ -558,17 +562,17 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             {documents.map((doc) => {
               const hasFile = !!doc.fileName;
               return (
-                <div key={doc.id} className={docCardClass} onClick={() => hasFile && handleViewPdf(doc)}>
+                <Item key={doc.id} variant="outline" className={docCardClass} onClick={() => hasFile && handleViewPdf(doc)}>
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div className="w-[40px] h-[40px] rounded-[12px] bg-[var(--accent-soft)] flex items-center justify-center shrink-0">
-                      <span className="inline-flex text-[var(--accent)]"><DescriptionIcon size={22} strokeWidth={1.75} /></span>
+                    <div className="w-[40px] h-[40px] rounded-lg bg-primary-soft flex items-center justify-center shrink-0">
+                      <span className="inline-flex text-primary"><DescriptionIcon size={22} strokeWidth={1.75} /></span>
                     </div>
                     <div className="min-w-0">
-                      <p className="cn-text-body2 font-semibold truncate mb-0.5">
+                      <p className="text-xs font-semibold truncate mb-0.5">
                         {doc.fileName}
                       </p>
                       <div className="flex items-center gap-1 flex-wrap">
-                        <Badge variant="secondary" className="h-[22px] text-[0.675rem] font-medium bg-[var(--hover)] text-[var(--muted)]">{doc.documentType.replace(/_/g, ' ')}</Badge>
+                        <Badge variant="secondary" className="h-[22px] text-[0.675rem] font-medium">{doc.documentType.replace(/_/g, ' ')}</Badge>
                         {doc.emailStatus === 'SENT' && (
                           <Badge variant="info" className="h-[22px] text-[0.675rem]"><EmailSentIcon size={14} strokeWidth={1.75} />{doc.emailTo}</Badge>
                         )}
@@ -585,14 +589,14 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                         <VisibilityIcon size={18} strokeWidth={1.75} />
                         {t('interventions.progressSteps.viewPdf')}
                       </Button>
-                      <Button size="xs" variant="ghost" className="text-[var(--muted)]"
+                      <Button size="xs" variant="ghost" className="text-muted-foreground"
                         onClick={() => handleDownloadPdf(doc)}>
                         <DownloadIcon size={18} strokeWidth={1.75} />
                         {t('interventions.progressSteps.download')}
                       </Button>
                     </div>
                   )}
-                </div>
+                </Item>
               );
             })}
           </div>
@@ -635,7 +639,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         <>
           <StepperHeader steps={steps} activeStep={activeStep} onStepClick={(id) => setActiveStep(id)} />
 
-          <div className="p-3.5 rounded-[14px] border border-[var(--line)] bg-[var(--card)] min-h-[120px]">
+          <div className="p-3.5 rounded-xl border border-border bg-card min-h-[120px]">
             {renderStepContent()}
           </div>
         </>
@@ -643,25 +647,26 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
       {/* ── Start CTA ────────────────────────────────────────────── */}
       {(canStartIntervention || (isBeforeScheduledDate && intervention?.status === 'PENDING')) && (
-        <div className={cn('mt-3 p-[15px] rounded-[14px] border border-solid text-center', isBeforeScheduledDate ? 'bg-[var(--warn-soft)]' : 'bg-[var(--accent-soft)]', isBeforeScheduledDate ? 'border-[color-mix(in_srgb,_var(--warn)_30%,_transparent)]' : 'border-[color-mix(in_srgb,_var(--accent)_30%,_transparent)]')}>
+        <div className={cn('mt-3 p-[15px] rounded-xl border border-solid text-center', isBeforeScheduledDate ? 'bg-warning-soft border-warning/30' : 'bg-primary-soft border-primary/30')}>
           {isBeforeScheduledDate && intervention?.scheduledDate && (
             <>
-              <p className="cn-text-body2 font-semibold mb-1.5 text-[var(--warn)]">
+              {/* Encre `-ink` : le libellé est du texte sur un fond pastel. */}
+              <p className="text-xs font-semibold mb-1.5 text-warning-ink">
                 Planifiee pour le{' '}
                 {new Date(intervention.scheduledDate).toLocaleDateString('fr-FR', {
                   weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
                   hour: '2-digit', minute: '2-digit',
                 })}
               </p>
-              <span className="cn-text-caption text-muted-foreground mb-3 block">
+              <span className="text-xs text-muted-foreground mb-3 block">
                 Le demarrage sera possible a partir de cette date.
               </span>
             </>
           )}
           {!isBeforeScheduledDate && (
             <>
-              <span className="inline-flex text-[var(--accent)] mb-1.5"><RocketIcon size={32} strokeWidth={1.5} /></span>
-              <p className="cn-text-body2 text-muted-foreground mb-3">
+              <span className="inline-flex text-primary mb-1.5"><RocketIcon size={32} strokeWidth={1.5} /></span>
+              <p className="text-xs text-muted-foreground mb-3">
                 {t('interventions.progressSteps.startDescription')}
               </p>
             </>
@@ -677,19 +682,19 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       {/* ── Reopen CTA + Recap when COMPLETED ─────────────────────── */}
       {intervention?.status === 'COMPLETED' && canStartOrUpdateIntervention && (
         <>
-          <div className="mt-[15px] p-[15px] rounded-[14px] bg-[var(--warn-soft)] border border-solid border-[color-mix(in_srgb,_var(--warn)_30%,_transparent)] flex flex-col min-[600px]:flex-row items-stretch min-[600px]:items-center gap-3">
+          <div className="mt-[15px] p-[15px] rounded-xl bg-warning-soft border border-solid border-warning/30 flex flex-col min-[600px]:flex-row items-stretch min-[600px]:items-center gap-3">
             <div className="flex items-center gap-2 flex-1">
-              <div className="w-[36px] h-[36px] rounded-[50%] bg-[var(--ok-soft)] text-[var(--ok)] flex items-center justify-center shrink-0">
+              <div className="w-[36px] h-[36px] rounded-full bg-success-soft text-success flex items-center justify-center shrink-0">
                 <CheckCircleIcon size={20} strokeWidth={1.75} />
               </div>
-              <p className="cn-text-body2 text-muted-foreground leading-[1.5]">
+              <p className="text-xs text-muted-foreground leading-[1.5]">
                 {t('interventions.progressSteps.completedMessage')}
               </p>
             </div>
             {/* Rouvrir revient en arriere sur une intervention close : action a poids
                 mesure, teintee avertissement plutot qu'encre pleine. */}
             <Button variant="outline" size="lg"
-              className="shrink-0 whitespace-nowrap text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              className="shrink-0 whitespace-nowrap text-warning-ink border-warning hover:bg-warning-soft"
               onClick={handleReopenIntervention} disabled={completing}>
               <ReplayIcon size={18} strokeWidth={1.75} />
               {completing ? t('interventions.progressSteps.reopening') : t('interventions.progressSteps.reopen')}
@@ -706,7 +711,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       {/* ── Photos avant standalone ──────────────────────────────── */}
       {canUpdateProgress && beforePhotos.length > 0 && !inspectionComplete && activeStep !== 0 && (
         <div className="mt-3">
-          <p className="cn-text-body2 font-semibold mb-1.5">{t('interventions.detail.beforePhotosStandalone')}</p>
+          <p className="text-xs font-semibold mb-1.5">{t('interventions.detail.beforePhotosStandalone')}</p>
           <PhotoGallery photos={beforePhotos} columns={3} />
         </div>
       )}
@@ -732,7 +737,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
               style={{ flex: 1, border: 'none', minHeight: 0 }}
             >
               <div className="p-4 text-center">
-                <p className="cn-text-body2 text-muted-foreground mb-3">
+                <p className="text-xs text-muted-foreground mb-3">
                   {t('interventions.progressSteps.pdfNotSupported', 'Votre navigateur ne supporte pas la visualisation PDF.')}
                 </p>
                 <Button asChild variant="default">

@@ -70,9 +70,11 @@ const UserDetails: React.FC = () => {
       <div className="p-3">
         <Alert variant="info" className="p-3 py-1.5">
           <Info />
-          <AlertDescription><h6 className="cn-text-subtitle1 mb-1.5">
+          {/* `m-0` reprend ce que portait `cn-text-*` : sans preflight Tailwind,
+              un <h6>/<p> natif recupere sinon les marges du navigateur. */}
+          <AlertDescription><h6 className="m-0 mb-1.5 text-sm font-medium">
             Acces non autorise
-          </h6><p className="cn-text-body2 text-[0.85rem]">
+          </h6><p className="m-0 text-sm">
             Vous n'avez pas les permissions necessaires pour visualiser les details des utilisateurs.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.

@@ -1,12 +1,13 @@
 // Constantes et helpers partagés par InterventionsList et ses vues (carte / grille / liste).
+// Styles alignés sur Baitly UI (palette --bui-*, rayon xl, hairlines).
 
 import type { Intervention } from './useInterventionsList';
 
 export const LIST_PAPER_SX = {
   border: '1px solid',
-  borderColor: 'var(--line)',
+  borderColor: 'var(--bui-border)',
   boxShadow: 'none',
-  borderRadius: '14px',
+  borderRadius: '0.875rem',
 } as const;
 
 

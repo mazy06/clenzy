@@ -58,6 +58,7 @@ import PageHeader from '../../components/PageHeader';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 import PeriodSegmented from './PeriodSegmented';
 import StatTile from '../../components/baitly/StatTile';
+import EmptyState from '../../components/EmptyState';
 import DashboardErrorBoundary from '../dashboard/DashboardErrorBoundary';
 import AnalyticsGlobalPerformance from '../dashboard/analytics/AnalyticsGlobalPerformance';
 import AnalyticsRevenue from '../dashboard/analytics/AnalyticsRevenue';
@@ -104,12 +105,12 @@ const MINI_CHART_CARD_CLASS = 'w-full h-[220px] [--card-spacing:7.5px]';
 const MINI_CHART_CONTENT_CLASS = 'flex-1 min-h-0 flex flex-col';
 // Libelle overline des mini-cartes (ex-MINI_CHART_LABEL_SX : mb 0.5 = 3 px avec spacing 6).
 const MINI_CHART_LABEL_CLASS =
-  'cn-text-body1 text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-[3px] shrink-0';
+  'text-2xs font-bold uppercase tracking-[0.05em] text-faint mb-[3px] shrink-0';
 const MINI_CHART_MARGIN = { top: 4, right: 6, left: -18, bottom: 4 } as const;
 
 // ─── Shared sx constants ────────────────────────────────────────────────────
-// Cartes : peau globale MuiCard (r14 hairline, hover --line-2) — pas de
-// transform au hover (anti-pattern baseline §5).
+// Cartes : peau globale du kit (filet + rayon) — pas de transform au hover
+// (anti-pattern baseline §5).
 
 // Report en classes des anciens `sx` de cartes : hauteur pleine + rembourrage
 // (ex-`p: 2` = 12 px pour les cartes hero/graphe, `p: 1.5` = 9 px pour les
@@ -120,7 +121,7 @@ const SECONDARY_CARD_CLASS = 'h-full [--card-spacing:9px]';
 
 // Libelle de section overline (ex-SECTION_LABEL_SX : mb 1 = 6 px avec spacing 6).
 const SECTION_LABEL_CLASS =
-  'cn-text-body1 text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-1.5';
+  'text-2xs font-bold uppercase tracking-[0.05em] text-faint mb-1.5';
 
 // ─── Shared KPI types ───────────────────────────────────────────────────────
 
@@ -140,7 +141,8 @@ const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
   const isUp = value > 0;
   const isDown = value < 0;
   const Icon = isUp ? TrendingUp : isDown ? TrendingDown : Remove;
-  const color = isUp ? 'var(--ok)' : isDown ? 'var(--err)' : 'var(--faint)';
+  // Encre `-ink` : la valeur est du TEXTE, la teinte vive n'y tient pas l'AA.
+  const color = isUp ? 'var(--bui-success-ink)' : isDown ? 'var(--bui-destructive-ink)' : 'var(--bui-faint)';
   return (
     <div className="inline-flex items-center gap-0.5 mt-0.5">
       <span className="inline-flex" style={{ color }}>
@@ -148,7 +150,7 @@ const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
       </span>
       {/* Couleur choisie a l'execution (haut/bas/plat) : style inline, une classe
           Tailwind ne peut pas naitre d'une variable. */}
-      <p className="cn-text-body1 text-[10.5px] font-semibold tabular-nums" style={{ color }}>
+      <p className="text-2xs font-semibold tabular-nums" style={{ color }}>
         {isUp ? '+' : ''}{value}%
       </p>
     </div>
@@ -162,11 +164,11 @@ const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
  * classes semantiques de la tuile ; l'indice porte tendance et sous-titre.
  */
 const KPI_ICON_CLASS: Record<string, string | undefined> = {
-  'var(--ok)': 'text-success',
-  'var(--warn)': 'text-warning',
-  'var(--err)': 'text-destructive',
-  'var(--info)': 'text-info',
-  'var(--accent)': undefined,
+  'var(--bui-success)': 'text-success',
+  'var(--bui-warning)': 'text-warning',
+  'var(--bui-destructive)': 'text-destructive',
+  'var(--bui-info)': 'text-info',
+  'var(--bui-primary)': undefined,
 };
 
 const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, loading }) => (
@@ -196,13 +198,13 @@ const HeroKpiCard: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, load
 const SecondaryKpiRow: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, loading }) => (
   <div className="flex items-center gap-2 py-1.5 px-0.5">
     <div
-      className="flex items-center justify-center w-7 h-7 rounded-[6px] shrink-0 text-[var(--kpi-icon)] bg-[color-mix(in_srgb,_var(--kpi-icon)_10%,_transparent)] [&_svg]:w-[14px] [&_svg]:h-[14px]"
+      className="flex items-center justify-center size-7 rounded-md shrink-0 text-[var(--kpi-icon)] bg-[color-mix(in_srgb,_var(--kpi-icon)_10%,_transparent)] [&_svg]:size-3.5"
       style={{ '--kpi-icon': item.iconColor } as React.CSSProperties}
     >
       {item.icon}
     </div>
     <div className="flex-1 min-w-0">
-      <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] font-medium leading-[1.2]">
+      <p className="text-[11.5px] text-muted-foreground font-medium leading-[1.2]">
         {item.title}
       </p>
     </div>
@@ -211,7 +213,7 @@ const SecondaryKpiRow: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, 
         <Skeleton className="h-[18px] w-12 rounded-[4px]" />
       ) : (
         <>
-          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.875rem] font-semibold leading-[1.2] text-[var(--ink)] tabular-nums">
+          <p className="font-[family-name:var(--font-display)] text-sm font-semibold leading-[1.2] text-foreground tabular-nums">
             {item.value}
           </p>
           {item.trend !== undefined && <TrendBadge value={item.trend} />}
@@ -229,20 +231,20 @@ interface CustomTooltipProps {
   label?: string;
 }
 
-// Pattern tooltip Signature : fond --ink, texte --bg, r8, 11.5px fw600.
+// Tooltip en encre inversée : fond `foreground`, texte `background`, r8, 11.5px fw600.
 const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
   if (!active || !payload || payload.length === 0) return null;
   return (
-    <div className="px-2 py-1 rounded-[8px] bg-[var(--ink)] text-[var(--bg)]">
+    <div className="px-2 py-1 rounded-md bg-foreground text-background">
       {label && (
-        <p className="cn-text-body1 font-bold mb-0.5 text-[11.5px] text-[var(--bg)]">
+        <p className="font-bold mb-0.5 text-[11.5px] text-background">
           {label}
         </p>
       )}
       {payload.map((entry) => (
         <div className="flex items-center gap-1" key={entry.name}>
-          <div className="w-[8px] h-[8px] rounded-[2px] shrink-0" style={{ backgroundColor: entry.color || 'var(--accent)' }} />
-          <p className="cn-text-body1 text-[11.5px] font-semibold text-[var(--bg)] tabular-nums">
+          <div className="w-[8px] h-[8px] rounded-[2px] shrink-0" style={{ backgroundColor: entry.color || 'var(--bui-primary)' }} />
+          <p className="text-[11.5px] font-semibold text-background tabular-nums">
             {entry.name}: {entry.value}
           </p>
         </div>
@@ -258,11 +260,11 @@ interface ChartCardProps {
   children: React.ReactNode;
 }
 
-// Carte de graphe : peau globale MuiCard (r14 hairline) + titre overline.
+// Carte de graphe : peau globale du kit (filet + rayon) + titre overline.
 const ChartCard: React.FC<ChartCardProps> = ({ title, children }) => (
   <Card className={HERO_CARD_CLASS}>
     <CardContent>
-      <p className="cn-text-body1 text-[10.5px] font-bold mb-3 text-[var(--faint)] uppercase tracking-[0.05em]">
+      <p className="text-2xs font-bold mb-3 text-faint uppercase tracking-[0.05em]">
         {title}
       </p>
       {children}
@@ -277,18 +279,16 @@ interface EmptyChartStateProps {
   description?: string;
 }
 
+// La carte de graphe porte déjà sa bordure : variante `transparent` pour ne pas
+// empiler deux cadres. L'icône hero et son échelle responsive viennent du
+// primitive partagé, plus d'un `size` figé.
 const EmptyChartState: React.FC<EmptyChartStateProps> = ({ message, description }) => (
-  <div className="flex flex-col items-center py-6">
-    <span className="inline-flex text-[var(--faint)] mb-1.5"><BarChartIcon size={48} strokeWidth={1.5} /></span>
-    <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
-      {message}
-    </p>
-    {description && (
-      <p className="cn-text-body1 text-[11.5px] text-[var(--faint)] mt-0.5">
-        {description}
-      </p>
-    )}
-  </div>
+  <EmptyState
+    icon={<BarChartIcon />}
+    title={message}
+    description={description}
+    variant="transparent"
+  />
 );
 
 // ─── Report: Interventions ──────────────────────────────────────────────────
@@ -331,20 +331,20 @@ const InterventionsReport: React.FC = () => {
             {([
               {
                 key: 'total', title: t('reports.kpi.totalInterventions', 'Total interventions'),
-                value: `${kpis?.totalInterventions ?? 0}`, icon: <Build />, iconColor: 'var(--accent)',
+                value: `${kpis?.totalInterventions ?? 0}`, icon: <Build />, iconColor: 'var(--bui-primary)',
                 trend: kpis?.monthTrend,
               },
               {
                 key: 'completion', title: t('reports.kpi.completionRate', 'Taux de completion'),
-                value: `${kpis?.completionRate ?? 0}%`, icon: <CheckCircle />, iconColor: 'var(--ok)',
+                value: `${kpis?.completionRate ?? 0}%`, icon: <CheckCircle />, iconColor: 'var(--bui-success)',
               },
               {
                 key: 'pending', title: t('reports.kpi.pending', 'En attente'),
-                value: `${kpis?.pending ?? 0}`, icon: <HourglassEmpty />, iconColor: 'var(--warn)',
+                value: `${kpis?.pending ?? 0}`, icon: <HourglassEmpty />, iconColor: 'var(--bui-warning)',
               },
               {
                 key: 'avgMonth', title: t('reports.kpi.avgPerMonth', 'Moy. / mois'),
-                value: `${kpis?.avgPerMonth ?? 0}`, icon: <Speed />, iconColor: 'var(--info)',
+                value: `${kpis?.avgPerMonth ?? 0}`, icon: <Speed />, iconColor: 'var(--bui-info)',
               },
             ] as KpiItem[]).map((kpi) => (
               <div className="col-span-6 min-[600px]:col-span-3" key={kpi.key}>
@@ -363,7 +363,7 @@ const InterventionsReport: React.FC = () => {
                   </p>
                   {data.byStatus.map((item, i) => (
                     <React.Fragment key={item.name}>
-                      {i > 0 && <div className="border-t border-[var(--line)]" />}
+                      {i > 0 && <div className="border-t border-border" />}
                       <SecondaryKpiRow
                         item={{
                           key: item.name, title: item.name, value: `${item.value}`,
@@ -384,7 +384,7 @@ const InterventionsReport: React.FC = () => {
                   </p>
                   {data.byType.map((item, i) => (
                     <React.Fragment key={item.name}>
-                      {i > 0 && <div className="border-t border-[var(--line)]" />}
+                      {i > 0 && <div className="border-t border-border" />}
                       <SecondaryKpiRow
                         item={{
                           key: item.name, title: item.name, value: `${item.value}`,
@@ -569,19 +569,19 @@ const TeamsReport: React.FC = () => {
             {([
               {
                 key: 'teams', title: t('reports.kpi.totalTeams', 'Equipes'),
-                value: `${kpis?.totalTeams ?? 0}`, icon: <Groups />, iconColor: 'var(--accent)',
+                value: `${kpis?.totalTeams ?? 0}`, icon: <Groups />, iconColor: 'var(--bui-primary)',
               },
               {
                 key: 'tasks', title: t('reports.kpi.totalTasks', 'Total taches'),
-                value: `${kpis?.totalTasks ?? 0}`, icon: <TaskAlt />, iconColor: 'var(--info)',
+                value: `${kpis?.totalTasks ?? 0}`, icon: <TaskAlt />, iconColor: 'var(--bui-info)',
               },
               {
                 key: 'rate', title: t('reports.kpi.completionRate', 'Taux de completion'),
-                value: `${kpis?.completionRate ?? 0}%`, icon: <Percent />, iconColor: 'var(--ok)',
+                value: `${kpis?.completionRate ?? 0}%`, icon: <Percent />, iconColor: 'var(--bui-success)',
               },
               {
                 key: 'avg', title: t('reports.kpi.avgTasksPerTeam', 'Moy. taches / equipe'),
-                value: `${kpis?.avgTasksPerTeam ?? 0}`, icon: <Speed />, iconColor: 'var(--warn)',
+                value: `${kpis?.avgTasksPerTeam ?? 0}`, icon: <Speed />, iconColor: 'var(--bui-warning)',
               },
             ] as KpiItem[]).map((kpi) => (
               <div className="col-span-6 min-[600px]:col-span-3" key={kpi.key}>
@@ -599,12 +599,12 @@ const TeamsReport: React.FC = () => {
                     {t('reports.kpi.taskStatus', 'Statut des taches')}
                   </p>
                   {([
-                    { key: 'completed', title: t('reports.charts.completed'), value: `${kpis?.totalCompleted ?? 0}`, icon: <CheckCircle />, iconColor: 'var(--ok)' },
-                    { key: 'inProgress', title: t('reports.charts.inProgress'), value: `${kpis?.totalInProgress ?? 0}`, icon: <Engineering />, iconColor: 'var(--info)' },
-                    { key: 'pending', title: t('reports.charts.pending'), value: `${kpis?.totalPending ?? 0}`, icon: <HourglassEmpty />, iconColor: 'var(--warn)' },
+                    { key: 'completed', title: t('reports.charts.completed'), value: `${kpis?.totalCompleted ?? 0}`, icon: <CheckCircle />, iconColor: 'var(--bui-success)' },
+                    { key: 'inProgress', title: t('reports.charts.inProgress'), value: `${kpis?.totalInProgress ?? 0}`, icon: <Engineering />, iconColor: 'var(--bui-info)' },
+                    { key: 'pending', title: t('reports.charts.pending'), value: `${kpis?.totalPending ?? 0}`, icon: <HourglassEmpty />, iconColor: 'var(--bui-warning)' },
                   ] as KpiItem[]).map((kpi, i) => (
                     <React.Fragment key={kpi.key}>
-                      {i > 0 && <div className="border-t border-[var(--line)]" />}
+                      {i > 0 && <div className="border-t border-border" />}
                       <SecondaryKpiRow item={kpi} loading={false} />
                     </React.Fragment>
                   ))}
@@ -619,17 +619,17 @@ const TeamsReport: React.FC = () => {
                   </p>
                   {kpis?.topPerformer ? (
                     <div className="py-2 text-center">
-                      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.25rem] font-semibold tracking-[-0.015em] text-[var(--accent)] mb-0.5">
+                      <p className="font-[family-name:var(--font-display)] text-xl font-semibold tracking-[-0.015em] text-primary mb-0.5">
                         {kpis.topPerformer.name}
                       </p>
-                      <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums">
+                      <p className="text-[11.5px] text-muted-foreground tabular-nums">
                         {kpis.topPerformer.completed} {t('reports.charts.completed').toLowerCase()}
                         {' / '}
                         {kpis.topPerformer.completed + kpis.topPerformer.inProgress + kpis.topPerformer.pending} {t('reports.kpi.totalTasks', 'total').toLowerCase()}
                       </p>
                     </div>
                   ) : (
-                    <p className="cn-text-body1 text-[11.5px] text-[var(--faint)] text-center py-3">
+                    <p className="text-[11.5px] text-faint text-center py-3">
                       {t('reports.charts.noData')}
                     </p>
                   )}
@@ -746,19 +746,19 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
               {([
                 {
                   key: 'properties', title: t('reports.kpi.totalProperties', 'Proprietes'),
-                  value: `${kpis?.totalProperties ?? 0}`, icon: <Apartment />, iconColor: 'var(--accent)',
+                  value: `${kpis?.totalProperties ?? 0}`, icon: <Apartment />, iconColor: 'var(--bui-primary)',
                 },
                 {
                   key: 'interventions', title: t('reports.kpi.totalInterventions', 'Interventions'),
-                  value: `${kpis?.totalInterventions ?? 0}`, icon: <Build />, iconColor: 'var(--info)',
+                  value: `${kpis?.totalInterventions ?? 0}`, icon: <Build />, iconColor: 'var(--bui-info)',
                 },
                 {
                   key: 'cost', title: t('reports.kpi.totalCost', 'Cout total'),
-                  value: convertAndFormat(kpis?.totalCost ?? 0, 'EUR'), icon: <AttachMoney />, iconColor: 'var(--warn)',
+                  value: convertAndFormat(kpis?.totalCost ?? 0, 'EUR'), icon: <AttachMoney />, iconColor: 'var(--bui-warning)',
                 },
                 {
                   key: 'avgCost', title: t('reports.kpi.avgCostPerProperty', 'Cout moy. / bien'),
-                  value: convertAndFormat(kpis?.avgCostPerProperty ?? 0, 'EUR'), icon: <EuroIcon />, iconColor: 'var(--ok)',
+                  value: convertAndFormat(kpis?.avgCostPerProperty ?? 0, 'EUR'), icon: <EuroIcon />, iconColor: 'var(--bui-success)',
                 },
               ] as KpiItem[]).map((kpi) => (
                 <div className="col-span-6 min-[600px]:col-span-3" key={kpi.key}>
@@ -776,11 +776,11 @@ const PropertiesReport: React.FC<PeriodControlProps> = ({ period: periodProp, on
                       {t('reports.kpi.operationalMetrics', 'Indicateurs operationnels')}
                     </p>
                     {([
-                      { key: 'avgInt', title: t('reports.kpi.avgInterventions', 'Moy. interventions / bien'), value: `${kpis?.avgInterventionsPerProperty ?? 0}`, icon: <Speed />, iconColor: 'var(--info)' },
-                      { key: 'topProp', title: t('reports.kpi.mostActive', 'Bien le plus actif'), value: kpis?.topProperty?.name ?? '-', icon: <PriorityHigh />, iconColor: 'var(--err)' },
+                      { key: 'avgInt', title: t('reports.kpi.avgInterventions', 'Moy. interventions / bien'), value: `${kpis?.avgInterventionsPerProperty ?? 0}`, icon: <Speed />, iconColor: 'var(--bui-info)' },
+                      { key: 'topProp', title: t('reports.kpi.mostActive', 'Bien le plus actif'), value: kpis?.topProperty?.name ?? '-', icon: <PriorityHigh />, iconColor: 'var(--bui-destructive)' },
                     ] as KpiItem[]).map((kpi, i) => (
                       <React.Fragment key={kpi.key}>
-                        {i > 0 && <div className="border-t border-[var(--line)]" />}
+                        {i > 0 && <div className="border-t border-border" />}
                         <SecondaryKpiRow item={kpi} loading={false} />
                       </React.Fragment>
                     ))}
@@ -924,7 +924,7 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                       {t('dashboard.analytics.priceVsRevPAN')}
                     </p>
                     {analyticsLoading || !analytics?.pricing ? (
-                      <Skeleton className="flex-1 rounded-[var(--radius-sm)]" />
+                      <Skeleton className="flex-1 rounded-md" />
                     ) : (
                       <div className="flex-1 min-h-0">
                         <ResponsiveContainer width="100%" height="100%">
@@ -951,7 +951,7 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                       {t('dashboard.analytics.priceByType')}
                     </p>
                     {analyticsLoading || !analytics?.pricing ? (
-                      <Skeleton className="flex-1 rounded-[var(--radius-sm)]" />
+                      <Skeleton className="flex-1 rounded-md" />
                     ) : (
                       <div className="flex-1 min-h-0">
                         <ResponsiveContainer width="100%" height="100%">
@@ -977,7 +977,7 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                       {t('dashboard.analytics.forecastChart')}
                     </p>
                     {analyticsLoading || !analytics?.forecast ? (
-                      <Skeleton className="flex-1 rounded-[var(--radius-sm)]" />
+                      <Skeleton className="flex-1 rounded-md" />
                     ) : (
                       <div className="flex-1 min-h-0">
                         <ResponsiveContainer width="100%" height="100%">
@@ -1010,15 +1010,15 @@ const FinancialReport: React.FC<PeriodControlProps> = ({ period: periodProp, onP
                   <div className="flex gap-4 mt-0.5">
                     {[analytics.forecast.scenarios.optimistic, analytics.forecast.scenarios.realistic, analytics.forecast.scenarios.pessimistic].map((s, i) => {
                       // Réf. SCEN (widget-board) : optimiste --ok, réaliste --info, pessimiste --warn
-                      const colors = ['var(--ok)', 'var(--info)', 'var(--warn)'];
+                      const colors = ['var(--bui-success)', 'var(--bui-info)', 'var(--bui-warning)'];
                       return (
                         <div className="flex items-center gap-1" key={s.label}>
                           <div className="w-[9px] h-[9px] rounded-[3px] shrink-0" style={{ backgroundColor: colors[i] }} />
                           <div>
-                            <p className="cn-text-body1 text-[11.5px] font-semibold text-[var(--ink)] leading-[1.2]">
+                            <p className="text-[11.5px] font-semibold text-foreground leading-[1.2]">
                               {s.label}
                             </p>
-                            <p className="cn-text-body1 text-[10.5px] text-[var(--muted)] tabular-nums">
+                            <p className="text-2xs text-muted-foreground tabular-nums">
                               <Money value={s.revenue} from="EUR" /> &bull; {s.occupancy}% occ.
                             </p>
                           </div>
@@ -1304,7 +1304,7 @@ const ReportDetails: React.FC = () => {
           <AlertDescription>{permissionError}</AlertDescription>
         </Alert>
         <div className="text-center p-6">
-          <p className="cn-text-body1 text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {t('reports.noPermissionMessage')}
           </p>
         </div>

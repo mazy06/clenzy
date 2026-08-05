@@ -135,11 +135,12 @@ const DatabaseAdminPage: React.FC = () => {
         }
       />
 
-      <Card className="gap-0 py-0 mt-4 border-[var(--line)] overflow-hidden">
+      {/* `Card` porte deja le fond, l'arrondi, le filet (ring) et l'ecretage. */}
+      <Card className="gap-0 py-0 mt-4">
         {loading ? (
           <div className="flex flex-col gap-1.5 p-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-[36px] rounded-[9px]" />
+              <Skeleton key={i} className="h-9 rounded-md" />
             ))}
           </div>
         ) : backups.length === 0 ? (
@@ -169,19 +170,19 @@ const DatabaseAdminPage: React.FC = () => {
                         <span className="inline-flex text-muted-foreground">
                           <Storage size={18} strokeWidth={1.75} />
                         </span>
-                        <p className="cn-text-body2 font-mono text-[0.8rem]">
+                        <p className="font-mono text-xs">
                           {backup.filename}
                         </p>
                         {backup.filename.endsWith('.gz') && (
-                          <Badge variant="secondary" className="text-[var(--muted)] bg-[var(--hover)]">gzip</Badge>
+                          <Badge variant="secondary">gzip</Badge>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <p className="cn-text-body2">{formatFileSize(backup.sizeBytes)}</p>
+                      <p className="text-xs tabular-nums">{formatFileSize(backup.sizeBytes)}</p>
                     </TableCell>
                     <TableCell>
-                      <p className="cn-text-body2">{formatDate(backup.createdAt)}</p>
+                      <p className="text-xs tabular-nums">{formatDate(backup.createdAt)}</p>
                     </TableCell>
                     <TableCell className="text-end">
                       <Tooltip>
@@ -191,7 +192,7 @@ const DatabaseAdminPage: React.FC = () => {
                             size="icon-sm"
                             aria-label="Telecharger"
                             onClick={() => handleDownload(backup.filename)}
-                            className="text-[var(--mui-primary)]"
+                            className="text-primary"
                           >
                             <Download size={18} strokeWidth={1.75} />
                           </Button>
@@ -209,7 +210,7 @@ const DatabaseAdminPage: React.FC = () => {
                               aria-label="Supprimer"
                               onClick={() => handleDelete(backup.filename)}
                               disabled={deletingFile === backup.filename}
-                              className="text-[var(--err)]"
+                              className="text-destructive"
                             >
                               {deletingFile === backup.filename ? (
                                 <Spinner className="size-4" />

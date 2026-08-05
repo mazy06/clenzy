@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button as BuiButton } from '../../components/ui';
+import { Alert, AlertDescription, Button as BuiButton } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -23,7 +23,7 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from '../../components/ui';
-import { Add, OpenInNew, Refresh, ReportProblem } from '../../icons';
+import { Add, OpenInNew, Refresh, ReportProblem, Warning } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNotification } from '../../hooks/useNotification';
 import { useAuth } from '../../hooks/useAuth';
@@ -32,7 +32,7 @@ import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property } from '../../services/api/propertiesApi';
 import { extractApiList } from '../../types';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
-import FilterChipRow, { type FilterChipOption } from '../../components/FilterChipRow';
+import FilterChipRow, { type FilterChipOption } from '../../components/baitly/FilterChipRow';
 import EmptyState from '../../components/EmptyState';
 import { issuesApi, type Issue, type IssueSeverity, type IssueStatus } from '../../services/api/issuesApi';
 import { formatCurrency } from '../../utils/currencyUtils';
@@ -223,7 +223,7 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
       STATUSES.map((status) => ({
         value: status,
         label: statusLabel(status),
-        color: 'var(--muted)',
+        color: 'var(--bui-muted-foreground)',
         count: statusFilter === '' ? issues.filter((issue) => issue.status === status).length : undefined,
       })),
     [issues, statusFilter, statusLabel]
@@ -304,9 +304,9 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
               </TableCell>
               <TableCell>{issue.propertyName ?? '—'}</TableCell>
               <TableCell>
-                <p className="cn-text-body2 font-medium">{issue.title}</p>
+                <p className="text-xs font-medium">{issue.title}</p>
                 {issue.reportedByName && (
-                  <span className="cn-text-caption text-[var(--muted)]">
+                  <span className="text-xs text-muted-foreground">
                     {t('issues.reportedBy', 'Signalée par')} {issue.reportedByName}
                   </span>
                 )}
@@ -347,7 +347,7 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
             <DialogTitle>{t('issues.create.title', 'Signaler une anomalie')}</DialogTitle>
           </DialogHeader>
           {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
-          <div className="flex flex-col gap-3 border-y border-solid border-[var(--line)] py-3">
+          <div className="flex flex-col gap-3 border-y border-solid border-border py-3">
             <Field>
               <FieldLabel htmlFor="issue-create-property">{t('issues.create.property', 'Logement')}</FieldLabel>
               <NativeSelect
@@ -421,7 +421,10 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
               </Field>
             </div>
             {createError && (
-              <p className="cn-text-body2 text-[var(--err)]">{createError}</p>
+              <Alert variant="destructive">
+                <Warning />
+                <AlertDescription>{createError}</AlertDescription>
+              </Alert>
             )}
           </div>
           <DialogFooter>
@@ -452,21 +455,21 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
               </DialogTitle>
             </DialogHeader>
             {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
-            <div className="flex flex-col gap-3 border-y border-solid border-[var(--line)] py-3">
+            <div className="flex flex-col gap-3 border-y border-solid border-border py-3">
                 <div>
-                  <span className="cn-text-caption text-[var(--muted)]">
+                  <span className="text-xs text-muted-foreground">
                     {selected.propertyName ?? '—'}
                     {' · '}
                     {selected.createdAt ? new Date(selected.createdAt).toLocaleString() : ''}
                     {selected.reportedByName ? ` · ${t('issues.reportedBy', 'Signalée par')} ${selected.reportedByName}` : ''}
                   </span>
                   {selected.description && (
-                    <p className="cn-text-body2 mt-1 whitespace-pre-wrap">
+                    <p className="text-xs mt-1 whitespace-pre-wrap">
                       {selected.description}
                     </p>
                   )}
                   {selected.dismissReason && (
-                    <p className="cn-text-body2 mt-1 text-[var(--muted)]">
+                    <p className="text-xs mt-1 text-muted-foreground">
                       {t('issues.dismissedReason', 'Motif du rejet')} : {selected.dismissReason}
                     </p>
                   )}
@@ -486,7 +489,7 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
 
                 {canManage && isActionable && (
                   <div className="flex flex-col gap-[9px]">
-                    <h6 className="cn-text-subtitle2">
+                    <h6 className="text-xs font-medium">
                       {t('issues.qualifySection', 'Qualification')}
                     </h6>
                     <div className="flex flex-col min-[600px]:flex-row gap-[9px]">
@@ -532,15 +535,18 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
                 )}
 
                 {canManage && isActionable && confirmConvert && (
-                  <p className="cn-text-body2 text-[var(--warn)]">
-                    {t('issues.convertConfirm', 'Créer une demande de maintenance pré-chiffrée à')}{' '}
-                    <span className="font-semibold tabular-nums">
-                      {selected.suggestedCost != null
-                        ? formatCurrency(selected.suggestedCost)
-                        : t('issues.noCost', 'chiffrage manuel')}
-                    </span>
-                    {' — '}{t('issues.convertConfirmSuffix', 'confirmer ?')}
-                  </p>
+                  <Alert variant="warning">
+                    <Warning />
+                    <AlertDescription>
+                      {t('issues.convertConfirm', 'Créer une demande de maintenance pré-chiffrée à')}{' '}
+                      <span className="font-semibold tabular-nums">
+                        {selected.suggestedCost != null
+                          ? formatCurrency(selected.suggestedCost)
+                          : t('issues.noCost', 'chiffrage manuel')}
+                      </span>
+                      {' — '}{t('issues.convertConfirmSuffix', 'confirmer ?')}
+                    </AlertDescription>
+                  </Alert>
                 )}
 
                 {canManage && isActionable && !confirmConvert && (
@@ -558,7 +564,10 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
                 )}
 
                 {error && (
-                  <p className="cn-text-body2 text-[var(--err)]">{error}</p>
+                  <Alert variant="destructive">
+                    <Warning />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
                 )}
             </div>
             <DialogFooter className="gap-1.5">

@@ -5,48 +5,43 @@ import { TriangleAlert } from 'lucide-react';
 import { Skeleton, Card, CardContent } from '../../../components/ui';
 import { Field, FieldLabel, Input } from '../../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
+import { Timeline } from '../../../icons';
 import { syncAdminApi, SyncLog, SyncEventStats } from '../../../services/api/syncAdminApi';
-import FilterChipRow from '../../../components/FilterChipRow';
+import FilterChipRow from '../../../components/baitly/FilterChipRow';
+import StatTile from '../../../components/baitly/StatTile';
 import { useSyncAdminHeader } from '../SyncAdminPage';
 import PagePagination from '../../../components/PagePagination';
-import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 
 type ChannelOption = 'AIRBNB' | 'BOOKING' | 'VRBO' | 'ICAL' | 'OTHER';
 
-// Couleurs de canaux : tokens --airbnb/--booking (baseline §1), marque Vrbo conservée
+// Couleurs de canaux : tokens de marque --airbnb/--booking, hors palette sémantique
+// (ils ne se migrent pas). `--accent` est la teinte CHOISIE par l'utilisateur.
+// FilterChipRow en fait un color-mix à l'exécution → valeur CSS, pas utility.
 const CHANNEL_OPTIONS: { value: ChannelOption; label: string; color: string }[] = [
   { value: 'AIRBNB',  label: 'Airbnb',  color: 'var(--airbnb)' },
   { value: 'BOOKING', label: 'Booking', color: 'var(--booking)' },
   { value: 'VRBO',    label: 'Vrbo',    color: '#1E88E5' },
-  { value: 'ICAL',    label: 'iCal',    color: 'var(--accent)' },
-  { value: 'OTHER',   label: 'Autre',   color: 'var(--muted)' },
+  { value: 'ICAL',    label: 'iCal',    color: 'var(--bui-primary)' },
+  { value: 'OTHER',   label: 'Autre',   color: 'var(--bui-muted-foreground)' },
 ];
 
-const DIRECTION_TOKEN: Record<string, ToneTokens> = {
-  INBOUND: { color: 'var(--info)', bg: 'var(--info-soft)' },
-  OUTBOUND: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
+// Sens de l'échange / issue de l'appel → ton sémantique. Le couple encre/fond
+// conforme AA est tenu par StatusChip (STATUS_TONES).
+const DIRECTION_TONE: Record<string, StatusTone> = {
+  INBOUND: 'info',
+  OUTBOUND: 'warn',
 };
 
-const STATUS_TOKEN: Record<string, ToneTokens> = {
-  SUCCESS: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
-  ERROR: { color: 'var(--err)', bg: 'var(--err-soft)' },
-  FAILED: { color: 'var(--err)', bg: 'var(--err-soft)' },
-  PENDING: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
+const STATUS_TONE: Record<string, StatusTone> = {
+  SUCCESS: 'ok',
+  ERROR: 'err',
+  FAILED: 'err',
+  PENDING: 'warn',
 };
 
-const NEUTRAL_TOKEN: ToneTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
-
-/** Label overline (pattern entête de tuile/section) */
-const OVERLINE_SX = {
-  fontSize: '10.5px',
-  fontWeight: 700,
-  letterSpacing: '.05em',
-  textTransform: 'uppercase',
-  color: 'var(--faint)',
-} as const;
-
-/** Report en classes de `OVERLINE_SX`. */
-const OVERLINE_CLASS = 'text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)]';
+/** Label overline d'entête de carte — échelle Baitly UI. */
+const OVERLINE_CLASS = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground';
 
 const EventsTab: React.FC = () => {
   const [events, setEvents] = useState<SyncLog[]>([]);
@@ -146,30 +141,23 @@ const EventsTab: React.FC = () => {
 
   return (
     <div>
-      {/* Stats Cards — label overline, valeurs display tabular-nums */}
+      {/* Stats — StatTile pour la valeur unique, Card pour les deux ventilations */}
       {stats && (
         <div className="grid grid-cols-12 gap-3 mb-[18px]">
           <div className="col-span-12 min-[600px]:col-span-4">
-            <Card>
-              <CardContent>
-                <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>Total (24h)</p>
-                <h4 className="cn-text-h4 text-[var(--ink)] tabular-nums">
-                  {stats.totalLast24h}
-                </h4>
-              </CardContent>
-            </Card>
+            <StatTile icon={<Timeline />} label="Total (24h)" value={stats.totalLast24h} />
           </div>
           <div className="col-span-12 min-[600px]:col-span-4">
             <Card>
               <CardContent>
-                <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-[3px]')}>Par Channel</p>
+                <p className={cn(OVERLINE_CLASS, 'mb-[3px]')}>Par Channel</p>
                 {Object.entries(stats.byChannel).map(([ch, count]) => (
-                  <p className="cn-text-body2 tabular-nums" key={ch}>
+                  <p className="text-xs tabular-nums" key={ch}>
                     {ch}: {count}
                   </p>
                 ))}
                 {Object.keys(stats.byChannel).length === 0 && (
-                  <p className="cn-text-body2 text-[var(--muted)]">Aucune donnee</p>
+                  <p className="text-xs text-muted-foreground">Aucune donnee</p>
                 )}
               </CardContent>
             </Card>
@@ -177,14 +165,14 @@ const EventsTab: React.FC = () => {
           <div className="col-span-12 min-[600px]:col-span-4">
             <Card>
               <CardContent>
-                <p className={cn(OVERLINE_CLASS, 'cn-text-body1 mb-[3px]')}>Par Status</p>
+                <p className={cn(OVERLINE_CLASS, 'mb-[3px]')}>Par Status</p>
                 {Object.entries(stats.byStatus).map(([s, count]) => (
-                  <p className="cn-text-body2 tabular-nums" key={s}>
+                  <p className="text-xs tabular-nums" key={s}>
                     {s}: {count}
                   </p>
                 ))}
                 {Object.keys(stats.byStatus).length === 0 && (
-                  <p className="cn-text-body2 text-[var(--muted)]">Aucune donnee</p>
+                  <p className="text-xs text-muted-foreground">Aucune donnee</p>
                 )}
               </CardContent>
             </Card>
@@ -200,12 +188,12 @@ const EventsTab: React.FC = () => {
       {loading ? (
         <div className="flex flex-col gap-1.5">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-9 w-full rounded-[9px]" />
+            <Skeleton key={i} className="h-9 w-full rounded-lg" />
           ))}
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+          <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -233,7 +221,7 @@ const EventsTab: React.FC = () => {
                         {evt.direction ? (
                           <StatusChip
                             label={evt.direction}
-                            tokens={DIRECTION_TOKEN[evt.direction] ?? NEUTRAL_TOKEN}
+                            tone={DIRECTION_TONE[evt.direction] ?? 'neutral'}
                           />
                         ) : '—'}
                       </TableCell>
@@ -242,12 +230,12 @@ const EventsTab: React.FC = () => {
                         {evt.status ? (
                           <StatusChip
                             label={evt.status}
-                            tokens={STATUS_TOKEN[evt.status] ?? NEUTRAL_TOKEN}
+                            tone={STATUS_TONE[evt.status] ?? 'neutral'}
                           />
                         ) : '—'}
                       </TableCell>
                       <TableCell>
-                        <p className="cn-text-body2 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title={evt.errorMessage || undefined}>
+                        <p className="text-xs max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title={evt.errorMessage || undefined}>
                           {evt.errorMessage || '—'}
                         </p>
                       </TableCell>

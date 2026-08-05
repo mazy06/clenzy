@@ -325,9 +325,9 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
         <div className="p-4">
           <Alert variant="destructive">
             <TriangleAlert />
-            <AlertDescription><h6 className="cn-text-h6 mb-[0.35em]">
+            <AlertDescription><h6 className="text-sm font-semibold mb-[0.35em]">
               {t('common.accessDenied', 'Acces non autorise')}
-            </h6><p className="cn-text-body1">
+            </h6><p className="text-sm">
               {t('interventions.errors.noEditPermission', 'Vous n\'avez pas les permissions necessaires pour modifier des interventions.')}
             </p></AlertDescription>
           </Alert>

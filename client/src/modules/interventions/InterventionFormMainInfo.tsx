@@ -74,7 +74,7 @@ const InterventionFormMainInfo: React.FC<InterventionFormMainInfoProps> = React.
       <div className="col-span-12 min-[900px]:col-span-8">
         <Card size="sm">
           <CardContent>
-            <h6 className="cn-text-subtitle1 font-semibold mb-2">
+            <h6 className="text-sm font-semibold tracking-tight mb-2">
               {t('interventions.sections.mainInfo')}
             </h6>
 
