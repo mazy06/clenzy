@@ -148,11 +148,19 @@ export default function BaitlyMarkLogo({
   const markColor = inherit
     ? 'currentColor'
     : followAccent ? 'var(--accent)' : (fixedDark ? '#89B1C2' : '#6B8A9A');
-  // En mode 'auto', `var(--ink)` vaut l'encre du theme courant : blanc casse en
-  // sombre, bleu nuit en clair — exactement les deux valeurs d'avant.
+  // En mode 'auto', l'encre suit `--bui-foreground` : le mot-logo doit suivre le
+  // MEME systeme que la surface sur laquelle il est pose, or toutes les surfaces
+  // du PMS sont desormais peintes par Baitly UI.
+  //
+  // Il lisait `var(--ink)` (tokens Signature), et cela le rendait INVISIBLE sur
+  // les pages d'authentification : `AuthLayout` force `data-theme="light"` sur sa
+  // racine pour remettre les jetons Signature en clair, mais la variante sombre
+  // de Baitly UI est definie `[data-theme="dark"] *` — l'attribut porte par
+  // <html> continue donc de matcher et les surfaces restent SOMBRES. Resultat :
+  // encre bleu nuit du theme clair sur une carte sombre, mesure a 1,08:1.
   const wordmarkColor = inherit
     ? 'currentColor'
-    : (fixedDark ? '#FFFFFF' : 'var(--ink)');
+    : (fixedDark ? '#FFFFFF' : 'var(--bui-foreground)');
 
   // size override scale s'il est defini (API icone-style / injection Sidebar).
   const iconSize = size ?? (56 * scale);
