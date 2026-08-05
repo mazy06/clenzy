@@ -69,12 +69,19 @@ export function formatFormDate(d: string): string {
   }
 }
 
-/** Pilule de statut (.fr-status) — Traité = ok-soft, Nouveau = warn (référence). */
-export const STATUS_PILL: Record<ReceivedForm['status'], { label: string; fg: string; bg: string }> = {
-  NEW: { label: 'Nouveau', fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  READ: { label: 'Lu', fg: 'var(--info)', bg: 'var(--info-soft)' },
-  PROCESSED: { label: 'Traité', fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  ARCHIVED: { label: 'Archivé', fg: 'var(--muted)', bg: 'var(--field)' },
+/**
+ * Pastille de statut, exprimée en VARIANTE du composant Badge plutôt qu'en
+ * couples de couleurs : le contraste et le mode sombre sont alors gérés par le
+ * kit, là où les paires posées à la main dérivaient à chaque évolution du thème.
+ */
+export const STATUS_PILL: Record<
+  ReceivedForm['status'],
+  { label: string; variant: 'warning' | 'info' | 'success' | 'secondary' }
+> = {
+  NEW: { label: 'Nouveau', variant: 'warning' },
+  READ: { label: 'Lu', variant: 'info' },
+  PROCESSED: { label: 'Traité', variant: 'success' },
+  ARCHIVED: { label: 'Archivé', variant: 'secondary' },
 };
 
 export const EMAIL_RE = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/;
