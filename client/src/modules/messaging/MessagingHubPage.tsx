@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../utils/cn';
-import { Card, Button } from '../../components/ui';
+import { Button } from '../../components/ui';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Edit as EditIcon, Forum as ForumIcon, Message as MessageIcon } from '../../icons';
@@ -167,11 +167,22 @@ export default function MessagingHubPage() {
     }
   };
 
+  // Sous-titre vivant : ce que contient la boîte, pas la liste des canaux —
+  // « Email · SMS · WhatsApp · Formulaires » se relisait à chaque visite sans
+  // jamais rien apprendre, alors que le nombre de non-lus, si.
+  const unreadCount = useMemo(
+    () => source.items.reduce((total, item) => total + (item.unreadCount > 0 ? 1 : 0), 0),
+    [source.items],
+  );
+  const subtitle = source.isLoading
+    ? t('messagingHub.loading')
+    : `${t('messagingHub.conversationCount', { count: source.items.length })} · ${t('messagingHub.unreadCount', { count: unreadCount })}`;
+
   return (
     <div className="w-full flex-1 min-h-0 flex flex-col overflow-hidden">
       <PageHeader
         title={t('messagingHub.title', 'Messagerie')}
-        subtitle={t('messagingHub.subtitle', 'Email · SMS · WhatsApp · Formulaires')}
+        subtitle={subtitle}
         iconBadge={<MessageIcon />}
         backPath="/dashboard"
         showBackButton={false}
@@ -183,9 +194,13 @@ export default function MessagingHubPage() {
           </Button>
         }
       />
-      <Card className="gap-0 py-0 flex-1 flex min-h-[0px] overflow-hidden h-full">
-        {/* ── Liste agrégée (340px, plein écran en mobile) ─────────────────── */}
-        <div className={cn('w-full min-[900px]:w-[340px] shrink-0 min-[900px]:flex flex-col min-h-0 min-[900px]:border-e-[1px_solid_var(--line)] bg-[var(--card)]', selected ? 'hidden' : 'flex')}>
+
+      {/* Deux CARTES distinctes plutot qu'une carte scindee par un filet : la
+          liste et le fil sont deux objets, la projection les separe par une
+          gouttiere. Le seuil 900 px est le `md` de MUI, celui du reste de
+          l'ecran (master-detail mobile). */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 min-[900px]:grid-cols-[300px_1fr]">
+        <div className={cn('min-h-0 min-[900px]:flex min-[900px]:flex-col', selected ? 'hidden' : 'flex flex-col')}>
           <ConversationList
             items={source.items}
             isLoading={source.isLoading}
@@ -201,7 +216,7 @@ export default function MessagingHubPage() {
         </div>
 
         {/* ── Volet droit adaptatif : fil + compose ou détail formulaire ──── */}
-        <div className={cn('flex-1 min-w-0 min-h-0 min-[900px]:flex flex-col', selected ? 'flex' : 'hidden')}>
+        <div className={cn('min-w-0 min-h-0 min-[900px]:flex min-[900px]:flex-col', selected ? 'flex flex-col' : 'hidden')}>
           {selected?.kind === 'channel' && selected.conv ? (
             <ChannelThread
               conv={selected.conv}
@@ -226,7 +241,7 @@ export default function MessagingHubPage() {
               onBack={() => setSelectedKey(null)}
             />
           ) : (
-            <div className="flex-1 flex items-center justify-center p-4 bg-[var(--bg)]">
+            <div className="flex flex-1 items-center justify-center rounded-xl border border-border bg-card p-4">
               <EmptyState
                 variant="transparent"
                 icon={<ForumIcon />}
@@ -239,7 +254,7 @@ export default function MessagingHubPage() {
             </div>
           )}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

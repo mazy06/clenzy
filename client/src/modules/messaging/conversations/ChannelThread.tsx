@@ -39,7 +39,7 @@ import { type ThreadMessage, getChannelBadge } from './unified';
 
 /** Equivalent classes de `composeToolSx` (meme transcription que InternalThread). */
 const COMPOSE_TOOL_CLASS =
-  'w-[30px] h-[30px] rounded-[8px] border-0 bg-transparent text-[var(--muted)] flex items-center justify-center cursor-pointer p-0 shrink-0 transition-[background,color] duration-[140ms] hover:bg-[var(--bg)] hover:text-[var(--accent)] disabled:opacity-[0.45] disabled:cursor-default';
+  'flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-primary disabled:cursor-default disabled:opacity-45 motion-reduce:transition-none';
 
 interface ChannelThreadProps {
   conv: ConversationDto;
@@ -232,14 +232,16 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
             <>
               {/* Concierge IA : brouillon à valider (C1) — jamais envoyé sans l'opérateur. */}
               {aiDraft && (
-                <div className="p-2 bg-[var(--hover)] border-b border-[var(--line)]">
-                  <div className="flex items-center gap-1 mb-1 text-primary">
-                    <SparklesIcon size={16} strokeWidth={1.75} />
-                    <span className="cn-text-caption font-bold text-[var(--mui-primary)] uppercase tracking-[0.4px]">
+                // Carte teintee marque : le brouillon IA doit se distinguer d'un
+                // message reellement envoye, sans passer pour une alerte.
+                <div className="mb-2 rounded-lg border border-border bg-primary-soft/40 p-2.5">
+                  <div className="mb-1 flex items-center gap-1 text-primary">
+                    <SparklesIcon size={14} strokeWidth={1.75} />
+                    <span className="text-2xs font-semibold uppercase tracking-wide">
                       {t('concierge.draftTitle', 'Brouillon Concierge IA')}
                     </span>
                   </div>
-                  <p className="cn-text-body2 mb-1.5 whitespace-pre-wrap text-foreground">
+                  <p className="mb-1.5 whitespace-pre-wrap text-xs text-foreground">
                     {aiDraft}
                   </p>
                   <div className="flex gap-1.5">
@@ -261,7 +263,7 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
                       size="sm"
                       onClick={handleDismissDraft}
                       disabled={dismissAiDraftMutation.isPending}
-                      className="text-[var(--muted)]"
+                      className="text-muted-foreground"
                     >
                       {t('common.reject', 'Rejeter')}
                     </Button>
@@ -269,7 +271,7 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
                 </div>
               )}
               {whatsappWindowExpired && (
-                <Alert variant="warning" className="rounded-none items-center text-[0.72rem] py-[1.5px]">
+                <Alert variant="warning" className="mb-2 items-center py-1 text-2xs">
                   <TriangleAlert />
                   <AlertDescription>
                     {t(

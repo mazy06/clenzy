@@ -7175,6 +7175,18 @@
     "goToScreen": "Aller à un écran…"
   },
   "messagingHub": {
-    "viewReservation": "Voir la réservation"
+    "viewReservation": "Voir la réservation",
+    "loading": "Chargement…",
+    "conversationCount_one": "{{count}} conversation",
+    "conversationCount_other": "{{count}} conversations",
+    "unreadCount_one": "{{count}} non lue",
+    "unreadCount_other": "{{count}} non lues",
+    "back": "Retour",
+    "moreActions": "Plus d'actions",
+    "send": "Envoyer",
+    "attachment": "Pièce jointe",
+    "noMessages": "Aucun message dans cette conversation",
+    "internalNote": "Note interne (invisible pour le voyageur)",
+    "internalNotePlaceholder": "Note pour l'équipe…"
   }
 }

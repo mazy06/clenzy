@@ -7151,6 +7151,18 @@
     "goToScreen": "Go to a screen…"
   },
   "messagingHub": {
-    "viewReservation": "View reservation"
+    "viewReservation": "View reservation",
+    "loading": "Loading…",
+    "conversationCount_one": "{{count}} conversation",
+    "conversationCount_other": "{{count}} conversations",
+    "unreadCount_one": "{{count}} unread",
+    "unreadCount_other": "{{count}} unread",
+    "back": "Back",
+    "moreActions": "More actions",
+    "send": "Send",
+    "attachment": "Attachment",
+    "noMessages": "No message in this conversation",
+    "internalNote": "Internal note (hidden from the guest)",
+    "internalNotePlaceholder": "Note for the team…"
   }
 }

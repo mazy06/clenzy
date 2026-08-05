@@ -6900,6 +6900,18 @@
     "goToScreen": "الانتقال إلى شاشة…"
   },
   "messagingHub": {
-    "viewReservation": "عرض الحجز"
+    "viewReservation": "عرض الحجز",
+    "loading": "جارٍ التحميل…",
+    "conversationCount_one": "محادثة واحدة",
+    "conversationCount_other": "{{count}} محادثات",
+    "unreadCount_one": "واحدة غير مقروءة",
+    "unreadCount_other": "{{count}} غير مقروءة",
+    "back": "رجوع",
+    "moreActions": "إجراءات أخرى",
+    "send": "إرسال",
+    "attachment": "مرفق",
+    "noMessages": "لا توجد رسائل في هذه المحادثة",
+    "internalNote": "ملاحظة داخلية (غير مرئية للضيف)",
+    "internalNotePlaceholder": "ملاحظة للفريق…"
   }
 }

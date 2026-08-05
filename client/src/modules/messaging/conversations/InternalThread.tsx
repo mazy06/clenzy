@@ -20,7 +20,7 @@ import { type ThreadMessage, getChannelBadge } from './unified';
 
 /** Equivalent classes de `composeToolSx` (toujours exporte par ThreadView pour ChannelThread). */
 const COMPOSE_TOOL_CLASS =
-  'w-[30px] h-[30px] rounded-[8px] border-0 bg-transparent text-[var(--muted)] flex items-center justify-center cursor-pointer p-0 shrink-0 transition-[background,color] duration-[140ms] hover:bg-[var(--bg)] hover:text-[var(--accent)] disabled:opacity-[0.45] disabled:cursor-default';
+  'flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-primary disabled:cursor-default disabled:opacity-45 motion-reduce:transition-none';
 
 interface InternalThreadProps {
   thread: ContactThreadSummary;
@@ -115,7 +115,7 @@ export default function InternalThread({ thread, onArchived, showBack, onBack }:
         title={counterpartName}
         subtitle={
           <>
-            <span className="inline-flex text-[var(--accent)]">
+            <span className="inline-flex text-primary">
               <badge.Icon size={13} strokeWidth={2} />
             </span>
             {t('messagingHub.internalChat', 'Chat interne')}
