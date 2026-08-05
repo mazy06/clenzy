@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { cn } from '../../../../utils/cn';
-import { Input, Skeleton } from '../../../../components/ui';
+import { Alert, AlertDescription, Button, Input, Skeleton } from '../../../../components/ui';
 import { Copy, Check, ExternalLink, Eye, EyeOff, RefreshCw, AlertTriangle, Globe, Code2, Terminal } from 'lucide-react';
 import type { StudioConfigState } from '../useStudioConfig';
 import { SettingsPage, SettingCard, SettingRow, ToggleControl } from './settingsControls';
@@ -15,19 +15,6 @@ export interface DistributionPanelProps {
   cfg: StudioConfigState;
 }
 
-// Pendant en classes de l'ancien `miniBtnSx`. Les deux tokens typographiques
-// restent en style : Tailwind n'infere pas le type derriere `var(`.
-const MINI_BTN_CLASS =
-  'inline-flex items-center gap-[3px] h-[34px] px-[9px] rounded-[var(--radius-md)] border border-solid border-[var(--line)] '
-  + 'bg-[var(--card)] text-[var(--body)] cursor-pointer transition-[border-color,color] duration-[var(--duration-fast)] ease-[var(--ease-out)] '
-  + 'hover:border-[var(--accent)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] '
-  + 'focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-default';
-
-const MINI_BTN_STYLE: React.CSSProperties = {
-  fontWeight: 'var(--fw-medium)',
-  fontSize: 'var(--text-sm)',
-};
-
 export default function DistributionPanel({ cfg }: DistributionPanelProps) {
   const { config } = cfg;
   const [showKey, setShowKey] = useState(false);
@@ -39,8 +26,13 @@ export default function DistributionPanel({ cfg }: DistributionPanelProps) {
     return (
       <div className="max-w-[720px] mx-auto px-6 py-6">
         {cfg.error
-          ? <div className="flex items-center gap-1.5 p-3 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]"><AlertTriangle size={18} /> {cfg.error}</div>
-          : [0, 1, 2].map((i) => <Skeleton key={i} className="h-[150px] mb-[15px] rounded-[var(--radius-lg)] bg-[var(--hover)]" />)}
+          ? (
+            <Alert variant="destructive">
+              <AlertTriangle />
+              <AlertDescription>{cfg.error}</AlertDescription>
+            </Alert>
+          )
+          : [0, 1, 2].map((i) => <Skeleton key={i} className="h-[150px] mb-[15px] rounded-xl" />)}
       </div>
     );
   }
@@ -93,38 +85,35 @@ const properties = await booking.getProperties();`;
       </SettingCard>
 
       {cfg.error && (
-        <div className="flex items-center gap-1.5 mb-3.5 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
-          <AlertTriangle size={16} /> {cfg.error}
-        </div>
+        <Alert variant="destructive" className="mb-3.5">
+          <AlertTriangle />
+          <AlertDescription>{cfg.error}</AlertDescription>
+        </Alert>
       )}
 
       <SettingCard title="Site hébergé" description="Une page de réservation prête à l'emploi, sans rien installer.">
         <div className="py-2 flex items-center gap-1.5 flex-wrap">
-          <div className="inline-flex text-[var(--accent)]"><Globe size={18} strokeWidth={2} /></div>
-          <div className="flex-1 min-w-[220px] [font-family:var(--font-mono,_monospace)] text-[var(--text-sm)] text-[var(--body)] whitespace-nowrap overflow-hidden text-ellipsis">
+          <div className="inline-flex text-primary"><Globe size={18} strokeWidth={2} /></div>
+          <div className="flex-1 min-w-[220px] [font-family:var(--font-mono,_monospace)] text-xs text-foreground whitespace-nowrap overflow-hidden text-ellipsis">
             {hostedUrl}
           </div>
-          <button type="button" onClick={() => copy('hosted', hostedUrl)} className={MINI_BTN_CLASS} style={MINI_BTN_STYLE}>
+          <Button type="button" variant="outline" size="sm" onClick={() => copy('hosted', hostedUrl)} className="cursor-pointer">
             {copiedId === 'hosted' ? <Check size={14} strokeWidth={2.4} /> : <Copy size={14} strokeWidth={2} />}
             {copiedId === 'hosted' ? 'Copié' : 'Copier'}
-          </button>
+          </Button>
           {/* Meme gabarit que les boutons voisins ; `disabled` est sans objet sur une ancre. */}
-          <a
-            href={hostedUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(MINI_BTN_CLASS, 'no-underline')}
-            style={MINI_BTN_STYLE}
-          >
-            <ExternalLink size={14} strokeWidth={2} /> Ouvrir
-          </a>
+          <Button asChild variant="outline" size="sm">
+            <a href={hostedUrl} target="_blank" rel="noopener noreferrer" className="no-underline cursor-pointer">
+              <ExternalLink size={14} strokeWidth={2} /> Ouvrir
+            </a>
+          </Button>
         </div>
       </SettingCard>
 
       <SettingCard title="Widget intégrable" description="Collez ce code dans votre site pour afficher le moteur de réservation.">
         <div className="py-2">
           <CodeBlock icon={Code2} code={embedCode} copied={copiedId === 'embed'} onCopy={() => copy('embed', embedCode)} />
-          <div className="text-[var(--text-2xs)] text-[var(--faint)] mt-2 mb-1">Ou en iframe :</div>
+          <div className="text-2xs text-faint mt-2 mb-1">Ou en iframe :</div>
           <CodeBlock code={iframeCode} copied={copiedId === 'iframe'} onCopy={() => copy('iframe', iframeCode)} />
         </div>
       </SettingCard>
@@ -139,8 +128,7 @@ const properties = await booking.getProperties();`;
                 value={apiKey}
                 readOnly
                 type={showKey ? 'text' : 'password'}
-                className="flex-1 h-[34px] rounded-[var(--radius-md)] border-[var(--line)] bg-[var(--field)] text-[var(--ink)]"
-                style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 'var(--text-sm)' }}
+                className="flex-1 h-[34px] text-xs [font-family:var(--font-mono,_monospace)]"
               />
               <IconBtn label={showKey ? 'Masquer' : 'Afficher'} onClick={() => setShowKey((s) => !s)}>
                 {showKey ? <EyeOff size={15} strokeWidth={2} /> : <Eye size={15} strokeWidth={2} />}
@@ -157,24 +145,18 @@ const properties = await booking.getProperties();`;
         <div className="pb-2.5 flex items-center gap-2 flex-wrap">
           {regenConfirm ? (
             <>
-              <div className="text-[var(--text-sm)] text-[var(--err)]">L'ancienne clé cessera de fonctionner. Confirmer ?</div>
-              <button
-                type="button"
-                onClick={onRegenerate}
-                disabled={busy}
-                className={cn(MINI_BTN_CLASS, 'text-[var(--err)] border-[var(--err)]')}
-                style={MINI_BTN_STYLE}
-              >
+              <div className="text-xs text-destructive-ink">L'ancienne clé cessera de fonctionner. Confirmer ?</div>
+              <Button type="button" variant="destructive" size="sm" onClick={onRegenerate} disabled={busy} className="cursor-pointer">
                 Oui, régénérer
-              </button>
-              <button type="button" onClick={() => setRegenConfirm(false)} className={MINI_BTN_CLASS} style={MINI_BTN_STYLE}>
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setRegenConfirm(false)} className="cursor-pointer">
                 Annuler
-              </button>
+              </Button>
             </>
           ) : (
-            <button type="button" onClick={() => setRegenConfirm(true)} disabled={busy} className={MINI_BTN_CLASS} style={MINI_BTN_STYLE}>
+            <Button type="button" variant="outline" size="sm" onClick={() => setRegenConfirm(true)} disabled={busy} className="cursor-pointer">
               <RefreshCw size={14} strokeWidth={2} /> Régénérer la clé
-            </button>
+            </Button>
           )}
         </div>
       </SettingCard>
@@ -185,39 +167,27 @@ const properties = await booking.getProperties();`;
 function CodeBlock({ code, onCopy, copied, icon: Icon }: { code: string; onCopy: () => void; copied: boolean; icon?: typeof Code2 }) {
   return (
     <div className="relative">
-      {Icon && <div className="absolute top-[10px] start-[10px] text-[var(--faint)] inline-flex"><Icon size={15} strokeWidth={2} /></div>}
-      <pre className={cn('m-0 p-[9px] pe-[33px] text-[13px] leading-[1.6] text-[var(--ink)] bg-[var(--field)] border border-solid border-[var(--line)] rounded-[var(--radius-md)] overflow-x-auto whitespace-pre', Icon ? 'ps-[27px]' : 'ps-[9px]')} style={{ fontFamily: 'var(--font-mono, monospace)' }}>{code}</pre>
-      <button
+      {Icon && <div className="absolute top-[10px] start-[10px] text-faint inline-flex"><Icon size={15} strokeWidth={2} /></div>}
+      <pre className={cn('m-0 p-[9px] pe-[33px] text-[13px] leading-relaxed text-foreground bg-field border border-field-line rounded-lg overflow-x-auto whitespace-pre', Icon ? 'ps-[27px]' : 'ps-[9px]')} style={{ fontFamily: 'var(--font-mono, monospace)' }}>{code}</pre>
+      {/* `end-2` et non `right-2` : le PMS bascule en RTL. */}
+      <Button
         type="button"
+        variant="outline"
+        size="icon-sm"
         onClick={onCopy}
         aria-label="Copier"
-        className={cn(
-          'absolute top-2 right-2 w-[30px] h-[30px] inline-flex items-center justify-center rounded-[var(--radius-sm)]',
-          'bg-[var(--card)] border border-solid border-[var(--line)] cursor-pointer',
-          'hover:text-[var(--ink)] hover:border-[var(--accent)]',
-          'focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
-          copied ? 'text-[var(--ok)]' : 'text-[var(--muted)]',
-        )}
+        className={cn('absolute top-2 end-2 cursor-pointer', copied && 'text-success')}
       >
         {copied ? <Check size={15} strokeWidth={2.4} /> : <Copy size={15} strokeWidth={2} />}
-      </button>
+      </Button>
     </div>
   );
 }
 
 function IconBtn({ children, label, onClick }: { children: React.ReactNode; label: string; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className={
-        'w-[34px] h-[34px] shrink-0 inline-flex items-center justify-center rounded-[var(--radius-md)] text-[var(--muted)] cursor-pointer '
-        + 'border border-solid border-[var(--line)] bg-[var(--card)] hover:text-[var(--ink)] hover:border-[var(--accent)] '
-        + 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2'
-      }
-    >
+    <Button type="button" variant="outline" size="icon-sm" onClick={onClick} aria-label={label} className="shrink-0 cursor-pointer">
       {children}
-    </button>
+    </Button>
   );
 }

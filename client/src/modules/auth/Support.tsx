@@ -15,9 +15,8 @@ export default function Support() {
   const { t } = useTranslation();
   // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en.
   // Le hook change la langue i18n GLOBALE : la racine de l'app recalcule alors
-  // son propre theme (Tajawal + RTL) et sa direction. Le ThemeProvider local
-  // qui vivait ici n'habillait plus aucun composant depuis que l'ecran est
-  // passe aux primitives Baitly UI, qui lisent les jetons CSS.
+  // sa typographie (Tajawal) et sa direction. Rien a habiller localement, l'ecran
+  // est passe aux primitives Baitly UI, qui lisent les jetons CSS.
   useGeoAuthLanguage();
   const navigate = useNavigate();
 
@@ -64,14 +63,14 @@ export default function Support() {
   };
 
   return (
-    <div className="min-h-[100vh] flex items-center justify-center p-3" style={{ background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)' }}>
-      <Card className="gap-0 py-0 p-3.5 w-full max-w-[440px] bg-[var(--card)] border-border">
+    <div className="min-h-[100vh] flex items-center justify-center p-3 bg-background">
+      <Card className="gap-0 py-0 p-3.5 w-full max-w-[440px] shadow-sm">
         {/* Header avec logo */}
         <div className="text-center mb-3">
           <div className="flex justify-center mb-2">
             <BaitlyMarkLogo variant="full" size={42} />
           </div>
-          <p className="cn-text-body2 font-medium text-[var(--mui-secondary)] text-[0.85rem]">
+          <p className="text-xs font-medium text-muted-foreground">
             {t('auth.support.headerSubtitle', 'Contactez notre support')}
           </p>
         </div>
@@ -79,20 +78,14 @@ export default function Support() {
         {submitted ? (
           /* Message de confirmation */
           <div className="text-center py-4">
-            <span className="inline-flex text-[var(--bui-success-ink)] mb-2"><CheckCircle size={56} strokeWidth={1.75} /></span>
-            <h6 className="cn-text-h6 font-semibold mb-1.5 text-[1rem]">
+            <span className="inline-flex text-success-ink mb-2"><CheckCircle size={56} strokeWidth={1.75} /></span>
+            <h6 className="text-base font-semibold tracking-tight text-balance mb-1.5">
               {t('auth.support.submittedTitle', 'Message envoyé !')}
             </h6>
-            <p className="cn-text-body2 text-muted-foreground mb-3.5 text-[0.85rem]">
+            <p className="text-xs text-muted-foreground mb-3.5">
               {t('auth.support.submittedBody', 'Notre équipe vous contactera dans les 24 heures.')}
             </p>
-            {/* Teintes en dur : cette page construit TOUJOURS le theme clair, ou
-                palette.secondary vaut main #A6C0CE / dark #8BA3B3 (contrastText
-                #1e293b) — il n'existe pas de jeton CSS pour la variante dark. */}
-            <Button
-              onClick={() => navigate('/login')}
-              className="rounded-[12px] bg-[#A6C0CE] text-[#1e293b] shadow-none hover:bg-[#8BA3B3]"
-            >
+            <Button onClick={() => navigate('/login')}>
               {t('auth.support.backToLogin', 'Retour à la connexion')}
             </Button>
           </div>
@@ -177,7 +170,7 @@ export default function Support() {
               {error && (
                 <Alert variant="destructive" className="py-1">
                   <TriangleAlert />
-                  <AlertDescription><p className="cn-text-body2 text-[0.85rem]">{error}</p></AlertDescription>
+                  <AlertDescription><p className="text-xs">{error}</p></AlertDescription>
                 </Alert>
               )}
 
@@ -186,7 +179,7 @@ export default function Support() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full shrink rounded-[12px] bg-[#A6C0CE] text-[#1e293b] shadow-none hover:bg-[#8BA3B3] active:bg-[#6B8A9A] disabled:bg-[#C5D5E0]"
+                className="w-full shrink"
               >
                 {loading ? (
                   <Spinner className="size-5" />
@@ -205,7 +198,7 @@ export default function Support() {
               variant="ghost"
               size="sm"
               onClick={() => navigate('/login')}
-              className="text-[0.75rem] font-medium text-[#A6C0CE] hover:bg-transparent hover:text-[#6B8A9A]"
+              className="text-xs font-medium text-muted-foreground hover:bg-transparent hover:text-foreground"
             >
               <ArrowBack size={'0.9rem'} strokeWidth={1.75} />
               {t('auth.support.backToLogin', 'Retour à la connexion')}

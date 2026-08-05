@@ -99,22 +99,17 @@ function SectionCard({ icon, accentColor, title, description, children, filledCo
   return (
     // La teinte d'accent est connue a l'execution : elle passe par des variables
     // CSS inline, ce qui permet aux classes de survol (litterales, donc emises a
-    // la compilation) de la consommer.
+    // la compilation) de la consommer. L'accent de section vit dans la pastille
+    // d'icone — pas de bande laterale coloree (interdit produit).
     <div
-      className="relative p-[15px] rounded-2xl border border-solid border-[var(--line)] bg-[var(--card)] overflow-hidden transition-[border-color,box-shadow] duration-200 hover:border-[var(--section-accent)] hover:shadow-[0_1px_2px_var(--section-accent-shadow)]"
+      className="relative p-[15px] rounded-xl border border-border bg-card overflow-hidden transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none hover:border-[var(--section-accent)] hover:shadow-[0_1px_2px_var(--section-accent-shadow)]"
       style={{
         '--section-accent': accentColor,
-        '--section-accent-shadow': `${accentColor}1a`,
+        '--section-accent-shadow': `color-mix(in srgb, ${accentColor} 10%, transparent)`,
       } as React.CSSProperties}
     >
-      {/* Liseré gauche coloré (ancien ::before) */}
-      <span
-        aria-hidden
-        className="absolute top-0 left-0 bottom-0 w-[3px] opacity-70"
-        style={{ backgroundColor: accentColor }}
-      />
       <div className="flex items-start gap-2 mb-3">
-        <div className="w-[36px] h-[36px] rounded-[12px] flex items-center justify-center shrink-0" style={{ color: accentColor, backgroundColor: `${accentColor}15` }}>
+        <div className="w-[36px] h-[36px] rounded-lg flex items-center justify-center shrink-0" style={{ color: accentColor, backgroundColor: `color-mix(in srgb, ${accentColor} 12%, transparent)` }}>
           {React.cloneElement(icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
             size: 18,
             strokeWidth: 1.75,
@@ -122,27 +117,27 @@ function SectionCard({ icon, accentColor, title, description, children, filledCo
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className="cn-text-body1 text-[0.9375rem] font-semibold leading-[1.2]">
+            <p className="text-base font-semibold tracking-tight leading-[1.2]">
               {title}
             </p>
             {showProgress && (
               <StatusChip
                 size="sm"
                 tokens={{
-                  color: allFilled ? accentColor : 'var(--muted)',
-                  bg: allFilled ? `${accentColor}1f` : 'transparent',
+                  color: allFilled ? accentColor : 'var(--bui-muted-foreground)',
+                  bg: allFilled ? `color-mix(in srgb, ${accentColor} 12%, transparent)` : 'transparent',
                 }}
                 icon={allFilled ? <CheckCircle size={12} strokeWidth={2} /> : undefined}
                 label={`${filledCount}/${totalCount}`}
                 // La teinte de bordure derive de `accentColor`, connu a
                 // l'execution : style inline, une classe ne peut pas la porter.
-                sx={{ borderColor: allFilled ? `${accentColor}40` : 'var(--line)' }}
+                sx={{ borderColor: allFilled ? `color-mix(in srgb, ${accentColor} 25%, transparent)` : 'var(--bui-border)' }}
                 className="border border-solid"
               />
             )}
           </div>
           {description && (
-            <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {description}
             </p>
           )}
@@ -393,38 +388,42 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
   return (
     <div className="pb-14">
       {/* ─── Header with progress ─────────────────────────────────────── */}
-      {/* `data-theme="dark"` sur <html> suit le mode MUI resolu (main.tsx) :
-          la variante `dark:` remplace donc fidelement le callback de theme. */}
-      <div className="mb-[18px] p-[15px] rounded-2xl border border-solid border-[var(--line)] bg-[linear-gradient(135deg,rgba(107,138,154,0.08)_0%,rgba(107,138,154,0.02)_100%)] dark:bg-[linear-gradient(135deg,rgba(107,138,154,0.12)_0%,rgba(107,138,154,0.04)_100%)]">
+      <div className="mb-[18px] p-[15px] rounded-xl border border-border bg-primary-soft">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="min-w-0 flex-1">
-            <p className="cn-text-body1 text-[1rem] font-bold mb-0.5">
+            <p className="text-base font-semibold tracking-tight text-balance mb-0.5">
               {t('channels.checkIn.title')}
             </p>
-            <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Informations partagées avec les voyageurs avant et pendant leur séjour
             </p>
           </div>
           <div className="flex flex-col gap-[4.5px] items-end min-w-[200px]">
             <div className="flex items-center gap-1.5">
-              <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] font-semibold uppercase tracking-[0.5px]">
+              <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Complétude
               </p>
-              <StatusChip tokens={{ color: stats.filled === stats.total ? '#3E9C80' : 'primary.contrastText', bg: stats.filled === stats.total ? '#3E9C8015' : 'primary.main' }} label={`${stats.filled}/${stats.total}`} className="h-[20px]" />
+              <StatusChip
+                tokens={stats.filled === stats.total
+                  ? { color: 'var(--bui-success-ink)', bg: 'var(--bui-success-soft)' }
+                  : { color: 'var(--bui-primary-foreground)', bg: 'var(--bui-primary)' }}
+                label={`${stats.filled}/${stats.total}`}
+                className="h-[20px] tabular-nums"
+              />
             </div>
             {/* Teinte de la barre : deux branches litterales (jamais un objet),
                 sinon la classe ne serait pas emise a la compilation. */}
             <Progress
               value={stats.percentage}
               className={cn(
-                'w-full bg-[var(--hover)]',
+                'w-full bg-muted',
                 stats.percentage === 100
-                  ? '[&>[data-slot=progress-indicator]]:bg-[#3E9C80]'
-                  : '[&>[data-slot=progress-indicator]]:bg-[var(--mui-primary)]',
+                  ? '[&>[data-slot=progress-indicator]]:bg-success'
+                  : '[&>[data-slot=progress-indicator]]:bg-primary',
               )}
             />
             {instructions?.updatedAt && (
-              <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60">
+              <p className="text-xs text-muted-foreground opacity-60 tabular-nums">
                 {t('channels.checkIn.lastUpdated')} : {new Date(instructions.updatedAt).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
               </p>
             )}
@@ -438,7 +437,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         <div className="col-span-[1] min-[900px]:col-span-[1_/_-1]">
           <SectionCard
             icon={<KeyIcon />}
-            accentColor="#C28A52"
+            accentColor="var(--bui-warning)"
             title={t('channels.checkIn.accessSection')}
             description="Code d'entrée et identifiants WiFi"
             filledCount={stats.access}
@@ -497,7 +496,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                             onClick={(e) => { e.stopPropagation(); handleCopy('accessCode', form.accessCode); }}
                           >
                             {copiedField === 'accessCode' ? (
-                              <CheckCircle size={16} strokeWidth={2} color="#3E9C80" />
+                              <CheckCircle size={16} strokeWidth={2} color="var(--bui-success)" />
                             ) : (
                               <ContentCopy size={14} strokeWidth={1.75} />
                             )}
@@ -547,7 +546,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                             onClick={() => handleCopy('wifiPassword', form.wifiPassword)}
                           >
                             {copiedField === 'wifiPassword' ? (
-                              <CheckCircle size={16} strokeWidth={2} color="#3E9C80" />
+                              <CheckCircle size={16} strokeWidth={2} color="var(--bui-success)" />
                             ) : (
                               <ContentCopy size={14} strokeWidth={1.75} />
                             )}
@@ -578,7 +577,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
               </Field>
             </div>
             {hasSmartLock ? (
-              <span className="cn-text-caption text-muted-foreground block mt-1.5 max-w-[560px]">
+              <span className="block text-xs text-muted-foreground mt-1.5 max-w-[560px]">
                 {t('channels.checkIn.smartLockManaged', 'Serrure connectée détectée : le code du séjour est généré et géré par la serrure (un code par réservation). Ce champ sert de secours (boîte à clé).')}
               </span>
             ) : (
@@ -590,10 +589,10 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                   onCheckedChange={(checked) => { setAutoRotate(checked); setDirty(true); setSuccess(false); }}
                 />
                 <FieldContent className="ms-0.5 mt-0.5">
-                  <FieldLabel htmlFor="checkin-auto-rotate" className="cn-text-body2 font-semibold">
+                  <FieldLabel htmlFor="checkin-auto-rotate" className="text-xs font-semibold">
                     {t('channels.checkIn.autoRotate', 'Régénérer le code après chaque départ')}
                   </FieldLabel>
-                  <span className="cn-text-caption text-muted-foreground block max-w-[520px]">
+                  <span className="block text-xs text-muted-foreground max-w-[520px]">
                     {t('channels.checkIn.autoRotateHint', 'Un nouveau code (même format) est généré après le checkout — pensez à mettre à jour le code de la boîte à clé. Les serrures connectées tournent déjà automatiquement.')}
                   </span>
                 </FieldContent>
@@ -608,17 +607,17 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                   onCheckedChange={(checked) => { setGuestUnlock(checked); setDirty(true); setSuccess(false); }}
                 />
                 <FieldContent className="ms-0.5 mt-0.5">
-                  <FieldLabel htmlFor="checkin-guest-unlock" className="cn-text-body2 font-semibold">
+                  <FieldLabel htmlFor="checkin-guest-unlock" className="text-xs font-semibold">
                     {t('channels.checkIn.guestUnlock', "Autoriser l'ouverture de la porte depuis le livret")}
                   </FieldLabel>
-                  <span className="cn-text-caption text-muted-foreground block max-w-[520px]">
+                  <span className="block text-xs text-muted-foreground max-w-[520px]">
                     {t('channels.checkIn.guestUnlockHint', "Le voyageur voit un bouton « Ouvrir la porte » dans son livret, actif uniquement pendant son séjour (à partir de l'heure de check-in). Chaque ouverture vous est notifiée.")}
                   </span>
                 </FieldContent>
               </Field>
             ) : null}
             <div className="mt-3">
-              <p className="cn-text-body2 font-semibold mb-1.5">
+              <p className="text-xs font-semibold mb-1.5">
                 {t('channels.checkIn.extraCodes', 'Codes additionnels')}
               </p>
               <div className="flex flex-col gap-1.5">
@@ -678,7 +677,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
               <BuiButton variant="ghost" size="sm" onClick={addExtraCode} className="mt-1.5">
                 + {t('channels.checkIn.extraCodeAdd', 'Ajouter un code')}
               </BuiButton>
-              <span className="cn-text-caption text-muted-foreground block mt-0.5">
+              <span className="block text-xs text-muted-foreground mt-0.5">
                 {t('channels.checkIn.extraCodesHint', 'Affichés dans le livret. Chaque code fournit un tag à coller dans vos emails.')}
               </span>
             </div>
@@ -688,7 +687,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         {/* Parking */}
         <SectionCard
           icon={<ParkingIcon />}
-          accentColor="#4F86C6"
+          accentColor="var(--bui-info)"
           title={t('channels.checkIn.parkingSection')}
           description="Où et comment se garer"
           filledCount={stats.parking}
@@ -709,7 +708,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         {/* Arrivée */}
         <SectionCard
           icon={<ArrivalIcon />}
-          accentColor="#3E9C80"
+          accentColor="var(--bui-success)"
           title={t('channels.checkIn.arrivalSection')}
           description="Comment accéder au logement"
           filledCount={stats.arrival}
@@ -731,7 +730,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         <div className="col-span-[1] min-[900px]:col-span-[1_/_-1]">
           <SectionCard
             icon={<PhotoIcon />}
-            accentColor="#9A7FA3"
+            accentColor="var(--bui-primary)"
             title={t('channels.checkIn.accessPhotosSection', "Photos d'accès")}
             description={t('channels.checkIn.accessPhotosDesc', 'Aidez le voyageur à trouver et accéder au logement (entrée, parcours, boîte à clés…)')}
             filledCount={accessPhotos.length > 0 ? 1 : 0}
@@ -740,14 +739,16 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
             <div className="flex flex-wrap gap-2">
               {accessPhotos.map((p) => (
                 <div className="w-[140px]" key={p.key}>
-                  <div className="relative w-[140px] h-[100px] rounded-[12px] overflow-hidden border border-[var(--line)] bg-[var(--hover)]">
+                  <div className="relative w-[140px] h-[100px] rounded-lg overflow-hidden border border-border bg-muted">
                     <img className="w-full h-full object-cover block" src={p.preview ?? `/api/properties/${propertyId}/check-in-instructions/access-photos?key=${encodeURIComponent(p.key)}`} alt={p.caption || 'photo'} />
                     <BuiButton
                       variant="ghost"
                       size="icon-xs"
                       onClick={() => handleRemovePhoto(p.key)}
                       aria-label={t('common.delete', 'Supprimer')}
-                      className="absolute top-0.5 right-0.5 p-0 bg-[rgba(0,0,0,0.55)] text-white hover:bg-[rgba(0,0,0,0.75)] hover:text-white"
+                      // Voile sombre : la vignette est une photo, la teinte du
+                      // theme n'y garantirait pas le contraste dans les deux modes.
+                      className="absolute top-0.5 end-0.5 p-0 bg-black/55 text-white hover:bg-black/75 hover:text-white"
                     >
                       <CloseIcon size={14} strokeWidth={2} />
                     </BuiButton>
@@ -755,7 +756,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                   {/* Legende sans libelle visible : la vignette la porte, d'ou
                       l'aria-label plutot qu'un FieldLabel. */}
                   <Input
-                    className="mt-1 text-[0.75rem]"
+                    className="mt-1 text-xs"
                     value={p.caption}
                     onChange={(e) => handlePhotoCaption(p.key, e.target.value)}
                     aria-label={t('channels.checkIn.photoCaption', 'Légende…')}
@@ -771,7 +772,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
                 asChild
                 variant="outline"
                 className={cn(
-                  'w-[140px] h-[100px] flex-col gap-[3px] text-[0.75rem] border-dashed text-[var(--muted)] cursor-pointer',
+                  'w-[140px] h-[100px] flex-col gap-[3px] text-xs border-dashed text-muted-foreground cursor-pointer',
                   uploadingPhoto && 'pointer-events-none opacity-50',
                 )}
               >
@@ -798,7 +799,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         {/* Départ */}
         <SectionCard
           icon={<DepartureIcon />}
-          accentColor="#7BA3C2"
+          accentColor="var(--bui-info)"
           title={t('channels.checkIn.departureSection')}
           description="Procédure et check-out"
           filledCount={stats.departure}
@@ -819,7 +820,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         {/* Règlement */}
         <SectionCard
           icon={<RulesIcon />}
-          accentColor="#9A7FA3"
+          accentColor="var(--bui-primary)"
           title={t('channels.checkIn.rulesSection')}
           description="Règles à respecter dans le logement"
           filledCount={stats.rules}
@@ -841,7 +842,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         <div className="col-span-[1] min-[900px]:col-span-[1_/_-1]">
           <SectionCard
             icon={<PhoneIcon />}
-            accentColor="#E5484D"
+            accentColor="var(--bui-destructive)"
             title={t('channels.checkIn.emergencySection')}
             description="À contacter en cas d'incident — affiché en évidence pour le voyageur"
             filledCount={stats.emergency}
@@ -851,7 +852,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
               <FieldLabel htmlFor="checkin-emergency-contact">{t('channels.checkIn.emergencyContact')}</FieldLabel>
               <InputGroup>
                 <InputGroupAddon>
-                  <span className="inline-flex text-[#E5484D]">
+                  <span className="inline-flex text-destructive">
                     <PhoneIcon size={16} strokeWidth={1.75} />
                   </span>
                 </InputGroupAddon>
@@ -870,7 +871,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
         <div className="col-span-[1] min-[900px]:col-span-[1_/_-1]">
           <SectionCard
             icon={<NotesIcon />}
-            accentColor="#8BA0B3"
+            accentColor="var(--bui-muted-foreground)"
             title={t('channels.checkIn.additionalSection')}
             description="Bons plans, recommandations, infos pratiques sur le quartier"
             filledCount={stats.additional}
@@ -891,27 +892,27 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
       </div>
 
       {/* ─── Sticky save bar ──────────────────────────────────────────── */}
-      <div className="sticky bottom-0 mt-[18px] -mx-[18px] px-[18px] py-[9px] bg-[rgba(255,255,255,0.95)] dark:bg-[rgba(18,18,18,0.95)] backdrop-blur-[8px] border-t border-solid border-[var(--line)] flex items-center justify-between gap-3 z-[2]">
+      <div className="sticky bottom-0 mt-[18px] -mx-[18px] px-[18px] py-[9px] bg-card border-t border-border flex items-center justify-between gap-3 z-[2]">
         <div className="min-w-0 flex-1">
           {error && (
-            <UiAlert variant="destructive" className="text-[0.75rem] py-0.5">
+            <UiAlert variant="destructive" className="text-xs py-0.5">
               <TriangleAlert />
               <AlertDescription>{error}</AlertDescription>
             </UiAlert>
           )}
           {success && !error && (
-            <UiAlert variant="success" className="text-[0.75rem] py-[3px]">
+            <UiAlert variant="success" className="text-xs py-[3px]">
               <CheckCircle size={16} strokeWidth={2} />
               <AlertDescription>{t('channels.checkIn.saved')}</AlertDescription>
             </UiAlert>
           )}
           {!error && !success && dirty && (
-            <p className="cn-text-body1 text-[0.75rem] text-[var(--bui-warning-ink)] font-semibold">
+            <p className="text-xs font-semibold text-warning-ink">
               ● Modifications non enregistrées
             </p>
           )}
           {!error && !success && !dirty && instructions?.updatedAt && (
-            <p className="cn-text-body1 text-[0.75rem] text-muted-foreground opacity-60">
+            <p className="text-xs text-muted-foreground opacity-60">
               Aucune modification en cours
             </p>
           )}

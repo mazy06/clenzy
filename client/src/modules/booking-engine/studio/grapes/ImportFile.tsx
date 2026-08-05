@@ -1,6 +1,13 @@
 import { useRef, useState, type DragEvent, type ChangeEvent } from 'react';
 import { cn } from '../../../../utils/cn';
-import { FileUp, Loader2, FileText } from 'lucide-react';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
+  Spinner,
+} from '../../../../components/ui';
+import { FileUp, FileText, TriangleAlert } from 'lucide-react';
 import type { Editor } from 'grapesjs';
 import { loadHtmlIntoEditor } from './loadIntoEditor';
 import { importToHtml } from './import/registry';
@@ -118,11 +125,11 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.5]">
+      <p className="text-sm leading-normal text-muted-foreground">
         Déposez ou sélectionnez un fichier <strong>.html</strong>, <strong>.htm</strong>,{' '}
         <strong>.json</strong> (export de builder) ou <strong>.md</strong>. Le contenu est lu localement,
         converti en HTML + styles puis assaini avant d'être chargé. Le canevas actuel sera remplacé.
-      </div>
+      </p>
 
       {/* Input fichier masqué, piloté par la zone de dépôt et le bouton. */}
       <input
@@ -142,78 +149,62 @@ export default function ImportFile({ editor, onDone }: ImportFileProps) {
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         className={cn(
-          'flex flex-col items-center justify-center gap-1.5 w-full min-h-[168px] px-3 py-[18px] text-center cursor-pointer',
-          'text-[var(--muted)] border-[1.5px] border-dashed rounded-[var(--radius-lg)]',
-          'transition-[border-color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-out)]',
-          'hover:border-[var(--accent)] hover:bg-[var(--hover)]',
-          'focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
-          'disabled:opacity-60 disabled:cursor-default',
-          dragOver ? 'bg-[var(--hover)] border-[var(--accent)]' : 'bg-[var(--field)] border-[var(--line)]',
+          'flex w-full min-h-[168px] cursor-pointer flex-col items-center justify-center gap-1.5 px-3 py-[18px] text-center',
+          'rounded-xl border-[1.5px] border-dashed text-muted-foreground',
+          'transition-[border-color,background-color] duration-150 ease-out-quart motion-reduce:transition-none',
+          'hover:border-primary hover:bg-muted',
+          'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+          'disabled:cursor-default disabled:opacity-60',
+          dragOver ? 'border-primary bg-muted' : 'border-border bg-field',
         )}
       >
         {loading ? (
-          <div className="inline-flex text-[var(--accent)] animate-spin [animation-duration:0.8s]">
-            <Loader2 size={28} strokeWidth={1.75} />
-          </div>
+          <Spinner className="size-7 text-primary" />
         ) : fileName ? (
-          <FileText size={28} strokeWidth={1.75} style={{ color: 'var(--accent)' }} />
+          <FileText size={28} strokeWidth={1.75} className="text-primary" />
         ) : (
-          <FileUp size={28} strokeWidth={1.75} style={{ color: 'var(--faint)' }} />
+          <FileUp size={28} strokeWidth={1.75} className="text-faint" />
         )}
-        <div className="text-[var(--text-md)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">
+        <span className="text-sm font-semibold text-foreground">
           {loading
             ? 'Lecture du fichier…'
             : fileName
               ? fileName
               : 'Glissez un fichier ici, ou cliquez pour parcourir'}
-        </div>
+        </span>
         {!loading && !fileName ? (
-          <div className="text-[var(--text-sm)] text-[var(--faint)]">
+          <span className="text-sm text-faint">
             .html · .htm · .json · .md
-          </div>
+          </span>
         ) : null}
       </button>
 
       {error ? (
-        <div className="text-[var(--text-sm)] text-[var(--err,_#c0392b)]" role="alert">
-          {error}
-        </div>
+        <Alert variant="destructive">
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       ) : null}
 
       {warnings.length ? (
-        <div className="text-[var(--text-sm)] text-[var(--muted)] bg-[var(--field)] border border-[var(--line)] rounded-[var(--radius-md)] px-2 py-2">
-          <div className="font-[family-name:var(--fw-semibold)] text-[var(--ink)] mb-0.5">
-            Conversion partielle — relecture conseillée
-          </div>
-          <ul className="m-0 ps-3.5 flex flex-col gap-0.5">
-            {warnings.map((w, i) => (
-              <li key={i}>{w}</li>
-            ))}
-          </ul>
-        </div>
+        <Alert variant="warning">
+          <TriangleAlert />
+          <AlertTitle>Conversion partielle — relecture conseillée</AlertTitle>
+          <AlertDescription>
+            <ul className="m-0 flex flex-col gap-0.5 ps-3.5">
+              {warnings.map((w, i) => (
+                <li key={i}>{w}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={openPicker}
-          disabled={loading}
-          className={
-            'inline-flex items-center gap-[4.5px] px-[15px] h-10 rounded-[var(--radius-md)] cursor-pointer '
-            + 'bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-deep,var(--accent))] disabled:opacity-50 '
-            + 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2'
-          }
-          style={{ fontWeight: 'var(--fw-semibold)', fontSize: 'var(--text-md)' }}
-        >
-          {loading ? (
-            <div className="inline-flex animate-spin [animation-duration:0.8s]">
-              <Loader2 size={15} strokeWidth={2} />
-            </div>
-          ) : (
-            <FileUp size={15} strokeWidth={2} />
-          )}
+        <Button type="button" onClick={openPicker} disabled={loading}>
+          {loading ? <Spinner /> : <FileUp size={15} strokeWidth={2} />}
           {loading ? 'Lecture en cours…' : 'Choisir un fichier'}
-        </button>
+        </Button>
       </div>
     </div>
   );

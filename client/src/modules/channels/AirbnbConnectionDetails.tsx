@@ -18,11 +18,10 @@ const AirbnbConnectionDetails: React.FC<AirbnbConnectionDetailsProps> = ({
   dateLocale,
   t,
 }) => (
-  // Report en classes de `CARD_SX` + mb: 1.5 (p: 2 = 12 px, mb: 1.5 = 9 px).
-  <div className="border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] p-3 mb-[9px] shadow-none">
+  <div className="border border-border bg-card rounded-xl p-3 mb-[9px]">
     <div className="flex items-center gap-1.5 mb-2">
       <img className="h-[18px]" src={airbnbLogoSmall} alt="Airbnb" />
-      <p className="cn-text-body1 text-[0.875rem] font-bold">
+      <p className="text-sm font-semibold tracking-tight">
         {t('channels.airbnb.connectedSince')}
       </p>
     </div>
@@ -57,10 +56,10 @@ export default AirbnbConnectionDetails;
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] font-bold uppercase tracking-[0.06em]">
+      <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
-      <p className="cn-text-body1 text-[0.8125rem] font-semibold tabular-nums">
+      <p className="text-sm font-semibold tabular-nums">
         {value}
       </p>
     </div>

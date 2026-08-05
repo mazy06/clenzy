@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../../utils/cn';
-import { Spinner } from '../../../../components/ui';
-import { AlertTriangle, Wand2 } from 'lucide-react';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  Spinner,
+} from '../../../../components/ui';
+import { TriangleAlert, Wand2 } from 'lucide-react';
 import { BaitlyWidget } from '../../sdk/BaitlyWidget';
 import { widgetThemeFromTokens } from '../../widgetTheme';
 import { API_CONFIG } from '../../../../config/api';
@@ -118,26 +124,34 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
   let body: React.ReactNode;
   if (!url) {
     body = (
-      <Centered>
-        <Wand2 size={30} strokeWidth={1.6} />
-        <div className="text-[var(--text-md)] max-w-[360px] text-center">
-          Lance d’abord <strong>Analyse du design</strong> (⌘K) avec l’URL du site du client :
-          le site sera capturé ici et le widget posé dessus.
-        </div>
-      </Centered>
+      <Empty className="min-h-0 flex-1 p-4">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Wand2 strokeWidth={1.6} />
+          </EmptyMedia>
+          <EmptyDescription className="max-w-[360px]">
+            Lance d’abord <strong>Analyse du design</strong> (⌘K) avec l’URL du site du client :
+            le site sera capturé ici et le widget posé dessus.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   } else if (loading) {
-    body = <Centered><Spinner className="size-[26px] text-[var(--accent)]" /></Centered>;
+    body = <Centered><Spinner className="size-[26px] text-primary" /></Centered>;
   } else if (error || !html) {
     body = (
-      <Centered>
-        <AlertTriangle size={28} strokeWidth={1.75} />
-        <div className="text-[var(--text-md)]">{error ?? 'Site indisponible.'}</div>
-      </Centered>
+      <Empty className="min-h-0 flex-1 p-4">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <TriangleAlert strokeWidth={1.75} />
+          </EmptyMedia>
+          <EmptyDescription>{error ?? 'Site indisponible.'}</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   } else {
     body = (
-      <div className={cn('flex-1 min-w-0 h-full overflow-auto bg-[var(--bg-2,_var(--bg))] flex justify-center', breakpoint === 'desktop' ? 'p-0' : 'p-[18px]')}>
+      <div className={cn('flex h-full min-w-0 flex-1 justify-center overflow-auto bg-background', breakpoint === 'desktop' ? 'p-0' : 'p-[18px]')}>
         {/* `width` vient de FRAME_WIDTH (nombre ou '100%') : valeur d'execution, donc style. */}
         <iframe
           key={html.length}
@@ -150,7 +164,7 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
             'max-w-full border-0 bg-white',
             breakpoint === 'desktop'
               ? 'h-full'
-              : 'h-[90%] my-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] shadow-[var(--shadow-card)]',
+              : 'my-auto h-[90%] rounded-xl border border-border shadow-sm',
           )}
           style={{ width }}
         />
@@ -161,9 +175,9 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Barre : sélecteur de placement du widget (bas / flottant / haut). */}
-      <div className="flex items-center gap-1.5 px-3 py-2 shrink-0 border-b border-[var(--line)] bg-[var(--card)]">
-        <div className="text-[var(--text-sm)] text-[var(--muted)] me-0.5">Position du widget</div>
-        <div className="inline-flex gap-0.5 p-0.5 rounded-[var(--radius-md)] bg-[var(--bg)] border border-[var(--line)]">
+      <div className="flex shrink-0 items-center gap-1.5 border-b border-border bg-card px-3 py-2">
+        <span className="me-0.5 text-sm text-muted-foreground">Position du widget</span>
+        <div className="inline-flex gap-0.5 rounded-lg border border-border bg-background p-0.5">
           {PLACEMENTS.map((p) => (
             <button
               key={p.value}
@@ -171,13 +185,13 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
               onClick={() => setPlacement(p.value)}
               aria-pressed={placement === p.value}
               className={cn(
-                'inline-flex items-center justify-center border-0 px-[9px] h-7 cursor-pointer',
-                'rounded-[var(--radius-sm)] text-[var(--text-sm)] [font-weight:var(--fw-medium)]',
-                '[transition:background-color_var(--duration-fast)_var(--ease-out),color_var(--duration-fast)_var(--ease-out)] motion-reduce:transition-none',
-                'focus-visible:[outline:2px_solid_var(--accent)] focus-visible:outline-offset-2',
+                'inline-flex h-7 cursor-pointer items-center justify-center px-2.5',
+                'rounded-md text-sm font-medium',
+                'transition-colors duration-150 ease-out-quart motion-reduce:transition-none',
+                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                 placement === p.value
-                  ? 'text-[var(--on-accent)] bg-[var(--accent)] hover:bg-[var(--accent-deep)]'
-                  : 'text-[var(--body)] bg-transparent hover:bg-[var(--hover,_rgba(0,0,0,.04))]',
+                  ? 'bg-primary text-primary-foreground hover:bg-primary-deep'
+                  : 'bg-transparent text-foreground hover:bg-muted',
               )}
             >
               {p.label}
@@ -192,7 +206,7 @@ export default function SiteEmbedPreview({ config, breakpoint }: SiteEmbedPrevie
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-2 text-[var(--muted)] p-4">
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 p-4 text-muted-foreground">
       {children}
     </div>
   );

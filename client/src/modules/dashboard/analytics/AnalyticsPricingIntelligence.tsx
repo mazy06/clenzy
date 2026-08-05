@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent } from '../../../components/ui';
+import { Card, CardContent, Spinner } from '../../../components/ui';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar,
@@ -18,12 +18,11 @@ const GRID_STROKE = '#F1F5F9';
 
 const CHART_CARD_CLASS = 'w-full h-[220px]';
 
-/** p: 1.25 = 7,5 px (theme.spacing vaut 6). */
 const CHART_CONTENT_CLASS = 'p-[7.5px] h-full flex flex-col';
 
-/** Report en classes de l'ancien `SECTION_LABEL_SX` (variante body1 par defaut). */
+/** Etiquette de section, rôle « overline » de l'échelle Baitly UI. */
 const SECTION_LABEL_CLASS =
-  'cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.04em] text-[var(--muted)] mb-[3px] shrink-0';
+  'text-[0.6875rem] font-bold uppercase tracking-[0.04em] text-muted-foreground mb-[3px] shrink-0';
 
 interface Props {
   data: PricingMetrics | null;
@@ -49,7 +48,7 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
               </p>
               {loading || !data ? (
                 <div className="flex-1 flex items-center justify-center">
-                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                  <Spinner className="text-muted-foreground" />
                 </div>
               ) : (
                 <div className="flex-1 min-h-0">
@@ -78,7 +77,7 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
               </p>
               {loading || !data ? (
                 <div className="flex-1 flex items-center justify-center">
-                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                  <Spinner className="text-muted-foreground" />
                 </div>
               ) : (
                 <div className="flex-1 min-h-0">
@@ -104,7 +103,7 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
             value={data ? <Money value={data.optimalPrice} from="EUR" decimals={0} /> : '-'}
             valueText={data ? convertAndFormat(data.optimalPrice, 'EUR') : undefined}
             subtitle={t('dashboard.analytics.optimalPriceDesc')}
-            icon={<PriceChange color="success" />}
+            icon={<PriceChange className="text-success" />}
             tooltip={t('dashboard.analytics.optimalPriceTooltip')}
             loading={loading}
           />
@@ -116,7 +115,7 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
             title={t('dashboard.analytics.elasticity')}
             value={data ? `${data.elasticity.toFixed(2)}` : '-'}
             subtitle={t('dashboard.analytics.elasticityDesc')}
-            icon={<TuneOutlined color="info" />}
+            icon={<TuneOutlined className="text-info" />}
             tooltip={t('dashboard.analytics.elasticityTooltip')}
             loading={loading}
           />

@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
-import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { TriangleAlert, X, Info } from 'lucide-react';
+import { Alert as BuiAlert, AlertTitle, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { Check, TriangleAlert, X, Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import {
   Field,
@@ -103,8 +103,10 @@ const SourceLogoIcon: React.FC<{ logo?: string; label: string; size?: number }> 
   const imgSize = size * 0.7;
   // La taille est une prop : elle passe par style, une classe ne peut pas naitre d'une variable.
   return (
+    // Plaque blanche assumee : les logos de canaux sont dessines pour un fond
+    // blanc, les poser sur la surface teintee du PMS les salit.
     <div
-      className="inline-flex items-center justify-center shrink-0 rounded-[50%] border-[1.5px] border-solid border-[var(--line)] bg-[#fff]"
+      className="inline-flex shrink-0 items-center justify-center rounded-full border-[1.5px] border-solid border-border bg-white"
       style={{ width: size, height: size, minWidth: size }}
     >
       <img src={logo} alt={label} width={imgSize} height={imgSize} style={{ objectFit: 'contain', borderRadius: '50%' }} />
@@ -127,20 +129,22 @@ const StepIndicator: React.FC<{ steps: string[]; activeStep: number }> = ({ step
       return (
         <React.Fragment key={label}>
           {idx > 0 && (
-            <div className={cn('w-[48px] h-[2px] mx-[3px] rounded-[8px]', isDone ? 'bg-[var(--accent)]' : 'bg-[var(--line)]')} style={{ transition: 'background-color 0.3s' }} />
+            <div className={cn('mx-[3px] h-[2px] w-[48px] rounded-md transition-colors duration-300', isDone ? 'bg-primary' : 'bg-border')} />
           )}
           <div className="flex flex-col items-center gap-0.5">
             <div
               className={cn(
-                'w-7 h-7 rounded-[50%] flex items-center justify-center text-[0.75rem] font-bold [transition:all_0.3s]',
-                isActive && 'bg-[var(--accent)] text-[var(--on-accent)] shadow-[0_0_0_3px_var(--accent-soft)]',
-                isDone && 'bg-[var(--accent)] text-[var(--on-accent)]',
-                !isActive && !isDone && 'bg-[var(--field)] text-[var(--muted)] border-[1.5px] border-solid border-[var(--line-2)]',
+                'flex size-7 items-center justify-center rounded-full text-xs font-bold tabular-nums transition-all duration-300',
+                isActive && 'bg-primary text-primary-foreground shadow-[0_0_0_3px_var(--bui-primary-soft)]',
+                isDone && 'bg-primary text-primary-foreground',
+                !isActive && !isDone && 'border-[1.5px] border-solid border-field-line bg-field text-muted-foreground',
               )}
             >
-              {isDone ? '✓' : idx + 1}
+              {/* Une coche dessinee, pas le caractere « ✓ » : la police le rend
+                  differemment d'une plateforme a l'autre et il ne s'aligne pas. */}
+              {isDone ? <Check className="size-3.5" strokeWidth={2.5} /> : idx + 1}
             </div>
-            <span className={cn('cn-text-caption text-[0.625rem] tracking-[0.02em]', isActive ? 'font-bold' : 'font-medium', isActive ? 'text-[var(--ink)]' : 'text-[var(--muted)]')}>
+            <span className={cn('text-2xs tracking-wide', isActive ? 'font-bold' : 'font-medium', isActive ? 'text-foreground' : 'text-muted-foreground')}>
               {label}
             </span>
           </div>
@@ -321,31 +325,27 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
   const renderConfigStep = () => (
     <div className="flex flex-col gap-3.5">
       {!hasAccess && (
-        <BuiAlert variant="warning" className="text-[0.8125rem]">
+        <BuiAlert variant="warning">
           <TriangleAlert />
           <AlertDescription>L'import iCal est disponible avec les forfaits Confort et Premium.</AlertDescription>
         </BuiAlert>
       )}
 
-      {/* Info banner */}
-      <div className="flex items-start gap-2 p-2 rounded-[11px] bg-[var(--accent-soft)] border border-[var(--field-line)]">
-        <span className="inline-flex text-[var(--accent)] mt-0.5"><InfoIcon size={18} strokeWidth={1.75} /></span>
-        <div>
-          <p className="cn-text-body2 text-[0.8125rem] font-medium text-[var(--ink)]">
-            Collez le lien iCal de votre calendrier externe pour importer vos réservations.
-          </p>
-          <span className="cn-text-caption text-[var(--muted)] text-[0.6875rem]">
-            Airbnb : Annonce &rarr; Tarification et disponibilité &rarr; Exporter le calendrier
-          </span>
-        </div>
-      </div>
+      {/* Info banner — primitive Alert du kit plutot qu'un encart dessine a la main */}
+      <BuiAlert variant="info">
+        <InfoIcon strokeWidth={1.75} />
+        <AlertTitle>Collez le lien iCal de votre calendrier externe pour importer vos réservations.</AlertTitle>
+        <AlertDescription>
+          Airbnb : Annonce &rarr; Tarification et disponibilité &rarr; Exporter le calendrier
+        </AlertDescription>
+      </BuiAlert>
 
       {/* URL du calendrier */}
       <Field>
         <FieldLabel htmlFor="ical-url">Lien iCal (.ics)</FieldLabel>
         <InputGroup>
           <InputGroupAddon>
-            <span className="inline-flex text-[var(--faint)]"><CalendarIcon size={18} strokeWidth={1.75} /></span>
+            <span className="inline-flex text-faint"><CalendarIcon size={18} strokeWidth={1.75} /></span>
           </InputGroupAddon>
           <InputGroupInput
             id="ical-url"
@@ -463,16 +463,16 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             <TooltipContent>Disponible avec le forfait Confort ou Premium</TooltipContent>
           </Tooltip>
         )}
-        <p className="cn-text-body2 text-[0.8125rem] font-medium text-[var(--ink)]">
+        <p className="text-sm font-medium text-foreground">
           Ménage automatique
         </p>
-        <span className="cn-text-caption text-[0.6875rem] text-[var(--muted)]">
+        <span className="text-xs text-muted-foreground">
           — Crée une demande de ménage le jour du checkout à l'heure de départ du voyageur
         </span>
       </div>
 
       {error && (
-        <BuiAlert variant="destructive" className="text-[0.8125rem]">
+        <BuiAlert variant="destructive">
           <TriangleAlert />
           <AlertDescription>{error}</AlertDescription>
           <AlertAction>
@@ -497,18 +497,18 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
 
     return (
       <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <h6 className="cn-text-subtitle2 text-[0.875rem] font-bold">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <h6 className="text-sm font-semibold tracking-tight">
             {preview.propertyName}
           </h6>
-          <StatusChip tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={`${reservationCount} réservation${reservationCount > 1 ? 's' : ''}`} icon={<EventIcon size={14} strokeWidth={1.75} />} className="h-[24px]" />
+          <StatusChip tokens={{ color: 'var(--bui-primary)', bg: 'var(--bui-primary-soft)' }} label={`${reservationCount} réservation${reservationCount > 1 ? 's' : ''}`} icon={<EventIcon size={14} strokeWidth={1.75} />} className="h-6" />
           {blockedCount > 0 && (
-            <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--field-bg)' }} label={`${blockedCount} période${blockedCount > 1 ? 's' : ''} bloquée${blockedCount > 1 ? 's' : ''}`} className="h-[24px]" />
+            <StatusChip tokens={{ color: 'var(--bui-muted-foreground)', bg: 'var(--bui-field)' }} label={`${blockedCount} période${blockedCount > 1 ? 's' : ''} bloquée${blockedCount > 1 ? 's' : ''}`} className="h-6" />
           )}
         </div>
 
         {totalCount === 0 && (
-          <BuiAlert variant="info" className="text-[0.8125rem]">
+          <BuiAlert variant="info">
             <Info />
             <AlertDescription>Aucune réservation ni période bloquée trouvée dans ce calendrier.</AlertDescription>
           </BuiAlert>
@@ -518,15 +518,15 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             bloc de defilement (il porte deja overflow-x). La hauteur bornee et le
             defilement vertical doivent donc lui etre poses, sinon les en-tetes
             `sticky` n'ont aucun ancetre scrollable et ne se figent jamais. */}
-        <div className="rounded-[10px] overflow-hidden border border-solid border-[var(--line)] bg-[var(--card)] [&_[data-slot=table-container]]:max-h-[320px] [&_[data-slot=table-container]]:overflow-y-auto">
+        <div className="overflow-hidden rounded-lg border border-solid border-border bg-card [&_[data-slot=table-container]]:max-h-[320px] [&_[data-slot=table-container]]:overflow-y-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 {/* Fond opaque obligatoire : sans lui les lignes defilent par transparence. */}
-                <TableHead className="sticky top-0 z-10 bg-[var(--card)]">Arrivée</TableHead>
-                <TableHead className="sticky top-0 z-10 bg-[var(--card)]">Départ</TableHead>
-                <TableHead className="sticky top-0 z-10 bg-[var(--card)] text-center">Nuits</TableHead>
-                <TableHead className="sticky top-0 z-10 bg-[var(--card)]">Guest / Détails</TableHead>
+                <TableHead className="sticky top-0 z-10 bg-card">Arrivée</TableHead>
+                <TableHead className="sticky top-0 z-10 bg-card">Départ</TableHead>
+                <TableHead className="sticky top-0 z-10 bg-card text-center">Nuits</TableHead>
+                <TableHead className="sticky top-0 z-10 bg-card">Guest / Détails</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -535,23 +535,23 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
                   <TableCell>{formatDate(event.dtStart)}</TableCell>
                   <TableCell>{formatDate(event.dtEnd)}</TableCell>
                   <TableCell className="text-center">
-                    <Badge variant="secondary" className="text-[0.6875rem] font-semibold h-[22px] min-w-[28px]">{event.nights || '-'}</Badge>
+                    <Badge variant="secondary" className="h-[22px] min-w-[28px] text-2xs font-semibold tabular-nums">{event.nights || '-'}</Badge>
                   </TableCell>
                   <TableCell>
                     {event.type === 'blocked' ? (
                       <div className="flex items-center gap-1">
-                        <StatusChip size="sm" tokens={{ color: 'var(--muted)', bg: 'var(--field-bg)' }} label="Bloqué" className="h-[20px]" />
-                        <p className="cn-text-body2 text-[0.8125rem] text-[var(--muted)]">
+                        <StatusChip size="sm" tokens={{ color: 'var(--bui-muted-foreground)', bg: 'var(--bui-field)' }} label="Bloqué" className="h-5" />
+                        <p className="text-sm text-muted-foreground">
                           Période bloquée
                         </p>
                       </div>
                     ) : (
                       <>
-                        <p className="cn-text-body2 text-[0.8125rem] font-medium">
+                        <p className="text-sm font-medium">
                           {event.guestName || event.summary || 'Réservation'}
                         </p>
                         {event.confirmationCode && (
-                          <span className="cn-text-caption text-muted-foreground text-[0.6875rem]">
+                          <span className="text-xs text-muted-foreground">
                             {event.confirmationCode}
                           </span>
                         )}
@@ -565,17 +565,17 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         </div>
 
         {autoCreateInterventions && totalCount > 0 && (
-          <div className="flex items-start gap-2 p-2 rounded-[11px] bg-[var(--accent-soft)] border border-[var(--field-line)]">
-            <span className="inline-flex text-[var(--accent)] mt-0.5"><SyncIcon size={18} strokeWidth={1.75} /></span>
-            <p className="cn-text-body2 text-[0.8125rem] text-[var(--body)]">
+          <BuiAlert variant="info">
+            <SyncIcon strokeWidth={1.75} />
+            <AlertDescription>
               {totalCount} demande{totalCount > 1 ? 's' : ''} de service de ménage
               {totalCount > 1 ? ' seront' : ' sera'} automatiquement créée{totalCount > 1 ? 's' : ''} à l'heure de départ du voyageur, le jour du checkout.
-            </p>
-          </div>
+            </AlertDescription>
+          </BuiAlert>
         )}
 
         {error && (
-          <BuiAlert variant="destructive" className="text-[0.8125rem]">
+          <BuiAlert variant="destructive">
             <TriangleAlert />
             <AlertDescription>{error}</AlertDescription>
             <AlertAction>
@@ -598,50 +598,49 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
 
     return (
       <div className="flex flex-col gap-3.5 items-center py-4">
-        {/* Success/Warning icon */}
-        <div className={cn('w-[64px] h-[64px] rounded-[50%] flex items-center justify-center', hasErrors ? 'bg-[rgba(255,_152,_0,_0.08)]' : 'bg-[rgba(76,_175,_80,_0.08)]')}>
+        {/* Success/Warning icon — fond pastel du registre, encre du meme registre. */}
+        <div className={cn('flex size-16 items-center justify-center rounded-full', hasErrors ? 'bg-warning-soft text-warning-ink' : 'bg-success-soft text-success-ink')}>
           {!hasErrors ? (
-            <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircleIcon size={36} strokeWidth={1.75} /></span>
+            <CheckCircleIcon size={36} strokeWidth={1.75} />
           ) : (
-            <span className="inline-flex text-[var(--bui-warning-ink)]"><ErrorIcon size={36} strokeWidth={1.75} /></span>
+            <ErrorIcon size={36} strokeWidth={1.75} />
           )}
         </div>
 
-        <h6 className="cn-text-subtitle1 font-bold text-[1rem]">
+        <h6 className="text-base font-semibold tracking-tight">
           Import terminé
         </h6>
 
-        <div className="flex gap-1.5 justify-center flex-wrap">
-          <Badge variant="success" className="text-[0.6875rem] font-semibold h-[28px] [&>svg]:text-[14px]"><CheckCircleIcon size={14} strokeWidth={1.75} />{`${importResult.imported} importée${importResult.imported > 1 ? 's' : ''}`}</Badge>
-          <Badge variant="outline" className="text-[0.6875rem] font-semibold h-[28px] border-[var(--line)] text-[var(--muted)]">{`${importResult.skipped} doublon${importResult.skipped > 1 ? 's' : ''} ignoré${importResult.skipped > 1 ? 's' : ''}`}</Badge>
+        <div className="flex flex-wrap justify-center gap-1.5">
+          <Badge variant="success" className="h-7 text-2xs font-semibold tabular-nums"><CheckCircleIcon size={14} strokeWidth={1.75} />{`${importResult.imported} importée${importResult.imported > 1 ? 's' : ''}`}</Badge>
+          <Badge variant="outline" className="h-7 text-2xs font-semibold tabular-nums text-muted-foreground">{`${importResult.skipped} doublon${importResult.skipped > 1 ? 's' : ''} ignoré${importResult.skipped > 1 ? 's' : ''}`}</Badge>
           {!!importResult.daysBlocked && importResult.daysBlocked > 0 && (
-            <Badge variant="outline" className="text-[0.6875rem] font-semibold h-[28px] border-[var(--line)] text-[var(--muted)]">{`${importResult.daysBlocked} jour${importResult.daysBlocked > 1 ? 's' : ''} bloqué${importResult.daysBlocked > 1 ? 's' : ''}`}</Badge>
+            <Badge variant="outline" className="h-7 text-2xs font-semibold tabular-nums text-muted-foreground">{`${importResult.daysBlocked} jour${importResult.daysBlocked > 1 ? 's' : ''} bloqué${importResult.daysBlocked > 1 ? 's' : ''}`}</Badge>
           )}
           {hasErrors && (
-            <Badge variant="destructive" className="text-[0.6875rem] font-semibold h-[28px] [&>svg]:text-[14px]"><ErrorIcon size={14} strokeWidth={1.75} />{`${importResult.errors.length} erreur${importResult.errors.length > 1 ? 's' : ''}`}</Badge>
+            <Badge variant="destructive" className="h-7 text-2xs font-semibold tabular-nums"><ErrorIcon size={14} strokeWidth={1.75} />{`${importResult.errors.length} erreur${importResult.errors.length > 1 ? 's' : ''}`}</Badge>
           )}
         </div>
 
         {hasErrors && (
-          <BuiAlert variant="warning" className="w-full text-[0.8125rem]">
+          <BuiAlert variant="warning" className="w-full">
             <TriangleAlert />
-            <AlertDescription><p className="cn-text-body2 font-semibold mb-0.5 text-[0.8125rem]">
-              Certains événements n'ont pas pu être importés :
-            </p>{importResult.errors.map((err, i) => (
-              <span className="cn-text-caption block text-muted-foreground text-[0.6875rem]" key={i}>
+            <AlertTitle>Certains événements n'ont pas pu être importés :</AlertTitle>
+            <AlertDescription>{importResult.errors.map((err, i) => (
+              <span className="block text-xs" key={i}>
                 &bull; {err}
               </span>
             ))}</AlertDescription>
           </BuiAlert>
         )}
 
-        <div className="flex items-start gap-2 p-2 rounded-[11px] bg-[var(--accent-soft)] border border-[var(--field-line)] w-full">
-          <span className="inline-flex text-[var(--accent)] mt-0.5"><SyncIcon size={18} strokeWidth={1.75} /></span>
-          <p className="cn-text-body2 text-[0.8125rem] text-[var(--body)]">
+        <BuiAlert variant="info" className="w-full">
+          <SyncIcon strokeWidth={1.75} />
+          <AlertDescription>
             Votre calendrier sera automatiquement re-synchronisé toutes les 3 heures.
             Les doublons sont ignorés automatiquement.
-          </p>
-        </div>
+          </AlertDescription>
+        </BuiAlert>
       </div>
     );
   };
@@ -667,9 +666,9 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
       >
         {/* En-tete pleine largeur : les marges negatives annulent le padding de
             la coque, comme le pied du kit le fait deja. */}
-        <DialogHeader className="-mx-4 -mt-4 flex-row items-center justify-between border-b border-solid border-[var(--line)] px-4 py-2">
-          <DialogTitle className="flex items-center gap-1.5 text-[0.9375rem] font-bold text-[var(--ink)]">
-            <span className="w-[32px] h-[32px] rounded-[8px] flex items-center justify-center bg-[var(--accent-soft)] text-[var(--accent)]">
+        <DialogHeader className="-mx-4 -mt-4 flex-row items-center justify-between border-b border-solid border-border px-4 py-2">
+          <DialogTitle className="flex items-center gap-1.5 text-base font-semibold tracking-tight text-foreground">
+            <span className="flex size-8 items-center justify-center rounded-md bg-primary-soft text-primary">
               <CalendarIcon size={18} strokeWidth={1.75} />
             </span>
             Import Calendrier iCal
@@ -679,7 +678,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             size="icon-sm"
             aria-label="Fermer"
             onClick={handleClose}
-            className="text-[var(--muted)] hover:text-[var(--err)] hover:bg-[var(--hover)]"
+            className="text-muted-foreground hover:bg-muted hover:text-destructive-ink"
           >
             <CloseIcon size={18} strokeWidth={1.75} />
           </BuiButton>

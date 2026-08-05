@@ -1,4 +1,11 @@
 import { LayoutTemplate } from 'lucide-react';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '../../../../components/ui';
 import { GALLERY_TEMPLATES, type GalleryTemplate } from './import/galleryTemplates';
 
 /**
@@ -21,41 +28,46 @@ export default function ImportGallery({ onImportTemplate, onDone }: ImportGaller
 
   if (GALLERY_TEMPLATES.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-1.5 py-9 text-center text-[var(--muted)]">
-        <LayoutTemplate size={28} strokeWidth={1.75} style={{ color: 'var(--faint)' }} />
-        <div className="text-[var(--text-md)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">Galerie de templates</div>
-        <div className="text-[var(--text-sm)] text-[var(--faint)]">Catalogue en cours de constitution.</div>
-      </div>
+      <Empty className="py-9">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <LayoutTemplate strokeWidth={1.75} />
+          </EmptyMedia>
+          <EmptyTitle>Galerie de templates</EmptyTitle>
+          <EmptyDescription>Catalogue en cours de constitution.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.5]">
+      <p className="text-sm leading-normal text-muted-foreground">
         Choisissez un modèle de départ. Le canevas actuel sera remplacé ; vous pourrez tout éditer ensuite.
-      </div>
-      <div className="grid grid-cols-[repeat(auto-fill,_minmax(180px,_1fr))] gap-[9px]">
+      </p>
+      <div className="grid grid-cols-[repeat(auto-fill,_minmax(180px,_1fr))] gap-2.5">
         {GALLERY_TEMPLATES.map((tpl) => (
           <button
             type="button"
             key={tpl.id}
             onClick={() => choose(tpl)}
             className={
-              'flex flex-col items-stretch text-left overflow-hidden cursor-pointer '
-              + 'border border-solid border-[var(--line)] rounded-[var(--radius-md)] bg-[var(--card)] '
-              + '[transition:border-color_var(--duration-fast)_var(--ease-out),box-shadow_var(--duration-fast)_var(--ease-out)] '
-              + 'hover:border-[var(--accent)] hover:shadow-[var(--shadow-card)] '
-              + 'focus-visible:[outline:2px_solid_var(--accent)] focus-visible:[outline-offset:2px]'
+              'flex cursor-pointer flex-col items-stretch overflow-hidden rounded-lg border border-border bg-card text-start '
+              + 'transition-[border-color,box-shadow] duration-150 ease-out-quart motion-reduce:transition-none '
+              + 'hover:border-primary hover:shadow-sm '
+              + 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
             }
           >
-            {/* Aperçu : vignette si fournie, sinon bande d'accent du template. */}
+            {/* Aperçu : vignette si fournie, sinon fond de champ neutre. */}
             <div
-              className="h-24 bg-[var(--field)] bg-cover bg-center"
+              className="h-24 bg-field bg-cover bg-center"
               style={{ backgroundImage: tpl.thumbnail ? `url("${tpl.thumbnail}")` : 'none' }}
             />
-            <div className="p-2 flex flex-col gap-0.5">
-              <div className="text-[var(--text-sm)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">{tpl.name}</div>
-              {tpl.description ? <div className="text-[var(--text-2xs)] text-[var(--muted)]">{tpl.description}</div> : null}
+            <div className="flex flex-col gap-0.5 p-2">
+              <span className="text-sm font-semibold text-foreground">{tpl.name}</span>
+              {tpl.description ? (
+                <span className="text-2xs text-muted-foreground">{tpl.description}</span>
+              ) : null}
             </div>
           </button>
         ))}

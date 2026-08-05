@@ -46,7 +46,7 @@ if (typeof document !== 'undefined' && !document.getElementById(ONBOARDING_KEYFR
   styleEl.id = ONBOARDING_KEYFRAMES_ID;
   styleEl.textContent =
     '@keyframes onboarding-shadow-pulse{0%,100%{box-shadow:none}'
-    + '50%{box-shadow:0 6px 28px color-mix(in srgb, var(--accent) 25%, transparent), 0 0 0 1.5px color-mix(in srgb, var(--accent) 20%, transparent)}}';
+    + '50%{box-shadow:0 6px 28px color-mix(in srgb, var(--bui-primary) 25%, transparent), 0 0 0 1.5px color-mix(in srgb, var(--bui-primary) 20%, transparent)}}';
   document.head.appendChild(styleEl);
 }
 
@@ -54,128 +54,131 @@ if (typeof document !== 'undefined' && !document.getElementById(ONBOARDING_KEYFR
 
 interface StepVisual {
   icon: React.ReactNode;
-  gradient: string;
-  accentColor: string;
+  /** Teinte vive du registre — fond pastel de la pastille et halo. */
+  tint: string;
+  /** Encre du même registre — seule variante qui passe AA en texte/icône. */
+  ink: string;
   actionIcon: React.ReactNode;
 }
 
-// Aplats tokens Signature — les anciens dégradés deviennent des fonds unis
-// (le champ `gradient` reste le fond du CTA, désormais une couleur token).
+// Registres Baitly UI. Chaque étape porte un COUPLE : la teinte vive tapisse
+// (fond pastel obtenu par color-mix), l'encre écrit — les mélanger, c'est de
+// l'icône à 2,2:1. Le canal Airbnb garde sa couleur de marque (§2.5).
 const STEP_VISUALS: Record<string, StepVisual> = {
   create_property: {
     icon: <Home size={16} strokeWidth={1.75} />,
-    gradient: 'var(--accent)',
-    accentColor: 'var(--accent)',
+    tint: 'var(--bui-primary)',
+    ink: 'var(--bui-primary)',
     actionIcon: <Add size={14} strokeWidth={1.75} />,
   },
   configure_details: {
     icon: <Tune size={16} strokeWidth={1.75} />,
-    gradient: 'var(--accent)',
-    accentColor: 'var(--accent)',
+    tint: 'var(--bui-primary)',
+    ink: 'var(--bui-primary)',
     actionIcon: <Tune size={14} strokeWidth={1.75} />,
   },
   define_pricing: {
     icon: <Euro size={16} strokeWidth={1.75} />,
-    gradient: 'var(--ok)',
-    accentColor: 'var(--ok)',
+    tint: 'var(--bui-success)',
+    ink: 'var(--bui-success-ink)',
     actionIcon: <Euro size={14} strokeWidth={1.75} />,
   },
   connect_channels: {
     icon: <CalendarMonth size={16} strokeWidth={1.75} />,
-    gradient: 'var(--airbnb)',
-    accentColor: 'var(--airbnb)',
+    tint: 'var(--airbnb)',
+    ink: 'var(--airbnb)',
     actionIcon: <Sync size={14} strokeWidth={1.75} />,
   },
   configure_billing: {
     icon: <Receipt size={16} strokeWidth={1.75} />,
-    gradient: 'var(--warn)',
-    accentColor: 'var(--warn)',
+    tint: 'var(--bui-warning)',
+    ink: 'var(--bui-warning-ink)',
     actionIcon: <Receipt size={14} strokeWidth={1.75} />,
   },
   configure_org: {
     icon: <Settings size={16} strokeWidth={1.75} />,
-    gradient: 'var(--accent)',
-    accentColor: 'var(--accent)',
+    tint: 'var(--bui-primary)',
+    ink: 'var(--bui-primary)',
     actionIcon: <Settings size={14} strokeWidth={1.75} />,
   },
   invite_members: {
     icon: <Group size={16} strokeWidth={1.75} />,
-    gradient: 'var(--ok)',
-    accentColor: 'var(--ok)',
+    tint: 'var(--bui-success)',
+    ink: 'var(--bui-success-ink)',
     actionIcon: <Add size={14} strokeWidth={1.75} />,
   },
   setup_settings: {
     icon: <Tune size={16} strokeWidth={1.75} />,
-    gradient: 'var(--warn)',
-    accentColor: 'var(--warn)',
+    tint: 'var(--bui-warning)',
+    ink: 'var(--bui-warning-ink)',
     actionIcon: <Tune size={14} strokeWidth={1.75} />,
   },
   setup_fiscal: {
     icon: <Receipt size={16} strokeWidth={1.75} />,
-    gradient: 'var(--warn)',
-    accentColor: 'var(--warn)',
+    tint: 'var(--bui-warning)',
+    ink: 'var(--bui-warning-ink)',
     actionIcon: <Receipt size={14} strokeWidth={1.75} />,
   },
   setup_notifications: {
     icon: <Notifications size={16} strokeWidth={1.75} />,
-    gradient: 'var(--info)',
-    accentColor: 'var(--info)',
+    tint: 'var(--bui-info)',
+    ink: 'var(--bui-info-ink)',
     actionIcon: <Notifications size={14} strokeWidth={1.75} />,
   },
   setup_general: {
     icon: <Tune size={16} strokeWidth={1.75} />,
-    gradient: 'var(--accent)',
-    accentColor: 'var(--accent)',
+    tint: 'var(--bui-primary)',
+    ink: 'var(--bui-primary)',
     actionIcon: <Tune size={14} strokeWidth={1.75} />,
   },
   setup_integrations: {
     icon: <Extension size={16} strokeWidth={1.75} />,
-    gradient: 'var(--info)',
-    accentColor: 'var(--info)',
+    tint: 'var(--bui-info)',
+    ink: 'var(--bui-info-ink)',
     actionIcon: <Extension size={14} strokeWidth={1.75} />,
   },
   setup_payment: {
     icon: <Payment size={16} strokeWidth={1.75} />,
-    gradient: 'var(--warn)',
-    accentColor: 'var(--warn)',
+    tint: 'var(--bui-warning)',
+    ink: 'var(--bui-warning-ink)',
     actionIcon: <Payment size={14} strokeWidth={1.75} />,
   },
   setup_messaging: {
     icon: <ChatBubbleOutline size={16} strokeWidth={1.75} />,
-    gradient: 'var(--info)',
-    accentColor: 'var(--info)',
+    tint: 'var(--bui-info)',
+    ink: 'var(--bui-info-ink)',
     actionIcon: <ChatBubbleOutline size={14} strokeWidth={1.75} />,
   },
   setup_payouts: {
     icon: <AccountBalanceWallet size={16} strokeWidth={1.75} />,
-    gradient: 'var(--ok)',
-    accentColor: 'var(--ok)',
+    tint: 'var(--bui-success)',
+    ink: 'var(--bui-success-ink)',
     actionIcon: <AccountBalanceWallet size={14} strokeWidth={1.75} />,
   },
   complete_profile: {
     icon: <Person size={16} strokeWidth={1.75} />,
-    gradient: 'var(--accent)',
-    accentColor: 'var(--accent)',
+    tint: 'var(--bui-primary)',
+    ink: 'var(--bui-primary)',
     actionIcon: <Person size={14} strokeWidth={1.75} />,
   },
   view_interventions: {
     icon: <Assignment size={16} strokeWidth={1.75} />,
-    gradient: 'var(--ok)',
-    accentColor: 'var(--ok)',
+    tint: 'var(--bui-success)',
+    ink: 'var(--bui-success-ink)',
     actionIcon: <Build size={14} strokeWidth={1.75} />,
   },
   create_team: {
     icon: <Group size={16} strokeWidth={1.75} />,
-    gradient: 'var(--ok)',
-    accentColor: 'var(--ok)',
+    tint: 'var(--bui-success)',
+    ink: 'var(--bui-success-ink)',
     actionIcon: <Add size={14} strokeWidth={1.75} />,
   },
 };
 
 const DEFAULT_VISUAL: StepVisual = {
   icon: <Settings size={16} strokeWidth={1.75} />,
-  gradient: 'var(--accent)',
-  accentColor: 'var(--accent)',
+  tint: 'var(--bui-primary)',
+  ink: 'var(--bui-primary)',
   actionIcon: <Settings size={14} strokeWidth={1.75} />,
 };
 
@@ -243,10 +246,10 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
             variant="ghost"
             size="sm"
             onClick={handleReshow}
-            className="h-auto px-[9px] py-[1.5px] text-[0.65rem] rounded-[var(--radius-md)] border border-dashed border-[var(--line-2)] text-[var(--faint)] hover:bg-transparent hover:text-[var(--accent)] hover:border-[var(--accent)]"
+            className="h-auto rounded-md border border-dashed border-border px-[9px] py-[1.5px] text-2xs text-faint hover:border-primary hover:bg-transparent hover:text-primary"
           >
-            <span className="inline-flex me-0.5"><Replay size={12} strokeWidth={1.75} /></span>
-            <span className="text-[0.65rem] font-semibold">
+            <span className="me-0.5 inline-flex"><Replay size={12} strokeWidth={1.75} /></span>
+            <span className="text-2xs font-semibold">
               {t('dashboard.onboarding.reshowShort')}
             </span>
           </Button>
@@ -266,28 +269,28 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
       {/* px: 2 = 12 px, py: 1.25 = 7,5 px (theme.spacing vaut 6 dans ce projet). */}
       <div
         className={cn(
-          'bg-[var(--card)] border border-solid border-[var(--line)] rounded-[var(--radius-lg)] px-3 py-[7.5px] h-full',
+          'h-full rounded-lg border border-solid border-border bg-card px-3 py-[7.5px]',
           'animate-[onboarding-shadow-pulse_3s_ease-in-out_infinite] motion-reduce:animate-none',
         )}
       >
         {/* ── Header row: title + progress + bar + dismiss ────────── */}
-        <div className="flex items-center gap-2 mb-1.5">
-          <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] leading-[1] whitespace-nowrap">
+        <div className="mb-1.5 flex items-center gap-2">
+          <p className="text-2xs font-semibold uppercase tracking-wide whitespace-nowrap text-faint leading-[1]">
             {t('dashboard.onboarding.title')}
           </p>
-          <span className="cn-text-caption text-[0.625rem] text-muted-foreground opacity-60 font-semibold tabular-nums whitespace-nowrap">
+          <span className="text-2xs font-semibold tabular-nums whitespace-nowrap text-muted-foreground opacity-60">
             {t('dashboard.onboarding.progress', { completed: completedCount, total: totalCount })}
           </span>
           <Progress
             value={progressPercent}
-            className="flex-1 min-w-[40px] h-[4px] rounded-full bg-[var(--field)] [&_[data-slot=progress-indicator]]:bg-[var(--accent)] [&_[data-slot=progress-indicator]]:rounded-full"
+            className="h-[4px] min-w-[40px] flex-1 rounded-full bg-field [&_[data-slot=progress-indicator]]:rounded-full [&_[data-slot=progress-indicator]]:bg-primary"
           />
           <Button
             variant="ghost"
             size="icon-xs"
             aria-label={t('dashboard.onboarding.dismiss', 'Masquer')}
             onClick={handleDismiss}
-            className="text-[var(--faint)] hover:bg-transparent hover:text-[var(--muted)]"
+            className="text-faint hover:bg-transparent hover:text-muted-foreground"
           >
             <Close size={14} strokeWidth={1.75} />
           </Button>
@@ -305,45 +308,45 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
                 onClick={() => handleStepClick(step)}
                 // sm MUI = 600px (breakpoints par defaut), pas le sm=640 de Tailwind.
                 className={cn(
-                  'flex-auto min-w-[calc(50%_-_4px)] min-[600px]:min-w-[auto] flex items-center gap-1.5',
-                  'px-[7.5px] py-[4.5px] rounded-[var(--radius-md)] border border-solid',
-                  '[transition:all_0.15s_ease] motion-reduce:[transition:none]',
+                  'flex min-w-[calc(50%_-_4px)] flex-auto items-center gap-1.5 min-[600px]:min-w-[auto]',
+                  'rounded-md border border-solid px-[7.5px] py-[4.5px]',
+                  'transition-all duration-150 ease-out-quart motion-reduce:transition-none',
                   step.completed
-                    ? 'border-[color-mix(in_srgb,var(--ok)_25%,transparent)] bg-[color-mix(in_srgb,var(--ok)_5%,transparent)]'
+                    ? 'border-success/25 bg-success/5'
                     : isActive
-                      ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
-                      : 'border-[var(--line)] bg-transparent',
+                      ? 'border-primary bg-primary-soft'
+                      : 'border-border bg-transparent',
                   step.locked
                     ? 'cursor-default opacity-45'
-                    : 'cursor-pointer hover:border-[var(--accent)] hover:-translate-y-px hover:shadow-[var(--shadow-card)] motion-reduce:hover:translate-y-0',
+                    : 'cursor-pointer hover:-translate-y-px hover:border-primary hover:shadow-sm motion-reduce:hover:translate-y-0',
                 )}
               >
                 {/* Icon */}
                 <div
                   className={cn(
-                    'w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center shrink-0',
+                    'flex size-7 shrink-0 items-center justify-center rounded-sm',
                     step.completed
-                      ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
+                      ? 'bg-success-soft text-success-ink'
                       : isActive
-                        ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
-                        : 'bg-[var(--hover)] text-[var(--muted)]',
+                        ? 'bg-primary-soft text-primary'
+                        : 'bg-muted text-muted-foreground',
                   )}
                 >
                   {visual.icon}
                 </div>
 
                 {/* Label */}
-                <p className={cn('cn-text-body1 text-[0.75rem] leading-[1.3] flex-1 min-w-0 truncate', isActive ? 'font-bold' : 'font-semibold', step.completed ? 'text-[var(--faint)]' : isActive ? 'text-[var(--ink)]' : 'text-[var(--muted)]', step.completed ? 'decoration-[line-through]' : 'decoration-[none]')}>
+                <p className={cn('min-w-0 flex-1 truncate text-xs leading-[1.3]', isActive ? 'font-bold' : 'font-semibold', step.completed ? 'text-faint line-through' : isActive ? 'text-foreground' : 'text-muted-foreground')}>
                   {t(step.labelKey)}
                 </p>
 
                 {/* Status */}
                 {step.completed ? (
-                  <span className="inline-flex text-[var(--ok)] shrink-0"><CheckCircle size={14} strokeWidth={1.75} /></span>
+                  <span className="inline-flex shrink-0 text-success-ink"><CheckCircle size={14} strokeWidth={1.75} /></span>
                 ) : step.locked ? (
-                  <span className="inline-flex text-muted-foreground opacity-60 shrink-0"><Lock size={12} strokeWidth={1.75} /></span>
+                  <span className="inline-flex shrink-0 text-muted-foreground opacity-60"><Lock size={12} strokeWidth={1.75} /></span>
                 ) : (
-                  <span className="inline-flex text-muted-foreground opacity-60 shrink-0"><RadioButtonUnchecked size={14} strokeWidth={1.75} /></span>
+                  <span className="inline-flex shrink-0 text-muted-foreground opacity-60"><RadioButtonUnchecked size={14} strokeWidth={1.75} /></span>
                 )}
               </div>
             );
@@ -353,14 +356,14 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
         {/* ── CTA: always show for the current active step ─────────── */}
         {activeStep && activeVisual && (
           <CtaSection
-            icon={React.cloneElement(activeVisual.icon as React.ReactElement, { sx: { fontSize: 18, color: 'var(--on-accent)' } })}
-            gradient={activeVisual.gradient}
+            icon={React.cloneElement(activeVisual.icon as React.ReactElement, { size: 18 })}
+            tint={activeVisual.tint}
             title={t(activeStep.labelKey)}
             description={t(activeStep.descriptionKey)}
             actionLabel={t(activeStep.labelKey)}
             actionIcon={activeVisual.actionIcon}
             onAction={handleCtaAction}
-            accentColor={activeVisual.accentColor}
+            ink={activeVisual.ink}
             skippable={activeStep.skippable}
             onSkip={() => completeStep(activeStep.key)}
             skipLabel={t('onboarding.skip')}
@@ -385,13 +388,15 @@ export default OnboardingChecklist;
 
 interface CtaSectionProps {
   icon: React.ReactNode;
-  gradient: string;
+  /** Teinte vive du registre de l'étape — tapisse la pastille (fond pastel). */
+  tint: string;
   title: string;
   description: string;
   actionLabel: string;
   actionIcon: React.ReactNode;
   onAction: () => void;
-  accentColor?: string;
+  /** Encre du même registre — c'est elle qui dessine l'icône. */
+  ink?: string;
   skippable?: boolean;
   onSkip?: () => void;
   skipLabel?: string;
@@ -399,38 +404,44 @@ interface CtaSectionProps {
 
 const CtaSection: React.FC<CtaSectionProps> = ({
   icon,
-  gradient,
+  tint,
   title,
   description,
   actionLabel,
   actionIcon,
   onAction,
-  accentColor = 'var(--accent)',
+  ink = 'var(--bui-primary)',
   skippable,
   onSkip,
   skipLabel,
 }) => (
-  <div className="mt-[9px] pt-[9px] border-t border-solid border-t-[var(--line)] flex items-center gap-3">
-    <div className="w-[36px] h-[36px] rounded-[var(--radius-md)] flex items-center justify-center shrink-0" style={{ background: gradient, boxShadow: `0 2px 8px color-mix(in srgb, ${accentColor} 20%, transparent)` }}>
+  <div className="mt-[9px] flex items-center gap-3 border-t border-solid border-t-border pt-[9px]">
+    {/* Pastille du registre de l'étape : fond pastel + encre. L'aplat plein
+        renvoyait une icône blanche à 2,3:1 sur les teintes claires (succès,
+        avertissement) — le couple soft/ink passe AA partout. */}
+    <div
+      className="flex size-9 shrink-0 items-center justify-center rounded-md"
+      style={{ backgroundColor: `color-mix(in srgb, ${tint} 14%, transparent)`, color: ink }}
+    >
       {icon}
     </div>
-    <div className="flex-1 min-w-0">
-      <p className="cn-text-body1 text-[0.85rem] font-bold text-foreground leading-[1.3]">
+    <div className="min-w-0 flex-1">
+      <p className="text-sm font-bold leading-[1.3] text-foreground">
         {title}
       </p>
-      <p className="cn-text-body1 text-[0.75rem] text-muted-foreground leading-[1.5] mt-0.5">
+      <p className="mt-0.5 text-xs leading-[1.5] text-muted-foreground">
         {description}
       </p>
     </div>
-    <div className="flex items-center gap-1.5 shrink-0">
+    <div className="flex shrink-0 items-center gap-1.5">
       {skippable && onSkip && (
         <Button variant="ghost" size="sm" onClick={onSkip}>
           {skipLabel || 'Skip'}
         </Button>
       )}
-      {/* Le CTA portait un aplat par etape (var(--accent)/--ok/--warn) : c'est
-          deja la pastille d'icone a gauche qui porte ce signal. Le bouton reprend
-          l'encre pleine du kit, une seule action principale par zone. */}
+      {/* Le CTA portait un aplat par etape : c'est deja la pastille d'icone a
+          gauche qui porte ce signal. Le bouton reprend l'encre pleine du kit,
+          une seule action principale par zone. */}
       <Button size="sm" onClick={onAction}>
         {actionIcon}
         {actionLabel}

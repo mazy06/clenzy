@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
 import { cn } from '../../utils/cn';
-import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import {
@@ -175,10 +174,11 @@ function getInterventionPriceLabel(t: TFunction, forfait: string, interventionPr
   return t('auth.inscription.interventionPrice', `Interventions a partir de ${price}€`, { price });
 }
 
-const FORFAIT_COLORS: Record<string, string> = {
-  essentiel: '#6B8A9A',
-  confort: '#A6C0CE',
-  premium: '#5A7684',
+/** Variante de `Badge` par forfait — la hierarchie se dit par le jeton, pas par un hex. */
+const FORFAIT_BADGE_VARIANTS: Record<string, 'default' | 'secondary' | 'info'> = {
+  essentiel: 'secondary',
+  confort: 'info',
+  premium: 'default',
 };
 
 /**
@@ -425,8 +425,10 @@ export default function Inscription() {
       {/* Badge forfait selectionne */}
         {prefill.forfait && (
           <div className="text-center mb-3">
-            <StatusChip tokens={{ color: '#fff', bg: FORFAIT_COLORS[prefill.forfait] || '#6B8A9A' }} label={getForfaitLabel(t, prefill.forfait)} className="text-[0.8rem] px-1.5" />
-            <span className="cn-text-caption block text-muted-foreground mt-0.5">
+            <Badge variant={FORFAIT_BADGE_VARIANTS[prefill.forfait] ?? 'secondary'}>
+              {getForfaitLabel(t, prefill.forfait)}
+            </Badge>
+            <span className="block text-xs text-muted-foreground mt-0.5 tabular-nums">
               {getInterventionPriceLabel(t, prefill.forfait, prefill.interventionPrice)} | {isSyncMode
                 ? t('auth.inscription.platformWithSync', 'Plateforme + Synchro')
                 : t('auth.inscription.platform', 'Plateforme')} : {getPmsDisplayPrice(t, billingPeriod, pmsBaseCents)}
@@ -434,7 +436,7 @@ export default function Inscription() {
           </div>
         )}
 
-        {/* Stepper — mb: 3 = 18 px (spacing MUI du projet = 6 px) */}
+        {/* Stepper */}
         <Stepper activeStep={activeStep} className="mb-[18px]">
           {steps.map((label, index) => {
             const retourPossible = index < activeStep && activeStep !== 1;
@@ -512,7 +514,7 @@ export default function Inscription() {
 
             {/* Selection du type d'organisation */}
             <div>
-              <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem] block mb-1.5">
+              <span className="block text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
                 {t('auth.inscription.you', 'Vous êtes')}
               </span>
               <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(3,_1fr)] gap-[9px]">
@@ -559,7 +561,7 @@ export default function Inscription() {
             {/* Selection du forfait si non pre-rempli */}
             {!prefill.forfait && (
               <div>
-                <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem] block mb-1.5">
+                <span className="block text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
                   {t('auth.inscription.choosePlan', 'Choisissez votre forfait *')}
                 </span>
                 <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(3,_1fr)] gap-[9px]">
@@ -571,7 +573,7 @@ export default function Inscription() {
                       label={getForfaitShortLabel(t, f)}
                       description={getForfaitTagline(t, f)}
                       hint={
-                        <span className="cn-text-caption font-semibold text-inherit text-[0.75rem] opacity-95">
+                        <span className="text-xs font-semibold text-inherit tabular-nums">
                           {t('auth.inscription.forfaitHint', `dès ${FORFAIT_BASE_PRICES[f]}€/intervention`, { price: FORFAIT_BASE_PRICES[f] })}
                         </span>
                       }
@@ -583,7 +585,7 @@ export default function Inscription() {
 
             {/* Selection de la periode de facturation */}
             <Separator className="my-1.5" />
-            <span className="cn-text-caption text-muted-foreground font-semibold">
+            <span className="text-xs font-semibold text-muted-foreground">
               {t('auth.inscription.billingPeriodLabel', 'Periode de facturation')}
             </span>
             {/* ToggleGroup rend une valeur vide quand on re-clique l'item actif :
@@ -609,15 +611,15 @@ export default function Inscription() {
                 <Badge variant="success" className="ms-0.5 h-[18px] text-[0.65rem] font-bold">-35%</Badge>
               </ToggleGroupItem>
             </ToggleGroup>
-            <span className="cn-text-caption text-muted-foreground">
+            <span className="text-xs text-muted-foreground tabular-nums">
               {t('auth.inscription.platform', 'Plateforme')} : {getPmsDisplayPrice(t, billingPeriod, pmsBaseCents)}
               {billingPeriod !== 'MONTHLY' && pmsBaseCents !== null && (
-                <span className="cn-text-caption ms-0.5 line-through text-muted-foreground opacity-60">
+                <span className="ms-0.5 line-through text-muted-foreground opacity-60">
                   {formatCents(pmsBaseCents)}{t('auth.inscription.perMonth', '/mois')}
                 </span>
               )}
               {billingPeriod !== 'MONTHLY' && (
-                <span className="cn-text-caption ms-0.5 text-[var(--bui-success-ink)] font-semibold">
+                <span className="ms-0.5 font-semibold text-success-ink">
                   {' '}{t('auth.inscription.invoiced', `Facture ${getPmsFirstPayment(t, billingPeriod, pmsBaseCents)}`, { amount: getPmsFirstPayment(t, billingPeriod, pmsBaseCents) })}
                 </span>
               )}
@@ -627,7 +629,7 @@ export default function Inscription() {
             {hasLandingData && (
               <>
                 <Separator className="my-1.5" />
-                <span className="cn-text-caption text-muted-foreground font-semibold">
+                <span className="text-xs font-semibold text-muted-foreground">
                   {t('auth.inscription.requestInfo', 'Informations de votre demande')}
                 </span>
                 <div className="flex flex-wrap gap-1">
@@ -709,14 +711,14 @@ export default function Inscription() {
                   checked={acceptedTerms}
                   onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
                 />
-                <FieldLabel htmlFor="inscription-accept-terms" className="cn-text-body2 text-[0.8125rem] leading-[1.4] font-normal">
+                <FieldLabel htmlFor="inscription-accept-terms" className="text-[0.8125rem] leading-[1.4] font-normal">
                   <span>
                     {t('auth.inscription.cguPrefix', "J'accepte les")}{' '}
                     <a
                       href="/cgu"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[var(--mui-primary)] font-semibold underline"
+                      className="text-primary font-semibold underline"
                     >
                       {t('auth.inscription.cguLinkText', "conditions générales d'utilisation")}
                     </a>{' '}
@@ -725,12 +727,12 @@ export default function Inscription() {
                       href="/confidentialite"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[var(--mui-primary)] font-semibold underline"
+                      className="text-primary font-semibold underline"
                     >
                       {t('auth.inscription.privacyLinkText', 'politique de confidentialité')}
                     </a>
                     {' '}
-                    <span className="cn-text-caption text-destructive font-semibold">
+                    <span className="text-xs font-semibold text-destructive">
                       *
                     </span>
                   </span>
@@ -743,7 +745,7 @@ export default function Inscription() {
                   checked={newsletterOptIn}
                   onCheckedChange={(checked) => setNewsletterOptIn(checked === true)}
                 />
-                <FieldLabel htmlFor="inscription-newsletter" className="cn-text-body2 text-[0.8125rem] leading-[1.4] font-normal">
+                <FieldLabel htmlFor="inscription-newsletter" className="text-[0.8125rem] leading-[1.4] font-normal">
                   {t('auth.inscription.newsletterOptIn', 'Je souhaite recevoir la newsletter Baitly (nouveautés produit, conseils gestion locative).')}
                 </FieldLabel>
               </Field>
@@ -756,36 +758,38 @@ export default function Inscription() {
           <div className="flex flex-col min-[900px]:flex-row gap-[18px]">
             {/* Colonne gauche : Recapitulatif de la commande */}
             <div className="flex-[0_0_320px] min-w-0">
-              <Card className="border-solid border-[var(--line)] rounded-[12px] shadow-none">
+              <Card className="shadow-none">
                 <CardContent className="p-[15px]">
                   <div className="flex items-center gap-1.5 mb-3">
-                    <div className="w-[36px] h-[36px] rounded-[50%] bg-[rgba(166,192,206,0.15)] text-primary flex items-center justify-center">
+                    <div className="w-[36px] h-[36px] rounded-full bg-primary-soft text-primary flex items-center justify-center">
                       <CartIcon size={18} strokeWidth={1.75} color='currentColor' />
                     </div>
-                    <h6 className="cn-text-subtitle2 font-semibold text-foreground">
+                    <h6 className="text-xs font-semibold text-foreground">
                       {t('auth.inscription.summary', 'Recapitulatif')}
                     </h6>
                   </div>
 
                   <div className="flex flex-col gap-[9px]">
                     <div>
-                      <span className="cn-text-caption text-muted-foreground font-semibold">
+                      <span className="text-xs font-semibold text-muted-foreground">
                         {t('auth.inscription.summaryAccount', 'Compte')}
                       </span>
-                      <p className="cn-text-body2">{fullName}</p>
-                      <p className="cn-text-body2 text-muted-foreground">{email}</p>
+                      <p className="text-xs">{fullName}</p>
+                      <p className="text-xs text-muted-foreground">{email}</p>
                     </div>
 
                     <Separator />
 
                     <div>
-                      <span className="cn-text-caption text-muted-foreground font-semibold">
+                      <span className="text-xs font-semibold text-muted-foreground">
                         {t('auth.inscription.summaryPlan', 'Forfait')}
                       </span>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <StatusChip tokens={{ color: '#fff', bg: FORFAIT_COLORS[forfait] || '#6B8A9A' }} label={getForfaitLabel(t, forfait)} className="text-[0.75rem]" />
+                        <Badge variant={FORFAIT_BADGE_VARIANTS[forfait] ?? 'secondary'}>
+                          {getForfaitLabel(t, forfait)}
+                        </Badge>
                       </div>
-                      <span className="cn-text-caption text-muted-foreground mt-0.5 block">
+                      <span className="mt-0.5 block text-xs text-muted-foreground tabular-nums">
                         {getInterventionPriceLabel(t, forfait, prefill.interventionPrice)}
                       </span>
                     </div>
@@ -793,27 +797,27 @@ export default function Inscription() {
                     <Separator />
 
                     <div>
-                      <span className="cn-text-caption text-muted-foreground font-semibold">
+                      <span className="text-xs font-semibold text-muted-foreground">
                         {isSyncMode
                           ? t('auth.inscription.summarySubscriptionWithSync', 'Abonnement plateforme + Synchro auto')
                           : t('auth.inscription.summarySubscription', 'Abonnement plateforme')}
                       </span>
-                      <p className="cn-text-body2 font-semibold text-primary">
+                      <p className="text-xs font-semibold text-primary tabular-nums">
                         {getPmsDisplayPrice(t, billingPeriod, confirmedPmsBaseCents ?? pmsBaseCents)}
                       </p>
-                      <span className="cn-text-caption text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {t('auth.inscription.summaryPeriod', 'Periode :')} {getBillingPeriodLabel(t, billingPeriod)}
                       </span>
                     </div>
 
                     <Separator />
 
-                    <div className="p-2 rounded-[12px] bg-[rgba(166,192,206,0.08)] border border-solid border-[rgba(166,192,206,0.2)]">
+                    <div className="rounded-lg border border-border bg-muted p-2">
                       <div className="flex justify-between items-center">
-                        <p className="cn-text-body2 font-semibold">
+                        <p className="text-xs font-semibold">
                           {t('auth.inscription.summaryTotal', 'Total a payer')}
                         </p>
-                        <p className="cn-text-body1 font-bold text-[var(--mui-primary-d)]">
+                        <p className="text-sm font-bold text-primary tabular-nums">
                           {getPmsFirstPayment(t, billingPeriod, confirmedPmsBaseCents ?? pmsBaseCents)}
                         </p>
                       </div>
@@ -821,8 +825,8 @@ export default function Inscription() {
                   </div>
 
                   <div className="mt-3 flex items-center gap-0.5">
-                    <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircleIcon size={14} strokeWidth={1.75} /></span>
-                    <span className="cn-text-caption text-muted-foreground">
+                    <span className="inline-flex text-success-ink"><CheckCircleIcon size={14} strokeWidth={1.75} /></span>
+                    <span className="text-xs text-muted-foreground">
                       {t('auth.inscription.securedPayment', 'Paiement securise via Stripe')}
                     </span>
                   </div>
@@ -832,13 +836,13 @@ export default function Inscription() {
 
             {/* Colonne droite : Stripe Embedded Checkout */}
             <div className="flex-1 min-w-0">
-              <Card className="border-solid border-[var(--line)] rounded-[12px] shadow-none overflow-hidden">
+              <Card className="shadow-none overflow-hidden">
                 <CardContent className="p-[15px]">
                   <div className="flex items-center gap-1.5 mb-3">
-                    <div className="w-[36px] h-[36px] rounded-[50%] bg-[rgba(107,138,154,0.12)] flex items-center justify-center">
+                    <div className="w-[36px] h-[36px] rounded-full bg-muted text-foreground flex items-center justify-center">
                       <CreditCardIcon size={18} strokeWidth={1.75} color='currentColor' />
                     </div>
-                    <h6 className="cn-text-subtitle2 font-semibold text-foreground">
+                    <h6 className="text-xs font-semibold text-foreground">
                       {t('auth.inscription.paymentTitle', 'Paiement')}
                     </h6>
                   </div>
@@ -860,13 +864,7 @@ export default function Inscription() {
             <Button
               onClick={handleNext}
               disabled={loading || !isStep1Valid()}
-              // `secondary.main` a son jeton (--mui-secondary) ; `secondary.dark`
-              // n'en a pas. MUI derive `dark` en assombrissant `main` de 20 %,
-              // ce que color-mix avec du noir reproduit a l'identique — et qui
-              // reste sensible au mode, contrairement a un hex fige. L'encre est
-              // forcee en sombre : --mui-secondary reste un bleu-gris clair dans
-              // les deux modes, var(--ink) y virerait au blanc en dark.
-              className="px-6 bg-[var(--mui-secondary)] text-[#15242D] hover:bg-[color-mix(in_srgb,var(--mui-secondary)_85%,#000)]"
+              className="px-6"
             >
               {loading ? <Spinner className="size-5" /> : t('auth.inscription.submit', 'Continuer vers le paiement')}
             </Button>
@@ -876,9 +874,9 @@ export default function Inscription() {
         {/* Lien vers login (cache a l'etape Paiement) */}
         {activeStep === 0 && (
           <div className="mt-3 text-center">
-            <span className="cn-text-caption text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {t('auth.inscription.alreadyAccount', 'Deja un compte ?')}{' '}
-              <span className="cn-text-caption text-[var(--mui-secondary)] font-semibold cursor-pointer hover:decoration-[underline]" onClick={() => navigate('/login')}>
+              <span className="font-semibold text-primary cursor-pointer hover:underline" onClick={() => navigate('/login')}>
                 {t('auth.inscription.loginLink', 'Se connecter')}
               </span>
             </span>

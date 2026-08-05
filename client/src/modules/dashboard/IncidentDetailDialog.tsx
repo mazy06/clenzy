@@ -20,7 +20,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../components/ui';
-import { Close, Refresh, Delete } from '../../icons';
+import { CheckCircleOutline, Close, Refresh, Delete } from '../../icons';
+import EmptyState from '../../components/EmptyState';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import type { IncidentDto, IncidentStatus } from '../../services/api/incidentApi';
 import { incidentApi } from '../../services/api/incidentApi';
@@ -254,7 +255,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
         <DialogContent className="max-w-[900px] max-h-[88vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-1.5 flex-wrap">
-              <DialogTitle className="cn-text-h6 font-semibold">
+              <DialogTitle className="text-base font-semibold tracking-tight">
                 Détail des incidents P1
               </DialogTitle>
               {overTargetCount > 0 && (
@@ -263,7 +264,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                     {/* Le span porte la ref que Radix pose sur son enfant :
                         Badge est une fonction, il n'en transmet pas. */}
                     <span className="inline-flex">
-                      <Badge variant="destructive" className="h-[22px] text-[0.7rem] font-semibold">{`${overTargetCount} hors cible à nettoyer`}</Badge>
+                      <Badge variant="destructive" className="h-[22px] text-2xs font-semibold tabular-nums">{`${overTargetCount} hors cible à nettoyer`}</Badge>
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>{`Cible KPI : < ${formatDuration(targetMinutes)}. Ces incidents tirent la moyenne au-dessus du seuil.`}</TooltipContent>
@@ -279,11 +280,14 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
           {otherSeveritiesOpenCount > 0 && (
             <UiAlert variant="info" className="mb-3">
               <Info />
-              <AlertDescription>{otherSeveritiesOpenCount}incident
-              {otherSeveritiesOpenCount > 1 ? 's' : ''}ouvert
-              {otherSeveritiesOpenCount > 1 ? 's' : ''}de sévérité autre que P1
-              {otherSeveritiesOpenCount > 1 ? ' ne sont pas affichés' : " n'est pas affiché"}ici
-              (ce tableau ne montre que les incidents P1).</AlertDescription>
+              {/* Les sauts de ligne JSX entre expressions sont supprimés, pas
+                  convertis en espace : la phrase se compose d'un seul tenant. */}
+              <AlertDescription>
+                {otherSeveritiesOpenCount > 1
+                  ? `${otherSeveritiesOpenCount} incidents ouverts de sévérité autre que P1 ne sont pas affichés ici`
+                  : `${otherSeveritiesOpenCount} incident ouvert de sévérité autre que P1 n'est pas affiché ici`}
+                {' (ce tableau ne montre que les incidents P1).'}
+              </AlertDescription>
             </UiAlert>
           )}
 
@@ -292,15 +296,15 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
             <UiAlert variant="warning" className="mb-3">
               <AlertDescription>
                 <div className="flex flex-col gap-0.5">
-                  <p className="cn-text-body2 font-semibold">
+                  <p className="text-xs font-semibold tabular-nums">
                     Moyenne actuelle : {formatDuration(stats.currentAvg)}{' '}
-                    <span className="cn-text-caption text-muted-foreground">
+                    <span className="text-xs font-normal opacity-80">
                       (cible : &lt; {formatDuration(targetMinutes)})
                     </span>
                   </p>
-                  <span className="cn-text-caption text-muted-foreground">
+                  <span className="text-xs">
                     En supprimant les {overTargetCount} hors cible →{' '}
-                    <span className={cn('cn-text-caption font-semibold', stats.projectedAvg <= targetMinutes ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
+                    <span className={cn('text-xs font-semibold tabular-nums', stats.projectedAvg <= targetMinutes ? 'text-success-ink' : 'text-warning-ink')}>
                       moyenne projetée {formatDuration(stats.projectedAvg)}
                     </span>{' '}
                     sur {stats.projectedCount} incident{stats.projectedCount > 1 ? 's' : ''} restant
@@ -329,11 +333,12 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
               <Spinner className="size-10" />
             </div>
           ) : sortedIncidents.length === 0 ? (
-            <div className="text-center py-6">
-              <p className="cn-text-body1 text-muted-foreground">
-                Aucun incident P1 récent.
-              </p>
-            </div>
+            <EmptyState
+              variant="transparent"
+              icon={<CheckCircleOutline />}
+              title="Aucun incident P1 récent"
+              description="Rien à nettoyer : la moyenne du KPI P1 ne porte aucun incident hors cible."
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -356,19 +361,19 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                     return (
                       <TableRow
                         key={incident.id}
-                        className={overTarget ? 'bg-[color-mix(in_srgb,var(--err)_4%,transparent)]' : undefined}
+                        className={overTarget ? 'bg-destructive/5' : undefined}
                       >
-                        <TableCell className="whitespace-nowrap text-[0.8rem]">
+                        <TableCell className="whitespace-nowrap text-xs tabular-nums">
                           {formatDate(incident.openedAt)}
                         </TableCell>
-                        <TableCell className="text-[0.8rem]">
+                        <TableCell className="text-xs">
                           {incident.type}
                         </TableCell>
-                        <TableCell className="text-[0.8rem]">
+                        <TableCell className="text-xs">
                           {incident.serviceName}
                         </TableCell>
-                        <TableCell className="text-[0.8rem] max-w-[200px]">
-                          <p className="cn-text-body2 truncate" title={incident.title}>
+                        <TableCell className="max-w-[200px] text-xs">
+                          <p className="truncate" title={incident.title}>
                             {incident.title}
                           </p>
                         </TableCell>
@@ -376,19 +381,19 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                           <StatusChip
                             label={statusConfig.label}
                             tone={statusConfig.tone}
-                            className="text-[0.7rem]"
+                            className="text-2xs"
                           />
                         </TableCell>
-                        <TableCell className="text-[0.8rem] whitespace-nowrap">
+                        <TableCell className="whitespace-nowrap text-xs">
                           <div className="inline-flex items-center gap-0.5">
-                            <span className={cn('cn-text-body1 text-[0.8rem] tabular-nums', overTarget ? 'font-semibold' : 'font-normal', overTarget ? 'text-[var(--err)]' : 'text-[inherit]')}>
+                            <span className={cn('text-xs tabular-nums', overTarget ? 'font-semibold text-destructive-ink' : 'font-normal text-inherit')}>
                               {formatDuration(incident.resolutionMinutes)}
                             </span>
                             {overTarget && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <span className="inline-flex">
-                                    <Badge variant="destructive" className="h-[18px] text-[0.625rem] font-semibold tracking-[0.03em]">hors cible</Badge>
+                                    <Badge variant="destructive" className="h-[18px] text-2xs font-semibold tracking-wide">hors cible</Badge>
                                   </span>
                                 </TooltipTrigger>
                                 <TooltipContent>{`Au-dessus de la cible (< ${formatDuration(targetMinutes)}) — pollue la moyenne KPI P1. Candidat à suppression pour purger le KPI.`}</TooltipContent>
@@ -405,7 +410,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                                     <Button
                                       variant="ghost"
                                       size="icon-sm"
-                                      className="text-[var(--mui-primary)]"
+                                      className="text-primary"
                                       aria-label="Retester le service"
                                       onClick={() => handleRetest(incident.id)}
                                       disabled={isRetesting || deletingId === incident.id}
@@ -428,7 +433,7 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
                                     <Button
                                       variant="ghost"
                                       size="icon-sm"
-                                      className="text-[var(--err)]"
+                                      className="text-destructive"
                                       aria-label="Supprimer l'incident"
                                       onClick={() => setConfirmDeleteId(incident.id)}
                                       disabled={deletingId === incident.id || isRetesting}
@@ -478,10 +483,10 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
           <DialogHeader>
             <DialogTitle>Supprimer l&apos;incident #{confirmDeleteId} ?</DialogTitle>
           </DialogHeader>
-          <p className="cn-text-body2 mb-1.5">
+          <p className="mb-1.5 text-sm">
             Cette action retire l&apos;incident de la base. Conséquences :
           </p>
-          <ul className="cn-text-body2 ps-3 text-muted-foreground">
+          <ul className="ps-3 text-xs text-muted-foreground">
             <li>Décrémente le compteur d&apos;incidents ouverts (badge).</li>
             <li>Si l&apos;incident était RÉSOLU, sa durée n&apos;entre plus dans la moyenne KPI P1.</li>
             <li>Action irréversible — pas de soft-delete.</li>
@@ -510,10 +515,10 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
               Supprimer {overTargetCount} incident{overTargetCount > 1 ? 's' : ''} hors cible ?
             </DialogTitle>
           </DialogHeader>
-          <p className="cn-text-body2 mb-1.5">
+          <p className="mb-1.5 text-sm">
             Tous les incidents RÉSOLUS dont la durée dépasse {formatDuration(targetMinutes)} seront supprimés :
           </p>
-          <ul className="cn-text-body2 ps-3 text-muted-foreground mb-1.5">
+          <ul className="mb-1.5 ps-3 text-xs text-muted-foreground">
             {overTargetIncidents.slice(0, 5).map((i) => (
               <li key={i.id}>
                 {i.serviceName} — {formatDuration(i.resolutionMinutes)}
@@ -523,8 +528,8 @@ const IncidentDetailDialog: React.FC<IncidentDetailDialogProps> = ({
               <li><i>+ {overTargetIncidents.length - 5} autre{overTargetIncidents.length - 5 > 1 ? 's' : ''}</i></li>
             )}
           </ul>
-          <span className="cn-text-caption text-muted-foreground">
-            Action irréversible. Moyenne KPI P1 après suppression : <b>{formatDuration(stats.projectedAvg)}</b>.
+          <span className="text-xs text-muted-foreground">
+            Action irréversible. Moyenne KPI P1 après suppression : <b className="tabular-nums">{formatDuration(stats.projectedAvg)}</b>.
           </span>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmBulkOpen(false)} disabled={bulkDeleting}>

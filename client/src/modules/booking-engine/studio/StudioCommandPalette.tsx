@@ -5,7 +5,7 @@ import { Search, CornerDownLeft, type LucideIcon } from 'lucide-react';
 
 /**
  * Palette de commandes ⌘K du Baitly Studio (F0) : recherche + navigation clavier (↑↓, Entrée, Échap).
- * Sans dépendance externe. Tokens « Baitly Signature ».
+ * Sans dépendance externe. Peinture Baitly UI.
  */
 
 export interface StudioCommand {
@@ -84,11 +84,11 @@ export default function StudioCommandPalette({
       <DialogContent
         showCloseButton={false}
         onKeyDown={handleKeyDown}
-        className="top-[14%] translate-y-0 w-[min(560px,92vw)] max-w-none overflow-hidden rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)] p-0 text-[var(--ink)] shadow-[var(--shadow-pop)]"
+        className="top-[14%] translate-y-0 w-[min(560px,92vw)] max-w-none overflow-hidden rounded-xl border border-solid border-border bg-card p-0 text-foreground shadow-lg"
       >
         <DialogTitle className="sr-only">Palette de commandes</DialogTitle>
-        <div className="flex items-center gap-1.5 px-2.5 h-[52px] border-b border-solid border-[var(--line)]">
-          <span className="text-[var(--muted)] inline-flex"><Search size={18} strokeWidth={2} /></span>
+        <div className="flex items-center gap-1.5 px-2.5 h-[52px] border-b border-solid border-border">
+          <span className="text-muted-foreground inline-flex"><Search size={18} strokeWidth={2} /></span>
           {/* input natif (et non le primitif Input) pour DEUX raisons : le champ
               est nu dans une rangee deja filetee, et `inputRef` porte le focus a
               l'ouverture — une fonction React 18 ne transmet pas de ref. */}
@@ -97,13 +97,13 @@ export default function StudioCommandPalette({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={placeholder}
-            className="w-full min-w-0 flex-1 border-0 bg-transparent outline-none text-[length:var(--text-lg)] text-[var(--ink)] placeholder:text-[var(--faint)] placeholder:opacity-100"
+            className="w-full min-w-0 flex-1 border-0 bg-transparent outline-none text-base text-foreground placeholder:text-faint placeholder:opacity-100"
           />
         </div>
 
         <div className="max-h-[340px] overflow-y-auto py-1" ref={listRef} role="listbox">
           {filtered.length === 0 && (
-            <div className="px-3 py-4 text-center text-[var(--muted)] text-[var(--text-sm)]">
+            <div className="px-3 py-4 text-center text-xs text-muted-foreground">
               Aucun résultat
             </div>
           )}
@@ -119,14 +119,14 @@ export default function StudioCommandPalette({
                 onMouseEnter={() => setActive(i)}
                 onClick={() => { onClose(); c.run(); }}
                 className={cn(
-                  'flex items-center gap-[7.5px] mx-[4.5px] px-[7.5px] h-[40px] rounded-[var(--radius-md)] cursor-pointer',
-                  isActive ? 'bg-[var(--accent-soft)] text-[var(--ink)]' : 'bg-transparent text-[var(--body)]',
+                  'flex items-center gap-[7.5px] mx-[4.5px] px-[7.5px] h-[40px] rounded-lg cursor-pointer',
+                  isActive ? 'bg-primary-soft text-foreground' : 'bg-transparent text-foreground',
                 )}
               >
-                {Icon && <span className={cn('inline-flex', isActive ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}><Icon size={16} strokeWidth={2} /></span>}
-                <span className="flex-1 text-[var(--text-md)]">{c.label}</span>
-                {c.group && <span className="text-[var(--text-2xs)] text-[var(--faint)]">{c.group}</span>}
-                {isActive && <span className="inline-flex text-[var(--faint)]"><CornerDownLeft size={13} strokeWidth={2} /></span>}
+                {Icon && <span className={cn('inline-flex', isActive ? 'text-primary' : 'text-muted-foreground')}><Icon size={16} strokeWidth={2} /></span>}
+                <span className="flex-1 text-sm">{c.label}</span>
+                {c.group && <span className="text-2xs text-faint">{c.group}</span>}
+                {isActive && <span className="inline-flex text-faint"><CornerDownLeft size={13} strokeWidth={2} /></span>}
               </div>
             );
           })}

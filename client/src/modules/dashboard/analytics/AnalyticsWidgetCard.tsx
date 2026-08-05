@@ -34,27 +34,16 @@ interface AnalyticsWidgetCardProps {
   height?: number | string;
 }
 
-// ─── Stable sx constants ────────────────────────────────────────────────────
+// ─── Classes stables ────────────────────────────────────────────────────────
 
-const VALUE_SX = {
-  fontFamily: 'var(--font-display)',
-  fontWeight: 600,
-  lineHeight: 1.15,
-  letterSpacing: '-0.025em',
-  color: 'var(--ink)',
-  fontVariantNumeric: 'tabular-nums',
-  mt: 0.25,
-  // Une seule ligne : si le chiffre est long, la taille est réduite
-  // (valueFontSize) et au pire on ellipse — jamais de retour à la ligne.
-  whiteSpace: 'nowrap' as const,
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  maxWidth: '100%',
-} as const;
-
-/** Report en classes de `VALUE_SX`. */
+/**
+ * Une seule ligne : si le chiffre est long, la taille est réduite
+ * (`valueFontSizeClass`) et au pire on ellipse — jamais de retour à la ligne.
+ * `--font-display` est conservé : c'est la police d'affichage des valeurs
+ * chiffrées.
+ */
 const VALUE_CLASS =
-  'cn-text-h6 [font-family:var(--font-display)] font-semibold leading-[1.15] tracking-[-0.025em] text-[var(--ink)] tabular-nums mt-[1.5px] truncate max-w-full';
+  '[font-family:var(--font-display)] font-semibold leading-[1.15] tracking-[-0.025em] text-foreground tabular-nums mt-[1.5px] truncate max-w-full';
 
 /**
  * Taille du chiffre adaptée à sa longueur (responsive) — un montant comme
@@ -62,8 +51,8 @@ const VALUE_CLASS =
  * « 1 » ou « 46.7% » peut être affiché en grand.
  *
  * Les classes sont ecrites en toutes lettres : Tailwind ne peut pas les
- * fabriquer depuis une valeur calculee a l'execution. Le palier `md` du theme
- * vaut 900 px (breakpoints MUI par defaut), pas le `md` de Tailwind.
+ * fabriquer depuis une valeur calculee a l'execution. Le palier historique de
+ * ces cartes vaut 900 px, pas le `md` de Tailwind — d'ou `min-[900px]:`.
  */
 function valueFontSizeClass(value?: string): string {
   if (value == null) return 'text-[1.05rem] min-[900px]:text-[1.2rem]'; // nœud sans hint → taille moyenne sûre
@@ -74,30 +63,10 @@ function valueFontSizeClass(value?: string): string {
   return 'text-[0.9rem] min-[900px]:text-[1rem]';
 }
 
-const TITLE_SX = {
-  fontSize: '10.5px',
-  fontWeight: 700,
-  lineHeight: 1.2,
-  letterSpacing: '0.05em',
-  textTransform: 'uppercase' as const,
-  color: 'var(--faint)',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-} as const;
-
-/** Report en classes de `TITLE_SX` (la couleur du `sx` bat le prop `color`). */
+/** Libellé de la carte : rôle « overline » de l'échelle Baitly UI. */
 const TITLE_CLASS =
-  'cn-text-body2 text-[10.5px] font-bold leading-[1.2] tracking-[0.05em] uppercase text-[var(--faint)] truncate';
+  'text-2xs font-bold leading-[1.2] tracking-[0.05em] uppercase text-faint truncate';
 
-const GROWTH_SX = {
-  fontSize: '0.5625rem',
-  fontWeight: 600,
-  fontVariantNumeric: 'tabular-nums',
-  letterSpacing: '0.01em',
-} as const;
-
-/** Report en classes de `GROWTH_SX`. */
 const GROWTH_CLASS = 'text-[0.5625rem] font-semibold tabular-nums tracking-[0.01em]';
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -126,7 +95,7 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
     // `--card-spacing` porte le p:1.25 d'origine : la Card du kit applique deja
     // le padding vertical, CardContent l'horizontal — inutile de le reposer.
     <Card
-      className="w-full transition-[box-shadow] duration-150 hover:ring-[var(--line-2)] [--card-spacing:7.5px]"
+      className="w-full transition-[box-shadow] duration-150 ease-out motion-reduce:transition-none hover:ring-border [--card-spacing:7.5px]"
       style={{ minWidth, height: height || '100%', cursor: onClick ? 'pointer' : 'default' }}
       onClick={onClick}
     >
@@ -147,7 +116,7 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
             {/* Header row with icon + title */}
             <div className="flex items-center gap-1 mb-0.5">
               {icon && (
-                <div className="flex items-center justify-center min-w-[28px] h-[28px] rounded-[var(--radius-sm)] bg-[var(--accent-soft)] [&_.MuiSvgIcon-root]:text-[16px]">
+                <div className="flex items-center justify-center min-w-[28px] h-[28px] rounded-sm bg-primary-soft [&_svg]:size-4">
                   {icon}
                 </div>
               )}
@@ -172,14 +141,16 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
             {/* Trend */}
             {trend && (
               <div className="flex items-center gap-0.5 mt-0.5">
+                {/* Icône décorative → teinte vive ; le texte chiffré prend
+                    l'encre `-ink`, seule variante qui passe AA (§2.4). */}
                 {trend.value > 0 ? (
-                  <TrendingUp color="success" size={11} strokeWidth={1.75} />
+                  <TrendingUp className="text-success" size={11} strokeWidth={1.75} />
                 ) : trend.value < 0 ? (
-                  <TrendingDown color="error" size={11} strokeWidth={1.75} />
+                  <TrendingDown className="text-destructive" size={11} strokeWidth={1.75} />
                 ) : (
-                  <span className="inline-flex text-muted-foreground opacity-60"><Remove size={11} strokeWidth={1.75} /></span>
+                  <span className="inline-flex text-faint"><Remove size={11} strokeWidth={1.75} /></span>
                 )}
-                <span className={cn(GROWTH_CLASS, 'cn-text-caption', trend.value > 0 ? 'text-[var(--ok)]' : trend.value < 0 ? 'text-[var(--err)]' : 'text-[var(--faint)]')}>
+                <span className={cn(GROWTH_CLASS, trend.value > 0 ? 'text-success-ink' : trend.value < 0 ? 'text-destructive-ink' : 'text-faint')}>
                   {trend.value > 0 ? '+' : ''}{trend.value}%
                   {trend.label ? ` ${trend.label}` : ''}
                 </span>

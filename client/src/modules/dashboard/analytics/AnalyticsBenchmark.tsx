@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent } from '../../../components/ui';
+import { Card, CardContent, Skeleton } from '../../../components/ui';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -13,9 +13,9 @@ import type { BenchmarkMetrics } from '../../../hooks/useAnalyticsEngine';
 
 const LEGEND_STYLE = { fontSize: 10, letterSpacing: '0.02em' } as const;
 
-/** Intitule de section (mb 0.5 de l'ancien sx = 3 px, theme.spacing valait 6). */
+/** Intitule de section — recette d'overline Baitly UI (§3 du contrat). */
 const SECTION_LABEL_CLASS =
-  'cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.04em] text-[var(--muted)] mb-[3px] shrink-0';
+  'text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-[3px] shrink-0';
 
 interface Props {
   data: BenchmarkMetrics | null;
@@ -40,29 +40,29 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
                 {t('dashboard.analytics.portfolioVsBest')}
               </p>
               {loading || !data || data.radarData.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                <div className="flex-1 min-h-0">
+                  <Skeleton className="size-full rounded-lg" />
                 </div>
               ) : (
                 <div className="flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart data={data.radarData}>
-                      <PolarGrid stroke="#E2E8F0" />
-                      <PolarAngleAxis dataKey="metric" tick={{ fontSize: 10, fill: '#94A3B8' }} />
-                      <PolarRadiusAxis tick={{ fontSize: 8, fill: '#CBD5E1' }} />
+                      <PolarGrid stroke="var(--bui-border)" />
+                      <PolarAngleAxis dataKey="metric" tick={{ fontSize: 10, fill: 'var(--bui-faint)' }} />
+                      <PolarRadiusAxis tick={{ fontSize: 8, fill: 'var(--bui-faint)' }} />
                       <Radar
                         name={t('dashboard.analytics.portfolioAvg')}
                         dataKey="portfolio"
-                        stroke="#6B8A9A"
-                        fill="#6B8A9A"
+                        stroke="var(--bui-chart-1)"
+                        fill="var(--bui-chart-1)"
                         fillOpacity={0.15}
                         strokeWidth={1.5}
                       />
                       <Radar
                         name={t('dashboard.analytics.bestProperty')}
                         dataKey="best"
-                        stroke="#4A9B8E"
-                        fill="#4A9B8E"
+                        stroke="var(--bui-chart-2)"
+                        fill="var(--bui-chart-2)"
                         fillOpacity={0.1}
                         strokeWidth={1.5}
                       />
@@ -82,7 +82,7 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
             value={data ? <Money value={data.portfolioAvg.revPAN} from="EUR" decimals={2} /> : '-'}
             valueText={data ? convertAndFormat(data.portfolioAvg.revPAN, 'EUR') : undefined}
             subtitle={`${t('dashboard.analytics.occupancyRate')}: ${data?.portfolioAvg.occupancy ?? '-'}% • ${t('dashboard.analytics.netMargin')}: ${data?.portfolioAvg.margin ?? '-'}%`}
-            icon={<Compare color="primary" />}
+            icon={<Compare className="text-primary" />}
             loading={loading}
           />
         </div>
@@ -93,7 +93,7 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
             title={t('dashboard.analytics.bestProperty')}
             value={data ? data.bestProperty.name : '-'}
             subtitle={data ? `RevPAN: ${convertAndFormat(data.bestProperty.revPAN, 'EUR')} • Occ: ${data.bestProperty.occupancy}%` : ''}
-            icon={<EmojiEvents color="warning" />}
+            icon={<EmojiEvents className="text-warning" />}
             loading={loading}
           />
         </div>
@@ -104,7 +104,7 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
             title={t('dashboard.analytics.perfDispersion')}
             value={data ? `${data.stdDevPerformance}` : '-'}
             subtitle={t('dashboard.analytics.perfDispersionDesc')}
-            icon={<BarChartIcon color="info" />}
+            icon={<BarChartIcon className="text-info" />}
             tooltip={t('dashboard.analytics.perfDispersionTooltip')}
             loading={loading}
           />

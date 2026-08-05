@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '../../../../utils/cn';
-import { Input } from '../../../../components/ui';
+import { Button, Input } from '../../../../components/ui';
 import { X, Plus, Save, Boxes, Eye } from 'lucide-react';
 import grapesjs, { type Editor, type ToolbarButtonProps, type Component } from 'grapesjs';
 import { registerBookingComponents, setupEditorInteraction, setCanvasInert, blockLabelHtml } from './bookingComponents';
@@ -270,61 +270,49 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
   };
 
   return (
-    <div className="absolute inset-[0px] z-[20] flex flex-col bg-[var(--bg)]">
+    <div className="absolute inset-0 z-[20] flex flex-col bg-background">
       {/* En-tête */}
-      <div className="flex items-center gap-2 px-3.5 py-2 border-b border-[var(--line)] bg-[var(--card)] shrink-0">
-        <div className="inline-flex items-center gap-1.5 text-[var(--ink)]">
+      <div className="flex shrink-0 items-center gap-2 border-b border-border bg-card px-3.5 py-2">
+        <div className="inline-flex items-center gap-1.5 text-foreground">
           <Boxes size={18} strokeWidth={2} />
-          <span className="text-[var(--text-md)] font-[family-name:var(--fw-semibold)]">{initial ? 'Modifier le composite' : 'Constructeur de composite'}</span>
+          <span className="text-sm font-semibold">{initial ? 'Modifier le composite' : 'Constructeur de composite'}</span>
         </div>
         <div className="flex-1" />
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={toggleInteractive}
           aria-pressed={interactive}
           title={interactive ? 'Revenir au mode édition (sélection / déplacement des widgets)' : 'Mode interagir : ouvrir le filtre, voir le contenu caché, tester'}
-          className={cn(
-            'inline-flex items-center gap-[3px] h-8 px-[9px] rounded-[var(--radius-md)] border border-solid cursor-pointer',
-            'text-[var(--text-sm)] [font-weight:var(--fw-medium)] hover:border-[var(--accent)]',
-            interactive
-              ? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--accent-soft)]'
-              : 'border-[var(--line)] text-[var(--body)] bg-transparent hover:text-[var(--ink)]',
-          )}
+          className={cn(interactive && 'border-primary bg-primary-soft text-primary')}
         >
           <Eye size={14} strokeWidth={2} /> {interactive ? 'Éditer' : 'Interagir'}
-        </button>
-        <button
-          type="button"
-          onClick={insert}
-          className="inline-flex items-center gap-[3px] h-8 px-[9px] rounded-[var(--radius-md)] border border-solid border-[var(--line)] bg-transparent text-[var(--body)] text-[var(--text-sm)] [font-weight:var(--fw-medium)] cursor-pointer hover:border-[var(--accent)] hover:text-[var(--ink)]"
-        >
+        </Button>
+        <Button type="button" variant="outline" onClick={insert}>
           <Plus size={14} strokeWidth={2} /> Insérer sans enregistrer
-        </button>
-        <button
-          type="button"
-          onClick={save}
-          disabled={!name.trim()}
-          className="inline-flex items-center gap-[4.5px] h-[34px] px-[10.5px] rounded-[var(--radius-md)] border-0 bg-[var(--accent)] text-[var(--on-accent)] text-[var(--text-sm)] [font-weight:var(--fw-semibold)] cursor-pointer hover:bg-[var(--accent-deep)] disabled:opacity-45 disabled:pointer-events-none"
-        >
+        </Button>
+        <Button type="button" onClick={save} disabled={!name.trim()}>
           <Save size={15} strokeWidth={2} /> Enregistrer
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
+          size="icon"
           onClick={onClose}
           aria-label="Fermer"
-          className="ms-[3px] size-[34px] rounded-[var(--radius-sm)] border border-solid border-[var(--line)] bg-transparent text-[var(--muted)] grid place-items-center cursor-pointer hover:bg-[var(--hover)] hover:text-[var(--ink)]"
+          className="ms-[3px]"
         >
           <X size={18} strokeWidth={2} />
-        </button>
+        </Button>
       </div>
 
       {/* Corps : canvas DnD (gauche) + palette de blocs (droite) */}
-      <div className="flex-1 min-h-0 flex">
-        <div className="flex-1 min-w-0 min-h-0 bg-[var(--bg)]">
+      <div className="flex min-h-0 flex-1">
+        <div className="min-h-0 min-w-0 flex-1 bg-background">
           <div className="w-full h-full" ref={canvasElRef} />
         </div>
 
-        <div className="shrink-0 w-[300px] h-full flex flex-col border-s border-[var(--line)] bg-[var(--card)]">
+        <div className="flex h-full w-[300px] shrink-0 flex-col border-s border-border bg-card">
           {/* En-tête fixe : nom + onglets Blocs / Style. */}
           <div className="p-3 pb-1.5 flex flex-col gap-2 shrink-0">
             {/* Pas de libelle visible dans cette barre d'outils dense : le nom
@@ -336,7 +324,7 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            <div className="flex gap-0.5 p-0.5 bg-[var(--field)] rounded-[var(--radius-md)]">
+            <div className="flex gap-0.5 rounded-lg bg-field p-0.5">
               {(['blocks', 'style'] as const).map((tab) => (
                 <button
                   key={tab}
@@ -344,9 +332,10 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
                   onClick={() => setRightTab(tab)}
                   aria-pressed={rightTab === tab}
                   className={cn(
-                    'flex-1 inline-flex items-center justify-center h-[30px] rounded-[var(--radius-sm)] border-0 cursor-pointer',
-                    'text-[var(--text-sm)] [font-weight:var(--fw-medium)] hover:text-[var(--ink)]',
-                    rightTab === tab ? 'bg-[var(--card)] text-[var(--ink)]' : 'bg-transparent text-[var(--muted)]',
+                    'inline-flex h-[30px] flex-1 cursor-pointer items-center justify-center rounded-md',
+                    'text-sm font-medium transition-colors duration-150 ease-out-quart motion-reduce:transition-none',
+                    'hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                    rightTab === tab ? 'bg-card text-foreground shadow-sm' : 'bg-transparent text-muted-foreground',
                   )}
                 >
                   {tab === 'blocks' ? 'Blocs' : 'Style'}
@@ -357,18 +346,18 @@ export default function CompositeBuilder({ open, config, initial, getTemplateCss
 
           {/* Onglet BLOCS : aide + palette de blocs GrapesJS (montée via `appendTo`, toujours montée). */}
           <div className={cn('flex-col gap-[7.5px] flex-1 min-h-0 px-3 pb-3 overflow-y-auto', rightTab === 'blocks' ? 'flex' : 'hidden')}>
-            <div className="text-[var(--text-2xs)] text-[var(--muted)] leading-[1.4]">
+            <p className="text-2xs leading-snug text-muted-foreground">
               Glisse les blocs sur le canvas (ou dans une « Ligne » pour les aligner). L'agencement que tu crées EST le composite.
-              Sélectionne le widget « Filtre » puis l'icône <span className="text-[var(--body)] font-[family-name:var(--fw-medium)]">⧉ Ouvrir le groupe</span> : le filtre est <span className="text-[var(--body)] font-[family-name:var(--fw-medium)]">conservé</span> et ses sous-filtres deviennent de vrais widgets éditables (déplacer, aligner, styler). L'icône <span className="text-[var(--body)] font-[family-name:var(--fw-medium)]">⮂ compact/déplié</span> bascule entre filtre compact (icône → menu) et critères en ligne.
-            </div>
+              Sélectionne le widget « Filtre » puis l'icône <span className="font-medium text-foreground">⧉ Ouvrir le groupe</span> : le filtre est <span className="font-medium text-foreground">conservé</span> et ses sous-filtres deviennent de vrais widgets éditables (déplacer, aligner, styler). L'icône <span className="font-medium text-foreground">⮂ compact/déplié</span> bascule entre filtre compact (icône → menu) et critères en ligne.
+            </p>
             <div className="flex-1 min-h-0" ref={blocksElRef} />
           </div>
 
           {/* Onglet STYLE : sélecteurs (classes) + Style Manager. Toujours montés (cibles `appendTo`). */}
           <div className={cn('flex-col flex-1 min-h-0 overflow-y-auto', rightTab === 'style' ? 'flex' : 'hidden')}>
-            <div className="px-3 pb-1.5 text-[var(--text-2xs)] text-[var(--muted)] leading-[1.4]">
-              Sélectionne un élément (groupe, champ…) puis édite layout & style. Les règles s'appliquent <span className="text-[var(--body)] font-[family-name:var(--fw-medium)]">par classe</span> → elles rejoignent le CSS du template à l'enregistrement.
-            </div>
+            <p className="px-3 pb-1.5 text-2xs leading-snug text-muted-foreground">
+              Sélectionne un élément (groupe, champ…) puis édite layout & style. Les règles s'appliquent <span className="font-medium text-foreground">par classe</span> → elles rejoignent le CSS du template à l'enregistrement.
+            </p>
             <div className="shrink-0" ref={selectorElRef} />
             <div className="flex-1 min-h-0" ref={styleElRef} />
           </div>

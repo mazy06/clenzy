@@ -4,7 +4,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import { TriangleAlert } from 'lucide-react';
 import { Skeleton, ToggleGroup, ToggleGroupItem } from '../../../../components/ui';
 import { CalendarX2, Eye, MousePointerClick, Search, ShoppingCart } from 'lucide-react';
-import StatTile from '../../../../components/StatTile';
+import StatTile from '../../../../components/baitly/StatTile';
 import EmptyState from '../../../../components/EmptyState';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { funnelApi, type FunnelAnalytics } from '../../../../services/api/funnelApi';
@@ -43,13 +43,13 @@ export default function FunnelAnalyticsPanel() {
       icon: <Search size={18} />,
       label: t('bookingEngine.funnel.searches', 'Recherches'),
       value: data?.searches,
-      color: 'var(--accent)',
+      iconClassName: 'text-primary',
     },
     {
       icon: <CalendarX2 size={18} />,
       label: t('bookingEngine.funnel.denied', 'Sans disponibilité'),
       value: data?.deniedSearches,
-      color: 'var(--warn)',
+      iconClassName: 'text-warning',
       hint: data?.deniedPct != null
         ? t('bookingEngine.funnel.deniedPct', '{{pct}} % des recherches', { pct: data.deniedPct })
         : undefined,
@@ -58,19 +58,19 @@ export default function FunnelAnalyticsPanel() {
       icon: <Eye size={18} />,
       label: t('bookingEngine.funnel.views', 'Fiches consultées'),
       value: data?.propertyViews,
-      color: 'var(--info)',
+      iconClassName: 'text-info',
     },
     {
       icon: <ShoppingCart size={18} />,
       label: t('bookingEngine.funnel.checkouts', 'Checkouts initiés'),
       value: data?.checkoutStarts,
-      color: 'var(--accent)',
+      iconClassName: 'text-primary',
     },
     {
       icon: <MousePointerClick size={18} />,
       label: t('bookingEngine.funnel.confirmed', 'Réservations directes'),
       value: data?.confirmed,
-      color: 'var(--ok)',
+      iconClassName: 'text-success',
       hint: data?.conversionPct != null
         ? t('bookingEngine.funnel.conversionPct', 'Conversion {{pct}} %', { pct: data.conversionPct })
         : undefined,
@@ -81,10 +81,10 @@ export default function FunnelAnalyticsPanel() {
     <div className="p-3 flex flex-col gap-2 max-w-[980px]">
       <div className="flex items-center justify-between">
         <div>
-          <h6 className="cn-text-subtitle1 font-semibold">
+          <h6 className="m-0 text-sm font-semibold tracking-tight">
             {t('bookingEngine.funnel.title', 'Funnel de réservation')}
           </h6>
-          <span className="cn-text-caption text-[var(--muted)]">
+          <span className="text-xs text-muted-foreground">
             {t('bookingEngine.funnel.subtitle',
               'Demande captée par votre moteur de réservation — y compris la demande refusée.')}
           </span>
@@ -116,18 +116,18 @@ export default function FunnelAnalyticsPanel() {
             icon={s.icon}
             label={s.label}
             value={loading || s.value == null ? '—' : s.value.toLocaleString()}
-            color={s.color}
+            iconClassName={s.iconClassName}
             hint={s.hint}
             loading={loading}
           />
         ))}
       </div>
 
-      <div className="rounded-xl border border-solid border-[var(--line)] bg-[var(--card)] p-2.5">
-        <h6 className="cn-text-subtitle2 mb-1.5">
+      <div className="rounded-xl border border-solid border-border bg-card p-2.5">
+        <h6 className="m-0 mb-1.5 text-xs font-medium">
           {t('bookingEngine.funnel.topDeniedTitle', 'Séjours demandés sans disponibilité')}
         </h6>
-        <span className="cn-text-caption text-[var(--muted)] block mb-1.5">
+        <span className="mb-1.5 block text-xs text-muted-foreground">
           {t('bookingEngine.funnel.topDeniedHint',
             'Ces dates ont été recherchées mais aucun logement n’était disponible — un signal pour revoir prix, min-stay ou inventaire.')}
         </span>

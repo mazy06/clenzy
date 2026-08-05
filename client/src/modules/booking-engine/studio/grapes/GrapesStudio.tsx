@@ -2,7 +2,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '../../../../utils/cn';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../../../../components/ui';
+import {
+  Badge,
+  Button,
+  Item,
+  ItemActions,
+  ItemMedia,
+  Separator,
+  Spinner,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../../components/ui';
 import {
   Rocket, PanelLeftClose, PanelLeftOpen,
   Undo2, Redo2, Eye, Maximize, Code, SquareDashed, FolderInput, Workflow, PaintBucket, Boxes, Trash2, Plus,
@@ -657,31 +668,22 @@ function ToolBtn({ icon: Icon, title, onClick, active = false, disabled = false,
         {/* Un bouton desactive n'emet pas d'evenement de survol : l'enveloppe
             porte l'ancre du Tooltip a sa place. */}
         <span className="inline-flex">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size={label ? 'sm' : 'icon-sm'}
             onClick={onClick}
             disabled={disabled}
             aria-label={title}
             aria-pressed={active}
             className={cn(
-              'inline-flex h-[30px] min-w-[30px] items-center justify-center gap-[4.5px] cursor-pointer',
-              'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
-              'disabled:opacity-40 disabled:cursor-default',
-              label ? 'px-[7.5px]' : 'px-0',
-              active
-                ? 'text-[var(--accent)] bg-[var(--accent-soft)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]'
-                : 'text-[var(--muted)] bg-transparent hover:text-[var(--ink)] hover:bg-[var(--hover)]',
+              'font-medium',
+              active && 'bg-primary-soft text-primary hover:bg-primary-soft hover:text-primary',
             )}
-            style={{
-              borderRadius: 'var(--radius-sm)',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--fw-medium)',
-              transition: 'color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out)',
-            }}
           >
             <Icon size={16} strokeWidth={2} />
             {label && <span>{label}</span>}
-          </button>
+          </Button>
         </span>
       </TooltipTrigger>
       <TooltipContent>{title}</TooltipContent>
@@ -700,63 +702,69 @@ function CompositesPanel({ composites, canEditGlobal, onInsert, onEdit, onDelete
   onNew: () => void;
 }) {
   return (
-    <div className="p-2 flex flex-col gap-1">
-      <div className="text-[var(--text-xs)] text-[var(--muted)] leading-[1.4] px-0.5">
+    <div className="flex flex-col gap-1 p-2">
+      <p className="px-0.5 text-xs leading-snug text-muted-foreground">
         Clique pour insérer, ou glisse-dépose le composite depuis l'onglet « Blocs » (catégorie Composites).
-      </div>
-      <button
+      </p>
+      <Button
         type="button"
+        variant="outline"
         onClick={onNew}
-        className="inline-flex h-[34px] items-center justify-center gap-[4.5px] border border-dashed border-[var(--line)] text-[var(--accent)] cursor-pointer hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]"
-        style={{ borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }}
+        className="border-dashed font-semibold text-primary hover:border-primary hover:bg-primary-soft hover:text-primary"
       >
         <Plus size={15} strokeWidth={2} /> Nouveau composite
-      </button>
+      </Button>
       {composites.map((c) => (
-        <div className="flex items-center gap-1.5 px-1.5 py-[5.4px] rounded-[var(--radius-md)] border border-solid border-[var(--line)] bg-[var(--card)] hover:border-[var(--accent)]" style={{ transition: 'border-color var(--duration-fast) var(--ease-out)' }} key={c.id}>
-          <div className="shrink-0 inline-flex text-[var(--muted)]"><Boxes size={20} strokeWidth={1.8} /></div>
-        <button type="button" onClick={() => onInsert(c)} className="flex-1 min-w-0 block text-start cursor-pointer">
-            <span className="flex items-center gap-0.5 text-[var(--text-sm)] font-[family-name:var(--fw-medium)] text-[var(--ink)]">
+        <Item variant="outline" size="xs" key={c.id} className="hover:border-primary">
+          <ItemMedia className="text-muted-foreground"><Boxes size={20} strokeWidth={1.8} /></ItemMedia>
+          {/* Toute la ligne insère : le bouton porte lui-même le titre et le résumé
+              (des `span`, pour rester du contenu phrasé valide dans un `button`). */}
+          <button type="button" onClick={() => onInsert(c)} className="block min-w-0 flex-1 cursor-pointer text-start">
+            <span className="flex items-center gap-1 text-sm font-medium text-foreground">
               {c.name}
               {c.global && (
-                <span className="text-[var(--text-2xs)] font-[family-name:var(--fw-semibold)] text-[var(--accent)] bg-[var(--accent-soft)] px-1 py-0 rounded-[var(--radius-sm)] uppercase tracking-[.04em]">Global</span>
+                <Badge className="h-auto bg-primary-soft px-1 py-0 text-2xs font-semibold uppercase tracking-wide text-primary">
+                  Global
+                </Badge>
               )}
             </span>
-            <span className="block text-[var(--text-2xs)] text-[var(--muted)]">{compositeSummary(c)}</span>
+            <span className="block text-2xs text-muted-foreground">{compositeSummary(c)}</span>
           </button>
           {!c.builtin && (!c.global || canEditGlobal) && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => onEdit(c)}
-                  aria-label="Modifier"
-                  className="shrink-0 inline-flex items-center justify-center w-[26px] h-[24px] rounded-[var(--radius-sm)] text-[var(--muted)] cursor-pointer hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
-                >
-                  <Pencil size={14} strokeWidth={2} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Modifier</TooltipContent>
-            </Tooltip>
+            <ItemActions className="gap-0.5">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => onEdit(c)}
+                    aria-label="Modifier"
+                    className="hover:bg-primary-soft hover:text-primary"
+                  >
+                    <Pencil size={14} strokeWidth={2} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Modifier</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => onDelete(c)}
+                    aria-label="Supprimer"
+                    className="hover:bg-destructive-soft hover:text-destructive-ink"
+                  >
+                    <Trash2 size={14} strokeWidth={2} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Supprimer</TooltipContent>
+              </Tooltip>
+            </ItemActions>
           )}
-          {!c.builtin && (!c.global || canEditGlobal) && (
-            <Tooltip>
-              {/* --danger / --danger-soft n'existent pas dans le theme : seuls les replis
-                  etaient rendus, on les ecrit donc tels quels (aucun changement visuel). */}
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => onDelete(c)}
-                  aria-label="Supprimer"
-                  className="shrink-0 inline-flex items-center justify-center w-[26px] h-[24px] rounded-[var(--radius-sm)] text-[var(--muted)] cursor-pointer hover:text-[#d4453f] hover:bg-[rgba(212,69,63,0.12)]"
-                >
-                  <Trash2 size={14} strokeWidth={2} />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Supprimer</TooltipContent>
-            </Tooltip>
-          )}
-        </div>
+        </Item>
       ))}
     </div>
   );
@@ -895,7 +903,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
     const traitsEl = traitsRef.current;
     if (!container || !blocksEl || !stylesEl || !layersEl || !traitsEl || cfg.loading || !cfg.config) return;
 
-    // R5 — médiathèque : l'Asset Manager GrapesJS uploade vers la médiathèque Clenzy (org-scopée) et
+    // R5 — médiathèque : l'Asset Manager GrapesJS uploade vers la médiathèque Baitly (org-scopée) et
     // sert l'URL publique keyless. `editorRef.current` est résolu à l'upload (éditeur déjà monté).
     const handleAssetUpload = async (e: DragEvent): Promise<void> => {
       const ed = editorRef.current;
@@ -935,7 +943,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
       },
       // L'app gère la persistance (cf. listener `update` ci-dessous) → pas de storage interne.
       storageManager: false,
-      // R5 — Asset Manager branché sur la médiathèque Clenzy (upload custom → URL publique keyless).
+      // R5 — Asset Manager branché sur la médiathèque Baitly (upload custom → URL publique keyless).
       assetManager: { uploadFile: handleAssetUpload },
       // Thème initial de l'iframe du canvas. Les changements ultérieurs passent par l'effet réactif
       // (`applyCanvasThemeCss`), qui met à jour un `<style>` dédié sans réinitialiser l'éditeur.
@@ -1613,7 +1621,8 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
 
   if (cfg.loading) {
     return (
-      <div className="h-full flex items-center justify-center text-[var(--muted)] text-[var(--text-md)]">
+      <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
+        <Spinner />
         Chargement de l’éditeur…
       </div>
     );
@@ -1625,7 +1634,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
     <div className="clenzy-grapes relative flex flex-col h-full min-h-0">
       {/* Barre des pages (multi-page) — masquée en aperçu. */}
       {pageMode && !chromeHidden && (
-        <div className="flex items-center shrink-0 border-b border-[var(--line)] bg-[var(--bg)]">
+        <div className="flex shrink-0 items-center border-b border-border bg-background">
           <div className="flex-1 min-w-0">
             <PagesBar
               pages={pages.pages}
@@ -1641,7 +1650,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
           </div>
           {/* Barre de LANGUES : bascule la langue d'édition (chips) + ajoute une langue supportée. La
               langue par défaut édite les pages `locale=null` ; les autres leurs variantes traduites. */}
-          <div className="inline-flex items-center gap-0.5 px-1.5 shrink-0 border-s border-[var(--line)]">
+          <div className="inline-flex shrink-0 items-center gap-0.5 border-s border-border px-1.5">
             {pages.availableLocales.map((loc) => {
               const active = loc === pages.activeLocale;
               return (
@@ -1651,12 +1660,13 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
                   onClick={() => { void handleSelectLocale(loc); }}
                   aria-pressed={active}
                   className={cn(
-                    'inline-flex items-center justify-center h-[24px] px-1.5 rounded-[var(--radius-sm)] tracking-[.04em] cursor-pointer',
+                    'inline-flex h-6 cursor-pointer items-center justify-center rounded-md px-1.5 text-2xs font-semibold tracking-wide',
+                    'transition-colors duration-150 ease-out-quart motion-reduce:transition-none',
+                    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                     active
-                      ? 'text-[var(--on-accent)] bg-[var(--accent)] hover:text-[var(--on-accent)] hover:bg-[var(--accent)]'
-                      : 'text-[var(--muted)] bg-transparent hover:text-[var(--ink)] hover:bg-[var(--hover)]',
+                      ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
+                      : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
                   )}
-                  style={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)' }}
                 >
                   {LOCALE_LABEL[loc] ?? loc.toUpperCase()}
                 </button>
@@ -1672,8 +1682,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
                       type="button"
                       onClick={() => { void handleAddLanguage(loc); }}
                       disabled={pages.loading}
-                      className="inline-flex items-center justify-center h-[24px] px-[4.5px] rounded-[var(--radius-sm)] text-[var(--muted)] border border-dashed border-[var(--line)] cursor-pointer hover:text-[var(--accent)] hover:border-[var(--accent)] disabled:opacity-40"
-                      style={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-medium)' }}
+                      className="inline-flex h-6 cursor-pointer items-center justify-center rounded-md border border-dashed border-border px-1 text-2xs font-medium text-muted-foreground transition-colors duration-150 ease-out-quart hover:border-primary hover:text-primary disabled:opacity-40 motion-reduce:transition-none"
                     >
                       + {LOCALE_LABEL[loc] ?? loc.toUpperCase()}
                     </button>
@@ -1696,8 +1705,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
                       onClick={() => setAutoTranslateOpen(true)}
                       disabled={pages.loading}
                       aria-label={t('bookingEngine.studio.ai.translate.pageAction', 'Traduire (IA)')}
-                      className="inline-flex items-center gap-[3px] h-[24px] px-1.5 ms-[3px] rounded-[var(--radius-sm)] whitespace-nowrap text-[var(--accent)] border border-solid border-[var(--accent)] cursor-pointer hover:bg-[var(--accent)] hover:text-[var(--on-accent)] disabled:opacity-50"
-                      style={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)' }}
+                      className="ms-[3px] inline-flex h-6 cursor-pointer items-center gap-[3px] whitespace-nowrap rounded-md border border-primary px-1.5 text-2xs font-semibold text-primary transition-colors duration-150 ease-out-quart hover:bg-primary hover:text-primary-foreground disabled:opacity-50 motion-reduce:transition-none"
                     >
                       <Languages size={13} strokeWidth={2.2} />
                       {t('bookingEngine.studio.ai.translate.pageAction', 'Traduire (IA)')}
@@ -1718,8 +1726,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
                       type="button"
                       onClick={() => { void handleTranslatePage(); }}
                       disabled={translating || pages.loading}
-                      className="inline-flex items-center justify-center h-[24px] px-1.5 ms-[3px] rounded-[var(--radius-sm)] whitespace-nowrap text-[var(--accent)] border border-solid border-[var(--accent)] cursor-pointer hover:bg-[var(--accent)] hover:text-[var(--on-accent)] disabled:opacity-50"
-                      style={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-semibold)' }}
+                      className="ms-[3px] inline-flex h-6 cursor-pointer items-center justify-center whitespace-nowrap rounded-md border border-primary px-1.5 text-2xs font-semibold text-primary transition-colors duration-150 ease-out-quart hover:bg-primary hover:text-primary-foreground disabled:opacity-50 motion-reduce:transition-none"
                     >
                       {translating ? 'Traduction…' : 'Traduire (IA)'}
                     </button>
@@ -1736,8 +1743,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
                       type="button"
                       onClick={() => { void handleTranslateAll(); }}
                       disabled={translating || pages.loading}
-                      className="inline-flex items-center justify-center h-[24px] px-[4.5px] rounded-[var(--radius-sm)] whitespace-nowrap text-[var(--muted)] border border-solid border-[var(--line)] cursor-pointer hover:text-[var(--accent)] hover:border-[var(--accent)] disabled:opacity-50"
-                      style={{ fontSize: 'var(--text-2xs)', fontWeight: 'var(--fw-medium)' }}
+                      className="inline-flex h-6 cursor-pointer items-center justify-center whitespace-nowrap rounded-md border border-border px-1 text-2xs font-medium text-muted-foreground transition-colors duration-150 ease-out-quart hover:border-primary hover:text-primary disabled:opacity-50 motion-reduce:transition-none"
                     >
                       Tout
                     </button>
@@ -1747,23 +1753,25 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
               </Tooltip>
             )}
           </div>
-          <div className="inline-flex items-center gap-1.5 px-1.5 shrink-0">
-            <div className={cn('inline-flex items-center gap-[3px] text-[var(--text-2xs)]', needsPublish ? 'text-[var(--warn,_#B26B00)]' : 'text-[var(--ok)]')} style={{ fontWeight: 'var(--fw-semibold)' }}>
-              <span className={cn('w-[6px] h-[6px] rounded-[50%]', needsPublish ? 'bg-[var(--warn,_#D4A574)]' : 'bg-[var(--ok)]')} />
+          <div className="inline-flex shrink-0 items-center gap-1.5 px-1.5">
+            {/* Pastille d'état : le texte porte le jeton `-ink` (contraste AA), la
+                puce la teinte vive — cf. §2.4 du contrat Baitly UI. */}
+            <div className={cn('inline-flex items-center gap-[3px] text-2xs font-semibold', needsPublish ? 'text-warning-ink' : 'text-success-ink')}>
+              <span className={cn('size-1.5 rounded-full', needsPublish ? 'bg-warning' : 'bg-success')} />
               {needsPublish ? 'Brouillon non publié' : 'Publié'}
             </div>
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="inline-flex">
-                  <button
+                  <Button
                     type="button"
+                    size="sm"
                     onClick={() => { handlePublish(); }}
                     disabled={publishing || !needsPublish}
-                    className="inline-flex items-center gap-[3px] h-[28px] px-[9px] rounded-[var(--radius-md)] bg-[var(--accent)] text-[var(--on-accent)] cursor-pointer hover:bg-[var(--accent-deep)] disabled:opacity-45 focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2"
-                    style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)' }}
+                    className="font-semibold"
                   >
                     <Rocket size={14} strokeWidth={2} /> {publishing ? 'Publication…' : 'Publier'}
-                  </button>
+                  </Button>
                 </span>
               </TooltipTrigger>
               <TooltipContent>
@@ -1776,10 +1784,10 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
 
       {/* Barre d'outils de l'éditeur (option A — 100 % React, un seul style de bouton). Masquée en aperçu. */}
       {!chromeHidden && (
-        <div className="cz-editor-toolbar flex items-center gap-0.5 shrink-0 h-[44px] px-1.5 border-b border-[var(--line)] bg-[var(--card)]">
+        <div className="cz-editor-toolbar flex h-[44px] shrink-0 items-center gap-0.5 border-b border-border bg-card px-1.5">
           <ToolBtn icon={Undo2} title="Annuler" onClick={doUndo} />
           <ToolBtn icon={Redo2} title="Rétablir" onClick={doRedo} />
-          <div className="w-[1px] h-[20px] bg-[var(--line)] mx-0.5" />
+          <Separator orientation="vertical" className="mx-0.5 h-5" />
           {/* Import = mode Avancé uniquement (import de design multi-standards). Masqué en Guidé. */}
           {!guided && <ToolBtn icon={FolderInput} title="Importer un design" label="Importer" onClick={() => setImportOpen(true)} />}
           <ToolBtn icon={Workflow} title="Parcours de réservation (modèles + composeur)" label="Funnel" onClick={handleFunnel} />
@@ -1791,7 +1799,7 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
           <ToolBtn icon={Eye} title="Aperçu" active={previewOn} onClick={togglePreview} />
           <ToolBtn icon={Maximize} title="Plein écran" active={fullscreenOn} onClick={toggleFullscreen} />
           <ToolBtn icon={Code} title="Voir le code généré" onClick={openCode} />
-          <div className="w-[1px] h-[20px] bg-[var(--line)] mx-0.5" />
+          <Separator orientation="vertical" className="mx-0.5 h-5" />
           <ToolBtn
             icon={panelCollapsed ? PanelLeftOpen : PanelLeftClose}
             title={panelCollapsed ? 'Afficher le panneau' : 'Réduire le panneau'}
@@ -1819,11 +1827,11 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
         </div>
         {/* Panneau droit : conteneurs des managers, TOUJOURS montés (cible `appendTo`) ; on bascule la
             vue par `display` et on réduit la largeur à 0 (sans démonter) au repli / en aperçu. */}
-        <div className={cn('cz-rightpanel shrink-0 h-full overflow-hidden flex flex-col bg-[var(--card)]', panelCollapsed || chromeHidden || compositeCreatorOpen ? 'w-0' : 'w-[300px]', panelCollapsed || chromeHidden || compositeCreatorOpen ? 'border-s-[none]' : 'border-s-[1px_solid_var(--line)]')}>
+        <div className={cn('cz-rightpanel flex h-full shrink-0 flex-col overflow-hidden bg-card', panelCollapsed || chromeHidden || compositeCreatorOpen ? 'w-0 border-s-0' : 'w-[300px] border-s border-border')}>
           {/* Sélecteur de vue — en tête du panneau droit (segmented), FIXE (hors zone de scroll). */}
           {!panelCollapsed && !chromeHidden && (
-            <div className="shrink-0 flex justify-center p-1.5 border-b border-[var(--line)] bg-[var(--card)]">
-              <div className="inline-flex gap-0.5 p-0.5 rounded-[var(--radius-md)] bg-[var(--field)]">
+            <div className="flex shrink-0 justify-center border-b border-border bg-card p-1.5">
+              <div className="inline-flex gap-0.5 rounded-lg bg-field p-0.5">
                 {visibleTabs.map(({ key, icon: Icon, label }) => {
                   const active = key === activeView;
                   return (
@@ -1835,16 +1843,13 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
                           aria-label={label}
                           aria-pressed={active}
                           className={cn(
-                            'inline-flex items-center justify-center w-[34px] h-[28px] rounded-[var(--radius-sm)] cursor-pointer',
-                            'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+                            'inline-flex h-7 w-[34px] cursor-pointer items-center justify-center rounded-md',
+                            'transition-colors duration-150 ease-out-quart motion-reduce:transition-none',
+                            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                             active
-                              ? 'text-[var(--accent)] bg-[var(--card)] hover:text-[var(--accent)]'
-                              : 'text-[var(--muted)] bg-transparent hover:text-[var(--ink)]',
+                              ? 'bg-card text-primary shadow-sm hover:text-primary'
+                              : 'bg-transparent text-muted-foreground hover:text-foreground',
                           )}
-                          style={{
-                            boxShadow: active ? 'var(--shadow-card)' : 'none',
-                            transition: 'color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out)',
-                          }}
                         >
                           <Icon size={16} strokeWidth={2} />
                         </button>
@@ -1881,15 +1886,14 @@ export default function GrapesStudio({ cfg, breakpoint, mode }: GrapesStudioProp
       {chromeHidden && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
+            <Button
               type="button"
               onClick={togglePreview}
               aria-label="Quitter l'aperçu"
-              className="absolute top-[12px] right-[12px] z-10 inline-flex items-center gap-[3px] h-[32px] px-[9px] rounded-[var(--radius-md)] bg-[var(--accent)] text-[var(--on-accent)] cursor-pointer hover:bg-[var(--accent-deep)]"
-              style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--fw-semibold)', boxShadow: 'var(--shadow-card)' }}
+              className="absolute top-3 end-3 z-10 font-semibold shadow-sm"
             >
               <Eye size={15} strokeWidth={2} /> Quitter l’aperçu
-            </button>
+            </Button>
           </TooltipTrigger>
           <TooltipContent>Quitter l'aperçu</TooltipContent>
         </Tooltip>

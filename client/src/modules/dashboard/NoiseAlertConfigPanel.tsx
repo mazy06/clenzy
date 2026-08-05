@@ -291,7 +291,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           <div className="flex items-center gap-1">
             <span className="inline-flex text-primary"><Settings size={18} strokeWidth={1.75} /></span>
-            <h6 className="cn-text-subtitle1 font-bold text-[0.875rem] whitespace-nowrap">
+            <h6 className="text-sm font-semibold whitespace-nowrap text-foreground">
               Configuration des alertes bruit
             </h6>
           </div>
@@ -319,7 +319,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                 checked={form.enabled}
                 onCheckedChange={(checked) => updateField('enabled', checked)}
               />
-              <FieldLabel htmlFor={`${fieldIdBase}-enabled`} className="cn-text-body1 text-[0.8125rem] font-semibold">
+              <FieldLabel htmlFor={`${fieldIdBase}-enabled`} className="text-[0.8125rem] font-semibold">
                 Alertes activées
               </FieldLabel>
             </Field>
@@ -341,7 +341,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                   {/* ── Colonne gauche : Créneaux horaires ── */}
                   <div className="col-span-12 min-[900px]:col-span-7">
                     <div className="flex items-center justify-between mb-1.5">
-                      <p className="cn-text-body1 text-[0.75rem] font-bold uppercase text-muted-foreground tracking-[0.04em]">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Créneaux horaires
                       </p>
                       {/* Action d'en-tete de section, discrete face au contenu edite. */}
@@ -356,7 +356,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                     </div>
 
                     {form.timeWindows.map((tw, idx) => (
-                      <div className="p-2 mb-1.5 rounded-[8px] bg-[var(--surface-2)] border border-[var(--line)]" key={idx}>
+                      <div className="p-2 mb-1.5 rounded-lg bg-card border border-border" key={idx}>
                         {/* items-end : le libelle passe AU-DESSUS du champ, la corbeille
                             doit s'aligner sur la ligne de saisie et non sur l'ensemble. */}
                         <div className="flex items-end gap-1.5 mb-1.5">
@@ -395,7 +395,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                               variant="ghost"
                               size="icon-sm"
                               aria-label={`Supprimer le creneau ${tw.label || idx + 1}`}
-                              className="text-[var(--err)]"
+                              className="text-destructive"
                               onClick={() => removeTimeWindow(idx)}
                             >
                               <Delete size={16} strokeWidth={1.75} />
@@ -405,8 +405,10 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
 
                         <div className="grid grid-cols-12 gap-3">
                           <div className="col-span-6">
-                            <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mb-0.5">
-                              Seuil avertissement : {tw.warningThresholdDb} dB
+                            {/* La valeur porte l'encre `-ink` (lisible AA), la piste du
+                                curseur la teinte vive — cf. §2.4 du contrat Baitly UI. */}
+                            <p className="text-xs text-foreground mb-0.5">
+                              Seuil avertissement : <b className="text-warning-ink tabular-nums">{tw.warningThresholdDb} dB</b>
                             </p>
                             <Slider
                               aria-label="Seuil avertissement"
@@ -414,12 +416,12 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                               onValueChange={([val]) => updateTimeWindow(idx, 'warningThresholdDb', val)}
                               min={30}
                               max={100}
-                              className="[&_[data-slot=slider-range]]:bg-[#ED6C02] [&_[data-slot=slider-thumb]]:border-[#ED6C02]"
+                              className="[&_[data-slot=slider-range]]:bg-warning [&_[data-slot=slider-thumb]]:border-warning"
                             />
                           </div>
                           <div className="col-span-6">
-                            <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mb-0.5">
-                              Seuil critique : {tw.criticalThresholdDb} dB
+                            <p className="text-xs text-foreground mb-0.5">
+                              Seuil critique : <b className="text-destructive-ink tabular-nums">{tw.criticalThresholdDb} dB</b>
                             </p>
                             <Slider
                               aria-label="Seuil critique"
@@ -427,7 +429,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                               onValueChange={([val]) => updateTimeWindow(idx, 'criticalThresholdDb', val)}
                               min={30}
                               max={120}
-                              className="[&_[data-slot=slider-range]]:bg-[#D32F2F] [&_[data-slot=slider-thumb]]:border-[#D32F2F]"
+                              className="[&_[data-slot=slider-range]]:bg-destructive [&_[data-slot=slider-thumb]]:border-destructive"
                             />
                           </div>
                         </div>
@@ -437,7 +439,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
 
                   {/* ── Colonne droite : Canaux de notification ── */}
                   <div className="col-span-12 min-[900px]:col-span-5">
-                    <p className="cn-text-body1 text-[0.75rem] font-bold uppercase text-muted-foreground tracking-[0.04em] mb-1.5">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
                       Canaux de notification
                     </p>
 
@@ -449,7 +451,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                           checked={form.notifyInApp}
                           onCheckedChange={(checked) => updateField('notifyInApp', checked)}
                         />
-                        <FieldLabel htmlFor={`${fieldIdBase}-notify-in-app`} className="items-center gap-0.5 cn-text-body1 text-[0.75rem] font-normal">
+                        <FieldLabel htmlFor={`${fieldIdBase}-notify-in-app`} className="items-center gap-0.5 text-xs font-normal">
                           <NotificationsActive size={14} strokeWidth={1.75} />
                           In-app
                         </FieldLabel>
@@ -461,7 +463,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                           checked={form.notifyEmail}
                           onCheckedChange={(checked) => updateField('notifyEmail', checked)}
                         />
-                        <FieldLabel htmlFor={`${fieldIdBase}-notify-email`} className="items-center gap-0.5 cn-text-body1 text-[0.75rem] font-normal">
+                        <FieldLabel htmlFor={`${fieldIdBase}-notify-email`} className="items-center gap-0.5 text-xs font-normal">
                           <Email size={14} strokeWidth={1.75} />
                           Email
                         </FieldLabel>
@@ -473,7 +475,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                           checked={form.notifyGuestMessage}
                           onCheckedChange={(checked) => updateField('notifyGuestMessage', checked)}
                         />
-                        <FieldLabel htmlFor={`${fieldIdBase}-notify-guest`} className="items-center gap-0.5 cn-text-body1 text-[0.75rem] font-normal">
+                        <FieldLabel htmlFor={`${fieldIdBase}-notify-guest`} className="items-center gap-0.5 text-xs font-normal">
                           <Chat size={14} strokeWidth={1.75} />
                           Message voyageur
                         </FieldLabel>
@@ -497,7 +499,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
 
                     {/* Cooldown */}
                     <div className="flex items-center gap-1.5">
-                      <label htmlFor={`${fieldIdBase}-cooldown`} className="cn-text-body1 text-[0.75rem] text-muted-foreground">
+                      <label htmlFor={`${fieldIdBase}-cooldown`} className="text-xs text-muted-foreground">
                         Cooldown entre alertes :
                       </label>
                       <NativeSelect

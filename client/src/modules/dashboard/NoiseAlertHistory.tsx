@@ -10,6 +10,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
   NativeSelect,
   NativeSelectOption,
   Tooltip,
@@ -122,7 +127,7 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
                 </BuiBadge>
               )}
             </span>
-            <h6 className="cn-text-subtitle1 font-bold text-[0.875rem]">
+            <h6 className="text-sm font-semibold text-foreground">
               Historique des alertes
             </h6>
           </div>
@@ -145,9 +150,17 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
             <Spinner className="size-6" />
           </div>
         ) : alerts.length === 0 ? (
-          <p className="cn-text-body1 py-4 text-center text-muted-foreground text-[0.8125rem]">
-            Aucune alerte enregistree
-          </p>
+          <Empty className="border-none p-4">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <History />
+              </EmptyMedia>
+              <EmptyTitle>Aucune alerte enregistree</EmptyTitle>
+              <EmptyDescription className="text-xs">
+                Les depassements de seuil apparaitront ici des qu'un capteur en remontera.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <>
             <div className="overflow-x-auto">
@@ -171,7 +184,8 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
                       <TableCell className={CELL_CLASS}>{alert.propertyName || `#${alert.propertyId}`}</TableCell>
                       <TableCell className={CELL_CLASS}><SeverityChip severity={alert.severity} /></TableCell>
                       <TableCell className={`${CELL_CLASS} text-end`}>
-                        <p className={cn('cn-text-body1 font-semibold text-[0.75rem]', alert.severity === 'CRITICAL' ? 'text-[var(--err)]' : 'text-[var(--warn)]')}>
+                        {/* Encre `-ink` : la teinte vive ne passe pas AA en texte (§2.4). */}
+                        <p className={cn('text-xs font-semibold tabular-nums', alert.severity === 'CRITICAL' ? 'text-destructive-ink' : 'text-warning-ink')}>
                           {alert.measuredDb.toFixed(0)} dB
                         </p>
                       </TableCell>
@@ -182,7 +196,7 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
                         {alert.acknowledged ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircle size={16} strokeWidth={1.75} /></span>
+                              <span className="inline-flex text-success-ink"><CheckCircle size={16} strokeWidth={1.75} /></span>
                             </TooltipTrigger>
                             <TooltipContent>
                               {`Acquittee par ${alert.acknowledgedBy || '?'}${alert.notes ? ` — ${alert.notes}` : ''}`}
@@ -198,7 +212,7 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
                                   variant="ghost"
                                   size="icon-sm"
                                   aria-label="Acquitter"
-                                  className="text-[var(--warn)]"
+                                  className="text-warning"
                                   onClick={() => setAckDialog({ open: true, alertId: alert.id })}
                                 >
                                   <CheckCircle size={16} strokeWidth={1.75} />
@@ -272,7 +286,7 @@ const NoiseAlertHistory: React.FC<NoiseAlertHistoryProps> = ({ propertyId }) => 
 
 // Ecarts assumes vs le gabarit du kit (qui porte deja 700 / majuscules / filet) :
 // cette table est plus dense et son en-tete un cran plus lisible que le defaut.
-const HEADER_CELL_CLASS = 'py-[4.5px] text-[0.6875rem] tracking-[0.04em] text-[var(--muted)]';
+const HEADER_CELL_CLASS = 'py-[4.5px] text-[0.6875rem] tracking-wide text-muted-foreground';
 
 const CELL_CLASS = 'py-[3px] text-[0.75rem]';
 

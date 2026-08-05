@@ -1,6 +1,16 @@
 import React from 'react';
 import { cn } from '../../../utils/cn';
-import { Card, Skeleton } from '../../../components/ui';
+import {
+  Card,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemGroup,
+  ItemMedia,
+  ItemSeparator,
+  ItemTitle,
+  Skeleton,
+} from '../../../components/ui';
 import StatTile from '../../../components/baitly/StatTile';
 import {
   Euro, Hotel, TrendingUp as TrendIcon, Percent,
@@ -26,18 +36,23 @@ interface KpiItem {
   subtitle?: string;
   trend?: number;
   icon: React.ReactNode;
-  iconColor: string;
+  /**
+   * Classes de la pastille d'icone — couple `-soft` (fond) / teinte vive
+   * (icone), ecrites en toutes lettres : Tailwind ne fabrique pas une classe
+   * depuis une valeur calculee a l'execution.
+   */
+  iconClassName: string;
   tooltip?: string;
 }
 
 // ─── Stable class constants ─────────────────────────────────────────────────
 
 const SECONDARY_CARD_CLASS =
-  'gap-0 py-0 p-[9px] transition-[box-shadow] duration-150 hover:ring-[var(--muted)]';
+  'gap-0 py-0 p-[9px] transition-[box-shadow] duration-150 hover:ring-border';
 
-/** mb: 1 = 6 px, theme.spacing vaut 6. */
+/** Intitule de section — recette d'overline Baitly UI (§3 du contrat). */
 const SECTION_LABEL_CLASS =
-  'cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-1.5';
+  'text-2xs font-semibold uppercase tracking-wide text-faint mb-1.5';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -45,16 +60,17 @@ const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
   const isUp = value > 0;
   const isDown = value < 0;
   const Icon = isUp ? TrendingUp : isDown ? TrendingDown : Remove;
-  // Jetons semantiques en classes litterales : Tailwind ne peut pas fabriquer
-  // une classe depuis une variable.
-  const colorClass = isUp ? 'text-[var(--ok)]' : isDown ? 'text-[var(--err)]' : 'text-[var(--faint)]';
+  // Encre `-ink` : la variation est du TEXTE, et la teinte vive n'y passe pas
+  // AA en clair (§2.4). La fleche partage l'encre pour rester solidaire du
+  // chiffre qu'elle qualifie.
+  const colorClass = isUp ? 'text-success-ink' : isDown ? 'text-destructive-ink' : 'text-faint';
 
   return (
     <div className="inline-flex items-center gap-0.5 mt-0.5">
       <span className={cn('inline-flex', colorClass)}>
         <Icon size={12} strokeWidth={1.75} />
       </span>
-      <p className={cn('cn-text-body1 text-[0.625rem] font-semibold tabular-nums', colorClass)}>
+      <p className={cn('text-2xs font-semibold tabular-nums', colorClass)}>
         {isUp ? '+' : ''}{value}%
       </p>
     </div>
@@ -84,31 +100,28 @@ const TrendHint: React.FC<{ growth: number; suffix?: string }> = ({ growth, suff
 // ─── Secondary KPI row item ─────────────────────────────────────────────────
 
 const SecondaryKpiRow: React.FC<{ item: KpiItem; loading: boolean }> = ({ item, loading }) => (
-  <div className="flex items-center gap-2 py-1.5 px-0.5">
-    <div
-      className="flex items-center justify-center w-[28px] h-[28px] rounded-[6px] shrink-0"
-      style={{ backgroundColor: `${item.iconColor}10` }}
-    >
+  <Item size="xs" className="px-0.5 py-1.5">
+    <ItemMedia variant="icon" className={cn('size-7 rounded-md', item.iconClassName)}>
       {item.icon}
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground font-medium leading-[1.2]">
+    </ItemMedia>
+    <ItemContent>
+      <ItemTitle className="text-[0.6875rem] font-medium leading-[1.2] text-muted-foreground">
         {item.title}
-      </p>
-    </div>
-    <div className="text-end shrink-0">
+      </ItemTitle>
+    </ItemContent>
+    <ItemActions className="flex-col items-end gap-0">
       {loading ? (
         <Skeleton className="h-[18px] w-12" />
       ) : (
         <>
-          <p className="cn-text-body1 text-[0.875rem] font-bold leading-[1.2] tabular-nums">
+          <p className="text-sm font-bold leading-[1.2] tabular-nums text-foreground">
             {item.value}
           </p>
           {item.trend !== undefined && <TrendBadge value={item.trend} />}
         </>
       )}
-    </div>
-  </div>
+    </ItemActions>
+  </Item>
 );
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -167,7 +180,9 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
       value: data ? `${data.netMargin.value}%` : '-',
       trend: data?.netMargin.growth,
       icon: <AccountBalance />,
-      iconColor: data && data.netMargin.value < 50 ? '#C97A7A' : '#4A9B8E',
+      iconClassName: data && data.netMargin.value < 50
+        ? 'bg-destructive-soft text-destructive'
+        : 'bg-success-soft text-success',
     },
     {
       key: 'roi',
@@ -175,7 +190,7 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
       value: data ? `${data.roi.value}%` : '-',
       trend: data?.roi.growth,
       icon: <ShowChart />,
-      iconColor: '#6B8A9A',
+      iconClassName: 'bg-primary-soft text-primary',
     },
     {
       key: 'avgStay',
@@ -183,7 +198,7 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
       value: data ? `${data.avgStayDuration.value} ${t('dashboard.analytics.nights')}` : '-',
       trend: data?.avgStayDuration.growth,
       icon: <CalendarMonth />,
-      iconColor: '#6B8A9A',
+      iconClassName: 'bg-primary-soft text-primary',
     },
   ];
 
@@ -194,21 +209,21 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
       title: t('dashboard.analytics.activeProperties'),
       value: data ? `${data.activeProperties}` : '-',
       icon: <Home />,
-      iconColor: '#6B8A9A',
+      iconClassName: 'bg-primary-soft text-primary',
     },
     {
       key: 'requests',
       title: t('dashboard.analytics.pendingRequests'),
       value: data ? `${data.pendingRequests}` : '-',
       icon: <Assignment />,
-      iconColor: '#D4A574',
+      iconClassName: 'bg-warning-soft text-warning',
     },
     {
       key: 'interventions',
       title: t('dashboard.analytics.activeInterventions'),
       value: data ? `${data.activeInterventions}` : '-',
       icon: <Build />,
-      iconColor: '#6B8A9A',
+      iconClassName: 'bg-primary-soft text-primary',
     },
   ];
 
@@ -237,12 +252,14 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
             <p className={SECTION_LABEL_CLASS}>
               {t('dashboard.analytics.financialMetrics', 'Indicateurs financiers')}
             </p>
-            {financialKpis.map((kpi, i) => (
-              <React.Fragment key={kpi.key}>
-                {i > 0 && <div className="border-t border-solid border-[var(--line)]" />}
-                <SecondaryKpiRow item={kpi} loading={loading} />
-              </React.Fragment>
-            ))}
+            <ItemGroup>
+              {financialKpis.map((kpi, i) => (
+                <React.Fragment key={kpi.key}>
+                  {i > 0 && <ItemSeparator />}
+                  <SecondaryKpiRow item={kpi} loading={loading} />
+                </React.Fragment>
+              ))}
+            </ItemGroup>
           </Card>
         </div>
 
@@ -252,12 +269,14 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
             <p className={SECTION_LABEL_CLASS}>
               {t('dashboard.analytics.operationalMetrics', 'Activite operationnelle')}
             </p>
-            {operationalKpis.map((kpi, i) => (
-              <React.Fragment key={kpi.key}>
-                {i > 0 && <div className="border-t border-solid border-[var(--line)]" />}
-                <SecondaryKpiRow item={kpi} loading={loading} />
-              </React.Fragment>
-            ))}
+            <ItemGroup>
+              {operationalKpis.map((kpi, i) => (
+                <React.Fragment key={kpi.key}>
+                  {i > 0 && <ItemSeparator />}
+                  <SecondaryKpiRow item={kpi} loading={loading} />
+                </React.Fragment>
+              ))}
+            </ItemGroup>
           </Card>
         </div>
       </div>

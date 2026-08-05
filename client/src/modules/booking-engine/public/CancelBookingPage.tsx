@@ -1,8 +1,20 @@
 import { useId, useState } from 'react';
-import { Input, Spinner } from '../../../components/ui';
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Field,
+  FieldLabel,
+  Input,
+  Spinner,
+} from '../../../components/ui';
 import { useParams } from 'react-router-dom';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { cn } from '../../../utils/cn';
 import { API_CONFIG } from '../../../config/api';
 
 const API_BASE = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}`;
@@ -69,76 +81,79 @@ export default function CancelBookingPage() {
   };
 
   return (
-    <div className="min-h-[100vh] bg-[var(--bg)] text-[var(--ink)] flex items-start justify-center px-3 py-6 min-[900px]:py-12">
-      <div className="w-full max-w-[460px] bg-[var(--card)] border border-solid border-[var(--line)] rounded-[var(--radius-lg)] p-[15px] min-[900px]:p-[21px]" style={{ boxShadow: 'var(--shadow-card)' }}>
-        <div className="font-[family-name:var(--font-display)] text-[var(--text-2xl)] font-[family-name:var(--fw-bold)] mb-0.5">
-          Annuler ma réservation
-        </div>
-        <div className="text-[var(--text-md)] text-[var(--muted)] mb-4">
-          Renseignez votre code de confirmation et votre email.
-        </div>
+    <div className="min-h-[100vh] bg-background text-foreground flex items-start justify-center px-3 py-6 min-[900px]:py-12">
+      <Card className="w-full max-w-[460px]">
+        <CardHeader>
+          <CardTitle className="[font-family:var(--font-display)] text-xl font-bold text-balance">
+            Annuler ma réservation
+          </CardTitle>
+          <CardDescription>Renseignez votre code de confirmation et votre email.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-3">
+              <AlertTriangle />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-        {error && (
-          <div className="flex items-center gap-1.5 mb-3 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
-            <AlertTriangle size={16} strokeWidth={2} /> {error}
-          </div>
-        )}
+          {step === 'form' && (
+            <>
+              <FormField label="Code de confirmation" value={code} onChange={setCode} placeholder="ABC123" />
+              <FormField label="Email" value={email} onChange={setEmail} placeholder="vous@exemple.com" type="email" />
+              <Button size="lg" className="w-full" onClick={loadPreview} disabled={loading}>
+                {loading ? <Spinner className="size-5" /> : 'Voir le remboursement'}
+              </Button>
+            </>
+          )}
 
-        {step === 'form' && (
-          <>
-            <Field label="Code de confirmation" value={code} onChange={setCode} placeholder="ABC123" />
-            <Field label="Email" value={email} onChange={setEmail} placeholder="vous@exemple.com" type="email" />
-            <PrimaryButton onClick={loadPreview} loading={loading} label="Voir le remboursement" />
-          </>
-        )}
-
-        {step === 'preview' && preview && (
-          <>
-            <div className="p-3 rounded-[var(--radius-md)] bg-[var(--accent-soft)] mb-3">
-              <div className="text-[var(--text-sm)] text-[var(--muted)]">Remboursement applicable</div>
-              <div className="font-[family-name:var(--font-display)] text-[var(--text-2xl)] font-[family-name:var(--fw-bold)] text-[var(--accent)]">
-                {fmt(preview.refundAmount, preview.currency)} <span className="text-[var(--text-md)] text-[var(--muted)] font-[family-name:var(--fw-medium)]">({preview.refundPercentage}%)</span>
+          {step === 'preview' && preview && (
+            <>
+              <div className="p-3 rounded-lg bg-primary-soft mb-3">
+                <div className="text-xs text-muted-foreground">Remboursement applicable</div>
+                <div className="[font-family:var(--font-display)] text-2xl font-bold text-primary tabular-nums">
+                  {fmt(preview.refundAmount, preview.currency)} <span className="text-sm text-muted-foreground font-medium">({preview.refundPercentage}%)</span>
+                </div>
+                <div className="text-xs text-foreground mt-0.5">{preview.explanation}</div>
               </div>
-              <div className="text-[var(--text-sm)] text-[var(--body)] mt-0.5">{preview.explanation}</div>
-            </div>
-            <PrimaryButton onClick={confirmCancel} loading={loading} label="Confirmer l'annulation" danger />
-            <button
-              type="button"
-              onClick={() => setStep('form')}
-              className="mt-1.5 inline-flex items-center justify-center bg-transparent border-none appearance-none text-[var(--text-sm)] text-[var(--muted)] cursor-pointer hover:text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-            >
-              Retour
-            </button>
-          </>
-        )}
+              <Button variant="destructive" size="lg" className="w-full" onClick={confirmCancel} disabled={loading}>
+                {loading ? <Spinner className="size-5" /> : "Confirmer l'annulation"}
+              </Button>
+              {/* Retour en arriere : action tertiaire, pas un second bouton plein. */}
+              <Button variant="ghost" size="sm" className="mt-1.5 w-full text-muted-foreground" onClick={() => setStep('form')}>
+                Retour
+              </Button>
+            </>
+          )}
 
-        {step === 'done' && result && (
-          <div className="text-center py-3">
-            <div className="text-[var(--ok)] flex justify-center mb-2"><CheckCircle2 size={40} strokeWidth={1.75} /></div>
-            <div className="text-[var(--text-lg)] font-[family-name:var(--fw-semibold)] mb-0.5">
-              {result.status === 'already_cancelled' ? 'Réservation déjà annulée' : 'Réservation annulée'}
-            </div>
-            {result.refundAmount > 0 && (
-              <div className="text-[var(--text-md)] text-[var(--muted)]">
-                Remboursement de {fmt(result.refundAmount, result.currency)} en cours de traitement.
+          {step === 'done' && result && (
+            <div className="text-center py-3">
+              <div className="text-success flex justify-center mb-2"><CheckCircle2 size={40} strokeWidth={1.75} /></div>
+              <div className="text-base font-semibold text-balance mb-0.5">
+                {result.status === 'already_cancelled' ? 'Réservation déjà annulée' : 'Réservation annulée'}
               </div>
-            )}
-          </div>
-        )}
-      </div>
+              {result.refundAmount > 0 && (
+                <div className="text-sm text-muted-foreground tabular-nums">
+                  Remboursement de {fmt(result.refundAmount, result.currency)} en cours de traitement.
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
-function Field({ label, value, onChange, placeholder, type = 'text' }: {
+function FormField({ label, value, onChange, placeholder, type = 'text' }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
 }) {
   // Le libelle est du texte libre (accents, espaces) : il ne peut pas servir
   // d'identifiant, et le composant est monte deux fois dans la page.
   const inputId = useId();
   return (
-    <div className="mb-3">
-      <label className="block text-[var(--text-sm)] font-medium text-[var(--body)] mb-1" htmlFor={inputId}>{label}</label>
+    <Field className="mb-3">
+      <FieldLabel htmlFor={inputId}>{label}</FieldLabel>
       {/* Le gabarit du champ (fond, lisere, rayon, anneau de focus) vient du
           primitif : l'ancien sx ne faisait que le redire. */}
       <Input
@@ -146,28 +161,6 @@ function Field({ label, value, onChange, placeholder, type = 'text' }: {
         value={value} type={type} placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
       />
-    </div>
-  );
-}
-
-function PrimaryButton({ onClick, loading, label, danger = false }: {
-  onClick: () => void; loading: boolean; label: string; danger?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={loading}
-      className={cn(
-        'w-full h-[46px] inline-flex items-center justify-center rounded-[var(--radius-md)] border-none appearance-none',
-        'text-[var(--text-md)] font-semibold text-[#FFFFFF] cursor-pointer',
-        'transition-opacity duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:opacity-[.92]',
-        'disabled:opacity-50 disabled:cursor-default',
-        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]',
-        danger ? 'bg-[var(--err)]' : 'bg-[var(--accent)]',
-      )}
-    >
-      {loading ? <Spinner className="size-5 text-[#FFFFFF]" /> : label}
-    </button>
+    </Field>
   );
 }

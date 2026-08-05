@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Skeleton } from '../../../../components/ui';
+import { Alert, AlertDescription, Skeleton } from '../../../../components/ui';
+import StatTile from '../../../../components/baitly/StatTile';
 import { AlertTriangle, Users, ShoppingCart, Info } from 'lucide-react';
 import { growthSettingsApi, type GrowthSettings } from '../../../../services/api/growthSettingsApi';
 import { SettingsPage, SettingCard, SettingRow, SaveBar, ToggleControl, NumberControl } from './settingsControls';
@@ -63,17 +64,17 @@ export default function GrowthSettingsPanel() {
   if (!loaded && !error) {
     return (
       <div className="max-w-[720px] mx-auto px-6 py-6">
-        {/* mb: 2.5 = 15 px (spacing MUI 6). */}
-        {[0, 1].map((i) => <Skeleton key={i} className="h-[140px] mb-[15px] rounded-[var(--radius-lg)] bg-[var(--hover)]" />)}
+        {[0, 1].map((i) => <Skeleton key={i} className="h-[140px] mb-[15px] rounded-xl" />)}
       </div>
     );
   }
 
   if (!loaded) {
     return (
-      <div className="flex items-center gap-1.5 m-6 p-3 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
-        <AlertTriangle size={18} strokeWidth={2} /> {error}
-      </div>
+      <Alert variant="destructive" className="m-6">
+        <AlertTriangle />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
     );
   }
 
@@ -83,10 +84,12 @@ export default function GrowthSettingsPanel() {
       description="Capture de leads et relance de panier — réellement appliquées côté serveur."
       footer={<SaveBar dirty={dirty} saving={saving} onSave={save} error={error} />}
       intro={
-        <div className="flex items-start gap-1.5 mb-3.5 p-2 rounded-[var(--radius-md)] bg-[var(--accent-soft)] text-[var(--body)] text-[var(--text-sm)] leading-[1.5]">
-          <span className="text-[var(--accent)] mt-0"><Info size={16} strokeWidth={2} /></span>
-          Ces réglages s’appliquent à <b>toute l’organisation</b> — donc à l’ensemble de vos booking engines.
-        </div>
+        <Alert variant="info" className="mb-3.5">
+          <Info />
+          <AlertDescription>
+            Ces réglages s’appliquent à <b>toute l’organisation</b> — donc à l’ensemble de vos booking engines.
+          </AlertDescription>
+        </Alert>
       }
     >
       <SettingCard title="Capture de leads" description="Newsletter / liste d’attente avec consentement RGPD.">
@@ -127,25 +130,13 @@ export default function GrowthSettingsPanel() {
       </SettingCard>
 
       <SettingCard title="Impact" description="Mesures cumulées sur votre organisation.">
+        {/* `bg-muted/40` : les tuiles se détachent de la carte qui les contient
+            plutôt que d'empiler deux surfaces `bg-card` identiques. */}
         <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-3 py-[9px]">
-          <StatTile icon={Users} label="Contacts captés" value={loaded.contactsCaptured} />
-          <StatTile icon={ShoppingCart} label="Paniers relancés" value={loaded.cartsRecovered} />
+          <StatTile icon={<Users />} label="Contacts captés" value={loaded.contactsCaptured} className="bg-muted/40" />
+          <StatTile icon={<ShoppingCart />} label="Paniers relancés" value={loaded.cartsRecovered} className="bg-muted/40" />
         </div>
       </SettingCard>
     </SettingsPage>
-  );
-}
-
-function StatTile({ icon: Icon, label, value }: { icon: typeof Users; label: string; value: number }) {
-  return (
-    <div className="flex items-center gap-2 p-2.5 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--field)]">
-      <div className="w-[38px] h-[38px] shrink-0 flex items-center justify-center rounded-[var(--radius-md)] bg-[var(--accent-soft)] text-[var(--accent)]">
-        <Icon size={19} strokeWidth={1.9} />
-      </div>
-      <div>
-        <div className="font-[family-name:var(--font-display)] text-[var(--text-2xl)] font-[family-name:var(--fw-bold)] text-[var(--ink)] tabular-nums leading-[1.1]">{value}</div>
-        <div className="text-[var(--text-sm)] text-[var(--muted)]">{label}</div>
-      </div>
-    </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Input } from '../../../../components/ui';
+import { Button, Input } from '../../../../components/ui';
 import { cn } from '../../../../utils/cn';
 import type { BookingEngineConfig, DesignTokens } from '../../../../services/api/bookingEngineApi';
 import { SelectControl } from '../settings/settingsControls';
@@ -64,7 +64,7 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
 
   if (!config) {
     return (
-      <div className="h-full flex items-center justify-center px-4 text-[var(--muted)] text-[var(--text-sm)]">
+      <div className="h-full flex items-center justify-center px-4 text-xs text-muted-foreground">
         Chargement du thème…
       </div>
     );
@@ -111,9 +111,9 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
             <button key={c} type="button" aria-label={`Couleur ${c}`} onClick={() => setColor(c)}
               style={{ backgroundColor: c }}
               className={cn(
-                'w-[22px] h-[22px] rounded-[50%] cursor-pointer p-0 border-2 border-solid',
-                'shadow-[0_0_0_1px_var(--line)] focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
-                primary.toLowerCase() === c.toLowerCase() ? 'border-[var(--ink)]' : 'border-transparent',
+                'w-[22px] h-[22px] rounded-full cursor-pointer p-0 border-2 border-solid ring-1 ring-border',
+                'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+                primary.toLowerCase() === c.toLowerCase() ? 'border-foreground' : 'border-transparent',
               )}
             />
           ))}
@@ -134,9 +134,9 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
             onChange={(e) => writeTokens({ backgroundColor: e.target.value })}
             className={HEX_INPUT_CLS}
           />
-          <button className="px-[7.5px] py-[4.5px] text-[var(--text-sm)] text-[var(--body)] bg-[transparent] border border-solid border-[var(--line)] rounded-[var(--radius-md)] cursor-pointer shrink-0 whitespace-nowrap hover:bg-[var(--hover)]" type="button" onClick={() => writeTokens({ backgroundColor: '#FFFFFF' })}>
+          <Button variant="outline" size="sm" type="button" className="shrink-0 cursor-pointer whitespace-nowrap" onClick={() => writeTokens({ backgroundColor: '#FFFFFF' })}>
             Blanc
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -167,7 +167,7 @@ export default function ThemeInspector({ config, patch }: ThemeInspectorProps) {
         <SelectControl id="theme-btn" value={buttonStyle} onChange={(v) => writeTokens({ buttonStyle: v })} options={BUTTON_OPTIONS} />
       </Field>
 
-      <div className="text-[var(--text-2xs)] text-[var(--faint)] leading-[1.5]">
+      <div className="text-2xs text-faint leading-relaxed">
         Couleur, polices, rayon et ombre se reflètent dans l’aperçu. Taille, densité et style de bouton s’appliquent au widget de réservation sur la page publiée.
       </div>
     </div>
@@ -184,17 +184,12 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor: string; c
   );
 }
 
-// `text-[var(...)]` / `font-[var(...)]` sont ambigus (taille vs couleur, famille vs
-// graisse) : la propriete explicite garantit la declaration attendue.
-const LABEL_CLS = '[font-size:var(--text-sm)] [font-weight:var(--fw-medium)] text-[var(--body)]';
+const LABEL_CLS = 'text-xs font-medium text-foreground';
 
-// Saisie hexadecimale a cote du pastilleur : le focus ring vient du gabarit du
-// primitif, on ne garde que ce que le sx ajoutait vraiment (mono, teintes, px/py).
-const HEX_INPUT_CLS =
-  'flex-1 min-w-0 px-[7.5px] py-[4.5px] [font-size:var(--text-md)] [font-family:var(--font-mono,monospace)] '
-  + 'text-[var(--ink)] bg-[var(--field)] border border-solid border-[var(--line)] rounded-[var(--radius-md)]';
+// Saisie hexadecimale a cote du pastilleur : bordure, fond, rayon et anneau de
+// focus viennent du gabarit du primitif ; il ne reste que la mono et la largeur.
+const HEX_INPUT_CLS = 'flex-1 min-w-0 text-sm [font-family:var(--font-mono,monospace)]';
 
-// Le rayon 6 du sx d'origine passait par theme.shape.borderRadius (8) → 48px.
 const COLOR_INPUT_CLS =
-  'w-[38px] h-[38px] p-0 border border-solid border-[var(--line)] rounded-[var(--radius-md)] bg-transparent cursor-pointer shrink-0 ' +
+  'w-[38px] h-[38px] p-0 border border-border rounded-lg bg-transparent cursor-pointer shrink-0 ' +
   '[&::-webkit-color-swatch-wrapper]:p-[3px] [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded-[48px]';

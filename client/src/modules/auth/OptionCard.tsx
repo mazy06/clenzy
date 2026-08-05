@@ -32,7 +32,7 @@ export interface OptionCardProps {
   description?: React.ReactNode;
   /** Info complementaire (prix, badge…) affichee aussi dans le tooltip. */
   hint?: React.ReactNode;
-  /** Couleur d'accent custom (defaut primary.main). */
+  /** Couleur d'accent custom (defaut : la primary Baitly). */
   accent?: string;
   disabled?: boolean;
 }
@@ -46,13 +46,13 @@ export default function OptionCard({
   accent,
   disabled = false,
 }: OptionCardProps) {
-  const accentColor = accent ?? 'var(--mui-primary)';
+  const accentColor = accent ?? 'var(--bui-primary)';
 
   const hasTooltipContent = !!(description || hint);
   const tooltipTitle = hasTooltipContent ? (
     <div className="py-0.5">
       {description && (
-        <span className="cn-text-caption block leading-[1.4] text-[0.75rem]">
+        <span className="block text-xs leading-[1.4]">
           {description}
         </span>
       )}
@@ -94,23 +94,23 @@ export default function OptionCard({
               'hover:bg-[color-mix(in_srgb,var(--option-accent)_8%,transparent)]',
             )
           : cn(
-              'border-[var(--line)] bg-transparent',
+              'border-border bg-transparent',
               'hover:border-[color-mix(in_srgb,var(--option-accent)_50%,transparent)]',
               'hover:bg-[color-mix(in_srgb,var(--option-accent)_2%,transparent)]',
             ),
       )}
     >
-      <p className="cn-text-body2 font-semibold text-[0.875rem] leading-[1.3] text-foreground flex-1 min-w-0">
+      <p className="text-sm font-semibold leading-[1.3] text-foreground flex-1 min-w-0">
         {label}
       </p>
 
       {/* Indicateur radio en haut a droite */}
       <div
         aria-hidden
-        className="absolute top-1/2 right-[14px] -translate-y-1/2 w-4 h-4 rounded-[50%] border-[1.5px] border-solid bg-[var(--card)] flex items-center justify-center"
+        className="absolute top-1/2 end-[14px] -translate-y-1/2 w-4 h-4 rounded-[50%] border-[1.5px] border-solid bg-card flex items-center justify-center"
         style={{
           // accentColor vient d'une prop / du theme : valeur runtime.
-          borderColor: selected ? accentColor : 'var(--line)',
+          borderColor: selected ? accentColor : 'var(--bui-border)',
           transition: 'border-color 150ms ease',
         }}
       >

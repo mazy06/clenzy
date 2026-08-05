@@ -78,16 +78,16 @@ export default ChannelsGridView;
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 /**
- * Pastille logo : surface douce tokenisée (--airbnb-soft / --booking-soft /
- * --field) — la couleur de MARQUE est conservée sur le logo lui-même.
+ * Pastille logo : surface douce tokenisée (--airbnb-soft / --booking-soft, sinon
+ * le fond de champ) — la couleur de MARQUE est conservée sur le logo lui-même.
  */
 function OtaLogo({ channel }: { channel: OtaChannel }) {
   return (
-    <div className="inline-flex items-center justify-center h-[44px] px-[9px] rounded-[10px] shrink-0" style={{ backgroundColor: channelSoftBg(channel.id) }}>
+    <div className="inline-flex items-center justify-center h-[44px] px-[9px] rounded-lg shrink-0" style={{ backgroundColor: channelSoftBg(channel.id) }}>
       {channel.logo ? (
         <img className="h-[24px] object-contain max-w-[120px]" src={channel.logo} alt={channel.name} />
       ) : (
-        <p className="cn-text-body1 text-[1rem] font-bold tracking-[-0.02em] leading-[1]" style={{ fontFamily: 'var(--font-display)', color: channel.brandColor }}>
+        <p className="text-base font-bold tracking-[-0.02em] leading-[1]" style={{ fontFamily: 'var(--font-display)', color: channel.brandColor }}>
           {channel.name}
         </p>
       )}
@@ -123,17 +123,17 @@ function OtaChannelCard({
   return (
     <div
       className={cn(
-        'flex flex-col overflow-hidden rounded-[14px] bg-[var(--card)] cursor-default',
-        'border border-solid border-[var(--line)] hover:border-[var(--line-2)]',
-        'transition-[border-color] duration-[180ms] ease-[cubic-bezier(.16,1,.3,1)]',
+        'flex flex-col overflow-hidden rounded-xl bg-card cursor-default',
+        'border border-border hover:border-field-line',
+        'transition-[border-color] duration-[180ms] ease-out-quart motion-reduce:transition-none',
         isAvailable ? 'opacity-100' : 'opacity-60',
       )}
     >
       {/* Entête : pastille logo (marque) + chip de statut -soft */}
-      <div className="flex items-center justify-between gap-[6px] px-[15px] py-3 border-b border-solid border-b-[var(--line)]">
+      <div className="flex items-center justify-between gap-[6px] px-[15px] py-3 border-b border-border">
         <OtaLogo channel={channel} />
         {connectionLoading && isAvailable ? (
-          <Spinner className="size-3.5 text-[var(--muted)]" />
+          <Spinner className="size-3.5 text-muted-foreground" />
         ) : isAvailable && isConnected ? (
           <StatusChip
             label={connectionStatus?.status ?? 'ACTIVE'}
@@ -156,12 +156,12 @@ function OtaChannelCard({
       {/* Card content */}
       <div className="flex flex-col flex-1 gap-[9px] p-[15px]">
         {/* Channel name */}
-        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.875rem] font-semibold text-[var(--ink)]">
+        <p className="font-[family-name:var(--font-display)] text-sm font-semibold text-foreground">
           {channel.name}
         </p>
 
         {/* Description */}
-        <p className="cn-text-body1 text-[0.71875rem] text-[var(--muted)] leading-[1.5] flex-1 min-h-[32px]">
+        <p className="text-xs text-muted-foreground leading-[1.5] flex-1 min-h-[32px]">
           {t(channel.descriptionKey)}
         </p>
 

@@ -1,6 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Input, Skeleton, Textarea } from '../../../../components/ui';
+import {
+  Alert,
+  AlertDescription,
+  Badge,
+  Button,
+  Field as FieldRoot,
+  FieldLabel,
+  Input,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemTitle,
+  NativeSelect,
+  Skeleton,
+  Textarea,
+} from '../../../../components/ui';
+import EmptyState from '../../../../components/EmptyState';
 import { Plus, Wand2, Trash2, ArrowLeft, Check, AlertTriangle, FileText, Languages } from 'lucide-react';
 import { sitesApi, type BlogPost, type BlogPostUpsert } from '../../../../services/api/sitesApi';
 import { useNotification } from '../../../../hooks/useNotification';
@@ -11,7 +27,7 @@ import type { StudioConfigState } from '../useStudioConfig';
  * Section « Blog » du Studio (2.13). Gère les articles d'un site (CRUD réutilisant le backend
  * BlogPost) + génération d'un brouillon par IA (`/sites/{id}/blog/ai`, réutilise SiteContentAiService).
  * Résout le site via `ensureForConfig` (comme le builder). Les articles publiés sont servis par le
- * SSR (`clenzy-sites`) via la livraison blog existante.
+ * SSR (dépôt `clenzy-sites`) via la livraison blog existante.
  */
 
 type Draft = {
@@ -37,10 +53,11 @@ function toDraft(p: BlogPost): Draft {
   };
 }
 
-const STATUS_META: Record<string, { label: string; color: string }> = {
-  DRAFT: { label: 'Brouillon', color: 'var(--muted)' },
-  PENDING_REVIEW: { label: 'En attente de validation', color: 'var(--warn, #B26B00)' },
-  PUBLISHED: { label: 'Publié', color: 'var(--ok)' },
+/** Statut d'article → pastille du kit (le ton porte le sens, plus la couleur brute). */
+const STATUS_META: Record<string, { label: string; variant: 'secondary' | 'warning' | 'success' }> = {
+  DRAFT: { label: 'Brouillon', variant: 'secondary' },
+  PENDING_REVIEW: { label: 'En attente de validation', variant: 'warning' },
+  PUBLISHED: { label: 'Publié', variant: 'success' },
 };
 
 /** Locales supportées par le Studio (alignées sur GrapesStudio). */
@@ -99,9 +116,10 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
 
   if (error) {
     return (
-      <div className="p-4 flex items-center gap-1.5 text-[var(--err)] text-[var(--text-sm)]">
-        <AlertTriangle size={16} strokeWidth={2} /> {error}
-      </div>
+      <Alert variant="destructive" className="m-4">
+        <AlertTriangle />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
     );
   }
 
@@ -120,34 +138,34 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
     <div className="max-w-[1080px] mx-auto px-3 min-[900px]:px-[18px] py-[18px]">
       <div className="flex items-end gap-3 mb-4">
         <div>
-          <div className="font-[family-name:var(--font-display)] text-[var(--text-xl)] font-[family-name:var(--fw-bold)]">Articles de blog</div>
-          <div className="text-[var(--text-sm)] text-[var(--muted)] mt-0.5">Rédige ou génère des articles ; les articles publiés apparaissent sur ton site.</div>
+          <div className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-balance text-foreground">Articles de blog</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Rédige ou génère des articles ; les articles publiés apparaissent sur ton site.</div>
         </div>
         <div className="flex-1" />
-        <Button size="lg" onClick={() => setEditing('new')} disabled={siteId == null} className={PRIMARY_BTN_CLASS}>
+        <Button size="lg" onClick={() => setEditing('new')} disabled={siteId == null} className="cursor-pointer">
           <Plus size={16} strokeWidth={2.2} /> Nouvel article
         </Button>
       </div>
 
-      <div className="flex items-center gap-1.5 mb-3 p-2 rounded-[var(--radius-md)] bg-[var(--accent-soft)] text-[var(--accent)] text-[var(--text-2xs)] leading-[1.4]">
-        <AlertTriangle size={15} strokeWidth={2} style={{ flexShrink: 0 }} />
-        La publication est soumise à <strong>validation manuelle</strong> : un article (surtout s'il est généré par IA) doit être relu puis approuvé. Les relecteurs de l'organisation sont alertés à chaque soumission.
-      </div>
+      <Alert variant="warning" className="mb-3">
+        <AlertTriangle />
+        <AlertDescription>
+          La publication est soumise à <strong>validation manuelle</strong> : un article (surtout s'il est généré par IA) doit être relu puis approuvé. Les relecteurs de l'organisation sont alertés à chaque soumission.
+        </AlertDescription>
+      </Alert>
 
       {posts === null && (
         <div className="flex flex-col gap-1.5">
-          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-16 w-full rounded-[var(--radius-md)] bg-[var(--hover)]" />)}
+          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
         </div>
       )}
 
       {posts?.length === 0 && (
-        <div className="text-center py-10 text-[var(--muted)]">
-          <div className="w-[52px] h-[52px] mx-auto mb-2 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--accent-soft)] text-[var(--accent)]">
-            <FileText size={24} strokeWidth={1.8} />
-          </div>
-          <div className="text-[var(--text-md)] font-[family-name:var(--fw-semibold)] text-[var(--ink)] mb-0.5">Aucun article</div>
-          <div className="text-[var(--text-sm)]">Crée ton premier article ou laisse l'IA t'en proposer un.</div>
-        </div>
+        <EmptyState
+          icon={<FileText />}
+          title="Aucun article"
+          description="Crée ton premier article ou laisse l'IA t'en proposer un."
+        />
       )}
 
       {posts && posts.length > 0 && (
@@ -156,44 +174,47 @@ export default function BlogPanel({ cfg }: { cfg: StudioConfigState }) {
             const meta = STATUS_META[p.status] ?? STATUS_META.DRAFT;
             const pending = p.status === 'PENDING_REVIEW';
             return (
-              <div className="flex items-center gap-1.5 p-2 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--card)]" key={p.id}>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1 min-w-0">
-                    <div className="text-[var(--text-md)] font-[family-name:var(--fw-semibold)] whitespace-nowrap overflow-hidden text-ellipsis">{p.title || '(sans titre)'}</div>
-                    {p.aiGenerated && <span className="shrink-0 inline-flex items-center px-[4.5px] h-[17px] rounded-full bg-[var(--accent-soft)] text-[var(--accent)] text-[var(--text-2xs)] font-bold tracking-[.04em]">IA</span>}
+              <Item variant="outline" size="xs" className="bg-card" key={p.id}>
+                <ItemContent className="min-w-0">
+                  <ItemTitle className="w-full min-w-0 gap-1">
+                    <span className="min-w-0 truncate text-sm font-semibold text-foreground">{p.title || '(sans titre)'}</span>
+                    {p.aiGenerated && <Badge variant="secondary" className="shrink-0 text-2xs font-bold tracking-[.04em]">IA</Badge>}
+                  </ItemTitle>
+                  <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-2xs">
+                    <Badge variant={meta.variant}>{meta.label}</Badge>
+                    <span className="truncate text-muted-foreground">/{p.slug}</span>
                   </div>
-                  <div className="flex items-center gap-[3px] mt-[1.5px] text-[var(--text-2xs)]" style={{ color: meta.color }}>
-                    <span className="w-[6px] h-[6px] rounded-[50%] shrink-0" style={{ backgroundColor: meta.color }} />
-                    {meta.label} · /{p.slug}
-                  </div>
-                </div>
-                {pending && (
-                  <>
-                    <Button onClick={async () => { if (siteId != null) { await sitesApi.approvePost(siteId, p.id); reload(); } }} className={PRIMARY_BTN_CLASS}>
-                      <Check size={14} strokeWidth={2.4} /> Valider &amp; publier
-                    </Button>
-                    <Button variant="outline" onClick={async () => { if (siteId != null) { await sitesApi.rejectPost(siteId, p.id); reload(); } }} className={GHOST_BTN_CLASS}>Brouillon</Button>
-                  </>
-                )}
-                <Button
-                  variant="outline"
-                  onClick={() => setTranslatingPost(p)}
-                  disabled={postTargets(p).length === 0}
-                  aria-label={t('bookingEngine.studio.ai.translate.postAction', 'Traduire (IA)')}
-                  title={t('bookingEngine.studio.ai.translate.postTooltip', 'Traduire cet article (IA) — crée des variantes en brouillon')}
-                  className={GHOST_ACCENT_BTN_CLASS}>
-                  <Languages size={14} strokeWidth={2.2} /> {t('bookingEngine.studio.ai.translate.postAction', 'Traduire (IA)')}
-                </Button>
-                <Button variant="outline" onClick={() => setEditing(p)} className={GHOST_BTN_CLASS}>Éditer</Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={async () => { if (siteId != null) { await sitesApi.deletePost(siteId, p.id); reload(); } }}
-                  aria-label="Supprimer"
-                  className="text-[var(--muted)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]">
-                  <Trash2 size={15} strokeWidth={2} />
-                </Button>
-              </div>
+                </ItemContent>
+                <ItemActions className="gap-1.5">
+                  {pending && (
+                    <>
+                      <Button size="sm" onClick={async () => { if (siteId != null) { await sitesApi.approvePost(siteId, p.id); reload(); } }} className="cursor-pointer">
+                        <Check size={14} strokeWidth={2.4} /> Valider &amp; publier
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={async () => { if (siteId != null) { await sitesApi.rejectPost(siteId, p.id); reload(); } }} className="cursor-pointer">Brouillon</Button>
+                    </>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setTranslatingPost(p)}
+                    disabled={postTargets(p).length === 0}
+                    aria-label={t('bookingEngine.studio.ai.translate.postAction', 'Traduire (IA)')}
+                    title={t('bookingEngine.studio.ai.translate.postTooltip', 'Traduire cet article (IA) — crée des variantes en brouillon')}
+                    className="cursor-pointer">
+                    <Languages size={14} strokeWidth={2.2} /> {t('bookingEngine.studio.ai.translate.postAction', 'Traduire (IA)')}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditing(p)} className="cursor-pointer">Éditer</Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={async () => { if (siteId != null) { await sitesApi.deletePost(siteId, p.id); reload(); } }}
+                    aria-label="Supprimer"
+                    className="cursor-pointer text-muted-foreground hover:bg-destructive-soft hover:text-destructive-ink">
+                    <Trash2 size={15} strokeWidth={2} />
+                  </Button>
+                </ItemActions>
+              </Item>
             );
           })}
         </div>
@@ -270,48 +291,53 @@ function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: 
   return (
     <div className="max-w-[760px] mx-auto px-3 min-[900px]:px-[18px] py-[18px] flex flex-col gap-3">
       <div className="flex items-center gap-1.5">
-        <Button variant="ghost" size="icon" onClick={onClose} aria-label="Retour" className="text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]">
+        <Button variant="ghost" size="icon" onClick={onClose} aria-label="Retour" className="cursor-pointer text-muted-foreground hover:text-foreground">
           <ArrowLeft size={17} strokeWidth={2} />
         </Button>
-        <div className="flex-1 font-[family-name:var(--font-display)] text-[var(--text-lg)] font-[family-name:var(--fw-bold)]">{post ? "Éditer l'article" : 'Nouvel article'}</div>
-        <Button size="lg" onClick={save} disabled={saving || !draft.title.trim()} className={PRIMARY_BTN_CLASS}>
+        <div className="flex-1 font-[family-name:var(--font-display)] text-base font-bold tracking-tight text-balance text-foreground">{post ? "Éditer l'article" : 'Nouvel article'}</div>
+        <Button size="lg" onClick={save} disabled={saving || !draft.title.trim()} className="cursor-pointer">
           <Check size={15} strokeWidth={2.4} /> {saving ? 'Enregistrement…' : 'Enregistrer'}
         </Button>
       </div>
 
       {/* Génération IA */}
-      <div className="p-2 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--accent-soft)] flex gap-1.5 items-center">
-        <Wand2 size={16} strokeWidth={2} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+      <div className="p-2 rounded-lg border border-border bg-primary-soft flex gap-1.5 items-center">
+        <Wand2 size={16} strokeWidth={2} className="shrink-0 text-primary" />
         {/* Champ nu : la boite qui l'entoure porte deja bordure et fond. */}
         <Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Sujet de l'article (ex. « Que faire à Lyon en hiver »)"
           aria-label="Sujet de l'article"
           onKeyDown={(e) => { if (e.key === 'Enter') generate(); }}
-          className="flex-1 border-0 bg-transparent px-0 text-[var(--text-sm)] text-[var(--ink)] focus-visible:ring-0" />
-        <Button variant="outline" onClick={generate} disabled={generating || !topic.trim()} className={GHOST_ACCENT_BTN_CLASS}>
+          className="flex-1 border-0 bg-transparent px-0 text-xs text-foreground focus-visible:ring-0" />
+        <Button variant="outline" onClick={generate} disabled={generating || !topic.trim()} className="cursor-pointer">
           {generating ? 'Génération…' : 'Générer (IA)'}
         </Button>
       </div>
 
-      {err && <div className="text-[var(--text-sm)] text-[var(--err)]">{err}</div>}
+      {err && (
+        <Alert variant="destructive">
+          <AlertTriangle />
+          <AlertDescription>{err}</AlertDescription>
+        </Alert>
+      )}
 
       <Field label="Titre"><Input value={draft.title} onChange={(e) => set('title', e.target.value)} className={FIELD_CLASS} placeholder="Titre de l'article" /></Field>
       <div className="flex gap-2">
         <Field label="Chemin (slug)"><Input value={draft.slug} onChange={(e) => set('slug', e.target.value)} className={FIELD_CLASS} placeholder="auto depuis le titre" /></Field>
         <Field label="Statut">
-          <select
+          <NativeSelect
             value={draft.status}
             onChange={(e) => set('status', e.target.value)}
-            className="w-full h-[38px] px-1.5 text-[var(--text-md)] text-[var(--ink)] bg-[var(--field)] border border-solid border-[var(--line)] rounded-[var(--radius-md)] cursor-pointer"
+            className="w-full [&_select]:cursor-pointer"
           >
             <option value="DRAFT">Brouillon</option>
             <option value="PENDING_REVIEW">Soumettre à validation</option>
             {draft.status === 'PUBLISHED' && <option value="PUBLISHED">Publié — en ligne</option>}
-          </select>
+          </NativeSelect>
         </Field>
         <Field label="Langue"><Input value={draft.locale} onChange={(e) => set('locale', e.target.value)} className={FIELD_CLASS} placeholder="fr, en… (vide = toutes)" /></Field>
       </div>
       {draft.status === 'PUBLISHED' && (
-        <div className="text-[var(--text-2xs)] text-[var(--warn,_#B26B00)]">
+        <div className="text-2xs text-warning-ink">
           Toute modification enregistrée repassera par la validation avant une nouvelle mise en ligne.
         </div>
       )}
@@ -328,22 +354,13 @@ function BlogEditor({ siteId, post, onClose, onSaved }: { siteId: number; post: 
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex-1 min-w-0">
-      <label className="block mb-0.5 text-[var(--text-sm)] font-[family-name:var(--fw-medium)] text-[var(--body)]">{label}</label>
+    <FieldRoot className="flex-1 min-w-0">
+      <FieldLabel className="text-xs font-medium text-foreground">{label}</FieldLabel>
       {children}
-    </div>
+    </FieldRoot>
   );
 }
 
-// Peau des champs et des boutons du Studio : l'accent y est celui du site en
-// cours d'edition (--accent), pas la primaire du kit. Seules ces couleurs sont
-// reportees ; hauteurs, rayons et graisses viennent des gabarits du kit.
-const FIELD_CLASS = 'w-full border-[var(--line)] bg-[var(--field)] text-[var(--ink)]';
-
-const PRIMARY_BTN_CLASS = 'bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-deep)]';
-
-const GHOST_BTN_CLASS =
-  'border-[var(--line)] bg-transparent text-[var(--body)] hover:bg-transparent hover:border-[var(--accent)] hover:text-[var(--ink)]';
-
-const GHOST_ACCENT_BTN_CLASS =
-  'border-[var(--accent)] bg-transparent text-[var(--accent)] hover:bg-transparent hover:text-[var(--ink)]';
+// Le gabarit des champs (bordure, fond, rayon, anneau de focus) vient du kit :
+// il ne reste plus que la largeur à imposer.
+const FIELD_CLASS = 'w-full';

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Badge, Button } from '../../../components/ui';
+import { Alert, AlertDescription, Badge, Button } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
 import { Field, FieldLabel, Input, Textarea } from '../../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton, ToggleGroup, ToggleGroupItem } from '../../../components/ui';
 import { Plus, Globe, FileText, Sparkles, SlidersHorizontal, AlertTriangle, Trash2 } from 'lucide-react';
 import PageHeader from '../../../components/PageHeader';
+import EmptyState from '../../../components/EmptyState';
 import {
   designSystemsApi, type DesignSystem, type DesignSystemSource, type DesignSystemCreateRequest,
 } from '../../../services/api/designSystemsApi';
@@ -114,7 +115,7 @@ export default function DesignSystemsPage() {
   );
 
   return (
-    <div className="min-h-[100vh] bg-[var(--bg)] px-3 min-[900px]:px-6 py-3 min-[900px]:py-[18px]">
+    <div className="min-h-[100vh] bg-background px-3 min-[900px]:px-6 py-3 min-[900px]:py-[18px]">
       <PageHeader
         title="Systèmes de design"
         subtitle="Une direction réutilisable (tokens + DESIGN.md) que vos templates reprennent"
@@ -122,9 +123,10 @@ export default function DesignSystemsPage() {
       />
 
       {error && (
-        <div className="flex items-start gap-1.5 my-3 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[13px] whitespace-pre-wrap">
-          <AlertTriangle size={16} strokeWidth={2} style={{ flexShrink: 0, marginTop: 2 }} /> {error}
-        </div>
+        <Alert variant="destructive" className="my-3">
+          <AlertTriangle />
+          <AlertDescription className="whitespace-pre-wrap">{error}</AlertDescription>
+        </Alert>
       )}
 
       <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[280px_1fr] gap-[15px] mt-3">
@@ -135,38 +137,49 @@ export default function DesignSystemsPage() {
             <Plus size={16} strokeWidth={2} />
             Créer un système
           </Button>
-          <div className="text-[11px] font-bold tracking-[0.08em] uppercase text-[var(--muted)] px-0.5 mb-1.5">
-            Vos systèmes {systems && <span style={{ fontVariantNumeric: 'tabular-nums' }}>· {systems.length}</span>}
+          <div className="text-2xs font-semibold uppercase tracking-[0.08em] text-muted-foreground px-0.5 mb-1.5">
+            Vos systèmes {systems && <span className="tabular-nums">· {systems.length}</span>}
           </div>
-          {systems === null && <Skeleton className="h-[120px] rounded-[12px] bg-[var(--hover)]" />}
+          {systems === null && <Skeleton className="h-[120px] rounded-xl" />}
           {systems && systems.length === 0 && (
-            <div className="text-[var(--muted)] text-[13px] px-0.5 py-3 leading-[1.6]">
+            <div className="text-muted-foreground text-xs px-0.5 py-3 leading-[1.6]">
               Aucun système pour l'instant. Créez-en un à partir d'un site, d'une marque ou d'un DESIGN.md.
             </div>
           )}
           <div className="flex flex-col gap-0.5">
             {systems?.map((s) => (
               <div className="flex items-center gap-0.5" key={s.id}>
-                <button className={cn('flex-1 text-start border border-solid rounded-[var(--radius-md)] px-[7.5px] py-1.5 cursor-pointer', s.id === selectedId ? 'border-[var(--accent)]' : 'border-[var(--line)]', s.id === selectedId ? 'bg-[var(--hover)]' : 'bg-[transparent]')} style={{ transition: 'background 150ms ease' }} type="button" onClick={() => { setSelectedId(s.id); setCreating(false); }}>
-                  <div className="text-[13.5px] font-semibold text-[var(--ink)]">{s.name}</div>
+                {/* L'etat actif se dit par le fond, pas par un lisere : cf. contrat Baitly UI. */}
+                <button
+                  className={cn(
+                    'flex-1 text-start border rounded-lg px-[7.5px] py-1.5 cursor-pointer transition-colors duration-150 ease-out-quart motion-reduce:transition-none',
+                    s.id === selectedId
+                      ? 'border-primary/40 bg-primary-soft'
+                      : 'border-border bg-transparent hover:bg-muted',
+                  )}
+                  type="button"
+                  aria-pressed={s.id === selectedId}
+                  onClick={() => { setSelectedId(s.id); setCreating(false); }}
+                >
+                  <div className="text-sm font-semibold text-foreground">{s.name}</div>
                   <div className="flex gap-1 items-center mt-0.5">
-                    {s.category && <div className="text-[11px] text-[var(--muted)]">{s.category}</div>}
-                    <Badge variant="secondary" className="h-[16px] text-[9.5px]">{s.scope === 'GLOBAL' ? 'Baitly' : 'Privé'}</Badge>
+                    {s.category && <div className="text-2xs text-muted-foreground">{s.category}</div>}
+                    <Badge variant="secondary" className="h-[16px] text-2xs">{s.scope === 'GLOBAL' ? 'Baitly' : 'Privé'}</Badge>
                   </div>
                 </button>
-                <button className="bg-[transparent] text-[var(--muted)] cursor-pointer p-[3px] grid place-items-[center]" style={{ border: 0 }} type="button" aria-label="Supprimer" onClick={() => handleDelete(s.id)}>
+                <Button variant="ghost" size="icon-xs" type="button" aria-label="Supprimer" onClick={() => handleDelete(s.id)} className="text-muted-foreground">
                   <Trash2 size={14} strokeWidth={2} />
-                </button>
+                </Button>
               </div>
             ))}
           </div>
         </div>
 
         {/* Panneau : création OU aperçu */}
-        <div className="border border-solid border-[var(--line)] rounded-[var(--radius-lg,_14px)] p-[18px] min-h-[420px] bg-[var(--surface,_#fff)]">
+        <div className="border border-border rounded-xl p-[18px] min-h-[420px] bg-card shadow-sm">
           {creating ? (
             <div className="flex flex-col gap-3 max-w-[720px]">
-              <div className="text-[17px] font-bold text-[var(--ink)]">Nouveau système de design</div>
+              <div className="text-base font-semibold tracking-tight text-foreground text-balance">Nouveau système de design</div>
 
               <ToggleGroup
                 type="single"
@@ -186,7 +199,7 @@ export default function DesignSystemsPage() {
                 })}
               </ToggleGroup>
               {/* mt: -1 = -6px (theme.spacing vaut 6 dans ce projet). */}
-              <div className="text-[13px] text-[var(--muted)] -mt-1.5">{SOURCES.find((s) => s.id === source)?.hint}</div>
+              <div className="text-xs text-muted-foreground -mt-1.5">{SOURCES.find((s) => s.id === source)?.hint}</div>
 
               <div className="flex gap-2 flex-wrap">
                 <Field className="flex-1 min-w-[220px]">
@@ -236,33 +249,33 @@ export default function DesignSystemsPage() {
           ) : selected ? (
             <div>
               <div className="flex items-center gap-2 mb-3 flex-wrap">
-                <div className="text-[18px] font-bold text-[var(--ink)]">{selected.name}</div>
+                <div className="text-lg font-semibold tracking-tight text-foreground text-balance">{selected.name}</div>
                 {selected.category && <Badge variant="secondary">{selected.category}</Badge>}
                 {selected.sourceType && <Badge variant="outline">{selected.sourceType}</Badge>}
               </div>
               {swatches.length > 0 && (
                 <div className="flex gap-1.5 flex-wrap mb-3.5">
                   {swatches.map((sw) => (
-                    <div className="w-[48px] h-[48px] rounded-[10px] border border-solid border-[var(--line)]" style={{ backgroundColor: sw.value }} key={sw.name} title={`${sw.name}: ${sw.value}`} />
+                    <div className="w-[48px] h-[48px] rounded-lg border border-border" style={{ backgroundColor: sw.value }} key={sw.name} title={`${sw.name}: ${sw.value}`} />
                   ))}
                 </div>
               )}
               {selected.designMarkdown ? (
-                <div className="whitespace-pre-wrap text-[13.5px] leading-[1.65] text-[var(--ink)] max-h-[55vh] overflow-y-auto bg-[var(--bg)] rounded-[var(--radius-md)] p-3 border border-[var(--line)]">
+                <div className="whitespace-pre-wrap text-sm leading-[1.65] text-foreground max-h-[55vh] overflow-y-auto bg-muted rounded-lg p-3 border border-border">
                   {selected.designMarkdown}
                 </div>
               ) : (
-                <div className="text-[var(--muted)] text-[13px]">Pas de DESIGN.md — ce système ne porte que des tokens.</div>
+                <div className="text-muted-foreground text-xs">Pas de DESIGN.md — ce système ne porte que des tokens.</div>
               )}
             </div>
           ) : (
-            <div className="h-full min-h-[360px] grid place-items-[center] text-center text-[var(--muted)]">
-              <div>
-                <Sparkles size={28} strokeWidth={1.5} style={{ opacity: 0.5 }} />
-                <div className="text-[15px] font-semibold text-[var(--ink)] mt-1.5">Créer un système de design</div>
-                <div className="text-[13px] mt-0.5 max-w-[420px]">À partir d'un site, d'une marque ou d'un DESIGN.md — une direction réutilisable pour vos templates.</div>
-              </div>
-            </div>
+            <EmptyState
+              variant="transparent"
+              minHeight={360}
+              icon={<Sparkles />}
+              title="Créer un système de design"
+              description="À partir d'un site, d'une marque ou d'un DESIGN.md — une direction réutilisable pour vos templates."
+            />
           )}
         </div>
       </div>

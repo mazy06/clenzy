@@ -87,6 +87,12 @@ function detectHomeContent(blocksJson: string | null | undefined): HomeContent {
 /**
  * Surcharge les CSS vars de marque + design tokens sur le conteneur racine (rendu fidèle au thème).
  * Recopie locale du `themeStyle` du builder legacy (qui devient mort) pour garder cette page autonome.
+ *
+ * ATTENTION : les noms de variables posés ici (`--accent`, `--card`, `--ink`, `--line`…) sont le
+ * CONTRAT entre cette fonction et le balisage du site rendu plus bas. Ce sont les couleurs du SITE
+ * DU CLIENT, pas la peinture de l'interface Baitly : les migrer vers les utilitaires Baitly UI
+ * (`bg-card`, `text-foreground`…) débrancherait le thème du tenant. Seul le chrome affiché AVANT le
+ * chargement de la config (chargement, erreur) suit la palette Baitly UI.
  */
 function themeVars(primaryColor: string, fontFamily: string | null, t: DesignTokens | null): React.CSSProperties {
   const accent = t?.primaryColor || primaryColor || '#5453D6';
@@ -228,16 +234,16 @@ export default function PublicBookingPage() {
   if (error) {
     return (
       <Centered>
-        <div className="flex flex-col items-center gap-2 text-[var(--muted)]">
+        <div className="flex flex-col items-center gap-2 text-muted-foreground">
           <AlertTriangle size={32} strokeWidth={1.75} />
-          <div className="text-[var(--text-md)]">{error}</div>
+          <div className="text-sm">{error}</div>
         </div>
       </Centered>
     );
   }
 
   if (!config) {
-    return <Centered><Spinner className="size-7 text-[var(--accent)]" /></Centered>;
+    return <Centered><Spinner className="size-7 text-primary" /></Centered>;
   }
 
   return (
@@ -266,7 +272,7 @@ export default function PublicBookingPage() {
           HOME GrapesJS embarque déjà ses propres marqueurs hydratés (évite le doublon bookable). */}
       {!homeHasWidgets && (
         <div className="max-w-[1040px] mx-auto px-3 min-[900px]:px-6 py-6 min-[900px]:py-9" id="reserver">
-          <div className="font-[family-name:var(--font-display)] text-[var(--text-2xl)] font-[family-name:var(--fw-bold)] text-center mb-4">
+          <div className="font-[family-name:var(--font-display)] text-2xl font-bold text-center text-balance mb-4">
             Réservez votre séjour
           </div>
           <div ref={widgetHostRef} />
@@ -284,10 +290,10 @@ function ReviewsSection({ data }: { data: PublicReviews }) {
     <div className="max-w-[1040px] mx-auto px-3 min-[900px]:px-6 py-6 min-[900px]:py-9">
       <div className="flex items-center justify-center gap-1.5 mb-4">
         <Star size={22} fill="var(--accent)" color="var(--accent)" />
-        <div className="font-[family-name:var(--font-display)] text-[var(--text-2xl)] font-[family-name:var(--fw-bold)] text-[var(--ink)]">
+        <div className="font-[family-name:var(--font-display)] text-2xl font-bold tabular-nums text-[var(--ink)]">
           {data.stats.averageRating.toFixed(1)}
         </div>
-        <div className="text-[var(--muted)] text-[var(--text-md)]">· {data.stats.totalCount} avis</div>
+        <div className="text-[var(--muted)] text-sm tabular-nums">· {data.stats.totalCount} avis</div>
       </div>
       <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_1fr)] min-[1200px]:grid-cols-[repeat(3,_1fr)] gap-3">
         {data.reviews.map((r, i) => (
@@ -298,9 +304,9 @@ function ReviewsSection({ data }: { data: PublicReviews }) {
               ))}
             </div>
             {r.reviewText && (
-              <div className="text-[var(--text-md)] text-[var(--body)] leading-[1.5] mb-1.5">{r.reviewText}</div>
+              <div className="text-sm text-[var(--body)] leading-[1.5] mb-1.5">{r.reviewText}</div>
             )}
-            <div className="text-[var(--text-sm)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">{r.guestName}</div>
+            <div className="text-xs font-semibold text-[var(--ink)]">{r.guestName}</div>
           </div>
         ))}
       </div>
@@ -308,9 +314,10 @@ function ReviewsSection({ data }: { data: PublicReviews }) {
   );
 }
 
+/** Chrome Baitly : rendu AVANT que le thème du tenant ne s'applique — donc palette Baitly UI. */
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-[100vh] flex items-center justify-center bg-[var(--bg)] p-4">
+    <div className="min-h-[100vh] flex items-center justify-center bg-background p-4">
       {children}
     </div>
   );

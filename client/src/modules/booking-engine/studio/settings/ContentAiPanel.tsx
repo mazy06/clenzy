@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Skeleton } from '../../../../components/ui';
+import { Alert, AlertDescription, Button, Skeleton } from '../../../../components/ui';
+import EmptyState from '../../../../components/EmptyState';
 import { Wand2, Search, Copy, Check, AlertTriangle, Sparkles } from 'lucide-react';
 import { propertiesApi, type Property } from '../../../../services/api/propertiesApi';
 import { propertyContentAiApi, type GeneratedContent } from '../../../../services/api/propertyContentAiApi';
@@ -82,27 +83,28 @@ export default function ContentAiPanel() {
   if (properties === null && !loadError) {
     return (
       <div className="max-w-[720px] mx-auto px-6 py-6">
-        <Skeleton className="h-[220px] w-full rounded-[var(--radius-lg)] bg-[var(--hover)]" />
+        <Skeleton className="h-[220px] w-full rounded-xl" />
       </div>
     );
   }
 
   if (loadError) {
     return (
-      <div className="flex items-center gap-1.5 m-6 p-3 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
-        <AlertTriangle size={18} strokeWidth={2} /> {loadError}
-      </div>
+      <Alert variant="destructive" className="m-6">
+        <AlertTriangle />
+        <AlertDescription>{loadError}</AlertDescription>
+      </Alert>
     );
   }
 
   if (properties && properties.length === 0) {
     return (
-      <div className="text-center py-12 px-6">
-        <div className="w-[56px] h-[56px] mx-auto mb-3 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--accent-soft)] text-[var(--accent)]">
-          <Sparkles size={26} strokeWidth={1.85} />
-        </div>
-        <div className="text-[var(--text-lg)] font-[family-name:var(--fw-semibold)] mb-0.5">Aucune propriété</div>
-        <div className="text-[var(--text-md)] text-[var(--muted)]">Ajoutez une propriété pour générer son contenu avec l'IA.</div>
+      <div className="px-6 py-12">
+        <EmptyState
+          icon={<Sparkles />}
+          title="Aucune propriété"
+          description="Ajoutez une propriété pour générer son contenu avec l'IA."
+        />
       </div>
     );
   }
@@ -125,13 +127,14 @@ export default function ContentAiPanel() {
 
       <div className="flex gap-2 flex-wrap mb-3.5">
         <GenButton icon={Wand2} label="Générer une description" loading={generating === 'description'} disabled={!propertyId || generating !== null} onClick={() => generate('description')} />
-        <GenButton icon={Search} label="Générer le SEO" variant="ghost" loading={generating === 'seo'} disabled={!propertyId || generating !== null} onClick={() => generate('seo')} />
+        <GenButton icon={Search} label="Générer le SEO" variant="outline" loading={generating === 'seo'} disabled={!propertyId || generating !== null} onClick={() => generate('seo')} />
       </div>
 
       {genError && (
-        <div className="flex items-center gap-1.5 mb-3.5 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
-          <AlertTriangle size={16} strokeWidth={2} /> {genError}
-        </div>
+        <Alert variant="destructive" className="mb-3.5">
+          <AlertTriangle />
+          <AlertDescription>{genError}</AlertDescription>
+        </Alert>
       )}
 
       {result && (
@@ -139,19 +142,19 @@ export default function ContentAiPanel() {
           <div className="py-2">
             {result.title && (
               <div className="mb-2">
-                <div className="text-[var(--text-2xs)] font-[family-name:var(--fw-bold)] tracking-[.06em] uppercase text-[var(--faint)] mb-0.5">Titre</div>
-                <div className="text-[var(--text-md)] font-[family-name:var(--fw-semibold)] text-[var(--ink)]">{result.title}</div>
+                <div className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-0.5">Titre</div>
+                <div className="text-sm font-semibold text-foreground">{result.title}</div>
               </div>
             )}
-            <div className="text-[var(--text-2xs)] font-[family-name:var(--fw-bold)] tracking-[.06em] uppercase text-[var(--faint)] mb-0.5">
+            <div className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-0.5">
               {result.kind === 'SEO_META' ? 'Meta description' : 'Contenu'}
             </div>
-            <div className="text-[var(--text-md)] text-[var(--body)] leading-[1.6] whitespace-pre-wrap">{result.content}</div>
+            <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{result.content}</div>
             <div className="flex justify-end mt-3">
-              <button type="button" onClick={copy} className={GHOST_BTN_CLASS}>
+              <Button type="button" variant="outline" size="sm" onClick={copy} className="cursor-pointer">
                 {copied ? <Check size={15} strokeWidth={2.4} /> : <Copy size={15} strokeWidth={2} />}
                 {copied ? 'Copié' : 'Copier'}
-              </button>
+              </Button>
             </div>
           </div>
         </SettingCard>
@@ -160,38 +163,13 @@ export default function ContentAiPanel() {
   );
 }
 
-function GenButton({ icon: Icon, label, onClick, loading, disabled, variant = 'solid' }: {
-  icon: typeof Wand2; label: string; onClick: () => void; loading: boolean; disabled: boolean; variant?: 'solid' | 'ghost';
+function GenButton({ icon: Icon, label, onClick, loading, disabled, variant = 'default' }: {
+  icon: typeof Wand2; label: string; onClick: () => void; loading: boolean; disabled: boolean; variant?: 'default' | 'outline';
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={variant === 'solid' ? SOLID_BTN_CLASS : GHOST_BTN_CLASS}
-    >
+    <Button type="button" variant={variant} onClick={onClick} disabled={disabled} className="cursor-pointer">
       <Icon size={16} strokeWidth={2} />
       {loading ? 'Génération…' : label}
-    </button>
+    </Button>
   );
 }
-
-// Boutons maison du Studio (l'ancien ButtonBase + sx) : le kit n'a pas de
-// variante calee sur les tokens `--text-sm`/`--fw-semibold` du Studio.
-// `font-[number:…]` et la transition en propriete brute `[transition:…]` : Tailwind
-// v4 n'infere pas le type derriere `var(`, ni pour une graisse ni pour une duree.
-const BTN_BASE_CLASS =
-  'inline-flex items-center gap-[4.5px] h-10 px-[13.5px] rounded-[var(--radius-md)] ' +
-  'font-[number:var(--fw-semibold)] text-[var(--text-sm)] cursor-pointer ' +
-  'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2 ' +
-  'disabled:opacity-45 disabled:cursor-default';
-
-const SOLID_BTN_CLASS =
-  `${BTN_BASE_CLASS} border-none bg-[var(--accent)] text-[var(--on-accent)] ` +
-  '[transition:background_var(--duration-fast)_var(--ease-out)] ' +
-  'hover:bg-[var(--accent-deep)]';
-
-const GHOST_BTN_CLASS =
-  `${BTN_BASE_CLASS} border border-solid border-[var(--line)] bg-[var(--card)] text-[var(--body)] ` +
-  '[transition:border-color_var(--duration-fast)_var(--ease-out),color_var(--duration-fast)_var(--ease-out)] ' +
-  'hover:border-[var(--accent)] hover:text-[var(--ink)]';

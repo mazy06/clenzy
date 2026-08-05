@@ -111,20 +111,19 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
   }, [connectMutation, testMutation, onClose]);
 
   return (
-    // maxWidth="sm" + fullWidth MUI = pleine largeur plafonnee a 600 px. La
-    // croix de fermeture est celle du primitif : l'IconButton du titre faisait
-    // doublon.
+    // Pleine largeur plafonnee a 600 px. La croix de fermeture est celle du
+    // primitif : un bouton d'icone dans le titre ferait doublon.
     <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
       <DialogContent className="w-full sm:max-w-[600px]">
         {/* ─── Header — pastille logo (marque sur le logo, jamais en aplat/dégradé) ── */}
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 min-w-0 pe-8">
             {channel.logo && (
-              <span className="inline-flex items-center justify-center h-[36px] px-2 rounded-[10px] bg-[var(--field)] shrink-0">
+              <span className="inline-flex items-center justify-center h-[36px] px-2 rounded-lg bg-field shrink-0">
                 <img className="h-[20px] object-contain" src={channel.logo} alt={channel.name} />
               </span>
             )}
-            <span className="font-[family-name:var(--font-display)] text-[1rem] font-semibold text-[var(--ink)] truncate">
+            <span className="font-[family-name:var(--font-display)] text-base font-semibold text-foreground truncate">
               {t('channels.connect.title', { channel: channel.name })}
             </span>
           </DialogTitle>
@@ -132,7 +131,7 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
 
         {/* ─── Content ─────────────────────────────────────────────── */}
         <div>
-        <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground mb-3">
+        <p className="text-sm text-muted-foreground mb-3">
           {t('channels.connect.description', { channel: channel.name })}
         </p>
 
@@ -157,7 +156,7 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
 
         {/* Test result */}
         {testResult && (
-          <UiAlert variant={testResult.success ? 'success' : 'destructive'} className="mt-3 text-[0.8125rem]">
+          <UiAlert variant={testResult.success ? 'success' : 'destructive'} className="mt-3 text-sm">
             {testResult.success ? <CheckCircle /> : <TriangleAlert />}
             <AlertDescription>
               {testResult.success
@@ -169,7 +168,7 @@ export default function ChannelConnectDialog({ open, channel, onClose, onConnect
 
         {/* Error */}
         {error && (
-          <UiAlert variant="destructive" className="mt-3 text-[0.8125rem]">
+          <UiAlert variant="destructive" className="mt-3 text-sm">
             <TriangleAlert />
             <AlertDescription>{error}</AlertDescription>
           </UiAlert>

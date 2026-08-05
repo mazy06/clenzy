@@ -16,8 +16,8 @@ import type { ChannelId, ChannelConnectionStatus } from '../../services/api/chan
 import { type OtaChannel } from '../../services/channels/otaChannels';
 import { STATUS_CHIP_TOKENS, STATUS_CHIP_CLASS, channelSoftBg } from './channelsPageConstants';
 
-/** Report en classes de `OVERLINE_SX` (la constante vit dans un .ts partage). */
-const OVERLINE_CLASS = 'text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em]';
+/** Entete de colonne : surtitre de l'echelle Baitly UI. */
+const OVERLINE_CLASS = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground';
 
 interface ChannelsListViewProps {
   isConnected: boolean;
@@ -55,30 +55,28 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
   onOtaDisconnectRequest,
   t,
 }) => (
-  // Report de `CARD_SX` sans son `p: 2` (surcharge `p: 0` a l'appel) : hairline
-  // --line, surface --card, r14, aucune ombre.
-  <div className="mb-[9px] overflow-hidden rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+  <div className="mb-[9px] overflow-hidden rounded-xl border border-border bg-card">
     {/* Table header */}
-    <div className="grid grid-cols-[110px_1.6fr_0.8fr_1fr_1.4fr] gap-3 px-3 py-[7.5px] border-[var(--line)] bg-[var(--surface-2)]" style={{ borderBottom: '1px solid' }}>
-      <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>
+    <div className="grid grid-cols-[110px_1.6fr_0.8fr_1fr_1.4fr] gap-3 px-3 py-[7.5px] border-b border-border bg-muted">
+      <p className={OVERLINE_CLASS}>
         Logo
       </p>
-      <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>
+      <p className={OVERLINE_CLASS}>
         Nom
       </p>
-      <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>
+      <p className={OVERLINE_CLASS}>
         Segment
       </p>
-      <p className={cn(OVERLINE_CLASS, 'cn-text-body1')}>
+      <p className={OVERLINE_CLASS}>
         Statut
       </p>
-      <p className={cn(OVERLINE_CLASS, 'cn-text-body1 text-right')}>
+      <p className={cn(OVERLINE_CLASS, 'text-end')}>
         Action
       </p>
     </div>
 
     {/* Rows */}
-    {channels.map((ota, idx) => {
+    {channels.map((ota) => {
       const isAirbnb = ota.id === 'airbnb';
       const isOtaChannel = (ota.id as string) in CHANNEL_BACKEND_MAP;
       const otaStatus = isOtaChannel ? getOtaStatus(ota.id as ChannelId) : undefined;
@@ -86,13 +84,13 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
       const loading = isAirbnb ? connectionLoading : isOtaChannel ? otaConnectionsLoading : false;
 
       return (
-        <div className={cn('grid grid-cols-[110px_1.6fr_0.8fr_1fr_1.4fr] gap-3 px-3 py-[9px] items-center border-[var(--line)] hover:bg-[var(--hover)]', ota.available ? 'opacity-100' : 'opacity-60')} style={{ borderBottom: idx < channels.length - 1 ? '1px solid' : 'none', transition: 'background 0.15s' }} key={ota.id}>
+        <div className={cn('grid grid-cols-[110px_1.6fr_0.8fr_1fr_1.4fr] gap-3 px-3 py-[9px] items-center border-b border-border last:border-b-0 transition-colors duration-150 motion-reduce:transition-none hover:bg-muted', ota.available ? 'opacity-100' : 'opacity-60')} key={ota.id}>
           {/* Pastille logo — surface douce tokenisée, marque conservée sur le logo */}
           <div className="h-[40px] w-[96px] flex items-center justify-center rounded-[10px]" style={{ backgroundColor: channelSoftBg(ota.id) }}>
             {ota.logo ? (
               <img className="h-[22px] max-w-[76px] object-contain" src={ota.logo} alt={ota.name} />
             ) : (
-              <p className="cn-text-body1 text-[0.75rem] font-bold tracking-[-0.02em]" style={{ fontFamily: 'var(--font-display)', color: ota.brandColor }}>
+              <p className="text-xs font-bold tracking-[-0.02em]" style={{ fontFamily: 'var(--font-display)', color: ota.brandColor }}>
                 {ota.name}
               </p>
             )}
@@ -100,7 +98,7 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
 
           {/* Channel name */}
           <div className="min-w-0">
-            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.875rem] font-semibold text-[var(--ink)]">
+            <p className="font-[family-name:var(--font-display)] text-sm font-semibold text-foreground">
               {ota.name}
             </p>
           </div>
@@ -118,7 +116,7 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
             />
           </div>
 
-          {/* Status — connecté --ok / à configurer --warn / bientôt muted */}
+          {/* Status — connecté success / à configurer warning / bientôt muted */}
           <div>
             {(() => {
               if (loading) return <Spinner className="size-3.5" />;
@@ -167,7 +165,7 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
             )}
             {ota.available && connected && (
               // `destructive` et non `outline` : deconnecter un canal coupe la
-              // synchronisation — l'encre --err du kit porte cet avertissement.
+              // synchronisation — l'encre destructive du kit porte cet avertissement.
               <Button
                 size="sm"
                 variant="destructive"
@@ -182,7 +180,7 @@ const ChannelsListView: React.FC<ChannelsListViewProps> = ({
               </Button>
             )}
             {!ota.available && (
-              <p className="cn-text-body1 text-[0.71875rem] text-[var(--faint)]">
+              <p className="text-xs text-faint">
                 {t('channels.ota.comingSoon')}
               </p>
             )}
