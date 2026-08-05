@@ -265,16 +265,16 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
           backPath="/dashboard"
           showBackButton={false}
           actions={actionButtons}
+          // Les selecteurs vont dans le slot `filters` du header, et non dans
+          // une rangee posee entre le titre et les onglets : c'est la place
+          // prevue pour eux, et cela retire une bande horizontale a l'ecran.
+          filters={filterSelectors}
         />
       )}
 
-      {/* ── Filter selectors — portaled into tab bar when embedded ── */}
+      {/* Embarque dans la fiche d'un logement : le header appartient au parent,
+          les selecteurs sont portales dans sa rangee d'onglets. */}
       {embedded && tabInlineContainer && createPortal(filterSelectors, tabInlineContainer)}
-      {!embedded && (
-        <div className="flex items-center gap-2 mb-2">
-          {filterSelectors}
-        </div>
-      )}
 
       {/* Tabs */}
       <PageTabs

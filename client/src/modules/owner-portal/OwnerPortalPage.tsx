@@ -125,30 +125,29 @@ const OwnerPortalPage: React.FC = () => {
             <BrandingButton />
           </>
         }
-      />
-
-      {/* ── Owner selector ── */}
-      <Card className={cn(PANEL_CLASS, 'p-3 flex-row gap-3 items-center')}>
-        <Field className="w-[240px] shrink-0">
-          <FieldLabel htmlFor="owner-portal-owner" className="text-xs">
-            {t('ownerPortal.selectOwner', 'Selectionner un proprietaire')}
-          </FieldLabel>
+        // Le selecteur de proprietaire occupait une carte pleine largeur pour un
+        // seul champ. Il rejoint le slot `filters` du header : le libelle passe
+        // en aria-label, la valeur choisie etant deja rappelee par le sous-titre.
+        filters={
           <NativeSelect
             id="owner-portal-owner"
             size="sm"
-            className="w-full text-xs"
+            className="w-[240px] text-xs"
+            aria-label={t('ownerPortal.selectOwner', 'Selectionner un proprietaire')}
             value={selectedOwnerId}
             onChange={(e) => setSelectedOwnerId(e.target.value === '' ? '' : Number(e.target.value))}
           >
-            <NativeSelectOption value="">—</NativeSelectOption>
+            <NativeSelectOption value="">
+              {t('ownerPortal.selectOwner', 'Selectionner un proprietaire')}
+            </NativeSelectOption>
             {owners.map((owner) => (
               <NativeSelectOption key={owner.id} value={owner.id}>
                 {owner.name}
               </NativeSelectOption>
             ))}
           </NativeSelect>
-        </Field>
-      </Card>
+        }
+      />
 
       {/* Rangee d'onglets nue, comme partout : le panneau qui l'entourait la
           coupait du reste de la page. */}
