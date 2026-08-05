@@ -135,7 +135,7 @@ export function PropertyImageCarousel({
     <>
       <div
         className={cn(
-          'group relative shrink-0 overflow-hidden bg-[var(--hover)]',
+          'group relative shrink-0 overflow-hidden bg-muted',
           'w-[var(--pic-w-xs)] min-[600px]:w-[var(--pic-w-sm)] min-[900px]:w-[var(--pic-w-md)] min-[1200px]:w-[var(--pic-w-lg)]',
           'h-[var(--pic-h-xs)] min-[600px]:h-[var(--pic-h-sm)] min-[900px]:h-[var(--pic-h-md)] min-[1200px]:h-[var(--pic-h-lg)]',
           canFullscreen ? 'cursor-zoom-in' : 'cursor-default',
@@ -148,10 +148,10 @@ export function PropertyImageCarousel({
         onClick={handleImageClick}
       >
         {showPlaceholder ? (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-0.5 bg-[var(--hover)] text-muted-foreground opacity-60">
+          <div className="w-full h-full flex flex-col items-center justify-center gap-0.5 bg-muted text-faint">
             <ImageNotSupported size={alwaysShowNav ? 48 : 24} strokeWidth={1.5} />
             {alwaysShowNav && (
-              <p className="cn-text-body1 text-[0.75rem] font-medium">
+              <p className="text-xs font-medium">
                 Aucune photo
               </p>
             )}
@@ -168,8 +168,10 @@ export function PropertyImageCarousel({
               variant="ghost"
               size="icon-sm"
               aria-label="Photo précédente"
+              // La pastille prend la surface de carte (et non un blanc fige) :
+              // en sombre l'icone restait claire sur une pastille blanche.
               className={cn(
-                'carousel-nav absolute top-1/2 p-0 rounded-full bg-[rgba(255,255,255,0.9)] text-[var(--ink)] hover:bg-[#fff]',
+                'carousel-nav absolute top-1/2 p-0 rounded-full bg-card/90 text-foreground hover:bg-card hover:text-foreground',
                 alwaysShowNav ? 'start-[8px] opacity-100' : 'start-[2px] opacity-0 group-hover:opacity-100',
               )}
               // navButtonSize est une valeur runtime : aucune classe Tailwind ne peut en naitre.
@@ -183,7 +185,7 @@ export function PropertyImageCarousel({
               size="icon-sm"
               aria-label="Photo suivante"
               className={cn(
-                'carousel-nav absolute top-1/2 p-0 rounded-full bg-[rgba(255,255,255,0.9)] text-[var(--ink)] hover:bg-[#fff]',
+                'carousel-nav absolute top-1/2 p-0 rounded-full bg-card/90 text-foreground hover:bg-card hover:text-foreground',
                 alwaysShowNav ? 'end-[8px] opacity-100' : 'end-[2px] opacity-0 group-hover:opacity-100',
               )}
               style={{ width: navButtonSize, height: navButtonSize, transform: 'translateY(-50%)', transition: 'opacity 0.15s ease' }}
@@ -193,20 +195,20 @@ export function PropertyImageCarousel({
             </Button>
             <div className={cn('absolute start-[50%] flex pointer-events-none', alwaysShowNav ? 'bottom-[10px]' : 'bottom-[2px]', alwaysShowNav ? 'gap-[4.5px]' : 'gap-[1.5px]')} style={{ transform: 'translateX(-50%)' }}>
               {urls.map((url, i) => (
-                <div className={cn('rounded-[50%] border-[0.5px] border-solid border-[rgba(0,0,0,0.25)]', alwaysShowNav ? 'w-[8px]' : 'w-[4px]', alwaysShowNav ? 'h-[8px]' : 'h-[4px]', i === index ? 'bg-[#fff]' : 'bg-[rgba(255,255,255,0.55)]')} key={url} />
+                <div className={cn('rounded-full border-[0.5px] border-solid border-black/25', alwaysShowNav ? 'w-[8px]' : 'w-[4px]', alwaysShowNav ? 'h-[8px]' : 'h-[4px]', i === index ? 'bg-white' : 'bg-white/55')} key={url} />
               ))}
             </div>
           </>
         )}
 
         {showCounter && hasMultiple && (
-          <div className="absolute top-[8px] end-[8px] px-1.5 py-0.5 rounded-[8px] bg-[rgba(0,0,0,0.6)] text-[#fff] text-[0.7rem] font-semibold pointer-events-none">
+          <div className="absolute top-[8px] end-[8px] px-1.5 py-0.5 rounded-md bg-black/60 text-white text-2xs font-semibold tabular-nums pointer-events-none">
             {index + 1} / {urls.length}
           </div>
         )}
 
         {canFullscreen && (
-          <div className={cn('carousel-fullscreen-hint absolute bottom-[8px] end-[8px] w-[32px] h-[32px] flex items-center justify-center rounded-[8px] bg-[rgba(0,0,0,0.55)] text-[#fff] pointer-events-none group-hover:opacity-100', alwaysShowNav ? 'opacity-85' : 'opacity-0')} style={{ transition: 'opacity 0.15s ease' }}>
+          <div className={cn('carousel-fullscreen-hint absolute bottom-[8px] end-[8px] w-[32px] h-[32px] flex items-center justify-center rounded-md bg-black/55 text-white pointer-events-none group-hover:opacity-100', alwaysShowNav ? 'opacity-85' : 'opacity-0')} style={{ transition: 'opacity 0.15s ease' }}>
             <Fullscreen size={20} strokeWidth={1.75} />
           </div>
         )}
@@ -223,7 +225,7 @@ export function PropertyImageCarousel({
               tout aussi bien le bouton de fermeture en absolu. */}
           <DialogContent
             showCloseButton={false}
-            className="inset-0 translate-x-0 translate-y-0 max-w-none rounded-none border-0 p-0 bg-[rgba(0,0,0,0.95)]"
+            className="inset-0 translate-x-0 translate-y-0 max-w-none rounded-none border-0 p-0 bg-black/95"
           >
             {/* Titre requis par le dialogue du kit pour l'accessibilite. */}
             <DialogTitle className="sr-only">{alt}</DialogTitle>
@@ -232,7 +234,7 @@ export function PropertyImageCarousel({
               size="icon"
               aria-label="Fermer"
               onClick={() => setFullscreenOpen(false)}
-              className="absolute top-[16px] end-[16px] z-[2] rounded-full bg-[rgba(255,255,255,0.15)] text-[#fff] hover:bg-[rgba(255,255,255,0.3)] hover:text-[#fff]"
+              className="absolute top-[16px] end-[16px] z-[2] rounded-full bg-white/15 text-white hover:bg-white/30 hover:text-white"
             >
               <Close size={24} strokeWidth={1.75} />
             </Button>
@@ -249,7 +251,7 @@ export function PropertyImageCarousel({
                   size="icon-lg"
                   aria-label="Photo précédente"
                   onClick={prev}
-                  className="absolute top-1/2 start-[24px] size-[56px] rounded-full bg-[rgba(255,255,255,0.15)] text-[#fff] hover:bg-[rgba(255,255,255,0.3)] hover:text-[#fff]"
+                  className="absolute top-1/2 start-[24px] size-[56px] rounded-full bg-white/15 text-white hover:bg-white/30 hover:text-white"
                   style={{ transform: 'translateY(-50%)' }}
                 >
                   <ChevronLeft size={36} strokeWidth={1.75} />
@@ -259,12 +261,12 @@ export function PropertyImageCarousel({
                   size="icon-lg"
                   aria-label="Photo suivante"
                   onClick={next}
-                  className="absolute top-1/2 end-[24px] size-[56px] rounded-full bg-[rgba(255,255,255,0.15)] text-[#fff] hover:bg-[rgba(255,255,255,0.3)] hover:text-[#fff]"
+                  className="absolute top-1/2 end-[24px] size-[56px] rounded-full bg-white/15 text-white hover:bg-white/30 hover:text-white"
                   style={{ transform: 'translateY(-50%)' }}
                 >
                   <ChevronRight size={36} strokeWidth={1.75} />
                 </Button>
-                <div className="absolute bottom-[24px] start-[50%] px-3 py-[4.5px] rounded-[16px] bg-[rgba(0,0,0,0.6)] text-[#fff] text-[0.875rem] font-semibold" style={{ transform: 'translateX(-50%)' }}>
+                <div className="absolute bottom-[24px] start-[50%] px-3 py-[4.5px] rounded-xl bg-black/60 text-white text-sm font-semibold tabular-nums" style={{ transform: 'translateX(-50%)' }}>
                   {index + 1} / {urls.length}
                 </div>
               </>

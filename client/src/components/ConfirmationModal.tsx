@@ -51,8 +51,10 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   confirmIcon,
   confirmColor,
 }) => {
-  // Token sémantique de la sévérité (désaturé — baseline §1)
-  const severityToken = severity === 'error' ? 'err' : severity === 'info' ? 'info' : 'warn';
+  // Famille sémantique Baitly UI de la sévérité. Résolue à l'exécution : elle
+  // alimente des `var(--bui-*)` en style inline, pas des classes Tailwind.
+  const severityToken =
+    severity === 'error' ? 'destructive' : severity === 'info' ? 'info' : 'warning';
 
   // Le kit n'a pas de variante par teinte : `error` prend `destructive`, `primary` reste
   // l'action principale (`default`), et les severites restantes se posent en classes sur
@@ -60,13 +62,14 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   const confirmTone = confirmColor ?? (severity === 'error' ? 'error' : 'primary');
   const confirmVariant =
     confirmTone === 'error' ? 'destructive' : confirmTone === 'primary' ? 'default' : 'outline';
+  // `-ink` pour le libelle (contraste AA), teinte vive pour la bordure, `-soft` au survol.
   const confirmToneClass =
     confirmTone === 'warning'
-      ? 'text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]'
+      ? 'text-warning-ink border-warning hover:bg-warning-soft'
       : confirmTone === 'success'
-        ? 'text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]'
+        ? 'text-success-ink border-success hover:bg-success-soft'
         : confirmTone === 'info'
-          ? 'text-[var(--info)] border-[var(--info)] hover:bg-[var(--info-soft)]'
+          ? 'text-info-ink border-info hover:bg-info-soft'
           : '';
 
   const getIcon = () => {
@@ -76,11 +79,11 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     );
     switch (severity) {
       case 'error':
-        return wrap('var(--err)', <DeleteIcon size={18} strokeWidth={1.75} />);
+        return wrap('var(--bui-destructive)', <DeleteIcon size={18} strokeWidth={1.75} />);
       case 'info':
-        return wrap('var(--info)', <WarningIcon size={18} strokeWidth={1.75} />);
+        return wrap('var(--bui-info)', <WarningIcon size={18} strokeWidth={1.75} />);
       default:
-        return wrap('var(--warn)', <WarningIcon size={18} strokeWidth={1.75} />);
+        return wrap('var(--bui-warning)', <WarningIcon size={18} strokeWidth={1.75} />);
     }
   };
 
@@ -96,12 +99,12 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               {title}
             </span>
           </DialogTitle>
-          {/* ✕ — pattern .rm-x : 34px r10 hairline, hover --err */}
+          {/* ✕ — 34px r10 hairline, survol destructif */}
           <DialogClose asChild>
             <button
               type="button"
               aria-label="Fermer"
-              className="inline-flex items-center justify-center size-[34px] shrink-0 rounded-[10px] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] cursor-pointer transition-colors duration-200 hover:text-[var(--err)] hover:border-[var(--err)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              className="inline-flex items-center justify-center size-[34px] shrink-0 rounded-[10px] border border-solid border-border bg-card text-muted-foreground cursor-pointer transition-colors duration-200 hover:text-destructive-ink hover:border-destructive focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <CloseIcon size={16} strokeWidth={1.75} />
             </button>
@@ -114,11 +117,11 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         <div
           className="rounded-[12px] border border-solid px-4 py-[13px]"
           style={{
-            backgroundColor: `var(--${severityToken}-soft)`,
-            borderColor: `color-mix(in srgb, var(--${severityToken}) 30%, transparent)`,
+            backgroundColor: `var(--bui-${severityToken}-soft)`,
+            borderColor: `color-mix(in srgb, var(--bui-${severityToken}) 30%, transparent)`,
           }}
         >
-          <p className="cn-text-body1 text-[13px] text-[var(--body)]">
+          <p className="m-0 text-[13px] text-foreground">
             {message}
           </p>
         </div>

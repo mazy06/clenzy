@@ -32,26 +32,33 @@ import type { AuditLogEntry, AuditLogPage } from '../services/api/monitoringApi'
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 import PagePagination from './PagePagination';
 
-/** Chip -soft : texte couleur + fond -soft (pilule/typo via theme global MuiChip) */
-
-const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
+/**
+ * Chip -soft : encre `-ink` sur fond `-soft`.
+ *
+ * <p>Les tons sont choisis a l'execution depuis le type d'evenement renvoye par
+ * l'API : les couleurs restent donc des VALEURS CSS, Tailwind n'emettant ses
+ * classes qu'a la compilation. Les variables Baitly UI portent leur declinaison
+ * claire ET sombre (theme/baitly-ui.css) ; l'encre `-ink` tient le 4,5:1 la ou la
+ * teinte vive plafonne a ~2,2:1 sur une carte.</p>
+ */
+const NEUTRAL_TOKEN = { fg: 'var(--bui-muted-foreground)', bg: 'var(--bui-muted)' };
 
 // Type d'evenement → tokens semantiques
 const EVENT_TOKEN: Record<string, { fg: string; bg: string }> = {
-  LOGIN_SUCCESS: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  LOGIN_FAILURE: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  PERMISSION_DENIED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  SUSPICIOUS_ACTIVITY: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  DATA_ACCESS: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-  ADMIN_ACTION: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-  SECRET_ROTATION: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+  LOGIN_SUCCESS: { fg: 'var(--bui-success-ink)', bg: 'var(--bui-success-soft)' },
+  LOGIN_FAILURE: { fg: 'var(--bui-warning-ink)', bg: 'var(--bui-warning-soft)' },
+  PERMISSION_DENIED: { fg: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' },
+  SUSPICIOUS_ACTIVITY: { fg: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' },
+  DATA_ACCESS: { fg: 'var(--bui-info-ink)', bg: 'var(--bui-info-soft)' },
+  ADMIN_ACTION: { fg: 'var(--bui-info-ink)', bg: 'var(--bui-info-soft)' },
+  SECRET_ROTATION: { fg: 'var(--bui-info-ink)', bg: 'var(--bui-info-soft)' },
 };
 
-// Resultat → tokens semantiques (SUCCESS --ok, DENIED/ERROR --err)
+// Resultat → tokens semantiques (SUCCESS success, DENIED/ERROR destructive)
 const RESULT_TOKEN: Record<string, { fg: string; bg: string }> = {
-  SUCCESS: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  DENIED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  ERROR: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+  SUCCESS: { fg: 'var(--bui-success-ink)', bg: 'var(--bui-success-soft)' },
+  DENIED: { fg: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' },
+  ERROR: { fg: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' },
 };
 
 interface AuditLogFilters {
@@ -62,24 +69,25 @@ interface AuditLogFilters {
 
 const PAGE_SIZE = 15;
 
+// Icone decorative : teinte VIVE et non l'encre `-ink`, qui est reservee au texte.
 const getEventTypeIcon = (eventType: string) => {
   switch (eventType) {
     case 'LOGIN_SUCCESS':
-      return <span className="inline-flex text-[var(--ok)]"><CheckCircle size={20} strokeWidth={1.75} /></span>;
+      return <span className="inline-flex text-success"><CheckCircle size={20} strokeWidth={1.75} /></span>;
     case 'LOGIN_FAILURE':
-      return <span className="inline-flex text-[var(--warn)]"><Warning size={20} strokeWidth={1.75} /></span>;
+      return <span className="inline-flex text-warning"><Warning size={20} strokeWidth={1.75} /></span>;
     case 'PERMISSION_DENIED':
-      return <span className="inline-flex text-[var(--err)]"><Lock size={20} strokeWidth={1.75} /></span>;
+      return <span className="inline-flex text-destructive"><Lock size={20} strokeWidth={1.75} /></span>;
     case 'DATA_ACCESS':
-      return <span className="inline-flex text-[var(--info)]"><Visibility size={20} strokeWidth={1.75} /></span>;
+      return <span className="inline-flex text-info"><Visibility size={20} strokeWidth={1.75} /></span>;
     case 'ADMIN_ACTION':
-      return <span className="inline-flex text-[var(--info)]"><AdminPanelSettings size={20} strokeWidth={1.75} /></span>;
+      return <span className="inline-flex text-info"><AdminPanelSettings size={20} strokeWidth={1.75} /></span>;
     case 'SECRET_ROTATION':
-      return <span className="inline-flex text-[var(--info)]"><VpnKey size={20} strokeWidth={1.75} /></span>;
+      return <span className="inline-flex text-info"><VpnKey size={20} strokeWidth={1.75} /></span>;
     case 'SUSPICIOUS_ACTIVITY':
-      return <span className="inline-flex text-[var(--err)]"><ReportProblem size={20} strokeWidth={1.75} /></span>;
+      return <span className="inline-flex text-destructive"><ReportProblem size={20} strokeWidth={1.75} /></span>;
     default:
-      return <span className="inline-flex text-[var(--info)]"><Info size={20} strokeWidth={1.75} /></span>;
+      return <span className="inline-flex text-info"><Info size={20} strokeWidth={1.75} /></span>;
   }
 };
 
@@ -207,7 +215,7 @@ const AuditLogging: React.FC = () => {
       {/* Filtres */}
       <Card className="mb-[18px]">
         <CardContent>
-          <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
+          <h6 className="text-sm font-semibold mt-0 mb-[0.35em] text-foreground">
             Filtres
           </h6>
           <div className="grid grid-cols-12 gap-3">
@@ -274,11 +282,11 @@ const AuditLogging: React.FC = () => {
       <Card>
         <CardContent>
           <div className="flex justify-between items-center mb-3">
-            <h6 className="cn-text-h6 text-[var(--ink)]">
+            <h6 className="text-sm font-semibold m-0 text-foreground">
               Logs d'audit ({totalElements} entrées)
             </h6>
             {totalPages > 1 && (
-              <StatusChip tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={`Page ${currentPage + 1} sur ${totalPages}`} className="tabular-nums" />
+              <StatusChip tone="accent" label={`Page ${currentPage + 1} sur ${totalPages}`} className="tabular-nums" />
             )}
           </div>
 
@@ -297,7 +305,7 @@ const AuditLogging: React.FC = () => {
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="cn-text-subtitle2">
+                        <span className="text-xs font-medium">
                           {log.action || formatEventType(log.eventType)}
                         </span>
                         <StatusChip tokens={{ color: eventToken(log.eventType).fg, bg: eventToken(log.eventType).bg }} label={formatEventType(log.eventType)} />
@@ -307,24 +315,24 @@ const AuditLogging: React.FC = () => {
                       </div>
                       <div className="mt-1.5">
                         {log.details && (
-                          <p className="cn-text-body2 text-[var(--body)] mb-[0.35em]">
+                          <p className="text-xs mt-0 mb-[0.35em] text-foreground">
                             {log.details}
                           </p>
                         )}
-                        {/* Meta technique : mono compact sur fond --field */}
-                        <div className="inline-flex gap-3 flex-wrap mt-0.5 px-1.5 py-0.5 bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[8px]">
+                        {/* Meta technique : mono compact sur fond de champ */}
+                        <div className="inline-flex gap-3 flex-wrap mt-0.5 px-1.5 py-0.5 bg-field border border-solid border-field-line rounded-md">
                           {log.actorEmail && (
-                            <span className="cn-text-caption font-mono text-[11px] text-[var(--muted)]">
+                            <span className="font-mono text-[11px] text-muted-foreground">
                               {log.actorEmail}
                             </span>
                           )}
                           {log.actorIp && (
-                            <span className="cn-text-caption font-mono text-[11px] text-[var(--muted)]">
+                            <span className="font-mono text-[11px] text-muted-foreground">
                               IP {log.actorIp}
                             </span>
                           )}
                           {log.timestamp && (
-                            <span className="cn-text-caption font-mono text-[11px] text-[var(--muted)] tabular-nums">
+                            <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
                               {new Date(log.timestamp).toLocaleString()}
                             </span>
                           )}

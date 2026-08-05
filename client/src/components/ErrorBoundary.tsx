@@ -66,15 +66,15 @@ class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="flex flex-col items-center justify-center min-h-[400px] p-4">
           <Alert variant="destructive" className="mb-3 max-w-[600px]">
-            <h6 className="cn-text-h6 mb-[0.35em]">
+            <h6 className="m-0 mb-[0.35em] text-sm font-semibold">
               Une erreur s'est produite
             </h6>
-            <p className="cn-text-body2 mb-3">
+            <p className="m-0 mb-3 text-xs">
               {this.state.error?.message || "Une erreur inattendue s'est produite"}
             </p>
             {import.meta.env.DEV && this.state.errorInfo && (
-              <div className="mt-3 p-3 bg-[var(--hover)] rounded-[8px] text-[0.75rem] font-mono overflow-auto max-h-[200px]">
-                <pre className="cn-text-caption whitespace-pre-wrap break-words">
+              <div className="mt-3 p-3 bg-muted rounded-md font-mono overflow-auto max-h-[200px]">
+                <pre className="m-0 text-xs text-muted-foreground whitespace-pre-wrap break-words">
                   {this.state.error?.stack}
                 </pre>
               </div>

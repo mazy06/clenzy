@@ -45,8 +45,6 @@ import { CurrencySymbol } from './Money';
 import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from '../hooks/useTranslation';
 import { useThemeMode, type ThemeMode } from '../hooks/useThemeMode';
-import { ACCENT_OPTIONS, type AccentName } from '../theme/signature/accent';
-import { useAccent } from '../hooks/useAccent';
 import { useCurrency, type CurrencyCode } from '../hooks/useCurrency';
 import { CURRENCY_OPTIONS } from '../utils/currencyUtils';
 import { authApi } from '../services/api/authApi';
@@ -265,7 +263,6 @@ export default function AppSidebar({
   const { t, changeLanguage, currentLanguage, isArabic } = useTranslation();
   const { currency, setCurrency, rateDate, ratesLoading } = useCurrency();
   const { mode: themeMode, setMode: setThemeMode } = useThemeMode();
-  const { accent, setAccent } = useAccent();
   const { isMobile, setOpenMobile } = useSidebar();
   const [prefsOpen, setPrefsOpen] = useState(false);
 
@@ -441,30 +438,10 @@ export default function AppSidebar({
               <PreferenceSectionLabel>
                 {t('navigation.appearance', 'Apparence')}
               </PreferenceSectionLabel>
-              {/* Teinte d'accent : `data-accent` sur <html> reteinte toute l'UI. */}
-              <div className="flex flex-wrap gap-1.5 px-2 py-1.5">
-                {ACCENT_OPTIONS.map((opt) => (
-                  <Tooltip key={opt.value}>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        aria-label={opt.label}
-                        aria-pressed={accent === opt.value}
-                        onClick={() => setAccent(opt.value as AccentName)}
-                        style={{ backgroundColor: opt.swatch }}
-                        className={cn(
-                          'size-[18px] shrink-0 cursor-pointer rounded-full border-2 outline-none',
-                          'transition-transform duration-150 hover:scale-110',
-                          'focus-visible:ring-[3px] focus-visible:ring-ring/50',
-                          'motion-reduce:transition-none motion-reduce:hover:scale-100',
-                          accent === opt.value ? 'border-foreground' : 'border-transparent'
-                        )}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent side="top">{opt.label}</TooltipContent>
-                  </Tooltip>
-                ))}
-              </div>
+              {/* Le sélecteur de teinte d'accent a été retiré : l'identité Baitly
+                  est MONOCHROME (bleu nuit du wordmark). Aucune surface ne lit
+                  plus `--accent`, un sélecteur n'aurait donc plus rien reteint.
+                  Reste le mode clair/sombre. */}
               {(
                 [
                   { value: 'light', label: t('navigation.themeLight', 'Clair') },

@@ -37,9 +37,9 @@ const ExtrasSection: React.FC<Props> = ({ form }) => {
         />
         <FieldLabel
           htmlFor="reservation-create-cleaning"
-          className={cn('flex items-center gap-[11px] text-[13.5px] font-semibold text-[var(--ink)]', locked ? 'cursor-default' : 'cursor-pointer')}
+          className={cn('flex items-center gap-[11px] text-[13.5px] font-semibold text-foreground', locked ? 'cursor-default' : 'cursor-pointer')}
         >
-          <span className="inline-flex text-[var(--accent)]">
+          <span className="inline-flex text-primary">
             <CleaningServices size={16} strokeWidth={1.75} />
           </span>
           {t('reservations.dialog.cleaningAtCheckout')}
@@ -55,7 +55,7 @@ const ExtrasSection: React.FC<Props> = ({ form }) => {
             </FieldLabel>
             <InputGroup>
               <InputGroupAddon>
-                <span className="inline-flex text-[var(--faint)]">
+                <span className="inline-flex text-faint">
                   <CleaningServices size={15} strokeWidth={1.75} />
                 </span>
               </InputGroupAddon>
@@ -78,7 +78,7 @@ const ExtrasSection: React.FC<Props> = ({ form }) => {
           </FieldLabel>
           <InputGroup>
             <InputGroupAddon>
-              <span className="inline-flex text-[var(--faint)]">
+              <span className="inline-flex text-faint">
                 <ReceiptIcon size={15} strokeWidth={1.75} />
               </span>
             </InputGroupAddon>
@@ -94,7 +94,7 @@ const ExtrasSection: React.FC<Props> = ({ form }) => {
             />
             {form.touristTaxAmount > 0 && (
               <InputGroupAddon align="inline-end">
-                <span className="cn-text-body1 text-[11.5px] font-semibold whitespace-nowrap text-[var(--muted)] tabular-nums">
+                <span className="text-[11.5px] font-semibold whitespace-nowrap text-muted-foreground tabular-nums">
                   = {form.touristTaxAmount.toFixed(2)} €
                 </span>
               </InputGroupAddon>
@@ -103,7 +103,7 @@ const ExtrasSection: React.FC<Props> = ({ form }) => {
         </Field>
       </div>
       {form.createCleaning && form.estimatedCleaningPrice != null && form.estimatedCleaningPrice > 0 && (
-        <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] italic -mt-3">
+        <p className="text-[11.5px] text-muted-foreground italic -mt-3">
           {t('reservations.dialog.estimatedCleaning', { amount: form.estimatedCleaningPrice.toFixed(2) })}
         </p>
       )}
@@ -115,7 +115,7 @@ const ExtrasSection: React.FC<Props> = ({ form }) => {
         </FieldLabel>
         <InputGroup>
           <InputGroupAddon>
-            <span className="inline-flex text-[var(--faint)]">
+            <span className="inline-flex text-faint">
               <HashIcon size={15} strokeWidth={1.75} />
             </span>
           </InputGroupAddon>

@@ -3,7 +3,7 @@ import { Lightbulb } from '../icons';
 import { useIconSize } from '../hooks/useResponsiveSize';
 
 interface EmptyStateProps {
-  /** Icone affichee en grand, ton var(--faint). */
+  /** Icone affichee en grand, ton `text-faint`. */
   icon: React.ReactNode;
   /** Titre principal (variant h6 par defaut). */
   title: string;
@@ -28,7 +28,7 @@ interface EmptyStateProps {
  * Etat vide standardise pour les listes / tableaux / sections sans contenu.
  *
  * Caracteristiques :
- *  - Icone discrete en `var(--faint)` taille hero (responsive)
+ *  - Icone discrete en `text-faint` taille hero (responsive)
  *  - Titre + description centres
  *  - Variant 'dashed' (default) pour les zones "ajoute ton premier X"
  *  - Variant 'plain' pour les errors / etats info
@@ -61,12 +61,12 @@ export default function EmptyState({
 
   return (
     <div
-      className={`flex flex-col items-center justify-center text-center gap-[3px] py-6 px-[18px] rounded-[var(--radius-lg)] ${
+      className={`flex flex-col items-center justify-center text-center gap-[3px] py-6 px-[18px] rounded-xl ${
         variant === 'transparent'
           ? ''
           : variant === 'dashed'
-            ? 'border border-dashed border-[var(--line)] bg-[var(--card)]'
-            : 'border border-solid border-[var(--line)] bg-[var(--card)]'
+            ? 'border border-dashed border-border bg-card'
+            : 'border border-solid border-border bg-card'
       }`}
       // minHeight vient des props (runtime) : style inline, pas de classe Tailwind.
       style={{
@@ -74,7 +74,7 @@ export default function EmptyState({
         ...(minHeight ? { minHeight } : {}),
       }}
     >
-      <span className="inline-flex text-[var(--faint)] mb-0.5">
+      <span className="inline-flex text-faint mb-0.5">
         {React.isValidElement(icon)
           ? React.cloneElement(icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
               size: heroSize,
@@ -82,11 +82,11 @@ export default function EmptyState({
             })
           : icon}
       </span>
-      <h6 className="cn-text-h6 font-[family-name:var(--font-display)] text-[var(--ink)]">
+      <h6 className="m-0 text-sm font-semibold font-[family-name:var(--font-display)] text-foreground">
         {title}
       </h6>
       {description && (
-        <p className="cn-text-body2 text-[var(--muted)] max-w-[480px]">
+        <p className="m-0 text-xs text-muted-foreground max-w-[480px]">
           {description}
         </p>
       )}
@@ -97,11 +97,11 @@ export default function EmptyState({
         </div>
       )}
       {tip && (
-        <div className="mt-3 px-[7.5px] py-[4.5px] rounded-[var(--radius-sm)] bg-[var(--warn-soft)] inline-flex items-center gap-[4.5px] max-w-[480px] border border-solid border-[color-mix(in_srgb,_var(--warn)_30%,_transparent)]">
-          <span className="inline-flex text-[var(--warn)] shrink-0">
+        <div className="mt-3 px-[7.5px] py-[4.5px] rounded-md bg-warning-soft inline-flex items-center gap-[4.5px] max-w-[480px] border border-solid border-warning/30">
+          <span className="inline-flex text-warning shrink-0">
             <Lightbulb size={12} strokeWidth={2} />
           </span>
-          <span className="cn-text-caption text-[var(--warn)] text-start leading-[1.35]">
+          <span className="text-xs text-warning-ink text-start leading-[1.35]">
             {tip}
           </span>
         </div>

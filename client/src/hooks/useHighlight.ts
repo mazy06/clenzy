@@ -49,7 +49,7 @@ export function useHighlightTarget(highlightId: string | null | undefined, ready
       const prevTransition = el.style.transition;
       const prevBg = el.style.backgroundColor;
       el.style.transition = 'background-color .35s ease';
-      el.style.backgroundColor = 'var(--accent-soft)';
+      el.style.backgroundColor = 'var(--bui-primary-soft)';
       window.setTimeout(() => {
         el!.style.backgroundColor = prevBg;
         window.setTimeout(() => { el!.style.transition = prevTransition; }, 400);

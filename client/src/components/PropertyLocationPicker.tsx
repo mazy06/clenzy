@@ -67,11 +67,13 @@ export function PropertyLocationPicker({
     const map = mapRef.current;
     if (!map) return;
     if (!markerRef.current) {
+      // Element DOM reel : les custom properties Baitly s'y resolvent, le pin
+      // suit donc le theme clair / sombre sans table de couleurs dupliquee.
       const el = document.createElement('div');
       el.style.cssText = `
         width: 28px; height: 28px; border-radius: 50% 50% 50% 0;
-        background: #ef4444; transform: rotate(-45deg);
-        border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        background: var(--bui-destructive); transform: rotate(-45deg);
+        border: 3px solid var(--bui-card); box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         cursor: grab;
       `;
       markerRef.current = new mapboxgl.Marker({ element: el, draggable: true, anchor: 'bottom' })
@@ -169,7 +171,7 @@ export function PropertyLocationPicker({
 
   if (!MAPBOX_TOKEN) {
     return (
-      <BuiAlert variant="warning" className="text-[0.8125rem]">
+      <BuiAlert variant="warning" className="text-xs">
         <TriangleAlert />
         <AlertDescription>Mapbox n'est pas configuré — impossible d'afficher la carte de sélection.</AlertDescription>
       </BuiAlert>
@@ -180,7 +182,7 @@ export function PropertyLocationPicker({
     <div className="flex flex-col gap-1.5">
       {/* Helper / status text */}
       {!hasCoords && (
-        <BuiAlert variant="warning" className="text-[0.8125rem] py-[3px]">
+        <BuiAlert variant="warning" className="text-xs py-[3px]">
           <LocationOn size={16} strokeWidth={2} />
           <AlertDescription>
             {helperText ||
@@ -193,8 +195,8 @@ export function PropertyLocationPicker({
       {/* `height` est une prop : elle reste en style inline. */}
       <div
         className={cn(
-          'relative w-full overflow-hidden rounded-[16px] border border-solid',
-          hasCoords ? 'border-[#4A9B8E]' : 'border-[#D4A574]',
+          'relative w-full overflow-hidden rounded-xl border border-solid',
+          hasCoords ? 'border-success' : 'border-warning',
         )}
         style={{ height }}
       >
@@ -202,11 +204,11 @@ export function PropertyLocationPicker({
 
         {/* Floating coordinates badge */}
         {hasCoords && (
-          <div className="absolute bottom-[8px] start-[8px] flex items-center gap-[3px] rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)] px-1.5 py-[3px] text-[0.6875rem] [font-family:monospace] shadow-[0_2px_6px_rgba(0,0,0,0.12)]">
-            <span className="inline-flex text-[var(--bui-success-ink)]">
+          <div className="absolute bottom-[8px] start-[8px] flex items-center gap-[3px] rounded-lg border border-solid border-border bg-card px-1.5 py-[3px] shadow-[0_2px_6px_rgba(0,0,0,0.12)]">
+            <span className="inline-flex text-success-ink">
               <LocationOn size={11} strokeWidth={2} />
             </span>
-            <p className="cn-text-body1 font-mono text-[0.6875rem] text-foreground">
+            <p className="font-mono text-2xs tabular-nums text-foreground">
               {Number(latitude).toFixed(5)}, {Number(longitude).toFixed(5)}
             </p>
           </div>
@@ -260,7 +262,7 @@ export function PropertyLocationPicker({
       </div>
 
       {geoError && (
-        <BuiAlert variant="destructive" className="text-[0.75rem] py-0.5">
+        <BuiAlert variant="destructive" className="text-xs py-0.5">
           <TriangleAlert />
           <AlertDescription>{geoError}</AlertDescription>
           <AlertAction>
@@ -272,7 +274,7 @@ export function PropertyLocationPicker({
       )}
 
       {hasCoords && (
-        <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60">
+        <p className="text-2xs text-faint">
           Astuce : clique sur la carte ou fais glisser le pin pour ajuster la position exacte.
         </p>
       )}

@@ -3,11 +3,11 @@ import { cn } from '../../utils/cn';
 import { useMediaQuery } from '../../hooks/use-media-query';
 import { ChevronLeft, ChevronRight, NightsStay } from '../../icons';
 
-// ─── Calendrier range « Signature » (.rm-cal) ───────────────────────────────
+// ─── Calendrier range (.rm-cal) ─────────────────────────────────────────────
 // Extrait de PlanningQuickCreateDialog pour être partagé par ReservationDialog.
-// Comportement : sélection début → fin, reset si fin < début, Effacer. Look
-// maquette « Signature » : grille 7 col gap 3, jours aspect 1, in-range
-// accent-soft sans radius, edges accent blanc. Tokens var(--…).
+// Comportement : sélection début → fin, reset si fin < début, Effacer. Rendu
+// Baitly UI : grille 7 col gap 3, jours aspect 1, in-range `primary-soft` sans
+// radius, extrémités en aplat `primary`. Arrondis logiques (RTL).
 
 interface CalCell {
   date: Date;
@@ -53,15 +53,15 @@ function buildCalGrid(month: Date): CalCell[] {
 const DEFAULT_WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 const CAL_NAV_BTN_CLS =
-  'w-[28px] h-[28px] rounded-[8px] border border-solid border-[var(--line-2)] bg-[var(--card)] ' +
-  'text-[var(--muted)] cursor-pointer flex items-center justify-center p-0 ' +
-  'transition-[color,border-color] duration-[140ms] hover:text-[var(--accent)] hover:border-[var(--accent)] ' +
-  'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-[1px]';
+  'w-[28px] h-[28px] rounded-md border border-solid border-border bg-card ' +
+  'text-muted-foreground cursor-pointer flex items-center justify-center p-0 ' +
+  'transition-[color,border-color] duration-[140ms] hover:text-primary hover:border-primary ' +
+  'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-[1px]';
 
 const CLEAR_LINK_CLS =
-  'inline-flex items-center gap-2 text-[12px] font-semibold text-[var(--accent)] cursor-pointer ' +
+  'inline-flex items-center gap-2 text-xs font-semibold text-primary cursor-pointer ' +
   'bg-transparent border-0 p-0 [font-family:inherit] ' +
-  'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2';
+  'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2';
 
 /** Champ date flottant cliquable (Arrivée / Départ) — affichage + cible de sélection. */
 const FloatDateField: React.FC<{
@@ -75,16 +75,16 @@ const FloatDateField: React.FC<{
     onClick={onClick}
     className={cn(
       'relative w-full h-[44px] rounded-[11px] border border-solid flex items-center px-[13px]',
-      '[font-family:inherit] text-[13.5px] cursor-pointer text-left tabular-nums',
+      '[font-family:inherit] text-[13.5px] cursor-pointer text-start tabular-nums',
       'transition-[border-color,box-shadow,background-color] duration-[140ms]',
-      'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+      'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2',
       active
-        ? 'bg-[var(--card)] border-[var(--accent)] shadow-[0_0_0_3px_var(--accent-soft)]'
-        : 'bg-[var(--field)] border-[var(--field-line)] shadow-none',
-      value ? 'font-semibold text-[var(--ink)]' : 'font-medium text-[var(--faint)]',
+        ? 'bg-card border-primary shadow-[0_0_0_3px_var(--bui-primary-soft)]'
+        : 'bg-field border-field-line shadow-none',
+      value ? 'font-semibold text-foreground' : 'font-medium text-faint',
     )}
   >
-    <span className="absolute -top-[7px] start-[12px] bg-[var(--card)] px-[5px] text-[10.5px] font-semibold text-[var(--muted)] leading-[14px] whitespace-nowrap">
+    <span className="absolute -top-[7px] start-[12px] bg-card px-[5px] text-2xs font-semibold text-muted-foreground leading-[14px] whitespace-nowrap">
       {label}
     </span>
     {value || '—'}
@@ -193,12 +193,12 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
   // in-range) fonctionne à cheval sur les deux mois via les mêmes handlers.
   const renderMonth = (cells: CalCell[], label: string) => (
     <div className="flex-1 min-w-0">
-      <b className="block [font-family:var(--font-display)] text-[14px] font-semibold text-[var(--ink)] text-center capitalize mb-[6px]">
+      <b className="block [font-family:var(--font-display)] text-sm font-semibold text-foreground text-center capitalize mb-[6px]">
         {label}
       </b>
       <div className="grid grid-cols-[repeat(7,_1fr)] gap-[3px]">
         {weekdayLabels.map((wl, i) => (
-          <div key={`${wl}-${i}`} className="text-center text-[10.5px] font-bold text-[var(--faint)] py-[4px]">
+          <div key={`${wl}-${i}`} className="text-center text-2xs font-bold text-faint py-[4px]">
             {wl}
           </div>
         ))}
@@ -223,13 +223,15 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
                 'aspect-[1] flex items-center justify-center border-0 p-0',
                 '[font-family:var(--font-display)] text-[13px] font-semibold tabular-nums',
                 'cursor-pointer select-none transition-[background,color] duration-[120ms]',
-                'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-[-2px]',
-                edge && 'text-[var(--on-accent)] bg-[var(--accent)]',
-                inRange && 'text-[var(--accent)] bg-[var(--accent-soft)] rounded-none',
-                !edge && !inRange && 'text-[var(--body)] bg-transparent rounded-[9px] hover:bg-[var(--hover)]',
+                'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-[-2px]',
+                edge && 'text-primary-foreground bg-primary',
+                inRange && 'text-primary bg-primary-soft rounded-none',
+                !edge && !inRange && 'text-foreground bg-transparent rounded-[9px] hover:bg-muted',
                 edge && isStart && isEnd && 'rounded-[9px]',
-                edge && isStart && !isEnd && 'rounded-l-[9px] rounded-r-none',
-                edge && !isStart && 'rounded-r-[9px] rounded-l-none',
+                // Arrondis LOGIQUES : en RTL la plage se lit de droite à gauche,
+                // `rounded-l/r` y placerait l'arrondi du mauvais côté.
+                edge && isStart && !isEnd && 'rounded-s-[9px] rounded-e-none',
+                edge && !isStart && 'rounded-e-[9px] rounded-s-none',
               )}
             >
               {cell.date.getDate()}
@@ -289,7 +291,7 @@ const ReservationRangeCalendar: React.FC<ReservationRangeCalendarProps> = ({
         {(startDate || endDate) && (
           <div className="flex items-center justify-between mt-2">
             {nights > 0 ? (
-              <div className="inline-flex items-center gap-[5px] text-[12px] font-semibold text-[var(--muted)] tabular-nums">
+              <div className="inline-flex items-center gap-[5px] text-xs font-semibold text-muted-foreground tabular-nums">
                 <NightsStay size={13} strokeWidth={1.75} />
                 {nightsText}
               </div>

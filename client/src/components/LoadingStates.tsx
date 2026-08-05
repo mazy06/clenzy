@@ -53,20 +53,20 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-[100vh] gap-3 p-4 bg-[var(--bg)]">
+    <div className="flex flex-col items-center justify-center h-[100vh] gap-3 p-4 bg-background">
       {state === 'error-loading' ? (
-        // Alerte pleine largeur — pattern .rm-conflict : fond -soft + border color-mix 30%
+        // Alerte pleine largeur — fond -soft + filet destructif a 30 %
         <div
           role="alert"
-          className="w-full max-w-[500px] rounded-[12px] px-4 py-[13px] bg-[var(--err-soft)] border border-solid border-[color-mix(in_srgb,var(--err)_30%,transparent)]"
+          className="w-full max-w-[500px] rounded-[12px] px-4 py-[13px] bg-destructive-soft border border-solid border-destructive/30"
         >
-          <div className="flex items-center gap-[9px] text-[13.5px] font-bold text-[var(--ink)]">
-            <span className="inline-flex text-[var(--err)]">
+          <div className="flex items-center gap-[9px] text-[13.5px] font-bold text-foreground">
+            <span className="inline-flex text-destructive">
               <WarningIcon size={17} strokeWidth={1.75} />
             </span>
             {title}
           </div>
-          <p className="cn-text-body1 text-[12.5px] text-[var(--body)] mt-1">
+          <p className="m-0 mt-1 text-xs text-foreground">
             {description}
           </p>
           {(onRetry || onClearError) && (
@@ -87,12 +87,12 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
         </div>
       ) : (
         <>
-          <Spinner className="size-8 text-[var(--accent)]" />
-          <p className="cn-text-body1 text-center text-[16px] font-semibold tracking-[-.01em] text-[var(--ink)]" style={{ fontFamily: 'var(--font-display)' }}>
+          <Spinner className="size-8 text-primary" />
+          <p className="m-0 text-center text-[16px] font-semibold tracking-[-.01em] text-foreground" style={{ fontFamily: 'var(--font-display)' }}>
             {title}
           </p>
           {/* mt: -1 avec theme.spacing = 6 -> -6px, soit -mt-1.5 sur l'echelle Tailwind */}
-          <p className="cn-text-body1 text-center text-[12.5px] text-[var(--muted)] -mt-1.5">
+          <p className="m-0 -mt-1.5 text-center text-xs text-muted-foreground">
             {description}
           </p>
         </>

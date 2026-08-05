@@ -14,24 +14,25 @@ export default function OfflineBanner() {
 
   if (isOnline) return null;
 
-  // Alerte -soft hairline : fond opaque (card) + couche warn-soft plate.
-  // Indices de type (color:/image:) obligatoires : sans eux Tailwind ne sait
-  // pas si `bg-[var(--card)]` vise background-color ou background-image.
+  // Alerte -soft hairline : fond opaque (card) + couche warning-soft plate.
+  // La couche pastel passe par un degrade a une seule teinte : `bg-card` occupe
+  // deja la background-color, seul le calque background-IMAGE reste libre pour
+  // l'empiler — d'ou l'indice de type `image:` sur la valeur arbitraire.
   // Le Slide MUI portait aussi une sortie animee ; le demontage conditionnel ne
   // peut pas la rejouer, seule l'entree reste animee.
   return (
     <div
         className={
-          'fixed top-0 left-0 right-0 z-[9999] flex items-center justify-center gap-1.5 py-1.5 px-3 '
-          + 'text-[var(--ink)] bg-[color:var(--card)] bg-[image:linear-gradient(var(--warn-soft),var(--warn-soft))] '
-          + '[border-bottom:1px_solid_color-mix(in_srgb,var(--warn)_30%,transparent)] '
+          'fixed top-0 inset-x-0 z-[9999] flex items-center justify-center gap-1.5 py-1.5 px-3 '
+          + 'text-foreground bg-card bg-[image:linear-gradient(var(--bui-warning-soft),var(--bui-warning-soft))] '
+          + 'border-b border-solid border-warning/30 '
           + 'animate-in slide-in-from-top-full duration-200 motion-reduce:animate-none'
         }
       >
-        <span className="inline-flex text-[var(--warn)]">
+        <span className="inline-flex text-warning">
           <WifiOffIcon size={17} strokeWidth={1.75} />
         </span>
-        <p className="cn-text-body2 font-semibold text-[12.5px]">
+        <p className="text-xs font-semibold">
           {t('offline.banner', 'Vous \u00eates hors ligne. Certaines fonctionnalit\u00e9s peuvent ne pas \u00eatre disponibles.')}
         </p>
       </div>

@@ -18,7 +18,8 @@ import { cn } from '../utils/cn';
  * domaine, hex d'un canal, `color-mix` d'une couleur arbitraire. Tailwind émet
  * ses classes à la COMPILATION en scannant les sources — une classe construite
  * depuis une variable ne serait jamais generee. Seules les dimensions, connues
- * d'avance, sont des classes.
+ * d'avance, sont des classes. Les tons sémantiques pointent donc les variables
+ * Baitly UI `--bui-*` en VALEUR CSS, pas en utility Tailwind.
  */
 
 export type StatusTone = 'ok' | 'warn' | 'err' | 'info' | 'accent' | 'neutral';
@@ -30,14 +31,40 @@ export interface ToneTokens {
   bg: string;
 }
 
-/** Tons sémantiques → tokens. Seule définition à maintenir. */
+/**
+ * Tons sémantiques → tokens. Seule définition à maintenir.
+ *
+ * <p>Couple Baitly UI conforme AA : l'encre est le jeton `-ink` (la teinte vive
+ * plafonne à ~2,2:1 sur une carte claire, `-ink` mesure ≥ 4,5:1), le fond est le
+ * jeton `-soft`. La teinte vive n'apparaît que sur la pastille décorative, cf.
+ * {@link TONE_DOTS}.</p>
+ *
+ * <p>`accent` lit désormais la primaire Baitly, comme les cinq autres tons :
+ * l'identité est MONOCHROME (bleu nuit du wordmark) et ne porte plus de teinte
+ * choisie par l'utilisateur. Le ton reste dans l'énumération — il est passé par
+ * une vingtaine d'écrans — mais il ne désigne plus qu'« la couleur de marque ».</p>
+ */
 export const STATUS_TONES: Record<StatusTone, ToneTokens> = {
-  ok:      { color: 'var(--ok)',     bg: 'var(--ok-soft)' },
-  warn:    { color: 'var(--warn)',   bg: 'var(--warn-soft)' },
-  err:     { color: 'var(--err)',    bg: 'var(--err-soft)' },
-  info:    { color: 'var(--info)',   bg: 'var(--info-soft)' },
-  accent:  { color: 'var(--accent)', bg: 'var(--accent-soft)' },
-  neutral: { color: 'var(--muted)',  bg: 'var(--hover)' },
+  ok:      { color: 'var(--bui-success-ink)',     bg: 'var(--bui-success-soft)' },
+  warn:    { color: 'var(--bui-warning-ink)',     bg: 'var(--bui-warning-soft)' },
+  err:     { color: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' },
+  info:    { color: 'var(--bui-info-ink)',        bg: 'var(--bui-info-soft)' },
+  accent:  { color: 'var(--bui-primary)',         bg: 'var(--bui-primary-soft)' },
+  neutral: { color: 'var(--bui-muted-foreground)', bg: 'var(--bui-muted)' },
+};
+
+/**
+ * Teinte VIVE de chaque ton, réservée à la pastille : un aplat de 8 px n'est pas
+ * du texte, il n'est donc pas soumis au 4,5:1 et gagne à rester saturé là où
+ * l'encre du libellé, elle, doit passer en `-ink`.
+ */
+const TONE_DOTS: Record<StatusTone, string> = {
+  ok:      'var(--bui-success)',
+  warn:    'var(--bui-warning)',
+  err:     'var(--bui-destructive)',
+  info:    'var(--bui-info)',
+  accent:  'var(--bui-primary)',
+  neutral: 'var(--bui-muted-foreground)',
 };
 
 type ChipSize = 'sm' | 'md';
@@ -113,7 +140,7 @@ export function selectChipClasses(tokens: ToneTokens, selected: boolean, size: C
     className: cn(SIZE_CLASS[size], 'border border-solid font-medium', pill ? 'rounded-full' : 'rounded-md'),
     style: selected
       ? { backgroundColor: tokens.bg, color: tokens.color, borderColor: tokens.color }
-      : { backgroundColor: 'transparent', color: 'var(--muted)', borderColor: 'var(--line-2)' },
+      : { backgroundColor: 'transparent', color: 'var(--bui-muted-foreground)', borderColor: 'var(--bui-border)' },
   } as { className: string; style: React.CSSProperties };
 }
 
@@ -200,11 +227,16 @@ export default function StatusChip({
     ? { color, bg: softBackground(color) }
     : tokens ?? STATUS_TONES[tone];
 
+  // Une couleur explicite (`color`) ou des tokens de domaine (`tokens`) font
+  // autorite ; sur un ton semantique la pastille reprend la teinte vive, que
+  // l'encre `-ink` du libelle a quittee pour tenir le contraste.
+  const couleurPastille = color || tokens ? resolved.color : TONE_DOTS[tone];
+
   const marque = icon ?? (dot ? (
     <span
       aria-hidden
       className="size-2 shrink-0 rounded-[2.5px]"
-      style={{ backgroundColor: resolved.color }}
+      style={{ backgroundColor: couleurPastille }}
     />
   ) : null);
 

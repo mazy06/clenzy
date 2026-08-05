@@ -11,7 +11,7 @@ interface Props {
 
 // Transposition en classes de SEC_SX (.rm-sec) — la constante reste exportee
 // dans reservationDialogStyles pour les consommateurs sx eventuels.
-const SEC_CLS = 'cn-text-body1 text-[10.5px] font-bold tracking-[0.08em] uppercase text-[var(--faint)]';
+const SEC_CLS = 'text-2xs font-bold tracking-[0.08em] uppercase text-faint';
 
 /** Dates du séjour : calendrier range (ou dates read-only si source externe) + heures. */
 const StaySection: React.FC<Props> = ({ form }) => {
@@ -27,9 +27,9 @@ const StaySection: React.FC<Props> = ({ form }) => {
             { label: t('reservations.fields.checkIn'), value: form.startDate },
             { label: t('reservations.fields.checkOut'), value: form.endDate },
           ].map((f) => (
-            <div key={f.label} className="rounded-[11px] border border-solid border-[var(--field-line)] bg-[var(--field)] px-3 py-2">
-              <p className="cn-text-body1 text-[10.5px] font-semibold text-[var(--muted)]">{f.label}</p>
-              <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)] tabular-nums">{f.value || '—'}</p>
+            <div key={f.label} className="rounded-[11px] border border-solid border-field-line bg-field px-3 py-2">
+              <p className="text-2xs font-semibold text-muted-foreground">{f.label}</p>
+              <p className="text-[13.5px] font-semibold text-foreground tabular-nums">{f.value || '—'}</p>
             </div>
           ))}
         </div>

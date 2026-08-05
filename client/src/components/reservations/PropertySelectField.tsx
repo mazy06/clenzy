@@ -36,7 +36,7 @@ const PropertySelectField: React.FC<Props> = ({ form }) => {
         </NativeSelect>
       </Field>
       {!form.isPlatformStaff && form.propertyName && (
-        <p className="cn-text-body1 text-[11px] text-[var(--muted)] italic">
+        <p className="text-[11px] text-muted-foreground italic">
           {t('reservations.dialog.propertyAutoSelected')}
         </p>
       )}

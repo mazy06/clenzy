@@ -76,7 +76,7 @@ function Step({ index = 0, className, children, ...props }: StepProps) {
         orientation === "horizontal"
           ? "after:mx-2 after:h-px after:flex-1 after:content-[''] last:after:hidden"
           : "after:my-1 after:ms-[11px] after:h-4 after:w-px after:content-[''] last:after:hidden",
-        etat === "todo" ? "after:bg-[var(--line)]" : "after:bg-[var(--accent)]",
+        etat === "todo" ? "after:bg-border" : "after:bg-primary",
         className,
       )}
       {...props}
@@ -108,9 +108,9 @@ function StepLabel({
         aria-hidden
         className={cn(
           "inline-flex size-[22px] shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums transition-colors",
-          done && "bg-[var(--accent)] text-[var(--on-accent)]",
-          active && "bg-[var(--accent)] text-[var(--on-accent)]",
-          !done && !active && "bg-[var(--field)] text-[var(--faint)]",
+          done && "bg-primary text-primary-foreground",
+          active && "bg-primary text-primary-foreground",
+          !done && !active && "bg-field text-faint",
         )}
       >
         {done ? (
@@ -123,8 +123,8 @@ function StepLabel({
       </span>
       <span
         className={cn(
-          "truncate text-[0.72rem] font-semibold whitespace-nowrap",
-          active ? "text-[var(--ink)]" : done ? "text-[var(--body)]" : "text-[var(--faint)]",
+          "truncate text-xs font-semibold whitespace-nowrap",
+          active ? "text-foreground" : done ? "text-foreground" : "text-faint",
         )}
       >
         {children}

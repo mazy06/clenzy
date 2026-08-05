@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
-import { Badge } from './ui';
-import { Card } from '../components/ui';
+import { Badge, Card } from './ui';
 
 import {
   Lock as LockIcon
@@ -110,41 +109,41 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return (
       <div className="p-6 flex flex-col items-center justify-center min-h-[60vh] text-center">
         {/* Icône de verrouillage */}
-        <div className="mb-4 p-3 rounded-[50%] bg-[var(--hover)] flex items-center justify-center">
+        <div className="mb-4 p-3 rounded-full bg-muted flex items-center justify-center">
           <span className="inline-flex text-muted-foreground"><LockIcon size={32} strokeWidth={1.5} /></span>
         </div>
 
         {/* Titre principal */}
-        <h4 className="cn-text-h4 text-foreground mb-[0.35em] font-medium mb-3">
+        <h4 className="text-base font-semibold tracking-tight text-balance text-foreground mb-3">
           Accès restreint
         </h4>
 
         {/* Message explicatif */}
-        <h6 className="cn-text-h6 text-muted-foreground mb-4 max-w-[500px] font-normal">
+        <h6 className="text-sm text-muted-foreground mb-4 max-w-[500px] font-normal">
           Vous n'avez pas la permission de {permissionMessage}
         </h6>
 
         {/* Détails techniques */}
         <Card className="gap-0 py-0 p-4 bg-card border-border max-w-[500px]">
           <div className="flex items-center gap-1.5 mb-3 justify-center">
-            <p className="cn-text-body2 text-muted-foreground">
-              Permission requise : <strong>{requiredPermission}</strong>
+            <p className="text-xs text-muted-foreground">
+              Permission requise : <strong className="text-foreground">{requiredPermission}</strong>
             </p>
           </div>
-          
+
           <div className="flex items-center gap-1.5 mb-3 justify-center">
-            <p className="cn-text-body2 text-muted-foreground">
-              Page demandée : <strong>{location.pathname}</strong>
+            <p className="text-xs text-muted-foreground">
+              Page demandée : <strong className="text-foreground">{location.pathname}</strong>
             </p>
           </div>
 
           {user && (
             <div className="flex items-center gap-1.5 flex-wrap justify-center">
-              <p className="cn-text-body2 text-muted-foreground">
-                Votre rôle : 
+              <p className="text-xs text-muted-foreground">
+                Votre rôle :
               </p>
-              {user.roles.map((role, index) => (
-                <Badge variant="default" className="text-[0.75rem]" key={role}>{role}</Badge>
+              {user.roles.map((role) => (
+                <Badge variant="secondary" className="text-xs" key={role}>{role}</Badge>
               ))}
             </div>
           )}

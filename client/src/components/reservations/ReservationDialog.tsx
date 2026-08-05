@@ -21,7 +21,7 @@ export type { ReservationDialogProps, LockedProperty } from './useReservationFor
 /** Mode d'entrée du dialogue (création) : nouvelle réservation OU blocage de période. */
 export type ReservationDialogEntryMode = 'reservation' | 'block';
 
-// ─── Dialogue de réservation « Signature » ────────────────────────────────────
+// ─── Dialogue de réservation ──────────────────────────────────────────────────
 //
 // Orchestrateur MINCE. Logique → useReservationForm ; styles → reservationDialogStyles ;
 // rendu → sous-composants. CRÉATION = assistant 4 étapes (wizard) OU écran blocage ;
@@ -29,13 +29,14 @@ export type ReservationDialogEntryMode = 'reservation' | 'block';
 // reservationsKeys.all.
 
 // Equivalents en classes de FOOT_SX / BTN_GHOST_SX / BTN_PRIMARY_SX (reservationDialogStyles).
-// Les constantes sx restent exportees pour les autres sous-composants encore en Box.
+// Les deux niveaux de bouton portent la hiérarchie du pied : `ghost` pour se retirer,
+// contour `primary` pour l'action qui engage.
 const FOOT_CLS =
-  'flex items-center gap-2.5 px-[22px] py-[14px] border-t border-solid border-[var(--line)] bg-[var(--surface-2)] shrink-0';
+  'flex items-center gap-2.5 px-[22px] py-[14px] border-t border-solid border-border bg-card shrink-0';
 const BTN_BASE_CLS =
-  'inline-flex items-center gap-2 h-[38px] px-[17px] rounded-[11px] font-[inherit] text-[12.5px] font-semibold cursor-pointer border border-solid border-transparent [transition:transform_.12s,background_.14s,border-color_.14s,color_.14s] active:enabled:scale-[.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]';
-const BTN_GHOST_CLS = `${BTN_BASE_CLS} bg-transparent text-[var(--muted)] hover:text-[var(--ink)]`;
-const BTN_PRIMARY_CLS = `${BTN_BASE_CLS} bg-transparent border-[var(--accent)] text-[var(--accent)] hover:enabled:bg-[var(--accent-soft)] disabled:opacity-[.45] disabled:cursor-not-allowed`;
+  'inline-flex items-center gap-2 h-[38px] px-[17px] rounded-[11px] font-[inherit] text-[12.5px] font-semibold cursor-pointer border border-solid border-transparent [transition:transform_.12s,background_.14s,border-color_.14s,color_.14s] active:enabled:scale-[.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+const BTN_GHOST_CLS = `${BTN_BASE_CLS} bg-transparent text-muted-foreground hover:text-foreground`;
+const BTN_PRIMARY_CLS = `${BTN_BASE_CLS} bg-transparent border-primary text-primary hover:enabled:bg-primary-soft disabled:opacity-[.45] disabled:cursor-not-allowed`;
 
 // ─── Corps édition (écran unique, 2 colonnes) ─────────────────────────────────
 const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }> = ({ form, onClose }) => {
@@ -47,7 +48,7 @@ const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }
       <div className="flex-1 overflow-y-auto grid gap-0 grid-cols-[1fr] min-[901px]:grid-cols-[1fr_1fr]">
         <div
           className={cn(
-            'flex flex-col gap-[18px] p-[22px] border-solid border-[var(--line)]',
+            'flex flex-col gap-[18px] p-[22px] border-solid border-border',
             'border-b min-[901px]:border-b-0 min-[901px]:border-r',
           )}
         >
@@ -61,7 +62,7 @@ const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }
 
         <ConflictAlert form={form} fullWidth />
         {form.error && (
-          <p className="cn-text-body1 col-span-full mt-0 mx-[22px] mb-5 text-[12.5px] font-semibold text-[var(--err)]">
+          <p className="col-span-full mt-0 mx-[22px] mb-5 text-[12.5px] font-semibold text-destructive-ink">
             {form.error}
           </p>
         )}
@@ -132,7 +133,7 @@ const CreateWizard: React.FC<{
         {step === 4 && <FinalizeStep form={form} />}
 
         {form.error && (
-          <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--err)]">{form.error}</p>
+          <p className="text-[12.5px] font-semibold text-destructive-ink">{form.error}</p>
         )}
       </div>
 
@@ -200,7 +201,7 @@ const ReservationDialog: React.FC<ReservationDialogProps> = (props) => {
         showCloseButton={false}
         className={cn(
           'flex flex-col overflow-hidden p-0 max-w-[95vw] max-h-[92vh]',
-          'rounded-[18px] border border-solid border-[var(--line)] bg-[var(--card)] text-[var(--body)] shadow-[var(--shadow-pop)]',
+          'rounded-2xl border border-solid border-border bg-card text-foreground shadow-2xl',
           // Wizard = colonne unique (assez large pour le calendrier 2 mois) ; édition = 2 colonnes.
           isCreate ? 'w-[740px]' : 'w-[980px]',
         )}

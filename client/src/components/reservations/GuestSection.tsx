@@ -24,15 +24,15 @@ import type { GuestDto } from '../../services/api';
 
 // Transposition en classes de SEC_SX (.rm-sec) — meme motif que STEP_BTN_CLS :
 // la constante sx reste exportee dans reservationDialogStyles.
-const SEC_CLS = 'cn-text-body1 text-[10.5px] font-bold tracking-[0.08em] uppercase text-[var(--faint)]';
+const SEC_CLS = 'text-2xs font-bold tracking-[0.08em] uppercase text-faint';
 
 // Transposition en classes de STEP_BTN_SX (.rm-count) — la constante reste
 // exportee dans reservationDialogStyles pour les consommateurs sx eventuels.
 const STEP_BTN_CLS =
-  'w-[30px] h-[30px] rounded-[8px] border-0 bg-[var(--card)] text-[var(--body)] cursor-pointer ' +
+  'w-[30px] h-[30px] rounded-md border-0 bg-card text-foreground cursor-pointer ' +
   'flex items-center justify-center p-0 transition-[color] duration-[140ms] ' +
-  'enabled:hover:text-[var(--accent)] disabled:opacity-40 disabled:cursor-default ' +
-  'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-[1px]';
+  'enabled:hover:text-primary disabled:opacity-40 disabled:cursor-default ' +
+  'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-[1px]';
 
 interface Props {
   form: UseReservationFormResult;
@@ -52,11 +52,11 @@ const renderStepper = (
   incDisabled: boolean,
   ariaLabel: string,
 ) => (
-  <div className="flex items-center gap-[4px] bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[10px] p-[3px] shrink-0">
+  <div className="flex items-center gap-[4px] bg-field border border-solid border-field-line rounded-lg p-[3px] shrink-0">
     <button type="button" aria-label={`${ariaLabel} −`} onClick={onDec} disabled={decDisabled} className={STEP_BTN_CLS}>
       <RemoveIcon size={15} strokeWidth={1.75} />
     </button>
-    <div className="font-[family-name:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] min-w-[28px] text-center select-none tabular-nums">
+    <div className="font-[family-name:var(--font-display)] text-[15px] font-semibold text-foreground min-w-[28px] text-center select-none tabular-nums">
       {value}
     </div>
     <button type="button" aria-label={`${ariaLabel} +`} onClick={onInc} disabled={incDisabled} className={STEP_BTN_CLS}>
@@ -88,15 +88,16 @@ const GuestSection: React.FC<Props> = ({ form }) => {
   const { t } = useTranslation();
 
   // Gabarit plus haut que la puce de statut : ici la puce porte une identite
-  // (le voyageur choisi), pas un etat — d'ou l'encre `--ink` et l'accent reserve
-  // aux deux affordances (icone, croix).
+  // (le voyageur choisi), pas un etat — d'ou l'encre de texte et la primaire
+  // reservee aux deux affordances (icone, croix). Couleurs calculees a
+  // l'execution (prop `tokens`) : valeurs CSS Baitly, pas d'utility possible.
   const guestChip = (
     <StatusChip
       icon={<Person size={15} strokeWidth={1.75} />}
       label={form.selectedGuest?.fullName}
       onDelete={form.fieldsLocked ? undefined : form.clearGuest}
-      tokens={{ color: 'var(--ink)', bg: 'var(--accent-soft)' }}
-      className="h-8 rounded-[10px] text-[12.5px] [&>svg]:text-[var(--accent)] [&>button>svg]:text-[var(--accent)]"
+      tokens={{ color: 'var(--bui-foreground)', bg: 'var(--bui-primary-soft)' }}
+      className="h-8 rounded-lg text-[12.5px] [&>svg]:text-primary [&>button>svg]:text-primary"
     />
   );
 
@@ -122,13 +123,13 @@ const GuestSection: React.FC<Props> = ({ form }) => {
         placeholder={t('reservations.dialog.searchGuest')}
       >
         <InputGroupAddon align="inline-start">
-          <span className="inline-flex text-[var(--faint)]">
+          <span className="inline-flex text-faint">
             <SearchIcon size={15} strokeWidth={1.75} />
           </span>
         </InputGroupAddon>
         {form.isSearching ? (
           <InputGroupAddon align="inline-end">
-            <Spinner className="size-4 text-[var(--accent)]" />
+            <Spinner className="size-4 text-primary" />
           </InputGroupAddon>
         ) : null}
       </ComboboxInput>
@@ -142,9 +143,9 @@ const GuestSection: React.FC<Props> = ({ form }) => {
           {(guest: GuestDto) => (
             <ComboboxItem key={guest.id} value={guest}>
               <div>
-                <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)]">{guest.fullName}</p>
+                <p className="text-[13px] font-semibold text-foreground">{guest.fullName}</p>
                 {guest.email && (
-                  <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">{guest.email}</p>
+                  <p className="text-[11.5px] text-muted-foreground">{guest.email}</p>
                 )}
               </div>
             </ComboboxItem>
@@ -161,7 +162,7 @@ const GuestSection: React.FC<Props> = ({ form }) => {
         <p className={cn(SEC_CLS, 'whitespace-nowrap')}>
           {form.selectedGuest ? t('reservations.dialog.editGuest') : t('reservations.dialog.newGuest')}
         </p>
-        <div className="flex-1 h-[1px] bg-[var(--line)]" />
+        <div className="flex-1 h-[1px] bg-border" />
       </div>
 
       <div className="grid grid-cols-[1fr_1fr] gap-2.5">
@@ -261,7 +262,7 @@ const GuestSection: React.FC<Props> = ({ form }) => {
             <div className="flex items-center gap-2.5 min-w-0">
               {guestChip}
               {form.selectedGuest.email && (
-                <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] overflow-hidden text-ellipsis whitespace-nowrap">
+                <p className="text-[11.5px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                   {form.selectedGuest.email}
                 </p>
               )}
@@ -297,13 +298,13 @@ const GuestSection: React.FC<Props> = ({ form }) => {
       )}
 
       {/* Occupation — voyageurs + dont enfants, regroupés (steppers cohérents). */}
-      <div className="border border-[var(--line)] rounded-[12px] overflow-hidden bg-[var(--card)]">
+      <div className="border border-border rounded-[12px] overflow-hidden bg-card">
         {/* Voyageurs */}
         <div className="flex items-center gap-3 px-[14px] py-[11px]">
-          <span className="inline-flex text-[var(--accent)] shrink-0">
+          <span className="inline-flex text-primary shrink-0">
             <GroupIcon size={18} strokeWidth={1.75} />
           </span>
-          <p className="cn-text-body1 flex-1 min-w-0 text-[13.5px] font-semibold text-[var(--ink)]">
+          <p className="flex-1 min-w-0 text-[13.5px] font-semibold text-foreground">
             {t('reservations.dialog.travelers')}
           </p>
           {renderStepper(
@@ -316,18 +317,18 @@ const GuestSection: React.FC<Props> = ({ form }) => {
           )}
         </div>
 
-        <div className="h-[1px] bg-[var(--line)]" />
+        <div className="h-[1px] bg-border" />
 
         {/* dont enfants (mineurs) — exonérés de la taxe de séjour */}
         <div className="flex items-center gap-3 px-[14px] py-[11px]">
-          <span className="inline-flex text-[var(--accent)] shrink-0">
+          <span className="inline-flex text-primary shrink-0">
             <PersonOutline size={18} strokeWidth={1.75} />
           </span>
           <div className="flex-1 min-w-0">
-            <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)] leading-[1.3]">
+            <p className="text-[13.5px] font-semibold text-foreground leading-[1.3]">
               {t('reservations.fields.childrenCount')}
             </p>
-            <p className="cn-text-body1 text-[11px] text-[var(--muted)] leading-[1.3]">
+            <p className="text-[11px] text-muted-foreground leading-[1.3]">
               {t('reservations.fields.childrenCountHelp')}
             </p>
           </div>

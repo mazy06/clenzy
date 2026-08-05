@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import StatusChip from './StatusChip';
+import StatusChip, { type StatusTone } from './StatusChip';
 import {
   Alert,
   AlertAction,
@@ -34,41 +34,40 @@ import {
 } from '../icons';
 import { monitoringApi } from '../services/api/monitoringApi';
 import type { HealthCheckService, SystemMetrics } from '../services/api/monitoringApi';
-import StatTile from './StatTile';
+import StatTile from './baitly/StatTile';
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 
-/** Chip -soft : texte couleur + fond -soft (pilule/typo via theme global MuiChip) */
-
-const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
-
-// Statut sante → tokens semantiques (UP --ok, DOWN --err, DEGRADED --warn)
-const STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
-  UP: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  DOWN: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  DEGRADED: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
+// Statut sante → ton semantique de StatusChip. La table locale de couples
+// {fg,bg} qui vivait ici etait strictement l'equivalent de STATUS_TONES : le
+// couple `-ink` / `-soft` conforme AA est desormais tenu par la primitive.
+const STATUS_TONE: Record<string, StatusTone> = {
+  UP: 'ok',
+  DOWN: 'err',
+  DEGRADED: 'warn',
 };
 
-const statusToken = (status: string) => STATUS_TOKEN[status] ?? NEUTRAL_TOKEN;
+const statusTone = (status: string): StatusTone => STATUS_TONE[status] ?? 'neutral';
 
-// Equivalents hex de la palette validee (requis par l'API StatTile)
-const STATUS_HEX: Record<string, string> = {
-  UP: '#4A9B8E',
-  DOWN: '#C97A7A',
-  DEGRADED: '#D4A574',
+// Teintes Baitly UI de l'icone de tuile (classes utilitaires)
+const STATUS_ICON_CLASS: Record<string, string> = {
+  UP: 'text-success',
+  DOWN: 'text-destructive',
+  DEGRADED: 'text-warning',
 };
 
-const statusHex = (status: string) => STATUS_HEX[status] ?? '#7BA3C2';
+const statusIconClass = (status: string) => STATUS_ICON_CLASS[status] ?? 'text-info';
 
+// Icone decorative : la teinte VIVE, pas l'encre (§2.4 du contrat Baitly UI).
 const getStatusIcon = (status: string) => {
   switch (status) {
     case 'UP':
-      return <span className="inline-flex text-[var(--ok)]"><CheckCircle size={20} strokeWidth={1.75} /></span>;
+      return <span className="inline-flex text-success"><CheckCircle size={20} strokeWidth={1.75} /></span>;
     case 'DOWN':
-      return <span className="inline-flex text-[var(--err)]"><ErrorIcon size={20} strokeWidth={1.75} /></span>;
+      return <span className="inline-flex text-destructive"><ErrorIcon size={20} strokeWidth={1.75} /></span>;
     case 'DEGRADED':
-      return <span className="inline-flex text-[var(--warn)]"><Warning size={20} strokeWidth={1.75} /></span>;
+      return <span className="inline-flex text-warning"><Warning size={20} strokeWidth={1.75} /></span>;
     default:
-      return <span className="inline-flex text-[var(--info)]"><Info size={20} strokeWidth={1.75} /></span>;
+      return <span className="inline-flex text-info"><Info size={20} strokeWidth={1.75} /></span>;
   }
 };
 
@@ -95,10 +94,10 @@ const getCategoryIcon = (category: string) => {
   }
 };
 
-const responseTimeToken = (responseTime: number) => {
-  if (responseTime <= 100) return STATUS_TOKEN.UP;
-  if (responseTime <= 300) return STATUS_TOKEN.DEGRADED;
-  return STATUS_TOKEN.DOWN;
+const responseTimeTone = (responseTime: number): StatusTone => {
+  if (responseTime <= 100) return 'ok';
+  if (responseTime <= 300) return 'warn';
+  return 'err';
 };
 
 const formatUptime = (seconds: number): string => {
@@ -224,7 +223,7 @@ const HealthChecks: React.FC = () => {
             icon={<HealthAndSafety />}
             label="Statut Global"
             value={overallStatus}
-            color={statusHex(overallStatus)}
+            iconClassName={statusIconClass(overallStatus)}
             hint={`${healthChecks.filter(check => check.status === 'UP').length} sur ${healthChecks.length} services opérationnels`}
           />
         </div>
@@ -233,7 +232,7 @@ const HealthChecks: React.FC = () => {
             icon={<Security />}
             label="Services Critiques"
             value={criticalStatus}
-            color={statusHex(criticalStatus)}
+            iconClassName={statusIconClass(criticalStatus)}
             hint={`${criticalChecks.filter(check => check.status === 'UP').length} sur ${criticalChecks.length} services critiques opérationnels`}
           />
         </div>
@@ -243,7 +242,7 @@ const HealthChecks: React.FC = () => {
       {systemMetrics && (
         <Card className="mb-[18px]">
           <CardContent>
-            <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
+            <h6 className="text-sm font-semibold mb-[0.35em] text-foreground">
               Métriques Système
             </h6>
             <div className="grid grid-cols-12 gap-[18px]">
@@ -252,14 +251,19 @@ const HealthChecks: React.FC = () => {
                 { label: `Mémoire (${systemMetrics.heapUsedMb}/${systemMetrics.heapMaxMb} MB)`, value: systemMetrics.memoryUsage, suffix: '%' },
                 { label: 'Disque', value: systemMetrics.diskUsage, suffix: '%' },
               ] as const).map((metric) => {
-                const barColor = metric.value > 80 ? 'var(--err)' : metric.value > 60 ? 'var(--warn)' : 'var(--accent)';
+                const barColor =
+                  metric.value > 80
+                    ? 'var(--bui-destructive)'
+                    : metric.value > 60
+                      ? 'var(--bui-warning)'
+                      : 'var(--bui-primary)';
                 return (
                   <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-2" key={metric.label}>
                     <div className="text-center">
-                      <h6 className="cn-text-h6 font-[family-name:var(--font-display)] tabular-nums text-[var(--ink)]">
+                      <h6 className="text-sm font-semibold font-[family-name:var(--font-display)] tabular-nums text-foreground">
                         {metric.value}{metric.suffix}
                       </h6>
-                      <p className="cn-text-body2 text-[var(--muted)]">
+                      <p className="text-xs text-muted-foreground">
                         {metric.label}
                       </p>
                       {/* La teinte de la barre vient d'un seuil calcule a
@@ -276,10 +280,10 @@ const HealthChecks: React.FC = () => {
               })}
               <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
                 <div className="text-center">
-                  <h6 className="cn-text-h6 font-[family-name:var(--font-display)] tabular-nums text-[var(--ok)]">
+                  <h6 className="text-sm font-semibold font-[family-name:var(--font-display)] tabular-nums text-success-ink">
                     {formatUptime(systemMetrics.uptimeSeconds)}
                   </h6>
-                  <p className="cn-text-body2 text-[var(--muted)]">
+                  <p className="text-xs text-muted-foreground">
                     Uptime JVM
                   </p>
                 </div>
@@ -292,7 +296,7 @@ const HealthChecks: React.FC = () => {
       {/* Vérifications détaillées */}
       <Card>
         <CardContent>
-          <h6 className="cn-text-h6 mb-[0.35em] text-[var(--ink)]">
+          <h6 className="text-sm font-semibold mb-[0.35em] text-foreground">
             Vérifications Détaillées ({healthChecks.length} services)
           </h6>
 
@@ -307,23 +311,23 @@ const HealthChecks: React.FC = () => {
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="cn-text-subtitle1">
+                        <span className="text-sm font-medium">
                           {check.name}
                         </span>
-                        <StatusChip tokens={{ color: statusToken(check.status).fg, bg: statusToken(check.status).bg }} label={check.status} />
-                        <StatusChip tokens={{ color: NEUTRAL_TOKEN.fg, bg: NEUTRAL_TOKEN.bg }} label={check.category} icon={getCategoryIcon(check.category)} />
+                        <StatusChip tone={statusTone(check.status)} label={check.status} />
+                        <StatusChip tone="neutral" label={check.category} icon={getCategoryIcon(check.category)} />
                         {check.critical && (
-                          <StatusChip tokens={{ color: 'var(--err)', bg: 'var(--err-soft)' }} label="CRITIQUE" />
+                          <StatusChip tone="err" label="CRITIQUE" />
                         )}
                       </div>
                       <div className="mt-1.5">
                         <div className="flex items-center gap-3 flex-wrap mb-1.5">
-                          <p className="cn-text-body2 text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             <strong>Temps de réponse:</strong>
-                            <StatusChip tokens={{ color: responseTimeToken(check.responseTimeMs).fg, bg: responseTimeToken(check.responseTimeMs).bg }} label={`${check.responseTimeMs}ms`} className="ms-1.5 tabular-nums" />
+                            <StatusChip tone={responseTimeTone(check.responseTimeMs)} label={`${check.responseTimeMs}ms`} className="ms-1.5 tabular-nums" />
                           </p>
                           {check.lastCheck && (
-                            <p className="cn-text-body2 text-muted-foreground">
+                            <p className="text-xs text-muted-foreground">
                               <strong>Dernière vérification:</strong> {new Date(check.lastCheck).toLocaleTimeString()}
                             </p>
                           )}
@@ -334,9 +338,9 @@ const HealthChecks: React.FC = () => {
                             frere et non un CollapsibleTrigger. */}
                         <Collapsible open={expanded}>
                           <CollapsibleContent>
-                            {/* Détails techniques : mono compact sur fond --field */}
-                            <div className="mt-1.5 px-[9px] py-1.5 bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[8px]">
-                              <p className="cn-text-body1 font-mono text-[12px] text-[var(--body)] break-words">
+                            {/* Détails techniques : mono compact sur fond de champ */}
+                            <div className="mt-1.5 px-[9px] py-1.5 bg-field border border-solid border-field-line rounded-md">
+                              <p className="font-mono text-xs text-foreground break-words">
                                 {check.details}
                               </p>
                             </div>

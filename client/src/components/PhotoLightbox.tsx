@@ -71,14 +71,14 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
       {/* Plein ecran : la peau du primitif (largeur bornee, rayon, anneau,
           padding) est entierement neutralisee ici. */}
       <DialogContent
-        className="max-w-none w-screen h-screen rounded-none p-0 ring-0 bg-[rgba(0,0,0,0.95)] block"
+        className="max-w-none w-screen h-screen rounded-none p-0 ring-0 bg-black/95 block"
         showCloseButton={false}
       >
         {/* Barre supérieure : compteur + bouton fermer. Le compteur porte le
             DialogTitle : le primitif exige un titre accessible, et c'est la
             seule etiquette que la visionneuse possede. */}
-        <div className="absolute top-[0px] start-[0px] end-[0px] flex justify-between items-center p-3 z-[10]">
-          <DialogTitle className="cn-text-body1 text-[white] font-semibold">
+        <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between p-3">
+          <DialogTitle className="text-sm font-semibold tabular-nums text-white">
             {currentIndex + 1} / {photos.length}
           </DialogTitle>
           <Button
@@ -86,7 +86,7 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
             size="icon"
             aria-label="Fermer"
             onClick={onClose}
-            className="text-[#FFFFFF] hover:bg-[rgba(255,255,255,0.2)] hover:text-[#FFFFFF]"
+            className="text-white hover:bg-white/20 hover:text-white"
           >
             <CloseIcon size={24} strokeWidth={1.75} />
           </Button>
@@ -108,7 +108,7 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
             size="icon-lg"
             aria-label="Photo précédente"
             onClick={handlePrev}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-[#FFFFFF] bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)] hover:text-[#FFFFFF]"
+            className="absolute start-4 top-1/2 -translate-y-1/2 bg-white/10 text-white hover:bg-white/20 hover:text-white"
           >
             <ChevronLeftIcon size={36} strokeWidth={1.75} />
           </Button>
@@ -121,7 +121,7 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
             size="icon-lg"
             aria-label="Photo suivante"
             onClick={handleNext}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-[#FFFFFF] bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)] hover:text-[#FFFFFF]"
+            className="absolute end-4 top-1/2 -translate-y-1/2 bg-white/10 text-white hover:bg-white/20 hover:text-white"
           >
             <ChevronRightIcon size={36} strokeWidth={1.75} />
           </Button>

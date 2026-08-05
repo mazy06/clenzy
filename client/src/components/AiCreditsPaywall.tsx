@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { cn } from '../utils/cn';
-import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, Spinner } from './ui';
+import { Alert, AlertDescription, Button, Dialog, DialogContent, DialogHeader, DialogTitle, Spinner } from './ui';
 import { Sparkles, X, Wallet, AlertTriangle, ArrowRight, Check } from 'lucide-react';
 import { aiCreditsApi, toCredits, type CreditPack } from '../services/api/aiCreditsApi';
 
@@ -66,13 +66,13 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
     // `showCloseButton={false}` : la croix doit pouvoir etre desactivee pendant
     // l'ouverture du paiement, ce que la croix integree du primitif ne permet pas.
     <Dialog open={open} onOpenChange={(next) => { if (!next && !busy) handleClose(); }}>
-      <DialogContent showCloseButton={false} className="w-full sm:max-w-[600px] rounded-[var(--radius-lg)]">
+      <DialogContent showCloseButton={false} className="w-full sm:max-w-[600px]">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <span className="grid place-items-center w-[34px] h-[34px] rounded-[10px] bg-[var(--accent-soft)] text-[var(--accent)] shrink-0">
+            <span className="grid place-items-center w-[34px] h-[34px] rounded-lg bg-primary-soft text-primary shrink-0">
               <Wallet size={18} strokeWidth={2} />
             </span>
-            <DialogTitle className="flex-1 font-[family-name:var(--font-display)] text-[var(--text-lg)] font-[family-name:var(--fw-bold)] text-[var(--ink)]">
+            <DialogTitle className="flex-1 font-[family-name:var(--font-display)] text-base font-semibold tracking-tight text-foreground">
               {title ?? 'Crédits IA insuffisants'}
             </DialogTitle>
             <Button
@@ -81,7 +81,7 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
               onClick={handleClose}
               aria-label="Fermer"
               disabled={busy}
-              className="text-[var(--muted)]"
+              className="text-muted-foreground"
             >
               <X size={18} />
             </Button>
@@ -89,20 +89,20 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
         </DialogHeader>
 
         <div className="flex flex-col gap-3">
-        <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.55]">
+        <div className="text-sm text-muted-foreground leading-[1.55]">
           {message ?? "Cette génération dépasse votre solde de crédits IA. Rechargez pour continuer — le surplus consommé est facturé au réel."}
         </div>
 
         {balance != null && (
-          <div className="inline-flex items-center gap-1 self-start px-2 py-1 rounded-[var(--radius-md)] bg-[var(--field)] border border-[var(--line)] text-[var(--text-2xs)] text-[var(--body)]">
-            Solde actuel : <b style={{ fontVariantNumeric: 'tabular-nums' }}>{toCredits(balance)} crédits</b>
+          <div className="inline-flex items-center gap-1 self-start px-2 py-1 rounded-lg bg-field border border-border text-2xs text-foreground">
+            Solde actuel : <b className="tabular-nums">{toCredits(balance)} crédits</b>
           </div>
         )}
 
         {packs === null ? (
-          <div className="grid place-items-[center] py-[18px]"><Spinner className="size-[22px] text-[var(--accent)]" /></div>
+          <div className="grid place-items-center py-[18px]"><Spinner className="size-[22px] text-primary" /></div>
         ) : packs.length === 0 ? (
-          <div className="text-[var(--text-sm)] text-[var(--muted)]">Aucun pack disponible pour le moment.</div>
+          <div className="text-sm text-muted-foreground">Aucun pack disponible pour le moment.</div>
         ) : (
           // Le gabarit depend du nombre de packs (execution) : custom property,
           // la rupture sm (600px MUI) reste une variante statique.
@@ -113,11 +113,11 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
             {packs.map((p) => {
               const active = p.key === selected;
               return (
-                <button className={cn('relative text-start p-[9px] rounded-[var(--radius-md)] border-[1.5px] border-solid hover:border-[var(--accent)]', busy ? 'cursor-default' : 'cursor-pointer', active ? 'border-[var(--accent)]' : 'border-[var(--line)]', active ? 'bg-[var(--accent-soft)]' : 'bg-[var(--card,_#fff)]')} style={{ transition: 'border-color 150ms ease, background 150ms ease' }} key={p.key} type="button" onClick={() => setSelected(p.key)} disabled={busy}>
-                  {active && <div className="absolute top-[8px] end-[8px] grid place-items-[center] w-[18px] h-[18px] rounded-[50%] bg-[var(--accent)] text-[var(--on-accent)]"><Check size={12} strokeWidth={3} /></div>}
-                  <div className="text-[var(--text-lg)] font-bold text-[var(--ink)] tabular-nums">{toCredits(p.millicredits)}</div>
-                  <div className="text-[var(--text-2xs)] text-[var(--muted)] mb-1.5">crédits IA</div>
-                  <div className={cn('text-[var(--text-md)] font-bold tabular-nums', active ? 'text-[var(--accent)]' : 'text-[var(--body)]')}>{euro(p.priceCents)}</div>
+                <button className={cn('relative text-start p-[9px] rounded-lg border-[1.5px] border-solid hover:border-primary', busy ? 'cursor-default' : 'cursor-pointer', active ? 'border-primary' : 'border-border', active ? 'bg-primary-soft' : 'bg-card')} style={{ transition: 'border-color 150ms ease, background 150ms ease' }} key={p.key} type="button" onClick={() => setSelected(p.key)} disabled={busy}>
+                  {active && <div className="absolute top-[8px] end-[8px] grid place-items-center w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground"><Check size={12} strokeWidth={3} /></div>}
+                  <div className="text-base font-bold text-foreground tabular-nums">{toCredits(p.millicredits)}</div>
+                  <div className="text-2xs text-muted-foreground mb-1.5">crédits IA</div>
+                  <div className={cn('text-sm font-bold tabular-nums', active ? 'text-primary' : 'text-foreground')}>{euro(p.priceCents)}</div>
                 </button>
               );
             })}
@@ -125,13 +125,14 @@ export default function AiCreditsPaywall({ open, onClose, title, message, balanc
         )}
 
         {error && (
-          <div className="flex items-center gap-1.5 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
-            <AlertTriangle size={16} strokeWidth={2} style={{ flexShrink: 0 }} /> {error}
-          </div>
+          <Alert variant="destructive" className="items-center">
+            <AlertTriangle strokeWidth={2} />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
         <div className="flex justify-end gap-1.5 pt-0.5">
-          <Button variant="ghost" onClick={handleClose} disabled={busy} className="text-[var(--muted)]">Annuler</Button>
+          <Button variant="ghost" onClick={handleClose} disabled={busy} className="text-muted-foreground">Annuler</Button>
           <Button onClick={handleBuy} disabled={!selected || busy}>
             {busy ? <Spinner className="size-[15px]" /> : <Sparkles strokeWidth={2} />}
             {busy ? 'Ouverture du paiement…' : 'Recharger & continuer'}

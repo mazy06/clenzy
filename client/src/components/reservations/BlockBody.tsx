@@ -25,11 +25,11 @@ const BTN_BASE_CLS =
   'inline-flex h-[38px] cursor-pointer items-center gap-2 rounded-[11px] border border-solid border-transparent px-[17px] py-0 '
   + '[font-family:inherit] text-[12.5px] font-semibold '
   + '[transition:transform_.12s,background_.14s,border-color_.14s,color_.14s] enabled:active:scale-[.97] '
-  + 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]';
+  + 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 
 // Transposition en classes de SEC_SX (.rm-sec) — la constante reste exportee
 // dans reservationDialogStyles pour les consommateurs sx eventuels.
-const SEC_CLS = 'cn-text-body1 text-[10.5px] font-bold tracking-[0.08em] uppercase text-[var(--faint)]';
+const SEC_CLS = 'text-2xs font-bold tracking-[0.08em] uppercase text-faint';
 
 type BlockType = 'BLOCKED' | 'MAINTENANCE';
 
@@ -121,7 +121,7 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
         </Field>
 
         {nights > 0 && (
-          <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] tabular-nums">
+          <p className="text-[12.5px] text-muted-foreground tabular-nums">
             {nights} {t(nights > 1 ? 'reservations.dialog.blockNights' : 'reservations.dialog.blockNight')}
           </p>
         )}
@@ -141,15 +141,15 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
         <ConflictAlert form={form} />
 
         {error && (
-          <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--err)]">{error}</p>
+          <p className="text-[12.5px] font-semibold text-destructive-ink">{error}</p>
         )}
       </div>
 
-      <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-solid border-[var(--line)] bg-[var(--surface-2)] px-[22px] py-[14px]">
+      <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-solid border-border bg-card px-[22px] py-[14px]">
         <button
           type="button"
           onClick={onClose}
-          className={cn(BTN_BASE_CLS, 'bg-transparent text-[var(--muted)] hover:text-[var(--ink)]')}
+          className={cn(BTN_BASE_CLS, 'bg-transparent text-muted-foreground hover:text-foreground')}
         >
           {t('common.cancel')}
         </button>
@@ -159,8 +159,8 @@ const BlockBody: React.FC<Props> = ({ form, onClose }) => {
           disabled={saving || !canSubmit}
           className={cn(
             BTN_BASE_CLS,
-            'border-[var(--accent)] bg-transparent text-[var(--accent)]',
-            'enabled:hover:bg-[var(--accent-soft)] disabled:cursor-not-allowed disabled:opacity-45',
+            'border-primary bg-transparent text-primary',
+            'enabled:hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-45',
           )}
         >
           {saving ? <Spinner className="size-[15px]" /> : <Lock size={15} strokeWidth={2} />}

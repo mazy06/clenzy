@@ -21,14 +21,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ShieldCheck, ShieldAlert, Layers, Clock, Check, Info, TriangleAlert, CircleAlert } from 'lucide-react';
 import { rlsAuditApi } from '../services/api/rlsAuditApi';
 import type { RlsAuditFinding } from '../services/api/rlsAuditApi';
-import StatTile from './StatTile';
+import StatTile from './baitly/StatTile';
+import StatusChip from './StatusChip';
 import EmptyState from './EmptyState';
 
-/** Palette validee du projet (l'API StatTile attend un hex). */
-const VERT = '#4A9B8E';
-const AMBRE = '#D4A574';
-const ROUGE = '#C97A7A';
-const BLEU = '#7BA3C2';
+/** Teintes Baitly UI des icones de tuile (classes utilitaires). */
+const VERT = 'text-success';
+const AMBRE = 'text-warning';
+const ROUGE = 'text-destructive';
+const BLEU = 'text-info';
 
 const dateCourte = (iso: string) =>
   new Date(iso).toLocaleDateString('fr-FR', {
@@ -182,7 +183,7 @@ const RlsAudit: React.FC = () => {
             icon={ouverts.length === 0 ? <ShieldCheck /> : <ShieldAlert />}
             label="Chemins a traiter"
             value={isLoading ? '—' : ouverts.length + enAttente}
-            color={ouverts.length + enAttente === 0 ? VERT : ROUGE}
+            iconClassName={ouverts.length + enAttente === 0 ? VERT : ROUGE}
             loading={isLoading}
             hint={
               ouverts.length + enAttente === 0
@@ -198,7 +199,7 @@ const RlsAudit: React.FC = () => {
             icon={<Check />}
             label="Chemins traites"
             value={isLoading ? '—' : traites.length}
-            color={VERT}
+            iconClassName={VERT}
             loading={isLoading}
             hint="Conserves : une reapparition serait visible"
           />
@@ -208,7 +209,7 @@ const RlsAudit: React.FC = () => {
             icon={<Clock />}
             label="Plus ancien constat"
             value={plusAncien ? `${joursDepuis(plusAncien.firstSeenAt)} j` : '—'}
-            color={AMBRE}
+            iconClassName={AMBRE}
             loading={isLoading}
             hint="Anciennete du plus vieux chemin ouvert"
           />
@@ -218,7 +219,7 @@ const RlsAudit: React.FC = () => {
             icon={<Layers />}
             label="En attente d'ecriture"
             value={isLoading ? '—' : enAttente}
-            color={BLEU}
+            iconClassName={BLEU}
             loading={isLoading}
             hint="Vidage automatique toutes les 5 min"
           />
@@ -227,10 +228,10 @@ const RlsAudit: React.FC = () => {
 
       <Card>
         <CardContent>
-          <h6 className="cn-text-h6 text-[var(--ink)] mb-0.5">
+          <h6 className="text-sm font-semibold text-foreground mb-0.5">
             Chemins sans contexte tenant
           </h6>
-          <p className="cn-text-body2 text-[var(--ink-muted)] mb-3">
+          <p className="text-xs text-muted-foreground mb-3">
             Une fois la RLS active, ces requetes renverront zero ligne — sans lever
             d'erreur. Le nombre d'occurrences indique l'urgence : un chemin tres emprunte
             casserait plus d'ecrans qu'un chemin marginal.
@@ -281,7 +282,7 @@ const RlsAudit: React.FC = () => {
                             <span>{chemin.origin}</span>
                           )}
                           {reapparu && (
-                            <Badge variant="secondary" className="ms-1.5 bg-[var(--warn-soft)] text-[var(--warn)]">reapparu apres correction</Badge>
+                            <StatusChip tone="warn" label="reapparu apres correction" className="ms-1.5" />
                           )}
                         </TableCell>
                         <TableCell>
@@ -298,7 +299,7 @@ const RlsAudit: React.FC = () => {
                         </TableCell>
                         <TableCell className="text-end">
                           {chemin.resolvedAt && !reapparu ? (
-                            <Badge variant="secondary" className="bg-[var(--ok-soft)] text-[var(--ok)]">traite</Badge>
+                            <StatusChip tone="ok" label="traite" />
                           ) : (
                             <Button
                               variant="ghost"

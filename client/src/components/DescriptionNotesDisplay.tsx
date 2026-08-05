@@ -31,28 +31,31 @@ interface VariantConfig {
   accentColor: string;
 }
 
-// Tuiles sémantiques Signature : fond -soft + hairline color-mix + texte couleur
+// Tuiles sémantiques Baitly UI : fond `-soft` + filet color-mix + titre `-ink`.
+// Les couleurs sont choisies à l'exécution (via `style`), donc portées par les
+// variables `--bui-*` et non par des utilities Tailwind, qui ne peuvent pas
+// être générées pour une valeur calculée.
 const VARIANT_CONFIG: Record<ConsigneVariant, VariantConfig> = {
   cleaning: {
     title: 'Consignes de ménage',
-    icon: <span className="inline-flex text-[var(--accent)] mt-0 shrink-0"><Checklist size={16} strokeWidth={1.75} /></span>,
-    bgColor: 'var(--accent-soft)',
-    borderColor: 'color-mix(in srgb, var(--accent) 25%, transparent)',
-    accentColor: 'var(--accent)',
+    icon: <span className="inline-flex text-primary mt-0 shrink-0"><Checklist size={16} strokeWidth={1.75} /></span>,
+    bgColor: 'var(--bui-primary-soft)',
+    borderColor: 'color-mix(in srgb, var(--bui-primary) 25%, transparent)',
+    accentColor: 'var(--bui-primary)',
   },
   maintenance: {
     title: 'Consignes de travaux',
-    icon: <span className="inline-flex text-[var(--warn)] mt-0 shrink-0"><Build size={16} strokeWidth={1.75} /></span>,
-    bgColor: 'var(--warn-soft)',
-    borderColor: 'color-mix(in srgb, var(--warn) 25%, transparent)',
-    accentColor: 'var(--warn)',
+    icon: <span className="inline-flex text-warning mt-0 shrink-0"><Build size={16} strokeWidth={1.75} /></span>,
+    bgColor: 'var(--bui-warning-soft)',
+    borderColor: 'color-mix(in srgb, var(--bui-warning) 25%, transparent)',
+    accentColor: 'var(--bui-warning-ink)',
   },
   other: {
     title: 'Consignes diverses',
-    icon: <span className="inline-flex text-[var(--muted)] mt-0 shrink-0"><MoreHoriz size={16} strokeWidth={1.75} /></span>,
-    bgColor: 'var(--surface-2)',
-    borderColor: 'var(--line)',
-    accentColor: 'var(--muted)',
+    icon: <span className="inline-flex text-muted-foreground mt-0 shrink-0"><MoreHoriz size={16} strokeWidth={1.75} /></span>,
+    bgColor: 'var(--bui-card)',
+    borderColor: 'var(--bui-border)',
+    accentColor: 'var(--bui-muted-foreground)',
   },
 };
 
@@ -82,7 +85,7 @@ function parseNotes(notes: string): ChecklistItem[] {
 // ─── Shared box classes ─────────────────────────────────────────────────────
 
 const BOX_BASE_CLASS =
-  'flex-1 flex gap-1.5 py-[7.5px] px-[9px] rounded-[12px] border border-solid min-h-[80px]';
+  'flex-1 flex gap-1.5 py-[7.5px] px-[9px] rounded-xl border border-solid min-h-[80px]';
 
 const TITLE_SX = {
   fontSize: '10.5px',
@@ -92,18 +95,18 @@ const TITLE_SX = {
   mb: 0.5,
 } as const;
 
-/** Report en classes de `TITLE_SX`. */
-const TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.06em] mb-[3px]';
+/** Report en classes de `TITLE_SX`, sur l'échelle « overline » de Baitly UI. */
+const TITLE_CLASS = 'text-2xs font-semibold uppercase tracking-wide mb-[3px]';
 
 const TEXT_SX = {
   fontSize: '11.5px',
-  color: 'var(--muted)',
+  color: 'var(--bui-muted-foreground)',
   lineHeight: 1.4,
   whiteSpace: 'pre-line',
 } as const;
 
 /** Report en classes de `TEXT_SX`. */
-const TEXT_CLASS = 'text-[11.5px] text-[var(--muted)] leading-[1.4] whitespace-pre-line';
+const TEXT_CLASS = 'text-xs text-muted-foreground leading-[1.4] whitespace-pre-line';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -118,18 +121,18 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
     return (
       <div className="flex gap-2">
         {/* Description du logement */}
-        <div className={`${BOX_BASE_CLASS} bg-[var(--surface-2)] border-[var(--line)]`}>
-          <span className="inline-flex text-[var(--faint)] mt-0 shrink-0"><Description size={16} strokeWidth={1.75} /></span>
+        <div className={`${BOX_BASE_CLASS} bg-card border-border`}>
+          <span className="inline-flex text-faint mt-0 shrink-0"><Description size={16} strokeWidth={1.75} /></span>
           <div className="flex-1">
-            <p className={cn(TITLE_CLASS, 'cn-text-body1 text-[var(--faint)]')}>
+            <p className={cn(TITLE_CLASS, 'text-faint')}>
               Description du logement
             </p>
             {hasDescription ? (
-              <p className={cn(TEXT_CLASS, 'cn-text-body1')}>
+              <p className={TEXT_CLASS}>
                 {description}
               </p>
             ) : (
-              <p className={cn(TEXT_CLASS, 'cn-text-body1 italic text-[var(--faint)]')}>
+              <p className={cn(TEXT_CLASS, 'italic text-faint')}>
                 Aucune description renseignée
               </p>
             )}
@@ -143,7 +146,7 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
         >
           {config.icon}
           <div className="flex-1">
-            <p className={cn(TITLE_CLASS, 'cn-text-body1')} style={{ color: config.accentColor }}>
+            <p className={TITLE_CLASS} style={{ color: config.accentColor }}>
               {config.title}
             </p>
 
@@ -152,7 +155,7 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
                 {items.map((item, i) => {
                   if (item.isTitle) {
                     return (
-                      <p className={cn('cn-text-body1 text-[11.5px] font-bold text-[var(--body)] mb-[1.5px]', i > 0 ? 'mt-[4.5px]' : 'mt-0')} key={i}>
+                      <p className={cn('text-xs font-semibold text-foreground mb-[1.5px]', i > 0 ? 'mt-[4.5px]' : 'mt-0')} key={i}>
                         {item.text}
                       </p>
                     );
@@ -167,9 +170,9 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
                         disabled
                         aria-hidden
                         tabIndex={-1}
-                        className="mt-[3px] shrink-0 border-[var(--line-2)]"
+                        className="mt-[3px] shrink-0 border-field-line"
                       />
-                      <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] leading-[1.4] flex-1 pt-0.5">
+                      <p className="text-xs text-muted-foreground leading-[1.4] flex-1 pt-0.5">
                         {item.text}
                       </p>
                     </div>
@@ -177,7 +180,7 @@ const DescriptionNotesDisplay: React.FC<DescriptionNotesDisplayProps> = React.me
                 })}
               </div>
             ) : (
-              <p className={cn(TEXT_CLASS, 'cn-text-body1 italic text-[var(--faint)]')}>
+              <p className={cn(TEXT_CLASS, 'italic text-faint')}>
                 Aucune consigne renseignée
               </p>
             )}

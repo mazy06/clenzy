@@ -17,7 +17,6 @@ import './theme/baitly-ui.css'
 import { applyThemeAttributesAtBoot, applyThemeAttribute } from './theme/signature/accent'
 import { NotificationProvider } from './hooks/useNotification'
 import { ThemeModeProvider, useThemeMode } from './hooks/useThemeMode'
-import { AccentProvider } from './hooks/useAccent'
 import { CurrencyProvider } from './hooks/useCurrency'
 import { useGeoDetection } from './hooks/useGeoDetection'
 import { AuthProvider } from './contexts/AuthContext'
@@ -238,9 +237,7 @@ void i18nInitPromise
       <React.StrictMode>
         <QueryClientProvider client={queryClient}>
           <ThemeModeProvider>
-            <AccentProvider>
-              <AppWithTheme />
-            </AccentProvider>
+            <AppWithTheme />
           </ThemeModeProvider>
         </QueryClientProvider>
       </React.StrictMode>

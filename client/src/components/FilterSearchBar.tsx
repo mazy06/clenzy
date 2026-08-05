@@ -159,14 +159,14 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
           {activeFilters.map((af) => (
             <span
               key={af.key}
-              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--accent)]"
+              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-medium text-primary"
             >
               {af.label} : {af.displayValue}
               <button
                 type="button"
                 onClick={af.onClear}
                 aria-label={`Retirer le filtre ${af.label}`}
-                className="cursor-pointer rounded-full text-[var(--accent)] transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="cursor-pointer rounded-full text-primary transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <CloseIcon size={12} strokeWidth={2} />
               </button>

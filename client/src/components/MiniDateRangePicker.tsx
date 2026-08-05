@@ -147,36 +147,37 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
     <div>
       {/* Selecting indicator */}
       <div className="flex gap-1.5 mb-1.5">
-        {/* borderRadius: 1 = 8 px ; py 0.5 = 3 px, px 1 = 6 px (theme.spacing vaut 6). */}
+        {/* Le champ visé se dit par le FOND (bg-primary-soft) doublé d'une bordure
+            de 1 px — pas par un liseré épais, proscrit par la charte. */}
         <div
           onClick={() => setSelectingField('start')}
           className={cn(
-            'flex-1 py-[3px] px-[6px] rounded-[8px] border border-solid cursor-pointer transition-all duration-150',
+            'flex-1 py-[3px] px-[6px] rounded-md border border-solid cursor-pointer transition-colors duration-150',
             selectingField === 'start'
-              ? 'border-[var(--mui-primary)] bg-[color-mix(in_srgb,var(--mui-primary)_6%,transparent)]'
-              : 'border-[var(--line)] bg-transparent',
+              ? 'border-primary bg-primary-soft'
+              : 'border-border bg-transparent',
           )}
         >
-          <span className="cn-text-caption text-muted-foreground text-[0.5625rem] block">
+          <span className="block text-[0.5625rem] text-muted-foreground">
             {startLabel ?? defaultStartLabel}
           </span>
-          <p className="cn-text-body2 font-semibold text-[0.75rem]">
+          <p className="text-xs font-semibold tabular-nums">
             {startDate || '—'}
           </p>
         </div>
         <div
           onClick={() => setSelectingField('end')}
           className={cn(
-            'flex-1 py-[3px] px-[6px] rounded-[8px] border border-solid cursor-pointer transition-all duration-150',
+            'flex-1 py-[3px] px-[6px] rounded-md border border-solid cursor-pointer transition-colors duration-150',
             selectingField === 'end'
-              ? 'border-[var(--mui-primary)] bg-[color-mix(in_srgb,var(--mui-primary)_6%,transparent)]'
-              : 'border-[var(--line)] bg-transparent',
+              ? 'border-primary bg-primary-soft'
+              : 'border-border bg-transparent',
           )}
         >
-          <span className="cn-text-caption text-muted-foreground text-[0.5625rem] block">
+          <span className="block text-[0.5625rem] text-muted-foreground">
             {endLabel ?? defaultEndLabel}
           </span>
-          <p className="cn-text-body2 font-semibold text-[0.75rem]">
+          <p className="text-xs font-semibold tabular-nums">
             {endDate || '—'}
           </p>
         </div>
@@ -192,7 +193,7 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
         >
           <ChevronLeftIcon size={16} strokeWidth={1.75} />
         </Button>
-        <span className="cn-text-caption font-semibold min-w-[90px] text-center capitalize text-[0.6875rem]">
+        <span className="min-w-[90px] text-center text-[0.6875rem] font-semibold capitalize">
           {formatMiniMonth(viewMonth, isFrench)}
         </span>
         <Button
@@ -209,7 +210,7 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
       <div className="grid grid-cols-[repeat(7,_1fr)] gap-px">
         {dayHeaders.map((label, i) => (
           <div className="text-center py-0.5" key={`${label}-${i}`}>
-            <span className="cn-text-caption font-semibold text-muted-foreground text-[0.5625rem]">
+            <span className="text-[0.5625rem] font-semibold text-muted-foreground">
               {label}
             </span>
           </div>
@@ -230,22 +231,25 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
               onClick={() => cell.inMonth && handleCellClick(cell.dateStr)}
               className={cn(
                 'text-center py-[2.25px] transition-[background-color] duration-100',
-                isStartDate ? 'rounded-l-[4px] rounded-r-none' : isEndDate ? 'rounded-r-[4px] rounded-l-none' : 'rounded-none',
+                // Rayons LOGIQUES : le PMS est aussi rendu en RTL, où le début de
+                // plage doit s'arrondir à droite.
+                isStartDate ? 'rounded-s-[4px] rounded-e-none' : isEndDate ? 'rounded-e-[4px] rounded-s-none' : 'rounded-none',
                 cell.inMonth ? 'cursor-pointer opacity-100' : 'cursor-default opacity-25',
                 isHighlighted
-                  ? 'bg-[var(--mui-primary)]'
+                  ? 'bg-primary'
                   : inRange
-                    ? 'bg-[color-mix(in_srgb,var(--mui-primary)_10%,transparent)]'
+                    ? 'bg-primary-soft'
                     : 'bg-transparent',
-                cell.inMonth && !isHighlighted && 'hover:bg-[color-mix(in_srgb,var(--mui-primary)_8%,transparent)]',
+                cell.inMonth && !isHighlighted && 'hover:bg-muted',
               )}
             >
-              {/* primary.contrastText vaut #FFFFFF dans les deux themes MUI du
-                  projet : var(--on-accent) porte exactement la meme valeur. */}
+              {/* Bornes de la plage : aplat plein de la teinte de marque, donc
+                  encre `primary-foreground` (le couple garanti lisible dans les
+                  deux thèmes Baitly UI). */}
               <span
                 className={cn(
-                  'cn-text-caption text-[0.625rem] leading-[1.6]',
-                  isHighlighted ? 'font-bold text-[var(--on-accent)]' : 'font-normal text-[var(--ink)]',
+                  'text-[0.625rem] leading-[1.6] tabular-nums',
+                  isHighlighted ? 'font-bold text-primary-foreground' : 'font-normal text-foreground',
                 )}
               >
                 {cell.date.getDate()}
