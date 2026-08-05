@@ -128,10 +128,16 @@ export default function PageTabs<T extends string | number = number>({
         if (opt && !opt.disabled) onChange(valueOf(opt, index));
       }}
     >
+      {/* `h-auto min-h-8` est INDISPENSABLE avec `flex-wrap` : la classe
+          `cn-tabs-list` du kit fixe `h-8`, si bien qu'une rangee qui passe a
+          deux lignes debordait de sa boite et se faisait recouvrir par le
+          contenu suivant (constate sur Documents, 7 onglets : la ligne de
+          filtres se dessinait par-dessus « Historique / Variables / Conformite »).
+          `min-h-8` preserve la hauteur d'origine sur une seule ligne. */}
       <TabsList
         variant="line"
         aria-label={ariaLabel}
-        className={cn('max-w-full flex-wrap', compact ? 'gap-0.5' : 'gap-1')}
+        className={cn('h-auto min-h-8 max-w-full flex-wrap', compact ? 'gap-0.5' : 'gap-1')}
       >
         {visibleOptions.map((opt, index) => (
           <TabsTrigger
