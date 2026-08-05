@@ -135,20 +135,23 @@ const TeamDetails: React.FC = () => {
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center gap-3">
               {getInterventionTypeIcon(team.interventionType)}
-              <h5 className="cn-text-h5 font-semibold">
+              <h5 className="text-sm font-semibold tracking-tight">
                 {team.name}
               </h5>
             </div>
-            {(() => { const c = getInterventionTypeHex(team.interventionType); return (
-            <StatusChip tokens={{ color: c, bg: `${c}18` }} label={getInterventionTypeLabel(team.interventionType, t)} />
-            ); })()}
+            {/* Teinte du type d'intervention : valeur runtime hors palette
+                sémantique → la primitive en dérive elle-même le fond doux. */}
+            <StatusChip
+              color={getInterventionTypeHex(team.interventionType)}
+              label={getInterventionTypeLabel(team.interventionType, t)}
+            />
           </div>
 
-          <div className="mb-4 p-3 bg-[var(--field)] rounded-[12px] border border-[var(--field-line)]">
-            <h6 className="cn-text-subtitle2 mb-1.5 font-semibold text-[var(--accent)]">
+          <div className="mb-4 p-3 bg-field rounded-xl border border-field-line">
+            <h6 className="text-xs font-medium mb-1.5 text-primary">
               Description de l'équipe
             </h6>
-            <p className="cn-text-body1 text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {team.description || 'Aucune description disponible pour cette équipe.'}
             </p>
           </div>
@@ -157,28 +160,28 @@ const TeamDetails: React.FC = () => {
             <div className="col-span-6 min-[900px]:col-span-3">
               <div className="text-center">
                 <span className="inline-flex text-muted-foreground mb-0.5"><Group size={20} strokeWidth={1.75} /></span>
-                <p className="cn-text-body2 font-medium">{team.memberCount}</p>
-                <span className="cn-text-caption text-muted-foreground">Membres</span>
+                <p className="text-xs font-medium tabular-nums">{team.memberCount}</p>
+                <span className="text-xs text-muted-foreground">Membres</span>
               </div>
             </div>
             <div className="col-span-6 min-[900px]:col-span-3">
               <div className="text-center">
                 <span className="inline-flex text-muted-foreground mb-0.5"><Build size={20} strokeWidth={1.75} /></span>
-                <p className="cn-text-body2 font-medium">{getInterventionTypeLabel(team.interventionType, t)}</p>
-                <span className="cn-text-caption text-muted-foreground">Spécialité</span>
+                <p className="text-xs font-medium">{getInterventionTypeLabel(team.interventionType, t)}</p>
+                <span className="text-xs text-muted-foreground">Spécialité</span>
               </div>
             </div>
           </div>
 
-          <div className="p-3 bg-[var(--field)] rounded-[12px] border border-[var(--field-line)]">
-            <h6 className="cn-text-subtitle2 mb-1.5 font-semibold text-[var(--accent)]">
+          <div className="p-3 bg-field rounded-xl border border-field-line">
+            <h6 className="text-xs font-medium mb-1.5 text-primary">
               Informations de l'équipe
             </h6>
             <div className="grid grid-cols-12 gap-3">
               <div className="col-span-12 min-[900px]:col-span-6">
                 <div className="flex items-center gap-1.5">
-                  <span className="cn-text-caption text-muted-foreground font-medium">Créée le:</span>
-                  <span className="cn-text-caption text-foreground">
+                  <span className="text-xs text-muted-foreground font-medium">Créée le:</span>
+                  <span className="text-xs text-foreground tabular-nums">
                     {team.createdAt ? new Date(team.createdAt).toLocaleDateString('fr-FR') : 'N/A'}
                   </span>
                 </div>
@@ -186,8 +189,8 @@ const TeamDetails: React.FC = () => {
               {team.updatedAt && (
                 <div className="col-span-12 min-[900px]:col-span-6">
                   <div className="flex items-center gap-1.5">
-                    <span className="cn-text-caption text-muted-foreground font-medium">Modifiée le:</span>
-                    <span className="cn-text-caption text-foreground">
+                    <span className="text-xs text-muted-foreground font-medium">Modifiée le:</span>
+                    <span className="text-xs text-foreground tabular-nums">
                       {new Date(team.updatedAt).toLocaleDateString('fr-FR')}
                     </span>
                   </div>

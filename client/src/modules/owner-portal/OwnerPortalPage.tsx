@@ -7,7 +7,7 @@ import EmptyState from '../../components/EmptyState';
 import { Badge, Button } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
-import { Spinner } from '../../components/ui';
+import { Card, Skeleton, Spinner } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { Field, FieldLabel, FieldDescription, Input } from '../../components/ui';
 import {
@@ -49,9 +49,9 @@ import PageTabs from '../../components/PageTabs';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-// Surface plate hairline r12 : l'ancien Paper `CARD_SX` (bordure `divider`, pas
-// d'ombre, borderRadius 1.5 = 12px) transcrit en classes.
-const PANEL_CLASS = 'rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]';
+// Surface plate hairline : la carte Baitly UI sans son gabarit vertical, pour
+// les panneaux de filtres et les tableaux qui portent leur propre densite.
+const PANEL_CLASS = 'gap-0 py-0';
 
 const fmtCurrency = (n: number, currency = 'EUR') => <Money value={n} from={currency} />;
 
@@ -128,15 +128,15 @@ const OwnerPortalPage: React.FC = () => {
       />
 
       {/* ── Owner selector ── */}
-      <div className={cn(PANEL_CLASS, 'p-3 flex gap-3 items-center')}>
+      <Card className={cn(PANEL_CLASS, 'p-3 flex-row gap-3 items-center')}>
         <Field className="w-[240px] shrink-0">
-          <FieldLabel htmlFor="owner-portal-owner" className="text-[0.8125rem]">
+          <FieldLabel htmlFor="owner-portal-owner" className="text-xs">
             {t('ownerPortal.selectOwner', 'Selectionner un proprietaire')}
           </FieldLabel>
           <NativeSelect
             id="owner-portal-owner"
             size="sm"
-            className="w-full text-[0.8125rem]"
+            className="w-full text-xs"
             value={selectedOwnerId}
             onChange={(e) => setSelectedOwnerId(e.target.value === '' ? '' : Number(e.target.value))}
           >
@@ -148,7 +148,7 @@ const OwnerPortalPage: React.FC = () => {
             ))}
           </NativeSelect>
         </Field>
-      </div>
+      </Card>
 
       {/* Rangee d'onglets nue, comme partout : le panneau qui l'entourait la
           coupait du reste de la page. */}
@@ -288,7 +288,7 @@ const BrandingButton: React.FC = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3">
-          <p className="cn-text-body2 text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {t('ownerPortal.branding.subtitle',
               'Logo et couleur affichés sur les liens de suivi partagés à vos propriétaires. Aucune mention de la plateforme.')}
           </p>
@@ -346,17 +346,21 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
   const { t } = useTranslation();
   const { data: dashboard, isLoading, isError } = useOwnerDashboard(ownerId);
 
+  // La forme du tableau de bord est connue (cinq tuiles) : on la dessine en
+  // squelette plutot qu'un spinner nu, pour eviter le saut de mise en page.
   if (isLoading) {
     return (
-      <div className="flex justify-center py-6">
-        <Spinner className="size-8" />
+      <div className="grid grid-cols-2 gap-3 min-[900px]:grid-cols-5" aria-busy="true">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-[86px] w-full rounded-xl" />
+        ))}
       </div>
     );
   }
 
   if (isError || !dashboard) {
     return (
-      <Alert variant="destructive" className="text-[0.8125rem]">
+      <Alert variant="destructive" className="text-xs">
         <TriangleAlert />
         <AlertDescription>{t('ownerPortal.dashboardError', 'Erreur lors du chargement du dashboard')}</AlertDescription>
       </Alert>
@@ -402,8 +406,8 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
 
       {/* ── Revenu net par mois — l'aire de la projection ── */}
       {revenueSeries.length > 0 && (
-        <div className="rounded-xl border border-solid border-border bg-card p-4 mb-3">
-          <h3 className="m-0 mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        <Card className={cn(PANEL_CLASS, 'p-4 mb-3')}>
+          <h3 className="m-0 mb-2 text-2xs font-semibold tracking-wide text-muted-foreground uppercase">
             {t('ownerPortal.revenueByMonth', 'Revenu par mois')}
           </h3>
           <ChartContainer config={OWNER_REVENUE_CONFIG} className="h-44 w-full">
@@ -419,12 +423,12 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
               <Area dataKey="net" type="natural" fill="var(--color-net)" fillOpacity={0.4} stroke="var(--color-net)" />
             </AreaChart>
           </ChartContainer>
-        </div>
+        </Card>
       )}
 
       {/* ── Properties Table ── */}
       {dashboard.properties && dashboard.properties.length > 0 && (
-        <div className="overflow-x-auto rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]">
+        <Card className={cn(PANEL_CLASS, 'overflow-x-auto')}>
           <Table>
             <TableHeader>
               <TableRow>
@@ -451,12 +455,12 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                       label={fmtPercent(prop.occupancyRate)}
                     />
                   </TableCell>
-                  <TableCell className="text-center">{prop.reservationCount}</TableCell>
+                  <TableCell className="text-center tabular-nums">{prop.reservationCount}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </div>
+        </Card>
       )}
     </>
   );
@@ -489,38 +493,38 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
   return (
     <>
       {/* ── Filters ── */}
-      <div className={cn(PANEL_CLASS, 'p-3 mb-[9px] flex gap-3 items-center flex-wrap')}>
+      <Card className={cn(PANEL_CLASS, 'p-3 mb-[9px] flex-row gap-3 items-end flex-wrap')}>
         <Field className="w-[200px]">
-          <FieldLabel htmlFor="owner-statement-name" className="text-[0.8125rem]">
+          <FieldLabel htmlFor="owner-statement-name" className="text-xs">
             {t('ownerPortal.form.ownerName', 'Nom proprietaire')}
           </FieldLabel>
           <Input
             id="owner-statement-name"
-            className="text-[0.8125rem]"
+            className="text-xs"
             value={ownerName}
             onChange={(e) => { setOwnerName(e.target.value); setShouldFetch(false); }}
           />
         </Field>
         <Field className="w-[170px]">
-          <FieldLabel htmlFor="owner-statement-from" className="text-[0.8125rem]">
+          <FieldLabel htmlFor="owner-statement-from" className="text-xs">
             {t('ownerPortal.form.from', 'Du')}
           </FieldLabel>
           <Input
             id="owner-statement-from"
             type="date"
-            className="text-[0.8125rem]"
+            className="text-xs tabular-nums"
             value={from}
             onChange={(e) => { setFrom(e.target.value); setShouldFetch(false); }}
           />
         </Field>
         <Field className="w-[170px]">
-          <FieldLabel htmlFor="owner-statement-to" className="text-[0.8125rem]">
+          <FieldLabel htmlFor="owner-statement-to" className="text-xs">
             {t('ownerPortal.form.to', 'Au')}
           </FieldLabel>
           <Input
             id="owner-statement-to"
             type="date"
-            className="text-[0.8125rem]"
+            className="text-xs tabular-nums"
             value={to}
             onChange={(e) => { setTo(e.target.value); setShouldFetch(false); }}
           />
@@ -534,11 +538,11 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
           {isLoading ? <Spinner className="size-3.5" /> : <StatementIcon />}
           {t('ownerPortal.generate', 'Generer le releve')}
         </Button>
-      </div>
+      </Card>
 
       {/* ── Statement ── */}
       {isError && (
-        <Alert variant="destructive" className="text-[0.8125rem] mb-2">
+        <Alert variant="destructive" className="text-xs mb-2">
           <TriangleAlert />
           <AlertDescription>{t('ownerPortal.statementError', 'Erreur lors de la generation du releve')}</AlertDescription>
         </Alert>
@@ -549,7 +553,7 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
           {/* ── Totaux du releve — les tuiles de la projection, teintes
                 semantiques sur l'icone seule au lieu des hex en dur. ── */}
           <div className="mb-[9px]">
-            <p className="cn-text-body1 text-[0.875rem] font-bold mb-1.5">
+            <p className="mb-1.5 text-sm font-semibold tracking-tight tabular-nums">
               {statement.ownerName} — {fmtDate(statement.periodStart)} → {fmtDate(statement.periodEnd)}
             </p>
             <div className="grid grid-cols-2 gap-3 min-[900px]:grid-cols-4">
@@ -590,7 +594,7 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
 
           {/* ── Statement lines ── */}
           {statement.lines && statement.lines.length > 0 && (
-            <div className="overflow-x-auto rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]">
+            <Card className={cn(PANEL_CLASS, 'overflow-x-auto')}>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -613,7 +617,7 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                       <TableCell>{line.description}</TableCell>
                       <TableCell>{line.propertyName}</TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className="text-[0.625rem] h-[20px] font-semibold">{line.type}</Badge>
+                        <Badge variant="secondary" className="h-5 text-2xs font-semibold">{line.type}</Badge>
                       </TableCell>
                       <TableCell className="text-end tabular-nums">{fmtCurrency(line.amount)}</TableCell>
                       {statement.totalOtaFees > 0 && (
@@ -625,7 +629,7 @@ const StatementTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
                   ))}
                 </TableBody>
               </Table>
-            </div>
+            </Card>
           )}
         </>
       )}

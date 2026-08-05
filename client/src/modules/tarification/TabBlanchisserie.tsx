@@ -80,12 +80,12 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
   return (
     <div className="pt-3">
       <div className="flex items-center gap-1.5 mb-1.5">
-        <LocalLaundryService size={20} strokeWidth={1.75} color='var(--accent)' />
-        <h6 className="cn-text-subtitle1 font-semibold">
+        <span className="inline-flex text-primary"><LocalLaundryService size={20} strokeWidth={1.75} /></span>
+        <h6 className="text-sm font-semibold">
           {t('tarification.blanchisserie.title')}
         </h6>
       </div>
-      <p className="cn-text-body2 text-muted-foreground mb-3">
+      <p className="text-xs text-muted-foreground mb-3">
         {t('tarification.blanchisserie.subtitle')}
       </p>
 
@@ -145,7 +145,7 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySy
                       size="icon-sm"
                       onClick={() => removeItem(index)}
                       aria-label={t('tarification.delete', 'Supprimer')}
-                      className="text-[var(--err)] hover:bg-[var(--err-soft)]"
+                      className="text-destructive hover:bg-destructive-soft"
                     >
                       <Delete size={16} strokeWidth={1.75} />
                     </Button>

@@ -144,7 +144,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
     <Card>
       <CardContent className="p-[18px]">
         <div className="flex justify-between items-center mb-3">
-          <h6 className="cn-text-h6 text-[var(--ink)] font-semibold">
+          <h6 className="text-sm font-semibold text-foreground">
             {t('teams.members.title')} ({members.length})
           </h6>
           <ToggleGroup
@@ -157,11 +157,11 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
           >
             <ToggleGroupItem value="name">
               <SortByAlpha size={16} strokeWidth={1.75} />
-              <span className="cn-text-caption">{t('teams.members.sortByName')}</span>
+              <span className="text-2xs">{t('teams.members.sortByName')}</span>
             </ToggleGroupItem>
             <ToggleGroupItem value="role">
               <Badge size={16} strokeWidth={1.75} />
-              <span className="cn-text-caption">{t('teams.members.sortByRole')}</span>
+              <span className="text-2xs">{t('teams.members.sortByRole')}</span>
             </ToggleGroupItem>
           </ToggleGroup>
         </div>
@@ -178,27 +178,33 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
                 <React.Fragment key={memberId}>
                   <div className="flex items-center gap-3 px-1.5 py-[9px]">
                     <Avatar className="size-9 rounded-[10px] shrink-0">
-                      <AvatarFallback className="rounded-[10px] bg-[var(--accent)] text-[var(--on-accent)] font-[family-name:var(--font-display)] font-semibold">
+                      <AvatarFallback className="rounded-[10px] bg-primary text-primary-foreground font-[family-name:var(--font-display)] font-semibold">
                         {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="cn-text-body1 font-medium">
+                        <p className="text-sm font-medium">
                           {member.firstName} {member.lastName}
                         </p>
-                        {(() => { const c = getRoleHex(member.roleInTeam || member.role); return (
-                          <StatusChip tokens={{ color: c, bg: `${c}18` }} label={getRoleLabel(member.roleInTeam || member.role)} className="h-[24px] text-[0.7rem]" />
-                        ); })()}
-                        {(() => { const c = isAvailable ? '#4A9B8E' : '#D4A574'; return (
-                          <StatusChip tokens={{ color: c, bg: `${c}18` }} label={isAvailable ? t('teams.workload.available') : t('teams.workload.busy')} className="h-[24px] text-[0.7rem]" />
-                        ); })()}
+                        {/* Teinte de rôle : valeur runtime hors palette sémantique,
+                            la primitive en dérive le fond doux elle-même. */}
+                        <StatusChip
+                          color={getRoleHex(member.roleInTeam || member.role)}
+                          label={getRoleLabel(member.roleInTeam || member.role)}
+                          className="h-[24px] text-[0.7rem]"
+                        />
+                        <StatusChip
+                          tone={isAvailable ? 'ok' : 'warn'}
+                          label={isAvailable ? t('teams.workload.available') : t('teams.workload.busy')}
+                          className="h-[24px] text-[0.7rem]"
+                        />
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <p className="cn-text-body2 text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           {member.email || member.userEmail}
                         </p>
-                        <span className="cn-text-caption text-muted-foreground">
+                        <span className="text-2xs text-muted-foreground tabular-nums">
                           - {interventionCount} {t('teams.members.interventionCount')}
                         </span>
                       </div>
@@ -208,7 +214,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
                         variant="ghost"
                         size="icon-sm"
                         aria-label={t('teams.members.removeMember', 'Retirer le membre')}
-                        className="shrink-0 text-[var(--err)] hover:text-[var(--err)]"
+                        className="shrink-0 text-destructive hover:text-destructive"
                         onClick={() => onRemoveMember(memberId)}
                       >
                         <Delete size={18} strokeWidth={1.75} />
@@ -222,7 +228,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
           </div>
         ) : (
           <div className="text-center py-6">
-            <p className="cn-text-body1 text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {t('teams.members.noMembers')}
             </p>
           </div>

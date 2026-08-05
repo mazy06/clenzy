@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Spinner, Button } from '../../components/ui';
+import { Spinner, Button, Card } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import { ChevronLeft as ChevronLeftIcon } from '../../icons';
 import { ChevronRight as ChevronRightIcon } from '../../icons';
@@ -15,8 +15,8 @@ import MinNightsEditDialog from './MinNightsEditDialog';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
-/** Surface de carte partagée : hairline, rayon 14, fond --card, padding 9px. */
-const CARD_CLASS = 'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] p-[9px]';
+/** Densité de carte partagée : la surface vient de `Card`, le rythme d'ici. */
+const PANEL_CLASS = 'gap-0 py-0 p-[9px]';
 
 const SOURCE_COLORS: Record<string, string> = {
   OVERRIDE: '#D98E8E',
@@ -242,19 +242,19 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
   return (
     <div className="flex flex-col gap-2 flex-1">
       {/* ── Month navigation ── */}
-      <div className={CARD_CLASS}>
+      <Card className={PANEL_CLASS}>
         <div className="flex items-center justify-center gap-0.5">
           <Button variant="ghost" size="icon-sm" onClick={onPrevMonth} aria-label={t('common.previous', 'Précédent')}>
             <ChevronLeftIcon size={20} strokeWidth={1.75} />
           </Button>
-          <p className="cn-text-body2 font-semibold min-w-[140px] text-center capitalize text-[0.8125rem]">
+          <p className="text-sm font-semibold min-w-[140px] text-center capitalize">
             {formatMonth(currentMonth, isFrench)}
           </p>
           <Button variant="ghost" size="icon-sm" onClick={onNextMonth} aria-label={t('common.next', 'Suivant')}>
             <ChevronRightIcon size={20} strokeWidth={1.75} />
           </Button>
         </div>
-      </div>
+      </Card>
 
       {/* ── No property selected — état vide standardisé ── */}
       {!selectedPropertyId && (
@@ -268,9 +268,9 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
 
       {/* ── Calendar grid ── */}
       {selectedPropertyId && (
-        <div className={cn(CARD_CLASS, 'relative flex flex-1 flex-col')}>
+        <Card className={cn(PANEL_CLASS, 'relative flex flex-1 flex-col')}>
           {calendarPricingLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-[color-mix(in_srgb,_var(--card)_70%,_transparent)] z-[2] rounded-[14px]">
+            <div className="absolute inset-0 flex items-center justify-center bg-card/70 z-[2] rounded-xl">
               <Spinner className="size-7" />
             </div>
           )}
@@ -279,7 +279,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
           <div className="grid grid-cols-[repeat(7,_1fr)] gap-0.5 mb-0.5">
             {dayHeaders.map((label) => (
               <div className="text-center py-0.5" key={label}>
-                <span className="cn-text-caption text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em]">
+                <span className="text-2xs font-semibold uppercase tracking-wide text-faint">
                   {label}
                 </span>
               </div>
@@ -306,34 +306,34 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
                     }
                   }}
                   className={cn(
-                    'min-h-[64px] p-[3px] rounded-[8px] select-none border border-solid flex flex-col',
+                    'min-h-[64px] p-[3px] rounded-md select-none border border-solid flex flex-col',
+                    'transition-[border-color,background-color] duration-150 ease-out-quart motion-reduce:transition-none',
                     cell.inMonth ? 'cursor-pointer opacity-100' : 'cursor-default opacity-30',
                     isSelected
-                      ? 'bg-[var(--accent-soft)] border-[var(--accent)] shadow-[inset_0_0_0_1px_var(--accent)]'
-                      : 'bg-transparent border-[var(--line)] shadow-none',
-                    cell.inMonth && !isSelected && 'hover:border-[var(--line-2)] hover:bg-[var(--hover)]',
+                      ? 'bg-primary-soft border-primary shadow-[inset_0_0_0_1px_var(--color-primary)]'
+                      : 'bg-transparent border-border shadow-none',
+                    cell.inMonth && !isSelected && 'hover:border-primary/40 hover:bg-muted',
                   )}
-                  style={{ transition: 'border-color 0.15s, background-color 0.15s' }}
                 >
                   {/* Pastille « aujourd'hui » — pattern planning (carré accent r8) */}
                   {isToday ? (
-                    <span className="inline-flex items-center justify-center w-[20px] h-[20px] rounded-[7px] bg-[var(--accent)] text-[var(--on-accent)] font-[family-name:var(--font-display)] font-semibold text-[0.6875rem] leading-[1] self-start">
+                    <span className="inline-flex items-center justify-center w-[20px] h-[20px] rounded-[7px] bg-primary text-primary-foreground font-[family-name:var(--font-display)] font-semibold text-2xs leading-none self-start tabular-nums">
                       {cell.date.getDate()}
                     </span>
                   ) : (
-                    <span className="cn-text-caption font-semibold leading-[1] text-[0.6875rem] tabular-nums">
+                    <span className="text-2xs font-semibold leading-none tabular-nums">
                       {cell.date.getDate()}
                     </span>
                   )}
 
                   {pricing && pricing.nightlyPrice !== null && (
-                    <p className="cn-text-body2 font-semibold flex-1 flex items-center justify-center tabular-nums text-[0.8125rem]" style={{ color: sourceColor, fontFamily: 'var(--font-display)' }}>
+                    <p className="text-sm font-semibold flex-1 flex items-center justify-center tabular-nums" style={{ color: sourceColor, fontFamily: 'var(--font-display)' }}>
                       {pricing.nightlyPrice}
                     </p>
                   )}
 
                   {pricing && (
-                    <div className="h-[3px] rounded-[8px] mt-auto" style={{ backgroundColor: sourceColor }} />
+                    <div className="h-[3px] rounded-md mt-auto" style={{ backgroundColor: sourceColor }} />
                   )}
                 </div>
               );
@@ -341,31 +341,31 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
           </div>
 
           {/* Legend */}
-          <div className="flex flex-wrap items-center gap-2 mt-2 pt-1.5 border-t border-[var(--line)]">
+          <div className="flex flex-wrap items-center gap-2 mt-2 pt-1.5 border-t border-border">
             {Object.entries(SOURCE_COLORS).map(([key, color]) => (
               <div className="flex items-center gap-0.5" key={key}>
-                <div className="w-[10px] h-[10px] rounded-[50%]" style={{ backgroundColor: color }} />
-                <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
+                <div className="w-[10px] h-[10px] rounded-full" style={{ backgroundColor: color }} />
+                <span className="text-2xs text-muted-foreground">
                   {t(`dynamicPricing.priceSource.${key}`)}
                 </span>
               </div>
             ))}
-            <span className="cn-text-caption text-muted-foreground text-[0.625rem] ms-auto italic">
+            <span className="text-2xs text-muted-foreground ms-auto italic">
               {t('dynamicPricing.calendar.rangeHint', 'Cliquez-glissez pour sélectionner une plage')}
             </span>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* ── Selection action bar ── */}
       {selectedDates.length > 0 && (
-        <div
+        <Card
           className={cn(
-            CARD_CLASS,
-            'flex items-center justify-between bg-[var(--accent-soft)] border-[color-mix(in_srgb,_var(--accent)_30%,_transparent)]',
+            PANEL_CLASS,
+            'flex-row items-center justify-between bg-primary-soft ring-primary/30',
           )}
         >
-          <p className="cn-text-body2 text-[0.8125rem] tabular-nums">
+          <p className="text-sm tabular-nums">
             {selectedDates.length} {t('common.date')}(s)
           </p>
           <div className="flex gap-1.5">
@@ -391,7 +391,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
               {t('dynamicPricing.calendar.editPrice')}
             </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Price edit dialog */}

@@ -182,11 +182,13 @@ export default function OrganizationSection({ organizationId }: Props) {
                       return (
                         <ComboboxItem key={option.id} value={option}>
                           <div className="flex items-center gap-1.5 w-full">
-                            <p className="cn-text-body1 font-medium flex-1 text-[0.85rem]">
+                            <p className="text-sm font-medium flex-1">
                               {option.name}
                             </p>
-                            <StatusChip tokens={{ color: c, bg: `${c}18` }} label={getOrgTypeLabel(option.type)} className="h-[20px] text-[0.65rem]" />
-                            <p className="cn-text-body1 text-[0.7rem] text-muted-foreground tabular-nums">
+                            {/* Teinte du type d'organisation : valeur runtime hors
+                                palette sémantique → fond doux dérivé par la primitive. */}
+                            <StatusChip color={c} label={getOrgTypeLabel(option.type)} className="h-[20px] text-2xs" />
+                            <p className="text-2xs text-muted-foreground tabular-nums">
                               {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
                             </p>
                           </div>
@@ -208,7 +210,7 @@ export default function OrganizationSection({ organizationId }: Props) {
 
             {effectiveOrgId ? (
               <>
-                <p className="cn-text-body1 text-[10.5px] font-bold tracking-[0.08em] uppercase text-[var(--faint)] mb-1.5">
+                <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
                   Membres de l'organisation
                 </p>
 
@@ -239,7 +241,7 @@ export default function OrganizationSection({ organizationId }: Props) {
               />
             ) : (
               <SettingsSection title="Facturation" icon={Business} accent="accent">
-                <p className="cn-text-body1 text-[0.78rem] text-muted-foreground text-center py-3">
+                <p className="text-xs text-muted-foreground text-center py-3">
                   Sélectionnez une organisation pour voir la facturation.
                 </p>
               </SettingsSection>

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import StatusChip from '../../components/StatusChip';
 import { Badge, Button } from '../../components/ui';
-import { Spinner } from '../../components/ui';
+import { Skeleton } from '../../components/ui';
 import { Card } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 import { createPortal } from 'react-dom';
@@ -168,15 +168,20 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
         <CloudUpload />
         Importer CSV
       </Button>
-      <Badge variant="secondary" className="font-semibold text-[0.75rem]">{`${totalProspects} prospect${totalProspects > 1 ? 's' : ''}`}</Badge>
+      <Badge variant="secondary" className="font-semibold text-xs tabular-nums">{`${totalProspects} prospect${totalProspects > 1 ? 's' : ''}`}</Badge>
     </div>
   );
 
   // ── Loading state ──
+  // La forme est connue (une carte repliable par categorie) : on la dessine en
+  // squelette plutot qu'un spinner nu, pour eviter le saut de mise en page.
   if (isLoading) {
     return (
-      <div className="flex justify-center py-12">
-        <Spinner className="size-10" />
+      <div className="flex flex-col gap-3" aria-busy="true">
+        <Skeleton className="h-[68px] w-full rounded-xl" />
+        {CATEGORY_ORDER.map((key) => (
+          <Skeleton key={key} className="h-[46px] w-full rounded-xl" />
+        ))}
       </div>
     );
   }
@@ -204,12 +209,12 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
       <Card className="gap-0 py-0 p-3 mb-3">
         <div className="flex gap-3 flex-wrap items-center">
           <Field className="w-auto min-w-[160px]">
-            <FieldLabel htmlFor="prospection-filter-category" className="items-center text-[0.8125rem]">
+            <FieldLabel htmlFor="prospection-filter-category" className="items-center text-xs">
               <span className="inline-flex me-[3px]"><FilterList size={14} strokeWidth={1.75} /></span>
               Categorie
             </FieldLabel>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger id="prospection-filter-category" size="sm" className="w-full text-[0.8125rem]">
+              <SelectTrigger id="prospection-filter-category" size="sm" className="w-full text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -224,12 +229,12 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
           </Field>
 
           <Field className="w-auto min-w-[140px]">
-            <FieldLabel htmlFor="prospection-filter-status" className="text-[0.8125rem]">Statut</FieldLabel>
+            <FieldLabel htmlFor="prospection-filter-status" className="text-xs">Statut</FieldLabel>
             <Select
               value={statusFilter}
               onValueChange={(v) => setStatusFilter(v as ProspectStatus | 'all')}
             >
-              <SelectTrigger id="prospection-filter-status" size="sm" className="w-full text-[0.8125rem]">
+              <SelectTrigger id="prospection-filter-status" size="sm" className="w-full text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -239,7 +244,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                     <span className="inline-flex items-center gap-1.5">
                       {/* La couleur vient de la donnee : style inline, une classe
                           Tailwind ne peut pas naitre d'une variable. */}
-                      <span className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: cfg.color }} />
+                      <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: cfg.color }} />
                       {cfg.label}
                     </span>
                   </SelectItem>
@@ -291,7 +296,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                   <div className="flex items-center" style={{ color: cat.color }}>
                     {cat.icon}
                   </div>
-                  <p className="cn-text-body1 font-bold text-[0.875rem] flex-1">
+                  <p className="flex-1 text-sm font-semibold tracking-tight">
                     {cat.label}
                   </p>
                   <StatusChip tokens={{ color: cat.color, bg: `${cat.color}18` }} label={`${cat.prospects.length}`} className="tabular-nums" />
@@ -316,14 +321,14 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="text-[0.75rem]">Nom</TableHead>
-                          <TableHead className="text-[0.75rem]">Ville</TableHead>
-                          <TableHead className="text-[0.75rem]">Specialite</TableHead>
-                          <TableHead className="text-[0.75rem]">Taille</TableHead>
-                          <TableHead className="text-[0.75rem]">CA</TableHead>
-                          <TableHead className="text-[0.75rem]">Liens</TableHead>
-                          <TableHead className="text-[0.75rem]">Statut</TableHead>
-                          <TableHead className="text-[0.75rem]">Notes</TableHead>
+                          <TableHead className="text-xs">Nom</TableHead>
+                          <TableHead className="text-xs">Ville</TableHead>
+                          <TableHead className="text-xs">Specialite</TableHead>
+                          <TableHead className="text-xs">Taille</TableHead>
+                          <TableHead className="text-xs">CA</TableHead>
+                          <TableHead className="text-xs">Liens</TableHead>
+                          <TableHead className="text-xs">Statut</TableHead>
+                          <TableHead className="text-xs">Notes</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -333,7 +338,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                           return (
                             <TableRow key={p.id}>
                               <TableCell>
-                                <p className="cn-text-body1 text-[0.8125rem] font-semibold">
+                                <p className="text-sm font-semibold text-foreground">
                                   {p.name}
                                 </p>
                                 <div className="flex flex-col gap-0.5 mt-0.5">
@@ -341,8 +346,8 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <div className="flex items-center gap-0.5 w-fit">
-                                          <span className="inline-flex text-muted-foreground opacity-60"><Email size={11} strokeWidth={1.75} /></span>
-                                          <p className="cn-text-body1 text-[0.625rem] text-muted-foreground">
+                                          <span className="inline-flex text-faint"><Email size={11} strokeWidth={1.75} /></span>
+                                          <p className="text-2xs text-muted-foreground">
                                             {p.email}
                                           </p>
                                         </div>
@@ -352,8 +357,8 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                                   )}
                                   {p.phone && (
                                     <div className="flex items-center gap-0.5">
-                                      <span className="inline-flex text-muted-foreground opacity-60"><Phone size={11} strokeWidth={1.75} /></span>
-                                      <p className="cn-text-body1 text-[0.625rem] text-muted-foreground">
+                                      <span className="inline-flex text-faint"><Phone size={11} strokeWidth={1.75} /></span>
+                                      <p className="text-2xs text-muted-foreground tabular-nums">
                                         {p.phone}
                                       </p>
                                     </div>
@@ -363,19 +368,19 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                               <TableCell>
                                 <div className="flex items-center gap-0.5">
                                   <span className="inline-flex text-muted-foreground"><LocationOn size={12} strokeWidth={1.75} /></span>
-                                  <p className="cn-text-body1 text-[0.75rem]">{p.city || '\u2014'}</p>
+                                  <p className="text-xs">{p.city || '\u2014'}</p>
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <p className="cn-text-body1 text-[0.75rem]">{p.specialty || '\u2014'}</p>
+                                <p className="text-xs">{p.specialty || '\u2014'}</p>
                               </TableCell>
                               <TableCell>
-                                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
+                                <p className="text-xs text-muted-foreground tabular-nums">
                                   {p.employees || '\u2014'}
                                 </p>
                               </TableCell>
                               <TableCell>
-                                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground whitespace-nowrap">
+                                <p className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
                                   {p.revenue ? `${p.revenue} \u20AC` : '\u2014'}
                                 </p>
                               </TableCell>
@@ -438,16 +443,16 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                                   <SelectTrigger
                                     size="sm"
                                     aria-label={`Statut de ${p.name}`}
-                                    className="h-[24px] w-auto gap-1 rounded-full border-none px-1.5 py-0.5 text-[0.625rem] font-semibold shadow-none"
+                                    className="h-6 w-auto gap-1 rounded-full border-none px-1.5 py-0.5 text-2xs font-semibold shadow-none"
                                     style={{ backgroundColor: `${sc.color}18`, color: sc.color }}
                                   >
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
                                     {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-                                      <SelectItem key={key} value={key} className="text-[0.75rem]">
+                                      <SelectItem key={key} value={key} className="text-xs">
                                         <span className="inline-flex items-center gap-1">
-                                          <span className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: cfg.color }} />
+                                          <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: cfg.color }} />
                                           {cfg.label}
                                         </span>
                                       </SelectItem>
@@ -456,7 +461,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
                                 </Select>
                               </TableCell>
                               <TableCell>
-                                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">
+                                <p className="text-xs text-muted-foreground max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">
                                   {p.notes || '\u2014'}
                                 </p>
                               </TableCell>

@@ -72,19 +72,20 @@ const TYPE_OPTIONS: { value: InvoiceType | ''; label: string }[] = [
   { value: 'COMMISSION', label: 'Commission' },
 ];
 
-/** Accent de la facture de commission (rose valid\u00e9 Clenzy), distinct des couleurs de statut. */
+/** Accent de la facture de commission (rose valid\u00e9 Baitly), distinct des couleurs de statut. */
 const COMMISSION_COLOR = '#C97A7A';
 
-/** Statuts de facture \u2192 tokens s\u00e9mantiques Signature (chips -soft : texte couleur + fond -soft).
- *  Neutre (brouillon/annul\u00e9e) : pas de token s\u00e9mantique d\u00e9di\u00e9 \u2014 repli muted/hover. */
-const STATUS_TOKEN: Record<InvoiceStatus, { fg: string; bg: string }> = {
-  DRAFT: { fg: 'var(--muted)', bg: 'var(--hover)' },
-  SENT: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-  ISSUED: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  PAID: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  OVERDUE: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  CANCELLED: { fg: 'var(--muted)', bg: 'var(--hover)' },
-  CREDIT_NOTE: { fg: 'var(--info)', bg: 'var(--info-soft)' },
+/** Statut de facture \u2192 encre Baitly UI de sa puce de filtre. Toujours la variante
+ *  `-ink` : la teinte vive plafonne \u00e0 ~2,2:1 en clair.
+ *  Neutre (brouillon/annul\u00e9e) : pas de teinte s\u00e9mantique \u2014 repli muted-foreground. */
+const STATUS_INK: Record<InvoiceStatus, string> = {
+  DRAFT: 'var(--bui-muted-foreground)',
+  SENT: 'var(--bui-info-ink)',
+  ISSUED: 'var(--bui-warning-ink)',
+  PAID: 'var(--bui-success-ink)',
+  OVERDUE: 'var(--bui-destructive-ink)',
+  CANCELLED: 'var(--bui-muted-foreground)',
+  CREDIT_NOTE: 'var(--bui-info-ink)',
 };
 
 /** Statut → ton semantique du chip a point (dessin de la projection). */
@@ -120,7 +121,7 @@ const handleDownloadPdf = async (id: number, invoiceNumber: string) => {
   }
 };
 
-/** Determine le type de source : Reservation ou Intervention (accents palette Clenzy) */
+/** Determine le type de source : Reservation ou Intervention (accents palette Baitly) */
 const getSourceType = (inv: Invoice) => {
   if (inv.reservationId) return { label: 'Reservation', icon: <span className="inline-flex me-0.5"><HomeIcon size={14} strokeWidth={1.75} /></span>, color: '#7BA3C2' };
   if (inv.interventionId) return { label: 'Intervention', icon: <span className="inline-flex me-0.5"><BuildIcon size={14} strokeWidth={1.75} /></span>, color: '#D4A574' };
@@ -370,7 +371,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
             .map((st) => ({
               value: st,
               label: STATUS_LABELS[st],
-              color: STATUS_TOKEN[st].fg,
+              color: STATUS_INK[st],
               count: stats.parStatut[st],
             }))}
         />
@@ -381,7 +382,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
           restent ici que la nature et la periode. */}
       {/* `flex-row` explicite : la base du Card est flex-col, ou `items-center`
           devient un centrage horizontal des champs. */}
-      <Card className="gap-0 py-0 p-2 mb-3 flex flex-row gap-2 flex-wrap items-end border-[var(--line)] bg-[var(--card)]">
+      <Card className="gap-0 py-0 p-2 mb-3 flex flex-row gap-2 flex-wrap items-end border-border bg-card">
         <Field className="w-auto min-w-[150px]">
           <FieldLabel htmlFor="invoices-filter-type">{t('invoices.type.label', 'Type')}</FieldLabel>
           <NativeSelect
@@ -415,10 +416,10 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
       {/* ─── Table ───────────────────────────────────────────────────────── */}
       {isLoading ? (
         /* Skeleton de table (carte hairline plate, lignes Skeleton) */
-        <Card className="gap-0 py-0 border-[var(--line)] p-3">
-          <Skeleton className="mb-1.5 h-[18px] w-[30%] rounded-[4px]" />
+        <Card className="gap-0 py-0 border-border p-3">
+          <Skeleton className="mb-1.5 h-[18px] w-[30%] rounded-sm" />
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="mb-1.5 h-9 rounded-[8px]" />
+            <Skeleton key={i} className="mb-1.5 h-9 rounded-md" />
           ))}
         </Card>
       ) : error ? (
@@ -435,7 +436,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
           variant="plain"
         />
       ) : (
-        <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]">
+        <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
           {/* py-[7.5px] : le `sx` d'origine resserrait les cellules (py: 1.25) par
               rapport au gabarit du kit (6px en-tete / 8px corps). */}
           <Table className="[&_th]:py-[7.5px] [&_td]:py-[7.5px]">
@@ -455,7 +456,6 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
             <TableBody>
               {displayedInvoices.map((inv: Invoice) => {
                 const source = getSourceType(inv);
-                const statusToken = STATUS_TOKEN[inv.status] ?? STATUS_TOKEN.DRAFT;
                 return (
                   <TableRow key={inv.id} data-highlight-id={String(inv.id)}>
                     {/* ─── N° + DUPLICATA badge ─── */}
@@ -463,7 +463,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                       <div className="flex items-center gap-1">
                         {/* Litteral et non `cn()` : tailwind-merge considere `font-[...]` et
                             `font-semibold` comme un meme groupe et supprimerait la police display. */}
-                        <p className={`cn-text-body2 ${MONEY_CLASS} text-[12.5px] font-semibold text-[var(--ink)]`}>
+                        <p className={`${MONEY_CLASS} text-[12.5px] font-semibold text-foreground`}>
                           {inv.invoiceNumber}
                         </p>
                         {inv.duplicateOfId && (
@@ -473,7 +473,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                     </TableCell>
 
                     {/* ─── Date ─── */}
-                    <TableCell className="text-[var(--muted)] tabular-nums">{fmtDate(inv.invoiceDate)}</TableCell>
+                    <TableCell className="text-muted-foreground tabular-nums">{fmtDate(inv.invoiceDate)}</TableCell>
 
                     {/* ─── Type (Commission / Reservation / Intervention) ─── */}
                     <TableCell>
@@ -482,19 +482,19 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                       ) : source ? (
                         <StatusChip tokens={{ color: source.color, bg: `${source.color}18` }} label={source.label} icon={source.icon} />
                       ) : (
-                        <p className="cn-text-body2 text-[var(--muted)] text-[12.5px]">
+                        <p className="text-[12.5px] text-muted-foreground">
                           —
                         </p>
                       )}
                     </TableCell>
 
                     {/* ─── Client ─── */}
-                    <TableCell className="font-semibold text-[var(--ink)]">{inv.buyerName}</TableCell>
+                    <TableCell className="font-semibold text-foreground">{inv.buyerName}</TableCell>
 
                     {/* ─── Montants (display tabular-nums) ─── */}
                     <TableCell className={`text-end ${MONEY_CLASS}`}><Money value={inv.totalHt} from={inv.currency} /></TableCell>
                     <TableCell className={`text-end ${MONEY_CLASS}`}><Money value={inv.totalTax} from={inv.currency} /></TableCell>
-                    <TableCell className={`text-end ${MONEY_CLASS} font-semibold text-[var(--ink)]`}><Money value={inv.totalTtc} from={inv.currency} /></TableCell>
+                    <TableCell className={`text-end ${MONEY_CLASS} font-semibold text-foreground`}><Money value={inv.totalTtc} from={inv.currency} /></TableCell>
 
                     {/* ─── Statut — ton semantique a point (projection) ─── */}
                     <TableCell>
@@ -508,7 +508,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                         {inv.documentGenerationId && (
                           <RowAction
                             label={t('invoices.actions.viewPdf', 'Voir PDF')}
-                            className="text-[var(--err)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
+                            className="text-destructive-ink hover:bg-destructive-soft hover:text-destructive-ink"
                             onClick={() => handleViewDocumentPdf(inv.documentGenerationId!)}
                           >
                             <PdfIcon size={18} strokeWidth={1.75} />
@@ -519,7 +519,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                         {inv.status === 'DRAFT' && (
                           <RowAction
                             label={t('invoices.actions.issue', 'Emettre')}
-                            className="text-[var(--mui-primary)] hover:text-[var(--mui-primary)]"
+                            className="text-primary hover:text-primary"
                             onClick={() => issueMutation.mutate(inv.id)}
                             disabled={issueMutation.isPending}
                           >
@@ -531,7 +531,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                         {inv.status === 'ISSUED' && (
                           <RowAction
                             label={t('invoices.actions.markPaid', 'Marquer payee')}
-                            className="text-[var(--ok)] hover:bg-[var(--ok-soft)] hover:text-[var(--ok)]"
+                            className="text-success-ink hover:bg-success-soft hover:text-success-ink"
                             onClick={() => markPaidMutation.mutate(inv.id)}
                             disabled={markPaidMutation.isPending}
                           >
@@ -543,7 +543,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                         {(inv.status === 'DRAFT' || inv.status === 'ISSUED') && (
                           <RowAction
                             label={t('invoices.actions.cancel', 'Annuler')}
-                            className="text-[var(--err)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
+                            className="text-destructive-ink hover:bg-destructive-soft hover:text-destructive-ink"
                             onClick={() => cancelMutation.mutate(inv.id)}
                             disabled={cancelMutation.isPending}
                           >
@@ -555,7 +555,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                         {(inv.status === 'ISSUED' || inv.status === 'PAID') && !inv.duplicateOfId && (
                           <RowAction
                             label={t('invoices.actions.duplicate', 'Generer duplicata')}
-                            className="text-[var(--info)] hover:bg-[var(--info-soft)] hover:text-[var(--info)]"
+                            className="text-info-ink hover:bg-info-soft hover:text-info-ink"
                             onClick={() => duplicateMutation.mutate(inv.id)}
                             disabled={duplicateMutation.isPending}
                           >
@@ -599,7 +599,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
           </DialogHeader>
           {pdfLoading ? (
             <div className="flex justify-center items-center flex-1">
-              <Spinner className="size-10 text-[var(--accent)]" />
+              <Spinner className="size-10 text-primary" />
             </div>
           ) : pdfUrl ? (
             <object
@@ -609,7 +609,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
               style={{ flex: 1, border: 'none', minHeight: 0 }}
             >
               <div className="p-4 text-center">
-                <p className="cn-text-body2 text-[var(--muted)] mb-3">
+                <p className="mb-3 text-xs text-muted-foreground">
                   {t('invoices.pdfNotSupported', 'Votre navigateur ne supporte pas la visualisation PDF.')}
                 </p>
                 <Button asChild>

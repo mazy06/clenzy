@@ -201,7 +201,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
         </DialogHeader>
 
         {/* `dividers` du DialogContent MUI : filets haut/bas + corps defilant. */}
-        <div className="max-h-[60vh] overflow-y-auto border-y border-solid border-[var(--line)] py-3">
+        <div className="max-h-[60vh] overflow-y-auto border-y border-solid border-border py-3">
         {!result && !memberSuccess ? (
           <div className="flex flex-col gap-3.5 pt-1.5">
             <ToggleGroup
@@ -294,10 +294,10 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                           <ComboboxItem key={option.id} value={option}>
                             <span className="flex items-center gap-1.5 w-full">
                               <span className="grow">
-                                <span className="cn-text-body2 block">
+                                <span className="block text-sm">
                                   {option.firstName} {option.lastName}
                                 </span>
-                                <span className="cn-text-caption text-muted-foreground">
+                                <span className="block text-2xs text-muted-foreground">
                                   {option.email}
                                 </span>
                               </span>
@@ -346,15 +346,16 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
           </div>
         ) : memberSuccess ? (
           <div className="flex flex-col gap-3 pt-1.5 items-center">
-            <span className="inline-flex text-[var(--ok)]"><CheckCircle size={56} strokeWidth={1.75} /></span>
-            <p className="cn-text-body1 text-center">
+            {/* Icône de confirmation : un aplat décoratif → teinte vive. */}
+            <span className="inline-flex text-success"><CheckCircle size={56} strokeWidth={1.75} /></span>
+            <p className="text-sm text-center">
               <strong>{selectedUser?.firstName} {selectedUser?.lastName}</strong> a ete ajoute a l'organisation.
             </p>
           </div>
         ) : (
           <div className="flex flex-col gap-3 pt-1.5 items-center">
-            <span className="inline-flex text-[var(--ok)]"><CheckCircle size={56} strokeWidth={1.75} /></span>
-            <p className="cn-text-body1 text-center">
+            <span className="inline-flex text-success"><CheckCircle size={56} strokeWidth={1.75} /></span>
+            <p className="text-sm text-center">
               L'invitation a ete envoyee a <strong>{result?.invitedEmail}</strong>
             </p>
 
@@ -362,7 +363,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
               <div className="w-full">
                 <label
                   htmlFor="invitation-link"
-                  className="cn-text-body2 text-muted-foreground mb-1.5 block"
+                  className="block text-xs text-muted-foreground mb-1.5"
                 >
                   Vous pouvez aussi partager ce lien directement :
                 </label>
@@ -381,7 +382,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
                           size="icon-sm"
                           aria-label="Copier le lien d'invitation"
                           onClick={handleCopyLink}
-                          className={cn(copied && 'text-[var(--ok)]')}
+                          className={cn(copied && 'text-success')}
                         >
                           {copied ? <CheckCircle size={16} /> : <ContentCopy size={16} />}
                         </BuiButton>
@@ -393,7 +394,7 @@ export default function SendInvitationDialog({ open, onClose, organizationId, on
               </div>
             )}
 
-            <span className="cn-text-caption text-[var(--muted)] text-center">
+            <span className="text-2xs text-muted-foreground text-center">
               L'invitation expire le{' '}
               {result?.expiresAt ? new Date(result.expiresAt).toLocaleDateString('fr-FR', {
                 day: 'numeric',

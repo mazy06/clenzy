@@ -17,6 +17,8 @@ import {
 } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { Money } from '../../components/Money';
+import NavCountBadge from '../../components/NavCountBadge';
+import EmptyState from '../../components/EmptyState';
 import { SHOP_PRODUCTS } from './shopProducts';
 import ProductHero from './ProductHero';
 
@@ -57,24 +59,21 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
       <SheetContent side="right" showCloseButton={false} className="w-full min-[600px]:w-[420px] max-w-[100vw] p-0 gap-0">
       <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="flex items-center justify-between px-3.5 py-3 border-b border-solid border-[var(--line)]">
+        <div className="flex items-center justify-between px-3.5 py-3 border-b border-solid border-border">
           <div className="flex items-center gap-1.5">
-            <SheetTitle className="cn-text-h6 font-semibold font-[family-name:var(--font-display)] text-[1.05rem] tracking-[-0.01em] text-[var(--ink)]">
+            <SheetTitle className="font-[family-name:var(--font-display)] text-[1.05rem] font-semibold tracking-tight text-foreground">
               {t('shop.cart')}
             </SheetTitle>
             <SheetDescription className="sr-only">{t('shop.cart')}</SheetDescription>
-            {totalItems > 0 && (
-              <div className="text-[0.6875rem] font-bold px-1.5 py-0 rounded-[5px] bg-[var(--accent-soft)] text-[var(--accent)] tabular-nums tracking-[0.02em]">
-                {totalItems}
-              </div>
-            )}
+            {/* Pastille de compteur : primitive partagee avec la sidebar. */}
+            <NavCountBadge count={totalItems} />
           </div>
           <Button
             variant="ghost"
             size="icon-sm"
             onClick={onClose}
             aria-label="Fermer"
-            className="text-[var(--muted)] hover:text-[var(--ink)]"
+            className="text-muted-foreground hover:text-foreground"
           >
             <Close size={18} strokeWidth={1.75} />
           </Button>
@@ -83,27 +82,21 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
         {/* Cart items */}
         <div className="flex-1 overflow-y-auto px-3.5 py-3">
           {isEmpty ? (
-            <div className="text-center py-9">
-              <div className="w-[64px] h-[64px] mx-auto mb-3 rounded-[14px] inline-flex items-center justify-center bg-[var(--accent-soft)] text-[var(--accent)]">
-                <ShoppingCartOutlined size={28} strokeWidth={1.5} />
-              </div>
-              <p className="cn-text-body1 font-semibold text-[0.95rem] mb-0.5">
-                {t('shop.cartEmpty')}
-              </p>
-              <p className="cn-text-body1 text-[0.78rem] text-muted-foreground leading-[1.5] max-w-[240px] mx-auto">
-                {t('shop.cartEmptyDesc')}
-              </p>
-            </div>
+            <EmptyState
+              icon={<ShoppingCartOutlined />}
+              title={t('shop.cartEmpty')}
+              description={t('shop.cartEmptyDesc')}
+              variant="transparent"
+            />
           ) : (
             <div className="flex flex-col gap-2">
               {cartItems.map(({ product, quantity }) => (
                 <div
                   key={product.id}
-                  className="flex gap-[7.5px] p-1.5 rounded-[10px] border border-solid border-[var(--line)] hover:border-[var(--line-2)]"
-                  style={{ transition: 'border-color 0.18s cubic-bezier(.16,1,.3,1)' }}
+                  className="flex gap-[7.5px] p-1.5 rounded-lg border border-solid border-border transition-colors duration-150 hover:border-primary/40 motion-reduce:transition-none"
                 >
                   {/* Thumbnail */}
-                  <div className="w-[64px] h-[64px] rounded-[8px] overflow-hidden shrink-0 border border-[var(--line)]">
+                  <div className="w-[64px] h-[64px] rounded-md overflow-hidden shrink-0 border border-solid border-border">
                     <ProductHero product={product} height={62} />
                   </div>
 
@@ -111,10 +104,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                   <div className="flex-1 min-w-0 flex flex-col">
                     <div className="flex items-start gap-0.5">
                       <div className="flex-1 min-w-0">
-                        <p className="cn-text-body1 font-semibold text-[0.82rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={product.name}>
+                        <p className="text-[0.82rem] font-semibold leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={product.name}>
                           {product.name}
                         </p>
-                        <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60 tracking-[0.04em] tabular-nums uppercase">
+                        <p className="text-2xs font-medium uppercase tracking-wide tabular-nums text-faint">
                           {product.sku}
                         </p>
                       </div>
@@ -123,7 +116,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                         size="icon-xs"
                         onClick={() => onRemoveItem(product.id)}
                         aria-label="Retirer du panier"
-                        className="text-[var(--faint)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+                        className="text-faint hover:text-destructive-ink hover:bg-destructive-soft"
                       >
                         <Delete size={14} strokeWidth={1.75} />
                       </Button>
@@ -137,11 +130,11 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                           size="icon-xs"
                           onClick={() => onUpdateQuantity(product.id, -1)}
                           aria-label="Diminuer"
-                          className="size-6 rounded-[6px] border border-solid border-[var(--line)] text-[var(--ink)] hover:border-[var(--faint)] hover:bg-[var(--hover)]"
+                          className="size-6 rounded-md border border-solid border-border text-foreground hover:border-faint hover:bg-muted"
                         >
                           <Remove size={12} strokeWidth={2} />
                         </Button>
-                        <p className="cn-text-body1 font-bold min-w-[22px] text-center text-[0.78rem] text-foreground tabular-nums">
+                        <p className="min-w-[22px] text-center text-[0.78rem] font-bold tabular-nums text-foreground">
                           {quantity}
                         </p>
                         <Button
@@ -149,14 +142,14 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                           size="icon-xs"
                           onClick={() => onUpdateQuantity(product.id, 1)}
                           aria-label="Augmenter"
-                          className="size-6 rounded-[6px] border border-solid border-[var(--line)] text-[var(--ink)] hover:border-[var(--faint)] hover:bg-[var(--hover)]"
+                          className="size-6 rounded-md border border-solid border-border text-foreground hover:border-faint hover:bg-muted"
                         >
                           <Add size={12} strokeWidth={2} />
                         </Button>
                       </div>
 
                       {/* Line total */}
-                      <p className="cn-text-body1 font-bold text-[0.85rem] text-foreground tabular-nums tracking-[-0.01em]">
+                      <p className="text-[0.85rem] font-bold tabular-nums tracking-tight text-foreground">
                         {formatPrice(product.price * quantity)}
                       </p>
                     </div>
@@ -169,35 +162,35 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
 
         {/* Footer */}
         {!isEmpty && (
-          <div className="border-t border-[var(--line)] px-3.5 py-3 bg-[var(--card)]">
+          <div className="border-t border-solid border-border px-3.5 py-3 bg-card">
             <div className="flex justify-between mb-0.5">
-              <p className="cn-text-body1 text-[0.8rem] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {t('shop.subtotal')}
               </p>
-              <p className="cn-text-body1 text-[0.85rem] font-semibold text-foreground tabular-nums">
+              <p className="text-[0.85rem] font-semibold tabular-nums text-foreground">
                 {formatPrice(subtotal)}
               </p>
             </div>
 
             <div className="flex items-center gap-0.5 mb-2">
-              <div className="text-[var(--ok)] inline-flex">
+              <span className="inline-flex text-success">
                 <CheckCircleOutline size={12} strokeWidth={2} />
-              </div>
-              <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">
+              </span>
+              <p className="text-2xs text-muted-foreground">
                 {t('shop.shipping')}
               </p>
             </div>
-            <p className="cn-text-body1 text-[0.66rem] text-muted-foreground opacity-60 block mb-2 ms-3.5">
+            <p className="block mb-2 ms-3.5 text-2xs text-faint">
               {t('shop.shippingIntl')}
             </p>
 
             <Separator className="mb-[7.5px]" />
 
             <div className="flex justify-between items-baseline mb-3">
-              <p className="cn-text-body1 font-bold text-[0.95rem]">
+              <p className="text-[0.95rem] font-bold text-foreground">
                 {t('shop.total')}
               </p>
-              <p className="cn-text-body1 font-semibold font-[family-name:var(--font-display)] text-[1.15rem] text-[var(--ink)] tabular-nums tracking-[-0.01em]">
+              <p className="font-[family-name:var(--font-display)] text-[1.15rem] font-semibold tabular-nums tracking-tight text-foreground">
                 {formatPrice(subtotal)}
               </p>
             </div>

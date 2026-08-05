@@ -24,6 +24,7 @@ import {
   InputGroupAddon,
   InputGroupInput,
   NativeSelect,
+  NativeSelectOption,
   Switch,
   Textarea,
   useComboboxAnchor,
@@ -218,7 +219,7 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
 
         {/* Le defilement porte sur le corps du formulaire, pas sur DialogContent :
             titre et pied restent visibles, comme le `dividers` du Dialog MUI. */}
-        <div className="max-h-[65vh] overflow-y-auto border-y border-solid border-[var(--line)] py-3">
+        <div className="max-h-[65vh] overflow-y-auto border-y border-solid border-border py-3">
         {errorMsg && <Alert variant="destructive" className="mb-3">
           <TriangleAlert />
           <AlertDescription>{errorMsg}</AlertDescription>
@@ -248,9 +249,9 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
                 value={form.status}
                 onChange={(e) => update('status', e.target.value as VoucherStatus)}
               >
-                <option value="DRAFT">{t('vouchers.status.DRAFT')}</option>
-                <option value="ACTIVE">{t('vouchers.status.ACTIVE')}</option>
-                <option value="PAUSED">{t('vouchers.status.PAUSED')}</option>
+                <NativeSelectOption value="DRAFT">{t('vouchers.status.DRAFT')}</NativeSelectOption>
+                <NativeSelectOption value="ACTIVE">{t('vouchers.status.ACTIVE')}</NativeSelectOption>
+                <NativeSelectOption value="PAUSED">{t('vouchers.status.PAUSED')}</NativeSelectOption>
               </NativeSelect>
             </Field>
           </div>
@@ -279,8 +280,8 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
                 onChange={(e) => update('type', e.target.value as VoucherType)}
                 disabled={isEdit}
               >
-                <option value="MANUAL_CODE">{t('vouchers.typeManual')}</option>
-                <option value="AUTO_CAMPAIGN">{t('vouchers.typeAuto')}</option>
+                <NativeSelectOption value="MANUAL_CODE">{t('vouchers.typeManual')}</NativeSelectOption>
+                <NativeSelectOption value="AUTO_CAMPAIGN">{t('vouchers.typeAuto')}</NativeSelectOption>
               </NativeSelect>
               <FieldDescription>
                 {isAuto ? t('vouchers.editor.typeAutoHelper') : t('vouchers.editor.typeManualHelper')}
@@ -314,11 +315,11 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
                 value={form.discountType}
                 onChange={(e) => update('discountType', e.target.value as VoucherDiscountType)}
               >
-                <option value="PERCENTAGE">{t('vouchers.editor.discountPercentage')}</option>
-                <option value="FIXED_AMOUNT">{t('vouchers.editor.discountFixed')}</option>
-                <option value="FREE_NIGHTS" disabled>
+                <NativeSelectOption value="PERCENTAGE">{t('vouchers.editor.discountPercentage')}</NativeSelectOption>
+                <NativeSelectOption value="FIXED_AMOUNT">{t('vouchers.editor.discountFixed')}</NativeSelectOption>
+                <NativeSelectOption value="FREE_NIGHTS" disabled>
                   {t('vouchers.editor.discountFreeNights')} ({t('vouchers.editor.comingSoon')})
-                </option>
+                </NativeSelectOption>
               </NativeSelect>
             </Field>
           </div>
@@ -346,11 +347,11 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
                 value={form.channelScope}
                 onChange={(e) => update('channelScope', e.target.value as VoucherChannelScope)}
               >
-                <option value="ALL">{t('vouchers.editor.channelAll')}</option>
-                <option value="BOOKING_ENGINE">{t('vouchers.editor.channelBookingEngine')}</option>
-                <option value="DIRECT_LINK">{t('vouchers.editor.channelDirectLink')}</option>
-                <option value="WHATSAPP">WhatsApp</option>
-                <option value="EMAIL">Email</option>
+                <NativeSelectOption value="ALL">{t('vouchers.editor.channelAll')}</NativeSelectOption>
+                <NativeSelectOption value="BOOKING_ENGINE">{t('vouchers.editor.channelBookingEngine')}</NativeSelectOption>
+                <NativeSelectOption value="DIRECT_LINK">{t('vouchers.editor.channelDirectLink')}</NativeSelectOption>
+                <NativeSelectOption value="WHATSAPP">WhatsApp</NativeSelectOption>
+                <NativeSelectOption value="EMAIL">Email</NativeSelectOption>
               </NativeSelect>
             </Field>
           </div>
@@ -459,7 +460,7 @@ export default function VoucherEditorDialog({ voucher, open, onClose, onSaved }:
                 checked={form.applyToAllProperties}
                 onCheckedChange={(checked) => update('applyToAllProperties', checked)}
               />
-              <FieldLabel htmlFor="voucher-apply-to-all" className="cn-text-body2 font-normal">
+              <FieldLabel htmlFor="voucher-apply-to-all" className="text-xs font-normal">
                 {t('vouchers.editor.applyToAll')}
               </FieldLabel>
             </div>

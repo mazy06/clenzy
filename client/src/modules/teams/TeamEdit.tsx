@@ -42,6 +42,7 @@ import type { CoverageZone, TeamFormData as ApiTeamFormData } from '../../servic
 import type { User } from '../../services/api/usersApi';
 import { extractApiList } from '../../types';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import { teamsKeys } from './useTeamsList';
 import {
   FRENCH_DEPARTMENTS,
@@ -271,7 +272,7 @@ const TeamEdit: React.FC = () => {
       <div className="p-4">
         <BuiAlert variant="destructive">
           <TriangleAlert />
-          <AlertDescription><h6 className="cn-text-h6 mb-[0.35em]">Accès non autorisé</h6><p className="cn-text-body1">Vous n'avez pas les permissions nécessaires pour modifier des équipes.</p></AlertDescription>
+          <AlertDescription><h6 className="text-sm font-semibold mb-[0.35em]">Accès non autorisé</h6><p className="text-sm">Vous n'avez pas les permissions nécessaires pour modifier des équipes.</p></AlertDescription>
         </BuiAlert>
       </div>
     );
@@ -333,7 +334,7 @@ const TeamEdit: React.FC = () => {
       <Card>
         <CardContent>
           <form onSubmit={handleSubmit}>
-            <h6 className="cn-text-h6 mb-4 text-[var(--ink)]">
+            <h6 className="text-sm font-semibold mb-4 text-foreground">
               Informations de base
             </h6>
 
@@ -377,7 +378,7 @@ const TeamEdit: React.FC = () => {
               </div>
             </div>
 
-            <h6 className="cn-text-h6 mb-3 text-[var(--ink)]">Description</h6>
+            <h6 className="text-sm font-semibold mb-3 text-foreground">Description</h6>
 
             <div className="mb-6">
               <Field>
@@ -395,7 +396,7 @@ const TeamEdit: React.FC = () => {
 
             {/* ─── Coverage Zones ─────────────────────────────────────── */}
             <div className="flex items-center justify-between mb-3">
-              <h6 className="cn-text-h6 text-[var(--ink)] flex items-center gap-0.5">
+              <h6 className="text-sm font-semibold text-foreground flex items-center gap-0.5">
                 <MapIcon size={20} strokeWidth={1.75} />
                 Zones de couverture
               </h6>
@@ -413,11 +414,8 @@ const TeamEdit: React.FC = () => {
             </div>
 
             {formData.coverageZones.length === 0 ? (
-              <div className="text-center py-[18px] mb-6 border border-dashed border-[var(--line)] rounded-[16px]">
-                <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><MapIcon size={32} strokeWidth={1.75} /></span>
-                <p className="cn-text-body2 text-muted-foreground">
-                  Aucune zone de couverture definie
-                </p>
+              <div className="mb-6">
+                <EmptyState icon={<MapIcon />} title="Aucune zone de couverture définie" />
               </div>
             ) : (
               <div className="mb-6">
@@ -565,7 +563,7 @@ const TeamEdit: React.FC = () => {
                           variant="ghost"
                           size="icon-sm"
                           aria-label="Supprimer cette zone de couverture"
-                          className="text-[var(--err)]"
+                          className="text-destructive"
                           onClick={() => removeCoverageZone(index)}
                         >
                           <DeleteOutlined size={18} strokeWidth={1.75} />
@@ -577,7 +575,7 @@ const TeamEdit: React.FC = () => {
               </div>
             )}
 
-            <h6 className="cn-text-h6 mb-3 text-[var(--ink)]">Membres de l'équipe</h6>
+            <h6 className="text-sm font-semibold mb-3 text-foreground">Membres de l'équipe</h6>
 
             <div className="grid grid-cols-1 min-[900px]:grid-cols-3 gap-3 mb-[18px] items-end">
               <div>
@@ -631,23 +629,23 @@ const TeamEdit: React.FC = () => {
 
             {(formData.members || []).length > 0 && (
               <div className="mb-6">
-                <h6 className="cn-text-subtitle1 mb-3">
+                <h6 className="text-sm font-medium mb-3">
                   Membres actuels ({(formData.members || []).length})
                 </h6>
                 <div className="flex flex-col gap-1.5">
                   {(formData.members || []).map((member) => (
                     <div
                       key={member.userId}
-                      className="flex items-center gap-2 border border-solid border-[var(--line)] rounded-[8px] px-2 py-1.5"
+                      className="flex items-center gap-2 border border-solid border-border rounded-lg px-2 py-1.5"
                     >
                       <Avatar className="rounded-[10px]">
-                        <AvatarFallback className="rounded-[10px] bg-[var(--accent)] text-[var(--on-accent)] font-[family-name:var(--font-display)] font-semibold">
+                        <AvatarFallback className="rounded-[10px] bg-primary text-primary-foreground font-[family-name:var(--font-display)] font-semibold">
                           {member.firstName.charAt(0)}{member.lastName.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
-                        <p className="cn-text-body1 truncate">{member.firstName} {member.lastName}</p>
-                        <p className="cn-text-body2 text-muted-foreground truncate">{member.email}</p>
+                        <p className="text-sm truncate">{member.firstName} {member.lastName}</p>
+                        <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <NativeSelect

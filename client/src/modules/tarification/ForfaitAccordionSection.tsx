@@ -45,17 +45,8 @@ const ALL_CLEANING_SERVICE_TYPE_KEYS = [
   'BATHROOM_CLEANING',
 ] as const;
 
-const SECTION_TITLE_SX = {
-  fontSize: '0.625rem',
-  fontWeight: 600,
-  color: 'text.secondary',
-  mb: 0.75,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-} as const;
-
-/** Report en classes de `SECTION_TITLE_SX`. */
-const SECTION_TITLE_CLASS = 'text-[0.625rem] font-semibold text-[var(--muted)] mb-[4.5px] uppercase tracking-[0.05em]';
+/** Surtitre d'une section du forfait — recette « overline » de Baitly UI. */
+const SECTION_TITLE_CLASS = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-[4.5px]';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -197,7 +188,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
       <div className="flex flex-col gap-3.5">
         {/* ─── Coefficients ─────────────────────────────────────────────── */}
         <div>
-          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.priceCoefficients')}</p>
+          <p className={SECTION_TITLE_CLASS}>{t('tarification.forfaitSection.priceCoefficients')}</p>
           <div className="grid grid-cols-12 gap-[9px]">
             <div className="col-span-6">
               <Field>
@@ -236,7 +227,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
 
         {/* ─── Types de service associés ────────────────────────────────── */}
         <div>
-          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.serviceTypes')}</p>
+          <p className={SECTION_TITLE_CLASS}>{t('tarification.forfaitSection.serviceTypes')}</p>
           <div className="flex gap-1 flex-wrap">
             {ALL_CLEANING_SERVICE_TYPE_KEYS.map((stKey) => {
               const isSelected = (forfait.serviceTypes || []).includes(stKey);
@@ -246,11 +237,11 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                   outlined
                   selected={isSelected}
                   pressed={isSelected}
-                  tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
+                  tone="accent"
                   icon={<AutoAwesome size={14} strokeWidth={1.75} />}
                   label={t(`tarification.forfaitSection.cleaningTypes.${stKey}`)}
                   onClick={canEdit ? () => toggleServiceType(stKey) : undefined}
-                  className={cn('h-[30px] text-[0.75rem]', !canEdit && 'opacity-60')}
+                  className={cn("h-[30px] text-xs", !canEdit && "opacity-60")}
                 />
               );
             })}
@@ -259,11 +250,11 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
 
         {/* ─── Prestations incluses / en supplément ─────────────────────── */}
         <div>
-          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.prestations')}</p>
+          <p className={SECTION_TITLE_CLASS}>{t('tarification.forfaitSection.prestations')}</p>
           <div className="flex gap-4">
             {/* Incluses */}
             <div className="flex-1">
-              <p className="cn-text-body1 text-[0.5625rem] font-semibold text-[var(--bui-success-ink)] mb-0.5">
+              <p className="text-2xs font-semibold text-success-ink mb-0.5">
                 {t('tarification.forfaitSection.includedInPrice')}
               </p>
               <div className="flex gap-0.5 flex-wrap">
@@ -275,10 +266,10 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                       outlined
                       selected={isIncluded}
                       pressed={isIncluded}
-                      tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }}
+                      tone="ok"
                       label={t(`tarification.forfaitSection.prestationTypes.${p.key}`, p.label)}
                       onClick={canEdit ? () => togglePrestation(p.key, 'included') : undefined}
-                      className={cn('h-[30px] text-[0.75rem]', !canEdit && 'opacity-60')}
+                      className={cn("h-[30px] text-xs", !canEdit && "opacity-60")}
                     />
                   );
                 })}
@@ -286,7 +277,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
             </div>
             {/* En supplément */}
             <div className="flex-1">
-              <p className="cn-text-body1 text-[0.5625rem] font-semibold text-[var(--bui-warning-ink)] mb-0.5">
+              <p className="text-2xs font-semibold text-warning-ink mb-0.5">
                 {t('tarification.forfaitSection.extraCharge')}
               </p>
               <div className="flex gap-0.5 flex-wrap">
@@ -298,10 +289,10 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                       outlined
                       selected={isExtra}
                       pressed={isExtra}
-                      tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }}
+                      tone="warn"
                       label={t(`tarification.forfaitSection.prestationTypes.${p.key}`, p.label)}
                       onClick={canEdit ? () => togglePrestation(p.key, 'extra') : undefined}
-                      className={cn('h-[30px] text-[0.75rem]', !canEdit && 'opacity-60')}
+                      className={cn("h-[30px] text-xs", !canEdit && "opacity-60")}
                     />
                   );
                 })}
@@ -321,15 +312,15 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
 
         {/* ─── Équipes éligibles ────────────────────────────────────────── */}
         <div>
-          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
+          <p className={SECTION_TITLE_CLASS}>
             {t('tarification.forfaitSection.eligibleTeams')}
-            <span className="text-[0.5625rem] font-normal text-muted-foreground opacity-60 ms-1.5">
+            <span className="text-2xs font-normal text-muted-foreground opacity-60 ms-1.5">
               {t('tarification.forfaitSection.eligibleTeamsHint')}
             </span>
           </p>
           <div className="flex gap-1 flex-wrap">
             {teams.length === 0 ? (
-              <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60 italic">
+              <p className="text-xs text-muted-foreground opacity-60 italic">
                 {t('tarification.forfaitSection.noTeamsAvailable')}
               </p>
             ) : (
@@ -341,11 +332,11 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                     outlined
                     selected={isSelected}
                     pressed={isSelected}
-                    tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
+                    tone="accent"
                     icon={<Group size={14} strokeWidth={1.75} />}
                     label={`${team.name} (${team.memberCount})`}
                     onClick={canEdit ? () => toggleTeam(team.id) : undefined}
-                    className={cn('h-[30px] text-[0.75rem]', !canEdit && 'opacity-60')}
+                    className={cn("h-[30px] text-xs", !canEdit && "opacity-60")}
                   />
                 );
               })
@@ -355,13 +346,13 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
 
         {/* ─── Tarification par surface ─────────────────────────────────── */}
         <div>
-          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.surfacePricing')}</p>
+          <p className={SECTION_TITLE_CLASS}>{t('tarification.forfaitSection.surfacePricing')}</p>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-[0.6875rem]">{t('tarification.forfaitSection.maxThreshold')}</TableHead>
-                  <TableHead className="text-end text-[0.6875rem]">{t('tarification.forfaitSection.basePrice')}</TableHead>
+                  <TableHead className="text-xs">{t('tarification.forfaitSection.maxThreshold')}</TableHead>
+                  <TableHead className="text-end text-xs">{t('tarification.forfaitSection.basePrice')}</TableHead>
                   {canEdit && <TableHead className="w-[48px] text-center" />}
                 </TableRow>
               </TableHeader>
@@ -413,7 +404,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                           size="icon-sm"
                           aria-label={t('common.delete', 'Supprimer')}
                           onClick={() => removeSurfaceTier(index)}
-                          className="text-[var(--err)]"
+                          className="text-destructive hover:text-destructive hover:bg-destructive-soft"
                         >
                           <Delete size={16} strokeWidth={1.75} />
                         </Button>
@@ -425,22 +416,20 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
             </Table>
           </div>
           {canEdit && (
-            <div className="mt-0.5">
-              <StatusChip
-                outlined
-                tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
-                icon={<Add size={14} strokeWidth={1.75} />}
-                label={t('tarification.forfaitSection.addTier')}
-                onClick={addSurfaceTier}
-                className="h-[30px] border-dashed text-[0.75rem]"
-              />
+            <div className="mt-1.5">
+              {/* Meme action « ajouter » que les deux boutons freres de la section :
+                  meme primitive, le pointille disant seulement « rangee a creer ». */}
+              <Button variant="outline" size="sm" className="border-dashed" onClick={addSurfaceTier}>
+                <Add />
+                {t('tarification.forfaitSection.addTier')}
+              </Button>
             </div>
           )}
         </div>
 
         {/* ─── Surcharges ───────────────────────────────────────────────── */}
         <div>
-          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('tarification.forfaitSection.surcharges')}</p>
+          <p className={SECTION_TITLE_CLASS}>{t('tarification.forfaitSection.surcharges')}</p>
           <div className="grid grid-cols-12 gap-1.5">
             {availableSurcharges.map((s) => (
               <div className="col-span-6 min-[600px]:col-span-4" key={s.key}>

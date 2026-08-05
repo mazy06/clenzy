@@ -81,12 +81,12 @@ export default function TabExterieur({ config, canEdit, onUpdate, currencySymbol
   return (
     <div className="pt-3">
       <div className="flex items-center gap-1.5 mb-1.5">
-        <span className="inline-flex text-[purple]"><Yard size={20} strokeWidth={1.75} /></span>
-        <h6 className="cn-text-subtitle1 font-semibold">
+        <span className="inline-flex text-success"><Yard size={20} strokeWidth={1.75} /></span>
+        <h6 className="text-sm font-semibold">
           {t('tarification.exterieur.title')}
         </h6>
       </div>
-      <p className="cn-text-body2 text-muted-foreground mb-3">
+      <p className="text-xs text-muted-foreground mb-3">
         {t('tarification.exterieur.subtitle')}
       </p>
 
@@ -146,7 +146,7 @@ export default function TabExterieur({ config, canEdit, onUpdate, currencySymbol
                       size="icon-sm"
                       aria-label={t('tarification.delete', 'Supprimer')}
                       onClick={() => removeItem(index)}
-                      className="text-[var(--err)] hover:text-[var(--err)]"
+                      className="text-destructive hover:text-destructive hover:bg-destructive-soft"
                     >
                       <Delete size={16} strokeWidth={1.75} />
                     </Button>

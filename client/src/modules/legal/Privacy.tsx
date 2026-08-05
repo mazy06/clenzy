@@ -15,11 +15,11 @@ export default function Privacy() {
     <LegalLayout title="Politique de confidentialité" lastUpdated="27 mai 2026">
       <Alert variant="info" className="mb-4">
         <Info />
-        <AlertDescription><p className="cn-text-body2">
+        <AlertDescription>
           Cette page est un brouillon. La politique définitive sera publiée prochainement.
           Pour toute question RGPD, contactez{' '}
           <a href="mailto:dpo@clenzy.fr">dpo@clenzy.fr</a>.
-        </p></AlertDescription>
+        </AlertDescription>
       </Alert>
 
       <h2>1. Responsable du traitement</h2>

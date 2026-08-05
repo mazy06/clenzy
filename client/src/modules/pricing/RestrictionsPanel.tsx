@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { cn } from '../../utils/cn';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Card, Button } from '../../components/ui';
+import { Alert, AlertDescription } from '../../components/ui';
 import { Field, FieldLabel, Input } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -13,7 +13,8 @@ import {
   TooltipContent,
 } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
-import { Plus, Pencil, Trash2, CalendarRange, X } from 'lucide-react';
+import EmptyState from '../../components/EmptyState';
+import { Plus, Pencil, Trash2, CalendarRange, TriangleAlert, X } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   calendarPricingApi,
@@ -160,11 +161,11 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
 
   if (propertyId == null) {
     return (
-      <Card className="gap-0 py-0 p-4 text-center">
-        <p className="cn-text-body1 text-[0.85rem] text-muted-foreground">
-          {t('restrictions.selectProperty', 'Sélectionnez un logement pour gérer ses restrictions de séjour.')}
-        </p>
-      </Card>
+      <EmptyState
+        icon={<CalendarRange />}
+        title={t('restrictions.selectProperty', 'Sélectionnez un logement pour gérer ses restrictions de séjour.')}
+        variant="plain"
+      />
     );
   }
 
@@ -173,7 +174,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
       {/* ── Formulaire (création / édition) ── */}
       <Card className="gap-0 p-3 flex-[5] min-w-[300px]">
         <div className="flex items-center justify-between mb-2">
-          <p className="cn-text-body1 text-[0.8rem] font-bold tracking-[0.01em]">
+          <p className="text-sm font-semibold tracking-tight">
             {editingId != null
               ? t('restrictions.editTitle', 'Modifier la restriction')
               : t('restrictions.newTitle', 'Nouvelle restriction')}
@@ -243,7 +244,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
                 checked={form.closedToArrival}
                 onCheckedChange={(checked) => setForm((s) => ({ ...s, closedToArrival: checked }))}
               />
-              <FieldLabel htmlFor="restriction-cta" className="text-[0.78rem] font-normal">
+              <FieldLabel htmlFor="restriction-cta" className="text-xs font-normal">
                 {t('restrictions.cta', 'Arrivée fermée (CTA)')}
               </FieldLabel>
             </Field>
@@ -254,14 +255,14 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
                 checked={form.closedToDeparture}
                 onCheckedChange={(checked) => setForm((s) => ({ ...s, closedToDeparture: checked }))}
               />
-              <FieldLabel htmlFor="restriction-ctd" className="text-[0.78rem] font-normal">
+              <FieldLabel htmlFor="restriction-ctd" className="text-xs font-normal">
                 {t('restrictions.ctd', 'Départ fermé (CTD)')}
               </FieldLabel>
             </Field>
           </div>
 
           <div>
-            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
+            <p className="text-xs text-muted-foreground mb-0.5">
               {t('restrictions.daysOfWeek', 'Jours concernés (vide = tous)')}
             </p>
             <div className="flex flex-row flex-wrap gap-[3px]">
@@ -291,7 +292,10 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
           </Field>
 
           {error && (
-            <p className="cn-text-body1 text-[0.75rem] text-[var(--err,_#C97A7A)]">{error}</p>
+            <Alert variant="destructive">
+              <TriangleAlert />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
           <div className="flex justify-end gap-1.5">
@@ -310,9 +314,9 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
 
       {/* ── Liste des restrictions ── */}
       <Card className="gap-0 p-3 flex-[7] min-w-[320px]">
-        <p className="cn-text-body1 text-[0.8rem] font-bold mb-2">
+        <p className="text-sm font-semibold mb-2">
           {t('restrictions.listTitle', 'Restrictions actives')}{' '}
-          <span className="text-[0.72rem] text-muted-foreground tabular-nums">
+          <span className="text-xs text-muted-foreground tabular-nums">
             ({restrictions.length})
           </span>
         </p>
@@ -320,12 +324,11 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
         {isLoading ? (
           <div className="flex justify-center py-6"><Spinner className="size-[22px]" /></div>
         ) : restrictions.length === 0 ? (
-          <div className="text-center py-6 text-muted-foreground">
-            <CalendarRange size={26} strokeWidth={1.5} style={{ opacity: 0.5 }} />
-            <p className="cn-text-body1 text-[0.78rem] mt-1.5">
-              {t('restrictions.empty', 'Aucune restriction pour ce logement.')}
-            </p>
-          </div>
+          <EmptyState
+            icon={<CalendarRange />}
+            title={t('restrictions.empty', 'Aucune restriction pour ce logement.')}
+            variant="transparent"
+          />
         ) : (
           // Le `divider` du Stack MUI n'a pas d'equivalent declaratif : le filet
           // est insere explicitement entre deux lignes.
@@ -335,7 +338,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
                 {idx > 0 && <Separator />}
                 <div className="flex items-center gap-1.5 py-1.5">
                 <div className="flex-1 min-w-0">
-                  <p className="cn-text-body1 text-[0.8rem] font-semibold tabular-nums">
+                  <p className="text-sm font-semibold tabular-nums">
                     {r.startDate} → {r.endDate}
                   </p>
                   <div className="flex flex-row flex-wrap gap-[3px] mt-[3px]">
@@ -367,7 +370,7 @@ const RestrictionsPanel: React.FC<RestrictionsPanelProps> = ({ propertyId }) => 
                         onClick={() => deleteMutation.mutate(r.id)}
                         disabled={deleteMutation.isPending}
                         aria-label={t('common.delete', 'Supprimer')}
-                        className="text-[var(--err,_#C97A7A)]"
+                        className="text-destructive-ink hover:text-destructive-ink hover:bg-destructive-soft"
                       >
                         <Trash2 size={14} />
                       </Button>

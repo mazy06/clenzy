@@ -48,13 +48,13 @@ interface TabEntretienProps {
 
 const FORFAIT_ICONS = [
   <span className="inline-flex text-primary"><AutoAwesome key="s" size={20} strokeWidth={1.75} /></span>,
-  <span className="inline-flex text-[var(--bui-warning-ink)]"><Bolt key="e" size={20} strokeWidth={1.75} /></span>,
-  <span className="inline-flex text-[var(--mui-secondary)]"><CleaningServices key="d" size={20} strokeWidth={1.75} /></span>,
+  <span className="inline-flex text-warning"><Bolt key="e" size={20} strokeWidth={1.75} /></span>,
+  <span className="inline-flex text-info"><CleaningServices key="d" size={20} strokeWidth={1.75} /></span>,
 ];
 
 // Peau d'un panneau : le primitif du kit ne pose qu'un filet bas entre items,
 // la version MUI etait une surface encadree. On la reconstitue une seule fois.
-const PANEL_CLASS = 'rounded-[var(--radius-md)] border border-solid border-[var(--line)] bg-[var(--card)] px-3';
+const PANEL_CLASS = 'rounded-md border border-solid border-border bg-card px-3';
 
 export default function TabEntretien({ config, teams, canEdit, onUpdate, currencySymbol }: TabEntretienProps) {
   const { t } = useTranslation();
@@ -130,8 +130,8 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
             <div className="flex items-center gap-1.5">
               <span className="inline-flex text-primary"><Euro size={20} strokeWidth={1.75} /></span>
               <div className="text-start">
-                <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.basePrices.title')}</h6>
-                <p className="cn-text-body2 text-muted-foreground">{t('tarification.basePrices.subtitle')}</p>
+                <h6 className="text-sm font-semibold">{t('tarification.basePrices.title')}</h6>
+                <p className="text-xs text-muted-foreground">{t('tarification.basePrices.subtitle')}</p>
               </div>
             </div>
           </AccordionTrigger>
@@ -193,10 +193,10 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
               <div className="flex items-center gap-1.5">
                 {FORFAIT_ICONS[index] || FORFAIT_ICONS[0]}
                 <div className="text-start">
-                  <h6 className="cn-text-subtitle1 font-semibold">
+                  <h6 className="text-sm font-semibold">
                     {t(`tarification.forfaits.${forfait.key}.title`, `Forfait ${forfait.label}`)}
                   </h6>
-                  <p className="cn-text-body2 text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {t(`tarification.forfaits.${forfait.key}.subtitle`, `Configuration du forfait ${forfait.label.toLowerCase()}`)}
                   </p>
                 </div>
@@ -222,10 +222,10 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
         <AccordionItem value="propertyType" className={PANEL_CLASS}>
           <AccordionTrigger>
             <div className="flex items-center gap-1.5">
-              <span className="inline-flex text-[var(--mui-secondary)]"><Home size={20} strokeWidth={1.75} /></span>
+              <span className="inline-flex text-info"><Home size={20} strokeWidth={1.75} /></span>
               <div className="text-start">
-                <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.propertyType.title')}</h6>
-                <p className="cn-text-body2 text-muted-foreground">{t('tarification.propertyType.subtitle')}</p>
+                <h6 className="text-sm font-semibold">{t('tarification.propertyType.title')}</h6>
+                <p className="text-xs text-muted-foreground">{t('tarification.propertyType.subtitle')}</p>
               </div>
             </div>
           </AccordionTrigger>
@@ -259,10 +259,10 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
         <AccordionItem value="propertyCount" className={PANEL_CLASS}>
           <AccordionTrigger>
             <div className="flex items-center gap-1.5">
-              <span className="inline-flex text-[var(--bui-success-ink)]"><Home size={20} strokeWidth={1.75} /></span>
+              <span className="inline-flex text-success"><Home size={20} strokeWidth={1.75} /></span>
               <div className="text-start">
-                <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.propertyCount.title')}</h6>
-                <p className="cn-text-body2 text-muted-foreground">{t('tarification.propertyCount.subtitle')}</p>
+                <h6 className="text-sm font-semibold">{t('tarification.propertyCount.title')}</h6>
+                <p className="text-xs text-muted-foreground">{t('tarification.propertyCount.subtitle')}</p>
               </div>
             </div>
           </AccordionTrigger>
@@ -294,8 +294,8 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
             <div className="flex items-center gap-1.5">
               <span className="inline-flex text-primary"><People size={20} strokeWidth={1.75} /></span>
               <div className="text-start">
-                <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.guestCapacity.title')}</h6>
-                <p className="cn-text-body2 text-muted-foreground">{t('tarification.guestCapacity.subtitle')}</p>
+                <h6 className="text-sm font-semibold">{t('tarification.guestCapacity.title')}</h6>
+                <p className="text-xs text-muted-foreground">{t('tarification.guestCapacity.subtitle')}</p>
               </div>
             </div>
           </AccordionTrigger>
@@ -325,10 +325,10 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
         <AccordionItem value="frequency" className={PANEL_CLASS}>
           <AccordionTrigger>
             <div className="flex items-center gap-1.5">
-              <span className="inline-flex text-[var(--bui-warning-ink)]"><Speed size={20} strokeWidth={1.75} /></span>
+              <span className="inline-flex text-warning"><Speed size={20} strokeWidth={1.75} /></span>
               <div className="text-start">
-                <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.frequency.title')}</h6>
-                <p className="cn-text-body2 text-muted-foreground">{t('tarification.frequency.subtitle')}</p>
+                <h6 className="text-sm font-semibold">{t('tarification.frequency.title')}</h6>
+                <p className="text-xs text-muted-foreground">{t('tarification.frequency.subtitle')}</p>
               </div>
             </div>
           </AccordionTrigger>
@@ -360,8 +360,8 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
             <div className="flex items-center gap-1.5">
               <span className="inline-flex text-destructive"><SquareFoot size={20} strokeWidth={1.75} /></span>
               <div className="text-start">
-                <h6 className="cn-text-subtitle1 font-semibold">{t('tarification.surface.title')}</h6>
-                <p className="cn-text-body2 text-muted-foreground">{t('tarification.surface.subtitle')}</p>
+                <h6 className="text-sm font-semibold">{t('tarification.surface.title')}</h6>
+                <p className="text-xs text-muted-foreground">{t('tarification.surface.subtitle')}</p>
               </div>
             </div>
           </AccordionTrigger>

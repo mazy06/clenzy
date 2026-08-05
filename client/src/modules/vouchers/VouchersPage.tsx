@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { cn } from '../../utils/cn';
-import StatusChip, { STATUS_TONES, type ToneTokens } from '../../components/StatusChip';
+import StatusChip, { type ToneTokens } from '../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -38,24 +38,26 @@ import type {
 import VoucherAnalyticsPanel from './VoucherAnalyticsPanel';
 import VoucherEditorDialog from './VoucherEditorDialog';
 
-// ─── Tokens Signature : chips -soft par statut ───────────────────────────────
+// ─── Tons Baitly UI : chips -soft par statut (§2.4) ──────────────────────────
 
-/** Chip -soft (texte couleur + fond -soft) par statut de voucher. */
+/** Fond pastel `-soft` + texte `-ink` : la teinte vive ne passe pas AA en clair. */
+const TONE_INFO: ToneTokens = { color: 'var(--bui-info-ink)', bg: 'var(--bui-info-soft)' };
+const TONE_NEUTRAL: ToneTokens = { color: 'var(--bui-muted-foreground)', bg: 'var(--bui-field)' };
+
 const STATUS_TOKENS: Record<VoucherStatus, ToneTokens> = {
-  ACTIVE: STATUS_TONES.ok,
-  PAUSED: STATUS_TONES.warn,
-  DRAFT: STATUS_TONES.info,
-  EXPIRED: { color: 'var(--muted)', bg: 'var(--field)' },
+  ACTIVE: { color: 'var(--bui-success-ink)', bg: 'var(--bui-success-soft)' },
+  PAUSED: { color: 'var(--bui-warning-ink)', bg: 'var(--bui-warning-soft)' },
+  DRAFT: TONE_INFO,
+  EXPIRED: TONE_NEUTRAL,
 };
 
 /**
  * Code voucher — pattern .fr-dip (IP mono de la messagerie) :
- * mono display, fond --field, r6.
+ * mono display, fond de champ, rayon md.
  */
 const CODE_CLASS =
   'inline-block font-[family-name:var(--font-display)] text-[11.5px] tracking-[0.04em] tabular-nums ' +
-  'text-[var(--body)] bg-[var(--field)] border border-solid border-[var(--field-line)] ' +
-  'rounded-[6px] px-2 py-[3px]';
+  'text-foreground bg-field border border-solid border-field-line rounded-md px-2 py-[3px]';
 
 type FilterMode = 'all' | VoucherStatus;
 
@@ -243,7 +245,7 @@ export default function VouchersPage({
             )}
           />
         ) : (
-          <div className="overflow-x-auto rounded-[11px] bg-[var(--card)]">
+          <div className="overflow-x-auto rounded-xl bg-card">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -343,9 +345,9 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
     <TableRow>
       <TableCell>
         <div className="flex flex-col gap-[1.5px]">
-          <p className="cn-text-body2 font-semibold">{v.name}</p>
+          <p className="text-xs font-semibold">{v.name}</p>
           {v.description && (
-            <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
+            <span className="text-[0.7rem] text-muted-foreground">
               {v.description.slice(0, 80)}{v.description.length > 80 ? '…' : ''}
             </span>
           )}
@@ -353,35 +355,36 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
       </TableCell>
       <TableCell>
         {v.code ? (
-          <span className={`cn-text-body2 ${CODE_CLASS}`}>
+          <span className={CODE_CLASS}>
             {v.code}
           </span>
         ) : (
-          <StatusChip label={t('vouchers.autoCampaign')} tokens={STATUS_TONES.info} className="text-[10.5px] font-bold" />
+          <StatusChip label={t('vouchers.autoCampaign')} tokens={TONE_INFO} className="text-2xs font-semibold" />
         )}
       </TableCell>
       <TableCell>
         <StatusChip
           label={isAuto ? t('vouchers.typeAuto') : t('vouchers.typeManual')}
-          tokens={isAuto ? STATUS_TONES.info : { color: 'var(--muted)', bg: 'var(--field)' }}
-          className="text-[10.5px] font-bold"
+          tokens={isAuto ? TONE_INFO : TONE_NEUTRAL}
+          className="text-2xs font-semibold"
         />
       </TableCell>
       <TableCell>
-        <p className="cn-text-body2 font-medium tabular-nums">
+        <p className="text-xs font-medium tabular-nums">
           {formatDiscount(v.discountType, v.discountValue)}
         </p>
       </TableCell>
       <TableCell>
-        <span className="cn-text-caption text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           {formatValidity(v.validFrom, v.validUntil, locale)}
         </span>
       </TableCell>
       <TableCell className="text-center">
-        <p className="cn-text-body2 tabular-nums">
+        <p className="text-xs tabular-nums">
           {v.usageCount}
+          {/* Dénominateur en retrait : la valeur lue est le compteur d'usages. */}
           {v.maxUsesTotal !== null && (
-            <span className="cn-text-caption text-muted-foreground"> / {v.maxUsesTotal}</span>
+            <span className="text-2xs text-muted-foreground"> / {v.maxUsesTotal}</span>
           )}
         </p>
       </TableCell>
@@ -389,7 +392,7 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
         <StatusChip
           label={t(`vouchers.status.${v.status}`)}
           tokens={STATUS_TOKENS[v.status]}
-          className="text-[10.5px] font-bold"
+          className="text-2xs font-semibold"
         />
       </TableCell>
       <TableCell className="text-end">
@@ -426,7 +429,7 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
                   size="icon-sm"
                   onClick={onEdit}
                   aria-label={t('common.edit')}
-                  className="cursor-pointer hover:text-[var(--accent)]"
+                  className="cursor-pointer hover:text-primary"
                 >
                   <Edit size={16} strokeWidth={1.75} />
                 </Button>
@@ -443,7 +446,7 @@ const VoucherRow: React.FC<RowProps> = ({ voucher, locale, onEdit, onPause, onRe
                     size="icon-sm"
                     onClick={onDelete}
                     aria-label={t('common.delete')}
-                    className="cursor-pointer hover:text-[var(--err)]"
+                    className="cursor-pointer hover:text-destructive"
                   >
                     <Trash size={16} strokeWidth={1.75} />
                   </Button>

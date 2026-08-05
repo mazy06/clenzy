@@ -148,7 +148,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
             flex: 1 + overflow interne ; les pages classiques scrollent via ce container. */}
         <div
           className={cn(
-            'flex flex-col grow min-h-0 bg-[var(--bg)]',
+            'flex flex-col grow min-h-0 bg-background',
             fullBleed ? 'p-0 overflow-hidden' : 'p-[9px] min-[900px]:p-3 overflow-auto',
           )}
         >

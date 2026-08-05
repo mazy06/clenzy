@@ -27,11 +27,11 @@ export default function CommissionSection({ commission, canEdit, onChange }: Com
       <Separator className="my-4" />
       <div className="flex items-center gap-1.5 mb-2">
         <span className="inline-flex text-primary"><Percent size={20} strokeWidth={1.75} /></span>
-        <h6 className="cn-text-subtitle1 font-semibold">
+        <h6 className="text-sm font-semibold">
           {t('tarification.commission.title')}
         </h6>
       </div>
-      <p className="cn-text-body2 text-muted-foreground mb-3">
+      <p className="text-xs text-muted-foreground mb-3">
         {t('tarification.commission.subtitle')}
       </p>
       <div className="grid grid-cols-12 gap-3 items-center">

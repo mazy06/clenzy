@@ -83,8 +83,8 @@ const ContactTemplates: React.FC<ContactTemplatesProps> = ({ onSelectTemplate })
             className="whitespace-normal items-start py-[9px]"
           >
             <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="cn-text-body2">{template.label}</span>
-              <span className="cn-text-caption text-muted-foreground line-clamp-2">
+              <span className="text-sm font-medium">{template.label}</span>
+              <span className="text-xs text-muted-foreground line-clamp-2">
                 {template.text}
               </span>
             </div>

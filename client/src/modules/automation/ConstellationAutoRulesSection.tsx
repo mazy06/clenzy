@@ -16,7 +16,8 @@
    ============================================================ */
 
 import React, { useCallback } from 'react';
-import StatusChip from '../../components/StatusChip';
+import StatusChip, { type ToneTokens } from '../../components/StatusChip';
+import { cn } from '../../utils/cn';
 import {
   Button,
   Card,
@@ -40,7 +41,13 @@ import {
 } from '../supervision/useSupervisionAutoRules';
 import { useSupervisionReport } from '../supervision/core/useSupervisionReport';
 
-// Chips soft (pilule fond -soft + texte couleur — même pattern que la page).
+// Chips soft (fond `-soft` + texte `-ink` — Baitly UI §2.4, comme la page).
+const TONE_SUCCESS: ToneTokens = { color: 'var(--bui-success-ink)', bg: 'var(--bui-success-soft)' };
+const TONE_PRIMARY: ToneTokens = { color: 'var(--bui-primary)', bg: 'var(--bui-primary-soft)' };
+/** Puce « donnée brute » : encre de lecture sur fond de champ. */
+const TONE_PLAIN: ToneTokens = { color: 'var(--bui-foreground)', bg: 'var(--bui-field)' };
+/** Même puce, en sourdine quand la valeur n'est pas encore renseignée. */
+const TONE_MUTED: ToneTokens = { color: 'var(--bui-muted-foreground)', bg: 'var(--bui-field)' };
 
 /** Lit une borne entière de l'enveloppe JSON (repli sur le défaut serveur). */
 function envelopeInt(envelope: string | null, key: string, defaultValue: number): number {
@@ -120,11 +127,11 @@ const ConstellationAutoRulesSection: React.FC = () => {
   return (
     <div className="mt-6">
       <div className="flex items-center gap-1.5 mb-0.5">
-        <p className="cn-text-body1 text-[0.95rem] font-semibold text-[var(--ink)]">
+        <p className="text-base font-semibold tracking-tight text-balance text-foreground">
           {t('automation.constellation.title', 'Constellation — actions automatiques')}
         </p>
       </div>
-      <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground mb-2">
+      <p className="mb-2 text-[0.8125rem] text-muted-foreground">
         {t(
           'automation.constellation.subtitle',
           'Les agents appliquent eux-mêmes certaines actions sûres, sous enveloppe. Le niveau de chaque agent reste le plafond ; hors enveloppe, une carte à valider est créée comme aujourd’hui.',
@@ -153,7 +160,7 @@ const ConstellationAutoRulesSection: React.FC = () => {
           );
 
           return (
-            <div className="grid grid-cols-[auto_minmax(220px,_1.6fr)_auto_minmax(150px,_auto)_auto_auto] items-center gap-x-[9px] px-3 py-[7.5px] min-w-[760px]" style={{ borderTop: idx === 0 ? 'none' : '1px solid var(--hairline)' }} key={rule.actionType}>
+            <div className={cn('grid grid-cols-[auto_minmax(220px,_1.6fr)_auto_minmax(150px,_auto)_auto_auto] items-center gap-x-[9px] px-3 py-[7.5px] min-w-[760px]', idx > 0 && 'border-t border-solid border-border')} key={rule.actionType}>
               {cappedToSuggest ? (
                 <Tooltip>
                   <TooltipTrigger asChild>{switchCell}</TooltipTrigger>
@@ -168,26 +175,26 @@ const ConstellationAutoRulesSection: React.FC = () => {
               )}
 
               <div className="min-w-0">
-                <p className="cn-text-body1 truncate text-[0.8125rem] font-semibold text-[var(--ink)]">
+                <p className="truncate text-[0.8125rem] font-semibold text-foreground">
                   {t(`automation.constellation.types.${rule.actionType}.label`, rule.actionType)}
                 </p>
-                <p className="cn-text-body1 truncate text-[0.6875rem] text-muted-foreground">
+                <p className="truncate text-[0.6875rem] text-muted-foreground">
                   {t(`automation.constellation.types.${rule.actionType}.description`, '')}
                 </p>
                 {t(`automation.constellation.types.${rule.actionType}.conditions`, '') !== '' && (
-                  <p className="cn-text-body1 truncate text-[0.6875rem] text-[var(--muted)]">
+                  <p className="truncate text-[0.6875rem] text-muted-foreground">
                     {t(`automation.constellation.types.${rule.actionType}.conditions`, '')}
                   </p>
                 )}
                 {cappedToSuggest && (
-                  <p className="cn-text-body1 text-[0.6875rem] text-[var(--warn)] font-semibold">
+                  <p className="text-[0.6875rem] font-semibold text-warning-ink">
                     {t('automation.constellation.cappedBySuggest',
                       'Plafonné par le niveau de l’agent {{agent}} : Suggestion',
                       { agent: moduleLabel })}
                   </p>
                 )}
                 {!cappedToSuggest && ceiling === 'notify' && rule.level === 'full' && (
-                  <p className="cn-text-body1 text-[0.6875rem] text-[var(--warn)] font-semibold">
+                  <p className="text-[0.6875rem] font-semibold text-warning-ink">
                     {t('automation.constellation.cappedByNotify',
                       'Plafonné par le niveau de l’agent {{agent}} : Agir puis notifier',
                       { agent: moduleLabel })}
@@ -197,7 +204,7 @@ const ConstellationAutoRulesSection: React.FC = () => {
                     — INERTE, l'humain active ou ignore. Jamais sur un type déjà ON. */}
                 {!rule.enabled && rule.suggestedAt && (
                   <div className="flex items-center gap-1 mt-0.5">
-                    <StatusChip pill tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label={t('automation.constellation.recommended',
+                    <StatusChip pill tokens={TONE_SUCCESS} label={t('automation.constellation.recommended',
                         'Recommandé — {{count}} approbations consécutives',
                         { count: rule.consecutiveApprovals })} className="tabular-nums" />
                     {canEdit && (
@@ -215,7 +222,7 @@ const ConstellationAutoRulesSection: React.FC = () => {
                         <Button
                           variant="ghost"
                           size="xs"
-                          className="text-[var(--muted)]"
+                          className="text-muted-foreground"
                           onClick={() => dismissSuggestionMutation.mutate(rule.actionType)}
                           disabled={updateMutation.isPending || dismissSuggestionMutation.isPending}
                         >
@@ -227,14 +234,14 @@ const ConstellationAutoRulesSection: React.FC = () => {
                 )}
               </div>
 
-              <StatusChip pill tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }} label={moduleLabel} />
+              <StatusChip pill tokens={TONE_PRIMARY} label={moduleLabel} />
 
               {/* Taux d'acceptation du type (30 j) — aide à la décision d'activation. */}
               <Tooltip>
                 {/* StatusChip ne transmet pas de ref : span d'ancrage. */}
                 <TooltipTrigger asChild>
                   <span className="inline-flex">
-                    <StatusChip pill tokens={{ color: decided > 0 ? 'var(--body)' : 'var(--muted)', bg: 'var(--field)' }} label={decided > 0
+                    <StatusChip pill tokens={decided > 0 ? TONE_PLAIN : TONE_MUTED} label={decided > 0
                         ? `${t('automation.constellation.acceptance', 'Acceptation')} ${Math.round((acceptance?.acceptanceRate ?? 0) * 100)} % · ${decided}`
                         : t('automation.constellation.noDecisions', 'Pas encore de décision')} className="tabular-nums" />
                   </span>

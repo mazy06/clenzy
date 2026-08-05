@@ -45,13 +45,16 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
   const pct = (v: number | null) => (v == null ? '—' : `${Math.round(v)} %`);
 
   const noMarket = data.positioning === 'NO_MARKET_DATA';
+  // Encre AA (`-ink`) et non la teinte vive : la meme valeur sert de couleur de
+  // TEXTE dans la puce et de base du fond `color-mix` — la teinte vive y serait
+  // sous le seuil de contraste.
   const color = noMarket
-    ? 'var(--muted)'
+    ? 'var(--color-muted-foreground)'
     : data.positioning === 'UNDERPRICED'
-      ? 'var(--ok)'
+      ? 'var(--color-success-ink)'
       : data.positioning === 'OVERPRICED'
-        ? 'var(--warn)'
-        : 'var(--accent)';
+        ? 'var(--color-warning-ink)'
+        : 'var(--color-primary)';
   const Icon = data.positioning === 'UNDERPRICED'
     ? TrendingUp
     : data.positioning === 'OVERPRICED'
@@ -68,7 +71,7 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
   return (
     <Card className="gap-0 py-0 p-2.5">
       <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-        <h6 className="cn-text-subtitle2 font-bold">
+        <h6 className="text-sm font-semibold tracking-tight text-balance">
           {t('marketPositioning.title', 'Positionnement marché')}
           {data.area ? ` — ${data.area}` : ''}
         </h6>
@@ -89,7 +92,7 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
                 primitive Badge (simple fonction) ne transmet pas. */}
             <TooltipTrigger asChild>
               <span className="inline-flex">
-                <Badge variant="outline" className="text-[var(--muted)] border-[var(--line)]"><Info size={13} />{`${SOURCE_LABEL[data.source] ?? data.source} · ${
+                <Badge variant="outline" className="text-muted-foreground border-border"><Info size={13} />{`${SOURCE_LABEL[data.source] ?? data.source} · ${
                     data.confidence != null ? `${Math.round(data.confidence * 100)} %` : '—'}`}</Badge>
               </span>
             </TooltipTrigger>
@@ -120,7 +123,7 @@ const MarketPositioningCard: React.FC<{ propertyId: number }> = ({ propertyId })
         />
       </div>
 
-      <span className="cn-text-caption text-[var(--muted)] block mt-1.5">
+      <span className="text-xs text-muted-foreground block mt-1.5">
         {data.headline}
       </span>
     </Card>
@@ -135,18 +138,18 @@ const SignalBlock: React.FC<{
   occLabel: string;
   muted?: boolean;
 }> = ({ label, adr, occ, adrLabel, occLabel, muted }) => (
-  <div className={cn('p-[7.5px] rounded-[8px] border border-solid border-[var(--line)]', muted ? 'bg-[transparent]' : 'bg-[color-mix(in_srgb,_var(--accent)_5%,_transparent)]')}>
-    <span className="cn-text-caption text-[var(--muted)] block mb-0.5">
+  <div className={cn('p-[7.5px] rounded-md border border-solid border-border', muted ? 'bg-transparent' : 'bg-primary-soft')}>
+    <span className="text-xs text-muted-foreground block mb-0.5">
       {label}
     </span>
     <div className="flex gap-3">
       <div>
-        <span className="cn-text-caption text-[var(--muted)]">{adrLabel}</span>
-        <p className={cn(NUM_CLASS, 'cn-text-body1 font-bold')}>{adr}</p>
+        <span className="text-xs text-muted-foreground">{adrLabel}</span>
+        <p className={cn(NUM_CLASS, 'text-sm font-semibold')}>{adr}</p>
       </div>
       <div>
-        <span className="cn-text-caption text-[var(--muted)]">{occLabel}</span>
-        <p className={cn(NUM_CLASS, 'cn-text-body1 font-bold')}>{occ}</p>
+        <span className="text-xs text-muted-foreground">{occLabel}</span>
+        <p className={cn(NUM_CLASS, 'text-sm font-semibold')}>{occ}</p>
       </div>
     </div>
   </div>

@@ -13,6 +13,7 @@ import {
   FieldLabel,
   Input,
   NativeSelect,
+  NativeSelectOption,
   useComboboxAnchor,
 } from '../../components/ui';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -64,9 +65,9 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
   );
 
   return (
-    <div className="border border-[var(--line)] rounded-[12px] p-2">
+    <div className="rounded-xl border border-solid border-border p-2">
       {/* Section overline (pattern .rm-sec des modales) */}
-      <span className="cn-text-caption text-[var(--faint)] font-bold text-[10.5px] uppercase tracking-[0.06em] block mb-2">
+      <span className="mb-2 block text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
         {t('automation.form.conditionsSection', 'Conditions (optionnel)')}
       </span>
 
@@ -165,13 +166,13 @@ const ConditionsEditor: React.FC<ConditionsEditorProps> = ({ value, onChange }) 
               update({ guestLanguage: (e.target.value || undefined) as GuestLanguage | undefined })
             }
           >
-            <option value="">
+            <NativeSelectOption value="">
               {t('automation.form.guestLanguageAny', 'Toutes les langues')}
-            </option>
+            </NativeSelectOption>
             {LANGUAGE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
+              <NativeSelectOption key={opt.value} value={opt.value}>
                 {t(opt.key, opt.fallback)}
-              </option>
+              </NativeSelectOption>
             ))}
           </NativeSelect>
         </Field>

@@ -92,12 +92,12 @@ export default function TabTravaux({ items, canEdit, onItemsChange, currencySymb
   return (
     <div className="pt-3">
       <div className="flex items-center gap-1.5 mb-1.5">
-        <span className="inline-flex text-[var(--bui-warning-ink)]"><Build size={20} strokeWidth={1.75} /></span>
-        <h6 className="cn-text-subtitle1 font-semibold">
+        <span className="inline-flex text-warning"><Build size={20} strokeWidth={1.75} /></span>
+        <h6 className="text-sm font-semibold">
           {title ?? t('tarification.travaux.title')}
         </h6>
       </div>
-      <p className="cn-text-body2 text-muted-foreground mb-3">
+      <p className="text-xs text-muted-foreground mb-3">
         {subtitle ?? t('tarification.travaux.subtitle')}
       </p>
 
@@ -118,9 +118,9 @@ export default function TabTravaux({ items, canEdit, onItemsChange, currencySymb
                 <TableRow>
                   <TableCell
                     colSpan={canEdit ? 4 : 3}
-                    className="py-[4.5px] bg-[var(--field)]"
+                    className="py-[4.5px] bg-field"
                   >
-                    <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
+                    <p className="text-2xs font-semibold uppercase tracking-wide text-faint">
                       {domain}
                     </p>
                   </TableCell>
@@ -170,7 +170,7 @@ export default function TabTravaux({ items, canEdit, onItemsChange, currencySymb
                           size="icon-sm"
                           aria-label={t('tarification.travaux.remove', 'Supprimer') + ' — ' + labelOf(item)}
                           onClick={() => removeItem(index)}
-                          className="text-[var(--err)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+                          className="text-destructive hover:text-destructive hover:bg-destructive-soft"
                         >
                           <Delete size={16} strokeWidth={1.75} />
                         </Button>

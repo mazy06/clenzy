@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip, { type StatusTone } from '../../components/StatusChip';
-import { Badge, Button } from '../../components/ui';
+import { Badge, Button, Card } from '../../components/ui';
 import { Alert, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Skeleton, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
@@ -26,10 +26,8 @@ interface AiPricingRecommendationsProps {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-// Pendant en classes de l'ancien CARD_SX (p: 1.5 = 9 px, theme.spacing vaut 6).
-const CARD_CLASS =
-  'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] p-[9px] '
-  + 'transition-[border-color] duration-150 ease-[ease] hover:border-[var(--line-2)]';
+/** Densité de la carte : la surface vient de la primitive `Card`, le rythme d'ici. */
+const PANEL_CLASS = 'gap-0 py-0 p-[9px]';
 
 function isAiNotConfiguredError(error: unknown): boolean {
   const apiErr = error as { details?: Record<string, unknown> } | undefined;
@@ -42,6 +40,17 @@ function confidenceTone(confidence: number): StatusTone {
   if (confidence >= 0.4) return 'warn';
   return 'err';
 }
+
+/** En-tête commun aux quatre états du panneau (chargement, erreur, vide, contenu). */
+const PanelHeading: React.FC<{ title: string; count?: number }> = ({ title, count }) => (
+  <div className="flex items-center gap-1.5 mb-[9px]">
+    <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
+    <h6 className="text-xs font-semibold tracking-tight">{title}</h6>
+    {count != null && (
+      <Badge variant="default" className="h-5 text-2xs font-semibold tabular-nums">{`${count}`}</Badge>
+    )}
+  </div>
+);
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -59,19 +68,14 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
     // ── Loading state ─────────────────────────────────────────────────
     if (isLoading) {
       return (
-        <div className={CARD_CLASS}>
-          <div className="flex items-center gap-1.5 mb-[9px]">
-            <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
-            <h6 className="cn-text-subtitle2 font-bold text-[0.8rem]">
-              {t('bookingEngine.ai.pricing.title')}
-            </h6>
-          </div>
+        <Card className={PANEL_CLASS}>
+          <PanelHeading title={t('bookingEngine.ai.pricing.title')} />
           <div className="flex flex-col gap-1.5">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-[48px] rounded-[8px]" />
+              <Skeleton key={i} className="h-[48px] rounded-md" />
             ))}
           </div>
-        </div>
+        </Card>
       );
     }
 
@@ -80,17 +84,12 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
       const aiNotConfigured = isAiNotConfiguredError(error);
 
       return (
-        <div className={CARD_CLASS}>
-          <div className="flex items-center gap-1.5 mb-[9px]">
-            <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
-            <h6 className="cn-text-subtitle2 font-bold text-[0.8rem]">
-              {t('bookingEngine.ai.pricing.title')}
-            </h6>
-          </div>
+        <Card className={PANEL_CLASS}>
+          <PanelHeading title={t('bookingEngine.ai.pricing.title')} />
           {aiNotConfigured ? (
-            <Alert variant="info" className="text-[0.75rem]">
+            <Alert variant="info" className="text-xs">
               <Info />
-              <AlertDescription><p className="cn-text-body2 text-[0.75rem] mb-1.5">
+              <AlertDescription><p className="text-xs mb-1.5">
                 {t('bookingEngine.ai.guidance.pricing.text')}
               </p><Button
                 size="xs"
@@ -102,56 +101,45 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
               </Button></AlertDescription>
             </Alert>
           ) : (
-            <Alert variant="destructive" className="text-[0.75rem]">
+            <Alert variant="destructive" className="text-xs">
               <TriangleAlert />
               <AlertDescription>{t('common.error')}</AlertDescription>
             </Alert>
           )}
-        </div>
+        </Card>
       );
     }
 
     // ── Empty state ───────────────────────────────────────────────────
     if (!data || data.length === 0) {
       return (
-        <div className={CARD_CLASS}>
-          <div className="flex items-center gap-1.5 mb-[9px]">
-            <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
-            <h6 className="cn-text-subtitle2 font-bold text-[0.8rem]">
-              {t('bookingEngine.ai.pricing.title')}
-            </h6>
-          </div>
-          <p className="cn-text-body2 text-[var(--muted)] text-[0.75rem]">
+        <Card className={PANEL_CLASS}>
+          <PanelHeading title={t('bookingEngine.ai.pricing.title')} />
+          <p className="text-xs text-muted-foreground">
             {t('bookingEngine.ai.pricing.loading')}
           </p>
-        </div>
+        </Card>
       );
     }
 
     // ── Content ───────────────────────────────────────────────────────
     return (
-      <div className={CARD_CLASS}>
-        <div className="flex items-center gap-1.5 mb-[9px]">
-          <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
-          <h6 className="cn-text-subtitle2 font-bold text-[0.8rem]">
-            {t('bookingEngine.ai.pricing.title')}
-          </h6>
-          <Badge variant="default" className="h-[20px] text-[0.65rem] font-bold">{`${data.length}`}</Badge>
-        </div>
+      <Card className={PANEL_CLASS}>
+        <PanelHeading title={t('bookingEngine.ai.pricing.title')} count={data.length} />
 
         <div className="flex flex-col gap-1.5">
           {data.map((rec) => (
-            <div className="flex items-center gap-2 p-1.5 rounded-[8px] bg-[var(--hover)]" key={rec.date}>
+            <div className="flex items-center gap-2 p-1.5 rounded-md bg-muted" key={rec.date}>
               {/* Date */}
               <div className="min-w-[60px]">
-                <span className="cn-text-caption font-semibold text-[0.7rem]">
+                <span className="text-[0.7rem] font-semibold tabular-nums">
                   {rec.date}
                 </span>
               </div>
 
               {/* Suggested Price */}
               <div className="min-w-[70px] text-end">
-                <p className="cn-text-body2 font-bold text-[0.85rem] text-[var(--mui-primary)]">
+                <p className="text-sm font-semibold text-primary tabular-nums">
                   {rec.suggestedPrice.toFixed(0)} €
                 </p>
               </div>
@@ -176,7 +164,7 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
               </Tooltip>
 
               {/* Explanation */}
-              <span className="cn-text-caption flex-1 truncate text-[0.7rem] text-[var(--muted)]">
+              <span className="flex-1 truncate text-[0.7rem] text-muted-foreground">
                 {rec.explanation}
               </span>
             </div>
@@ -185,13 +173,13 @@ const AiPricingRecommendations: React.FC<AiPricingRecommendationsProps> = React.
 
         {/* Market comparison from first recommendation */}
         {data[0]?.marketComparison && (
-          <div className="mt-2 pt-1.5 border-t border-[var(--line)]">
-            <span className="cn-text-caption text-[var(--muted)] text-[0.7rem]">
+          <div className="mt-2 pt-1.5 border-t border-border">
+            <span className="text-[0.7rem] text-muted-foreground">
               {t('bookingEngine.ai.pricing.marketComparison')}: {data[0].marketComparison}
             </span>
           </div>
         )}
-      </div>
+      </Card>
     );
   },
 );
