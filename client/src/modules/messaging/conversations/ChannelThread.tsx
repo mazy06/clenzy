@@ -66,6 +66,7 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
   const [attachOpen, setAttachOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [guestOpen, setGuestOpen] = useState(false);
+  const [internalNote, setInternalNote] = useState(false);
 
   const { data: messagesData, isLoading } = useConversationMessages(conv.id);
   const sendMessageMutation = useSendMessage();
@@ -78,6 +79,9 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
   // Reset du brouillon au changement de conversation.
   useEffect(() => {
     setDraft('');
+    // Changer de conversation remet la bascule a zero : une note destinee a un
+    // dossier ne doit pas rester armee sur le suivant.
+    setInternalNote(false);
   }, [conv.id]);
 
   // Concierge IA : brouillon de réponse pré-rédigé, à valider par l'opérateur
@@ -98,6 +102,7 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
         text: msg.content,
         at: msg.sentAt,
         sender: msg.senderName,
+        internalNote: msg.internalNote,
       })),
     [messagesData],
   );
@@ -121,8 +126,16 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
 
   const handleSend = () => {
     sendMessageMutation.mutate(
-      { conversationId: conv.id, content: draft.trim() },
-      { onSuccess: () => setDraft('') },
+      { conversationId: conv.id, content: draft.trim(), internalNote },
+      {
+        onSuccess: () => {
+          setDraft('');
+          // La bascule NE se réarme pas : laisser « note interne » actif après
+          // envoi ferait passer la réponse suivante pour une note, et le
+          // voyageur ne la recevrait jamais sans que personne s'en aperçoive.
+          setInternalNote(false);
+        },
+      },
     );
   };
 
@@ -276,7 +289,13 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
             ? t('messagingHub.whatsappWindowPlaceholder', 'Réponse libre indisponible (template requis)')
             : t('messagingHub.replyTo', 'Répondre à {{name}}…', { name: conv.guestName || badge.label })
         }
-        composeDisabled={whatsappWindowExpired}
+        internalNote={internalNote}
+        onInternalNoteChange={setInternalNote}
+        // La fenêtre WhatsApp de 24 h interdit d'ÉCRIRE AU VOYAGEUR. Une note
+        // interne ne lui est pas transmise : elle reste donc permise, et c'est
+        // même là qu'elle sert le plus — consigner le contexte quand on ne peut
+        // pas répondre.
+        composeDisabled={whatsappWindowExpired && !internalNote}
         composeNotice={
           aiDraft || whatsappWindowExpired ? (
             <>

@@ -42,6 +42,8 @@ export interface ConversationMessageDto {
   deliveryStatus: string;
   sentAt: string;
   readAt: string | null;
+  /** true = note d'equipe, consignee dans le fil sans etre transmise au voyageur. */
+  internalNote: boolean;
 }
 
 export interface PageResponse<T> {
@@ -100,7 +102,7 @@ export const conversationApi = {
   /** Envoyer un message dans une conversation */
   sendMessage: (
     conversationId: number,
-    data: { content: string; contentHtml?: string },
+    data: { content: string; contentHtml?: string; internalNote?: boolean },
   ): Promise<ConversationMessageDto> =>
     apiClient.post(`${BASE}/${conversationId}/messages`, data),
 

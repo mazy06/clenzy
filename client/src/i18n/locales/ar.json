@@ -6912,6 +6912,7 @@
     "attachment": "مرفق",
     "noMessages": "لا توجد رسائل في هذه المحادثة",
     "internalNote": "ملاحظة داخلية (غير مرئية للضيف)",
-    "internalNotePlaceholder": "ملاحظة للفريق…"
+    "internalNotePlaceholder": "ملاحظة للفريق…",
+    "internalNoteBadge": "ملاحظة داخلية"
   }
 }

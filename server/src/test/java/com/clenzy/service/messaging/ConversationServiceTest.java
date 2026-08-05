@@ -495,4 +495,75 @@ class ConversationServiceTest {
         verify(whatsAppChannel, never()).send(any());
         assertThat(result.getDeliveryStatus()).isEqualTo("WINDOW_EXPIRED");
     }
+
+    // ─── Note interne ────────────────────────────────────────────────────────
+
+    private Conversation whatsappConversationWithGuest() {
+        Guest guest = new Guest();
+        guest.setId(9L);
+        guest.setPhone("+212600000000");
+        Conversation conv = new Conversation();
+        conv.setId(77L);
+        conv.setOrganizationId(1L);
+        conv.setChannel(ConversationChannel.WHATSAPP);
+        conv.setStatus(ConversationStatus.OPEN);
+        conv.setMessageCount(3);
+        conv.setGuest(guest);
+        return conv;
+    }
+
+    @Test
+    void sendInternalNote_neverReachesTheChannel() {
+        // LA garantie de la fonctionnalite : meme sur une conversation WhatsApp
+        // parfaitement livrable (guest + numero present), rien ne part.
+        Conversation conv = whatsappConversationWithGuest();
+        when(messageRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        ConversationMessage note = service.sendInternalNote(
+            conv, "Jean", "kc-host", "Client deja venu, exigeant sur le bruit");
+
+        verify(whatsAppChannel, never()).send(any());
+        assertThat(note.isInternalNote()).isTrue();
+        assertThat(note.getDeliveryStatus()).isEqualTo("INTERNAL");
+    }
+
+    @Test
+    void sendInternalNote_doesNotCountAsHumanTakeover() {
+        // Ecrire une note pour l'equipe n'est pas repondre au voyageur : la
+        // compter fausserait la mesure de reprise humaine de l'assistant.
+        Conversation conv = whatsappConversationWithGuest();
+        when(messageRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.sendInternalNote(conv, "Jean", "kc-host", "A rappeler demain");
+
+        verify(outcomeTracker, never()).recordManualMessage(any(), any());
+    }
+
+    @Test
+    void sendInternalNote_doesNotOverwriteConversationPreview() {
+        // La liste doit continuer d'afficher le dernier echange REEL : sinon une
+        // note interne masquerait la derniere question du voyageur.
+        Conversation conv = whatsappConversationWithGuest();
+        conv.setLastMessagePreview("Et pour le parking ?");
+        when(messageRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.sendInternalNote(conv, "Jean", "kc-host", "Voir avec le gardien");
+
+        assertThat(conv.getLastMessagePreview()).isEqualTo("Et pour le parking ?");
+        verify(conversationRepository, never()).save(any());
+    }
+
+    @Test
+    void sendInternalNote_isBroadcastToOperators() {
+        // L'evenement WebSocket est diffuse sur le topic de l'ORGANISATION :
+        // il fait apparaitre la note chez les collegues, jamais chez le voyageur.
+        Conversation conv = whatsappConversationWithGuest();
+        when(messageRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.sendInternalNote(conv, "Jean", "kc-host", "Note");
+
+        ArgumentCaptor<ConversationMessage> captor = ArgumentCaptor.forClass(ConversationMessage.class);
+        verify(eventPublisher).publishNewMessage(eq(conv), captor.capture());
+        assertThat(captor.getValue().isInternalNote()).isTrue();
+    }
 }

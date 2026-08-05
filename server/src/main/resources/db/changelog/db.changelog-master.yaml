@@ -3722,3 +3722,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0395__tax_filings_per_property.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0396-conversation-messages-internal-note"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0396__conversation_messages_internal_note.sql
+        relativeToChangelogFile: true

@@ -7187,6 +7187,7 @@
     "attachment": "Pièce jointe",
     "noMessages": "Aucun message dans cette conversation",
     "internalNote": "Note interne (invisible pour le voyageur)",
-    "internalNotePlaceholder": "Note pour l'équipe…"
+    "internalNotePlaceholder": "Note pour l'équipe…",
+    "internalNoteBadge": "Note interne"
   }
 }

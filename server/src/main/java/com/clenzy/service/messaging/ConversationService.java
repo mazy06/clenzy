@@ -214,6 +214,54 @@ public class ConversationService {
     }
 
     /**
+     * NOTE INTERNE : consignee dans le fil, JAMAIS transmise au voyageur.
+     *
+     * <p>Methode distincte de {@link #sendOutboundMessage} plutot qu'un drapeau
+     * en parametre : la difference n'est pas cosmetique, c'est l'absence de tout
+     * effet externe. Un {@code if (internal) return;} au milieu du chemin d'envoi
+     * aurait laisse la livraison canal a une ligne d'inattention de la note.</p>
+     *
+     * <p>Ce qui est volontairement ABSENT par rapport a l'envoi reel :</p>
+     * <ul>
+     *   <li>aucune livraison canal ({@code deliverViaWhatsApp}) — c'est la
+     *       garantie centrale de la fonctionnalite ;</li>
+     *   <li>aucun comptage de « reprise humaine » : ecrire une note pour
+     *       l'equipe n'est pas repondre au voyageur, et fausserait la mesure ;</li>
+     *   <li>aucune mise a jour de l'apercu de la conversation : la liste doit
+     *       continuer d'afficher le dernier echange REEL, sinon une note
+     *       interne masquerait la derniere question du voyageur.</li>
+     * </ul>
+     *
+     * <p>L'evenement WebSocket, lui, est bien publie : il est diffuse sur le
+     * topic de l'ORGANISATION, donc aux seuls operateurs — c'est ce qui fait
+     * apparaitre la note en direct dans les autres onglets de l'equipe.</p>
+     */
+    @Transactional
+    public ConversationMessage sendInternalNote(Conversation conversation,
+                                                  String senderName,
+                                                  String senderKeycloakId,
+                                                  String content) {
+        ConversationMessage msg = new ConversationMessage();
+        msg.setOrganizationId(conversation.getOrganizationId());
+        msg.setConversation(conversation);
+        msg.setDirection(MessageDirection.OUTBOUND);
+        msg.setChannelSource(conversation.getChannel());
+        msg.setSenderName(senderName);
+        msg.setSenderIdentifier(senderKeycloakId);
+        msg.setContent(content);
+        msg.setInternalNote(true);
+        // Une note n'est pas « livree » : elle est consignee.
+        msg.setDeliveryStatus("INTERNAL");
+        msg.setSentAt(LocalDateTime.now());
+
+        msg = messageRepository.save(msg);
+
+        eventPublisher.publishNewMessage(conversation, msg);
+
+        return msg;
+    }
+
+    /**
      * Envoi AUTONOME (concierge IA, C2) : réponse générée + envoyée par l'agent,
      * étiquetée IA. Distinct de {@link #sendOutboundMessage} : ne compte PAS une
      * « reprise humaine » (ce n'est pas une action opérateur). Même livraison

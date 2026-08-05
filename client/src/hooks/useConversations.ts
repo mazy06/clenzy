@@ -66,11 +66,14 @@ export function useSendMessage() {
       conversationId,
       content,
       contentHtml,
+      internalNote,
     }: {
       conversationId: number;
       content: string;
       contentHtml?: string;
-    }) => conversationApi.sendMessage(conversationId, { content, contentHtml }),
+      /** true = note d'équipe : consignée dans le fil, jamais envoyée au voyageur. */
+      internalNote?: boolean;
+    }) => conversationApi.sendMessage(conversationId, { content, contentHtml, internalNote }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: conversationKeys.all });
     },

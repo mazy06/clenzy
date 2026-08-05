@@ -7163,6 +7163,7 @@
     "attachment": "Attachment",
     "noMessages": "No message in this conversation",
     "internalNote": "Internal note (hidden from the guest)",
-    "internalNotePlaceholder": "Note for the team…"
+    "internalNotePlaceholder": "Note for the team…",
+    "internalNoteBadge": "Internal note"
   }
 }

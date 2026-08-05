@@ -276,4 +276,6 @@ export interface ThreadMessage {
   sender?: string | null;
   /** Noms de fichiers joints (messagerie interne). */
   attachments?: string[];
+  /** true = note d'équipe, consignée dans le fil sans avoir été transmise. */
+  internalNote?: boolean;
 }

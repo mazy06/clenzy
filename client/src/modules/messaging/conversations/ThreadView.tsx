@@ -21,6 +21,7 @@ import {
   MessageFooter,
   MessageGroup,
   Spinner,
+  Switch,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -32,6 +33,7 @@ import {
   MoreHoriz as MoreHorizIcon,
   Send as SendIcon,
   Description as FileIcon,
+  Note as NoteIcon,
 } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { type ThreadMessage, dayLabel, formatMsgTime } from './unified';
@@ -80,6 +82,13 @@ interface ThreadViewProps {
   composeExtra?: React.ReactNode;
   /** Boutons dans la boîte de composition (trombone, étincelles IA). */
   composeTools?: React.ReactNode;
+  /**
+   * Bascule « note interne ». Fournie uniquement par les fils où le serveur sait
+   * consigner une note sans la transmettre (conversations voyageur) : la boîte
+   * s'ambre et le message part en note d'équipe.
+   */
+  internalNote?: boolean;
+  onInternalNoteChange?: (value: boolean) => void;
   /** Retour mobile (master-detail). */
   showBack?: boolean;
   onBack?: () => void;
@@ -119,6 +128,8 @@ export default function ThreadView({
   composeNotice,
   composeExtra,
   composeTools,
+  internalNote = false,
+  onInternalNoteChange,
   showBack = false,
   onBack,
 }: ThreadViewProps) {
@@ -263,7 +274,27 @@ export default function ThreadView({
                       </MessageAvatar>
                     )}
                     <MessageContent>
-                      {msg.text && <span className="whitespace-pre-wrap break-words">{msg.text}</span>}
+                      {/* Une note interne DOIT se distinguer d'un message envoyé :
+                          l'opérateur qui relit le fil doit voir d'un coup d'œil ce
+                          que le voyageur a reçu et ce qu'il n'a pas reçu. */}
+                      {msg.internalNote && (
+                        <Badge variant="warning" className="w-fit">
+                          <NoteIcon size={11} strokeWidth={2} />
+                          {t('messagingHub.internalNoteBadge', 'Note interne')}
+                        </Badge>
+                      )}
+
+                      {msg.text && (
+                        <span
+                          className={cn(
+                            'whitespace-pre-wrap break-words',
+                            msg.internalNote &&
+                              'rounded-lg border border-warning/40 bg-warning-soft/30 px-2.5 py-1.5',
+                          )}
+                        >
+                          {msg.text}
+                        </span>
+                      )}
 
                       {msg.attachments && msg.attachments.length > 0 && (
                         <span className="flex flex-col gap-1.5">
@@ -300,10 +331,37 @@ export default function ThreadView({
         {composeNotice}
         {composeExtra}
 
-        <InputGroup>
+        {onInternalNoteChange && (
+          <div className="mb-1.5 flex items-center gap-2">
+            <Switch
+              id="msg-internal-note"
+              checked={internalNote}
+              onCheckedChange={onInternalNoteChange}
+              className="cursor-pointer"
+            />
+            <label
+              htmlFor="msg-internal-note"
+              className={cn(
+                'flex cursor-pointer items-center gap-1 text-xs',
+                internalNote ? 'text-warning-ink' : 'text-muted-foreground',
+              )}
+            >
+              <NoteIcon size={13} strokeWidth={1.75} />
+              {t('messagingHub.internalNote', 'Note interne (invisible pour le voyageur)')}
+            </label>
+          </div>
+        )}
+
+        {/* La teinte ambre est le SEUL rappel que le message ne partira pas au
+            voyageur : sans elle, rien ne distingue une note d'une reponse. */}
+        <InputGroup className={cn(internalNote && 'border-warning/50 bg-warning-soft/30')}>
           <InputGroupTextarea
             rows={2}
-            placeholder={composePlaceholder}
+            placeholder={
+              internalNote
+                ? t('messagingHub.internalNotePlaceholder', "Note pour l'équipe…")
+                : composePlaceholder
+            }
             value={draft}
             disabled={composeDisabled}
             onChange={(e) => onDraftChange(e.target.value)}

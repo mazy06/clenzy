@@ -22,7 +22,7 @@ class ConversationMessageDtoTest {
             "Operator", "+33612345678",
             "Hello!", "<p>Hello!</p>",
             "ext-msg-id", "DELIVERED",
-            sentAt, readAt
+            sentAt, readAt, false
         );
 
         assertEquals(1L, dto.id());
@@ -37,6 +37,9 @@ class ConversationMessageDtoTest {
         assertEquals("DELIVERED", dto.deliveryStatus());
         assertEquals(sentAt, dto.sentAt());
         assertEquals(readAt, dto.readAt());
+        // Un message reel n'est PAS une note interne : le defaut doit rester
+        // false, sinon un message envoye au voyageur serait masque dans le fil.
+        assertEquals(false, dto.internalNote());
     }
 
     @Test
@@ -100,10 +103,10 @@ class ConversationMessageDtoTest {
         LocalDateTime sentAt = LocalDateTime.of(2026, 1, 1, 0, 0);
         ConversationMessageDto a = new ConversationMessageDto(
             1L, 1L, MessageDirection.INBOUND, ConversationChannel.EMAIL,
-            "n", "id", "c", "h", "ext", "SENT", sentAt, null);
+            "n", "id", "c", "h", "ext", "SENT", sentAt, null, false);
         ConversationMessageDto b = new ConversationMessageDto(
             1L, 1L, MessageDirection.INBOUND, ConversationChannel.EMAIL,
-            "n", "id", "c", "h", "ext", "SENT", sentAt, null);
+            "n", "id", "c", "h", "ext", "SENT", sentAt, null, false);
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
     }

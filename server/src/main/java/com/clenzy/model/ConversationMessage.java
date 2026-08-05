@@ -65,6 +65,18 @@ public class ConversationMessage {
     @Column(name = "read_at")
     private LocalDateTime readAt;
 
+    /**
+     * Note interne : message visible des seuls operateurs, JAMAIS transmis au
+     * voyageur. Porte par le message et non par la conversation — une meme
+     * conversation mele reponses et notes, dans l'ordre chronologique.
+     *
+     * <p>Le drapeau ne fait pas que masquer : il conditionne la livraison canal
+     * dans {@code ConversationService.sendInternalNote}, qui n'appelle aucun
+     * fournisseur externe.</p>
+     */
+    @Column(name = "internal_note", nullable = false)
+    private boolean internalNote = false;
+
     // Getters & setters
 
     public Long getId() { return id; }
@@ -111,4 +123,7 @@ public class ConversationMessage {
 
     public LocalDateTime getReadAt() { return readAt; }
     public void setReadAt(LocalDateTime readAt) { this.readAt = readAt; }
+
+    public boolean isInternalNote() { return internalNote; }
+    public void setInternalNote(boolean internalNote) { this.internalNote = internalNote; }
 }
