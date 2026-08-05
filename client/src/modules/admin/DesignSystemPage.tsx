@@ -267,6 +267,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
+import { useCommandCenter, openShortcutLabel } from '../../components/command-center';
 import { addDays } from 'date-fns';
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from 'input-otp';
 import { useForm } from 'react-hook-form';
@@ -1133,6 +1134,26 @@ function ToastDemo() {
       >
         Toast avec action
       </Button>
+    </div>
+  );
+}
+
+/**
+ * Le centre de commande REEL — pas une maquette : le provider est monte par
+ * `MainLayoutFull`, donc ce bouton ouvre la meme palette que ⌘K, avec les
+ * commandes et les habitudes de l'utilisateur qui regarde la galerie.
+ */
+function CommandCenterDemo() {
+  const { openCenter } = useCommandCenter();
+  return (
+    <div className="flex flex-col items-start gap-2">
+      <Button variant="outline" onClick={() => openCenter()}>
+        Ouvrir le centre de commande
+      </Button>
+      <span className="text-2xs text-muted-foreground">
+        Ou {openShortcutLabel()} depuis n'importe quel ecran. Accords : G puis P (logements),
+        N puis I (nouvelle intervention).
+      </span>
     </div>
   );
 }
@@ -2435,7 +2456,10 @@ const GALLERY_SECTIONS: GallerySectionDef[] = [
     { key: 'menubar', label: 'Menubar', component: 'menubar', Demo: MenubarDemo },
   ] },
   { category: 'overlays', title: 'Toast (Sonner)', component: 'sonner', i18nKey: 'designSystem.toast.description', fallback: "Notifications transitoires empilées : succès, erreur, action. Toaster monté sur la page, thème suivi via data-theme.", variants: single(ToastDemo) },
-  { category: 'overlays', title: 'Command', component: 'command', i18nKey: 'designSystem.command.description', fallback: "Palette de commandes (cmdk) : recherche floue, groupes, navigation clavier. Base du futur ⌘K global.", variants: single(CommandDemo) },
+  { category: 'overlays', title: 'Command', component: 'command', i18nKey: 'designSystem.command.description', fallback: "Palette de commandes (cmdk) : recherche floue, groupes, navigation clavier. Le ⌘K global de l'application est construit dessus (components/command-center).", variants: [
+    { key: 'command-center', label: 'Centre de commande (réel)', Demo: CommandCenterDemo },
+    { key: 'primitive', label: 'Primitive', Demo: CommandDemo },
+  ] },
   // Navigation
   { category: 'navigation', title: 'Tabs', component: 'tabs', i18nKey: 'designSystem.tabs.description', fallback: "Onglets Radix : variante par défaut (fond muted) et variante line (soulignement). Navigation clavier.", variants: [
     { key: 'default', label: 'Défaut', Demo: TabsDefaultDemo },

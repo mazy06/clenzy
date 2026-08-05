@@ -883,6 +883,66 @@
       "older": "أقدم"
     }
   },
+  "commandCenter": {
+    "title": "مركز الأوامر",
+    "description": "ابحث عن شاشة أو إجراء أو أداة.",
+    "placeholder": "ابحث عن شاشة أو إجراء أو أداة…",
+    "trigger": "ابحث أو نفّذ أمرًا",
+    "empty": "لا يوجد أمر مطابق.",
+    "emptyHint": "جرّب كلمة من المجال: تنظيف، OTA، فاتورة…",
+    "filterScreen": "تصفية هذه الشاشة بـ",
+    "more": "و{{count}} أخرى — اكتب للبحث",
+    "sections": {
+      "suggestions": "متابعة",
+      "screen": "في هذه الشاشة",
+      "navigation": "الانتقال إلى",
+      "actions": "إنشاء",
+      "views": "العرض",
+      "account": "الحساب",
+      "tools": "الأدوات"
+    },
+    "actions": {
+      "propertyCreate": "إضافة عقار",
+      "interventionCreate": "جدولة مهمة",
+      "serviceRequestCreate": "الإبلاغ عن طلب",
+      "messageCreate": "كتابة رسالة",
+      "teamCreate": "إنشاء فريق",
+      "userInvite": "دعوة مستخدم"
+    },
+    "views": {
+      "themeDark": "التبديل إلى المظهر الداكن",
+      "themeLight": "التبديل إلى المظهر الفاتح",
+      "themeAuto": "اتباع مظهر النظام",
+      "navigationToggle": "طي أو توسيع التنقل",
+      "language": {
+        "fr": "Basculer en français",
+        "en": "Switch to English",
+        "ar": "التبديل إلى العربية"
+      }
+    },
+    "account": {
+      "profile": "ملفي الشخصي",
+      "notifications": "إشعاراتي",
+      "preferences": "تفضيلات الإشعارات",
+      "payouts": "تحويلاتي",
+      "rates": "أسعاري",
+      "billing": "فوترتي"
+    },
+    "tools": {
+      "assistant": "فتح المساعد",
+      "studio": "Baitly Studio",
+      "siteGenerate": "إنشاء موقع",
+      "documentTemplates": "قوالب المستندات",
+      "designSystem": "مكتبة الواجهة",
+      "tokenMonitoring": "استهلاك الذكاء الاصطناعي"
+    },
+    "hints": {
+      "navigate": "↑ ↓ تصفح",
+      "run": "↵ تنفيذ",
+      "close": "esc إغلاق",
+      "open": "فتح"
+    }
+  },
   "common": {
     "help": "مساعدة",
     "save": "حفظ",

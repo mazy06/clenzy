@@ -70,7 +70,6 @@ import {
   Zap,
   LayoutGrid,
   Download,
-  Search,
   List as ListIcon,
   Home as HomeIcon,
   ChevronDown,
@@ -82,6 +81,7 @@ import '../booking-engine/studio/studioHome.css';
 import { StructureArt } from './structureArt';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import EmptyState from '../../components/EmptyState';
+import { useScreenSearch } from '../../components/ScreenChrome';
 import StatTile from '../../components/baitly/StatTile';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -272,6 +272,9 @@ const WelcomeGuideAdmin: React.FC = () => {
   // Accueil « studio » : saisie du champ IA + recherche dans la liste des livrets.
   const [livretPrompt, setLivretPrompt] = useState('');
   const [livretQuery, setLivretQuery] = useState('');
+  // La recherche dans « Mes livrets » vit dans le champ UNIQUE du header
+  // (`PageHeader` de « Réservation & accueil »), plus dans la barre de section.
+  useScreenSearch(livretQuery, setLivretQuery, "Rechercher un livret d'accueil…");
 
   // Form state
   const [propertyId, setPropertyId] = useState<string>('');
@@ -893,10 +896,6 @@ const WelcomeGuideAdmin: React.FC = () => {
               <h2>Mes livrets d'accueil</h2>
               <span className="count">{guides.length}</span>
               <div className="sp" />
-              <label className="search">
-                <Search size={15} strokeWidth={2} />
-                <input placeholder="Rechercher…" value={livretQuery} onChange={(e) => setLivretQuery(e.target.value)} />
-              </label>
             </div>
 
             {isLoading ? (

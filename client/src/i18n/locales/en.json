@@ -883,6 +883,66 @@
       "older": "Older"
     }
   },
+  "commandCenter": {
+    "title": "Command center",
+    "description": "Search for a screen, an action or a tool.",
+    "placeholder": "Search a screen, an action, a tool…",
+    "trigger": "Search or run a command",
+    "empty": "No matching command.",
+    "emptyHint": "Try an everyday word: cleaning, OTA, invoice…",
+    "filterScreen": "Filter this screen with",
+    "more": "and {{count}} more — type to search",
+    "sections": {
+      "suggestions": "Pick up where you left off",
+      "screen": "On this screen",
+      "navigation": "Go to",
+      "actions": "Create",
+      "views": "Display",
+      "account": "Account",
+      "tools": "Tools"
+    },
+    "actions": {
+      "propertyCreate": "Add a property",
+      "interventionCreate": "Schedule a job",
+      "serviceRequestCreate": "Report a request",
+      "messageCreate": "Write a message",
+      "teamCreate": "Create a team",
+      "userInvite": "Invite a user"
+    },
+    "views": {
+      "themeDark": "Switch to dark theme",
+      "themeLight": "Switch to light theme",
+      "themeAuto": "Follow the system theme",
+      "navigationToggle": "Collapse or expand navigation",
+      "language": {
+        "fr": "Basculer en français",
+        "en": "Switch to English",
+        "ar": "التبديل إلى العربية"
+      }
+    },
+    "account": {
+      "profile": "My profile",
+      "notifications": "My notifications",
+      "preferences": "Notification preferences",
+      "payouts": "My payouts",
+      "rates": "My rates",
+      "billing": "My billing"
+    },
+    "tools": {
+      "assistant": "Open the assistant",
+      "studio": "Baitly Studio",
+      "siteGenerate": "Generate a site",
+      "documentTemplates": "Document templates",
+      "designSystem": "UI library",
+      "tokenMonitoring": "AI usage"
+    },
+    "hints": {
+      "navigate": "↑ ↓ browse",
+      "run": "↵ run",
+      "close": "esc close",
+      "open": "open"
+    }
+  },
   "common": {
     "help": "Help",
     "save": "Save",

@@ -38,6 +38,7 @@ import { DESIGN_PRESETS } from '../constants';
 import { useAuth } from '../../../hooks/useAuth';
 import { useAiFeatureToggles } from '../../../hooks/useAi';
 import EmptyState from '../../../components/EmptyState';
+import { useScreenSearch } from '../../../components/ScreenChrome';
 import './studioHome.css';
 
 /**
@@ -287,6 +288,10 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
 
   // Liste
   const [query, setQuery] = useState('');
+  // Recherche déléguée au champ UNIQUE du header quand un PageHeader nous
+  // surplombe (onglet « Réservation & accueil »). En page autonome il n'y en a
+  // pas : l'enregistrement est alors inerte et le champ local prend le relais.
+  useScreenSearch(query, setQuery, 'Rechercher un booking engine…');
   const [view, setView] = useState<'list' | 'grid'>('list');
   // Suppression d'un booking engine (depuis « Mes booking engines ») : confirmation puis DELETE org-scopé.
   const [confirmDelete, setConfirmDelete] = useState<BookingEngineConfig | null>(null);
@@ -933,10 +938,20 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
             <h2>Mes booking engines</h2>
             <span className="count">{configs?.length ?? 0}</span>
             <div className="sp" />
-            <label className="search">
-              <Search size={15} strokeWidth={2} />
-              <input placeholder="Rechercher…" value={query} onChange={(e) => setQuery(e.target.value)} />
-            </label>
+            {/* Champ local UNIQUEMENT en page autonome (/booking-engine/studio) :
+                cette route n'a pas de PageHeader, donc pas de champ unique où se
+                brancher. Sous l'onglet « Réservation & accueil », la recherche
+                est déjà rendue par le header (cf. `useScreenSearch` ci-dessus). */}
+            {!embedded && (
+              <label className="search">
+                <Search size={15} strokeWidth={2} />
+                <input
+                  placeholder="Rechercher un booking engine…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </label>
+            )}
             <div className="view">
               <button className={view === 'list' ? 'on' : ''} aria-label="Liste" type="button" onClick={() => setView('list')}><ListIcon size={16} strokeWidth={2} /></button>
               <button className={view === 'grid' ? 'on' : ''} aria-label="Grille" type="button" onClick={() => setView('grid')}><LayoutGrid size={16} strokeWidth={2} /></button>

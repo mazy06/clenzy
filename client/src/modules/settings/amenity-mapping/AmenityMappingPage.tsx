@@ -17,8 +17,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import EmptyState from '../../../components/EmptyState';
 import StatTile from '../../../components/baitly/StatTile';
+import HeaderSearchField from '../../../components/HeaderSearchField';
 import { cn } from '../../../utils/cn';
-import { Badge, Button, InputGroup, InputGroupAddon, InputGroupInput } from '../../../components/ui';
+import { Badge, Button } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import {
@@ -400,19 +401,14 @@ export default function AmenityMappingPage() {
       {tab === 'unmapped' && (
         <div className="flex flex-col gap-3">
           <div className="flex flex-row flex-wrap items-center gap-1.5">
-            {/* Champ sans libelle visible : aria-label sinon le champ n'a plus
-                de nom accessible (le placeholder n'en fait pas office). */}
-            <InputGroup className="w-auto min-w-[240px]">
-              <InputGroupAddon>
-                <Search size={14} />
-              </InputGroupAddon>
-              <InputGroupInput
-                aria-label="Rechercher une commodité OTA"
-                placeholder="Rechercher…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </InputGroup>
+            {/* La recherche vit dans le champ UNIQUE du header. Branchée ici et
+                pas au niveau de l'écran : elle ne filtre QUE cet onglet, la
+                proposer sur les autres promettrait un filtre sans effet. */}
+            <HeaderSearchField
+              value={search}
+              onChange={setSearch}
+              placeholder="Rechercher une commodité OTA…"
+            />
             <div className="flex-1" />
             {selectedRaw.size > 0 && (
               <div className="flex flex-row items-center gap-1.5 px-[9px] py-[4.5px] rounded-md bg-primary-soft border border-solid border-primary/20">

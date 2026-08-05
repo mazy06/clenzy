@@ -883,6 +883,66 @@
       "older": "Plus ancien"
     }
   },
+  "commandCenter": {
+    "title": "Centre de commande",
+    "description": "Cherchez un écran, une action ou un outil.",
+    "placeholder": "Rechercher un écran, une action, un outil…",
+    "trigger": "Rechercher ou commander",
+    "empty": "Aucune commande ne correspond.",
+    "emptyHint": "Essayez un mot du métier : ménage, OTA, facture…",
+    "filterScreen": "Filtrer cet écran avec",
+    "more": "et {{count}} de plus — tapez pour chercher",
+    "sections": {
+      "suggestions": "Reprendre",
+      "screen": "Sur cet écran",
+      "navigation": "Aller à",
+      "actions": "Créer",
+      "views": "Affichage",
+      "account": "Compte",
+      "tools": "Outils"
+    },
+    "actions": {
+      "propertyCreate": "Ajouter un logement",
+      "interventionCreate": "Planifier une intervention",
+      "serviceRequestCreate": "Signaler une demande",
+      "messageCreate": "Écrire un message",
+      "teamCreate": "Créer une équipe",
+      "userInvite": "Inviter un utilisateur"
+    },
+    "views": {
+      "themeDark": "Passer en thème sombre",
+      "themeLight": "Passer en thème clair",
+      "themeAuto": "Suivre le thème du système",
+      "navigationToggle": "Replier ou déployer la navigation",
+      "language": {
+        "fr": "Basculer en français",
+        "en": "Switch to English",
+        "ar": "التبديل إلى العربية"
+      }
+    },
+    "account": {
+      "profile": "Mon profil",
+      "notifications": "Mes notifications",
+      "preferences": "Préférences de notification",
+      "payouts": "Mes reversements",
+      "rates": "Mes tarifs",
+      "billing": "Ma facturation"
+    },
+    "tools": {
+      "assistant": "Ouvrir l'assistant",
+      "studio": "Baitly Studio",
+      "siteGenerate": "Générer un site",
+      "documentTemplates": "Modèles de documents",
+      "designSystem": "Bibliothèque UI",
+      "tokenMonitoring": "Consommation IA"
+    },
+    "hints": {
+      "navigate": "↑ ↓ parcourir",
+      "run": "↵ exécuter",
+      "close": "échap fermer",
+      "open": "ouvrir"
+    }
+  },
   "common": {
     "help": "Aide",
     "save": "Enregistrer",

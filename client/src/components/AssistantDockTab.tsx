@@ -11,6 +11,7 @@ import { ASSISTANT_SUGGESTION_KEYS } from '../modules/assistant/components/Assis
 import { ToolConfirmationDialog } from '../modules/assistant/components/ToolConfirmationDialog';
 import AssistantExpandedDialog from '../modules/assistant/components/AssistantExpandedDialog';
 import { ASSISTANT_QUICK_REPLY_EVENT } from '../modules/assistant/widgets/WorkflowWidget';
+import { ASSISTANT_OPEN_EVENT } from './command-center/assistantBridge';
 
 const PHRASE_INTERVAL_MS = 4200;
 
@@ -109,6 +110,18 @@ const AssistantDockTab: React.FC = () => {
     setView('panel');
     void loadConversation(id);
   }, [location.search, location.pathname, navigate, loadConversation]);
+
+  // Ouverture demandee de l'exterieur — aujourd'hui le centre de commande
+  // (⌘K → « Ouvrir l'assistant »). L'etat ouvert/ferme vit ici : un evenement
+  // evite de le hisser dans un contexte global pour un seul appelant.
+  useEffect(() => {
+    const handler = () => {
+      setOpen(true);
+      setView('panel');
+    };
+    window.addEventListener(ASSISTANT_OPEN_EVENT, handler);
+    return () => window.removeEventListener(ASSISTANT_OPEN_EVENT, handler);
+  }, []);
 
   // Reponses rapides emises par les widgets du fil (ex. les chips Oui/Non du
   // WorkflowWidget). L'ecouteur vivait dans la vue plein ecran ; il vit ici

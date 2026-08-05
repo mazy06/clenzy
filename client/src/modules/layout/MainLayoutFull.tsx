@@ -16,6 +16,7 @@ import {
 } from '../../components/ui';
 import { LoadingStates } from '../../components/LoadingStates';
 import { ScreenChromeProvider } from '../../components/ScreenChrome';
+import { CommandCenter, CommandCenterProvider } from '../../components/command-center';
 import OfflineBanner from '../../components/OfflineBanner';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
 import OnboardingDockMount from '../../components/OnboardingDockMount';
@@ -120,6 +121,10 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
     // `overflow-hidden` conservent la règle historique — c'est le contenu qui
     // scrolle, jamais la page.
     <ScreenChromeProvider>
+    {/* Centre de commande (⌘K) : SOUS le chrome d'écran, car il propose de
+        rendre la main au filtre de l'écran courant. `onToggleNavigation` lui
+        donne la bascule de la sidebar comme commande d'affichage. */}
+    <CommandCenterProvider onToggleNavigation={toggleCollapsed}>
     <SidebarProvider
       open={!isCollapsed}
       onOpenChange={(open) => {
@@ -173,7 +178,11 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       <Suspense fallback={null}>
         <AssistantDockTab />
       </Suspense>
+
+      {/* Palette ⌘K — rendue en portail, donc placée en dernier. */}
+      <CommandCenter />
     </SidebarProvider>
+    </CommandCenterProvider>
     </ScreenChromeProvider>
   );
 }
