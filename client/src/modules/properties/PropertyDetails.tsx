@@ -59,6 +59,7 @@ import {  Edit,
   Inventory2,
   GppGood,
   Send,
+  Star,
 } from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -76,6 +77,7 @@ import PropertyPhotosTab from './PropertyPhotosTab';
 import PropertyInventoryTab from './PropertyInventoryTab';
 import PropertyComplianceTab from './PropertyComplianceTab';
 import PropertyInterventionsTab from './PropertyInterventionsTab';
+import ReviewList from '../channels/reviews/ReviewList';
 import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.svg';
 import bookingLogoSmall from '../../assets/logo/booking-logo-small.svg';
 import hotelsComLogo from '../../assets/logo/hotels-com-logo-small.svg';
@@ -242,8 +244,13 @@ function formatTime(time: string | undefined): string {
   return time.substring(0, 5);
 }
 
-// Onglets de la fiche bien — `key` stable pour l'URL (?tab=<key>). L'onglet "settings" (dernier)
-// est masque sans droit d'edition ; useTabKeyParam derive l'index visible depuis la cle.
+// Onglets de la fiche bien — `key` stable pour l'URL (?tab=<key>) ; useTabKeyParam derive
+// l'index visible depuis la cle.
+//
+// DOIT rester aligne, dans le meme ORDRE, avec les `options` passees a <PageTabs> plus bas :
+// un onglet absent d'ici est inatteignable. `tabKeyFromIndex` renvoie alors `undefined`,
+// `useTabKeyParam` efface le parametre `tab`, et le clic renvoie sur "Vue d'ensemble" —
+// exactement ce qui arrivait a "Conformite", jamais declaree ici.
 const detailTabs = [
   { key: 'overview', hidden: false },
   { key: 'interventions', hidden: false },
@@ -251,6 +258,8 @@ const detailTabs = [
   { key: 'check-in', hidden: false },
   { key: 'photos', hidden: false },
   { key: 'inventory', hidden: false },
+  { key: 'compliance', hidden: false },
+  { key: 'reviews', hidden: false },
 ];
 
 // ─── Main component ─────────────────────────────────────────────────────────
@@ -449,6 +458,9 @@ const PropertyDetails: React.FC = () => {
             { key: 'photos', label: t('properties.tabs.photos'), icon: <PhotoLibrary /> },
             { key: 'inventory', label: 'Inventaire', icon: <Inventory2 /> },
             { key: 'compliance', label: t('properties.tabs.compliance', 'Conformité'), icon: <GppGood /> },
+            // Ajouté EN FIN de liste : les panneaux sont adressés par index,
+            // insérer ailleurs décalerait silencieusement tous les suivants.
+            { key: 'reviews', label: t('properties.tabs.reviews', 'Avis'), icon: <Star /> },
           ]}
           value={tabValue}
           onChange={setTabValue}
@@ -951,6 +963,13 @@ const PropertyDetails: React.FC = () => {
       {tabValue === 6 && (
         <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-6" aria-labelledby="property-tab-6">
           <PropertyComplianceTab propertyId={Number(id)} canEdit={canEdit} />
+        </div>
+      )}
+
+      {/* ─── Tab 7: Avis voyageurs (même liste que /channels/reviews, filtrée) ─ */}
+      {tabValue === 7 && (
+        <div className="pt-2 flex-1 min-h-0 overflow-auto" role="tabpanel" id="property-tabpanel-7" aria-labelledby="property-tab-7">
+          <ReviewList propertyId={Number(id)} showStats />
         </div>
       )}
 
