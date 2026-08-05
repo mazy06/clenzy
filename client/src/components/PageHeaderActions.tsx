@@ -14,16 +14,24 @@ import { useTranslation } from '../hooks/useTranslation';
 /**
  * Conteneur des actions du PageHeader (slot droit).
  *
- * Comportement unifié (demande produit) :
- *   - À toute taille : les boutons d'action sont rendus ICON-ONLY (le libellé
- *     est masqué visuellement mais conservé comme nom accessible).
- *   - En responsive (< md) : tous les icônes sont repliés dans UN SEUL bouton
- *     overflow (⋯) ouvrant un dropdown où les actions réapparaissent AVEC leur
- *     libellé (pleine largeur, empilées).
+ * <p>C'est le SEUL endroit où ce repli est implémenté : `PageHeader` l'utilise
+ * pour ses deux slots, donc les écrans n'ont rien à faire — ils passent leurs
+ * filtres et leurs actions comme d'habitude et héritent du comportement.</p>
+ *
+ * Comportement :
+ *   - Au-dessus du seuil : filtres et actions sont rendus tels quels, en ligne.
+ *   - En dessous : ils sont TOUS repliés dans un unique bouton ⋯ ouvrant un menu
+ *     où ils réapparaissent empilés, pleine largeur, libellé visible.
+ *
+ * <p>La recherche de l'écran n'entre JAMAIS ici : `GlobalSearchField` est un
+ * frère de ce composant dans `PageHeader` et reste visible à toute largeur.
+ * Une recherche repliée derrière un menu cesse d'être une recherche.</p>
  *
  * Générique : fonctionne pour les actions passées en JSX inline ET pour celles
- * portalées via PageHeaderActionsContext (le portail se re-render au montage du
- * slot, donc le contenu apparaît à l'ouverture du dropdown).
+ * portalées via PageHeaderActionsContext. Nuance à connaître dans ce second cas :
+ * tant que le menu est fermé, Radix ne monte pas son contenu, donc le conteneur
+ * de portail n'existe pas encore et les actions d'onglet y arrivent au premier
+ * rendu qui suit l'ouverture.
  *
  * <h2>Disparition de la normalisation MUI</h2>
  * <p>Ce fichier portait deux blocs `sx` (ICON_ONLY_SX / LABELED_SX) dont les
@@ -45,7 +53,11 @@ interface PageHeaderActionsProps {
   filters?: React.ReactNode;
   /** Boutons d'action. */
   actions?: React.ReactNode;
-  /** Forcer le repli overflow (sinon : auto < md). */
+  /**
+   * Replier filtres et actions dans le menu ⋯. Le seuil n'est PAS decide ici :
+   * `PageHeader` le calcule (lg, 1024 px) pour rester aligne sur les autres
+   * bascules de la barre.
+   */
   narrow: boolean;
 }
 
