@@ -9,14 +9,15 @@ import { Separator, Tooltip, TooltipContent, TooltipTrigger } from '../../compon
 import { Input } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 
-/** Surface « tuile » : report en classes des `alpha(text.primary, .03/.08)`. */
-const TILE_CLASS =
-  'rounded-[12px] bg-[color-mix(in_srgb,var(--ink)_3%,transparent)] border border-solid border-[color-mix(in_srgb,var(--ink)_8%,transparent)]';
-import { AttachFile, Delete } from '../../icons';
+import { AttachFile, Delete, Description } from '../../icons';
 import apiClient from '../../services/apiClient';
 import { useNotification } from '../../hooks/useNotification';
 import { useAuth } from '../../hooks/useAuth';
+import EmptyState from '../../components/baitly/EmptyState';
 import AiSettingsCard from './AiSettingsCard';
+
+/** Surface « tuile » : encart discret posé sur la carte de réglages. */
+const TILE_CLASS = 'rounded-xl border border-border bg-muted/40';
 
 interface KbDoc {
   id: number;
@@ -260,13 +261,13 @@ export const KnowledgeBaseAdmin: React.FC = () => {
               },
             ].map((kpi) => (
               <div className={cn(TILE_CLASS, 'px-[10.5px] py-1.5 min-w-[150px]')} key={kpi.label}>
-                <div className="cn-text-caption text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   {kpi.label}
                 </div>
-                <h6 className="cn-text-h6 tabular-nums leading-[1.2]">
+                <h6 className="text-sm font-semibold tabular-nums leading-[1.2]">
                   {kpi.value}
                 </h6>
-                <div className="cn-text-caption text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   {kpi.detail}
                 </div>
               </div>
@@ -326,11 +327,11 @@ export const KnowledgeBaseAdmin: React.FC = () => {
           <Spinner className="size-6" />
         </div>
       ) : docs.length === 0 ? (
-        <div className="p-[18px] text-center rounded-[12px] bg-[color-mix(in_srgb,var(--ink)_3%,transparent)]">
-          <p className="cn-text-body2 text-muted-foreground">
-            Aucun document indexe. Upload ton premier markdown pour activer le RAG.
-          </p>
-        </div>
+        <EmptyState
+          icon={<Description />}
+          title="Aucun document indexé"
+          description="Upload ton premier markdown pour activer le RAG."
+        />
       ) : (
         <div className="overflow-x-auto">
           <Table>
@@ -349,7 +350,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                   <TableCell className="font-medium">
                     {doc.title || '(sans titre)'}
                   </TableCell>
-                  <TableCell className="text-[0.75rem] text-[var(--muted)]">
+                  <TableCell className="text-xs text-muted-foreground">
                     {doc.sourcePath}
                   </TableCell>
                   <TableCell>
@@ -359,10 +360,10 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                     <StatusChip
                       tone={doc.scope === 'global' ? 'info' : 'ok'}
                       label={doc.scope === 'global' ? 'Global Baitly' : 'Mon organisation'}
-                      className="h-[20px] text-[0.7rem]"
+                      size="sm"
                     />
                   </TableCell>
-                  <TableCell className="text-[0.75rem] text-[var(--muted)]">
+                  <TableCell className="text-xs text-muted-foreground">
                     {new Date(doc.updatedAt).toLocaleDateString('fr-FR')}
                   </TableCell>
                   <TableCell className="text-end">
@@ -398,10 +399,10 @@ export const KnowledgeBaseAdmin: React.FC = () => {
           <Separator className="my-[18px]" />
           <div className="flex gap-1.5 items-start flex-wrap">
             <div className="flex-1 min-w-[240px]">
-              <h6 className="cn-text-subtitle2 font-semibold mb-0.5">
+              <h6 className="text-xs font-semibold mb-0.5">
                 Évaluer le retrieval
               </h6>
-              <p className="cn-text-body2 text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Lance les {evalReport?.total ?? 40} questions du jeu de test officiel sur le
                 pipeline réel et mesure la qualité de recherche. À relancer après chaque
                 changement de documentation, de seuils ou de modèle (~30&nbsp;secondes,
@@ -423,7 +424,7 @@ export const KnowledgeBaseAdmin: React.FC = () => {
           {evaluating && (
             <div className="flex items-center gap-2 py-3">
               <Spinner className="size-5" />
-              <span className="cn-text-caption text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {evalProgress && evalProgress.done < evalProgress.total
                   ? `${evalProgress.done} question(s) sur ${evalProgress.total} évaluée(s) — le rythme s'adapte aux limites de l'API (jusqu'à ~15 min si elle est bridée).`
                   : 'Démarrage du run…'}
@@ -446,13 +447,13 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                   },
                 ].map((kpi) => (
                   <div className={cn(TILE_CLASS, 'px-[10.5px] py-1.5 min-w-[170px]')} key={kpi.label}>
-                    <div className="cn-text-caption text-muted-foreground">
+                    <div className="text-xs text-muted-foreground">
                       {kpi.label}
                     </div>
-                    <h6 className="cn-text-h6 tabular-nums leading-[1.2]">
+                    <h6 className="text-sm font-semibold tabular-nums leading-[1.2]">
                       {kpi.value}
                     </h6>
-                    <div className="cn-text-caption text-muted-foreground">
+                    <div className="text-xs text-muted-foreground">
                       {kpi.detail}
                     </div>
                   </div>
@@ -465,16 +466,16 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                 </Alert>
               ) : (
                 <>
-                  <div className="cn-text-caption text-muted-foreground mb-0.5">
+                  <div className="text-xs text-muted-foreground mb-0.5">
                     Questions sans leur fiche attendue dans le top {evalReport.topK} :
                   </div>
                   <div className="flex flex-col gap-1">
                     {evalReport.misses.map((miss, idx) => (
-                      <div className="px-[9px] py-1.5 rounded-[12px] bg-[color-mix(in_srgb,var(--warn)_8%,transparent)] border border-solid border-[color-mix(in_srgb,var(--warn)_25%,transparent)]" key={idx}>
-                        <p className="cn-text-body2 font-semibold">
+                      <div className="px-[9px] py-1.5 rounded-xl border border-warning/30 bg-warning-soft/50" key={idx}>
+                        <p className="text-xs font-semibold">
                           {miss.question}
                         </p>
-                        <div className="cn-text-caption text-muted-foreground">
+                        <div className="text-xs text-muted-foreground">
                           attendu : {miss.expected} · obtenu : {miss.retrieved.join(', ') || 'aucun résultat'}
                         </div>
                       </div>
@@ -490,10 +491,10 @@ export const KnowledgeBaseAdmin: React.FC = () => {
       {canEdit && (
         <>
           <Separator className="my-[18px]" />
-          <h6 className="cn-text-subtitle2 font-semibold mb-0.5">
+          <h6 className="text-xs font-semibold mb-0.5">
             Tester la recherche
           </h6>
-          <p className="cn-text-body2 text-muted-foreground mb-2">
+          <p className="text-xs text-muted-foreground mb-2">
             Exécute la même recherche que l'assistant (vectorielle + mots-clés + re-ranking)
             et montre les extraits retrouvés avec leur score de pertinence.
           </p>
@@ -535,25 +536,26 @@ export const KnowledgeBaseAdmin: React.FC = () => {
                 return (
                   <div className={cn(TILE_CLASS, 'p-[9px]')} key={`${hit.documentId}-${idx}`}>
                     <div className="flex gap-1.5 items-center mb-0.5 flex-wrap">
-                      <p className="cn-text-body2 font-semibold">
+                      <p className="text-xs font-semibold">
                         {hit.title || hit.sourcePath}
                       </p>
                       <StatusChip
                         tone={aboveThreshold ? 'ok' : 'warn'}
                         label={`${Math.round(hit.relevance * 100)} %`}
-                        className="h-[20px] text-[0.7rem] tabular-nums"
+                        size="sm"
+                        className="tabular-nums"
                       />
                       {!aboveThreshold && (
-                        <span className="cn-text-caption text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                           sous le seuil d'injection automatique
                           ({Math.round(testResult.relevanceThreshold * 100)} %)
                         </span>
                       )}
                     </div>
-                    <div className="cn-text-caption text-muted-foreground mb-0.5">
+                    <div className="text-xs text-muted-foreground mb-0.5">
                       {hit.sourcePath}
                     </div>
-                    <p className="cn-text-body2 whitespace-pre-line">
+                    <p className="text-xs whitespace-pre-line">
                       {hit.snippet}
                     </p>
                   </div>

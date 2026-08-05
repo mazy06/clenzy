@@ -26,9 +26,9 @@ const AUTONOMY_LABEL_KEY: Record<AutonomyLevel, string> = {
 
 /** Pastille de couleur du module (lie visuellement à la constellation). */
 function ModuleDot({ moduleKey }: { moduleKey: string }) {
-  const color = AGENT_META[moduleKey as AgentId]?.color ?? 'var(--accent)';
+  const color = AGENT_META[moduleKey as AgentId]?.color ?? 'var(--bui-primary)';
   return (
-    <div className="w-[10px] h-[10px] rounded-[50%] shrink-0" style={{ backgroundColor: color }} aria-hidden />
+    <div className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} aria-hidden />
   );
 }
 
@@ -110,10 +110,10 @@ export default function AgentSupervisionSection() {
             <div className="flex-1 min-w-0">
               {/* Le titre du reglage EST le libelle de l'interrupteur : rendu en
                   <label> pour que le clic et le lecteur d'ecran l'atteignent. */}
-              <label htmlFor="supervision-master" className="cn-text-body2 font-semibold block">
+              <label htmlFor="supervision-master" className="text-xs font-semibold block">
                 {t('settings.ai.supervision.master.label', 'Activer le superviseur')}
               </label>
-              <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
+              <span className="text-xs text-muted-foreground">
                 {t(
                   'settings.ai.supervision.master.description',
                   "Affiche la constellation dans le planning et autorise les agents à proposer des actions.",
@@ -134,10 +134,10 @@ export default function AgentSupervisionSection() {
           {/* ── Pause globale ── */}
           <div className={cn('flex items-center py-[9px]', config.enabled ? 'opacity-100' : 'opacity-50')}>
             <div className="flex-1 min-w-0">
-              <label htmlFor="supervision-paused" className="cn-text-body2 font-semibold block">
+              <label htmlFor="supervision-paused" className="text-xs font-semibold block">
                 {t('settings.ai.supervision.paused.label', 'Mettre en pause')}
               </label>
-              <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
+              <span className="text-xs text-muted-foreground">
                 {t(
                   'settings.ai.supervision.paused.description',
                   "Suspend temporairement l'activité automatique des agents (la config est conservée).",
@@ -160,10 +160,10 @@ export default function AgentSupervisionSection() {
             <div className="flex-1 min-w-0 pe-3">
               {/* Le titre du reglage EST le libelle du champ : rendu en <label>
                   pour que le clic et le lecteur d'ecran atteignent l'input. */}
-              <label htmlFor="supervision-daily-budget" className="cn-text-body2 font-semibold block">
+              <label htmlFor="supervision-daily-budget" className="text-xs font-semibold block">
                 {t('settings.ai.supervision.budget.label', 'Plafond de scans automatiques')}
               </label>
-              <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
+              <span className="text-xs text-muted-foreground">
                 {t(
                   'settings.ai.supervision.budget.description',
                   "Nombre maximum d'analyses automatiques par jour pour l'organisation (0 = aucune analyse automatique). Limite le coût IA.",
@@ -186,7 +186,7 @@ export default function AgentSupervisionSection() {
           <Separator className="mb-1.5" />
 
           {/* ── Modules ── */}
-          <span className="cn-text-overline text-muted-foreground mt-1.5 mb-0.5 font-bold tracking-[0.04em]">
+          <span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mt-1.5 mb-0.5">
             {t('settings.ai.supervision.modules.title', 'Modules')}
           </span>
 
@@ -195,10 +195,10 @@ export default function AgentSupervisionSection() {
             return (
               <React.Fragment key={module.key}>
                 {index > 0 && <Separator className="ms-[18px] data-horizontal:w-auto" />}
-                <div className={cn('flex items-center gap-[9px] py-[7.5px]', config.enabled && module.enabled ? 'opacity-100' : 'opacity-55')} style={{ transition: 'opacity 0.15s ease' }}>
+                <div className={cn('flex items-center gap-[9px] py-[7.5px] transition-opacity duration-150', config.enabled && module.enabled ? 'opacity-100' : 'opacity-55')}>
                   <ModuleDot moduleKey={module.key} />
                   <div className="flex-1 min-w-0">
-                    <p className="cn-text-body2 font-semibold leading-[1.3]">
+                    <p className="text-xs font-semibold leading-[1.3]">
                       {t(module.labelKey, module.key)}
                     </p>
                   </div>

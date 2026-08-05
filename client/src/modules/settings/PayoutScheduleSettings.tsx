@@ -123,12 +123,12 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
         description={t('settings.payoutSchedule.subtitle')}
       >
         {/* Auto-generate toggle */}
-        <div className="p-2 mb-2 rounded-[8px] border border-[var(--line)] flex items-center justify-between gap-2">
+        <div className="p-2 mb-2 rounded-lg border border-border flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground leading-[1.3]">
+            <p className="text-[0.8125rem] font-semibold text-foreground leading-[1.3]">
               {t('settings.payoutSchedule.autoGenerate')}
             </p>
-            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.4] mt-0">
+            <p className="text-[0.72rem] text-muted-foreground leading-[1.4] mt-0">
               {t('settings.payoutSchedule.autoGenerateHelper')}
             </p>
           </div>
@@ -143,40 +143,36 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
         {/* Days of month selector */}
         <div
           className={cn(
-            'p-[9px] mb-[9px] rounded-[8px] border border-solid border-[var(--line)]',
+            'p-[9px] mb-[9px] rounded-lg border border-solid border-border',
             autoGenerate ? 'opacity-100 pointer-events-auto' : 'opacity-50 pointer-events-none',
           )}
           style={{ transition: 'opacity 180ms cubic-bezier(0.22, 1, 0.36, 1)' }}
         >
-          <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground leading-[1.3]">
+          <p className="text-[0.8125rem] font-semibold text-foreground leading-[1.3]">
             {t('settings.payoutSchedule.daysOfMonth')}
           </p>
-          <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.4] mt-0 mb-2">
+          <p className="text-[0.72rem] text-muted-foreground leading-[1.4] mt-0 mb-2">
             {t('settings.payoutSchedule.daysOfMonthHelper')}
           </p>
           <div className="flex flex-wrap gap-0.5">
             {VALID_DAYS.map((day) => {
               const active = selectedDays.includes(day);
               return (
-                <div
+                // Vrai `<button>` : le clavier, le focus et `aria-pressed` sont
+                // natifs — le `div role="button"` d'origine devait les rejouer
+                // a la main.
+                <button
                   key={day}
-                  role="button"
-                  tabIndex={0}
+                  type="button"
                   aria-pressed={active}
                   onClick={() => toggleDay(day)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      toggleDay(day);
-                    }
-                  }}
                   className={cn(
-                    'min-w-[30px] h-[26px] px-1.5 rounded-[6px] inline-flex items-center justify-center',
+                    'min-w-[30px] h-[26px] px-1.5 rounded-md inline-flex items-center justify-center',
                     'cursor-pointer select-none text-[0.72rem] tabular-nums tracking-[0.01em] border border-solid',
-                    'focus-visible:[outline:2px_solid_var(--accent)] focus-visible:[outline-offset:2px]',
+                    'outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring',
                     active
-                      ? 'font-bold border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]'
-                      : 'font-medium border-[var(--line)] bg-[var(--card)] text-[var(--ink)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] hover:bg-[var(--accent-soft)]',
+                      ? 'font-bold border-primary bg-primary text-primary-foreground'
+                      : 'font-medium border-border bg-card text-foreground hover:border-primary/40 hover:bg-primary-soft',
                   )}
                   style={{
                     transition:
@@ -184,7 +180,7 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
                   }}
                 >
                   {day}
-                </div>
+                </button>
               );
             })}
           </div>
@@ -193,7 +189,7 @@ const PayoutScheduleSettings = forwardRef<PayoutScheduleHandle, PayoutScheduleSe
         {/* Délai de rappel — premier usage réel du primitive SettingSentence
             (projection « Réglages en phrase ») : la règle s'écrit telle
             qu'elle se lit, au lieu d'une pile libellé / champ. */}
-        <div className="p-2 rounded-[8px] border border-[var(--line)]">
+        <div className="p-2 rounded-lg border border-border">
           <SettingSentence label={t('settings.payoutSchedule.gracePeriod')}>
             {t('settings.payoutSchedule.reminderSentenceStart', "Envoyer un rappel d'approbation")}
             <Input

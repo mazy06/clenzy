@@ -5,7 +5,7 @@ import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useTabValueParam } from '../../components/tabKeyParam';
-import { Button, Card } from '../../components/ui';
+import { Badge, Button, Card } from '../../components/ui';
 import {
   Dialog,
   DialogContent,
@@ -94,9 +94,9 @@ const PROVIDERS: Record<string, ProviderBrand> = {
 // ─── SVG Logo Icons ─────────────────────────────────────────────────────────
 
 function OpenAILogo({ size = 28, color }: { size?: number; color?: string }) {
-  // `text.primary` etait un jeton MUI, pas une valeur CSS : sur un <svg> nu il
-  // ne donnait aucune couleur valide.
-  const fill = color ?? 'var(--ink)';
+  // `fill` est un attribut de presentation SVG : pas de classe Tailwind possible,
+  // on cite donc la variable Baitly UI de l'encre de texte.
+  const fill = color ?? 'var(--bui-foreground)';
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill={fill} xmlns="http://www.w3.org/2000/svg">
       <path d="M14.949 6.547a3.94 3.94 0 0 0-.348-3.273 4.11 4.11 0 0 0-4.4-1.934A4.1 4.1 0 0 0 8.423.2 4.15 4.15 0 0 0 6.305.086a4.1 4.1 0 0 0-1.891.948 4.04 4.04 0 0 0-1.158 1.753 4.1 4.1 0 0 0-1.563.679A4 4 0 0 0 .554 4.72a3.99 3.99 0 0 0 .502 4.731 3.94 3.94 0 0 0 .346 3.274 4.11 4.11 0 0 0 4.402 1.933c.382.425.852.764 1.377.995.526.231 1.095.35 1.67.346 1.78.002 3.358-1.132 3.901-2.804a4.1 4.1 0 0 0 1.563-.68 4 4 0 0 0 1.14-1.253 3.99 3.99 0 0 0-.506-4.716m-6.097 8.406a3.05 3.05 0 0 1-1.945-.694l.096-.054 3.23-1.838a.53.53 0 0 0 .265-.455v-4.49l1.366.778q.02.011.025.035v3.722c-.003 1.653-1.361 2.992-3.037 2.996m-6.53-2.75a2.95 2.95 0 0 1-.36-2.01l.095.057L5.29 12.09a.53.53 0 0 0 .527 0l3.949-2.246v1.555a.05.05 0 0 1-.022.041L6.473 13.3c-1.454.826-3.311.335-4.15-1.098m-.85-6.94A3.02 3.02 0 0 1 3.07 3.949v3.785a.51.51 0 0 0 .262.451l3.93 2.237-1.366.779a.05.05 0 0 1-.048 0L2.585 9.342a2.98 2.98 0 0 1-1.113-4.094zm11.216 2.571L8.747 5.576l1.362-.776a.05.05 0 0 1 .048 0l3.265 1.86a3 3 0 0 1 1.173 1.207 2.96 2.96 0 0 1-.27 3.2 3.05 3.05 0 0 1-1.36.997V8.279a.52.52 0 0 0-.276-.445m1.36-2.015-.097-.057-3.226-1.855a.53.53 0 0 0-.53 0L6.249 6.153V4.598a.04.04 0 0 1 .019-.04L9.533 2.7a3.07 3.07 0 0 1 3.257.139c.474.325.843.778 1.066 1.303.223.526.289 1.103.191 1.664zM5.503 8.575 4.139 7.8a.05.05 0 0 1-.026-.037V4.049c0-.57.166-1.127.476-1.607s.752-.864 1.275-1.105a3.08 3.08 0 0 1 3.234.41l-.096.054-3.23 1.838a.53.53 0 0 0-.265.455zm.742-1.577 1.758-1 1.762 1v2l-1.755 1-1.762-1z" />
@@ -128,8 +128,6 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
   const { isDark } = useThemeMode();
   const isOrgKey = status.source === 'ORGANIZATION' && status.configured;
   const accent = isDark ? brand.accentDark : brand.accent; // couleur de MARQUE : réservée au logo
-  const ok = 'var(--ok)';
-  const err = 'var(--err)';
 
   const Logo = brand.id === 'openai' ? OpenAILogo : ClaudeLogo;
 
@@ -146,19 +144,20 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
               <Logo size={18} color={accent} />
             </div>
             <div className="min-w-0">
-              <h6 className="cn-text-subtitle2 font-bold leading-[1.2] truncate">
+              <h6 className="text-xs font-semibold leading-[1.2] truncate">
                 {brand.label}
               </h6>
-              <span className="cn-text-caption text-[var(--muted)] text-[0.72rem] truncate block">
+              <span className="text-xs text-muted-foreground truncate block">
                 {/* Modèle EFFECTIF (choisi en live), repli sur le défaut — plus figé dans le code. */}
                 {status.modelOverride || brand.model}
               </span>
             </div>
           </div>
 
-          {/* `text.secondary` / `action.hover` etaient des jetons MUI : hors d'un
-              composant MUI ce ne sont pas des valeurs CSS (declaration ignoree). */}
-          <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--hover)' }} label={isOrgKey ? t('bookingEngine.ai.settings.personalKey') : t('bookingEngine.ai.settings.sharedKey')} className="shrink-0 text-[0.68rem]" />
+          {/* Provenance de la clé : information neutre, pas un statut. */}
+          <Badge variant="secondary" className="shrink-0">
+            {isOrgKey ? t('bookingEngine.ai.settings.personalKey') : t('bookingEngine.ai.settings.sharedKey')}
+          </Badge>
         </div>
 
         {/* ── Clé masquée + état (clé perso uniquement) — une seule ligne compacte ── */}
@@ -166,13 +165,18 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
           <div className="flex items-center gap-1.5 mb-2 min-w-0">
             <span
               title={status.maskedApiKey ?? undefined}
-              className="cn-text-caption font-mono text-[var(--ink)] text-[0.72rem] flex-1 min-w-0 truncate"
+              className="text-xs font-mono text-foreground flex-1 min-w-0 truncate"
             >
               {status.maskedApiKey}
             </span>
-            <StatusChip tokens={{ color: status.valid ? ok : err, bg: `color-mix(in srgb, ${status.valid ? ok : err} ${isDark ? 18 : 10}%, transparent)` }} label={status.valid
+            <Badge variant={status.valid ? 'success' : 'destructive'} className="shrink-0 gap-1">
+              {status.valid
+                ? <CheckCircle size={13} strokeWidth={2} />
+                : <ErrorIcon size={13} strokeWidth={2} />}
+              {status.valid
                 ? t('bookingEngine.ai.settings.validated')
-                : t('bookingEngine.ai.settings.notValidated')} icon={status.valid ? <CheckCircle size={13} strokeWidth={2} /> : <ErrorIcon size={13} strokeWidth={2} />} className="shrink-0 text-[0.66rem]" />
+                : t('bookingEngine.ai.settings.notValidated')}
+            </Badge>
           </div>
         )}
 
@@ -246,7 +250,7 @@ function ConfigureDialog({ open, onClose, provider }: ConfigureDialogProps) {
   };
 
   const brand = provider ? PROVIDERS[provider] : null;
-  const accent = brand ? (isDark ? brand.accentDark : brand.accent) : 'var(--mui-primary)';
+  const accent = brand ? (isDark ? brand.accentDark : brand.accent) : 'var(--bui-primary)';
   const Logo = provider === 'openai' ? OpenAILogo : ClaudeLogo;
   const modelIds = useMemo(() => models.map((m) => m.id), [models]);
 
@@ -482,19 +486,17 @@ function FeatureTogglesSection() {
     toggleMutation.mutate({ feature, enabled: !currentEnabled });
   };
 
-  const accentColor = 'var(--accent)';
-
   return (
     <Card className="mb-6 gap-0 overflow-hidden py-0">
       {/* ── Section header ── */}
-      <div className="px-[15px] py-3 bg-[var(--surface-2)] [border-bottom:1px_solid_var(--line)]">
+      <div className="px-[15px] py-3 bg-muted/40 border-b border-border">
         <div className="flex items-center gap-1.5">
-          <div className="w-[8px] h-[8px] rounded-[50%]" style={{ backgroundColor: accentColor }} />
-          <h6 className="cn-text-subtitle1 font-bold text-[var(--ink)]">
+          <div className="size-2 rounded-full bg-primary" />
+          <h6 className="text-sm font-semibold text-foreground">
             {t('bookingEngine.ai.features.title')}
           </h6>
         </div>
-        <p className="cn-text-body2 text-muted-foreground mt-0.5 text-[0.8rem]">
+        <p className="text-xs text-muted-foreground mt-0.5">
           {t('bookingEngine.ai.features.subtitle')}
         </p>
       </div>
@@ -512,7 +514,7 @@ function FeatureTogglesSection() {
           return (
             <React.Fragment key={feat.feature}>
               {index > 0 && <Separator className="w-auto mx-[15px]" />}
-              <div className="flex items-center px-[15px] py-[9px] transition-[background-color] duration-150 hover:bg-[var(--hover)]">
+              <div className="flex items-center px-[15px] py-[9px] transition-[background-color] duration-150 hover:bg-muted motion-reduce:transition-none">
                 {/* Icon */}
                 <div
                   className="flex items-center justify-center w-9 h-9 rounded-[12px] me-[9px] shrink-0"
@@ -526,10 +528,10 @@ function FeatureTogglesSection() {
 
                 {/* Name + description */}
                 <div className="flex-1 min-w-0">
-                  <p className="cn-text-body2 font-semibold leading-[1.3]">
+                  <p className="text-xs font-semibold leading-[1.3]">
                     {t(`bookingEngine.ai.features.${feat.key}.name`)}
                   </p>
-                  <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
+                  <span className="text-xs text-muted-foreground">
                     {t(`bookingEngine.ai.features.${feat.key}.description`)}
                   </span>
                 </div>

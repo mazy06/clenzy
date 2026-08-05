@@ -16,17 +16,24 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
+import { cn } from '../../../utils/cn';
 import { Badge, Button } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
 import {
   Alert,
   AlertAction,
   AlertDescription,
+  Card,
+  CardContent,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
   Skeleton,
   Tooltip,
   TooltipContent,
@@ -62,10 +69,14 @@ const RESOLUTION_LABEL: Record<ChannexPriceDriftResolution, string> = {
   DISMISSED: 'Ignorer',
 };
 
-const RESOLUTION_COLOR: Record<ChannexPriceDriftResolution, string> = {
-  KEEP_CLENZY: 'var(--accent)',
-  KEEP_OTA: 'var(--warn)',
-  DISMISSED: 'var(--muted)',
+/**
+ * Trois arbitrages de meme poids → trois boutons `outline`, differencies par
+ * leur encre. L'encre est du TEXTE : `-ink` et non la teinte vive (§2.4).
+ */
+const RESOLUTION_CLASS: Record<ChannexPriceDriftResolution, string> = {
+  KEEP_CLENZY: 'border-primary/50 text-primary',
+  KEEP_OTA: 'border-warning/50 text-warning-ink',
+  DISMISSED: 'border-border text-muted-foreground',
 };
 
 function formatPct(pct: number): string {
@@ -98,30 +109,36 @@ function DriftRow({
 }) {
   const clenzyHigher = drift.clenzyPrice > drift.otaPrice;
   const TrendIcon = clenzyHigher ? TrendingUp : TrendingDown;
-  const trendColor = clenzyHigher ? 'var(--ok)' : 'var(--err)';
+  // Icone → teinte vive ; puce → fond `-soft` + encre `-ink` (§2.4). L'ancien
+  // `${trendColor}22` concatenait un alpha sur un `var()` : sans effet.
+  const trendIconClass = clenzyHigher ? 'text-success' : 'text-destructive';
+  const trendTokens = clenzyHigher
+    ? { color: 'var(--bui-success-ink)', bg: 'var(--bui-success-soft)' }
+    : { color: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' };
   return (
-    <div className="border border-[var(--line)] rounded-[8px] p-2 bg-[var(--surface-2)]">
+    <Card size="sm">
+      <CardContent>
       <div className="flex items-center gap-2 mb-1.5">
-        <div className="shrink-0" style={{ color: trendColor }}>
+        <div className={cn('shrink-0', trendIconClass)}>
           <TrendIcon size={18} strokeWidth={2.2} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-1 flex-wrap">
-            <p className="cn-text-body2 font-semibold">
+            <p className="text-xs font-semibold text-foreground tabular-nums">
               {drift.driftDate}
             </p>
-            <span className="cn-text-caption text-muted-foreground opacity-60">
+            <span className="text-xs text-muted-foreground opacity-60 tabular-nums">
               · property #{drift.clenzyPropertyId}
             </span>
-            <span className="cn-text-caption text-muted-foreground opacity-60 ms-auto">
+            <span className="text-xs text-muted-foreground opacity-60 ms-auto tabular-nums">
               {formatRelative(drift.detectedAt)}
             </span>
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <Badge variant="secondary" className="h-[22px] text-[0.72rem] bg-[var(--accent-soft)] text-[var(--accent)] font-semibold">{`Baitly ${drift.clenzyPrice}${drift.currency}`}</Badge>
-            <span className="cn-text-caption text-muted-foreground opacity-60">vs</span>
-            <Badge variant="secondary" className="h-[22px] text-[0.72rem] bg-[var(--warn-soft)] text-[var(--warn)] font-semibold">{`OTA ${drift.otaPrice}${drift.currency}`}</Badge>
-            <StatusChip tokens={{ color: trendColor, bg: `${trendColor}22` }} label={formatPct(drift.diffPercent)} className="text-[0.7rem] font-mono" />
+            <Badge variant="secondary" className="h-[22px] text-xs font-semibold tabular-nums bg-primary-soft text-primary">{`Baitly ${drift.clenzyPrice}${drift.currency}`}</Badge>
+            <span className="text-xs text-muted-foreground opacity-60">vs</span>
+            <Badge variant="warning" className="h-[22px] text-xs font-semibold tabular-nums">{`OTA ${drift.otaPrice}${drift.currency}`}</Badge>
+            <StatusChip tokens={trendTokens} label={formatPct(drift.diffPercent)} className="text-2xs font-mono tabular-nums" />
           </div>
         </div>
       </div>
@@ -132,17 +149,13 @@ function DriftRow({
           const isBusy = busyResolution === r;
           const anyBusy = busyResolution !== null;
           return (
-            // Trois arbitrages de meme poids (l'ancien `contained` etait deja
-            // neutralise en contour par son sx) : outline pour les trois, la
-            // teinte de chaque resolution etant choisie a l'execution -> inline.
             <Button
               key={r}
               size="sm"
               variant="outline"
               disabled={anyBusy}
               onClick={() => onResolve(r)}
-              className="flex-1 text-[0.72rem]"
-              style={{ borderColor: RESOLUTION_COLOR[r], color: RESOLUTION_COLOR[r] }}
+              className={cn('flex-1 text-xs', RESOLUTION_CLASS[r])}
             >
               {isBusy ? (
                 <Spinner className="size-3" />
@@ -156,7 +169,8 @@ function DriftRow({
           );
         })}
       </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -240,14 +254,14 @@ export default function ChannexPriceDriftsDialog({
       <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
         {/* La croix de fermeture est fournie par DialogContent : `pe-14` reserve sa place. */}
         <DialogHeader className="flex-row items-start gap-1.5 pe-14">
-          <div className="w-[36px] h-[36px] rounded-[8px] bg-[var(--warn-soft)] text-[var(--warn)] flex items-center justify-center shrink-0 mt-0.5">
+          <div className="size-9 rounded-lg bg-warning-soft text-warning flex items-center justify-center shrink-0 mt-0.5">
             <AlertTriangle size={20} />
           </div>
           <div className="flex-1 min-w-0">
-            <DialogTitle className="font-semibold leading-[1.3] text-[1.05rem]">
+            <DialogTitle className="text-base font-semibold tracking-tight text-balance leading-[1.3]">
               Conflits de prix Baitly ↔ Channex
             </DialogTitle>
-            <DialogDescription className="cn-text-caption block mt-0.5">
+            <DialogDescription className="text-xs block mt-0.5 tabular-nums">
               {drifts.length === 0 && !loading
                 ? 'Aucun conflit actif'
                 : `${drifts.length} drift${drifts.length > 1 ? 's' : ''} en attente de résolution${propertyId ? ' pour cette propriete' : ''}`}
@@ -294,12 +308,16 @@ export default function ChannexPriceDriftsDialog({
           )}
 
           {!loading && drifts.length === 0 && !error && (
-            <div className="text-center py-6">
-              <CheckCircle2 size={36} color="var(--ok)" strokeWidth={2} />
-              <p className="cn-text-body2 mt-2 text-muted-foreground">
-                Tous les prix sont alignes entre Baitly et Channex.
-              </p>
-            </div>
+            <Empty className="py-6">
+              <EmptyHeader>
+                <EmptyMedia variant="icon" className="bg-success-soft text-success">
+                  <CheckCircle2 strokeWidth={2} />
+                </EmptyMedia>
+                <EmptyDescription>
+                  Tous les prix sont alignes entre Baitly et Channex.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           )}
 
           {drifts.length > 0 && (
@@ -307,7 +325,7 @@ export default function ChannexPriceDriftsDialog({
               {Object.entries(grouped).map(([groupLabel, groupDrifts]) => (
                 <div key={groupLabel}>
                   {propertyId == null && (
-                    <span className="cn-text-caption block mb-[4.5px] font-bold uppercase text-[var(--muted)] tracking-[0.4px]">
+                    <span className="block mb-[4.5px] text-2xs font-semibold uppercase tracking-wide text-muted-foreground tabular-nums">
                       {groupLabel} · {groupDrifts.length} drift{groupDrifts.length > 1 ? 's' : ''}
                     </span>
                   )}

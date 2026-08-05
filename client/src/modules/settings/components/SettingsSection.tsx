@@ -17,13 +17,18 @@ import { cn } from '../../../utils/cn';
 
 export type SettingsSectionAccent = 'primary' | 'accent' | 'info' | 'warm' | 'danger' | 'neutral';
 
-const ACCENT_HEX: Record<SettingsSectionAccent, string> = {
-  primary: 'var(--accent)',
-  accent: 'var(--ok)',
-  info: 'var(--info)',
-  warm: 'var(--warn)',
-  danger: 'var(--err)',
-  neutral: 'var(--muted)',
+/**
+ * Teinte vive de chaque accent (Baitly UI). Elle sert de fond plein pastille et
+ * de couleur d'icone — jamais de couleur de TEXTE : les jetons `-ink` sont la
+ * pour cela.
+ */
+const ACCENT_TOKEN: Record<SettingsSectionAccent, string> = {
+  primary: 'var(--bui-primary)',
+  accent: 'var(--bui-success)',
+  info: 'var(--bui-info)',
+  warm: 'var(--bui-warning)',
+  danger: 'var(--bui-destructive)',
+  neutral: 'var(--bui-muted-foreground)',
 };
 
 interface SettingsSectionProps {
@@ -74,7 +79,7 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
   children,
   avatar,
 }) => {
-  const color = ACCENT_HEX[accent];
+  const color = ACCENT_TOKEN[accent];
   const badgeStyle = {
     backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
     color,

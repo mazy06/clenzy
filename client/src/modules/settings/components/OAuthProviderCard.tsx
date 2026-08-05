@@ -47,9 +47,6 @@ import ServiceTooltip from './ServiceTooltip';
  * </ul>
  */
 
-const ACCENT = 'var(--ok)';
-const NEUTRAL = 'var(--muted)';
-
 export interface OAuthCardStatus {
   connected: boolean;
   connectedAt?: string;
@@ -184,7 +181,7 @@ export default function OAuthProviderCard({
   if (loading) {
     return (
       <Card className="gap-0 py-0 border-border p-4 flex justify-center">
-        <Spinner className="size-7 text-[var(--ok)]" />
+        <Spinner className="size-7 text-success" />
       </Card>
     );
   }
@@ -193,13 +190,13 @@ export default function OAuthProviderCard({
   const isError = status?.status === 'ERROR';
 
   const statusChip = notConfigured ? (
-    <StatusChip color={NEUTRAL} label={labels.notConfigured ?? 'Non configuré'} icon={<ErrorOutline size={11} strokeWidth={2} />} />
+    <StatusChip tone="neutral" label={labels.notConfigured ?? 'Non configuré'} icon={<ErrorOutline size={11} strokeWidth={2} />} />
   ) : isError ? (
-    <StatusChip color={'var(--err)'} label="Erreur" icon={<ErrorOutline size={11} strokeWidth={2} />} />
+    <StatusChip tone="err" label="Erreur" icon={<ErrorOutline size={11} strokeWidth={2} />} />
   ) : isConnected ? (
-    <StatusChip color={ACCENT} label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
+    <StatusChip tone="ok" label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
   ) : (
-    <StatusChip color={NEUTRAL} label="Non connecté" icon={<ErrorOutline size={11} strokeWidth={2} />} />
+    <StatusChip tone="neutral" label="Non connecté" icon={<ErrorOutline size={11} strokeWidth={2} />} />
   );
 
   const connectTooltip = mainActionDisabled
@@ -219,7 +216,7 @@ export default function OAuthProviderCard({
             onClick={() => setDisconnectOpen(true)}
             disabled={actionLoading}
             aria-label={labels.disconnect ?? `Déconnecter ${label}`}
-            className="text-[var(--muted)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
+            className="text-muted-foreground hover:bg-destructive-soft hover:text-destructive-ink"
           >
             <LinkOffIcon size={16} strokeWidth={2} />
           </Button>
@@ -237,10 +234,12 @@ export default function OAuthProviderCard({
             onClick={handleConnect}
             disabled={actionLoading || mainActionDisabled}
             aria-label={connectTooltip}
-            className="text-[var(--ok)] hover:bg-[var(--ok-soft)] hover:text-[var(--ok)]"
+            // L'icone porte a elle seule le sens de l'action : encre `-ink`
+            // (AA sur la carte comme sur le fond doux), pas la teinte vive.
+            className="text-success-ink hover:bg-success-soft hover:text-success-ink"
           >
             {actionLoading
-              ? <Spinner className="size-4 text-[var(--ok)]" />
+              ? <Spinner className="size-4 text-success-ink" />
               : <LinkIcon size={16} strokeWidth={2} />}
           </Button>
         </span>
@@ -256,10 +255,10 @@ export default function OAuthProviderCard({
       <ProviderLogo provider={providerId} size={40} muted={notConfigured} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <p className="cn-text-body1 text-[0.875rem] font-semibold">{label}</p>
+          <p className="text-sm font-semibold tracking-tight">{label}</p>
           {statusChip}
         </div>
-        <p className="cn-text-body1 truncate text-[0.72rem] text-muted-foreground mt-0.5">
+        <p className="truncate text-xs text-muted-foreground mt-0.5">
           {description}
         </p>
       </div>
@@ -267,7 +266,7 @@ export default function OAuthProviderCard({
   );
 
   return (
-    <Card className="gap-0 overflow-hidden py-0 transition-colors duration-200 hover:border-[color-mix(in_srgb,var(--ok)_25%,transparent)]">
+    <Card className="gap-0 overflow-hidden py-0 transition-colors duration-200 hover:border-success/25">
       {/* Carte compacte : zone descriptive (tooltip riche du service) + actions en icônes à droite. */}
       <div className="px-3 py-2.5 flex items-start gap-1.5">
         {serviceTooltipId ? (
@@ -283,7 +282,7 @@ export default function OAuthProviderCard({
 
       {message && (
         <div className="px-3 pb-[9px] mt-[-3px]">
-          <Alert variant={message.type === 'success' ? 'success' : 'destructive'} className="text-[0.75rem]">
+          <Alert variant={message.type === 'success' ? 'success' : 'destructive'} className="text-xs">
             <AlertDescription>{message.text}</AlertDescription>
             <AlertAction>
               <Button

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import StatusChip from '../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Spinner } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
@@ -87,29 +87,24 @@ const PROVIDER_REGIONS: Record<string, string> = {
   PAYPAL: "Global",
 };
 
-const STATUS_CHIP_SX = {
-  height: 20,
-  fontSize: "0.65rem",
-  fontWeight: 600,
-  letterSpacing: "0.02em",
-  borderRadius: "5px",
-  "& .MuiChip-label": { px: 0.75 },
+// ─── Teintes des parts (palette Baitly UI) ──────────────────────────────────
+
+/**
+ * Chaque part porte DEUX teintes, et elles ne sont pas interchangeables :
+ * l'aplat sert de remplissage a la barre et de pastille de legende, l'encre
+ * sert au TEXTE des champs — la teinte vive n'y passerait pas le seuil AA.
+ */
+const SHARE_FILL = {
+  owner: "var(--bui-success)",
+  platform: "var(--bui-primary)",
+  concierge: "var(--bui-warning)",
 } as const;
 
-function buildStatusChipSx(color: string) {
-  return {
-    ...STATUS_CHIP_SX,
-    backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
-    color,
-    border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-  } as const;
-}
-
-// ─── Share colors (palette Baitly) ──────────────────────────────────────────
-
-const SHARE_OWNER = "var(--ok)";
-const SHARE_PLATFORM = "var(--accent)";
-const SHARE_CONCIERGE = "var(--warn)";
+const SHARE_INK = {
+  owner: "var(--bui-success-ink)",
+  platform: "var(--bui-primary)",
+  concierge: "var(--bui-warning-ink)",
+} as const;
 
 /**
  * Taux a utiliser pour projeter un reversement : ce que le canal a reellement
@@ -240,21 +235,21 @@ export default function PaymentSettings() {
       key: "owner",
       label: t("settings.split.ownerShare"),
       value: parseFloat(ownerPct) || 0,
-      color: SHARE_OWNER,
+      color: SHARE_FILL.owner,
       locked: lockedShares.owner,
     },
     {
       key: "platform",
       label: t("settings.split.platformShare"),
       value: parseFloat(platformPct) || 0,
-      color: SHARE_PLATFORM,
+      color: SHARE_FILL.platform,
       locked: lockedShares.platform,
     },
     {
       key: "concierge",
       label: t("settings.split.conciergeShare"),
       value: parseFloat(conciergePct) || 0,
-      color: SHARE_CONCIERGE,
+      color: SHARE_FILL.concierge,
       locked: lockedShares.concierge,
     },
   ];
@@ -471,16 +466,16 @@ export default function PaymentSettings() {
         <DialogContent className="sm:max-w-[600px]">
         <DialogHeader className="flex-row items-center gap-[7.5px] pb-1 space-y-0">
           <div
-            className="w-8 h-8 rounded-[8px] inline-flex items-center justify-center shrink-0 text-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_8%,transparent)] border border-solid border-[color-mix(in_srgb,var(--accent)_20%,transparent)]"
+            className="size-8 rounded-md inline-flex items-center justify-center shrink-0 text-primary bg-primary-soft border border-solid border-primary/20"
             aria-hidden="true"
           >
             <Payment size={16} strokeWidth={1.75} />
           </div>
           <div className="min-w-0">
-            <DialogTitle className="text-[0.95rem] font-semibold leading-[1.25]">
+            <DialogTitle className="text-base font-semibold tracking-tight text-balance leading-[1.25]">
               {t("settings.providers.title", "Fournisseurs de paiement")}
             </DialogTitle>
-            <DialogDescription className="text-[0.72rem] leading-[1.35]">
+            <DialogDescription className="text-xs leading-[1.35]">
               {t(
                 "settings.providers.subtitle",
                 "Activez ou désactivez les fournisseurs pour votre organisation."
@@ -489,28 +484,25 @@ export default function PaymentSettings() {
           </div>
         </DialogHeader>
         {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
-        <div className="border-y border-solid border-[var(--line)] py-3 max-h-[60vh] overflow-y-auto">
+        <div className="border-y border-solid border-border py-3 max-h-[60vh] overflow-y-auto">
           {allProviders.map((type, index) => {
             const config = getConfig(type);
             const enabled = config?.enabled ?? false;
             const isStub = STUB_PROVIDERS.includes(type);
             const isConfigurable = CONFIGURABLE_PROVIDERS.includes(type);
             const isConfigured = isProviderConfigured(type, config);
-            const brandColor = PROVIDER_COLORS[type] ?? "var(--muted)";
+            const brandColor =
+              PROVIDER_COLORS[type] ?? "var(--bui-muted-foreground)";
 
             const statusChips = (
               <>
-                {isStub && (
-                  <StatusChip color={"var(--muted)"} label="Bientôt" />
-                )}
+                {isStub && <StatusChip tone="neutral" label="Bientôt" />}
                 {isConfigurable && !isConfigured && (
-                  <StatusChip color={"var(--warn)"} label="À configurer" />
+                  <StatusChip tone="warn" label="À configurer" />
                 )}
-                {enabled && !isStub && (
-                  <StatusChip color={"var(--ok)"} label="Actif" />
-                )}
+                {enabled && !isStub && <StatusChip tone="ok" label="Actif" />}
                 {config?.sandboxMode && isConfigured && (
-                  <StatusChip color={"var(--warn)"} label="Sandbox" />
+                  <StatusChip tone="warn" label="Sandbox" />
                 )}
               </>
             );
@@ -531,8 +523,8 @@ export default function PaymentSettings() {
                       openConfigDialog(type);
                     }}
                     className={cn(
-                      'ms-[3px] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]',
-                      isConfigured ? 'text-[var(--muted)]' : 'text-[var(--warn)]',
+                      'ms-[3px] hover:text-primary hover:bg-primary-soft',
+                      isConfigured ? 'text-muted-foreground' : 'text-warning',
                     )}
                   >
                     <SettingsIcon size={16} strokeWidth={1.75} />
@@ -551,7 +543,7 @@ export default function PaymentSettings() {
                   iconColor={brandColor}
                   title={
                     <div className="flex items-center gap-1 flex-wrap">
-                      <span className="text-[0.8125rem] font-semibold text-inherit">
+                      <span className="text-sm font-semibold text-inherit">
                         {PAYMENT_PROVIDER_LABELS[type]}
                       </span>
                       {statusChips}
@@ -613,9 +605,9 @@ export default function PaymentSettings() {
               onSegmentsChange={handleSegmentsChange}
               onToggleLock={toggleShareLock}
               inputs={[
-                { key: "owner", label: t("settings.split.ownerShare"), value: ownerPct, onChange: setOwnerPct, color: SHARE_OWNER },
-                { key: "platform", label: t("settings.split.platformShare"), value: platformPct, onChange: setPlatformPct, color: SHARE_PLATFORM },
-                { key: "concierge", label: t("settings.split.conciergeShare"), value: conciergePct, onChange: setConciergePct, color: SHARE_CONCIERGE },
+                { key: "owner", label: t("settings.split.ownerShare"), value: ownerPct, onChange: setOwnerPct, color: SHARE_INK.owner },
+                { key: "platform", label: t("settings.split.platformShare"), value: platformPct, onChange: setPlatformPct, color: SHARE_INK.platform },
+                { key: "concierge", label: t("settings.split.conciergeShare"), value: conciergePct, onChange: setConciergePct, color: SHARE_INK.concierge },
               ]}
               total={total}
               isValidTotal={isValidTotal}
@@ -714,7 +706,7 @@ const ShareInput: React.FC<ShareInputProps> = ({
         // peut pas naitre a la compilation.
         style={{ color }}
       />
-      <span className="pointer-events-none absolute inset-y-0 end-2.5 flex items-center text-[0.8125rem] text-[var(--muted)]">
+      <span className="pointer-events-none absolute inset-y-0 end-2.5 flex items-center text-sm text-muted-foreground">
         %
       </span>
     </div>
@@ -748,24 +740,18 @@ function ProvenanceChip({ row }: { row: ChannelCommissionOverview }) {
   const { t } = useTranslation();
   const provenance = provenanceOf(row);
 
-  const meta: Record<
-    RateProvenance,
-    { label: string; color: string; soft: string }
-  > = {
+  const meta: Record<RateProvenance, { label: string; tone: StatusTone }> = {
     REAL: {
       label: t("settings.commissions.provenance.real", "Facturé"),
-      color: "var(--ok)",
-      soft: "var(--ok-soft)",
+      tone: "ok",
     },
     ESTIMATED: {
       label: t("settings.commissions.provenance.estimated", "Estimé"),
-      color: "var(--warn)",
-      soft: "var(--warn-soft)",
+      tone: "warn",
     },
     NO_STAY: {
       label: t("settings.commissions.provenance.noStay", "Aucun séjour"),
-      color: "var(--muted)",
-      soft: "color-mix(in srgb, var(--muted) 8%, transparent)",
+      tone: "neutral",
     },
   };
 
@@ -785,7 +771,7 @@ function ProvenanceChip({ row }: { row: ChannelCommissionOverview }) {
     ),
   };
 
-  const { label, color, soft } = meta[provenance];
+  const { label, tone } = meta[provenance];
 
   return (
     <Tooltip>
@@ -793,13 +779,11 @@ function ProvenanceChip({ row }: { row: ChannelCommissionOverview }) {
         {/* L'infobulle pose une ref sur son enfant, que StatusChip ne transmet
             pas (React 18, composant fonction) : sans ce span, elle ne s'ancre pas. */}
         <span className="inline-flex">
-        <StatusChip
-          tokens={{ color, bg: soft }}
-          label={label}
-          // La teinte de bordure est calculee : elle passe en style inline, la ou
-          // une classe arbitraire ne peut pas naitre d'une valeur d'execution.
-          sx={{ borderColor: `color-mix(in srgb, ${color} 20%, transparent)` }}
-          className="h-[20px] border border-solid text-[0.65rem] tracking-[0.01em]"
+          <StatusChip
+            size="sm"
+            tone={tone}
+            label={label}
+            className="tracking-[0.01em]"
           />
         </span>
       </TooltipTrigger>
@@ -812,14 +796,14 @@ function ChannelCell({ row }: { row: ChannelCommissionOverview }) {
   const logo = channelLogo(row.channel);
   return (
     <div className="flex items-center gap-1.5">
-      <div className="w-[24px] h-[24px] rounded-[50%] inline-flex items-center justify-center shrink-0 border border-[var(--line)] bg-[var(--card)] overflow-hidden">
+      <div className="size-6 rounded-full inline-flex items-center justify-center shrink-0 border border-border bg-card overflow-hidden">
         {logo ? (
-          <img className="w-[14px] h-[14px] object-contain" src={logo} alt="" aria-hidden />
+          <img className="size-3.5 object-contain" src={logo} alt="" aria-hidden />
         ) : (
-          <Public size={12} strokeWidth={1.75} color="var(--muted)" />
+          <Public size={12} strokeWidth={1.75} className="text-muted-foreground" />
         )}
       </div>
-      <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground whitespace-nowrap">
+      <p className="text-sm font-semibold text-foreground whitespace-nowrap">
         {row.label}
       </p>
     </div>
@@ -856,7 +840,7 @@ interface ChannelProjectionTableProps {
  * alors qu'il en reste 67,60 € apres la commission d'un canal a 15,5 %.</p>
  */
 /** Montants projetes du tableau : meme taille et chiffres tabulaires partout. */
-const PROJECTION_NUMBER_CLASS = "cn-text-body1 text-[0.78rem] tabular-nums";
+const PROJECTION_NUMBER_CLASS = "text-xs tabular-nums";
 
 function ChannelProjectionTable({
   rows,
@@ -868,7 +852,7 @@ function ChannelProjectionTable({
   // Seuls les ecarts au gabarit du kit sont poses ici : la graisse 700 et la
   // capitale sont deja portees par `.cn-table-head`.
   const headCellClass =
-    "text-[0.62rem] tracking-[0.06em] text-[var(--muted)] whitespace-nowrap";
+    "text-2xs tracking-[0.06em] text-muted-foreground whitespace-nowrap";
 
   if (rows.length === 0) {
     return (
@@ -920,9 +904,7 @@ function ChannelProjectionTable({
             <TableRow
               key={row.channel}
               className={
-                row.channel === activeChannel
-                  ? "bg-[color-mix(in_srgb,var(--accent)_6%,transparent)]"
-                  : undefined
+                row.channel === activeChannel ? "bg-primary-soft/50" : undefined
               }
             >
               <TableCell>
@@ -934,12 +916,12 @@ function ChannelProjectionTable({
                   <span
                     className={cn(
                       PROJECTION_NUMBER_CLASS,
-                      fee > 0 ? "text-[var(--err)]" : "text-[var(--faint)]",
+                      fee > 0 ? "text-destructive-ink" : "text-faint",
                       // Propriete arbitraire plutot que border-b + border-dotted :
                       // sans preflight, border-dotted poserait un style pointille
                       // sur les quatre cotes, a la largeur `medium` par defaut.
                       drifts
-                        ? "[border-bottom:1px_dotted_var(--warn)] cursor-help"
+                        ? "[border-bottom:1px_dotted_var(--bui-warning)] cursor-help"
                         : "cursor-default",
                     )}
                   >
@@ -958,7 +940,7 @@ function ChannelProjectionTable({
                 </Tooltip>
               </TableCell>
               <TableCell className="text-end">
-                <p className={cn(PROJECTION_NUMBER_CLASS, "text-[var(--muted)]")}>
+                <p className={cn(PROJECTION_NUMBER_CLASS, "text-muted-foreground")}>
                   {formatMoney(net)}
                 </p>
               </TableCell>
@@ -968,8 +950,8 @@ function ChannelProjectionTable({
                     className={cn(
                       PROJECTION_NUMBER_CLASS,
                       share.primary
-                        ? "font-bold text-[var(--ink)]"
-                        : "font-normal text-[var(--muted)]",
+                        ? "font-bold text-foreground"
+                        : "font-normal text-muted-foreground",
                     )}
                   >
                     {formatMoney((net * share.pct) / 100)}
@@ -1049,7 +1031,7 @@ function RevenueSplitPanel({
     <>
           {/* Etage 1 — ce que le canal preleve avant tout partage. */}
           <div className="flex items-center gap-1 flex-wrap mb-2">
-            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground font-medium me-0.5">
+            <p className="text-xs text-muted-foreground font-medium me-0.5">
               {t("settings.split.simulateOn", "Simuler sur")}
             </p>
             {rows.map((row) => (
@@ -1061,12 +1043,12 @@ function RevenueSplitPanel({
                 onClick={() => onSelectChannel(row.channel)}
                 aria-pressed={activeChannel === row.channel}
                 className={cn(
-                  "[font-family:inherit] leading-[inherit] text-[0.72rem] px-1.5 py-[2.25px] rounded-[7px] cursor-pointer border border-solid",
-                  "transition-[border-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                  "hover:text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2",
+                  "[font-family:inherit] leading-[inherit] text-xs px-1.5 py-[2.25px] rounded-md cursor-pointer border border-solid",
+                  "transition-[border-color,color] duration-150 ease-out-quart motion-reduce:transition-none",
+                  "hover:text-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
                   activeChannel === row.channel
-                    ? "font-semibold border-[color-mix(in_srgb,var(--accent)_45%,transparent)] bg-[var(--accent-soft)] text-[var(--accent)]"
-                    : "font-medium border-[var(--line)] bg-transparent text-[var(--muted)]",
+                    ? "font-semibold border-primary/45 bg-primary-soft text-primary"
+                    : "font-medium border-border bg-transparent text-muted-foreground",
                 )}
               >
                 {row.label}
@@ -1106,12 +1088,16 @@ function RevenueSplitPanel({
 
           {/* Total — l'enregistrement vit dans le header de la page. */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <p className="cn-text-body1 text-[0.78rem] text-muted-foreground font-medium">
+            <p className="text-xs text-muted-foreground font-medium">
               Total
             </p>
-            <StatusChip color={isValidTotal ? "var(--ok)" : "var(--err)"} label={`${total}%`} />
+            <StatusChip
+              tone={isValidTotal ? "ok" : "err"}
+              label={`${total}%`}
+              className="tabular-nums"
+            />
             {!isValidTotal && (
-              <p className="cn-text-body1 text-[0.72rem] text-[var(--err)] font-medium">
+              <p className="text-xs text-destructive-ink font-medium">
                 {t("settings.split.totalError")}
               </p>
             )}
@@ -1122,11 +1108,11 @@ function RevenueSplitPanel({
           {/* Detail par canal — toujours visible : c'est ce tableau qui relie
               la commission du canal au reversement reel, l'information que les
               deux sections separees masquaient. */}
-          <div className="mt-2.5 border-t border-[var(--line)] pt-2">
-            <p className="cn-text-body1 text-[0.75rem] font-semibold text-muted-foreground">
+          <div className="mt-2.5 border-t border-border pt-2">
+            <p className="text-sm font-semibold tracking-tight text-muted-foreground">
               {t("settings.split.detailTitle", "Détail par canal")}
             </p>
-            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-0.5 mb-0.5 leading-[1.5]">
+            <p className="text-xs text-muted-foreground mt-0.5 mb-0.5 leading-[1.5]">
               {t(
                 "settings.split.projectionHint",
                 "Projection sur 100 € encaissés, à répartition constante. Ce n’est pas un relevé de reversements."
@@ -1173,8 +1159,8 @@ function BookingEngineRateRow({
   };
 
   return (
-    <div className="flex items-center gap-1.5 mt-[7.5px] pt-[7.5px] border-t border-dashed border-[var(--line)] flex-wrap">
-      <p className="cn-text-body1 text-[0.75rem] text-muted-foreground font-medium">
+    <div className="flex items-center gap-1.5 mt-[7.5px] pt-[7.5px] border-t border-dashed border-border flex-wrap">
+      <p className="text-xs text-muted-foreground font-medium">
         {t("settings.commissions.bookingEngineRate", "Taux du booking engine")}
       </p>
       <div className="relative inline-block w-[110px]">
@@ -1189,14 +1175,14 @@ function BookingEngineRateRow({
             "settings.commissions.bookingEngineRate",
             "Taux du booking engine"
           )}
-          className="text-center text-[0.8125rem] font-semibold tabular-nums pe-6"
+          className="text-center text-sm font-semibold tabular-nums pe-6"
         />
-        <span className="pointer-events-none absolute inset-y-0 end-2.5 flex items-center text-[0.8125rem] text-[var(--muted)]">
+        <span className="pointer-events-none absolute inset-y-0 end-2.5 flex items-center text-sm text-muted-foreground">
           %
         </span>
       </div>
       {saved ? (
-        <StatusChip color={"var(--ok)"} label={t("common.saved", "Sauvegardé")} />
+        <StatusChip tone="ok" label={t("common.saved", "Sauvegardé")} />
       ) : (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -1207,7 +1193,7 @@ function BookingEngineRateRow({
                 onClick={handleSave}
                 disabled={saveMutation.isPending}
                 aria-label={t("common.save", "Enregistrer")}
-                className="h-[28px] w-[28px] rounded-[7px] border border-solid border-[var(--line)] text-[var(--muted)] transition-[border-color,background-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[var(--accent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] hover:bg-[var(--accent-soft)]"
+                className="size-7 rounded-md border border-solid border-border text-muted-foreground transition-[border-color,background-color,color] duration-150 ease-out-quart motion-reduce:transition-none hover:text-primary hover:border-primary/40 hover:bg-primary-soft"
               >
                 <Save size={13} strokeWidth={1.75} />
               </Button>

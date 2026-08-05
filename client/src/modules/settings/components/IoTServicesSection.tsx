@@ -1,5 +1,15 @@
 import { useState } from 'react';
-import { Button, Card, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Settings2 } from 'lucide-react';
 import OAuthProviderCard, { type OAuthApiAdapter } from './OAuthProviderCard';
@@ -102,7 +112,9 @@ export default function IoTServicesSection() {
             size="icon-sm"
             onClick={() => setConfigOpen(true)}
             aria-label="Configurer le projet Tuya"
-            className={tuyaConfigured ? 'text-[var(--muted)]' : 'text-[var(--warn)]'}
+            // La couleur est le seul ecart entre les deux etats : encre `-ink`
+            // (AA sur la carte) et non la teinte vive, illisible a cette taille.
+            className={tuyaConfigured ? 'text-muted-foreground' : 'text-warning-ink'}
           >
             <Settings2 size={16} strokeWidth={2} />
           </Button>
@@ -126,7 +138,7 @@ export default function IoTServicesSection() {
             size="icon-sm"
             onClick={() => setNetatmoConfigOpen(true)}
             aria-label="Configurer l'app Netatmo"
-            className={netatmoConfigured ? 'text-[var(--muted)]' : 'text-[var(--warn)]'}
+            className={netatmoConfigured ? 'text-muted-foreground' : 'text-warning-ink'}
           >
             <Settings2 size={16} strokeWidth={2} />
           </Button>
@@ -139,41 +151,49 @@ export default function IoTServicesSection() {
   );
 
   return (
-    <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-connected-objects">
-      <p className="cn-text-body1 font-bold text-[1rem] mb-0.5">Objets connectés (IoT)</p>
-      <p className="cn-text-body2 text-muted-foreground mb-2.5">
-        Reliez les comptes IoT de l'organisation : serrures, caméras, thermostats et capteurs de bruit.
-        Une fois un service connecté, les membres de l'org ajoutent leurs appareils en quelques clics.
-      </p>
+    <Card className="gap-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-connected-objects">
+      {/* `px-0` : la Card porte deja son inset horizontal, les slots du kit
+          n'en rajoutent pas un second. */}
+      <CardHeader className="px-0 gap-0.5">
+        <CardTitle className="text-base font-semibold tracking-tight text-balance">
+          Objets connectés (IoT)
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Reliez les comptes IoT de l'organisation : serrures, caméras, thermostats et capteurs de bruit.
+          Une fois un service connecté, les membres de l'org ajoutent leurs appareils en quelques clics.
+        </CardDescription>
+      </CardHeader>
 
-      <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px]">
-        <OAuthProviderCard
-          providerId="TUYA"
-          label="Tuya"
-          description="Serrures, caméras, thermostats et capteurs · cloud Tuya IoT"
-          api={tuyaAdapter}
-          serviceTooltipId="TUYA"
-          secondaryAction={tuyaConfigAction}
-          mainActionDisabled={!tuyaConfigured}
-          mainActionDisabledReason="Configurez d'abord le projet Tuya Cloud (bouton ⚙)."
-        />
-        <OAuthProviderCard
-          providerId="MINUT"
-          label="Minut"
-          description="Capteurs de bruit & environnement · OAuth2"
-          api={minutAdapter}
-          serviceTooltipId="MINUT"
-        />
-        <OAuthProviderCard
-          providerId="NETATMO"
-          label="Netatmo"
-          description="Station météo, thermostat, caméras & détecteurs · OAuth2"
-          api={netatmoAdapter}
-          secondaryAction={netatmoConfigAction}
-          mainActionDisabled={!netatmoConfigured}
-          mainActionDisabledReason="Configurez d'abord l'app Netatmo (bouton ⚙)."
-        />
-      </div>
+      <CardContent className="px-0 pt-2.5">
+        <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px]">
+          <OAuthProviderCard
+            providerId="TUYA"
+            label="Tuya"
+            description="Serrures, caméras, thermostats et capteurs · cloud Tuya IoT"
+            api={tuyaAdapter}
+            serviceTooltipId="TUYA"
+            secondaryAction={tuyaConfigAction}
+            mainActionDisabled={!tuyaConfigured}
+            mainActionDisabledReason="Configurez d'abord le projet Tuya Cloud (icône engrenage)."
+          />
+          <OAuthProviderCard
+            providerId="MINUT"
+            label="Minut"
+            description="Capteurs de bruit & environnement · OAuth2"
+            api={minutAdapter}
+            serviceTooltipId="MINUT"
+          />
+          <OAuthProviderCard
+            providerId="NETATMO"
+            label="Netatmo"
+            description="Station météo, thermostat, caméras & détecteurs · OAuth2"
+            api={netatmoAdapter}
+            secondaryAction={netatmoConfigAction}
+            mainActionDisabled={!netatmoConfigured}
+            mainActionDisabledReason="Configurez d'abord l'app Netatmo (icône engrenage)."
+          />
+        </div>
+      </CardContent>
 
       <TuyaProjectConfigDialog
         open={configOpen}

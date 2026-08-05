@@ -73,8 +73,10 @@ export default function ActivityProviderConfigForm({ provider }: { provider: Act
   }
 
   return (
-    <div className="border border-[var(--line)] rounded-[16px] p-2 mb-2">
-      <Field orientation="horizontal" className="w-[fit-content] gap-2">
+    // Encart bordé plutôt qu'une Card : il est déjà rendu DANS la carte du
+    // modal de détail, et une carte dans une carte est un empilement à plat.
+    <div className="border border-border rounded-xl p-2 mb-2">
+      <Field orientation="horizontal" className="w-fit gap-2">
         <Switch
           id={`${fieldId}-enabled`}
           size="sm"

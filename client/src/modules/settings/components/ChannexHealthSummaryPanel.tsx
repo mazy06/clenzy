@@ -17,6 +17,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import StatusChip from '../../../components/StatusChip';
 import {
+  Alert,
+  AlertAction,
+  AlertDescription,
   Button,
   Skeleton,
   Spinner,
@@ -31,6 +34,7 @@ import {
   RefreshCw,
   Activity,
   ChevronRight,
+  TriangleAlert,
 } from 'lucide-react';
 
 import { channexApi, CHANNEX_STATUS_META } from '../../../services/api/channexApi';
@@ -48,10 +52,18 @@ interface ChannexHealthSummaryPanelProps {
   maxVisibleItems?: number;
 }
 
-const SEVERITY_META: Record<ChannexAttentionSeverity, { color: string; Icon: typeof AlertCircle; label: string }> = {
-  ERROR:   { color: 'var(--err)', Icon: AlertCircle,   label: 'Erreur' },
-  WARNING: { color: 'var(--warn)', Icon: AlertTriangle, label: 'Attention' },
-  INFO:    { color: 'var(--info)', Icon: Info,          label: 'Info' },
+/**
+ * Deux teintes par severite, jamais interchangeables (contrat Baitly UI §2.4) :
+ * `color` = teinte VIVE (bordure, fond, icone), `ink` = encre du TEXTE, seule a
+ * tenir le contraste AA.
+ */
+const SEVERITY_META: Record<
+  ChannexAttentionSeverity,
+  { color: string; ink: string; Icon: typeof AlertCircle; label: string }
+> = {
+  ERROR:   { color: 'var(--bui-destructive)', ink: 'var(--bui-destructive-ink)', Icon: AlertCircle,   label: 'Erreur' },
+  WARNING: { color: 'var(--bui-warning)',     ink: 'var(--bui-warning-ink)',     Icon: AlertTriangle, label: 'Attention' },
+  INFO:    { color: 'var(--bui-info)',        ink: 'var(--bui-info-ink)',        Icon: Info,          label: 'Info' },
 };
 
 const STATUS_ORDER: ChannexSyncStatus[] = ['ACTIVE', 'PENDING', 'ERROR', 'DISABLED'];
@@ -80,45 +92,47 @@ function AttentionRow({
 }) {
   const meta = SEVERITY_META[item.severity];
   const Icon = meta.Icon;
-  // La couleur de severite est choisie a l'execution : elle passe par une custom
-  // property inline pour rester utilisable dans les classes (y compris hover/focus).
+  // Les couleurs de severite sont choisies a l'execution : elles passent par des
+  // custom properties inline pour rester utilisables dans les classes (y compris
+  // hover/focus).
   const Root = onClick ? 'button' : 'div';
   return (
     <Root
       onClick={onClick}
       className={cn(
-        'flex gap-[7.5px] items-start w-full text-left p-1.5 rounded-[6px] border border-solid',
+        'flex gap-[7.5px] items-start w-full text-start p-1.5 rounded-md border border-solid',
         'border-[color-mix(in_srgb,_var(--sev)_13%,_transparent)] bg-[color-mix(in_srgb,_var(--sev)_3%,_transparent)]',
         onClick
-          ? 'cursor-pointer transition-all duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-[color-mix(in_srgb,_var(--sev)_33%,_transparent)] hover:bg-[color-mix(in_srgb,_var(--sev)_6%,_transparent)] hover:translate-x-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sev)] focus-visible:outline-offset-2'
+          ? 'cursor-pointer transition-colors duration-150 ease-out-quart motion-reduce:transition-none hover:border-[color-mix(in_srgb,_var(--sev)_33%,_transparent)] hover:bg-[color-mix(in_srgb,_var(--sev)_6%,_transparent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sev)] focus-visible:outline-offset-2'
           : 'cursor-default',
       )}
-      style={{ '--sev': meta.color } as React.CSSProperties}
+      style={{ '--sev': meta.color, '--sev-ink': meta.ink } as React.CSSProperties}
     >
-      <div className="mt-[1.2000000000000002px] shrink-0" style={{ color: meta.color }}>
+      <div className="mt-[1.2px] shrink-0 text-[var(--sev)]">
         <Icon size={16} strokeWidth={2.2} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-1 mb-0.5">
-          <p className="cn-text-body2 font-semibold leading-[1.3] text-foreground">
+          <p className="text-xs font-semibold leading-[1.3] text-foreground">
             {item.propertyName}
           </p>
-          <span className="cn-text-caption font-medium text-[0.65rem]" style={{ color: meta.color }}>
+          {/* Reference chiffree = TEXTE → encre `-ink`, pas la teinte vive. */}
+          <span className="text-2xs font-medium tabular-nums text-[var(--sev-ink)]">
             #{item.clenzyPropertyId}
           </span>
         </div>
-        <span className="cn-text-caption text-muted-foreground block leading-[1.45]">
+        <span className="text-xs text-muted-foreground block leading-[1.45]">
           {item.reason}
         </span>
         {item.lastSyncAt && (
-          <span className="cn-text-caption block mt-0.5 text-muted-foreground opacity-60 text-[0.65rem]">
+          <span className="block mt-0.5 text-2xs text-muted-foreground opacity-60 tabular-nums">
             Derniere sync : il y a {formatRelative(item.lastSyncAt)}
           </span>
         )}
       </div>
       {onClick && (
-        <div className="mt-[2.4000000000000004px] shrink-0" style={{ color: meta.color }}>
-          <ChevronRight size={14} />
+        <div className="mt-0.5 shrink-0 text-[var(--sev)]">
+          <ChevronRight size={14} className="cn-rtl-flip" />
         </div>
       )}
     </Root>
@@ -153,25 +167,27 @@ export default function ChannexHealthSummaryPanel({
 
   if (loading && !summary) {
     return (
-      <div className="border border-[var(--line)] rounded-[8px] p-2">
+      <div className="border border-solid border-border rounded-lg p-2">
         <div className="flex flex-col gap-1.5">
-          <Skeleton className="h-[32px] w-full rounded-[8px]" />
-          <Skeleton className="h-[48px] w-full rounded-[8px]" />
+          <Skeleton className="h-8 w-full rounded-lg" />
+          <Skeleton className="h-12 w-full rounded-lg" />
         </div>
       </div>
     );
   }
 
   if (error && !summary) {
+    // Bandeau d'erreur : primitive Alert plutot qu'un encart teinte a la main.
     return (
-      <div className="border border-solid border-[color-mix(in_srgb,_var(--err)_30%,_transparent)] rounded-[8px] p-[7.5px] bg-[color-mix(in_srgb,_var(--err)_5%,_transparent)]">
-        <span className="cn-text-caption text-destructive block mb-0.5">
-          {error}
-        </span>
-        <Button variant="ghost" size="xs" onClick={() => void fetchSummary()}>
-          Reessayer
-        </Button>
-      </div>
+      <Alert variant="destructive">
+        <TriangleAlert />
+        <AlertDescription>{error}</AlertDescription>
+        <AlertAction>
+          <Button variant="outline" size="xs" onClick={() => void fetchSummary()}>
+            Reessayer
+          </Button>
+        </AlertAction>
+      </Alert>
     );
   }
 
@@ -179,10 +195,10 @@ export default function ChannexHealthSummaryPanel({
 
   if (summary.totalMappings === 0) {
     return (
-      <div className="border border-[var(--line)] rounded-[8px] p-2 bg-[var(--surface-2)]">
+      <div className="border border-solid border-border rounded-lg p-2 bg-card">
         <div className="flex items-center gap-1.5">
-          <Activity size={16} color="var(--muted)" strokeWidth={2.2} />
-          <span className="cn-text-caption text-muted-foreground">
+          <Activity size={16} strokeWidth={2.2} className="text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">
             Aucune propriete connectee a Channex pour l'instant.
           </span>
         </div>
@@ -196,11 +212,11 @@ export default function ChannexHealthSummaryPanel({
   const hiddenCount = summary.attentionItems.length - visibleItems.length;
 
   return (
-    <div className="border border-[var(--line)] rounded-[8px] p-2 bg-[var(--surface-2)]">
+    <div className="border border-solid border-border rounded-lg p-2 bg-card">
       {/* Header : total + chips par status + refresh */}
       <div className={cn('flex items-center gap-1.5', summary.attentionItems.length > 0 ? 'mb-[7.5px]' : 'mb-0')}>
-        <Activity size={16} color="var(--accent)" strokeWidth={2.2} />
-        <span className="cn-text-caption font-semibold text-foreground">
+        <Activity size={16} strokeWidth={2.2} className="text-primary" />
+        <span className="text-xs font-semibold text-foreground tabular-nums">
           {summary.totalMappings} propriete{summary.totalMappings > 1 ? 's' : ''} connectee{summary.totalMappings > 1 ? 's' : ''}
         </span>
         <div className="flex gap-0.5 ms-auto flex-wrap">
@@ -209,7 +225,7 @@ export default function ChannexHealthSummaryPanel({
             if (n === 0) return null;
             const meta = CHANNEX_STATUS_META[st];
             return (
-              <StatusChip tokens={{ color: meta.color, bg: `color-mix(in srgb, ${meta.color} 10%, transparent)` }} label={`${n} ${meta.label.toLowerCase()}`} className="h-[20px] text-[0.65rem]" key={st} />
+              <StatusChip tokens={{ color: meta.color, bg: `color-mix(in srgb, ${meta.color} 10%, transparent)` }} label={`${n} ${meta.label.toLowerCase()}`} className="h-5 text-2xs tabular-nums" key={st} />
             );
           })}
         </div>

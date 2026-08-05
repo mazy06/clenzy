@@ -47,10 +47,11 @@ interface ChannexSyncLogsListProps {
   maxItems?: number;
 }
 
+/** Teintes VIVES : fond de ligne et icone, jamais du texte (contrat §2.4). */
 const STATUS_META: Record<ChannexSyncLogStatus, { color: string; Icon: typeof CheckCircle2; label: string }> = {
-  SUCCESS: { color: 'var(--ok)', Icon: CheckCircle2, label: 'OK' },
-  FAIL:    { color: 'var(--err)', Icon: XCircle,      label: 'Echec' },
-  SKIPPED: { color: 'var(--muted)', Icon: MinusCircle,  label: 'Skip' },
+  SUCCESS: { color: 'var(--bui-success)', Icon: CheckCircle2, label: 'OK' },
+  FAIL:    { color: 'var(--bui-destructive)', Icon: XCircle,      label: 'Echec' },
+  SKIPPED: { color: 'var(--bui-muted-foreground)', Icon: MinusCircle,  label: 'Skip' },
 };
 
 const TYPE_LABELS: Record<ChannexSyncLogType, { label: string; Icon: typeof Upload }> = {
@@ -85,25 +86,26 @@ function LogRow({ log }: { log: ChannexSyncLogDto }) {
   const typeMeta = TYPE_LABELS[log.syncType] ?? { label: log.syncType, Icon: Upload };
   const TypeIcon = typeMeta.Icon;
   return (
-    <div className="flex gap-1.5 py-[3.9000000000000004px] px-[5.1px] rounded-[8px] items-start" style={{ backgroundColor: `color-mix(in srgb, ${statusMeta.color} 10%, transparent)` }}>
+    <div className="flex gap-1.5 py-1 px-[5.1px] rounded-lg items-start" style={{ backgroundColor: `color-mix(in srgb, ${statusMeta.color} 10%, transparent)` }}>
       <div className="mt-[1.5px] shrink-0" style={{ color: statusMeta.color }}>
         <statusMeta.Icon size={14} strokeWidth={2.2} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-0.5 flex-wrap">
-          <TypeIcon size={11} strokeWidth={2} color="var(--muted)" />
-          <span className="cn-text-caption font-semibold leading-[1.3] text-[0.72rem]">
+          <TypeIcon size={11} strokeWidth={2} className="text-muted-foreground" />
+          <span className="text-xs font-semibold leading-[1.3] text-foreground">
             {typeMeta.label}
           </span>
           {log.recordCount > 0 && (
-            <Badge variant="secondary" className="h-[16px] text-[0.6rem] font-semibold bg-[var(--accent-soft)] text-[var(--accent)] px-1">{`${log.recordCount}`}</Badge>
+            <Badge variant="secondary" className="h-4 px-1 text-2xs font-semibold tabular-nums bg-primary-soft text-primary">{`${log.recordCount}`}</Badge>
           )}
-          <span className="cn-text-caption text-muted-foreground opacity-60 text-[0.65rem] ms-auto">
+          <span className="text-2xs text-muted-foreground opacity-60 tabular-nums ms-auto">
             {formatDuration(log.durationMs)} · {formatRelative(log.startedAt)}
           </span>
         </div>
+        {/* Message d'erreur = TEXTE → encre `-ink` (§2.4). */}
         {log.errorMessage && (
-          <span className="cn-text-caption block mt-0.5 text-[0.66rem] text-[var(--err)] font-mono leading-[1.35] break-words">
+          <span className="block mt-0.5 text-2xs text-destructive-ink font-mono leading-[1.35] break-words">
             {log.errorMessage}
           </span>
         )}
@@ -147,14 +149,14 @@ export default function ChannexSyncLogsList({
   const hiddenCount = logs.length - visibleLogs.length;
 
   return (
-    <div className="border border-[var(--line)] rounded-[8px] overflow-hidden">
+    <div className="border border-solid border-border rounded-lg overflow-hidden">
       {/* Header cliquable pour collapse */}
-      <div className="flex items-center gap-1.5 px-[7.5px] py-1.5 cursor-pointer select-none hover:bg-[var(--hover)]" onClick={() => setCollapsed((c) => !c)}>
-        <History size={14} color="var(--accent)" strokeWidth={2.2} />
-        <span className="cn-text-caption font-semibold flex-1">
+      <div className="flex items-center gap-1.5 px-[7.5px] py-1.5 cursor-pointer select-none hover:bg-muted" onClick={() => setCollapsed((c) => !c)}>
+        <History size={14} strokeWidth={2.2} className="text-primary" />
+        <span className="text-xs font-semibold flex-1 text-foreground">
           Historique de sync
           {logs.length > 0 && (
-            <span className="cn-text-caption text-muted-foreground ms-0.5 font-normal">
+            <span className="text-xs text-muted-foreground ms-0.5 font-normal tabular-nums">
               · {logs.length} entree{logs.length > 1 ? 's' : ''}
             </span>
           )}
@@ -173,7 +175,7 @@ export default function ChannexSyncLogsList({
                   onClick={(e) => { e.stopPropagation(); void fetchLogs(); }}
                   className="size-[22px]"
                 >
-                  <RefreshCw size={11} strokeWidth={2.2} color="var(--accent)" />
+                  <RefreshCw size={11} strokeWidth={2.2} className="text-primary" />
                 </Button>
               </span>
             </TooltipTrigger>
@@ -181,8 +183,8 @@ export default function ChannexSyncLogsList({
           </Tooltip>
         )}
         {collapsed
-          ? <ChevronDown size={14} color="var(--accent)" />
-          : <ChevronUp size={14} color="var(--accent)" />}
+          ? <ChevronDown size={14} className="text-primary" />
+          : <ChevronUp size={14} className="text-primary" />}
       </div>
 
       <Collapsible open={!collapsed}>
@@ -190,14 +192,14 @@ export default function ChannexSyncLogsList({
         <div className="px-2 pb-2 pt-0.5">
           {loading && logs.length === 0 && (
             <div className="flex flex-col gap-[3px]">
-              <Skeleton className="h-[32px] rounded-[8px]" />
-              <Skeleton className="h-[32px] rounded-[8px]" />
-              <Skeleton className="h-[32px] rounded-[8px]" />
+              <Skeleton className="h-8 rounded-lg" />
+              <Skeleton className="h-8 rounded-lg" />
+              <Skeleton className="h-8 rounded-lg" />
             </div>
           )}
           {error && !loading && (
             <div className="py-1.5">
-              <span className="cn-text-caption text-destructive block mb-0.5">
+              <span className="text-xs text-destructive-ink block mb-0.5">
                 {error}
               </span>
               {/* Outline et non ghost : seule voie de reprise apres une erreur de
@@ -208,7 +210,7 @@ export default function ChannexSyncLogsList({
             </div>
           )}
           {!loading && !error && logs.length === 0 && (
-            <span className="cn-text-caption text-muted-foreground opacity-60 block py-1.5 italic">
+            <span className="text-xs text-muted-foreground opacity-60 block py-1.5 italic">
               Aucune operation sync enregistree pour cette propriete.
             </span>
           )}

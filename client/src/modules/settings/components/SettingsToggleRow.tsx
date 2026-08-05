@@ -40,7 +40,7 @@ interface SettingsToggleRowProps {
  */
 const SettingsToggleRow: React.FC<SettingsToggleRowProps> = ({
   icon: Icon,
-  iconColor = 'var(--muted)',
+  iconColor = 'var(--bui-muted-foreground)',
   title,
   description,
   control,
@@ -95,7 +95,7 @@ const SettingsToggleRow: React.FC<SettingsToggleRowProps> = ({
   const className = cn(
     'items-center gap-3 rounded-none border-0 px-0 py-2.5',
     divider && 'border-b border-border last-of-type:border-b-0',
-    isSwitch && !disabled && 'cursor-pointer hover:bg-accent/40',
+    isSwitch && !disabled && 'cursor-pointer hover:bg-muted/60',
     disabled && 'opacity-60',
   );
 

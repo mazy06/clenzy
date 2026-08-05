@@ -106,7 +106,7 @@ export default function IntegrationsHeader({
           className="w-[200px] min-[600px]:w-[240px] min-[900px]:w-[260px] text-[0.78rem]"
         >
           <InputGroupAddon align="inline-start">
-            <span className="inline-flex text-[var(--muted)]">
+            <span className="inline-flex text-muted-foreground">
               <SearchIcon size={14} strokeWidth={2} />
             </span>
           </InputGroupAddon>

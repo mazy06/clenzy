@@ -83,11 +83,14 @@ function computeSteps(p: ChannexImportProgressStepperProps): Step[] {
   ];
 }
 
-const ACCENT = 'var(--accent)';
+/**
+ * Teintes VIVES : elles peignent la pastille, sa bordure et la fleche de
+ * liaison — jamais du texte (cf. contrat Baitly UI §2.4).
+ */
 const STATUS_COLOR: Record<StepStatus, string> = {
-  COMPLETE: 'var(--ok)',
-  ACTIVE:   ACCENT,
-  UPCOMING: 'var(--faint)',
+  COMPLETE: 'var(--bui-success)',
+  ACTIVE:   'var(--bui-primary)',
+  UPCOMING: 'var(--bui-faint)',
 };
 
 function StepBubble({ step }: { step: Step }) {
@@ -97,7 +100,7 @@ function StepBubble({ step }: { step: Step }) {
     <div className="flex items-start gap-1.5 min-w-0 flex-1">
       {/* Teintes derivees du statut a l'execution : elles restent dans style. */}
       <div
-        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-[0.6px] font-bold text-[0.75rem]"
+        className="size-8 rounded-full flex items-center justify-center shrink-0 mt-[0.6px] font-bold text-xs tabular-nums"
         style={{
           backgroundColor: step.status === 'UPCOMING'
             ? 'transparent'
@@ -116,10 +119,10 @@ function StepBubble({ step }: { step: Step }) {
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <span className={cn('cn-text-caption block font-bold text-[0.78rem] leading-[1.3]', step.status === 'UPCOMING' ? 'text-[var(--faint)]' : 'text-[var(--ink)]')}>
+        <span className={cn('block text-xs font-semibold leading-[1.3]', step.status === 'UPCOMING' ? 'text-faint' : 'text-foreground')}>
           {step.title}
         </span>
-        <span className={cn('cn-text-caption text-[var(--muted)] block text-[0.68rem] leading-[1.4]', step.status === 'UPCOMING' ? 'opacity-60' : 'opacity-100')}>
+        <span className={cn('block text-2xs text-muted-foreground leading-[1.4]', step.status === 'UPCOMING' ? 'opacity-60' : 'opacity-100')}>
           {step.hint}
         </span>
       </div>
@@ -128,9 +131,10 @@ function StepBubble({ step }: { step: Step }) {
 }
 
 function Connector({ next }: { next: StepStatus }) {
-  const color = next === 'UPCOMING' ? 'var(--line)' : STATUS_COLOR[next];
+  const color = next === 'UPCOMING' ? 'var(--bui-border)' : STATUS_COLOR[next];
+  // La fleche pointe le sens de lecture : elle se retourne en RTL avec la page.
   return (
-    <div className="flex items-center shrink-0 mt-1.5" style={{ color }}>
+    <div className="flex items-center shrink-0 mt-1.5 cn-rtl-flip" style={{ color }}>
       <ArrowRight size={14} strokeWidth={2.2} />
     </div>
   );
@@ -139,7 +143,10 @@ function Connector({ next }: { next: StepStatus }) {
 export default function ChannexImportProgressStepper(props: ChannexImportProgressStepperProps) {
   const steps = computeSteps(props);
   return (
-    <div className="rounded-[8px] p-[7.5px]" style={{ border: `1px solid ${ACCENT}22`, backgroundColor: `${ACCENT}06` }}>
+    // L'ancien fond `${ACCENT}22` concatenait un alpha sur un `var()` : declaration
+    // invalide, donc silencieusement sans effet. Les tokens Baitly portent leur
+    // propre alpha.
+    <div className="rounded-lg border border-solid border-primary/15 bg-primary-soft/50 p-[7.5px]">
       {/* `sm` MUI = 600 px, pas le 640 de Tailwind. spacing 1/1.25 = 6 px/7,5 px. */}
       <div className="flex flex-col gap-1.5 items-start min-[600px]:flex-row min-[600px]:gap-[7.5px] min-[600px]:items-center">
         <StepBubble step={steps[0]} />

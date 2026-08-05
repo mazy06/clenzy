@@ -1,8 +1,7 @@
 import React, { useEffect, useId, useState } from 'react';
-import StatusChip from '../../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { CircleCheck, Info, TriangleAlert } from 'lucide-react';
-import { Spinner, Button, Field, FieldLabel, Input } from '../../../components/ui';
+import { Badge, Spinner, Button, Field, FieldLabel, Input } from '../../../components/ui';
 import {
   partnerConnectionApi,
   type PartnerServiceProvider,
@@ -96,8 +95,10 @@ export default function PartnerServiceConfigForm({
   }
 
   return (
-    <div className="border border-[var(--line)] rounded-[16px] p-2 mb-2">
-      <UiAlert variant="info" className="text-[0.74rem] mb-2">
+    // Encart bordé plutôt qu'une Card : il est déjà rendu DANS la carte du
+    // modal de détail, et une carte dans une carte est un empilement à plat.
+    <div className="border border-border rounded-xl p-2 mb-2">
+      <UiAlert variant="info" className="text-xs mb-2">
         <Info />
         <AlertDescription>Vos accès {serviceName}sont chiffrés et enregistrés dès maintenant ; la
         synchronisation native sera activée dans une prochaine release.</AlertDescription>
@@ -105,9 +106,9 @@ export default function PartnerServiceConfigForm({
 
       {connected ? (
         <div className="flex items-center gap-1.5 flex-wrap">
-          <StatusChip tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label="Accès enregistrés" className="h-[20px] text-[0.66rem]" />
+          <Badge variant="success">Accès enregistrés</Badge>
           {connectedServerUrl && (
-            <span className="text-[0.72rem] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {connectedServerUrl}
             </span>
           )}
@@ -161,7 +162,7 @@ export default function PartnerServiceConfigForm({
       )}
 
       {message && (
-        <UiAlert variant={message.type === 'success' ? 'success' : 'destructive'} className="text-[0.74rem] mt-[7.5px]">
+        <UiAlert variant={message.type === 'success' ? 'success' : 'destructive'} className="text-xs mt-2">
           {message.type === 'success' ? <CircleCheck /> : <TriangleAlert />}
           <AlertDescription>{message.text}</AlertDescription>
         </UiAlert>

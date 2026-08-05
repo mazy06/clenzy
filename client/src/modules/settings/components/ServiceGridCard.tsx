@@ -1,6 +1,5 @@
 import React from 'react';
-import StatusChip from '../../../components/StatusChip';
-import { Card } from '../../../components/ui';
+import { Badge, Card } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import { CheckCircle as CheckCircleIcon, ErrorOutline } from '../../../icons';
 import { Settings2 } from 'lucide-react';
@@ -10,29 +9,12 @@ import type { ServiceTooltipData } from '../../../services/integrations/serviceT
 
 /**
  * Carte de service unifiée de l'onglet Intégrations — <b>même design que les cartes IoT</b>
- * (Tuya/Minut) : {@link Paper} compacte, rangée [logo 40px + (titre + pastille de statut +
+ * (Tuya/Minut) : {@link Card} compacte, rangée [logo 40px + (titre + pastille de statut +
  * description sur une ligne)] enveloppée dans {@link ServiceTooltip} (détails riches du service),
  * avec une affordance d'action à droite. La carte entière est cliquable (ouvre la config).
  *
  * Présentationnel : aucune logique métier. Le parent fournit l'état (status/selected) et l'action.
  */
-
-const ACCENT = 'var(--ok)';
-const NEUTRAL = 'var(--muted)';
-
-export const buildStatusChipSx = (color: string) => ({
-  height: 22,
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  letterSpacing: '0.01em',
-  borderRadius: '6px',
-  px: 0.25,
-  backgroundColor: `color-mix(in srgb, ${color} 8%, transparent)`,
-  color,
-  border: `1px solid color-mix(in srgb, ${color} 20%, transparent)`,
-  '& .MuiChip-icon': { color: `${color} !important`, ml: '6px', mr: '-2px' },
-  '& .MuiChip-label': { px: 0.875 },
-});
 
 export type ServiceCardStatus = 'connected' | 'idle' | 'comingSoon';
 
@@ -78,11 +60,17 @@ export default function ServiceGridCard({
 }: ServiceGridCardProps) {
   const statusChip =
     status === 'connected' ? (
-      <StatusChip color={ACCENT} label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
+      <Badge variant="success">
+        <CheckCircleIcon size={11} strokeWidth={2} />
+        Connecté
+      </Badge>
     ) : status === 'comingSoon' ? (
-      <StatusChip color={NEUTRAL} label="Bientôt disponible" />
+      <Badge variant="secondary">Bientôt disponible</Badge>
     ) : (
-      <StatusChip color={NEUTRAL} label="Non connecté" icon={<ErrorOutline size={11} strokeWidth={2} />} />
+      <Badge variant="secondary">
+        <ErrorOutline size={11} strokeWidth={2} />
+        Non connecté
+      </Badge>
     );
 
   const infoZone = (
@@ -90,11 +78,11 @@ export default function ServiceGridCard({
       {logo ?? (providerId ? <ProviderLogo provider={providerId} size={40} muted={disabled} /> : null)}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <p className="cn-text-body1 text-[0.875rem] font-semibold">{label}</p>
+          <p className="text-sm font-semibold tracking-tight">{label}</p>
           {titleAdornment}
           {badge ?? statusChip}
         </div>
-        <p className="cn-text-body1 truncate text-[0.72rem] text-muted-foreground mt-0.5">
+        <p className="truncate text-xs text-muted-foreground mt-0.5">
           {description}
         </p>
       </div>
@@ -123,11 +111,11 @@ export default function ServiceGridCard({
       // classes conditionnelles, pas par un sx recalcule a chaque rendu.
       className={cn(
         'gap-0 overflow-hidden py-0 outline-none transition-[border-color,box-shadow] duration-200',
-        selected ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-border bg-card',
+        selected ? 'border-primary bg-primary-soft' : 'border-border bg-card',
         interactive ? 'cursor-pointer' : 'cursor-default',
         !disabled && [
-          'hover:border-[color-mix(in_srgb,var(--accent)_25%,transparent)] hover:shadow-[var(--shadow-card)]',
-          'focus-visible:border-[var(--accent)] focus-visible:shadow-[0_0_0_3px_var(--accent-soft)]',
+          'hover:border-primary/25 hover:shadow-sm',
+          'focus-visible:border-primary focus-visible:shadow-[0_0_0_3px_var(--bui-primary-soft)]',
         ],
       )}
     >
@@ -150,9 +138,10 @@ export default function ServiceGridCard({
           // cliquable ; l'icône est purement visuelle.
           <div
             className={cn(
-              // mt: 0.25 = 1.5px (theme.spacing vaut 6 dans ce projet, pas 8).
+              // Décalage d'un pixel et demi pour aligner l'engrenage sur la
+              // ligne de base du titre.
               'flex items-center shrink-0 mt-[1.5px]',
-              status === 'connected' ? 'text-[var(--muted)]' : 'text-[var(--warn)]',
+              status === 'connected' ? 'text-muted-foreground' : 'text-warning',
             )}
           >
             <Settings2 size={18} strokeWidth={2} />

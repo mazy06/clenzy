@@ -197,10 +197,10 @@ export default function CreateCustomAmenityModal({
       >
         {/* Les marges negatives annulent le padding de la coque pour un en-tete
             pleine largeur, comme le pied du kit le fait deja. */}
-        <DialogHeader className="-mx-4 -mt-4 flex-row items-center justify-between border-b border-solid border-[var(--line)] px-4 py-2">
+        <DialogHeader className="-mx-4 -mt-4 flex-row items-center justify-between border-b border-solid border-border px-4 py-2">
           <div>
-            <DialogTitle className="cn-text-subtitle1 font-semibold">Nouvelle commodité</DialogTitle>
-            <span className="cn-text-caption text-muted-foreground">
+            <DialogTitle className="text-sm font-semibold">Nouvelle commodité</DialogTitle>
+            <span className="text-xs text-muted-foreground">
               Étend le référentiel Baitly pour votre organisation
             </span>
           </div>
@@ -263,8 +263,8 @@ export default function CreateCustomAmenityModal({
                           <ComboboxItem key={option.id} value={option}>
                             <Sparkles size={12} className="me-2 text-[#8B5CF6]" />
                             <div>
-                              <p className="cn-text-body1 text-[0.85rem]">{option.title}</p>
-                              <span className="cn-text-caption text-muted-foreground opacity-60 block">
+                              <p className="text-sm">{option.title}</p>
+                              <span className="block text-xs text-faint">
                                 {option.category}
                               </span>
                             </div>
@@ -315,20 +315,21 @@ export default function CreateCustomAmenityModal({
 
           {/* Icone : preview cliquable + label + bouton "Choisir" */}
           <div className="flex flex-row items-center gap-[9px]">
-            <div
+            {/* Vrai <button> et non un div `role="button"` : sans lui la preview
+                sort de l'ordre de tabulation et ne repond ni a Entree ni a Espace. */}
+            <button
+              type="button"
               onClick={() => setIconPickerOpen(true)}
-              role="button"
-              tabIndex={0}
               aria-label={t('settings.amenities.changeIcon', "Changer l'icône")}
-              className="w-10 h-10 rounded-[8px] inline-flex items-center justify-center bg-[var(--accent-soft)] text-[var(--accent)] cursor-pointer border border-solid border-[color-mix(in_srgb,var(--accent)_20%,transparent)] transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] hover:border-[var(--accent)] focus-visible:shadow-[0_0_0_3px_var(--accent-soft)] focus-visible:outline-none"
+              className="size-10 rounded-md inline-flex items-center justify-center bg-primary-soft text-primary cursor-pointer border border-solid border-primary/20 transition-colors duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none hover:bg-primary/15 hover:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:outline-none"
             >
               <PreviewIcon size={20} strokeWidth={1.75} />
-            </div>
+            </button>
             <div className="flex-1 min-w-0">
-              <p className="cn-text-body1 text-[0.78rem] font-semibold">
+              <p className="text-[0.78rem] font-semibold">
                 {t('settings.amenities.iconLabel', 'Icône')}
               </p>
-              <span className="cn-text-caption text-muted-foreground font-mono">
+              <span className="text-xs text-muted-foreground font-mono">
                 {selectedIconName}
               </span>
             </div>
@@ -349,7 +350,7 @@ export default function CreateCustomAmenityModal({
                   checked={autoAlias}
                   onCheckedChange={(checked) => setAutoAlias(checked === true)}
                 />
-                <FieldLabel htmlFor="custom-amenity-auto-alias" className="cn-text-caption font-normal">
+                <FieldLabel htmlFor="custom-amenity-auto-alias" className="text-xs font-normal text-muted-foreground">
                   Créer aussi l'alias «&nbsp;<strong>{prefillRawName}</strong>&nbsp;» → <strong>{previewCode || '...'}</strong>
                 </FieldLabel>
               </Field>
@@ -361,7 +362,7 @@ export default function CreateCustomAmenityModal({
                     onCheckedChange={(checked) => setApplyNow(checked === true)}
                     disabled={!autoAlias}
                   />
-                  <FieldLabel htmlFor="custom-amenity-apply-now" className="cn-text-caption font-normal">
+                  <FieldLabel htmlFor="custom-amenity-apply-now" className="text-xs font-normal text-muted-foreground">
                     Appliquer aux <strong>{prefillAffectedCount}</strong> propriété{prefillAffectedCount > 1 ? 's' : ''} maintenant
                   </FieldLabel>
                 </Field>
@@ -377,7 +378,7 @@ export default function CreateCustomAmenityModal({
         </div>
         </div>
 
-        <DialogFooter className="border-t border-solid border-[var(--line)] pt-[9px]">
+        <DialogFooter className="border-t border-solid border-border pt-[9px]">
           <Button onClick={onClose} variant="outline" size="sm">
             Annuler
           </Button>

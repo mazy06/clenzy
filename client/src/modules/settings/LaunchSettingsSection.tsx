@@ -5,6 +5,13 @@ import {
   Button,
   Collapsible,
   CollapsibleContent,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
   Separator,
 } from '../../components/ui';
 import { Mail, Rocket, Users, ChevronDown, ChevronUp, UserPlus } from 'lucide-react';
@@ -83,63 +90,71 @@ const LaunchSettingsSection: React.FC = () => {
       )}
 
       {/* Liste d'attente de lancement */}
-      <div className="flex items-center justify-between gap-2 py-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="text-muted-foreground inline-flex shrink-0"><Users size={18} /></div>
-          <div className="min-w-0">
-            <p className="cn-text-body1 text-[0.8125rem] font-medium text-foreground">
-              Liste d'attente de lancement
-            </p>
-            <p className="cn-text-body1 text-[0.75rem] text-muted-foreground tabular-nums">
-              {stats ? (
-                <>
-                  {stats.total} inscrit{stats.total > 1 ? 's' : ''}
-                  {' · '}
-                  {stats.founderSpotsLeft > 0
-                    ? `${stats.founderSpotsLeft} / ${founderSpots} place${founderSpots > 1 ? 's' : ''} fondateur restante${stats.founderSpotsLeft > 1 ? 's' : ''}`
-                    : 'Places fondateur complètes'}
-                </>
-              ) : '—'}
-            </p>
-          </div>
-        </div>
-        <Button variant="ghost" size="sm" className="shrink-0" onClick={() => setShowList((v) => !v)}>
-          {showList ? 'Masquer' : 'Voir les inscrits'}
-          {showList ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-        </Button>
-      </div>
+      <SettingsToggleRow
+        icon={Users}
+        iconColor="var(--bui-muted-foreground)"
+        title="Liste d'attente de lancement"
+        description={(
+          <span className="tabular-nums">
+            {stats ? (
+              <>
+                {stats.total} inscrit{stats.total > 1 ? 's' : ''}
+                {' · '}
+                {stats.founderSpotsLeft > 0
+                  ? `${stats.founderSpotsLeft} / ${founderSpots} place${founderSpots > 1 ? 's' : ''} fondateur restante${stats.founderSpotsLeft > 1 ? 's' : ''}`
+                  : 'Places fondateur complètes'}
+              </>
+            ) : '—'}
+          </span>
+        )}
+        divider={false}
+        control={(
+          <Button variant="ghost" size="sm" className="shrink-0" onClick={() => setShowList((v) => !v)}>
+            {showList ? 'Masquer' : 'Voir les inscrits'}
+            {showList ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+          </Button>
+        )}
+      />
 
       <Collapsible open={showList}>
         <CollapsibleContent>
         <Separator className="mb-1.5" />
         <div className="max-h-[320px] overflow-y-auto">
           {(list ?? []).length === 0 ? (
-            <p className="cn-text-body1 text-[0.78rem] text-muted-foreground text-center py-3">
+            <p className="py-3 text-center text-[0.78rem] text-muted-foreground">
               Aucun inscrit pour le moment.
             </p>
           ) : (
-            (list ?? []).map((w, i) => (
-              // gap: 1 = 6px et py: 0.75 = 4.5px (theme.spacing vaut 6 dans ce projet).
-              <div
-                key={w.id}
-                className="flex items-center gap-1.5 py-[4.5px] border-b border-solid border-[var(--line)] last-of-type:border-b-0"
-              >
-                <p className={cn('cn-text-body1 text-[0.7rem] font-semibold w-[30px] shrink-0 tabular-nums', i < founderSpots ? 'text-[var(--mui-primary)]' : 'text-[var(--faint)]')}>
-                  #{i + 1}
-                </p>
-                <div className="min-w-0 flex-1">
-                  <p className="cn-text-body1 text-[0.78rem] text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
-                    {w.fullName || w.email}
-                  </p>
-                  <p className="cn-text-body1 text-[0.68rem] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
-                    {w.email}{w.city ? ` · ${w.city}` : ''}
-                  </p>
-                </div>
-                <p className="cn-text-body1 text-[0.66rem] text-muted-foreground opacity-60 shrink-0 tabular-nums">
-                  {fmtDate(w.createdAt)}
-                </p>
-              </div>
-            ))
+            <ItemGroup>
+              {(list ?? []).map((w, i) => (
+                // Les places « fondateur » (rang < founderSpots) se disent par
+                // l'encre du rang, pas par un liseré lateral.
+                <Item
+                  key={w.id}
+                  size="xs"
+                  className="gap-1.5 rounded-none border-x-0 border-t-0 border-b border-border px-0 py-[4.5px] last-of-type:border-b-0"
+                >
+                  <ItemMedia className="w-[30px] justify-start">
+                    <span className={cn('text-2xs font-semibold tabular-nums', i < founderSpots ? 'text-primary' : 'text-faint')}>
+                      #{i + 1}
+                    </span>
+                  </ItemMedia>
+                  <ItemContent className="min-w-0 gap-0">
+                    <ItemTitle className="w-full text-[0.78rem] font-normal text-foreground">
+                      {w.fullName || w.email}
+                    </ItemTitle>
+                    <ItemDescription className="line-clamp-1 w-full text-2xs text-muted-foreground">
+                      {w.email}{w.city ? ` · ${w.city}` : ''}
+                    </ItemDescription>
+                  </ItemContent>
+                  <ItemActions className="shrink-0">
+                    <span className="text-2xs text-muted-foreground tabular-nums">
+                      {fmtDate(w.createdAt)}
+                    </span>
+                  </ItemActions>
+                </Item>
+              ))}
+            </ItemGroup>
           )}
         </div>
         </CollapsibleContent>

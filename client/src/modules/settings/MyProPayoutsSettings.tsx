@@ -24,11 +24,16 @@ import type { HousekeeperPayoutRecord } from '../../services/api/housekeeperPayo
 
 const payoutsKeys = { my: ['housekeeper-payouts', 'me'] as const };
 
-const STATUS_COLOR: Record<HousekeeperPayoutRecord['status'], string> = {
-  SENT: 'var(--ok, #4A9B8E)',
-  PENDING: 'var(--warn, #D4A574)',
-  FAILED: 'var(--err, #C97A7A)',
-  BLOCKED: 'var(--muted)',
+/**
+ * Statut du versement → variante de `Badge`. Les couleurs ne sont plus
+ * calculees a l'execution : chaque variante porte deja le couple fond doux /
+ * encre `-ink` conforme AA du kit Baitly UI.
+ */
+const STATUS_BADGE: Record<HousekeeperPayoutRecord['status'], React.ComponentProps<typeof Badge>['variant']> = {
+  SENT: 'success',
+  PENDING: 'warning',
+  FAILED: 'destructive',
+  BLOCKED: 'secondary',
 };
 
 export default function MyProPayoutsSettings() {
@@ -113,11 +118,11 @@ export default function MyProPayoutsSettings() {
   }
 
   const statusChip = data?.onboardingCompleted ? (
-    <StatusChip tokens={{ color: 'var(--ok, #4A9B8E)', bg: 'color-mix(in srgb, var(--ok, #4A9B8E) 12%, transparent)' }} label={t('settings.myProPayouts.statusComplete')} icon={<CheckCircle size={13} strokeWidth={2} />} />
+    <StatusChip tone="ok" label={t('settings.myProPayouts.statusComplete')} icon={<CheckCircle size={13} strokeWidth={2} />} />
   ) : data?.accountCreated ? (
-    <Badge variant="secondary" className="bg-[var(--field)] text-[var(--muted)] font-bold">{t('settings.myProPayouts.statusInProgress')}</Badge>
+    <Badge variant="secondary" className="font-semibold">{t('settings.myProPayouts.statusInProgress')}</Badge>
   ) : (
-    <Badge variant="secondary" className="bg-[var(--field)] text-[var(--muted)] font-bold">{t('settings.myProPayouts.statusNotStarted')}</Badge>
+    <Badge variant="secondary" className="font-semibold">{t('settings.myProPayouts.statusNotStarted')}</Badge>
   );
 
   return (
@@ -125,10 +130,10 @@ export default function MyProPayoutsSettings() {
       {/* ── Compte de versement (onboarding embarqué) ─────────────────────── */}
       <Card className="gap-0 py-0 p-3.5" id="pro-onboarding">
         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-          <span className="inline-flex text-[var(--accent)]">
+          <span className="inline-flex text-primary">
             <AccountBalance size={18} strokeWidth={1.75} />
           </span>
-          <p className="cn-text-body1 font-semibold text-[14px] text-[var(--ink)]">
+          <p className="text-sm font-semibold text-foreground">
             {t('settings.myProPayouts.accountSection')}
           </p>
           {statusChip}
@@ -159,7 +164,7 @@ export default function MyProPayoutsSettings() {
             )}
           </div>
         </div>
-        <p className="cn-text-body1 text-[12px] text-[var(--muted)]">
+        <p className="text-xs text-muted-foreground">
           {t('settings.myProPayouts.accountHint')}
         </p>
 
@@ -177,12 +182,12 @@ export default function MyProPayoutsSettings() {
       {/* ── Historique des versements ─────────────────────────────────────── */}
       <Card className="gap-0 py-0 overflow-hidden">
         <div className="px-3.5 pt-3 pb-1.5">
-          <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
+          <p className="text-2xs font-semibold uppercase tracking-[0.06em] text-faint">
             {t('settings.myProPayouts.historySection')}
           </p>
         </div>
         {records.length === 0 ? (
-          <p className="cn-text-body1 px-3.5 pb-3.5 text-[12.5px] text-[var(--muted)] italic">
+          <p className="px-3.5 pb-3.5 text-xs italic text-muted-foreground">
             {t('settings.myProPayouts.noPayouts')}
           </p>
         ) : (
@@ -205,35 +210,31 @@ export default function MyProPayoutsSettings() {
                       {new Date(record.createdAt).toLocaleDateString('fr-FR')}
                     </TableCell>
                     <TableCell>
-                      <a href={`/interventions/${record.interventionId}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+                      <a
+                        href={`/interventions/${record.interventionId}`}
+                        className="font-medium text-primary no-underline hover:underline"
+                      >
                         #{record.interventionId}
                       </a>
                     </TableCell>
                     <TableCell className="text-end tabular-nums font-semibold">
                       {record.amount} €
                     </TableCell>
-                    <TableCell className="text-end tabular-nums text-[var(--muted)]">
+                    <TableCell className="text-end tabular-nums text-muted-foreground">
                       {record.commissionAmount > 0 ? `−${record.commissionAmount} €` : '—'}
                     </TableCell>
                     <TableCell>
-                      {/* Couleurs derivees du statut a l'execution : inline, pas de classe. */}
-                      <span
-                        className="text-[10.5px] font-bold rounded-[7px] py-[2px] px-[7px] whitespace-nowrap"
-                        style={{
-                          color: STATUS_COLOR[record.status],
-                          backgroundColor: `color-mix(in srgb, ${STATUS_COLOR[record.status]} 12%, transparent)`,
-                        }}
-                      >
+                      <Badge variant={STATUS_BADGE[record.status]} className="font-semibold">
                         {t(`settings.myProPayouts.status.${record.status}`)}
                         {record.status === 'BLOCKED' && record.failureReason
                           ? ` · ${t(`settings.myProPayouts.reason.${record.failureReason}`, record.failureReason)}`
                           : ''}
-                      </span>
+                      </Badge>
                       {record.status === 'BLOCKED' && record.failureReason === 'PROOF_MISSING' && (
                         <div className="mt-0.5">
                           <a
                             href={`/interventions/${record.interventionId}`}
-                            style={{ fontSize: '11.5px', color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}
+                            className="text-xs font-semibold text-primary no-underline hover:underline"
                           >
                             {t('settings.myProPayouts.completeMission')}
                           </a>
@@ -241,9 +242,15 @@ export default function MyProPayoutsSettings() {
                       )}
                       {record.status === 'BLOCKED' && record.failureReason === 'ONBOARDING_INCOMPLETE' && (
                         <div className="mt-0.5">
-                          <button className="border-none p-0 cursor-pointer text-[11.5px] text-[var(--accent)] font-semibold" style={{ background: 'none', fontFamily: 'inherit' }} type="button" onClick={() => document.getElementById('pro-onboarding')?.scrollIntoView({ behavior: 'smooth' })}>
+                          <Button
+                            variant="link"
+                            size="xs"
+                            type="button"
+                            className="h-auto p-0 text-xs font-semibold"
+                            onClick={() => document.getElementById('pro-onboarding')?.scrollIntoView({ behavior: 'smooth' })}
+                          >
                             {t('settings.myProPayouts.finishOnboarding')}
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </TableCell>

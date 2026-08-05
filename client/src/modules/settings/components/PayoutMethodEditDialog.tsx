@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import StatusChip from '../../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
-import { Info, CircleCheck, TriangleAlert } from 'lucide-react';
+import { Check, Info, CircleCheck, TriangleAlert } from 'lucide-react';
 import { Spinner, Button } from '../../../components/ui';
 import {
   Dialog,
@@ -54,11 +54,6 @@ import type {
  * propriétaire (endpoints {@code /{ownerId}/*}).</p>
  */
 
-const ACCENT = 'var(--ok)';
-const PRIMARY = 'var(--accent)';
-const NEUTRAL = 'var(--muted)';
-const WARM = 'var(--warn)';
-
 const IBAN_REGEX = /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/;
 
 const extractErrorMessage = (e: unknown): string => {
@@ -78,42 +73,43 @@ const METHOD_OPTIONS: Array<{
   label: string;
   description: string;
   badge?: string;
-  badgeColor?: string;
+  /** Ton semantique de la puce, resolu par la primitive StatusChip. */
+  badgeTone?: StatusTone;
 }> = [
   {
     value: 'STRIPE_CONNECT',
     label: 'Stripe Connect',
     description: 'Virement automatique vers compte Stripe Express. EU, US, UK et 40+ pays.',
     badge: 'AUTO',
-    badgeColor: ACCENT,
+    badgeTone: 'ok',
   },
   {
     value: 'WISE',
     label: 'Wise Business',
     description: 'Virement international auto, 80+ pays dont Maroc et Arabie Saoudite. Frais ~0.5%.',
     badge: 'AUTO',
-    badgeColor: ACCENT,
+    badgeTone: 'ok',
   },
   {
     value: 'OPEN_BANKING',
     label: 'Open Banking PIS',
     description: 'Virement SEPA auto via PSD2. Validation SCA bancaire tous les 90 jours.',
     badge: 'AUTO',
-    badgeColor: ACCENT,
+    badgeTone: 'ok',
   },
   {
     value: 'SEPA_TRANSFER',
     label: 'Virement SEPA',
     description: 'Génération XML pain.001 + upload manuel sur le portail bancaire Baitly.',
     badge: 'SEMI-AUTO',
-    badgeColor: WARM,
+    badgeTone: 'warn',
   },
   {
     value: 'MANUAL',
     label: 'Manuel',
     description: 'Paiement hors-Baitly (espèces, chèque, virement perso). Aucune automatisation.',
     badge: 'MANUEL',
-    badgeColor: NEUTRAL,
+    badgeTone: 'neutral',
   },
 ];
 
@@ -401,10 +397,10 @@ export default function PayoutMethodEditDialog({
         </DialogHeader>
 
         {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
-        <div className="flex flex-col gap-3 border-y border-solid border-[var(--line)] py-3">
+        <div className="flex flex-col gap-3 border-y border-solid border-border py-3">
           {/* ─── Sélecteur de méthode ───────────────────────────── */}
           <div>
-            <p className="cn-text-body1 text-[0.78rem] font-bold text-[var(--ink)] mb-1.5">
+            <p className="text-sm font-semibold tracking-tight text-foreground mb-1.5">
               Choisissez le rail de virement
             </p>
             <RadioGroup
@@ -418,25 +414,25 @@ export default function PayoutMethodEditDialog({
                 <label
                   key={opt.value}
                   className={cn(
-                    'flex items-start gap-1.5 cursor-pointer rounded-[8px] border border-solid px-[9px] py-1.5',
-                    '[transition:border-color_150ms,background-color_150ms]',
-                    'hover:border-[color-mix(in_srgb,var(--accent)_53%,transparent)] hover:bg-[color-mix(in_srgb,var(--accent)_4%,transparent)]',
+                    'flex items-start gap-1.5 cursor-pointer rounded-md border border-solid px-[9px] py-1.5',
+                    'transition-[border-color,background-color] duration-150 ease-out-quart motion-reduce:transition-none',
+                    'hover:border-primary/50 hover:bg-primary-soft/50',
                     selectedMethod === opt.value
-                      ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
-                      : 'border-[var(--line)] bg-transparent',
+                      ? 'border-primary bg-primary-soft'
+                      : 'border-border bg-transparent',
                   )}
                 >
                   <RadioGroupItem value={opt.value} className="mt-[3px]" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <p className="cn-text-body1 text-[0.85rem] font-semibold">
+                      <p className="text-sm font-semibold">
                         {opt.label}
                       </p>
                       {opt.badge && (
-                        <StatusChip size="sm" tokens={{ color: opt.badgeColor ?? 'var(--muted)', bg: `${opt.badgeColor ?? 'var(--muted)'}14` }} label={opt.badge} className="text-[0.6rem] tracking-[0.04em]" />
+                        <StatusChip size="sm" tone={opt.badgeTone ?? 'neutral'} label={opt.badge} className="tracking-[0.04em]" />
                       )}
                     </div>
-                    <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.4] mt-0.5">
+                    <p className="text-xs text-muted-foreground leading-[1.4] mt-0.5">
                       {opt.description}
                     </p>
                   </div>
@@ -577,8 +573,9 @@ export default function PayoutMethodEditDialog({
             <AlertDescription>{mode === 'self'
               ? "L'onboarding Stripe Connect se fait depuis la section dédiée plus bas dans Mes reversements."
               : "Le propriétaire doit compléter lui-même l'onboarding Stripe Connect via sa page Mes reversements."}{currentConfig?.stripeOnboardingComplete && (
-              <span className="block mt-[3px] font-semibold" style={{ color: ACCENT }}>
-                ✓ Onboarding Stripe complété pour ce propriétaire.
+              <span className="mt-[3px] flex items-center gap-1 font-semibold text-success-ink">
+                <Check className="size-3.5 shrink-0" aria-hidden />
+                Onboarding Stripe complété pour ce propriétaire.
               </span>
             )}</AlertDescription>
           </Alert>

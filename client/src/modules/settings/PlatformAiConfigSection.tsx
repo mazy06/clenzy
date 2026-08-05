@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '../../utils/cn';
-import StatusChip from '../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { CircleCheck, TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -213,7 +213,7 @@ const AI_FEATURES = [
 
 // Gabarit de ligne partage par ModelRow et FeatureRow (memes metriques).
 const ROW_CLASS =
-  'flex items-center px-[15px] py-[7.5px] gap-[9px] transition-colors duration-150 hover:bg-[var(--hover)]';
+  'flex items-center px-[15px] py-[7.5px] gap-[9px] transition-colors duration-150 hover:bg-muted';
 
 // ─── Model Dialog ──────────────────────────────────────────────────────────
 
@@ -441,14 +441,14 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
                         const color = CATALOG_CATEGORY_COLORS[option.category] || '#9AA1B0';
                         return (
                           <ComboboxItem key={option.id} value={option} className="justify-between gap-2">
-                            <span className="font-mono text-[0.75rem] overflow-hidden text-ellipsis whitespace-nowrap">
+                            <span className="font-mono text-xs overflow-hidden text-ellipsis whitespace-nowrap">
                               {option.id}
                             </span>
                             <StatusChip
                               size="sm"
                               tokens={{ color, bg: softBg(color, 0.14) }}
                               label={CATALOG_CATEGORY_LABELS[option.category] || option.category}
-                              className="text-[0.6rem] shrink-0"
+                              className="shrink-0"
                             />
                           </ComboboxItem>
                         );
@@ -510,13 +510,13 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
                 : t('settings.ai.platform.loadCatalog', 'Charger le catalogue du provider')}
             </BuiButton>
             {catalogMutation.isError && (
-              <span className="cn-text-caption text-destructive">
+              <span className="text-xs text-destructive-ink">
                 {(catalogMutation.error as Error)?.message
                   || t('settings.ai.platform.catalogError', 'Échec du chargement du catalogue.')}
               </span>
             )}
             {catalog.length > 0 && (
-              <span className="cn-text-caption text-muted-foreground leading-[1.45]">
+              <span className="text-xs text-muted-foreground leading-[1.45]">
                 {t('settings.ai.platform.catalogLegend',
                   'Chat / Raisonnement → Assistant, Messagerie, Tarification, Analytics · Code → Design, Studio · Audio, OCR, Embeddings, Image, Rerank ne conviennent pas aux agents conversationnels.')}
               </span>
@@ -551,7 +551,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
           </Field>
 
           {keyOptional && !apiKey.trim() && (
-            <span className="cn-text-caption text-[var(--muted)] mt-[-7.5px] mb-[-3px]">
+            <span className="text-xs text-muted-foreground mt-[-7.5px] mb-[-3px]">
               {reusableMasked
                 ? t('settings.ai.platform.keyReuse', 'Laisse vide pour réutiliser la clé déjà configurée pour ce provider.')
                 : t('settings.ai.platform.keyKeep', 'Laisse vide pour conserver la clé actuelle.')}
@@ -563,7 +563,7 @@ function ModelDialog({ open, onClose, editModel }: ModelDialogProps) {
             <div className="-mt-1.5 -mb-[3px]">
               {/* Aide contextuelle discrete : action tertiaire -> ghost.
                   Le survol teinte provider laisse place au survol du kit. */}
-              <BuiButton asChild variant="ghost" size="xs" className="text-[0.72rem] font-medium text-[var(--muted)]">
+              <BuiButton asChild variant="ghost" size="xs" className="text-xs font-medium text-muted-foreground">
                 <a href={keyHelpUrl()} target="_blank" rel="noopener noreferrer">
                   {provider === 'nvidia' && modelId
                     ? 'Où trouver ma clé ? — Page du modèle : Get API Key'
@@ -648,12 +648,14 @@ interface ModelRowProps {
 function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
   const { t } = useTranslation();
   const { isDark } = useThemeMode();
-  const providerColor = PROVIDER_COLORS[model.provider] || '#888';
+  const providerColor = PROVIDER_COLORS[model.provider] || 'var(--bui-muted-foreground)';
   const recheck = useRecheckPlatformModel();
 
   // Disponibilité live (probe proactif) — distincte du checkmark "lastValidatedAt" (test manuel).
   const av = model.availabilityStatus;
-  const avColor = av === 'AVAILABLE' ? '#4A9B8E' : av === 'UNAVAILABLE' ? '#C97A7A' : '#9AA1B0';
+  // Ton semantique delegue a la primitive : la paire encre/fond doux vient
+  // d'elle, plus d'un hex fige ici.
+  const avTone: StatusTone = av === 'AVAILABLE' ? 'ok' : av === 'UNAVAILABLE' ? 'err' : 'neutral';
   const avLabel = av === 'AVAILABLE'
     ? t('settings.ai.platform.availabilityAvailable', 'Disponible')
     : av === 'UNAVAILABLE'
@@ -668,18 +670,18 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
   return (
     <div className={ROW_CLASS}>
       {/* Color dot */}
-      <div className="w-[8px] h-[8px] rounded-[50%] shrink-0" style={{ backgroundColor: providerColor }} />
+      <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: providerColor }} />
 
       {/* Name */}
-      <p className="cn-text-body2 font-semibold min-w-[120px] flex-[0_0_auto]">
+      <p className="text-xs font-semibold min-w-[120px] flex-[0_0_auto]">
         {model.name}
       </p>
 
       {/* Provider chip */}
-      <StatusChip tokens={{ color: providerColor, bg: softBg(providerColor, isDark ? 0.18 : 0.1) }} label={PROVIDER_LABELS[model.provider] || model.provider} className="text-[0.65rem] shrink-0" />
+      <StatusChip tokens={{ color: providerColor, bg: softBg(providerColor, isDark ? 0.18 : 0.1) }} label={PROVIDER_LABELS[model.provider] || model.provider} size="sm" className="shrink-0" />
 
       {/* Model ID */}
-      <span className="cn-text-caption text-muted-foreground text-[0.7rem] font-mono flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+      <span className="text-xs text-muted-foreground font-mono flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
         {model.modelId}
       </span>
 
@@ -690,7 +692,15 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
           return (
             // Repli en TOKEN, pas en chemin de theme MUI : ces couleurs partent
             // desormais en style inline, ou `text.secondary` ne veut rien dire.
-            <StatusChip tokens={{ color: featureConf?.color || 'var(--muted)', bg: softBg(featureConf?.color || '#888', isDark ? 0.15 : 0.08) }} label={feat} className="h-[20px] text-[0.6rem]" key={feat} />
+            <StatusChip
+              tokens={{
+                color: featureConf?.color || 'var(--bui-muted-foreground)',
+                bg: softBg(featureConf?.color || 'var(--bui-muted-foreground)', isDark ? 0.15 : 0.08),
+              }}
+              label={feat}
+              size="sm"
+              key={feat}
+            />
           );
         })}
       </div>
@@ -701,7 +711,7 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
       <Tooltip>
         <TooltipTrigger asChild>
           <span className="inline-flex">
-            <StatusChip tokens={{ color: avColor, bg: softBg(avColor, isDark ? 0.18 : 0.12) }} label={avLabel} className="text-[0.65rem] shrink-0" />
+            <StatusChip tone={avTone} label={avLabel} size="sm" className="shrink-0" />
           </span>
         </TooltipTrigger>
         <TooltipContent className="whitespace-pre-line">{avTip}</TooltipContent>
@@ -747,7 +757,7 @@ function ModelRow({ model, onEdit, onDelete, isDeleting }: ModelRowProps) {
           variant="ghost"
           size="icon-sm"
           aria-label={t('settings.ai.platform.delete', 'Supprimer')}
-          className="text-[var(--err)]"
+          className="text-destructive"
           onClick={() => onDelete(model.id)}
           disabled={isDeleting}
         >
@@ -789,15 +799,15 @@ function UsageBreakdownTooltip({
           carte. `[&>svg]` vise la fleche Radix, seul svg enfant direct du contenu. */}
       <TooltipContent
         side="left"
-        className="bg-[var(--card)] text-[var(--ink)] border border-solid border-[var(--line)] shadow-[var(--shadow-pop)] p-0 max-w-[360px] [&>svg]:fill-[var(--card)]"
+        className="bg-card text-foreground border border-solid border-border shadow-lg p-0 max-w-[360px] [&>svg]:fill-card"
       >
         <div className="p-2 min-w-[280px]">
           {/* Header */}
-          <div className="flex items-center justify-between mb-1.5 pb-1.5 border-b border-[var(--line)]">
-            <span className="cn-text-caption font-bold tracking-[0.4px]" style={{ color: feature.color }}>
+          <div className="flex items-center justify-between mb-1.5 pb-1.5 border-b border-border">
+            <span className="text-2xs font-semibold uppercase tracking-wide" style={{ color: feature.color }}>
               {feature.label.toUpperCase()}
             </span>
-            <span className="cn-text-caption font-bold tabular-nums">
+            <span className="text-xs font-semibold tabular-nums">
               ${totalCost.toFixed(4)} USD
             </span>
           </div>
@@ -806,16 +816,16 @@ function UsageBreakdownTooltip({
             const totalTokens = m.tokensIn + m.tokensOut;
             return (
               <div className="flex items-center gap-1.5 py-0.5" key={`${m.provider}-${m.model}`}>
-                <div className="w-[6px] h-[6px] rounded-[50%] shrink-0" style={{ backgroundColor: PROVIDER_COLORS[m.provider] || '#888' }} />
+                <div className="size-1.5 rounded-full shrink-0" style={{ backgroundColor: PROVIDER_COLORS[m.provider] || 'var(--bui-muted-foreground)' }} />
                 <div className="flex-1 min-w-0">
-                  <span className="cn-text-caption block font-semibold text-[0.72rem] overflow-hidden text-ellipsis whitespace-nowrap">
+                  <span className="text-xs block font-semibold overflow-hidden text-ellipsis whitespace-nowrap">
                     {m.model}
                   </span>
-                  <span className="cn-text-caption block text-muted-foreground text-[0.65rem] tabular-nums">
+                  <span className="text-2xs block text-muted-foreground tabular-nums">
                     {Math.round(totalTokens / 1000)}k tok ({Math.round(m.tokensIn / 1000)}k in + {Math.round(m.tokensOut / 1000)}k out) · {m.callCount} call{m.callCount > 1 ? 's' : ''}
                   </span>
                 </div>
-                <span className="cn-text-caption font-semibold text-[0.72rem] tabular-nums shrink-0">
+                <span className="text-xs font-semibold tabular-nums shrink-0">
                   ${m.costUsd.toFixed(4)}
                 </span>
               </div>
@@ -906,7 +916,7 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
       {/* Feature icon */}
       {/* Couleur derivee de la feature a l'execution : inline, pas de classe. */}
       <div
-        className="flex items-center justify-center w-[34px] h-[34px] rounded-[12px] shrink-0"
+        className="flex items-center justify-center size-[34px] rounded-xl shrink-0"
         style={{ backgroundColor: softBg(feature.color, isDark ? 0.15 : 0.08), color: feature.color }}
       >
         {feature.icon}
@@ -925,10 +935,10 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
 
       {/* Feature name + desc */}
       <div className={cn('flex-1 min-w-0', enabled ? 'opacity-100' : 'opacity-50')}>
-        <p className="cn-text-body2 font-semibold leading-[1.3]">
+        <p className="text-xs font-semibold leading-[1.3]">
           {feature.label}
         </p>
-        <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
+        <span className="text-xs text-muted-foreground">
           {feature.desc}
         </span>
       </div>
@@ -973,14 +983,18 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
       {(() => {
         const pct = budget > 0 ? Math.min((used / budget) * 100, 100) : 0;
         const isOver = used >= budget;
-        const barColor = isOver ? 'var(--err)' : pct > 75 ? 'var(--warn)' : feature.color;
+        const barColor = isOver
+          ? 'var(--bui-destructive)'
+          : pct > 75
+            ? 'var(--bui-warning)'
+            : feature.color;
         const totalCost = usageBreakdown.reduce((sum, m) => sum + (m.costUsd ?? 0), 0);
         return (
           <UsageBreakdownTooltip breakdown={usageBreakdown} totalCost={totalCost} feature={feature}>
             <div className={cn('relative w-[170px] shrink-0', usageBreakdown.length > 0 ? 'cursor-help' : 'cursor-default')}>
               {/* Progress bar background */}
-              <div className="absolute inset-[0px] rounded-[8px] overflow-hidden border border-[var(--line)]">
-                <div className="absolute start-0 top-0 bottom-0" style={{ width: `${pct}%`, backgroundColor: `color-mix(in srgb, ${barColor} 15%, transparent)`, transition: 'width 0.3s ease, background-color 0.3s ease' }} />
+              <div className="absolute inset-0 rounded-md overflow-hidden border border-border">
+                <div className="absolute start-0 top-0 bottom-0 transition-[width,background-color] duration-300 motion-reduce:transition-none" style={{ width: `${pct}%`, backgroundColor: `color-mix(in srgb, ${barColor} 15%, transparent)` }} />
               </div>
               {/* Input on top — le champ du kit porte desormais une bordure
                   permanente : l'affordance « editable » n'a plus besoin du
@@ -991,7 +1005,7 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
                   type="number"
                   aria-label={t('bookingEngine.ai.platform.budgetHint', 'Budget mensuel de tokens (modifiable)')}
                   title={t('bookingEngine.ai.platform.budgetHint', 'Budget mensuel de tokens (modifiable)')}
-                  className="text-[0.75rem] tabular-nums"
+                  className="text-xs tabular-nums"
                   value={budgetInput}
                   onChange={(e) => setBudgetInput(e.target.value)}
                   onBlur={commitBudget}
@@ -1003,7 +1017,7 @@ function FeatureRow({ feature, models, connectedProviders, assignedModel, assign
                   }}
                 />
                 <InputGroupAddon align="inline-end">
-                  <span className="cn-text-caption text-muted-foreground whitespace-nowrap text-[0.65rem] tabular-nums">
+                  <span className="text-2xs text-muted-foreground whitespace-nowrap tabular-nums">
                     {Math.round(used / 1000)}k / {Math.round(budget / 1000)}k
                   </span>
                 </InputGroupAddon>
@@ -1170,19 +1184,19 @@ export default function PlatformAiConfigSection() {
     >
       {/* ── Section 1: Configured Models ── */}
       <div className="mb-1.5">
-        <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]">
+        <span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
           {t('settings.ai.platform.models')}
         </span>
       </div>
 
       {modelList.length === 0 ? (
         <div className="pb-3">
-          <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] italic">
+          <p className="text-xs text-muted-foreground italic">
             {t('settings.ai.platform.noModel')}
           </p>
         </div>
       ) : (
-        <div className="-mx-3 min-[900px]:-mx-[18px] mb-3 border-t border-b border-[var(--line)]">
+        <div className="-mx-3 min-[900px]:-mx-[18px] mb-3 border-t border-b border-border">
           {modelList.map((model, index) => (
             <React.Fragment key={model.id}>
               {index > 0 && <Separator className="w-auto mx-3 min-[900px]:mx-[18px]" />}
@@ -1199,7 +1213,7 @@ export default function PlatformAiConfigSection() {
 
       {/* ── Section 2: Feature Assignments ── */}
       <div className="mt-4 mb-1.5">
-        <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]">
+        <span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
           {t('settings.ai.platform.featureMapping')}
         </span>
       </div>
@@ -1216,7 +1230,7 @@ export default function PlatformAiConfigSection() {
         </BuiAlert>
       )}
 
-      <div className="-mx-3 min-[900px]:-mx-[18px] border-t border-b border-[var(--line)]">
+      <div className="-mx-3 min-[900px]:-mx-[18px] border-t border-b border-border">
         {AI_FEATURES.map((feat, index) => (
           <React.Fragment key={feat.key}>
             {index > 0 && <Separator className="w-auto mx-3 min-[900px]:mx-[18px]" />}
@@ -1247,13 +1261,13 @@ export default function PlatformAiConfigSection() {
 
       {/* ── Section 3: Amorçage des crédits IA ── */}
       <div className="mt-4 mb-1.5">
-        <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]">
+        <span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
           {t('settings.ai.platform.creditsBootstrap', 'Amorçage des crédits')}
         </span>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 justify-between py-2">
-        <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] max-w-[560px] leading-[1.5]">
+        <p className="text-xs text-muted-foreground max-w-[560px] leading-[1.5]">
           {t(
             'settings.ai.platform.creditsBootstrapHelp',
             'Dote toutes les organisations existantes de leur poche de crédits initiale. Action idempotente : une organisation déjà pourvue est ignorée. Les abonnés sont ensuite auto-provisionnés à l’usage et rechargés chaque mois.',
@@ -1316,7 +1330,7 @@ export default function PlatformAiConfigSection() {
               {t('settings.ai.platform.deleteConfirmTitle', 'Supprimer ce modèle ?')}
             </DialogTitle>
           </DialogHeader>
-          <p className="cn-text-body2 text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {t('settings.ai.platform.deleteConfirmBody', {
               defaultValue: 'Le modèle « {{name}} » sera supprimé. Les features qui l’utilisent repasseront au modèle par défaut.',
               name: modelList.find((m) => m.id === confirmDeleteId)?.name ?? '',

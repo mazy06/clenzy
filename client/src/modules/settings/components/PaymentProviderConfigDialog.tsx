@@ -52,8 +52,6 @@ import { PAYMENT_PROVIDER_LABELS } from '../../../types/payment';
  * les autres clefs.</p>
  */
 
-const ACCENT = 'var(--ok)';
-
 interface FieldSpec {
   key: string;
   label: string;
@@ -420,7 +418,7 @@ export default function PaymentProviderConfigDialog({
         </DialogHeader>
 
         {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
-        <div className="flex flex-col gap-[9px] border-y border-solid border-[var(--line)] py-3">
+        <div className="flex flex-col gap-[9px] border-y border-solid border-border py-3">
         {fields.length === 0 && (
           <Alert variant="info" className="text-[0.8rem]">
             <Info />
@@ -506,10 +504,10 @@ export default function PaymentProviderConfigDialog({
             className="mt-0.5"
           />
           <FieldLabel htmlFor="payment-config-sandbox" className="flex-col items-start gap-0">
-            <span className="cn-text-body1 text-[0.82rem] font-semibold">
+            <span className="text-sm font-semibold">
               Mode sandbox
             </span>
-            <span className="cn-text-body1 text-[0.68rem] font-normal text-muted-foreground">
+            <span className="text-2xs font-normal text-muted-foreground">
               Activez en developpement ; desactivez pour la production (apres validation KYB).
             </span>
           </FieldLabel>

@@ -72,27 +72,27 @@ export default function ChannexOtaPickerDialog({
               type="button"
               onClick={() => handlePick(option)}
               style={{ '--ota-brand': option.brandColor } as React.CSSProperties}
-              className="flex items-center gap-2 w-full p-[7.5px] rounded-xl border border-solid border-[var(--line)] bg-[var(--card)] text-start cursor-pointer transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-[var(--ota-brand)] hover:bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)] hover:translate-x-[2px] focus-visible:outline-2 focus-visible:outline-[var(--ota-brand)] focus-visible:outline-offset-2"
+              className="flex items-center gap-2 w-full p-[7.5px] rounded-xl border border-solid border-border bg-card text-start cursor-pointer transition-all duration-[180ms] ease-out-quart hover:border-[var(--ota-brand)] hover:bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)] motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-[var(--ota-brand)] focus-visible:outline-offset-2"
             >
-              <div className="w-[40px] h-[40px] rounded-[8px] flex items-center justify-center shrink-0 font-bold text-[0.95rem] tracking-[-0.02em]" style={{ backgroundColor: option.brandColor, color: option.brandColorFg }}>
+              <div className="size-10 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm tracking-[-0.02em]" style={{ backgroundColor: option.brandColor, color: option.brandColorFg }}>
                 {option.initials}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="cn-text-body2 font-semibold leading-[1.3]">
+                <p className="text-xs font-semibold leading-[1.3] text-foreground">
                   {option.name}
                 </p>
-                <span className="cn-text-caption text-muted-foreground block leading-[1.3]">
+                <span className="text-xs text-muted-foreground block leading-[1.3]">
                   {option.description}
                 </span>
               </div>
               <div className="text-muted-foreground opacity-60 shrink-0">
-                <ChevronRight size={16} />
+                <ChevronRight size={16} className="cn-rtl-flip" />
               </div>
             </button>
           ))}
         </div>
 
-        <span className="cn-text-caption text-muted-foreground block text-center leading-[1.5]">
+        <span className="text-xs text-muted-foreground block text-center leading-[1.5]">
           Vous serez redirige vers le widget de configuration OTA pour finaliser la
           connexion (login OTA + mapping des chambres).
         </span>

@@ -140,12 +140,12 @@ export default function AiUsageTrendSection() {
       {/* ── Totaux + seuil ── */}
       <div className="flex flex-wrap items-center gap-4 mb-3">
         <div>
-          <span className="cn-text-caption text-muted-foreground">{t('settings.ai.usage.totalTokens', 'Total tokens')}</span>
-          <h6 className="cn-text-h6 font-bold tabular-nums">{fmtTokens(totalTokens)}</h6>
+          <span className="text-xs text-muted-foreground">{t('settings.ai.usage.totalTokens', 'Total tokens')}</span>
+          <h6 className="text-sm font-semibold tabular-nums">{fmtTokens(totalTokens)}</h6>
         </div>
         <div>
-          <span className="cn-text-caption text-muted-foreground">{t('settings.ai.usage.totalCost', 'Coût total')}</span>
-          <h6 className="cn-text-h6 font-bold tabular-nums">{fmtCost(totalCost)}</h6>
+          <span className="text-xs text-muted-foreground">{t('settings.ai.usage.totalCost', 'Coût total')}</span>
+          <h6 className="text-sm font-semibold tabular-nums">{fmtCost(totalCost)}</h6>
         </div>
         <Field className="ms-auto w-[170px]">
           <FieldLabel htmlFor="ai-usage-threshold">{t('settings.ai.usage.threshold', 'Seuil d’alerte ($)')}</FieldLabel>
@@ -185,18 +185,24 @@ export default function AiUsageTrendSection() {
         <div className="h-[300px] mb-4">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              {/* Les jetons MUI (divider / text.secondary) laissent place aux tokens du kit :
-                  recharts pose ces valeurs en attributs de presentation, ou var() est resolu. */}
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
-              <XAxis dataKey="date" tickFormatter={dayLabel} tick={{ fontSize: 11, fill: 'var(--muted)' }} interval="preserveStartEnd" />
-              <YAxis tickFormatter={(v) => (metric === 'tokens' ? fmtTokens(v) : fmtCost(v))} tick={{ fontSize: 11, fill: 'var(--muted)' }} width={54} />
+              {/* Recharts pose ces valeurs en attributs de presentation SVG : pas de
+                  classe Tailwind possible, on cite donc les variables Baitly UI. */}
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--bui-border)" vertical={false} />
+              <XAxis dataKey="date" tickFormatter={dayLabel} tick={{ fontSize: 11, fill: 'var(--bui-muted-foreground)' }} interval="preserveStartEnd" />
+              <YAxis tickFormatter={(v) => (metric === 'tokens' ? fmtTokens(v) : fmtCost(v))} tick={{ fontSize: 11, fill: 'var(--bui-muted-foreground)' }} width={54} />
               <Tooltip
                 labelFormatter={(l) => dayLabel(String(l))}
                 formatter={(value, name) => {
                   const v = Number(value) || 0;
                   return [metric === 'tokens' ? `${fmtTokens(v)} tok` : fmtCost(v), String(name)];
                 }}
-                contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid var(--line)' }}
+                contentStyle={{
+                  fontSize: 12,
+                  borderRadius: 8,
+                  border: '1px solid var(--bui-border)',
+                  backgroundColor: 'var(--bui-card)',
+                  color: 'var(--bui-foreground)',
+                }}
               />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               {providers.map((p) => (
@@ -223,9 +229,9 @@ export default function AiUsageTrendSection() {
               <TableRow key={`${m.provider}|${m.model}`}>
                 <TableCell>
                   <div className="flex items-center gap-1.5">
-                    <div className="w-[8px] h-[8px] rounded-[50%] shrink-0" style={{ backgroundColor: colorOf(m.provider) }} />
-                    <p className="cn-text-body2 font-semibold">{m.model || m.provider}</p>
-                    <span className="cn-text-caption text-muted-foreground">{m.provider}</span>
+                    <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: colorOf(m.provider) }} />
+                    <p className="text-xs font-semibold">{m.model || m.provider}</p>
+                    <span className="text-xs text-muted-foreground">{m.provider}</span>
                   </div>
                 </TableCell>
                 <TableCell className="text-end tabular-nums">{fmtTokens(m.tokens)}</TableCell>

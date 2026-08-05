@@ -8,18 +8,24 @@ import type React from 'react';
  * disponibles pour decrire chaque provider).
  */
 
-const NEUTRAL = 'var(--muted)';
+/**
+ * Encre neutre Baitly UI — meme jeton que l'utilitaire `text-muted-foreground`.
+ * En valeur CSS (et non en classe) parce que les deux recettes ci-dessous sont
+ * des objets de style, consommes par transcription dans les ecrans.
+ */
+const NEUTRAL = 'var(--bui-muted-foreground)';
 
 export const COMING_SOON_CHIP_SX = {
   height: 18,
   fontSize: '0.62rem',
   fontWeight: 600,
   letterSpacing: '0.01em',
-  borderRadius: '5px',
+  borderRadius: 'var(--radius-sm)',
   backgroundColor: `color-mix(in srgb, ${NEUTRAL} 8%, transparent)`,
   color: NEUTRAL,
   border: `1px solid color-mix(in srgb, ${NEUTRAL} 20%, transparent)`,
-  '& .MuiChip-label': { px: 0.75 },
+  // Propriete logique (et non `px`) : le PMS est RTL.
+  paddingInline: 6,
 } as const;
 
 // On evite `pointer-events: none` parce qu'il tuerait aussi le hover (et donc
@@ -34,7 +40,7 @@ export const DISABLED_CARDS_SX = {
     cursor: 'not-allowed !important',
   },
   '& [role="radio"]:hover, & [role="button"]:hover': {
-    borderColor: (theme: { palette: { divider: string } }) => `${theme.palette.divider} !important`,
+    borderColor: 'var(--bui-border) !important',
     backgroundColor: 'transparent !important',
     boxShadow: 'none !important',
   },

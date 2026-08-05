@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import StatusChip from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
-import { Card } from '../../../components/ui';
+import { Badge, Card } from '../../../components/ui';
 import { Button } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import { useNavigate } from 'react-router-dom';
@@ -38,26 +37,12 @@ import { blockInteraction } from './disabledIntegration';
  * composant avec une categorie differente, donc UI strictement uniforme.</p>
  */
 
-const ACCENT = 'var(--ok)';
-const NEUTRAL = 'var(--muted)';
-
-// Transcription du COMING_SOON_CHIP_SX de disabledIntegration.ts, encore
-// utilise par les puces MUI restantes ailleurs — d'ou la copie plutot que
-// l'ajout d'un export cote constantes.
-const COMING_SOON_TOKENS = {
-  color: NEUTRAL,
-  bg: `color-mix(in srgb, ${NEUTRAL} 8%, transparent)`,
-};
-const COMING_SOON_BORDER = `color-mix(in srgb, ${NEUTRAL} 20%, transparent)`;
-
-// Transcription du DISABLED_CARDS_SX : on ne touche pas au .ts, qui reste la
-// source des sections encore rendues en MUI. `pointer-events: none` est
-// volontairement absent — il tuerait le survol, donc les tooltips d'info.
-// theme.palette.divider -> var(--line).
+// Neutralise le survol et le focus des cartes grisees. `pointer-events: none`
+// est volontairement absent — il tuerait le survol, donc les tooltips d'info.
 const DISABLED_GRID_CLASS =
   'opacity-[0.55] grayscale-[0.7] select-none '
   + '[&_[role=radio]]:cursor-not-allowed [&_[role=button]]:cursor-not-allowed '
-  + '[&_[role=radio]:hover]:border-[var(--line)]! [&_[role=button]:hover]:border-[var(--line)]! '
+  + '[&_[role=radio]:hover]:border-border! [&_[role=button]:hover]:border-border! '
   + '[&_[role=radio]:hover]:bg-transparent! [&_[role=button]:hover]:bg-transparent! '
   + '[&_[role=radio]:hover]:shadow-none! [&_[role=button]:hover]:shadow-none! '
   + '[&_[role=radio]:focus-visible]:shadow-none! [&_[role=button]:focus-visible]:shadow-none!';
@@ -119,20 +104,16 @@ export default function ServiceCatalogSection({
     <>
       <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5">
         <div className="flex items-center gap-1.5 mb-0.5">
-          <p className="cn-text-body1 text-[0.82rem] font-semibold">
+          <p className="text-sm font-semibold tracking-tight">
             {title}
           </p>
           {disabled && (
-            <StatusChip
-              size="sm"
-              tokens={COMING_SOON_TOKENS}
-              label="Bientôt disponible"
-              className="rounded-[5px] border border-solid text-[0.62rem] tracking-[0.01em]"
-              sx={{ borderColor: COMING_SOON_BORDER }}
-            />
+            <Badge variant="secondary" className="h-[18px] px-1.5 text-2xs">
+              Bientôt disponible
+            </Badge>
           )}
         </div>
-        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
+        <p className="text-xs text-muted-foreground mb-0.5">
           {description}
         </p>
         <div
@@ -162,33 +143,36 @@ export default function ServiceCatalogSection({
         {openService && (
           <Card className="gap-0 py-0 border-border overflow-hidden">
             {/* Header — uniforme avec les autres cards */}
-            <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[var(--line)]">
-              <div className="w-[40px] h-[40px] rounded-[10px] inline-flex items-center justify-center shrink-0 text-[0.85rem] font-bold tracking-[-0.02em]" style={{ backgroundColor: openService.brandColor, color: openService.brandTextColor }} aria-hidden="true">
+            <div className="px-3 py-2.5 flex items-start gap-2 border-b border-border">
+              <div className="size-10 rounded-lg inline-flex items-center justify-center shrink-0 text-sm font-bold tracking-tight" style={{ backgroundColor: openService.brandColor, color: openService.brandTextColor }} aria-hidden="true">
                 {getInitials(openService.name)}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-0.5 flex-wrap">
-                  <p className="cn-text-body1 text-[0.92rem] font-semibold">{openService.name}</p>
+                <div className="flex items-center gap-1 flex-wrap">
+                  <p className="text-sm font-semibold tracking-tight">{openService.name}</p>
                   {openService.region && (
-                    <StatusChip size="sm" tokens={{ color: ACCENT, bg: 'var(--ok-soft)' }} label={openService.region} className="text-[0.62rem]" />
+                    <Badge variant="success" className="h-[18px] px-1.5 text-2xs">{openService.region}</Badge>
                   )}
                 </div>
-                <p className="cn-text-body1 text-[0.74rem] text-muted-foreground mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {openService.shortDescription}
                 </p>
               </div>
               <div className="shrink-0">
-                <StatusChip tokens={{ color: NEUTRAL, bg: `color-mix(in srgb, ${NEUTRAL} 8%, transparent)` }} label={openService.available ? 'Configurable' : 'Bientôt'} icon={<ErrorOutline size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
+                <Badge variant="secondary">
+                  <ErrorOutline size={11} strokeWidth={2} />
+                  {openService.available ? 'Configurable' : 'Bientôt'}
+                </Badge>
               </div>
             </div>
 
             {/* Body — description longue + modalites + lien */}
             <div className="p-3">
-              <p className="cn-text-body1 text-[0.82rem] text-foreground leading-[1.55] mb-2">
+              <p className="text-sm text-foreground leading-relaxed mb-2">
                 {openService.tooltipDescription}
               </p>
 
-              <Alert variant="info" className="text-[0.78rem] mb-2">
+              <Alert variant="info" className="text-xs mb-2">
                 <Info />
                 <AlertDescription><strong>Modalités d'accès :</strong>{openService.accessModality}</AlertDescription>
               </Alert>
@@ -201,7 +185,7 @@ export default function ServiceCatalogSection({
                       asChild
                       variant="outline"
                       size="sm"
-                      className="hover:border-[color-mix(in_srgb,var(--ok)_40%,transparent)] hover:bg-[var(--ok-soft)] hover:text-[var(--ok)]"
+                      className="hover:border-success/40 hover:bg-success-soft hover:text-success-ink"
                     >
                       <a href={openService.websiteUrl} target="_blank" rel="noreferrer noopener">
                         En savoir plus
@@ -213,7 +197,7 @@ export default function ServiceCatalogSection({
               ) : (
               <>
               {!openService.available && !openService.internalRoute && (
-                <Alert variant="warning" className="text-[0.78rem] mb-2">
+                <Alert variant="warning" className="text-xs mb-2">
                   <TriangleAlert />
                   <AlertDescription>Cette intégration n'est pas encore configurable depuis Baitly. Créez un compte chez le fournisseur — l'intégration native arrivera dans une prochaine release.</AlertDescription>
                 </Alert>
@@ -239,7 +223,7 @@ export default function ServiceCatalogSection({
                     asChild
                     variant="outline"
                     size="sm"
-                    className="hover:border-[color-mix(in_srgb,var(--ok)_40%,transparent)] hover:bg-[var(--ok-soft)] hover:text-[var(--ok)]"
+                    className="hover:border-success/40 hover:bg-success-soft hover:text-success-ink"
                   >
                     <a href={openService.websiteUrl} target="_blank" rel="noreferrer noopener">
                       En savoir plus

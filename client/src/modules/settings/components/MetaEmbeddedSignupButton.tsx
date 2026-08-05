@@ -227,7 +227,7 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
     return (
       <div className="flex items-center gap-2 py-1.5">
         <Spinner className="size-4" />
-        <span className="cn-text-caption text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           {t('settings.whatsapp.meta.signup.loading', 'Initialisation du SDK Facebook…')}
         </span>
       </div>
@@ -242,15 +242,18 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
           {t('settings.whatsapp.meta.signup.success', 'WhatsApp connecté avec succès')}
         </AlertTitle>
         <AlertDescription>
-          <p className="cn-text-body2 mt-0.5">
+          <p className="text-xs mt-0.5">
             {t('settings.whatsapp.meta.signup.successDetails',
               "Numéro {{phoneNumber}} — WABA {{wabaId}}. Vous pouvez maintenant activer l'envoi WhatsApp.",
               { phoneNumber: success.phoneNumber, wabaId: success.wabaId })}
           </p>
           {success.templatesSubmitted > 0 && (
-            <p className="cn-text-body2 mt-0.5">
+            <p className="text-xs mt-0.5">
+              {/* Le glyphe « ✓ » qui ouvrait la phrase est retire : l'alerte
+                  porte deja son icone de succes, un caractere ne fait pas office
+                  d'icone. */}
               {t('settings.whatsapp.meta.signup.templatesSubmitted',
-                "✓ {{count}} templates Baitly standards soumis à Meta (validation ~24h).",
+                "{{count}} templates Baitly standards soumis à Meta (validation ~24h).",
                 { count: success.templatesSubmitted })}
             </p>
           )}
@@ -263,8 +266,9 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2 flex-wrap">
         {/* Bleu Facebook conserve : c'est l'identite de marque du bouton de connexion,
-            pas une couleur du theme Baitly. Seul le fond est surcharge, le reste du
-            gabarit vient du kit. */}
+            pas une couleur du theme Baitly — et l'encre blanche est imposee par ce
+            bleu. Seuls le fond et l'encre sont surcharges, le reste du gabarit
+            vient du kit. */}
         <Button
           onClick={handleSignup}
           disabled={!sdkReady || signingIn}
@@ -287,7 +291,7 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
             ? t('settings.whatsapp.meta.signup.inProgress', 'Connexion en cours…')
             : t('settings.whatsapp.meta.signup.cta', 'Connecter avec Facebook')}
         </Button>
-        <span className="cn-text-caption text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           {t('settings.whatsapp.meta.signup.hint',
             "~5 min · Configuration auto du WhatsApp Business + templates")}
         </span>
@@ -311,14 +315,16 @@ export default function MetaEmbeddedSignupButton({ onSuccess }: MetaEmbeddedSign
         </Alert>
       )}
 
-      <div className="mt-[3px] p-[7.5px] rounded-[12px] bg-[color-mix(in_srgb,var(--info)_6%,transparent)] border border-solid border-[color-mix(in_srgb,var(--info)_15%,transparent)]">
-        <span className="cn-text-caption text-muted-foreground">
+      {/* L'encart « methode recommandee » est une alerte d'information : le
+          bandeau bricole a la main laisse place au primitive du kit. */}
+      <Alert variant="info" className="mt-[3px]">
+        <AlertDescription className="text-xs">
           <strong>{t('settings.whatsapp.meta.signup.recommendedTitle', 'Méthode recommandée')}</strong>
           {' — '}
           {t('settings.whatsapp.meta.signup.recommendedBody',
             "Pas de Meta Business Manager nécessaire en amont. Baitly provisionne tout pour vous : compte WhatsApp Business, vérification du numéro, templates de messages.")}
-        </span>
-      </div>
+        </AlertDescription>
+      </Alert>
     </div>
   );
 }

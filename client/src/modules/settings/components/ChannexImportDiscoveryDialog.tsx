@@ -31,7 +31,7 @@ import {
   Separator,
 } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
-import { Download, RefreshCw, CheckCircle2, AlertCircle, Info, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { ArrowRight, Download, RefreshCw, CheckCircle2, AlertCircle, Info, Sparkles, Image as ImageIcon } from 'lucide-react';
 
 import {
   channexApi,
@@ -64,12 +64,17 @@ interface ChannexImportDiscoveryDialogProps {
   onRequestConnectExisting?: () => void;
 }
 
-const ACCENT = 'var(--accent)';
-
 interface RowState {
   selected: boolean;
   propertyType: string; // overridable depuis suggestedType
 }
+
+/**
+ * Gabarit unique des puces de metadonnees OTA : seule la VARIANTE du Badge
+ * (`success` / `info` / `warning` / `secondary`) porte la couleur, et chacune
+ * applique deja le couple fond `-soft` / encre `-ink` conforme AA.
+ */
+const OTA_BADGE_CLASS = 'h-[18px] text-2xs tabular-nums';
 
 export default function ChannexImportDiscoveryDialog({
   open,
@@ -368,14 +373,14 @@ export default function ChannexImportDiscoveryDialog({
       <DialogContent className="sm:max-w-4xl min-h-[min(70vh,700px)] max-h-[90vh] overflow-y-auto flex flex-col">
         {/* La croix de fermeture est fournie par DialogContent : `pe-14` reserve sa place. */}
         <DialogHeader className="flex-row items-start gap-2 pe-14">
-          <div className="w-[32px] h-[32px] rounded-[8px] bg-[var(--accent-soft)] flex items-center justify-center shrink-0" style={{ color: ACCENT }}>
+          <div className="size-8 rounded-lg bg-primary-soft text-primary flex items-center justify-center shrink-0">
             <Download size={18} />
           </div>
           <div className="min-w-0 flex-1">
-            <DialogTitle className="cn-text-subtitle1 font-semibold leading-[1.3]">
+            <DialogTitle className="text-sm font-semibold leading-[1.3]">
               Importer une propriete deja en ligne
             </DialogTitle>
-            <DialogDescription className="cn-text-caption block leading-[1.4]">
+            <DialogDescription className="text-xs block leading-[1.4]">
               Detecte les listings Airbnb/Booking/Vrbo deja connus du hub de distribution et non encore dans Baitly
             </DialogDescription>
           </div>
@@ -394,17 +399,11 @@ export default function ChannexImportDiscoveryDialog({
         </div>
 
         {/* Banner d'aide */}
-        <div
-          className="flex flex-row items-start gap-1.5 p-[7.5px] mb-3 rounded-[8px] border border-solid"
-          style={{
-            backgroundColor: 'color-mix(in srgb, var(--accent) 4%, transparent)',
-            borderColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
-          }}
-        >
-          <div className="mt-[1.5px] shrink-0" style={{ color: ACCENT }}>
+        <div className="flex flex-row items-start gap-1.5 p-[7.5px] mb-3 rounded-lg border border-solid border-primary/20 bg-primary-soft/50">
+          <div className="mt-[1.5px] shrink-0 text-primary">
             <Info size={14} />
           </div>
-          <span className="cn-text-caption text-muted-foreground leading-[1.5]">
+          <span className="text-xs text-muted-foreground leading-[1.5]">
             Apres avoir connecte votre compte Airbnb (ou autre OTA) via le widget de configuration,
             tous vos listings detectes apparaissent ici. Selectionnez ceux a importer dans
             Baitly — leur nom, devise, pays et capacite sont pre-remplis automatiquement.
@@ -415,7 +414,7 @@ export default function ChannexImportDiscoveryDialog({
         {loading && (
           <div className="flex flex-col items-center justify-center gap-3 py-9">
             <Spinner className="size-6" />
-            <p className="cn-text-body2 text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Recherche des proprietes en ligne...
             </p>
           </div>
@@ -451,13 +450,13 @@ export default function ChannexImportDiscoveryDialog({
         {!loading && !error && discovered.length === 0 && totalInHub === 0 && !importResult && (
           <div className="py-3 px-1.5">
             <div className="flex flex-col items-center text-center mb-[15px]">
-              <div className="w-[56px] h-[56px] rounded-[50%] bg-[var(--accent-soft)] inline-flex items-center justify-center mb-[9px]" style={{ color: ACCENT }}>
+              <div className="size-14 rounded-full bg-primary-soft text-primary inline-flex items-center justify-center mb-[9px]">
                 <Info size={24} />
               </div>
-              <p className="cn-text-body2 font-semibold mb-0.5">
+              <p className="text-xs font-semibold mb-0.5 text-foreground">
                 Connectez un compte OTA pour importer vos listings
               </p>
-              <span className="cn-text-caption text-muted-foreground block max-w-[500px] leading-[1.6]">
+              <span className="text-xs text-muted-foreground block max-w-[500px] leading-[1.6]">
                 Choisissez l'OTA sur lequel vous avez deja des proprietes en ligne.
                 Apres authentification, Baitly detectera automatiquement vos listings
                 et vous proposera de les importer.
@@ -485,29 +484,29 @@ export default function ChannexImportDiscoveryDialog({
                     disabled={settingUpOta !== null}
                     style={{ '--ota-brand': option.brandColor } as React.CSSProperties}
                     className={cn(
-                      'flex items-center gap-2 w-full p-[7.5px] rounded-[12px] border border-solid text-start',
-                      'transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                      'flex items-center gap-2 w-full p-[7.5px] rounded-xl border border-solid text-start',
+                      'transition-colors duration-[180ms] ease-out-quart motion-reduce:transition-none',
                       'focus-visible:[outline:2px_solid_var(--ota-brand)] focus-visible:outline-offset-2',
                       settingUpOta !== null ? 'cursor-wait' : 'cursor-pointer',
                       isLoading
                         ? 'border-[var(--ota-brand)] bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)]'
-                        : 'border-[var(--line)] bg-[var(--card)]',
+                        : 'border-border bg-card',
                       settingUpOta === null
-                        && 'hover:border-[var(--ota-brand)] hover:bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)] hover:translate-x-[2px]',
+                        && 'hover:border-[var(--ota-brand)] hover:bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)]',
                       disabled && 'opacity-45',
                     )}
                   >
-                    <img className="w-[40px] h-[40px] rounded-[8px] object-contain bg-[var(--card)] border border-solid border-[var(--line)] p-0.5 shrink-0" src={OTA_LOGO_BY_CODE[option.code]} alt={option.name} />
+                    <img className="size-10 rounded-lg object-contain bg-card border border-solid border-border p-0.5 shrink-0" src={OTA_LOGO_BY_CODE[option.code]} alt={option.name} />
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-row items-center gap-[4.5px] mb-[1.5px]">
-                        <p className="cn-text-body2 font-semibold leading-[1.3]">
+                        <p className="text-xs font-semibold leading-[1.3] text-foreground">
                           {existing ? `Re-detecter mes listings ${option.name}` : `Connecter ${option.name}`}
                         </p>
                         {existing && (
-                          <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--ok-soft)] text-[var(--ok)] [&>svg]:text-[var(--ok)] [&>svg]:ms-0.5"><CheckCircle2 size={11} />OAuth fait</Badge>
+                          <Badge variant="success" className="h-[18px] text-2xs [&>svg]:text-success [&>svg]:ms-0.5"><CheckCircle2 size={11} />OAuth fait</Badge>
                         )}
                       </div>
-                      <span className="cn-text-caption text-muted-foreground block leading-[1.3]">
+                      <span className="text-xs text-muted-foreground block leading-[1.3]">
                         {isLoading
                           ? 'Preparation de la connexion...'
                           : existing
@@ -515,10 +514,10 @@ export default function ChannexImportDiscoveryDialog({
                             : option.description}
                       </span>
                     </div>
-                    <div className="shrink-0 flex items-center" style={{ color: isLoading ? option.brandColor : 'var(--faint)' }}>
+                    <div className={cn('shrink-0 flex items-center', !isLoading && 'text-faint')} style={isLoading ? { color: option.brandColor } : undefined}>
                       {isLoading
                         ? <Spinner className="size-3.5" style={{ color: option.brandColor }} />
-                        : <span className="cn-text-caption font-semibold">→</span>}
+                        : <ArrowRight size={14} strokeWidth={2.2} className="cn-rtl-flip" />}
                     </div>
                   </button>
                 );
@@ -528,14 +527,14 @@ export default function ChannexImportDiscoveryDialog({
             {/* Action secondaire : si l'utilisateur prefere passer par une property Baitly existante */}
             {onRequestConnectExisting && (
               <div className="flex flex-row gap-1.5 justify-center mt-3">
-                <span className="cn-text-caption text-muted-foreground self-center">
+                <span className="text-xs text-muted-foreground self-center">
                   Ou bien :
                 </span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={onRequestConnectExisting}
-                  className="text-[var(--muted)]"
+                  className="text-muted-foreground"
                 >
                   Connecter une propriete Baitly existante
                 </Button>
@@ -543,7 +542,7 @@ export default function ChannexImportDiscoveryDialog({
                   variant="ghost"
                   size="sm"
                   onClick={refresh}
-                  className="text-[var(--muted)]"
+                  className="text-muted-foreground"
                 >
                   <RefreshCw size={12} />
                   Rafraichir
@@ -557,13 +556,13 @@ export default function ChannexImportDiscoveryDialog({
         {!loading && !error && discovered.length === 0 && totalInHub > 0 && !importResult && (
           <div className="py-6 px-3">
             <div className="flex flex-col items-center text-center mb-[18px]">
-              <div className="w-[56px] h-[56px] rounded-[50%] bg-[var(--ok-soft)] text-[var(--ok)] inline-flex items-center justify-center mb-2">
+              <div className="size-14 rounded-full bg-success-soft text-success inline-flex items-center justify-center mb-2">
                 <CheckCircle2 size={24} />
               </div>
-              <p className="cn-text-body2 font-semibold mb-0.5">
+              <p className="text-xs font-semibold mb-0.5 text-foreground">
                 Tout est synchronise
               </p>
-              <span className="cn-text-caption text-muted-foreground block mb-3 max-w-[480px] leading-[1.6]">
+              <span className="text-xs text-muted-foreground block mb-3 max-w-[480px] leading-[1.6]">
                 Vos {totalInHub} propriete{totalInHub > 1 ? 's' : ''} en ligne {totalInHub > 1 ? 'sont' : 'est'} deja
                 import{totalInHub > 1 ? 'ees' : 'ee'} dans Baitly. Si vous avez ajoute de nouvelles
                 proprietes cote OTA depuis, re-detectez-les ci-dessous.
@@ -582,7 +581,7 @@ export default function ChannexImportDiscoveryDialog({
             {connectedOtas.length > 0 && (
               <>
                 <Separator className="my-3" />
-                <span className="cn-text-caption text-muted-foreground font-semibold block mb-1.5 text-center">
+                <span className="text-xs text-muted-foreground font-semibold block mb-1.5 text-center">
                   Re-detecter de nouveaux listings ajoutes recemment cote OTA
                 </span>
                 <div className="flex flex-col gap-1.5">
@@ -602,31 +601,31 @@ export default function ChannexImportDiscoveryDialog({
                           disabled={settingUpOta !== null}
                           style={{ '--ota-brand': option.brandColor } as React.CSSProperties}
                           className={cn(
-                            'flex items-center gap-2 w-full p-[7.5px] rounded-[12px] border border-solid text-start',
-                            'transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                            'flex items-center gap-2 w-full p-[7.5px] rounded-xl border border-solid text-start',
+                            'transition-colors duration-[180ms] ease-out-quart motion-reduce:transition-none',
                             settingUpOta !== null ? 'cursor-wait' : 'cursor-pointer',
                             isLoading
                               ? 'border-[var(--ota-brand)] bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)]'
-                              : 'border-[var(--line)] bg-[var(--card)]',
+                              : 'border-border bg-card',
                             settingUpOta === null
                               && 'hover:border-[var(--ota-brand)] hover:bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)]',
                           )}
                         >
-                          <img className="w-[36px] h-[36px] rounded-[8px] object-contain bg-[var(--card)] border border-solid border-[var(--line)] p-0.5 shrink-0" src={OTA_LOGO_BY_CODE[option.code]} alt={option.name} />
+                          <img className="size-9 rounded-lg object-contain bg-card border border-solid border-border p-0.5 shrink-0" src={OTA_LOGO_BY_CODE[option.code]} alt={option.name} />
                           <div className="flex-1 min-w-0">
-                            <p className="cn-text-body2 font-semibold leading-[1.3]">
+                            <p className="text-xs font-semibold leading-[1.3] text-foreground">
                               Re-detecter mes listings {option.name}
                             </p>
-                            <span className="cn-text-caption text-muted-foreground block leading-[1.3]">
+                            <span className="text-xs text-muted-foreground block leading-[1.3]">
                               {isLoading
                                 ? 'Ouverture du widget...'
                                 : 'Rouvre le wizard onglet Listing pour mapper de nouveaux listings'}
                             </span>
                           </div>
-                          <div className="shrink-0" style={{ color: isLoading ? option.brandColor : 'var(--faint)' }}>
+                          <div className={cn('shrink-0 flex items-center', !isLoading && 'text-faint')} style={isLoading ? { color: option.brandColor } : undefined}>
                             {isLoading
                               ? <Spinner className="size-3.5" style={{ color: option.brandColor }} />
-                              : <span className="cn-text-caption font-semibold">→</span>}
+                              : <ArrowRight size={14} strokeWidth={2.2} className="cn-rtl-flip" />}
                           </div>
                         </button>,
                       ];
@@ -641,16 +640,16 @@ export default function ChannexImportDiscoveryDialog({
         {!loading && discovered.length > 0 && (
           <>
             {/* Header avec resume du diff (au lieu de select-all classique) */}
-            <div className="flex items-center gap-2 p-1.5 px-2 rounded-[8px] bg-[var(--bg)] mb-1.5 flex-wrap">
-              <span className="cn-text-caption text-muted-foreground flex-1">
+            <div className="flex items-center gap-2 p-1.5 px-2 rounded-lg bg-background mb-1.5 flex-wrap">
+              <span className="text-xs text-muted-foreground flex-1 tabular-nums">
                 {discovered.length} propriete{discovered.length > 1 ? 's' : ''} dans le hub
                 {diff.toImport.length > 0 && (
-                  <> · <span className="font-semibold" style={{ color: ACCENT }}>
+                  <> · <span className="font-semibold text-primary">
                     +{diff.toImport.length} a importer
                   </span></>
                 )}
                 {diff.toDisconnect.length > 0 && (
-                  <> · <span className="text-[var(--err)] font-semibold">
+                  <> · <span className="text-destructive-ink font-semibold">
                     −{diff.toDisconnect.length} a desimporter
                   </span></>
                 )}
@@ -659,7 +658,7 @@ export default function ChannexImportDiscoveryDialog({
                 variant="ghost"
                 size="sm"
                 onClick={refresh}
-                className="text-[var(--muted)]"
+                className="text-muted-foreground"
               >
                 <RefreshCw size={12} />
                 Rafraichir
@@ -668,7 +667,7 @@ export default function ChannexImportDiscoveryDialog({
 
             {/* Banner info si user a coche des desimports (perte sync) */}
             {diff.toDisconnect.length > 0 && (
-              <UiAlert variant="warning" className="mb-1.5 text-[0.78rem]">
+              <UiAlert variant="warning" className="mb-1.5 text-xs">
                 <TriangleAlert />
                 <AlertDescription><strong>{diff.toDisconnect.length} propriete{diff.toDisconnect.length > 1 ? 's' : ''}</strong>{' '}va etre desimport{diff.toDisconnect.length > 1 ? 'ees' : 'ee'}: le lien avec le hub sera
                 supprime mais la Property Baitly correspondante sera conservee (vous pourrez la re-importer
@@ -679,25 +678,19 @@ export default function ChannexImportDiscoveryDialog({
             <div className="flex flex-col gap-[3px]">
               {discovered.map((p) => {
                 const row = rows[p.channexPropertyId] ?? { selected: p.isImported, propertyType: 'APARTMENT' };
-                // Etat visuel par diff :
-                // - importee & cochee → couleur verte (existante, conservee)
-                // - importee & decochee → couleur rouge (sera desimportee)
-                // - non-importee & cochee → couleur accent (sera importee)
+                // Etat visuel par diff — quatre cas fermes, donc quatre jeux de
+                // classes LITTERAUX (l'ancien code passait `divider` /
+                // `background.paper`, jetons MUI invalides en CSS, et
+                // concatenait un alpha sur un `var()`).
+                // - importee & cochee → vert (existante, conservee)
+                // - importee & decochee → rouge (sera desimportee)
+                // - non-importee & cochee → marque (sera importee)
                 // - non-importee & decochee → neutre (ignoree)
-                let borderCol = 'divider';
-                let bgCol = 'background.paper';
-                if (p.isImported && row.selected) {
-                  borderCol = 'var(--ok)';
-                  bgCol = 'color-mix(in srgb, var(--ok) 4%, transparent)';
-                } else if (p.isImported && !row.selected) {
-                  borderCol = 'var(--err)';
-                  bgCol = 'color-mix(in srgb, var(--err) 4%, transparent)';
-                } else if (!p.isImported && row.selected) {
-                  borderCol = ACCENT;
-                  bgCol = 'color-mix(in srgb, var(--accent) 4%, transparent)';
-                }
+                const rowClass = p.isImported
+                  ? (row.selected ? 'border-success/60 bg-success-soft/30' : 'border-destructive/60 bg-destructive-soft/30')
+                  : (row.selected ? 'border-primary/60 bg-primary-soft/50' : 'border-border bg-card');
                 return (
-                  <div className="flex items-start gap-[9px] p-[7.5px] rounded-[12px] border border-solid" style={{ borderColor: borderCol, backgroundColor: bgCol, transition: 'all 180ms ease-out' }} key={p.channexPropertyId}>
+                  <div className={cn('flex items-start gap-[9px] p-[7.5px] rounded-xl border border-solid transition-colors duration-[180ms] ease-out-quart motion-reduce:transition-none', rowClass)} key={p.channexPropertyId}>
                     {/* Teinte de la case cochee : deux jeux de classes LITTERAUX,
                         une classe Tailwind ne pouvant pas naitre d'une variable. */}
                     <Checkbox
@@ -707,19 +700,21 @@ export default function ChannexImportDiscoveryDialog({
                       className={cn(
                         'mt-0.5',
                         p.isImported
-                          ? 'data-checked:bg-[var(--ok)] data-checked:border-[var(--ok)]'
-                          : 'data-checked:bg-[var(--accent)] data-checked:border-[var(--accent)]',
+                          ? 'data-checked:bg-success data-checked:border-success'
+                          : 'data-checked:bg-primary data-checked:border-primary',
                       )}
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-row items-center gap-[4.5px] mb-[1.5px] flex-wrap">
-                        <p className="cn-text-body2 font-semibold truncate me-0.5">
+                        <p className="text-xs font-semibold truncate me-0.5 text-foreground">
                           {p.title || 'Sans titre'}
                         </p>
                         {p.isImported && (
-                          <StatusChip size="sm" tokens={{ color: row.selected ? 'var(--ok)' : 'var(--err)', bg: row.selected ? 'var(--ok-soft)' : 'var(--err-soft)' }} label={row.selected
+                          <StatusChip size="sm" tokens={row.selected
+                              ? { color: 'var(--bui-success-ink)', bg: 'var(--bui-success-soft)' }
+                              : { color: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' }} label={row.selected
                               ? `Importee${p.clenzyPropertyName ? ` (${p.clenzyPropertyName})` : ''}`
-                              : 'Sera desimportee'} icon={<CheckCircle2 size={11} />} className="text-[0.65rem]" />
+                              : 'Sera desimportee'} icon={<CheckCircle2 size={11} />} className="text-2xs" />
                         )}
                         {/* "Actif" est affiche dans la colonne droite (a cote des
                             logos OTA) — pas dans la rangee titre. */}
@@ -727,17 +722,17 @@ export default function ChannexImportDiscoveryDialog({
                             si room_type ou rate_plan manquent, on les creera automatiquement
                             (le user sait a quoi s'attendre avant de cliquer Importer). */}
                         {(!p.hasRoomType || !p.hasRatePlan) && (
-                          <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--warn-soft)] text-[var(--warn)] [&>svg]:text-[var(--warn)] [&>svg]:ms-0.5"><Sparkles size={11} />{!p.hasRoomType && !p.hasRatePlan
+                          <Badge variant="warning" className="h-[18px] text-2xs [&>svg]:text-warning [&>svg]:ms-0.5"><Sparkles size={11} />{!p.hasRoomType && !p.hasRatePlan
                                 ? 'Room + Rate auto-crees'
                                 : !p.hasRoomType ? 'Room auto-cree' : 'Rate auto-cree'}</Badge>
                         )}
                         {/* Contenu enrichi disponible (photos, description, address) :
                             visible quand le tier de distribution payant sync depuis Airbnb. */}
                         {p.photoCount > 0 && (
-                          <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--info-soft)] text-[var(--info)] [&>svg]:text-[var(--info)] [&>svg]:ms-0.5"><ImageIcon size={11} />{`${p.photoCount} photo${p.photoCount > 1 ? 's' : ''}`}</Badge>
+                          <Badge variant="info" className="h-[18px] text-2xs tabular-nums [&>svg]:text-info [&>svg]:ms-0.5"><ImageIcon size={11} />{`${p.photoCount} photo${p.photoCount > 1 ? 's' : ''}`}</Badge>
                         )}
                       </div>
-                      <span className="cn-text-caption text-muted-foreground block leading-[1.4]">
+                      <span className="text-xs text-muted-foreground block leading-[1.4]">
                         {[
                           p.country,
                           p.currency,
@@ -761,54 +756,54 @@ export default function ChannexImportDiscoveryDialog({
                         <div className="flex flex-row flex-wrap items-center gap-[3px] mt-[3px]">
                           {/* Type listing brut (donnee structuree primaire) */}
                           {p.otaListingType && (
-                            <StatusChip size="sm" tokens={{ color: 'var(--info)', bg: 'var(--info-soft)' }} label={`Type OTA : ${p.otaListingType}`} className="text-[0.65rem] font-mono" />
+                            <StatusChip size="sm" tokens={{ color: 'var(--bui-info-ink)', bg: 'var(--bui-info-soft)' }} label={`Type OTA : ${p.otaListingType}`} className="text-2xs font-mono" />
                           )}
                           {/* Tarifs */}
                           {p.otaNightlyPrice != null && (
-                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--ok-soft)] text-[var(--ok)]">{`${p.otaNightlyPrice} ${p.currency || 'EUR'} / nuit`}</Badge>
+                            <Badge variant="success" className={OTA_BADGE_CLASS}>{`${p.otaNightlyPrice} ${p.currency || 'EUR'} / nuit`}</Badge>
                           )}
                           {p.otaWeekendPrice != null && p.otaWeekendPrice !== p.otaNightlyPrice && (
-                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--ok-soft)] text-[var(--ok)]">{`weekend : ${p.otaWeekendPrice} ${p.currency || 'EUR'}`}</Badge>
+                            <Badge variant="success" className={OTA_BADGE_CLASS}>{`weekend : ${p.otaWeekendPrice} ${p.currency || 'EUR'}`}</Badge>
                           )}
                           {p.otaGuestsIncluded != null && (
-                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--info-soft)] text-[var(--info)]">{`${p.otaGuestsIncluded} voyageur${p.otaGuestsIncluded > 1 ? 's' : ''} inclus`}</Badge>
+                            <Badge variant="info" className={OTA_BADGE_CLASS}>{`${p.otaGuestsIncluded} voyageur${p.otaGuestsIncluded > 1 ? 's' : ''} inclus`}</Badge>
                           )}
                           {p.otaPricePerExtraPerson != null && p.otaPricePerExtraPerson > 0 && (
-                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--info-soft)] text-[var(--info)]">{`+${p.otaPricePerExtraPerson} ${p.currency || 'EUR'} / voyageur supp.`}</Badge>
+                            <Badge variant="info" className={OTA_BADGE_CLASS}>{`+${p.otaPricePerExtraPerson} ${p.currency || 'EUR'} / voyageur supp.`}</Badge>
                           )}
                           {p.otaMonthlyPriceFactor != null && p.otaMonthlyPriceFactor > 0 && (
-                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--field)] text-[var(--muted)]">{`-${p.otaMonthlyPriceFactor}% mensuel`}</Badge>
+                            <Badge variant="secondary" className={cn(OTA_BADGE_CLASS, 'bg-field text-muted-foreground')}>{`-${p.otaMonthlyPriceFactor}% mensuel`}</Badge>
                           )}
                           {/* Sejour */}
                           {p.otaMinNights != null && (
-                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--warn-soft)] text-[var(--warn)]">{`min ${p.otaMinNights} nuit${p.otaMinNights > 1 ? 's' : ''}`}</Badge>
+                            <Badge variant="warning" className={OTA_BADGE_CLASS}>{`min ${p.otaMinNights} nuit${p.otaMinNights > 1 ? 's' : ''}`}</Badge>
                           )}
                           {p.otaMaxNights != null && p.otaMaxNights < 365 && (
-                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--warn-soft)] text-[var(--warn)]">{`max ${p.otaMaxNights} nuits`}</Badge>
+                            <Badge variant="warning" className={OTA_BADGE_CLASS}>{`max ${p.otaMaxNights} nuits`}</Badge>
                           )}
                           {/* Check-in/out */}
                           {p.otaCheckOutTime != null && (
-                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--info-soft)] text-[var(--info)]">{`check-out ${p.otaCheckOutTime}h`}</Badge>
+                            <Badge variant="info" className={OTA_BADGE_CLASS}>{`check-out ${p.otaCheckOutTime}h`}</Badge>
                           )}
                           {p.otaCheckInTimeStart && p.otaCheckInTimeStart !== 'FLEXIBLE' && (
-                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--info-soft)] text-[var(--info)]">{`check-in ${p.otaCheckInTimeStart}h`}</Badge>
+                            <Badge variant="info" className={OTA_BADGE_CLASS}>{`check-in ${p.otaCheckInTimeStart}h`}</Badge>
                           )}
                           {/* Politiques */}
                           {p.otaCancellationPolicy && (
-                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--err-soft)] text-[var(--err)]">{`annulation : ${p.otaCancellationPolicy}`}</Badge>
+                            <Badge variant="destructive" className={cn(OTA_BADGE_CLASS, 'bg-destructive-soft text-destructive-ink')}>{`annulation : ${p.otaCancellationPolicy}`}</Badge>
                           )}
                           {p.otaInstantBooking && (
-                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--err-soft)] text-[var(--err)]">{`booking : ${p.otaInstantBooking}`}</Badge>
+                            <Badge variant="destructive" className={cn(OTA_BADGE_CLASS, 'bg-destructive-soft text-destructive-ink')}>{`booking : ${p.otaInstantBooking}`}</Badge>
                           )}
                           {/* Regles du logement (true uniquement = autorise par le host) */}
                           {p.otaAllowsPets === true && (
-                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--field)] text-[var(--muted)]">animaux acceptes</Badge>
+                            <Badge variant="secondary" className={cn(OTA_BADGE_CLASS, 'bg-field text-muted-foreground')}>animaux acceptes</Badge>
                           )}
                           {p.otaAllowsSmoking === true && (
-                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--field)] text-[var(--muted)]">fumeurs acceptes</Badge>
+                            <Badge variant="secondary" className={cn(OTA_BADGE_CLASS, 'bg-field text-muted-foreground')}>fumeurs acceptes</Badge>
                           )}
                           {p.otaAllowsEvents === true && (
-                            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--field)] text-[var(--muted)]">evenements acceptes</Badge>
+                            <Badge variant="secondary" className={cn(OTA_BADGE_CLASS, 'bg-field text-muted-foreground')}>evenements acceptes</Badge>
                           )}
                         </div>
                       )}
@@ -822,7 +817,7 @@ export default function ChannexImportDiscoveryDialog({
                             <OtaSyncBadges otas={p.connectedOtas} size={22} />
                           )}
                           {p.hasActiveOta && (
-                            <Badge variant="secondary" className="h-[20px] text-[0.7rem] bg-[var(--ok-soft)] text-[var(--ok)] [&>svg]:text-[var(--ok)] [&>svg]:ms-0.5"><CheckCircle2 size={11} />Actif</Badge>
+                            <Badge variant="success" className="h-5 text-2xs [&>svg]:text-success [&>svg]:ms-0.5"><CheckCircle2 size={11} />Actif</Badge>
                           )}
                         </div>
                       )}
@@ -854,7 +849,7 @@ export default function ChannexImportDiscoveryDialog({
             {importResult && importResult.details.some((d) => d.status !== 'CREATED') && (
               <div className="mt-3">
                 <Separator className="mb-1.5" />
-                <span className="cn-text-caption text-muted-foreground font-semibold block mb-0.5">
+                <span className="text-xs text-muted-foreground font-semibold block mb-0.5">
                   Detail des cas particuliers
                 </span>
                 <div className="flex flex-col gap-[3px]">
@@ -862,13 +857,13 @@ export default function ChannexImportDiscoveryDialog({
                     .flatMap((d) => d.status !== 'CREATED' ? [
                       <div
                         key={d.channexPropertyId}
-                        className="flex flex-row items-center gap-1.5 text-[0.75rem]"
+                        className="flex flex-row items-center gap-1.5 text-xs"
                       >
                         <AlertCircle
                           size={12}
-                          style={{ color: d.status === 'ERROR' ? 'var(--err)' : 'var(--warn)', flexShrink: 0 }}
+                          className={cn('shrink-0', d.status === 'ERROR' ? 'text-destructive' : 'text-warning')}
                         />
-                        <span className="cn-text-caption text-muted-foreground flex-1 truncate">
+                        <span className="text-xs text-muted-foreground flex-1 truncate">
                           {d.channexPropertyId.slice(0, 8)} : {d.message}
                         </span>
                       </div>,
@@ -882,13 +877,13 @@ export default function ChannexImportDiscoveryDialog({
 
       {/* Footer avec bouton Import */}
       {!loading && discovered.length > 0 && (
-        <div className="flex justify-between items-center gap-3 px-4 py-3 border-t border-[var(--line)] flex-wrap">
+        <div className="flex justify-between items-center gap-3 px-4 py-3 border-t border-solid border-border flex-wrap">
           {/* Override multi-tenant — visible uniquement pour les platform staff
               (SUPER_ADMIN / SUPER_MANAGER). Permet d'attribuer la property creee
               a une autre org + un autre user (sinon owner = self). */}
           {staffMode && diff.toImport.length > 0 ? (
             <div className="flex flex-row items-center gap-1.5 flex-1 min-w-0">
-              <span className="cn-text-caption text-muted-foreground font-semibold shrink-0">
+              <span className="text-xs text-muted-foreground font-semibold shrink-0">
                 Attribuer à :
               </span>
               {/* Le placeholder de l'ancien renderValue devient la premiere option. */}
@@ -933,7 +928,7 @@ export default function ChannexImportDiscoveryDialog({
             <div className="flex-1" />
           )}
           <div className="flex flex-row items-center gap-1.5 shrink-0">
-          <Button variant="ghost" size="sm" onClick={onClose} className="text-[var(--muted)]">
+          <Button variant="ghost" size="sm" onClick={onClose} className="text-muted-foreground">
             Fermer
           </Button>
           <Button

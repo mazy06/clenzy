@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import StatusChip from '../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Button, Spinner } from '../../components/ui';
 import { Field, FieldLabel, FieldDescription, FieldError, Input } from '../../components/ui';
 import {
@@ -49,25 +49,29 @@ const PAYOUT_METHOD_LABELS: Record<PayoutMethod, string> = {
   OPEN_BANKING: 'Open Banking',
 };
 
-// Palette Baitly tintée pour les chips de méthode
-const PAYOUT_METHOD_COLORS: Record<PayoutMethod, string> = {
-  MANUAL: 'var(--muted)',
-  STRIPE_CONNECT: '#635BFF', // brand Stripe (preserved for recognizability)
-  SEPA_TRANSFER: 'var(--info)',
-  WISE: '#00B9FF',           // brand Wise teal — préservé pour reconnaissance
-  OPEN_BANKING: 'var(--accent)', // accent Baitly (Open Banking = approche maison)
+/**
+ * Habillage de la chip de méthode. Les méthodes « maison » passent par un ton
+ * sémantique du kit ; seules les deux couleurs de MARQUE (Stripe, Wise) restent
+ * des valeurs brutes — elles identifient le fournisseur, elles ne disent pas un
+ * statut.
+ */
+const PAYOUT_METHOD_CHIP: Record<PayoutMethod, { tone: StatusTone } | { color: string }> = {
+  MANUAL: { tone: 'neutral' },
+  STRIPE_CONNECT: { color: '#635BFF' },
+  SEPA_TRANSFER: { tone: 'info' },
+  WISE: { color: '#00B9FF' },
+  OPEN_BANKING: { tone: 'accent' }, // Open Banking = approche maison → accent Baitly
 };
 
 // Ecarts assumes vs le gabarit du kit (12.5px / 8px pour le corps, 10.5px
-// --faint .05em pour l'en-tete) : cet ecran etait deja regle plus dense.
+// discret .06em pour l'en-tete) : cet ecran etait deja regle plus dense.
 const CELL_CLASS = 'text-[0.8125rem] py-[7.5px]';
-const HEAD_CELL_CLASS = 'text-[0.7rem] tracking-[0.06em] text-[var(--muted)]';
+const HEAD_CELL_CLASS = 'text-[0.7rem] tracking-[0.06em] text-muted-foreground';
 
 /** Bouton d'action de ligne : 28px hairline, hover teinte accent (report du sx). */
 const ROW_ACTION_CLASS =
-  'rounded-[7px] text-[var(--muted)] transition-[color,border-color,background-color] duration-150 '
-  + 'hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] '
-  + 'hover:border-[color-mix(in_srgb,_var(--accent)_40%,_transparent)]';
+  'rounded-md text-muted-foreground transition-[color,border-color,background-color] duration-150 '
+  + 'hover:text-primary hover:bg-primary-soft hover:border-primary/40';
 
 const IBAN_REGEX = /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/;
 
@@ -251,11 +255,16 @@ export default function OwnerPayoutSettings() {
         })()}
 
         {configs.length === 0 ? (
-          <div className="p-6 rounded-[8px] border border-dashed border-[var(--line)] text-center flex flex-col items-center gap-1.5">
-            <div className="w-[48px] h-[48px] rounded-[12px] inline-flex items-center justify-center bg-[var(--ok-soft)] text-[var(--ok)] border border-solid border-[color-mix(in_srgb,_var(--ok)_20%,_transparent)]">
-              <AccountBalance size={22} strokeWidth={1.75} />
-            </div>
-            <p className="cn-text-body1 text-[0.85rem] text-muted-foreground max-w-[480px]">
+          // `EmptyState` attend un titre court ET une description ; cet ecran
+          // n'a qu'un seul libelle (une phrase entiere), et lui en inventer un
+          // second creerait une cle i18n non traduite. On reprend donc la
+          // recette du primitive — icone discrete, texte centre, filet
+          // pointille — sans la pastille d'icone coloree (§5).
+          <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-border p-6 text-center">
+            <span className="inline-flex text-faint">
+              <AccountBalance size={32} strokeWidth={1.5} />
+            </span>
+            <p className="max-w-[480px] text-[0.85rem] text-muted-foreground text-balance">
               {t(
                 'settings.ownerPayout.empty',
                 'Aucune configuration trouvée. Les configurations sont créées automatiquement lors de la première génération de payout.',
@@ -276,16 +285,16 @@ export default function OwnerPayoutSettings() {
               </TableHeader>
               <TableBody>
                 {paginatedConfigs.map((config) => {
-                  const methodColor = PAYOUT_METHOD_COLORS[config.payoutMethod];
+                  const methodChip = PAYOUT_METHOD_CHIP[config.payoutMethod];
                   return (
                     <TableRow key={config.id}>
                       <TableCell className={CELL_CLASS}>
-                        <p className="cn-text-body1 text-[0.82rem] font-semibold text-foreground">
+                        <p className="text-[0.82rem] font-semibold text-foreground">
                           {t('settings.ownerPayout.ownerLabel', 'Propriétaire')} #{config.ownerId}
                         </p>
                       </TableCell>
                       <TableCell className={CELL_CLASS}>
-                        <StatusChip tokens={{ color: methodColor, bg: `color-mix(in srgb, ${methodColor} 8%, transparent)` }} label={PAYOUT_METHOD_LABELS[config.payoutMethod]} className="tracking-[0.01em]" />
+                        <StatusChip {...methodChip} label={PAYOUT_METHOD_LABELS[config.payoutMethod]} className="tracking-[0.01em]" />
                       </TableCell>
                       <TableCell className={CELL_CLASS}>
                         {config.payoutMethod === 'SEPA_TRANSFER' && config.maskedIban && (
@@ -295,23 +304,23 @@ export default function OwnerPayoutSettings() {
                           </span>
                         )}
                         {config.payoutMethod === 'STRIPE_CONNECT' && (
-                          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             {config.stripeOnboardingComplete
                               ? t('settings.ownerPayout.stripeConnected', 'Compte connecté')
                               : t('settings.ownerPayout.stripeNotConnected', 'Onboarding en cours...')}
                           </p>
                         )}
                         {config.payoutMethod === 'MANUAL' && (
-                          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             {t('settings.ownerPayout.manualNote', 'Virement manuel')}
                           </p>
                         )}
                       </TableCell>
                       <TableCell className={`${CELL_CLASS} text-center`}>
                         {config.verified ? (
-                          <StatusChip tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label={t('settings.ownerPayout.verifiedLabel', 'Vérifié')} icon={<VerifiedUser size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
+                          <StatusChip tone="ok" label={t('settings.ownerPayout.verifiedLabel', 'Vérifié')} icon={<VerifiedUser size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
                         ) : (
-                          <StatusChip tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }} label={t('settings.ownerPayout.pendingLabel', 'En attente')} icon={<Warning size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
+                          <StatusChip tone="warn" label={t('settings.ownerPayout.pendingLabel', 'En attente')} icon={<Warning size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
                         )}
                       </TableCell>
                       <TableCell className={`${CELL_CLASS} text-end pe-[7.5px]`}>
@@ -390,7 +399,7 @@ export default function OwnerPayoutSettings() {
 
       {/* ── SEPA Edit Dialog ── */}
       <Dialog open={sepaOpen} onOpenChange={(next) => { if (!next) setSepaOpen(false); }}>
-        <DialogContent className="sm:max-w-[444px] rounded-[12px]">
+        <DialogContent className="sm:max-w-[444px] rounded-xl">
           <DialogHeader>
             <DialogTitle className="text-[0.95rem] font-bold tracking-[-0.005em]">
               {t('settings.ownerPayout.editSepaTitle', 'Coordonnées bancaires SEPA')}
@@ -453,7 +462,7 @@ export default function OwnerPayoutSettings() {
             variant="ghost"
             size="sm"
             onClick={() => setSepaOpen(false)}
-            className="text-[var(--muted)]"
+            className="text-muted-foreground"
           >
             {t('common.cancel', 'Annuler')}
           </Button>

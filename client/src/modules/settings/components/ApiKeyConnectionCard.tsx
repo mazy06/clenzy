@@ -55,10 +55,6 @@ import ProviderLogo, { type ProviderId } from './ProviderLogos';
  * </ul>
  */
 
-const ACCENT = 'var(--ok)';
-const NEUTRAL = 'var(--muted)';
-
-
 // ─── Contrats partages (Strategy) ──────────────────────────────────────────
 
 export interface ApiKeyConnectionStatus<P extends string> {
@@ -196,14 +192,14 @@ export default function ApiKeyConnectionCard<P extends string>({
   return (
     <Card className="gap-0 py-0 border-border overflow-hidden">
       {/* Header */}
-      <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[var(--line)]">
+      <div className="px-3 py-2.5 flex items-start gap-2 border-b border-border">
         <ProviderLogo provider={logoId} size={40} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1 flex-wrap">
-            <p className="cn-text-body1 text-[0.92rem] font-semibold">{meta.label}</p>
+            <p className="text-sm font-semibold tracking-tight">{meta.label}</p>
             {headerChip}
           </div>
-          <p className="cn-text-body1 text-[0.74rem] text-muted-foreground mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {meta.description}
           </p>
         </div>
@@ -211,9 +207,9 @@ export default function ApiKeyConnectionCard<P extends string>({
           {loading ? (
             <Spinner className="size-[18px]" />
           ) : connected ? (
-            <StatusChip color={ACCENT} label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
+            <StatusChip tone="ok" label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
           ) : (
-            <StatusChip color={NEUTRAL} label="Non connecté" icon={<ErrorOutline size={11} strokeWidth={2} />} />
+            <StatusChip tone="neutral" label="Non connecté" icon={<ErrorOutline size={11} strokeWidth={2} />} />
           )}
         </div>
       </div>
@@ -230,20 +226,20 @@ export default function ApiKeyConnectionCard<P extends string>({
           <div>
             <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] gap-[7.5px] mb-[9px]">
               <div>
-                <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Serveur</p>
-                <p className="cn-text-body1 text-[0.82rem] font-medium">{status?.serverUrl}</p>
+                <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">Serveur</p>
+                <p className="text-sm font-medium">{status?.serverUrl}</p>
               </div>
               {status?.accountIdentifier && (
                 <div>
-                  <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">
+                  <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {meta.accountIdentifierLabel ?? 'Identifiant'}
                   </p>
-                  <p className="cn-text-body1 text-[0.82rem] font-medium">{status.accountIdentifier}</p>
+                  <p className="text-sm font-medium">{status.accountIdentifier}</p>
                 </div>
               )}
               <div>
-                <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Statut</p>
-                <p className="cn-text-body1 text-[0.82rem] font-medium">{status?.status}</p>
+                <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">Statut</p>
+                <p className="text-sm font-medium">{status?.status}</p>
               </div>
             </div>
             {/* `outline` et non `destructive` : ce bouton n'efface rien, il ouvre la
@@ -255,10 +251,15 @@ export default function ApiKeyConnectionCard<P extends string>({
           </div>
         ) : (
           <form className="flex flex-col gap-2" onSubmit={(e) => { e.preventDefault(); handleConnect(); }}>
-            <p className="cn-text-body1 text-[0.78rem] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Pour obtenir vos credentials : voir la doc{' '}
               {meta.apiKeyHelpUrl ? (
-                <a href={meta.apiKeyHelpUrl} target="_blank" rel="noreferrer noopener" style={{ color: 'inherit' }}>
+                <a
+                  href={meta.apiKeyHelpUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="underline underline-offset-2 hover:text-foreground"
+                >
                   {meta.label}
                 </a>
               ) : (
@@ -303,7 +304,7 @@ export default function ApiKeyConnectionCard<P extends string>({
                 {submitting ? 'Connexion...' : `Connecter ${meta.label}`}
               </Button>
             </div>
-            <UiAlert variant="info" className="mt-0.5 text-[0.76rem]">
+            <UiAlert variant="info" className="mt-0.5 text-xs">
               <Info />
               <AlertDescription>{scaffoldingNote ?? defaultScaffoldingNote}</AlertDescription>
             </UiAlert>

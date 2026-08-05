@@ -109,26 +109,27 @@ export default function AffiliateImportDialog({
     <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
       <DialogContent className="sm:max-w-[444px]">
       <DialogHeader className="pb-1">
-        <DialogTitle className="text-[0.95rem] font-semibold leading-[1.25]">
+        <DialogTitle className="text-base font-semibold tracking-tight">
           {t("settings.services.importTitle", "Importer un rapport")}
         </DialogTitle>
-        <DialogDescription className="text-[0.72rem] leading-[1.4]">
+        <DialogDescription className="text-xs">
           {providerLabel}
         </DialogDescription>
       </DialogHeader>
 
       {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
-      <div className="border-y border-solid border-[var(--line)] py-3">
+      <div className="border-y border-solid border-border py-3">
         {result === null ? (
           <>
-            <p className="cn-text-body1 text-[0.78rem] text-muted-foreground leading-[1.55] mb-2.5">
+            <p className="text-xs text-muted-foreground leading-relaxed mb-2.5">
               {t(
                 "settings.services.importHint",
                 "Exportez vos conversions depuis le tableau de bord du programme, puis déposez le fichier ici. Les colonnes de référence de réservation et de montant de commission suffisent ; le séparateur et le format des montants sont détectés automatiquement.",
               )}
             </p>
 
-            {/* ::file-selector-button = variante `file:` ; mr/px 1.25 = 7.5px, py 0.625 = 3.75px */}
+            {/* ::file-selector-button = variante `file:` ; me/px 1.25 = 7.5px, py 0.625 = 3.75px.
+                Marge logique (`me`) et non physique : le PMS est RTL. */}
             <input
               ref={inputRef}
               type="file"
@@ -137,7 +138,7 @@ export default function AffiliateImportDialog({
                 setFile(e.target.files?.[0] ?? null);
                 setError(null);
               }}
-              className="w-full text-[0.8125rem] text-[var(--muted)] file:[font:inherit] file:mr-[7.5px] file:px-[7.5px] file:py-[3.75px] file:rounded-[7px] file:border file:border-solid file:border-[var(--line)] file:bg-transparent file:text-[var(--ink)] file:cursor-pointer"
+              className="w-full text-[0.8125rem] text-muted-foreground file:[font:inherit] file:me-[7.5px] file:px-[7.5px] file:py-[3.75px] file:rounded-md file:border file:border-solid file:border-border file:bg-transparent file:text-foreground file:cursor-pointer"
             />
 
             {error && (
@@ -188,15 +189,15 @@ export default function AffiliateImportDialog({
                     },
                   ].map((line) => (
                     <div className="flex justify-between gap-3" key={line.key}>
-                      <p className="cn-text-body1 text-[0.78rem] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {line.label}
                       </p>
                       <p
                         className={cn(
-                          "cn-text-body1 text-[0.78rem] tabular-nums",
+                          "text-xs tabular-nums",
                           line.strong
-                            ? "font-bold text-[var(--ink)]"
-                            : "font-medium text-[var(--muted)]",
+                            ? "font-semibold text-foreground"
+                            : "font-medium text-muted-foreground",
                         )}
                       >
                         {formatMoney(line.value)}
@@ -204,7 +205,7 @@ export default function AffiliateImportDialog({
                     </div>
                   ))}
                 </div>
-                <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-2 leading-[1.5]">
+                <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
                   {t(
                     "settings.services.importIdempotent",
                     "Les références déjà importées sont renvoyées sans être créditées une seconde fois.",

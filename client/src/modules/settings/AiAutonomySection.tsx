@@ -160,11 +160,11 @@ export default function AiAutonomySection() {
       <Card className="gap-0 py-0 p-2.5">
         <div className="flex items-center gap-1.5 mb-0.5">
           <Gauge size={18} aria-hidden />
-          <h6 className="cn-text-subtitle2">
+          <h6 className="text-xs font-medium">
             {t('aiAutonomy.budgetTitle', "Budget d'autonomie premium")}
           </h6>
         </div>
-        <span className="cn-text-caption text-muted-foreground block mb-2">
+        <span className="text-xs text-muted-foreground block mb-2">
           {t(
             'aiAutonomy.budgetSubtitle',
             "Plafond mensuel des actions proactives premium. L'autonomie socle (auto-réponses, alertes, briefings) reste incluse et n'est jamais décomptée. Plafond à 0 = autonomie premium désactivée.",
@@ -173,10 +173,10 @@ export default function AiAutonomySection() {
 
         <div className="mb-2">
           <div className="flex justify-between mb-0.5">
-            <span className="cn-text-caption text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {t('aiAutonomy.consumedThisCycle', 'Consommé ce cycle')}
             </span>
-            <span className="cn-text-caption tabular-nums">
+            <span className="text-xs tabular-nums">
               {consumedCredits.toLocaleString()} / {capValue.toLocaleString()}{' '}
               {t('aiAutonomy.credits', 'crédits')}
             </span>
@@ -188,10 +188,10 @@ export default function AiAutonomySection() {
             className={cn(
               'h-1.5 rounded-full',
               gaugeRatio >= 100
-                ? '[&_[data-slot=progress-indicator]]:bg-[#C97A7A]'
+                ? '[&_[data-slot=progress-indicator]]:bg-destructive'
                 : gaugeRatio >= 80
-                  ? '[&_[data-slot=progress-indicator]]:bg-[#D4A574]'
-                  : '[&_[data-slot=progress-indicator]]:bg-[#4A9B8E]',
+                  ? '[&_[data-slot=progress-indicator]]:bg-warning'
+                  : '[&_[data-slot=progress-indicator]]:bg-success',
             )}
           />
         </div>
@@ -240,7 +240,7 @@ export default function AiAutonomySection() {
         {/* Toggles des comportements premium — alimentés au fil des branchements (X8-b). */}
         <div className="mt-2">
           {behaviorKeys.length === 0 ? (
-            <span className="cn-text-caption text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {t(
                 'aiAutonomy.noBehaviors',
                 'Aucun comportement premium branché pour le moment — les interrupteurs apparaîtront ici (ex. optimisation tarifaire proactive).',
@@ -255,7 +255,7 @@ export default function AiAutonomySection() {
                   checked={Boolean(behaviors[key])}
                   onCheckedChange={(next) => setBehaviors((cur) => ({ ...cur, [key]: next }))}
                 />
-                <FieldLabel htmlFor={`ai-autonomy-behavior-${key}`} className="cn-text-body2">
+                <FieldLabel htmlFor={`ai-autonomy-behavior-${key}`} className="text-xs">
                   {t(`aiAutonomy.behavior.${key}`, key)}
                 </FieldLabel>
               </Field>
@@ -268,11 +268,11 @@ export default function AiAutonomySection() {
       <Card className="gap-0 py-0 p-2.5">
         <div className="flex items-center gap-1.5 mb-0.5">
           <ShieldCheck size={18} aria-hidden />
-          <h6 className="cn-text-subtitle2">
+          <h6 className="text-xs font-medium">
             {t('aiAutonomy.trustTitle', 'Règles de Confiance')}
           </h6>
         </div>
-        <span className="cn-text-caption text-muted-foreground block mb-1.5">
+        <span className="text-xs text-muted-foreground block mb-1.5">
           {t(
             'aiAutonomy.trustSubtitle',
             "Quand vous confirmez plusieurs fois la même action, l'assistant propose de ne plus demander. Chaque règle est visible et révocable ici — les actions d'argent ne sont jamais éligibles.",
@@ -280,7 +280,7 @@ export default function AiAutonomySection() {
         </span>
 
         {rules.length === 0 ? (
-          <span className="cn-text-caption text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {t('aiAutonomy.noRules', 'Aucune règle pour le moment — elles apparaissent après plusieurs confirmations de la même action.')}
           </span>
         ) : (

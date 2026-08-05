@@ -4,6 +4,7 @@ import { CircleCheck, TriangleAlert } from 'lucide-react';
 import { Security } from '../../icons';
 import apiClient from '../../services/apiClient';
 import SettingsSection from './components/SettingsSection';
+import SettingsToggleRow from './components/SettingsToggleRow';
 
 /**
  * Section « Sécurité » de Paramètres > Général.
@@ -42,31 +43,28 @@ export default function AccountSecuritySection() {
       accent="info"
       description="Mot de passe et protection du compte"
     >
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="min-w-0 flex-1">
-          <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground mb-0">
-            Mot de passe
-          </p>
-          <p className="cn-text-body1 text-[0.72rem] text-muted-foreground">
-            Recevez par email un lien sécurisé pour définir un nouveau mot de passe.
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0"
-          onClick={handleSendResetEmail}
-          disabled={loading}
-        >
-          {loading ? <Spinner className="size-[18px]" /> : 'Changer mon mot de passe'}
-        </Button>
-      </div>
+      {/* La rangee « libelle + aide + action » est la primitive de l'ecran
+          (`SettingsToggleRow`), pas une mise en page a redessiner ici. */}
+      <SettingsToggleRow
+        title="Mot de passe"
+        description="Recevez par email un lien sécurisé pour définir un nouveau mot de passe."
+        divider={false}
+        control={(
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={handleSendResetEmail}
+            disabled={loading}
+          >
+            {loading ? <Spinner className="size-[18px]" /> : 'Changer mon mot de passe'}
+          </Button>
+        )}
+      />
       {feedback && (
-        <Alert variant={feedback.severity === 'success' ? 'success' : 'destructive'} className="mt-[9px]">
+        <Alert variant={feedback.severity === 'success' ? 'success' : 'destructive'} className="mt-2">
           {feedback.severity === 'success' ? <CircleCheck /> : <TriangleAlert />}
-          <AlertDescription>
-            <p className="cn-text-body2 text-[0.8125rem]">{feedback.message}</p>
-          </AlertDescription>
+          <AlertDescription>{feedback.message}</AlertDescription>
         </Alert>
       )}
     </SettingsSection>

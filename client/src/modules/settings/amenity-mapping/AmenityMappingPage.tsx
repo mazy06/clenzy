@@ -15,7 +15,8 @@
  * Header avec 4 KPI tuiles (À mapper / Aliases / Custom / Properties affectees).
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import StatusChip from '../../../components/StatusChip';
+import EmptyState from '../../../components/EmptyState';
+import StatTile from '../../../components/baitly/StatTile';
 import { cn } from '../../../utils/cn';
 import { Badge, Button, InputGroup, InputGroupAddon, InputGroupInput } from '../../../components/ui';
 import { Alert, AlertDescription } from '../../../components/ui';
@@ -28,6 +29,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Item,
+  ItemActions,
+  ItemContent,
   Select,
   SelectContent,
   SelectItem,
@@ -48,6 +52,9 @@ import {
   AlertCircle,
   Sparkles,
   Pencil,
+  Link2,
+  Building2,
+  CheckCheck,
 } from 'lucide-react';
 import AmenityIconPicker from './AmenityIconPicker';
 import { resolveAmenityIcon, getCurrentIconName, DEFAULT_AMENITY_ICONS } from './amenityIcons';
@@ -73,22 +80,15 @@ import {
 import CreateCustomAmenityModal from './CreateCustomAmenityModal';
 import PageTabs from '../../../components/PageTabs';
 
-// Tokens design (cf. CLAUDE.md primary palette)
-const ACCENT = 'var(--accent)';
-const PRIMARY = 'var(--info)';
-const SUCCESS = 'var(--ok)';
-const WARN = 'var(--warn)';
-
 // Pastille d'icone cliquable (tabs Custom + Referentiel). Les variantes sont
 // deux chaines constantes et non une interpolation : une classe Tailwind est
 // emise a la compilation, elle ne peut pas naitre d'une variable.
 const CLASS_ICON_BADGE =
-  'w-[32px] h-[32px] rounded-[8px] inline-flex items-center justify-center shrink-0 cursor-pointer ' +
-  'transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]';
-const CLASS_ICON_BADGE_OVERRIDDEN =
-  'bg-[var(--info-soft)] text-[var(--info)] hover:bg-[color-mix(in_srgb,var(--info)_14%,transparent)]';
-const CLASS_ICON_BADGE_DEFAULT =
-  'bg-[var(--accent-soft)] text-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_14%,transparent)]';
+  'size-8 rounded-md inline-flex items-center justify-center shrink-0 cursor-pointer ' +
+  'transition-colors duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ' +
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1';
+const CLASS_ICON_BADGE_OVERRIDDEN = 'bg-info-soft text-info hover:bg-info/15';
+const CLASS_ICON_BADGE_DEFAULT = 'bg-primary-soft text-primary hover:bg-primary/15';
 
 type TabKey = 'unmapped' | 'aliases' | 'custom' | 'ignored' | 'reference';
 
@@ -360,15 +360,15 @@ export default function AmenityMappingPage() {
       {headerActionsPortal}
 
       {/* KPIs */}
-      <div className="flex flex-row flex-wrap gap-[9px] mb-[18px]">
-        <KpiTile label="À mapper"        value={unmapped.length}                color={WARN}    loading={loading} />
-        <KpiTile label="Mappings actifs" value={aliases.length}                  color={SUCCESS} loading={loading} />
-        <KpiTile label="Custom"          value={customs.length}                  color={PRIMARY} loading={loading} />
-        <KpiTile label="Propriétés concernées" value={totalAffectedProperties}  color={ACCENT}  loading={loading} />
+      <div className="grid grid-cols-2 min-[900px]:grid-cols-4 gap-[9px] mb-[18px]">
+        <StatTile icon={<AlertCircle />} label="À mapper" value={unmapped.length} iconClassName="text-warning" loading={loading} />
+        <StatTile icon={<Link2 />} label="Mappings actifs" value={aliases.length} iconClassName="text-success" loading={loading} />
+        <StatTile icon={<Sparkles />} label="Custom" value={customs.length} iconClassName="text-info" loading={loading} />
+        <StatTile icon={<Building2 />} label="Propriétés concernées" value={totalAffectedProperties} iconClassName="text-primary" loading={loading} />
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-[var(--line)] mb-3">
+      <div className="border-b border-border mb-3">
         <PageTabs
           options={[
             { value: 'unmapped' as TabKey, label: 'À mapper', badge: unmapped.length, badgeColor: 'warning' },
@@ -415,8 +415,8 @@ export default function AmenityMappingPage() {
             </InputGroup>
             <div className="flex-1" />
             {selectedRaw.size > 0 && (
-              <div className="flex flex-row items-center gap-1.5 px-[9px] py-[4.5px] rounded-[8px] bg-[var(--accent-soft)] border border-solid border-[color-mix(in_srgb,var(--accent)_20%,transparent)]">
-                <span className="cn-text-caption font-semibold" style={{ color: ACCENT }}>
+              <div className="flex flex-row items-center gap-1.5 px-[9px] py-[4.5px] rounded-md bg-primary-soft border border-solid border-primary/20">
+                <span className="text-xs font-semibold text-foreground">
                   {selectedRaw.size} sélectionné{selectedRaw.size > 1 ? 's' : ''}
                 </span>
                 <Select value={bulkCode} onValueChange={setBulkCode}>
@@ -429,7 +429,7 @@ export default function AmenityMappingPage() {
                         <span className="inline-flex items-center">
                           {opt.label}
                           {opt.isCustom && (
-                            <StatusChip tokens={{ color: PRIMARY, bg: 'var(--info-soft)' }} label="custom" className="ms-1 h-[16px] text-[0.6rem]" />
+                            <Badge variant="info" className="ms-1 h-[16px] px-1.5 text-[0.6rem]">custom</Badge>
                           )}
                         </span>
                       </SelectItem>
@@ -451,14 +451,15 @@ export default function AmenityMappingPage() {
 
           {loading ? (
             <div className="flex flex-col gap-1.5">
-              <Skeleton className="h-20 rounded-[8px]" />
-              <Skeleton className="h-20 rounded-[8px]" />
-              <Skeleton className="h-20 rounded-[8px]" />
+              <Skeleton className="h-20 rounded-lg" />
+              <Skeleton className="h-20 rounded-lg" />
+              <Skeleton className="h-20 rounded-lg" />
             </div>
           ) : filteredUnmapped.length === 0 ? (
             <EmptyState
+              icon={search.trim() ? <Search /> : <CheckCheck />}
               title={search.trim() ? 'Aucun résultat' : 'Toutes vos commodités sont mappées'}
-              subtitle={search.trim()
+              description={search.trim()
                 ? 'Aucune amenity OTA ne correspond à votre recherche.'
                 : 'Les commodités détectées sur vos listings OTA ont toutes un mapping. Bien joué.'}
             />
@@ -495,41 +496,44 @@ export default function AmenityMappingPage() {
       {tab === 'aliases' && (
         <div className="flex flex-col gap-1.5">
           {loading ? (
-            <Skeleton className="h-[300px] rounded-[8px]" />
+            <Skeleton className="h-[300px] rounded-lg" />
           ) : aliases.length === 0 ? (
             <EmptyState
+              icon={<Link2 />}
               title="Aucun mapping créé"
-              subtitle="Quand vous mappez une amenity OTA, elle apparaît ici."
+              description="Quand vous mappez une amenity OTA, elle apparaît ici."
             />
           ) : (
             aliases.map((a) => (
-              <div key={a.id} className={CLASS_LIST_ROW}>
-                <div className="flex-1 min-w-0">
+              <Item key={a.id} variant="outline" size="sm" className={CLASS_LIST_ROW}>
+                <ItemContent className="min-w-0 gap-0.5">
                   <div className="flex flex-row items-center gap-1.5">
-                    <p className="cn-text-body1 font-mono text-[0.85rem] font-medium">
+                    <p className="font-mono text-[0.85rem] font-medium">
                       {a.rawOtaName}
                     </p>
-                    <span className="cn-text-caption text-muted-foreground opacity-60">→</span>
-                    <StatusChip tokens={{ color: SUCCESS, bg: 'var(--ok-soft)' }} label={codeLabelOf(a.clenzyCode)} className="text-[0.7rem]" />
+                    <span className="text-xs text-faint">→</span>
+                    <Badge variant="success" className="text-[0.7rem]">{codeLabelOf(a.clenzyCode)}</Badge>
                     {a.otaSource && (
-                      <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--hover)] text-[var(--muted)]">{a.otaSource}</Badge>
+                      <Badge variant="secondary" className="h-[18px] text-[0.65rem]">{a.otaSource}</Badge>
                     )}
                   </div>
-                  <span className="cn-text-caption text-muted-foreground opacity-60 block mt-0.5">
+                  <span className="block text-xs text-faint">
                     Créé le {new Date(a.createdAt).toLocaleDateString('fr-FR')}
                     {a.createdByEmail && ` · par ${a.createdByEmail}`}
                   </span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => handleDeleteAlias(a.id)}
-                  aria-label={t('common.delete', 'Supprimer')}
-                  className="text-[var(--err)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
-                >
-                  <Trash2 size={14} />
-                </Button>
-              </div>
+                </ItemContent>
+                <ItemActions>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => handleDeleteAlias(a.id)}
+                    aria-label={t('common.delete', 'Supprimer')}
+                    className="text-destructive hover:bg-destructive-soft hover:text-destructive"
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </ItemActions>
+              </Item>
             ))
           )}
         </div>
@@ -549,76 +553,85 @@ export default function AmenityMappingPage() {
             </Button>
           </div>
           {loading ? (
-            <Skeleton className="h-[300px] rounded-[8px]" />
+            <Skeleton className="h-[300px] rounded-lg" />
           ) : customs.length === 0 ? (
             <EmptyState
+              icon={<Sparkles />}
               title={t('settings.amenities.custom.emptyTitle', 'Aucune commodité custom')}
-              subtitle={t('settings.amenities.custom.emptySubtitle', 'Créez vos propres commodités quand le référentiel Baitly ne couvre pas un équipement.')}
+              description={t('settings.amenities.custom.emptySubtitle', 'Créez vos propres commodités quand le référentiel Baitly ne couvre pas un équipement.')}
             />
           ) : (
             customs.map((c) => {
               const Icon = resolveAmenityIcon(c.code, iconOverrides);
               const isOverridden = c.code in iconOverrides;
               return (
-                <div key={c.id} className={CLASS_LIST_ROW}>
+                <Item key={c.id} variant="outline" size="sm" className={CLASS_LIST_ROW}>
                   {/* Icone (cliquable = ouvre le picker) — meme pattern que tab Reference */}
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div
+                      {/* Vrai <button> : un div cliquable ne recoit ni le focus
+                          clavier ni Entree/Espace. */}
+                      <button
+                        type="button"
                         onClick={() => setIconPicker({ open: true, code: c.code, label: c.labelFr })}
+                        aria-label={t('settings.amenities.changeIcon', "Changer l'icône")}
                         className={cn(CLASS_ICON_BADGE, isOverridden ? CLASS_ICON_BADGE_OVERRIDDEN : CLASS_ICON_BADGE_DEFAULT)}
                       >
                         <Icon size={18} strokeWidth={1.75} />
-                      </div>
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent>{t('settings.amenities.changeIcon', "Changer l'icône")}</TooltipContent>
                   </Tooltip>
 
-                  <div className="flex-1 min-w-0">
+                  <ItemContent className="min-w-0 gap-0.5">
                     <div className="flex flex-row items-center gap-1.5">
-                      <p className="cn-text-body1 text-[0.9rem] font-semibold">{c.labelFr}</p>
+                      <p className="text-[0.9rem] font-semibold">{c.labelFr}</p>
                       {c.labelEn && (
-                        <span className="cn-text-caption text-muted-foreground">/ {c.labelEn}</span>
+                        <span className="text-xs text-muted-foreground">/ {c.labelEn}</span>
                       )}
-                      <StatusChip size="sm" tokens={{ color: PRIMARY, bg: 'var(--info-soft)' }} label={AMENITY_CATEGORY_LABELS[c.category as AmenityCategory] ?? c.category} className="text-[0.65rem]" />
+                      <Badge variant="info" className="h-[18px] text-[0.65rem]">
+                        {AMENITY_CATEGORY_LABELS[c.category as AmenityCategory] ?? c.category}
+                      </Badge>
                     </div>
-                    <span className="cn-text-caption block font-mono text-muted-foreground opacity-60 mt-0.5">
+                    <span className="block font-mono text-xs text-faint">
                       {c.code}
                     </span>
-                  </div>
+                  </ItemContent>
 
-                  {/* Reset icon (uniquement si override actif) */}
-                  {isOverridden && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="inline-flex">
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            onClick={() => resetIconOverride(c.code)}
-                            aria-label={t('settings.amenities.resetIcon', "Réinitialiser l'icône")}
-                            className="size-[22px] cursor-pointer text-[var(--muted)] hover:bg-[var(--info-soft)] hover:text-[var(--info)]"
-                          >
-                            <RotateCcw size={12} strokeWidth={1.75} />
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {t('settings.amenities.iconPicker.resetToDefault', "Revenir à l'icône par défaut")}
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
+                  <ItemActions>
+                    {/* Reset icon (uniquement si override actif) */}
+                    {isOverridden && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              onClick={() => resetIconOverride(c.code)}
+                              aria-label={t('settings.amenities.resetIcon', "Réinitialiser l'icône")}
+                              className="size-[22px] cursor-pointer text-muted-foreground hover:bg-info-soft hover:text-info"
+                            >
+                              <RotateCcw size={12} strokeWidth={1.75} />
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {t('settings.amenities.iconPicker.resetToDefault', "Revenir à l'icône par défaut")}
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
 
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => handleDeleteCustom(c.id)}
-                    aria-label={t('common.delete', 'Supprimer')}
-                    className="cursor-pointer text-[var(--err)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
-                  >
-                    <Trash2 size={14} />
-                  </Button>
-                </div>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => handleDeleteCustom(c.id)}
+                      aria-label={t('common.delete', 'Supprimer')}
+                      className="cursor-pointer text-destructive hover:bg-destructive-soft hover:text-destructive"
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </ItemActions>
+                </Item>
               );
             })
           )}
@@ -629,43 +642,46 @@ export default function AmenityMappingPage() {
       {tab === 'ignored' && (
         <div className="flex flex-col gap-1.5">
           {loading ? (
-            <Skeleton className="h-[300px] rounded-[8px]" />
+            <Skeleton className="h-[300px] rounded-lg" />
           ) : ignored.length === 0 ? (
             <EmptyState
+              icon={<Ban />}
               title={t('settings.amenities.ignored.emptyTitle', 'Aucune amenity ignorée')}
-              subtitle={t('settings.amenities.ignored.emptySubtitle', 'Marquez « Ignorer » sur une amenity OTA pour la masquer définitivement.')}
+              description={t('settings.amenities.ignored.emptySubtitle', 'Marquez « Ignorer » sur une amenity OTA pour la masquer définitivement.')}
             />
           ) : (
             ignored.map((i) => (
-              <div key={i.id} className={CLASS_LIST_ROW}>
-                <div className="flex-1 min-w-0">
+              <Item key={i.id} variant="outline" size="sm" className={CLASS_LIST_ROW}>
+                <ItemContent className="min-w-0">
                   <div className="flex flex-row items-center gap-1.5">
-                    <Ban size={14} color="var(--faint)" />
-                    <p className="cn-text-body1 font-mono text-[0.85rem]">{i.rawOtaName}</p>
+                    <Ban size={14} className="text-faint shrink-0" />
+                    <p className="font-mono text-[0.85rem]">{i.rawOtaName}</p>
                     {i.otaSource && (
-                      <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--hover)] text-[var(--muted)]">{i.otaSource}</Badge>
+                      <Badge variant="secondary" className="h-[18px] text-[0.65rem]">{i.otaSource}</Badge>
                     )}
                   </div>
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="inline-flex">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => handleDeleteIgnored(i.id)}
-                        aria-label={t('settings.amenities.ignored.reintroduce', 'Réintroduire dans la liste à mapper')}
-                        className="text-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
-                      >
-                        <RotateCcw size={14} />
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {t('settings.amenities.ignored.reintroduce', 'Réintroduire dans la liste à mapper')}
-                  </TooltipContent>
-                </Tooltip>
-              </div>
+                </ItemContent>
+                <ItemActions>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => handleDeleteIgnored(i.id)}
+                          aria-label={t('settings.amenities.ignored.reintroduce', 'Réintroduire dans la liste à mapper')}
+                          className="text-primary hover:bg-primary-soft hover:text-primary"
+                        >
+                          <RotateCcw size={14} />
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {t('settings.amenities.ignored.reintroduce', 'Réintroduire dans la liste à mapper')}
+                    </TooltipContent>
+                  </Tooltip>
+                </ItemActions>
+              </Item>
             ))
           )}
         </div>
@@ -689,10 +705,10 @@ export default function AmenityMappingPage() {
             return (
               <div key={cat}>
                 <div className="flex flex-row items-center gap-1.5 mb-[5.25px]">
-                  <p className="cn-text-body1 text-[0.78rem] font-semibold text-foreground">
+                  <p className="text-[0.78rem] font-semibold text-foreground">
                     {AMENITY_CATEGORY_LABELS[cat]}
                   </p>
-                  <StatusChip size="sm" tokens={{ color: PRIMARY, bg: 'var(--info-soft)' }} label={items.length} className="text-[0.65rem]" />
+                  <Badge variant="info" className="h-[18px] text-[0.65rem] tabular-nums">{items.length}</Badge>
                 </div>
                 <div className="grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(3,_1fr)] min-[1200px]:grid-cols-[repeat(4,_1fr)] gap-1.5">
                   {items.map((a) => {
@@ -705,34 +721,33 @@ export default function AmenityMappingPage() {
                       <div
                         key={a.code}
                         className={cn(
-                          'group relative flex items-center gap-1.5 px-[7.5px] py-[5.25px] rounded-[8px]',
-                          'border border-solid border-[var(--line)] bg-[var(--card)]',
-                          'transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
-                          'hover:border-[var(--accent)]',
+                          'group relative flex items-center gap-1.5 px-[7.5px] py-[5.25px] rounded-md',
+                          'border border-solid border-border bg-card',
+                          'transition-colors duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
+                          'hover:border-primary',
                         )}
                       >
                         {/* Icone (cliquable = ouvre le picker) */}
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div
+                            <button
+                              type="button"
                               onClick={() => setIconPicker({ open: true, code: a.code, label })}
+                              aria-label={t('settings.amenities.changeIcon', "Changer l'icône")}
                               className={cn(CLASS_ICON_BADGE, isOverridden ? CLASS_ICON_BADGE_OVERRIDDEN : CLASS_ICON_BADGE_DEFAULT)}
                             >
                               <Icon size={18} strokeWidth={1.75} />
-                            </div>
+                            </button>
                           </TooltipTrigger>
                           <TooltipContent>{t('settings.amenities.changeIcon', "Changer l'icône")}</TooltipContent>
                         </Tooltip>
 
                         {/* Label + code */}
                         <div className="flex-1 min-w-0">
-                          <p className="cn-text-body1 text-[0.82rem] font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+                          <p className="text-[0.82rem] font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                             {label}
                           </p>
-                          <span
-                            className="cn-text-caption block text-[0.65rem] text-[var(--faint)] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap"
-                            style={{ fontFamily: '"SF Mono", Menlo, Consolas, monospace' }}
-                          >
+                          <span className="block font-mono text-2xs text-faint leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap">
                             {a.code}
                           </span>
                         </div>
@@ -748,7 +763,7 @@ export default function AmenityMappingPage() {
                                     size="icon-xs"
                                     onClick={() => resetIconOverride(a.code)}
                                     aria-label={t('settings.amenities.resetIcon', "Réinitialiser l'icône")}
-                                    className="size-[22px] cursor-pointer text-[var(--muted)] hover:bg-[var(--info-soft)] hover:text-[var(--info)]"
+                                    className="size-[22px] cursor-pointer text-muted-foreground hover:bg-info-soft hover:text-info"
                                   >
                                     <RotateCcw size={12} strokeWidth={1.75} />
                                   </Button>
@@ -768,10 +783,10 @@ export default function AmenityMappingPage() {
                                   onClick={() => setIconPicker({ open: true, code: a.code, label })}
                                   aria-label={t('settings.amenities.changeIcon', "Changer l'icône")}
                                   className={cn(
-                                    'size-[22px] cursor-pointer text-[var(--muted)] opacity-0',
-                                    'transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                                    'size-[22px] cursor-pointer text-muted-foreground opacity-0',
+                                    'transition-opacity duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
                                     'group-hover:opacity-100 focus-visible:opacity-100',
-                                    'hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]',
+                                    'hover:bg-primary-soft hover:text-primary',
                                   )}
                                 >
                                   <Pencil size={12} strokeWidth={1.75} />
@@ -818,7 +833,7 @@ export default function AmenityMappingPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-1.5">
-              <AlertCircle size={18} color={WARN} />
+              <AlertCircle size={18} className="text-warning" />
               Re-traiter les propriétés ?
             </DialogTitle>
             <DialogDescription>
@@ -849,7 +864,7 @@ export default function AmenityMappingPage() {
               puis applique automatiquement vos {aliases.length} alias et {ignored.length} ignored.
             </DialogDescription>
           </DialogHeader>
-          <span className="cn-text-caption text-muted-foreground opacity-60 block">
+          <span className="block text-xs text-faint">
             Peut prendre quelques secondes par propriété (1 HTTP GET vers airbnb.com).
             Les amenities déjà cochées manuellement sont préservées.
           </span>
@@ -867,41 +882,11 @@ export default function AmenityMappingPage() {
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
+/** Gabarit commun des lignes de liste, pose sur la primitive `Item`. */
 const CLASS_LIST_ROW =
-  'flex items-center gap-[9px] px-3 py-[7.5px] rounded-[12px] ' +
-  'border border-solid border-[var(--line)] bg-[var(--surface-2)] ' +
-  'transition-all duration-[180ms] ease-out ' +
-  'hover:border-[color-mix(in_srgb,var(--accent)_25%,transparent)]';
-
-function KpiTile({ label, value, color, loading }: {
-  label: string; value: number; color: string; loading: boolean;
-}) {
-  return (
-    <div className="flex-[1_1_180px] min-w-[140px] px-3 py-[9px] rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]">
-      <span className="cn-text-caption text-muted-foreground block mb-0.5">
-        {label}
-      </span>
-      {loading ? (
-        <Skeleton className="w-10 h-8" />
-      ) : (
-        // `color` vient des props : une classe Tailwind ne peut pas naitre
-        // d'une variable, la teinte passe donc par le style inline.
-        <p className="cn-text-body1 text-[1.5rem] font-bold tabular-nums" style={{ color }}>
-          {value}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function EmptyState({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <div className="text-center py-9 px-[18px] rounded-[12px] border border-dashed border-[var(--line)] bg-[var(--surface-2)]">
-      <h6 className="cn-text-subtitle1 font-semibold mb-0.5">{title}</h6>
-      <p className="cn-text-body2 text-muted-foreground">{subtitle}</p>
-    </div>
-  );
-}
+  'items-center gap-[9px] bg-card ' +
+  'transition-colors duration-[180ms] ease-out motion-reduce:transition-none ' +
+  'hover:border-primary/25';
 
 function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, onCreateCustom, onIgnore }: {
   item: UnmappedAmenityDto;
@@ -915,38 +900,41 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
   const [pendingCode, setPendingCode] = useState<string>('');
 
   return (
-    <div className={cn(
-      'flex items-center gap-[9px] px-[9px] py-[9px] rounded-[12px] border border-solid',
-      'transition-all duration-[180ms] ease-out',
-      'hover:border-[color-mix(in_srgb,var(--accent)_25%,transparent)]',
-      selected
-        ? 'border-[color-mix(in_srgb,var(--accent)_40%,transparent)] bg-[var(--accent-soft)]'
-        : 'border-[var(--line)] bg-[var(--card)]',
-    )}>
+    <Item
+      variant="outline"
+      size="sm"
+      className={cn(
+        'items-center gap-[9px]',
+        'transition-colors duration-[180ms] ease-out motion-reduce:transition-none',
+        'hover:border-primary/25',
+        // Un etat actif se dit par le FOND, jamais par un liseré lateral.
+        selected ? 'border-primary/40 bg-primary-soft' : 'bg-card',
+      )}
+    >
       <Checkbox
         checked={selected}
         onCheckedChange={(checked) => onToggleSelect(checked === true)}
         aria-label={`Sélectionner ${item.rawOtaName}`}
       />
-      <div className="flex-1 min-w-0">
+      <ItemContent className="min-w-0 gap-0">
         <div className="flex flex-row items-center gap-1.5 mb-[1.5px]">
-          <p className="cn-text-body1 font-mono text-[0.9rem] font-medium me-0.5">
+          <p className="font-mono text-[0.9rem] font-medium me-0.5">
             {item.rawOtaName}
           </p>
           {item.otaSources[0] && item.otaSources[0] !== 'OTA' && (
-            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--hover)] text-[var(--muted)]">{item.otaSources[0]}</Badge>
+            <Badge variant="secondary" className="h-[18px] text-[0.65rem]">{item.otaSources[0]}</Badge>
           )}
-          <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--warn-soft)] text-[var(--warn)]">{`${item.occurrences} propriété${item.occurrences > 1 ? 's' : ''}`}</Badge>
+          <Badge variant="warning" className="h-[18px] text-[0.65rem] tabular-nums">{`${item.occurrences} propriété${item.occurrences > 1 ? 's' : ''}`}</Badge>
         </div>
         {item.affectedProperties.length > 0 && (
-          <span className="cn-text-caption text-muted-foreground truncate">
+          <span className="text-xs text-muted-foreground truncate">
             {item.affectedProperties.slice(0, 3).map((p) => p.name).join(' · ')}
             {item.affectedProperties.length < item.occurrences
               && `, +${item.occurrences - item.affectedProperties.length} autre${item.occurrences - item.affectedProperties.length > 1 ? 's' : ''}`}
           </span>
         )}
-      </div>
-      <div className="flex flex-row items-center gap-1.5 shrink-0">
+      </ItemContent>
+      <ItemActions className="gap-1.5 shrink-0">
         <Select
           value={pendingCode}
           onValueChange={(code) => {
@@ -963,22 +951,24 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
                 <span className="inline-flex items-center">
                   {opt.label}
                   {opt.isCustom && (
-                    <StatusChip tokens={{ color: PRIMARY, bg: 'var(--info-soft)' }} label="custom" className="ms-1 h-[16px] text-[0.6rem]" />
+                    <Badge variant="info" className="ms-1 h-[16px] px-1.5 text-[0.6rem]">custom</Badge>
                   )}
                 </span>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        {/* Creer une commodite est l'issue constructive de la ligne : variante
+            `outline`, la seule a se distinguer des deux `ghost` voisins. */}
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="inline-flex">
               <Button
-                variant="ghost"
+                variant="outline"
                 size="icon-sm"
                 onClick={onCreateCustom}
                 aria-label="Créer une nouvelle commodité Baitly à partir de ce nom"
-                className="text-[var(--accent)] border border-solid border-[color-mix(in_srgb,var(--accent)_25%,transparent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
+                className="text-primary border-primary/25 hover:bg-primary-soft hover:text-primary"
               >
                 <Plus size={14} />
               </Button>
@@ -994,7 +984,7 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
                 size="icon-sm"
                 onClick={onIgnore}
                 aria-label="Ignorer définitivement (sera masqué et retiré des propriétés)"
-                className="text-[var(--muted)]"
+                className="text-muted-foreground"
               >
                 <Ban size={14} />
               </Button>
@@ -1002,7 +992,7 @@ function UnmappedRow({ item, selected, onToggleSelect, allCodeOptions, onMap, on
           </TooltipTrigger>
           <TooltipContent>Ignorer définitivement (sera masqué et retiré des propriétés)</TooltipContent>
         </Tooltip>
-      </div>
-    </div>
+      </ItemActions>
+    </Item>
   );
 }

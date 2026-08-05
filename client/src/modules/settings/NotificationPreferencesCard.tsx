@@ -9,7 +9,6 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-  Card,
   Item,
   ItemActions,
   ItemContent,
@@ -22,6 +21,7 @@ import {
   TooltipTrigger,
 } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
+import SettingsSection from './components/SettingsSection';
 import {
   Notifications,
   Build,
@@ -58,8 +58,8 @@ const CATEGORIES: CategoryGroup[] = [
   {
     id: 'intervention',
     label: 'Interventions',
-    icon: <Build fontSize="small" />,
-    color: 'var(--accent)',
+    icon: <Build size={16} strokeWidth={1.75} />,
+    color: 'var(--bui-primary)',
     keys: [
       { key: 'INTERVENTION_CREATED', title: 'Intervention creee', description: 'Quand une nouvelle intervention est creee' },
       { key: 'INTERVENTION_UPDATED', title: 'Intervention mise a jour', description: 'Quand une intervention est modifiee' },
@@ -84,8 +84,8 @@ const CATEGORIES: CategoryGroup[] = [
   {
     id: 'service_request',
     label: 'Demandes de service',
-    icon: <Description fontSize="small" />,
-    color: 'var(--info)',
+    icon: <Description size={16} strokeWidth={1.75} />,
+    color: 'var(--bui-info)',
     keys: [
       { key: 'SERVICE_REQUEST_CREATED', title: 'Demande creee', description: 'Quand une nouvelle demande de service est soumise' },
       { key: 'SERVICE_REQUEST_UPDATED', title: 'Demande mise a jour', description: 'Quand une demande de service est modifiee' },
@@ -102,8 +102,8 @@ const CATEGORIES: CategoryGroup[] = [
   {
     id: 'payment',
     label: 'Paiements',
-    icon: <Payment fontSize="small" />,
-    color: 'var(--ok)',
+    icon: <Payment size={16} strokeWidth={1.75} />,
+    color: 'var(--bui-success)',
     keys: [
       { key: 'PAYMENT_SESSION_CREATED', title: 'Session de paiement creee', description: 'Quand une session de paiement est initiee' },
       { key: 'PAYMENT_CONFIRMED', title: 'Paiement confirme', description: 'Quand un paiement est confirme avec succes' },
@@ -123,8 +123,8 @@ const CATEGORIES: CategoryGroup[] = [
   {
     id: 'team',
     label: 'Equipes',
-    icon: <Groups fontSize="small" />,
-    color: 'var(--warn)',
+    icon: <Groups size={16} strokeWidth={1.75} />,
+    color: 'var(--bui-warning)',
     keys: [
       { key: 'TEAM_CREATED', title: 'Equipe creee', description: 'Quand une nouvelle equipe est creee' },
       { key: 'TEAM_UPDATED', title: 'Equipe modifiee', description: 'Quand une equipe est mise a jour' },
@@ -139,8 +139,8 @@ const CATEGORIES: CategoryGroup[] = [
   {
     id: 'ical',
     label: 'Import iCal',
-    icon: <CalendarMonth fontSize="small" />,
-    color: 'var(--info)',
+    icon: <CalendarMonth size={16} strokeWidth={1.75} />,
+    color: 'var(--bui-info)',
     keys: [
       { key: 'ICAL_IMPORT_SUCCESS', title: 'Import reussi', description: 'Quand un import iCal se termine avec succes' },
       { key: 'ICAL_IMPORT_PARTIAL', title: 'Import partiel', description: 'Quand un import iCal est partiellement reussi' },
@@ -153,8 +153,8 @@ const CATEGORIES: CategoryGroup[] = [
   {
     id: 'portfolio',
     label: 'Portefeuilles',
-    icon: <Business fontSize="small" />,
-    color: 'var(--muted)',
+    icon: <Business size={16} strokeWidth={1.75} />,
+    color: 'var(--bui-muted-foreground)',
     keys: [
       { key: 'PORTFOLIO_CREATED', title: 'Portefeuille cree', description: 'Quand un nouveau portefeuille est cree' },
       { key: 'PORTFOLIO_CLIENT_ADDED', title: 'Client ajoute', description: 'Quand un client est ajoute a un portefeuille' },
@@ -167,8 +167,8 @@ const CATEGORIES: CategoryGroup[] = [
   {
     id: 'user',
     label: 'Utilisateurs',
-    icon: <Person fontSize="small" />,
-    color: 'var(--err)',
+    icon: <Person size={16} strokeWidth={1.75} />,
+    color: 'var(--bui-destructive)',
     keys: [
       { key: 'USER_CREATED', title: 'Utilisateur cree', description: 'Quand un nouvel utilisateur est cree' },
       { key: 'USER_UPDATED', title: 'Profil modifie', description: 'Quand un profil utilisateur est modifie' },
@@ -180,8 +180,8 @@ const CATEGORIES: CategoryGroup[] = [
   {
     id: 'gdpr',
     label: 'RGPD',
-    icon: <Shield fontSize="small" />,
-    color: 'var(--accent)',
+    icon: <Shield size={16} strokeWidth={1.75} />,
+    color: 'var(--bui-primary)',
     keys: [
       { key: 'GDPR_DATA_EXPORTED', title: 'Donnees exportees', description: 'Quand un export RGPD est genere' },
       { key: 'GDPR_USER_ANONYMIZED', title: 'Utilisateur anonymise', description: 'Quand les donnees d\'un utilisateur sont anonymisees' },
@@ -191,8 +191,8 @@ const CATEGORIES: CategoryGroup[] = [
   {
     id: 'permission',
     label: 'Permissions',
-    icon: <Shield fontSize="small" />,
-    color: 'var(--info)',
+    icon: <Shield size={16} strokeWidth={1.75} />,
+    color: 'var(--bui-info)',
     keys: [
       { key: 'PERMISSION_ROLE_UPDATED', title: 'Permissions modifiees', description: 'Quand les permissions d\'un role changent' },
       { key: 'PERMISSION_CACHE_INVALIDATED', title: 'Cache invalide', description: 'Quand le cache des permissions est reinitialise' },
@@ -201,8 +201,8 @@ const CATEGORIES: CategoryGroup[] = [
   {
     id: 'property',
     label: 'Proprietes',
-    icon: <Home fontSize="small" />,
-    color: 'var(--ok)',
+    icon: <Home size={16} strokeWidth={1.75} />,
+    color: 'var(--bui-success)',
     keys: [
       { key: 'PROPERTY_CREATED', title: 'Propriete creee', description: 'Quand une nouvelle propriete est ajoutee' },
       { key: 'PROPERTY_UPDATED', title: 'Propriete modifiee', description: 'Quand une propriete est mise a jour' },
@@ -213,8 +213,8 @@ const CATEGORIES: CategoryGroup[] = [
   {
     id: 'contact',
     label: 'Contact & Messagerie',
-    icon: <Email fontSize="small" />,
-    color: 'var(--info)',
+    icon: <Email size={16} strokeWidth={1.75} />,
+    color: 'var(--bui-info)',
     keys: [
       { key: 'CONTACT_MESSAGE_RECEIVED', title: 'Message recu', description: 'Quand vous recevez un nouveau message' },
       { key: 'CONTACT_MESSAGE_SENT', title: 'Message envoye', description: 'Confirmation quand un message est envoye' },
@@ -227,8 +227,8 @@ const CATEGORIES: CategoryGroup[] = [
   {
     id: 'document',
     label: 'Documents',
-    icon: <Description fontSize="small" />,
-    color: 'var(--warn)',
+    icon: <Description size={16} strokeWidth={1.75} />,
+    color: 'var(--bui-warning)',
     keys: [
       { key: 'DOCUMENT_GENERATED', title: 'Document genere', description: 'Quand un document PDF est genere avec succes' },
       { key: 'DOCUMENT_GENERATION_FAILED', title: 'Echec de generation', description: 'Quand la generation d\'un document echoue' },
@@ -244,8 +244,8 @@ const CATEGORIES: CategoryGroup[] = [
     // creee (cf. AssistantBriefingScheduler).
     id: 'assistant',
     label: 'Assistant & syntheses',
-    icon: <AutoAwesome fontSize="small" />,
-    color: 'var(--accent)',
+    icon: <AutoAwesome size={16} strokeWidth={1.75} />,
+    color: 'var(--bui-primary)',
     keys: [
       {
         key: 'BRIEFING_READY',
@@ -359,39 +359,36 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
     return { total, enabled };
   };
 
+  const sectionProps = {
+    title: 'Preferences de notifications',
+    icon: Notifications,
+    accent: 'primary' as const,
+    description: 'Choisissez les notifications que vous souhaitez recevoir. Desactivez celles qui ne vous interessent pas.',
+  };
+
   if (loading) {
     return (
-      <Card className="gap-0 py-0 p-4 flex justify-center items-center min-h-[200px]">
-        <Spinner className="size-8" />
-      </Card>
+      <SettingsSection {...sectionProps}>
+        <div className="flex min-h-[200px] items-center justify-center">
+          <Spinner className="size-8" />
+        </div>
+      </SettingsSection>
     );
   }
 
   if (error) {
     return (
-      <Card className="gap-0 py-0 p-4">
+      <SettingsSection {...sectionProps}>
         <UiAlert variant="warning">
           <TriangleAlert />
           <AlertDescription>{error}</AlertDescription>
         </UiAlert>
-      </Card>
+      </SettingsSection>
     );
   }
 
   return (
-    <Card className="gap-0 py-0 p-3">
-      {/* Header */}
-      <div className="flex items-center gap-1.5 mb-3">
-        <span className="inline-flex text-[var(--mui-secondary)]"><Notifications size={20} strokeWidth={1.75} /></span>
-        <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
-          Preferences de notifications
-        </h6>
-      </div>
-
-      <p className="cn-text-body2 text-muted-foreground mb-3 text-[0.8rem]">
-        Choisissez les notifications que vous souhaitez recevoir. Desactivez celles qui ne vous interessent pas.
-      </p>
-
+    <SettingsSection {...sectionProps}>
       {/* Categories Accordions — grille 2 colonnes */}
       {/* md MUI = 900px (breakpoints non configures) et gap: 1 = 6px (spacing 6). */}
       <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[1fr_1fr] gap-1.5 items-start">
@@ -407,7 +404,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
               key={category.id}
               type="single"
               collapsible
-              className="rounded-[8px] border border-solid border-[var(--line)]"
+              className="rounded-md border border-solid border-border"
             >
               <AccordionItem value={category.id} className="border-b-0">
                 {/* Le Switch ne peut PAS vivre dans le trigger : celui-ci est un
@@ -419,10 +416,10 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
                     <AccordionTrigger className="min-h-12 w-full items-center px-3">
                       <div className="flex items-center gap-1.5 w-full pe-1.5">
                         {/* La couleur de categorie vient des donnees : elle passe par style, pas par une classe. */}
-                        <div className="flex [transition:color_0.2s]" style={{ color: noneEnabled ? 'var(--faint)' : category.color }}>
+                        <div className="flex [transition:color_0.2s]" style={{ color: noneEnabled ? 'var(--bui-faint)' : category.color }}>
                           {category.icon}
                         </div>
-                        <p className={cn('cn-text-body2 font-semibold flex-1 text-start', noneEnabled ? 'text-[var(--faint)]' : 'text-[var(--ink)]')} style={{ transition: 'color 0.2s' }}>
+                        <p className={cn('flex-1 text-start text-xs font-semibold transition-colors duration-200', noneEnabled ? 'text-faint' : 'text-foreground')}>
                           {category.label}
                         </p>
                         <StatusChip
@@ -443,8 +440,8 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
                           checked={!noneEnabled}
                           onCheckedChange={() => handleToggleCategory(category, noneEnabled ? true : false)}
                           className={allEnabled
-                            ? 'data-checked:bg-[var(--ok)]'
-                            : 'data-checked:bg-[var(--warn)]'}
+                            ? 'data-checked:bg-success'
+                            : 'data-checked:bg-warning'}
                         />
                       </span>
                     </TooltipTrigger>
@@ -483,7 +480,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
           );
         })}
       </div>
-    </Card>
+    </SettingsSection>
   );
 });
 

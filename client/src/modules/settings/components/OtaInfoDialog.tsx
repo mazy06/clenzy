@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import StatusChip from '../../../components/StatusChip';
 import { Alert as UiAlert, AlertDescription } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
-import { Card } from '../../../components/ui';
+import { Badge, Card } from '../../../components/ui';
 import { Button, Field, FieldLabel, Input } from '../../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -52,10 +51,6 @@ import IntegrationConfigDialog from './IntegrationConfigDialog';
  * {@link IntegrationConfigDialog} -> Paper -> Header logo+nom+chip+status
  * + Body. Aucune divergence visuelle avec le reste de l'ecran.</p>
  */
-
-const ACCENT = 'var(--ok)';
-const NEUTRAL = 'var(--muted)';
-
 
 // Labels FR pour les champs de credentials — evite la dependance sur i18n
 // pour ces stubs scaffoldes.
@@ -192,22 +187,24 @@ export default function OtaInfoDialog({
     <IntegrationConfigDialog open={open} onClose={onClose}>
       <Card className="gap-0 py-0 border-border overflow-hidden">
         {/* ─── Header (uniforme avec ApiKeyConnectionCard) ─────────────── */}
-        <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[var(--line)]">
-          <div className="w-[40px] h-[40px] rounded-[10px] inline-flex items-center justify-center overflow-hidden shrink-0" style={{ backgroundColor: ota.logo ? 'transparent' : ota.brandColor }} aria-hidden="true">
+        <div className="px-3 py-2.5 flex items-start gap-2 border-b border-border">
+          <div className="size-10 rounded-lg inline-flex items-center justify-center overflow-hidden shrink-0" style={{ backgroundColor: ota.logo ? 'transparent' : ota.brandColor }} aria-hidden="true">
             {ota.logo ? (
-              <img className="max-w-full max-h-[100%] object-contain" src={ota.logo} alt="" />
+              <img className="max-w-full max-h-full object-contain" src={ota.logo} alt="" />
             ) : (
-              <p className="cn-text-body1 text-[0.85rem] font-bold text-[var(--on-accent)]">
+              // Encre posée sur une couleur de MARQUE, pas sur une surface du
+              // thème : elle doit rester claire en clair comme en sombre.
+              <p className="text-sm font-bold text-white">
                 {ota.name.slice(0, 2).toUpperCase()}
               </p>
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-0.5 flex-wrap">
-              <p className="cn-text-body1 text-[0.92rem] font-semibold">{ota.name}</p>
-              <StatusChip size="sm" tokens={{ color: ACCENT, bg: 'var(--ok-soft)' }} label={ota.segment} className="text-[0.62rem]" />
+            <div className="flex items-center gap-1 flex-wrap">
+              <p className="text-sm font-semibold tracking-tight">{ota.name}</p>
+              <Badge variant="success" className="h-[18px] px-1.5 text-2xs">{ota.segment}</Badge>
             </div>
-            <p className="cn-text-body1 text-[0.74rem] text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {isAirbnb
                 ? 'Connexion OAuth2 native'
                 : isFormConnectable
@@ -217,9 +214,15 @@ export default function OtaInfoDialog({
           </div>
           <div className="shrink-0">
             {isConnected ? (
-              <StatusChip color={ACCENT} label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
+              <Badge variant="success">
+                <CheckCircleIcon size={11} strokeWidth={2} />
+                Connecté
+              </Badge>
             ) : (
-              <StatusChip color={NEUTRAL} label={ota.available ? 'Non connecté' : 'Bientôt'} icon={<ErrorOutline size={11} strokeWidth={2} />} />
+              <Badge variant="secondary">
+                <ErrorOutline size={11} strokeWidth={2} />
+                {ota.available ? 'Non connecté' : 'Bientôt'}
+              </Badge>
             )}
           </div>
         </div>
@@ -228,7 +231,7 @@ export default function OtaInfoDialog({
         <div className="p-3">
           {/* Cas 1 : Coming soon */}
           {!ota.available && (
-            <UiAlert variant="info" className="text-[0.78rem]">
+            <UiAlert variant="info" className="text-xs">
               <Info />
               <AlertDescription>L'intégration {ota.name}est en cours de développement. La page <strong>Channels</strong>permet d'exprimer votre intérêt et de suivre la disponibilité.</AlertDescription>
             </UiAlert>
@@ -237,7 +240,7 @@ export default function OtaInfoDialog({
           {/* Cas 2 : Deja connecte (form OTA ou Airbnb), mode consultation */}
           {ota.available && isConnected && !editingForm && (
             <div>
-              <UiAlert variant="success" className="text-[0.78rem] mb-2">
+              <UiAlert variant="success" className="text-xs mb-2">
                 <CheckCircleIcon size={16} strokeWidth={2} />
                 <AlertDescription>
                   Cette intégration est <strong>active</strong>. Vous pouvez gérer la connexion ici ou depuis l'onglet Channels.
@@ -249,22 +252,22 @@ export default function OtaInfoDialog({
                   <>
                     {channelStatus.externalPropertyId && (
                       <div>
-                        <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Property ID</p>
-                        <p className="cn-text-body1 text-[0.82rem] font-medium">{channelStatus.externalPropertyId}</p>
+                        <p className="text-xs text-muted-foreground">Property ID</p>
+                        <p className="text-sm font-medium tabular-nums">{channelStatus.externalPropertyId}</p>
                       </div>
                     )}
                     {channelStatus.connectedAt && (
                       <div>
-                        <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Connecté depuis</p>
-                        <p className="cn-text-body1 text-[0.82rem] font-medium">
+                        <p className="text-xs text-muted-foreground">Connecté depuis</p>
+                        <p className="text-sm font-medium tabular-nums">
                           {new Date(channelStatus.connectedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </p>
                       </div>
                     )}
                     {channelStatus.lastSyncAt && (
                       <div>
-                        <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Dernière sync</p>
-                        <p className="cn-text-body1 text-[0.82rem] font-medium">
+                        <p className="text-xs text-muted-foreground">Dernière sync</p>
+                        <p className="text-sm font-medium tabular-nums">
                           {new Date(channelStatus.lastSyncAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </p>
                       </div>
@@ -273,8 +276,8 @@ export default function OtaInfoDialog({
                 )}
                 {isAirbnbConnected && airbnbStatus?.connectedAt && (
                   <div>
-                    <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Connecté depuis</p>
-                    <p className="cn-text-body1 text-[0.82rem] font-medium">
+                    <p className="text-xs text-muted-foreground">Connecté depuis</p>
+                    <p className="text-sm font-medium tabular-nums">
                       {new Date(airbnbStatus.connectedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </p>
                   </div>
@@ -320,7 +323,7 @@ export default function OtaInfoDialog({
           {/* Cas 3 : Airbnb non connecte (OAuth) */}
           {ota.available && isAirbnb && !isConnected && (
             <div>
-              <p className="cn-text-body1 text-[0.82rem] text-muted-foreground mb-2">
+              <p className="text-sm text-muted-foreground mb-2">
                 Airbnb utilise un flow OAuth2 natif. Vous serez redirigé vers Airbnb pour autoriser l'accès à votre compte.
               </p>
               <div className="flex gap-1.5 flex-wrap">
@@ -347,7 +350,7 @@ export default function OtaInfoDialog({
           {/* Cas 4 : Form OTA — non connecte OU mode "modifier" */}
           {showForm && (
             <form className="flex flex-col gap-2" onSubmit={(e) => { e.preventDefault(); handleConnect(); }}>
-              <p className="cn-text-body1 text-[0.78rem] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {editingForm
                   ? `Modifier les credentials ${ota.name}. Les anciennes valeurs seront ecrasees apres connexion.`
                   : `Renseignez vos credentials ${ota.name}. Ils sont chiffrés (AES-256) avant stockage.`}
@@ -375,7 +378,7 @@ export default function OtaInfoDialog({
 
               {/* Resultat test */}
               {testResult && (
-                <UiAlert variant={testResult.success ? 'success' : 'destructive'} className="text-[0.76rem]">
+                <UiAlert variant={testResult.success ? 'success' : 'destructive'} className="text-xs">
                   {testResult.success ? <CheckCircleIcon size={14} strokeWidth={2} /> : <TriangleAlert />}
                   <AlertDescription>
                     {testResult.success
@@ -419,7 +422,7 @@ export default function OtaInfoDialog({
           )}
 
           {actionError && (
-            <UiAlert variant="destructive" className="mt-2 text-[0.78rem]">
+            <UiAlert variant="destructive" className="mt-2 text-xs">
               <TriangleAlert />
               <AlertDescription>{actionError}</AlertDescription>
             </UiAlert>

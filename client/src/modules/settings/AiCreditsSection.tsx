@@ -18,6 +18,24 @@ import {
 import AgentRunReplayDialog from './AgentRunReplayDialog';
 
 /**
+ * Tons de la jauge de solde. Classes ecrites en clair : Tailwind emet ses
+ * utilities a la compilation, une classe construite a l'execution n'existerait
+ * pas. Le chiffre est du TEXTE (jeton `-ink`, contraste AA) ; l'icone est
+ * decorative (teinte vive).
+ */
+const GAUGE_TEXT_CLASS = {
+  empty: 'text-destructive-ink',
+  low: 'text-warning-ink',
+  ok: 'text-success-ink',
+} as const;
+
+const GAUGE_ICON_CLASS = {
+  empty: 'text-destructive',
+  low: 'text-warning',
+  ok: 'text-success',
+} as const;
+
+/**
  * Crédits IA (campagne T-08) : solde par poches, packs de recharge Stripe et
  * historique du ledger. Rendu dans Paramètres > IA > Consommation, au-dessus de
  * la vue tokens. Les seuils 80/95/100 % ne sont pas calculables sans dotation
@@ -71,17 +89,17 @@ export default function AiCreditsSection() {
   );
 
   const totalCredits = balance ? balance.totalMillicredits / 1000 : 0;
-  const gaugeColor = useMemo(() => {
-    if (totalCredits <= 0) return 'var(--err)';
-    if (totalCredits < 50) return '#D4A574';
-    return '#4A9B8E';
+  const gaugeTone = useMemo<keyof typeof GAUGE_TEXT_CLASS>(() => {
+    if (totalCredits <= 0) return 'empty';
+    if (totalCredits < 50) return 'low';
+    return 'ok';
   }, [totalCredits]);
 
   if (loading) {
     return (
       <div className="flex flex-col gap-2 mb-3">
-        <Skeleton className="h-24 rounded-[11px]" />
-        <Skeleton className="h-[72px] rounded-[11px]" />
+        <Skeleton className="h-24 rounded-xl" />
+        <Skeleton className="h-[72px] rounded-xl" />
       </div>
     );
   }
@@ -109,16 +127,15 @@ export default function AiCreditsSection() {
       <Card className="gap-0 py-0 p-2.5">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
-            {/* `var(--err)` remplace le hex fige du theme MUI : lucide le porte
-                par currentColor plutot qu'en attribut de presentation. */}
-            <span className="inline-flex" style={{ color: gaugeColor }}>
+            {/* Icone decorative : teinte vive, portee par `currentColor`. */}
+            <span className={cn('inline-flex', GAUGE_ICON_CLASS[gaugeTone])}>
               <Coins size={20} aria-hidden />
             </span>
             <div>
-              <p className="cn-text-body2 text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {t('aiCredits.balanceTitle', 'Crédits IA disponibles')}
               </p>
-              <h5 className="cn-text-h5 tabular-nums font-semibold leading-[1.2]" style={{ color: gaugeColor }}>
+              <h5 className={cn('text-sm font-semibold tracking-tight tabular-nums leading-[1.2]', GAUGE_TEXT_CLASS[gaugeTone])}>
                 {balance ? toCredits(balance.totalMillicredits) : '0'}
               </h5>
             </div>
@@ -131,7 +148,7 @@ export default function AiCreditsSection() {
                   + new Date(pocket.expiresAt).toLocaleDateString()}</Badge>
             ))}
             {(balance?.pockets ?? []).length === 0 && (
-              <span className="cn-text-caption text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {t('aiCredits.noPockets', 'Aucune poche active — rechargez ou attendez votre prochaine dotation mensuelle.')}
               </span>
             )}
@@ -141,7 +158,7 @@ export default function AiCreditsSection() {
 
       {/* Packs de recharge */}
       <Card className="gap-0 py-0 p-2.5">
-        <h6 className="cn-text-subtitle2 mb-1.5">
+        <h6 className="text-xs font-medium mb-1.5">
           {t('aiCredits.topupTitle', 'Recharger (crédits valables 12 mois)')}
         </h6>
         <div className="flex gap-1.5 flex-wrap">
@@ -165,7 +182,7 @@ export default function AiCreditsSection() {
       {/* Historique ledger */}
       {ledger.length > 0 && (
         <Card className="gap-0 py-0 p-2.5">
-          <h6 className="cn-text-subtitle2 mb-1.5">
+          <h6 className="text-xs font-medium mb-1.5">
             {t('aiCredits.ledgerTitle', 'Derniers mouvements')}
           </h6>
           <Table>
@@ -194,15 +211,14 @@ export default function AiCreditsSection() {
                     <TableCell>
                       {line.agent}{line.model ? ` · ${line.model}` : ''}
                       {replayable && (
-                        <History size={13} style={{ marginLeft: 6, verticalAlign: 'middle', opacity: 0.6 }} aria-hidden />
+                        <History size={13} className="ms-1.5 inline-block align-middle text-muted-foreground" aria-hidden />
                       )}
                     </TableCell>
                     <TableCell
-                      className={
-                        line.millicredits >= 0
-                          ? 'text-end tabular-nums text-[#4A9B8E]'
-                          : 'text-end tabular-nums text-[var(--ink)]'
-                      }
+                      className={cn(
+                        'text-end tabular-nums',
+                        line.millicredits >= 0 ? 'text-success-ink' : 'text-foreground',
+                      )}
                     >
                       {line.millicredits >= 0 ? '+' : ''}{toCredits(line.millicredits)}
                     </TableCell>

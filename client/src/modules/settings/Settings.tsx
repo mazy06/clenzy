@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Alert as BuiAlert, AlertDescription } from '../../components/ui';
+import { Alert as BuiAlert, AlertDescription, AlertTitle } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import {
@@ -430,13 +430,12 @@ export default function Settings() {
       <div className="p-4">
         <BuiAlert variant="info">
           <Info />
-          <AlertDescription><h6 className="cn-text-h6 mb-[0.35em]">
-            Accès non autorisé
-          </h6><p className="cn-text-body1">
+          <AlertTitle>Accès non autorisé</AlertTitle>
+          <AlertDescription>
             Vous n'avez pas les permissions nécessaires pour accéder aux paramètres.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
-          </p></AlertDescription>
+          </AlertDescription>
         </BuiAlert>
       </div>
     );
@@ -847,7 +846,7 @@ export default function Settings() {
                       aria-label="Délai d'annulation en heures"
                       className="w-[72px] text-center font-semibold tabular-nums"
                     />
-                    <p className="cn-text-body1 text-[0.72rem] text-muted-foreground font-semibold tracking-[0.02em]">
+                    <p className="text-[0.72rem] font-semibold tracking-[0.02em] text-muted-foreground">
                       h
                     </p>
                   </div>
@@ -855,7 +854,7 @@ export default function Settings() {
               />
               <SettingsToggleRow
                 icon={Person}
-                iconColor="var(--accent)"
+                iconColor="var(--bui-primary)"
                 title="Attribution automatique"
                 description="Attribuer automatiquement les interventions"
                 checked={workflowSettings.autoAssignInterventions}
@@ -863,7 +862,7 @@ export default function Settings() {
               />
               <SettingsToggleRow
                 icon={Security}
-                iconColor="var(--info)"
+                iconColor="var(--bui-info)"
                 title="Approbation requise"
                 description="Demander approbation pour les modifications"
                 checked={workflowSettings.requireApprovalForChanges}
@@ -871,7 +870,7 @@ export default function Settings() {
               />
               <SettingsToggleRow
                 icon={TrendingUp}
-                iconColor="var(--ok)"
+                iconColor="var(--bui-success)"
                 title="Push automatique des prix"
                 description="Pousser automatiquement les prix vers Airbnb (toutes les heures)"
                 checked={autoPushPricingEnabled}
@@ -889,11 +888,11 @@ export default function Settings() {
               accent="warm"
               description="Apparence, densité et préférences visuelles"
             >
-              <div className="pb-2 border-b border-[var(--line)]">
-                <p className="cn-text-body1 text-[0.8125rem] font-semibold text-foreground mb-0">
+              <div className="pb-2 border-b border-border">
+                <p className="mb-0 text-[0.8125rem] font-semibold text-foreground">
                   Apparence
                 </p>
-                <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-1.5">
+                <p className="mb-1.5 text-[0.72rem] text-muted-foreground">
                   {themeMode === 'auto'
                     ? `Système (${isDark ? 'sombre' : 'clair'} détecté)`
                     : themeMode === 'dark'
@@ -932,7 +931,7 @@ export default function Settings() {
               </div>
               <SettingsToggleRow
                 icon={Storage}
-                iconColor="var(--muted)"
+                iconColor="var(--bui-muted-foreground)"
                 title="Mode compact"
                 description="Réduire l'espacement des éléments"
                 checked={settings.display.compactMode}
@@ -940,7 +939,7 @@ export default function Settings() {
               />
               <SettingsToggleRow
                 icon={Person}
-                iconColor="var(--accent)"
+                iconColor="var(--bui-primary)"
                 title="Afficher les avatars"
                 description="Montrer les photos de profil des utilisateurs"
                 checked={settings.display.showAvatars}
@@ -1017,7 +1016,7 @@ export default function Settings() {
                   aria-label={t('messaging.quietHours.start', 'Début des heures calmes')}
                   className="w-[100px] tabular-nums"
                 />
-                <span className="text-[12px] text-[var(--muted)]">→</span>
+                <span className="text-xs text-muted-foreground" aria-hidden>→</span>
                 <Input
                   type="time"
                   value={quietHours.end}

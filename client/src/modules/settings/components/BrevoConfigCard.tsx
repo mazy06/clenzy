@@ -16,22 +16,11 @@ import {
 } from '../../../hooks/useMarketingIntegration';
 import type { MarketingTogglesPayload } from '../../../services/api/marketingIntegrationApi';
 
+/** Vert de marque Brevo : identite du service, pas un jeton du theme Baitly. */
 const BREVO_GREEN = '#0B996E';
-const ACCENT = 'var(--ok)';
-const DANGER = 'var(--err)';
-const WARM = 'var(--warn)';
-const NEUTRAL = 'var(--muted)';
 
-const labelSx = {
-  fontSize: '0.72rem',
-  fontWeight: 600,
-  color: 'text.secondary',
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.04em',
-};
-
-/** Report en classes de `labelSx`. */
-const labelClass = 'cn-text-body1 text-[0.72rem] font-semibold text-[var(--muted)] uppercase tracking-[0.04em]';
+/** Libelle de section — recette « overline » Baitly UI. */
+const labelClass = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground';
 
 
 interface BrevoConfigCardProps {
@@ -63,13 +52,13 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
 
   const statusChip =
     data.configured && data.status === 'ACTIVE' ? (
-      <StatusChip color={ACCENT} label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
+      <StatusChip tone="ok" label="Connecté" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
     ) : data.status === 'ERROR' ? (
-      <StatusChip color={DANGER} label="Erreur" icon={<ErrorOutline size={11} strokeWidth={2} />} />
+      <StatusChip tone="err" label="Erreur" icon={<ErrorOutline size={11} strokeWidth={2} />} />
     ) : data.configured ? (
-      <StatusChip color={WARM} label="À tester" />
+      <StatusChip tone="warn" label="À tester" />
     ) : (
-      <StatusChip color={NEUTRAL} label="Non configuré" />
+      <StatusChip tone="neutral" label="Non configuré" />
     );
 
   const saveKey = () => {
@@ -123,8 +112,8 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
       />
       <FieldLabel htmlFor={`brevo-toggle-${key}`} className="flex-none font-normal mt-0.5">
         <span className="block">
-          <span className="block cn-text-body1 text-[0.8rem] font-semibold leading-[1.2]">{label}</span>
-          <span className="block cn-text-body1 text-[0.7rem] text-muted-foreground">{desc}</span>
+          <span className="block text-sm font-semibold leading-snug">{label}</span>
+          <span className="block text-xs text-muted-foreground">{desc}</span>
         </span>
       </FieldLabel>
     </div>
@@ -133,15 +122,17 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
   return (
     <Card className="gap-0 py-0 border-border overflow-hidden">
       {/* Header */}
-      <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[var(--line)]">
-        <div className="w-[40px] h-[40px] rounded-[10px] inline-flex items-center justify-center text-[#fff] font-bold text-[1rem] shrink-0" style={{ backgroundColor: BREVO_GREEN }} aria-hidden="true">
+      <div className="px-3 py-2.5 flex items-start gap-2 border-b border-border">
+        {/* Pastille de marque Brevo : l'encre blanche est imposee par le vert du
+            logo, pas par le theme — d'ou le jeton `text-white` du kit. */}
+        <div className="size-10 rounded-lg inline-flex items-center justify-center text-white font-bold text-base shrink-0" style={{ backgroundColor: BREVO_GREEN }} aria-hidden="true">
           B
         </div>
         <div className="flex-1 min-w-0">
-          <p className="cn-text-body1 font-semibold text-[0.95rem] leading-[1.25]">
+          <p className="text-sm font-semibold tracking-tight">
             Brevo
           </p>
-          <p className="cn-text-body1 text-[0.78rem] text-muted-foreground mt-0.5 leading-[1.4]">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Emailing &amp; newsletter · synchro des contacts (waitlist, newsletter, prospects)
           </p>
         </div>
@@ -172,7 +163,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
               {setApiKey.isPending ? <Spinner className="size-4" /> : 'Enregistrer'}
             </Button>
           </div>
-          <p className="cn-text-body1 text-[0.68rem] text-muted-foreground mt-0.5">
+          <p className="text-2xs text-muted-foreground mt-0.5">
             Stockée chiffrée (AES-256), jamais affichée en clair. Brevo → SMTP &amp; API → Clés API.
           </p>
         </div>
@@ -189,13 +180,13 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
             Tester la connexion
           </Button>
           {data.lastTestedAt && (
-            <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">
+            <p className="text-xs text-muted-foreground tabular-nums">
               Dernier test : {new Date(data.lastTestedAt).toLocaleString('fr-FR')}
             </p>
           )}
         </div>
         {test.data ? (
-          <UiAlert variant={test.data.success ? 'success' : 'destructive'} className="text-[0.78rem] py-0.5">
+          <UiAlert variant={test.data.success ? 'success' : 'destructive'} className="text-xs py-0.5">
             {test.data.success ? <CheckCircleIcon /> : <TriangleAlert />}
             <AlertDescription>
               {test.data.message}
@@ -203,7 +194,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
             </AlertDescription>
           </UiAlert>
         ) : data.status === 'ERROR' && data.errorMessage ? (
-          <UiAlert variant="destructive" className="text-[0.78rem] py-0.5">
+          <UiAlert variant="destructive" className="text-xs py-0.5">
             <TriangleAlert />
             <AlertDescription>{data.errorMessage}</AlertDescription>
           </UiAlert>
@@ -215,7 +206,7 @@ export default function BrevoConfigCard({ onStatusChange }: BrevoConfigCardProps
         <div>
           <p className={labelClass}>Listes Brevo</p>
           {!data.configured ? (
-            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Enregistre une clé API valide pour charger tes listes Brevo.
             </p>
           ) : (

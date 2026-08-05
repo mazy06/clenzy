@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { cn } from '../../utils/cn';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, Button, Skeleton } from '../../components/ui';
+import { Badge, Card, Button, Skeleton } from '../../components/ui';
 import {
   Field,
   FieldLabel,
@@ -12,7 +11,8 @@ import {
   InputGroupInput,
   InputGroupText,
 } from '../../components/ui';
-import { Euro, Save, CheckCircle } from '../../icons';
+import StatTile from '../../components/baitly/StatTile';
+import { Save, CheckCircle } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -26,17 +26,8 @@ import type { HousekeeperRates, HousekeeperPropertyRate } from '../../services/a
 
 const ratesKeys = { my: ['housekeeper-rates', 'me'] as const };
 
-const SECTION_TITLE_SX = {
-  fontSize: '10.5px',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '.06em',
-  color: 'var(--faint)',
-  mb: 1.5,
-} as const;
-
-/** Report en classes de `SECTION_TITLE_SX`. */
-const SECTION_TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-[9px]';
+/** Surtitre de section (registre « overline » du contrat Baitly UI §3). */
+const SECTION_TITLE_CLASS = 'text-2xs font-semibold uppercase tracking-[0.06em] text-faint mb-[9px]';
 
 /** Chip d'état du nudge — vert doux si dans la fourchette, neutre sinon. */
 function NudgeBadge({ amount, rate }: { amount: number | null; rate: HousekeeperPropertyRate }) {
@@ -46,18 +37,18 @@ function NudgeBadge({ amount, rate }: { amount: number | null; rate: Housekeeper
   const inMarket = amount >= rate.advisoryMin && amount <= rate.advisoryMax;
   if (inMarket) {
     return (
-      <span className="inline-flex items-center gap-[4px] text-[10.5px] font-bold whitespace-nowrap rounded-[7px] px-[7px] py-[2px] text-[var(--ok,#4A9B8E)] bg-[color-mix(in_srgb,var(--ok,#4A9B8E)_12%,transparent)]">
+      <Badge variant="success" className="font-semibold">
         <CheckCircle size={11} strokeWidth={2} />
         {t('settings.myRates.inMarket')}
-      </span>
+      </Badge>
     );
   }
 
   const deltaPct = Math.round(((amount - rate.advisoryRecommended) / rate.advisoryRecommended) * 100);
   return (
-    <span className="text-[10.5px] font-bold whitespace-nowrap tabular-nums rounded-[7px] px-[7px] py-[2px] text-[var(--muted)] bg-[var(--field)] border border-solid border-[var(--field-line)]">
+    <Badge variant="outline" className="border-field-line bg-field font-semibold tabular-nums text-muted-foreground">
       {deltaPct > 0 ? '+' : ''}{deltaPct} % {t('settings.myRates.vsAdvisory')}
-    </span>
+    </Badge>
   );
 }
 
@@ -134,29 +125,33 @@ export default function MyRatesSettings() {
   return (
     <div className="flex flex-col gap-3">
       {/* ── Score qualité 30 jours (MM-3D) ───────────────────────────────── */}
+      {/* Le bloc « libellé + grosse valeur » ecrit a la main est desormais le
+          primitive StatTile : meme information, sans la hero-metric maison. */}
       {score != null && (
-        <Card className="gap-0 py-0 p-3.5">
-          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('settings.myRates.scoreSection')}</p>
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[26px] font-semibold text-[var(--accent)] tabular-nums">
-              {score.score}<span className="text-[14px] text-[var(--muted)] font-medium">/100</span>
-            </p>
-            <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
-              {t('settings.myRates.scoreDetail', {
-                count: score.completedCount,
-                proof: Math.round(score.proofRate * 100),
-              })}
-            </p>
-          </div>
-          <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mt-1.5">
-            {t('settings.myRates.scoreHint')}
-          </p>
-        </Card>
+        <StatTile
+          icon={<CheckCircle strokeWidth={1.75} />}
+          label={t('settings.myRates.scoreSection')}
+          value={score.score}
+          unit="/100"
+          iconClassName="text-success"
+          hint={
+            <>
+              <span className="tabular-nums">
+                {t('settings.myRates.scoreDetail', {
+                  count: score.completedCount,
+                  proof: Math.round(score.proofRate * 100),
+                })}
+              </span>
+              {' · '}
+              {t('settings.myRates.scoreHint')}
+            </>
+          }
+        />
       )}
 
       {/* ── Taux horaire général ─────────────────────────────────────────── */}
       <Card className="gap-0 py-0 p-3.5">
-        <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('settings.myRates.hourlySection')}</p>
+        <p className={SECTION_TITLE_CLASS}>{t('settings.myRates.hourlySection')}</p>
         <div className="flex items-center gap-3 flex-wrap">
           <Field className="w-[220px]">
             <FieldLabel htmlFor="my-rates-hourly">{t('settings.myRates.hourlyRate')}</FieldLabel>
@@ -176,25 +171,25 @@ export default function MyRatesSettings() {
             </InputGroup>
           </Field>
           {referenceRate != null && (
-            <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
+            <p className="text-xs text-muted-foreground tabular-nums">
               {t('settings.myRates.referenceRate')} : {referenceRate} €/h
             </p>
           )}
         </div>
-        <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mt-1.5">
+        <p className="mt-1.5 text-[11.5px] text-muted-foreground">
           {t('settings.myRates.hourlyHint')}
         </p>
       </Card>
 
       {/* ── Forfaits par logement ────────────────────────────────────────── */}
       <Card className="gap-0 py-0 p-3.5">
-        <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('settings.myRates.flatSection')}</p>
-        <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mb-3">
+        <p className={SECTION_TITLE_CLASS}>{t('settings.myRates.flatSection')}</p>
+        <p className="mb-3 text-[11.5px] text-muted-foreground">
           {t('settings.myRates.flatHint')}
         </p>
 
         {properties.length === 0 ? (
-          <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] italic">
+          <p className="text-xs italic text-muted-foreground">
             {t('settings.myRates.noProperties')}
           </p>
         ) : (
@@ -207,9 +202,9 @@ export default function MyRatesSettings() {
                 // filet sur toutes, puis annule sur la premiere.
                 <div
                   key={property.propertyId}
-                  className="flex items-start flex-wrap gap-3 py-[7.5px] border-t border-solid border-t-[var(--line)] first:border-t-0"
+                  className="flex items-start flex-wrap gap-3 py-[7.5px] border-t border-solid border-t-border first:border-t-0"
                 >
-                  <p className="cn-text-body1 flex-1 min-w-[160px] text-[13px] font-semibold text-[var(--ink)] pt-1.5">
+                  <p className="flex-1 min-w-[160px] pt-1.5 text-[13px] font-semibold text-foreground">
                     {property.propertyName}
                   </p>
                   <div className="flex flex-col gap-0.5">
@@ -235,7 +230,7 @@ export default function MyRatesSettings() {
                       <NudgeBadge amount={amount} rate={property} />
                     </div>
                     {/* Nudge : fourchette conseil, ancre médiane */}
-                    <p className="cn-text-body1 text-[11px] text-[var(--muted)] tabular-nums">
+                    <p className="text-[11px] text-muted-foreground tabular-nums">
                       {t('settings.myRates.advisoryLine', {
                         min: property.advisoryMin,
                         max: property.advisoryMax,
