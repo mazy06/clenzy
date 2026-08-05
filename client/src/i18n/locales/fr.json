@@ -2134,7 +2134,8 @@
       "interventions": "Interventions",
       "maintenance": "Maintenance",
       "cleaning": "Nettoyage",
-      "photos": "Photos"
+      "photos": "Photos",
+      "reviews": "Avis"
     },
     "photos": {
       "title": "Photos de la propriété",
@@ -4692,17 +4693,21 @@
       "subtitle": "Consultez et répondez aux avis de vos voyageurs",
       "avgRating": "Note moyenne",
       "totalReviews": "Total avis",
-      "excellent": "Excellent",
-      "good": "Bien",
-      "average": "Moyen",
-      "poor": "Insuffisant",
       "filterByProperty": "Filtrer par propriété",
-      "noReviews": "Aucun avis pour le moment",
       "yourReply": "Votre réponse",
       "reply": "Répondre",
       "replyPlaceholder": "Écrivez votre réponse...",
       "sendReply": "Envoyer",
-      "errorLoading": "Impossible de charger les avis"
+      "errorLoading": "Impossible de charger les avis",
+      "pending": "Sans réponse",
+      "awaitingReply": "Sans réponse",
+      "anonymous": "Voyageur",
+      "emptyTitle": "Aucun avis",
+      "emptyHint": "Les avis remontent automatiquement depuis les canaux connectés.",
+      "draft": "Proposer une réponse",
+      "useDraft": "Reprendre le brouillon",
+      "draftError": "Impossible de générer un brouillon.",
+      "respondError": "Impossible de publier la réponse."
     },
     "guest": {
       "title": "Profil voyageur",

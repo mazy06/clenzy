@@ -47,23 +47,6 @@ export interface AirbnbMessage {
   read: boolean;
 }
 
-export interface AirbnbReview {
-  id: number;
-  propertyId: number;
-  propertyName: string;
-  reservationId: number | null;
-  guestName: string;
-  rating: number;
-  comment: string;
-  hostReply: string | null;
-  source: string;
-  createdAt: string;
-}
-
-export interface CreateReviewReply {
-  reply: string;
-}
-
 export interface GuestProfile {
   id: number;
   name: string;
@@ -162,11 +145,10 @@ export const airbnbApi = {
     }),
 
   // ── Reviews ──
-  getReviews: (params?: { propertyId?: number; page?: number; size?: number }): Promise<AirbnbReview[]> =>
-    apiClient.get(`${AIRBNB_BASE}/reviews`, { params }),
-
-  replyToReview: (reviewId: number, data: CreateReviewReply): Promise<AirbnbReview> =>
-    apiClient.post(`${AIRBNB_BASE}/reviews/${reviewId}/reply`, data),
+  // Retirés : `getReviews` / `replyToReview` appelaient `/api/airbnb/reviews`,
+  // que le serveur n'expose pas (AirbnbOAuthController ne publie que
+  // connect/callback/disconnect/status). Les avis passent par `reviewsApi`
+  // (/api/reviews), le stock multi-canal.
 
   // ── Guest Profiles ──
   getGuestProfile: (guestId: number): Promise<GuestProfile> =>

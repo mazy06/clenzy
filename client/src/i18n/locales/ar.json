@@ -2123,7 +2123,8 @@
       "overview": "نظرة عامة",
       "interventions": "التدخلات",
       "maintenance": "الصيانة",
-      "cleaning": "التنظيف"
+      "cleaning": "التنظيف",
+      "reviews": "التقييمات"
     },
     "noInterventions": "لا توجد تدخلات مجدولة لهذا العقار.",
     "statusAndMaintenance": "الحالة والصيانة",
@@ -4673,17 +4674,21 @@
       "subtitle": "اطلع على تقييمات المسافرين وأجب عليها",
       "avgRating": "متوسط التقييم",
       "totalReviews": "إجمالي التقييمات",
-      "excellent": "ممتاز",
-      "good": "جيد",
-      "average": "متوسط",
-      "poor": "ضعيف",
       "filterByProperty": "تصفية حسب العقار",
-      "noReviews": "لا توجد تقييمات حاليًا",
       "yourReply": "ردك",
       "reply": "الرد",
       "replyPlaceholder": "اكتب ردك...",
       "sendReply": "إرسال",
-      "errorLoading": "تعذر تحميل التقييمات"
+      "errorLoading": "تعذر تحميل التقييمات",
+      "pending": "بدون رد",
+      "awaitingReply": "بدون رد",
+      "anonymous": "نزيل",
+      "emptyTitle": "لا توجد تقييمات",
+      "emptyHint": "تصل التقييمات تلقائيًا من القنوات المتصلة.",
+      "draft": "اقتراح رد",
+      "useDraft": "استخدام المسودة",
+      "draftError": "تعذّر إنشاء مسودة.",
+      "respondError": "تعذّر نشر الرد."
     },
     "guest": {
       "title": "ملف المسافر",

@@ -2114,7 +2114,8 @@
       "interventions": "Interventions",
       "maintenance": "Maintenance",
       "cleaning": "Cleaning",
-      "photos": "Photos"
+      "photos": "Photos",
+      "reviews": "Reviews"
     },
     "photos": {
       "title": "Property photos",
@@ -4597,17 +4598,21 @@
       "subtitle": "View and reply to your guest reviews",
       "avgRating": "Average rating",
       "totalReviews": "Total reviews",
-      "excellent": "Excellent",
-      "good": "Good",
-      "average": "Average",
-      "poor": "Poor",
       "filterByProperty": "Filter by property",
-      "noReviews": "No reviews yet",
       "yourReply": "Your reply",
       "reply": "Reply",
       "replyPlaceholder": "Write your reply...",
       "sendReply": "Send",
-      "errorLoading": "Unable to load reviews"
+      "errorLoading": "Unable to load reviews",
+      "pending": "Awaiting reply",
+      "awaitingReply": "No reply",
+      "anonymous": "Guest",
+      "emptyTitle": "No reviews",
+      "emptyHint": "Reviews are imported automatically from connected channels.",
+      "draft": "Suggest a reply",
+      "useDraft": "Use the draft",
+      "draftError": "Could not generate a draft.",
+      "respondError": "Could not publish the reply."
     },
     "guest": {
       "title": "Guest profile",
