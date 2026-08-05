@@ -43,6 +43,13 @@ export interface ScreenSearchSnapshot {
   id: string;
   value: string;
   placeholder?: string;
+  /**
+   * L'écran attend une SOUMISSION et pas seulement un filtre à la frappe
+   * (ex. Planning avec la constellation ouverte : la saisie part vers les
+   * agents). Le centre de commande a besoin de le savoir pour proposer
+   * « demander » plutôt que « filtrer ».
+   */
+  canSubmit: boolean;
 }
 
 interface ScreenChromeValue {
@@ -50,8 +57,13 @@ interface ScreenChromeValue {
   search: ScreenSearchSnapshot | null;
   /** Répercute la saisie du header vers l'écran branché. */
   setSearchValue: (value: string) => void;
-  /** Entrée dans le champ du header → `onSubmit` de l'écran branché (s'il en a un). */
-  submitSearch: () => void;
+  /**
+   * Entrée dans le champ du header → `onSubmit` de l'écran branché (s'il en a
+   * un). `value` permet de soumettre une valeur qui vient d'être posée : le
+   * `setSearchValue` correspondant n'est visible dans l'enregistrement qu'au
+   * rendu suivant de l'écran, on soumettrait donc l'ancienne.
+   */
+  submitSearch: (value?: string) => void;
   mountSearch: (id: string, registration: SearchRegistration) => void;
   unmountSearch: (id: string) => void;
   /**
@@ -102,7 +114,12 @@ export function ScreenChromeProvider({ children }: { children: React.ReactNode }
     const id = searchOrderRef.current[searchOrderRef.current.length - 1];
     const registration = id ? searchesRef.current.get(id) : undefined;
     const next: ScreenSearchSnapshot | null = registration
-      ? { id, value: registration.value, placeholder: registration.placeholder }
+      ? {
+          id,
+          value: registration.value,
+          placeholder: registration.placeholder,
+          canSubmit: Boolean(registration.onSubmit),
+        }
       : null;
     setSearch((prev) => {
       if (prev === next) return prev;
@@ -111,7 +128,8 @@ export function ScreenChromeProvider({ children }: { children: React.ReactNode }
         next &&
         prev.id === next.id &&
         prev.value === next.value &&
-        prev.placeholder === next.placeholder
+        prev.placeholder === next.placeholder &&
+        prev.canSubmit === next.canSubmit
       ) {
         return prev;
       }
@@ -143,10 +161,10 @@ export function ScreenChromeProvider({ children }: { children: React.ReactNode }
     registration?.onChange(value);
   }, []);
 
-  const submitSearch = useCallback(() => {
+  const submitSearch = useCallback((value?: string) => {
     const id = searchOrderRef.current[searchOrderRef.current.length - 1];
     const registration = id ? searchesRef.current.get(id) : undefined;
-    registration?.onSubmit?.(registration.value);
+    registration?.onSubmit?.(value ?? registration.value);
   }, []);
 
   // Fil d'Ariane interne. Les effets des composants ENFANTS s'exécutent avant

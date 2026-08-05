@@ -1,12 +1,5 @@
-import React, { useRef, useState } from 'react';
 import { SearchIcon, XIcon } from 'lucide-react';
-import {
-  Button,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from './ui';
+import { Button } from './ui';
 import { useTranslation } from '../hooks/useTranslation';
 import { useScreenChrome } from './ScreenChrome';
 import { useCommandCenter } from './command-center';
@@ -14,81 +7,84 @@ import { openShortcutLabel } from './command-center/shortcuts';
 import { cn } from '../utils/cn';
 
 /**
- * Champ de recherche UNIQUE de l'application (Baitly UI).
+ * Point d'entrée UNIQUE de la recherche — rendu en permanence dans le
+ * `PageHeader`.
  *
- * Rendu en permanence dans le `PageHeader`, il a deux modes — mais UN SEUL
- * gabarit : même largeur, même bordure, même pastille ⌘K à droite. Un écran ne
- * doit pas se distinguer d'un autre par la forme de sa barre de recherche ;
- * c'est le CONTENU qui s'adapte, pas la coquille.
+ * <p>Ce n'est pas un champ mais un DÉCLENCHEUR, et c'est le même partout : un
+ * clic (ou ⌘K) ouvre le centre de commande, avec sa liste défilante, ses
+ * groupes et sa navigation clavier. Un écran ne doit pas se distinguer d'un
+ * autre par ce qui se passe quand on clique sur sa loupe.</p>
  *
- *   - **filtre d'écran** — un écran s'est branché via `useScreenSearch` : on
- *     tape directement dedans pour filtrer ses données, en un geste. Le
- *     placeholder vient de l'écran (« Rechercher un logement… »), la pastille
- *     ⌘K rappelle que la palette reste ouvrable depuis le champ ;
- *   - **centre de commande** — aucun écran branché : le champ devient le
- *     déclencheur de la palette, qui sait aller à un écran, créer, changer
- *     l'affichage, ouvrir un outil.
+ * <p>Ce qui s'adapte, c'est ce qu'il ANNONCE :</p>
+ * <ul>
+ *   <li>écran sans filtre → « Rechercher ou commander » ;</li>
+ *   <li>écran qui filtre ses données, filtre inactif → le libellé de l'écran
+ *       (« Rechercher un logement… ») ;</li>
+ *   <li>filtre actif → la valeur en cours, avec une croix pour l'annuler sans
+ *       passer par la palette.</li>
+ * </ul>
  *
- * Sous 768 px, les deux modes se replient en loupe : la barre de titre n'a plus
- * la place d'un champ.
+ * <p>La saisie, elle, vit dans la palette : c'est là que la liste défile et que
+ * les résultats se montrent. Deux endroits où taper, c'était deux moteurs à
+ * comprendre.</p>
  */
 
 /**
  * Exception locale au kit, assumee : les champs portent normalement la hairline
  * `--bui-input`, plus marquee que le `--bui-border` des boutons, pour signaler
- * une zone de saisie. Dans la barre de titre, ce champ n'a pour voisins QUE des
- * boutons — la nuance ne distinguait plus rien, elle se lisait comme un defaut
- * d'alignement. Ailleurs dans l'app, les champs gardent leur bordure de champ.
+ * une zone de saisie. Dans la barre de titre, ce declencheur n'a pour voisins
+ * QUE des boutons — la nuance ne distinguait plus rien, elle se lisait comme un
+ * defaut d'alignement.
  */
 const HEADER_FIELD_BORDER = 'border-border';
 
-/** Largeur commune aux deux modes — c'est elle qui fait l'identité visuelle. */
+/** Largeur du déclencheur déployé. */
 const FIELD_WIDTH = 'md:w-56 lg:w-64';
 
-/** Pastille du raccourci, identique dans le champ et dans le déclencheur. */
+/** Pastille du raccourci. */
 const SHORTCUT_BADGE =
   'shrink-0 rounded border border-border px-1 font-sans text-2xs font-medium text-muted-foreground';
 
 export default function GlobalSearchField({ className }: { className?: string }) {
   const { t } = useTranslation();
-  const { search, setSearchValue, submitSearch } = useScreenChrome();
+  const { search, setSearchValue } = useScreenChrome();
   const { openCenter } = useCommandCenter();
 
-  /**
-   * Repli en loupe SOUS 768 px uniquement. Au-dessus, le champ est permanent :
-   * l'emplacement est de toute façon occupé par le déclencheur sur les écrans
-   * sans filtre — le masquer ici ne rendrait aucune place et ferait diverger
-   * l'allure des deux modes.
-   */
-  const [expanded, setExpanded] = useState(false);
-  const fieldWrapRef = useRef<HTMLDivElement | null>(null);
+  const activeFilter = search?.value ?? '';
+  const hasFilter = activeFilter.trim() !== '';
 
-  const shortcut = openShortcutLabel();
+  /** Ce que le déclencheur annonce, selon l'écran et l'état du filtre. */
+  const label = hasFilter
+    ? activeFilter
+    : search?.placeholder ?? t('commandCenter.trigger', 'Rechercher ou commander');
 
-  /** Déplie le champ ET y pose le focus — sinon la loupe demanderait 2 clics. */
-  const expandField = () => {
-    setExpanded(true);
-    requestAnimationFrame(() => fieldWrapRef.current?.querySelector('input')?.focus());
-  };
+  /** Nom accessible : la valeur seule ne dirait pas ce qu'on ouvre. */
+  const ariaLabel = hasFilter
+    ? `${t('commandCenter.trigger', 'Rechercher ou commander')} — ${activeFilter}`
+    : label;
 
-  // ── Mode « centre de commande » ───────────────────────────────────────────
-  // Pas de champ : un déclencheur. La saisie se fait DANS la palette, qui porte
-  // la navigation clavier, les groupes et les raccourcis.
-  if (!search) {
-    const triggerLabel = t('commandCenter.trigger', 'Rechercher ou commander');
-    return (
-      <>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="shrink-0 md:hidden"
-          aria-label={triggerLabel}
-          aria-keyshortcuts="Meta+K Control+K"
-          onClick={() => openCenter()}
-        >
-          <SearchIcon />
-        </Button>
+  // Ouvre la palette pré-remplie du filtre en cours : on affine ce qui est déjà
+  // posé plutôt que de le retaper.
+  const open = () => openCenter(activeFilter);
+
+  return (
+    <>
+      {/* Sous 768 px la barre de titre n'a plus la place d'un libellé : loupe
+          seule, même action. */}
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className={cn('shrink-0 md:hidden', hasFilter && 'border-primary text-primary')}
+        aria-label={ariaLabel}
+        aria-keyshortcuts="Meta+K Control+K"
+        onClick={open}
+      >
+        <SearchIcon />
+      </Button>
+
+      {/* Filtre inactif : un simple bouton, tout l'objet est cliquable. */}
+      {!hasFilter && (
         <Button
           type="button"
           variant="outline"
@@ -100,88 +96,51 @@ export default function GlobalSearchField({ className }: { className?: string })
             'hidden justify-start gap-2 px-2.5 font-normal text-muted-foreground md:flex',
             className,
           )}
+          aria-label={ariaLabel}
           aria-keyshortcuts="Meta+K Control+K"
-          onClick={() => openCenter()}
+          onClick={open}
         >
           <SearchIcon />
-          <span className="truncate">{triggerLabel}</span>
-          <kbd className={cn(SHORTCUT_BADGE, 'ms-auto')}>{shortcut}</kbd>
-        </Button>
-      </>
-    );
-  }
-
-  // ── Mode filtre d'écran ───────────────────────────────────────────────────
-  const value = search.value;
-  const label = search.placeholder ?? t('common.search', 'Rechercher…');
-
-  return (
-    <>
-      {!expanded && (
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          /* Pas de taille forcee : `size="icon"` porte le gabarit du kit (32 px,
-             rayon 10). Un `size-9` maison desalignait ce bouton de ses voisins. */
-          className="shrink-0 md:hidden"
-          aria-label={label}
-          aria-expanded={false}
-          onClick={expandField}
-        >
-          <SearchIcon />
+          <span className="truncate">{label}</span>
+          <kbd className={cn(SHORTCUT_BADGE, 'ms-auto')}>{openShortcutLabel()}</kbd>
         </Button>
       )}
-      <div
-        ref={fieldWrapRef}
-        className={cn('items-center', expanded ? 'flex' : 'hidden md:flex')}
-        onBlur={(event) => {
-          // Repli mobile uniquement, et jamais tant qu'un filtre est actif :
-          // on effacerait de vue un filtre encore en vigueur.
-          if (value === '' && !event.currentTarget.contains(event.relatedTarget as Node)) {
-            setExpanded(false);
-          }
-        }}
-      >
-        <InputGroup className={cn(HEADER_FIELD_BORDER, 'w-44', FIELD_WIDTH, className)}>
-          <InputGroupAddon>
-            <SearchIcon />
-          </InputGroupAddon>
-          <InputGroupInput
-            type="search"
-            value={value}
-            placeholder={label}
-            aria-label={label}
+
+      {/* Filtre actif : DEUX commandes côte à côte — ouvrir la palette, annuler
+          le filtre. Annuler est trop fréquent pour imposer un aller-retour par
+          la palette, et un élément focusable dans un `<button>` est interdit
+          par le HTML : c'est l'enveloppe qui porte la bordure, pas le bouton.
+          Gabarit repris du kit (h-8, rounded-lg, border-border) pour rester
+          aligné sur les boutons voisins de la barre de titre. */}
+      {hasFilter && (
+        <div
+          className={cn(
+            'hidden h-8 items-center gap-2 rounded-lg border border-border bg-background bg-clip-padding ps-2.5 pe-1 md:flex dark:border-input dark:bg-input/30',
+            FIELD_WIDTH,
+            className,
+          )}
+        >
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-start text-sm text-foreground outline-none focus-visible:underline"
+            aria-label={ariaLabel}
             aria-keyshortcuts="Meta+K Control+K"
-            onChange={(event) => setSearchValue(event.target.value)}
-            // Entrée : soumet à l'écran branché s'il porte un onSubmit (ex.
-            // Planning + constellation ouverte → demande aux agents). Sans
-            // onSubmit, ne fait rien — le filtre agit déjà à la frappe.
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') submitSearch();
-            }}
-          />
-          <InputGroupAddon align="inline-end">
-            {value !== '' ? (
-              <InputGroupButton
-                aria-label={t('common.clear', 'Effacer')}
-                size="icon-xs"
-                onClick={() => setSearchValue('')}
-              >
-                <XIcon />
-              </InputGroupButton>
-            ) : (
-              // Décorative : le raccourci est capté globalement (cf.
-              // `useCommandShortcuts`), y compris depuis ce champ. Elle n'est là
-              // que pour donner au filtre la MÊME signature que le déclencheur
-              // des écrans sans filtre.
-              <kbd aria-hidden className={cn(SHORTCUT_BADGE, 'pointer-events-none')}>
-                {shortcut}
-              </kbd>
-            )}
-          </InputGroupAddon>
-        </InputGroup>
-      </div>
+            onClick={open}
+          >
+            <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
+            <span className="truncate">{label}</span>
+          </button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            aria-label={t('common.clear', 'Effacer')}
+            onClick={() => setSearchValue('')}
+          >
+            <XIcon />
+          </Button>
+        </div>
+      )}
     </>
   );
 }

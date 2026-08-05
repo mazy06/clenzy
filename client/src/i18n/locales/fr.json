@@ -891,6 +891,8 @@
     "empty": "Aucune commande ne correspond.",
     "emptyHint": "Essayez un mot du métier : ménage, OTA, facture…",
     "filterScreen": "Filtrer cet écran avec",
+    "askScreen": "Demander",
+    "clearFilter": "Effacer le filtre",
     "more": "et {{count}} de plus — tapez pour chercher",
     "then": "puis",
     "sections": {

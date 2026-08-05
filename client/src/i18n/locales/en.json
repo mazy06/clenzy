@@ -891,6 +891,8 @@
     "empty": "No matching command.",
     "emptyHint": "Try an everyday word: cleaning, OTA, invoice…",
     "filterScreen": "Filter this screen with",
+    "askScreen": "Ask",
+    "clearFilter": "Clear the filter",
     "more": "and {{count}} more — type to search",
     "then": "then",
     "sections": {

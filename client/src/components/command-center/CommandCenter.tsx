@@ -32,7 +32,7 @@ export default function CommandCenter() {
   const { t } = useTranslation();
   const { open, close, query, setQuery, commands, habits, defaultSuggestionIds } =
     useCommandCenter();
-  const { search, setSearchValue } = useScreenChrome();
+  const { search, setSearchValue, submitSearch } = useScreenChrome();
 
   const sectionHeading: Record<CommandSection, string> = {
     screen: t('commandCenter.sections.screen', 'Sur cet écran'),
@@ -55,17 +55,48 @@ export default function CommandCenter() {
   };
 
   /**
-   * Passerelle vers la recherche d'écran : quand un écran sait filtrer ses
-   * données, ce qu'on vient de taper peut lui être remis tel quel. C'est ce qui
-   * évite d'avoir deux endroits où chercher — la palette reste le point
-   * d'entrée, l'écran fait le filtrage.
+   * Passerelle vers la recherche d'écran.
+   *
+   * <p>Le header ne porte plus de champ : quand l'écran courant sait filtrer
+   * ses données, c'est ICI qu'on tape, et cette ligne remet la saisie à
+   * l'écran. Elle est en tête de liste, hors de tout groupe : c'est l'action
+   * attendue quand on ouvre la palette depuis un écran de liste.</p>
+   *
+   * <p>Trois cas : filtrer avec ce qu'on vient de taper, le SOUMETTRE quand
+   * l'écran attend une question (Planning + constellation), ou effacer le
+   * filtre en cours quand on a tout effacé.</p>
    */
-  const handoffToScreen = search && query.trim() !== ''
-    ? () => {
-        close();
-        setSearchValue(query);
-      }
-    : null;
+  const screenRow = (() => {
+    if (!search) return null;
+    const typed = query.trim();
+
+    if (typed !== '') {
+      const label = search.canSubmit
+        ? `${t('commandCenter.askScreen', 'Demander')} « ${typed} »`
+        : `${t('commandCenter.filterScreen', 'Filtrer cet écran avec')} « ${typed} »`;
+      return {
+        label,
+        run: () => {
+          close();
+          setSearchValue(typed);
+          // La valeur est passée explicitement : l'écran ne la connaîtra qu'au
+          // rendu suivant, `submitSearch()` soumettrait l'ancienne.
+          if (search.canSubmit) submitSearch(typed);
+        },
+      };
+    }
+
+    if (search.value !== '') {
+      return {
+        label: `${t('commandCenter.clearFilter', 'Effacer le filtre')} « ${search.value} »`,
+        run: () => {
+          close();
+          setSearchValue('');
+        },
+      };
+    }
+    return null;
+  })();
 
   /**
    * Pastilles de raccourci. Un accord (`G` puis `D`) est rendu en DEUX
@@ -154,15 +185,16 @@ export default function CommandCenter() {
             </div>
           </CommandEmpty>
 
-          {handoffToScreen && (
-            <CommandGroup heading={sectionHeading.screen}>
-              <CommandItem value="__screen-filter" onSelect={handoffToScreen}>
+          {screenRow && (
+            <>
+              {/* Hors groupe et en tête : c'est l'action attendue par défaut
+                  quand on ouvre la palette depuis un écran de liste. */}
+              <CommandItem value="__screen-search" onSelect={screenRow.run}>
                 <Search />
-                <span className="truncate">
-                  {t('commandCenter.filterScreen', 'Filtrer cet écran avec')} « {query.trim()} »
-                </span>
+                <span className="truncate">{screenRow.label}</span>
               </CommandItem>
-            </CommandGroup>
+              <CommandSeparator />
+            </>
           )}
 
           {ranking.suggestions.length > 0 && (
