@@ -68,7 +68,7 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'mo
           // La forme est connue : squelette calqué sur la carte réelle
           // (rang + nom, jauge de score, quatre lignes de métriques).
           Array.from({ length: 3 }).map((_, i) => (
-            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4" key={i}>
+            <div className="col-span-12 @[600px]:col-span-6 @[900px]:col-span-4" key={i}>
               <Card className={CARD_CLASS}>
                 <div className="flex items-center gap-1 mb-1">
                   <Skeleton className="min-w-[22px] h-[22px] rounded-full" />
@@ -92,7 +92,7 @@ const AnalyticsPropertyPerformance: React.FC<Props> = React.memo(({ period = 'mo
           </div>
         ) : (
           items.map((prop, index) => (
-            <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4" key={prop.propertyId}>
+            <div className="col-span-12 @[600px]:col-span-6 @[900px]:col-span-4" key={prop.propertyId}>
               <Card className={CARD_CLASS}>
                 {/* Rank + Name */}
                   <div className="flex items-center gap-1 mb-1">

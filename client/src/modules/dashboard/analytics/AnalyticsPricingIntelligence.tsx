@@ -40,7 +40,7 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
     >
       <div className="grid grid-cols-12 gap-[9px]">
         {/* Avg Price vs RevPAN dual-axis line chart */}
-        <div className="col-span-12 min-[600px]:col-span-6">
+        <div className="col-span-12 @[600px]:col-span-6">
           <Card className={CHART_CARD_CLASS}>
             <CardContent className={CHART_CONTENT_CLASS}>
               <p className={SECTION_LABEL_CLASS}>
@@ -69,7 +69,7 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
         </div>
 
         {/* Price by property type */}
-        <div className="col-span-12 min-[600px]:col-span-6">
+        <div className="col-span-12 @[600px]:col-span-6">
           <Card className={CHART_CARD_CLASS}>
             <CardContent className={CHART_CONTENT_CLASS}>
               <p className={SECTION_LABEL_CLASS}>
@@ -97,7 +97,7 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
         </div>
 
         {/* Optimal price card */}
-        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-3">
+        <div className="col-span-6 @[600px]:col-span-4 @[900px]:col-span-3">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.optimalPrice')}
             value={data ? <Money value={data.optimalPrice} from="EUR" decimals={0} /> : '-'}
@@ -110,7 +110,7 @@ const AnalyticsPricingIntelligence: React.FC<Props> = React.memo(({ data, loadin
         </div>
 
         {/* Elasticity card */}
-        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-3">
+        <div className="col-span-6 @[600px]:col-span-4 @[900px]:col-span-3">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.elasticity')}
             value={data ? `${data.elasticity.toFixed(2)}` : '-'}

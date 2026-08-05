@@ -54,7 +54,7 @@ const AnalyticsForecasts: React.FC<Props> = React.memo(({ data, loading }) => {
     >
       <div className="grid grid-cols-12 gap-[9px]">
         {/* Forecast chart with confidence zone — left column */}
-        <div className="col-span-12 min-[900px]:col-span-8">
+        <div className="col-span-12 @[900px]:col-span-8">
           <Card className={CHART_CARD_CLASS}>
             <CardContent className={CHART_CONTENT_CLASS}>
               <p className={SECTION_LABEL_CLASS}>
@@ -90,7 +90,7 @@ const AnalyticsForecasts: React.FC<Props> = React.memo(({ data, loading }) => {
         </div>
 
         {/* Right column — KPI cards + Scenarios */}
-        <div className="col-span-12 min-[900px]:col-span-4">
+        <div className="col-span-12 @[900px]:col-span-4">
           <div className="flex flex-col gap-2 h-full">
             {/* Forecast KPI cards stacked */}
             <AnalyticsWidgetCard

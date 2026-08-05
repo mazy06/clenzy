@@ -26,7 +26,15 @@ const GridSection: React.FC<GridSectionProps> = React.memo(({
   badge,
   children,
 }) => (
-  <div className="mb-3">
+  // `@container` : declare ICI, une seule fois, pour toutes les sections
+  // analytiques. Leurs grilles internes decident de leur nombre de colonnes a
+  // partir de la largeur de CETTE section, et non de celle de l'ecran.
+  //
+  // C'est necessaire parce que ReportDetails place plusieurs de ces sections
+  // dans des colonnes DEMI-LARGEUR (`min-[900px]:col-span-6`). Avec des seuils
+  // de viewport, un ecran de 1000 px declenchait la mise en page « large » —
+  // trois colonnes — dans une boite d'environ 500 px, soit ~160 px par colonne.
+  <div className="@container mb-3">
     {/* Header */}
     <div className="flex items-center mb-1">
       <p className={SECTION_TITLE_CLASS}>{title}</p>

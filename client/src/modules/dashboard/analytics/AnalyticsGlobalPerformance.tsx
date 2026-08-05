@@ -244,10 +244,12 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
         ))}
       </div>
 
-      {/* ─── Secondary KPIs (2 grouped cards) ────────────────────── */}
-      <div className="grid grid-cols-12 gap-[9px]">
+      {/* ─── Secondary KPIs (2 grouped cards) ──────────────────────
+          `@container` declare ici et non dans GridSection : ce bloc est le seul
+          des huit a ne pas passer par ce wrapper. */}
+      <div className="@container grid grid-cols-12 gap-[9px]">
         {/* Financial group */}
-        <div className="col-span-12 min-[900px]:col-span-6">
+        <div className="col-span-12 @[900px]:col-span-6">
           <Card className={SECONDARY_CARD_CLASS}>
             <p className={SECTION_LABEL_CLASS}>
               {t('dashboard.analytics.financialMetrics', 'Indicateurs financiers')}
@@ -264,7 +266,7 @@ const AnalyticsGlobalPerformance: React.FC<Props> = React.memo(({ data, loading 
         </div>
 
         {/* Operational group */}
-        <div className="col-span-12 min-[900px]:col-span-6">
+        <div className="col-span-12 @[900px]:col-span-6">
           <Card className={SECONDARY_CARD_CLASS}>
             <p className={SECTION_LABEL_CLASS}>
               {t('dashboard.analytics.operationalMetrics', 'Activite operationnelle')}

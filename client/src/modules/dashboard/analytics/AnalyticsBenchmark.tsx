@@ -33,7 +33,7 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
     >
       <div className="grid grid-cols-12 gap-[9px]">
         {/* Radar chart */}
-        <div className="col-span-12 min-[900px]:col-span-6">
+        <div className="col-span-12 @[900px]:col-span-6">
           <Card className="w-full h-[240px] gap-0 p-0">
             <CardContent className="p-2 h-full flex flex-col">
               <p className={SECTION_LABEL_CLASS}>
@@ -76,7 +76,7 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
         </div>
 
         {/* Portfolio average */}
-        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
+        <div className="col-span-6 @[600px]:col-span-4 @[900px]:col-span-2">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.portfolioAvg')}
             value={data ? <Money value={data.portfolioAvg.revPAN} from="EUR" decimals={2} /> : '-'}
@@ -88,7 +88,7 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
         </div>
 
         {/* Best property */}
-        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
+        <div className="col-span-6 @[600px]:col-span-4 @[900px]:col-span-2">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.bestProperty')}
             value={data ? data.bestProperty.name : '-'}
@@ -99,7 +99,7 @@ const AnalyticsBenchmark: React.FC<Props> = React.memo(({ data, loading }) => {
         </div>
 
         {/* Std dev */}
-        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
+        <div className="col-span-6 @[600px]:col-span-4 @[900px]:col-span-2">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.perfDispersion')}
             value={data ? `${data.stdDevPerformance}` : '-'}

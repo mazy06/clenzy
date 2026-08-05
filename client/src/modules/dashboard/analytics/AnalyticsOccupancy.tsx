@@ -46,7 +46,7 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
     >
       <div className="grid grid-cols-12 gap-[9px]">
         {/* Stacked bar: occupied vs vacant by month */}
-        <div className="col-span-12 min-[600px]:col-span-6">
+        <div className="col-span-12 @[600px]:col-span-6">
           <Card className={CHART_CARD_CLS}>
             <CardContent className={CHART_CONTENT_CLS}>
               <p className={SECTION_LABEL_CLS}>
@@ -75,7 +75,7 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
         </div>
 
         {/* By property horizontal bar */}
-        <div className="col-span-12 min-[600px]:col-span-6">
+        <div className="col-span-12 @[600px]:col-span-6">
           <Card className={CHART_CARD_CLS}>
             <CardContent className={CHART_CONTENT_CLS}>
               <p className={SECTION_LABEL_CLS}>
@@ -103,7 +103,7 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
         </div>
 
         {/* Gap nights card */}
-        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+        <div className="col-span-12 @[600px]:col-span-6 @[900px]:col-span-3">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.vacantNights')}
             value={data ? `${data.gapNights}` : '-'}
@@ -114,7 +114,7 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
         </div>
 
         {/* Heatmap calendar */}
-        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-9">
+        <div className="col-span-12 @[600px]:col-span-6 @[900px]:col-span-9">
           <Card className="w-full py-0">
             <CardContent className="p-[7.5px]">
               <p className={SECTION_LABEL_CLS}>

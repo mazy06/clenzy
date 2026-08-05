@@ -45,7 +45,7 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
     >
       <div className="grid grid-cols-12 gap-[9px]">
         {/* Source distribution donut */}
-        <div className="col-span-12 min-[600px]:col-span-6">
+        <div className="col-span-12 @[600px]:col-span-6">
           <Card className={CHART_CARD_CLASS}>
             <CardContent className={CHART_CONTENT_CLASS}>
               <p className={SECTION_LABEL_CLASS}>
@@ -92,7 +92,7 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
         </div>
 
         {/* Top properties by popularity */}
-        <div className="col-span-12 min-[600px]:col-span-6">
+        <div className="col-span-12 @[600px]:col-span-6">
           <Card className={CHART_CARD_CLASS}>
             <CardContent className={CHART_CONTENT_CLASS}>
               <p className={SECTION_LABEL_CLASS}>
@@ -120,7 +120,7 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
         </div>
 
         {/* KPI cards */}
-        <div className="col-span-6 min-[600px]:col-span-4">
+        <div className="col-span-6 @[600px]:col-span-4">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.avgStayDuration')}
             value={data ? `${data.avgStayDuration} ${t('dashboard.analytics.nights')}` : '-'}
@@ -128,7 +128,7 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
             loading={loading}
           />
         </div>
-        <div className="col-span-6 min-[600px]:col-span-4">
+        <div className="col-span-6 @[600px]:col-span-4">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.avgGuestCount')}
             value={data ? `${data.avgGuestCount}` : '-'}
@@ -137,7 +137,7 @@ const AnalyticsClientAnalysis: React.FC<Props> = React.memo(({ data, loading }) 
             loading={loading}
           />
         </div>
-        <div className="col-span-6 min-[600px]:col-span-4">
+        <div className="col-span-6 @[600px]:col-span-4">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.totalBookings')}
             value={data ? `${data.totalBookings}` : '-'}

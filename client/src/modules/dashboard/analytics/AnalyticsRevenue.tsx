@@ -44,7 +44,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
     >
       <div className="grid grid-cols-12 gap-[9px]">
         {/* Revenue trend area chart */}
-        <div className="col-span-12 min-[600px]:col-span-4">
+        <div className="col-span-12 @[600px]:col-span-4">
           <Card className={CHART_CARD_CLASS}>
             <CardContent className={CHART_CONTENT_CLASS}>
               <p className={SECTION_LABEL_CLASS}>
@@ -73,7 +73,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
         </div>
 
         {/* Channel distribution donut */}
-        <div className="col-span-12 min-[600px]:col-span-4">
+        <div className="col-span-12 @[600px]:col-span-4">
           <Card className={CHART_CARD_CLASS}>
             <CardContent className={CHART_CONTENT_CLASS}>
               <p className={SECTION_LABEL_CLASS}>
@@ -121,7 +121,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
         </div>
 
         {/* Top properties bar chart */}
-        <div className="col-span-12 min-[600px]:col-span-4">
+        <div className="col-span-12 @[600px]:col-span-4">
           <Card className={CHART_CARD_CLASS}>
             <CardContent className={CHART_CONTENT_CLASS}>
               <p className={SECTION_LABEL_CLASS}>
@@ -149,7 +149,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
         </div>
 
         {/* Avg revenue per booking */}
-        <div className="col-span-6 min-[600px]:col-span-4">
+        <div className="col-span-6 @[600px]:col-span-4">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.avgPerBooking')}
             value={data ? <Money value={data.avgRevenuePerBooking} from="EUR" /> : '-'}
