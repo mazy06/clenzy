@@ -4,6 +4,7 @@ import {
   Alert,
   AlertAction,
   AlertDescription,
+  Badge,
   Button,
   Tooltip,
   TooltipContent,
@@ -14,7 +15,6 @@ import {
   Archive as ArchiveIcon,
   AutoAwesome as SparklesIcon,
   Description as TemplateIcon,
-  EventNote as ReservationIcon,
   Link as LinkIcon,
   Person as PersonIcon,
   Send as SendIcon,
@@ -36,6 +36,11 @@ import SendWhatsAppTemplateDialog from '../../channels/SendWhatsAppTemplateDialo
 import GuestProfileDialog from '../../channels/GuestProfileDialog';
 import ThreadView, { type ThreadAction } from './ThreadView';
 import { type ThreadMessage, getChannelBadge } from './unified';
+
+/** Date de séjour au format court « ven. 25 juil. » (locale du navigateur). */
+function formatStayDate(date: Date): string {
+  return date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+}
 
 /** Equivalent classes de `composeToolSx` (meme transcription que InternalThread). */
 const COMPOSE_TOOL_CLASS =
@@ -157,14 +162,10 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
       onClick: () => setAttachOpen(true),
     });
   } else {
-    // « Voir la réservation » de la projection : le fil connait son sejour,
-    // l'entete y mene (surlignage deep-link de la liste des reservations).
-    actions.push({
-      key: 'reservation',
-      title: t('messagingHub.viewReservation', 'Voir la réservation'),
-      icon: <ReservationIcon size={16} strokeWidth={1.75} />,
-      onClick: () => navigate(`/reservations?highlight=${conv.reservationId}`),
-    });
+    // « Voir la réservation » n'est plus une icone : elle devient l'action
+    // contextuelle LIBELLEE de l'entete (cf. `contextAction` plus bas), comme
+    // dans la projection. Une icone de calendrier de plus, au milieu de trois
+    // autres, ne disait pas ou elle menait.
     actions.push({
       key: 'template',
       title: t('messagingHub.sendTemplate', 'Envoyer un template WhatsApp'),
@@ -172,6 +173,43 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
       onClick: () => setTemplateOpen(true),
     });
   }
+
+  // ─── Statut du séjour ────────────────────────────────────────────────────
+  // Dérivé des dates DÉJÀ portées par la conversation : aucune requête de plus,
+  // et surtout aucun statut inventé. La conversation ne connaît pas l'état
+  // administratif de la réservation (confirmée, annulée) — seulement ses dates.
+  // On dit donc ce qu'on sait vraiment : où en est le séjour aujourd'hui.
+  const stay = useMemo(() => {
+    if (!conv.reservationId || !conv.checkIn) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const checkIn = new Date(conv.checkIn);
+    checkIn.setHours(0, 0, 0, 0);
+    const checkOut = conv.checkOut ? new Date(conv.checkOut) : null;
+    if (checkOut) checkOut.setHours(0, 0, 0, 0);
+
+    if (checkOut && today > checkOut) return { key: 'past' as const, date: checkOut };
+    if (today >= checkIn) return { key: 'current' as const, date: checkOut ?? checkIn };
+    return { key: 'upcoming' as const, date: checkIn };
+  }, [conv.reservationId, conv.checkIn, conv.checkOut]);
+
+  const stayBadge = stay ? (
+    <Badge variant={stay.key === 'current' ? 'success' : stay.key === 'upcoming' ? 'info' : 'secondary'}>
+      {stay.key === 'current'
+        ? t('messagingHub.stayCurrent', 'Séjour en cours')
+        : stay.key === 'upcoming'
+          ? t('messagingHub.stayUpcoming', 'À venir')
+          : t('messagingHub.stayPast', 'Séjour terminé')}
+    </Badge>
+  ) : undefined;
+
+  const stayLabel = stay
+    ? stay.key === 'upcoming'
+      ? t('messagingHub.stayArrival', 'arrivée {{date}}', { date: formatStayDate(stay.date) })
+      : stay.key === 'current'
+        ? t('messagingHub.stayDeparture', 'départ {{date}}', { date: formatStayDate(stay.date) })
+        : formatStayDate(stay.date)
+    : '';
 
   return (
     <>
@@ -203,7 +241,19 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
             </span>
             {badge.label}
             {conv.propertyName ? ` · ${conv.propertyName}` : ''}
+            {stayLabel ? ` · ${stayLabel}` : ''}
           </>
+        }
+        statusBadge={stayBadge}
+        contextAction={
+          conv.reservationId
+            ? {
+                label: t('messagingHub.viewReservation', 'Voir la réservation'),
+                // Il n'existe pas de route /reservations/:id : la liste porte le
+                // surlignage par ?highlight=, c'est donc le lien profond reel.
+                onClick: () => navigate(`/reservations?highlight=${conv.reservationId}`),
+              }
+            : undefined
         }
         actions={actions}
         menuItems={[

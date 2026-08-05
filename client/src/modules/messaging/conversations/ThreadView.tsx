@@ -21,7 +21,6 @@ import {
   MessageFooter,
   MessageGroup,
   Spinner,
-  Switch,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -33,7 +32,6 @@ import {
   MoreHoriz as MoreHorizIcon,
   Send as SendIcon,
   Description as FileIcon,
-  Note as NoteIcon,
 } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { type ThreadMessage, dayLabel, formatMsgTime } from './unified';
@@ -82,14 +80,6 @@ interface ThreadViewProps {
   composeExtra?: React.ReactNode;
   /** Boutons dans la boîte de composition (trombone, étincelles IA). */
   composeTools?: React.ReactNode;
-  /** Réponses suggérées, insérées dans le brouillon au clic. */
-  quickReplies?: string[];
-  /**
-   * Bascule « note interne » : quand elle est fournie, la boîte de composition
-   * s'ambre et le message part comme note d'équipe, invisible du voyageur.
-   */
-  internalNote?: boolean;
-  onInternalNoteChange?: (value: boolean) => void;
   /** Retour mobile (master-detail). */
   showBack?: boolean;
   onBack?: () => void;
@@ -129,9 +119,6 @@ export default function ThreadView({
   composeNotice,
   composeExtra,
   composeTools,
-  quickReplies = [],
-  internalNote = false,
-  onInternalNoteChange,
   showBack = false,
   onBack,
 }: ThreadViewProps) {
@@ -308,59 +295,15 @@ export default function ThreadView({
         )}
       </div>
 
-      {/* ── Réponses suggérées ──────────────────────────────────────────── */}
-      {quickReplies.length > 0 && !composeDisabled && (
-        <div className="flex shrink-0 gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {quickReplies.map((reply) => (
-            <Button
-              key={reply}
-              size="xs"
-              variant="outline"
-              className="shrink-0 cursor-pointer rounded-full"
-              onClick={() => onDraftChange(reply)}
-            >
-              {reply}
-            </Button>
-          ))}
-        </div>
-      )}
-
       {/* ── Compose ─────────────────────────────────────────────────────── */}
       <div className="shrink-0">
         {composeNotice}
         {composeExtra}
 
-        {onInternalNoteChange && (
-          <div className="mb-1.5 flex items-center gap-2">
-            <Switch
-              id="msg-internal-note"
-              checked={internalNote}
-              onCheckedChange={onInternalNoteChange}
-              className="cursor-pointer"
-            />
-            <label
-              htmlFor="msg-internal-note"
-              className={cn(
-                'flex cursor-pointer items-center gap-1 text-xs',
-                internalNote ? 'text-warning-ink' : 'text-muted-foreground',
-              )}
-            >
-              <NoteIcon size={13} strokeWidth={1.75} />
-              {t('messagingHub.internalNote', 'Note interne (invisible pour le voyageur)')}
-            </label>
-          </div>
-        )}
-
-        {/* La teinte ambre est le SEUL rappel que le message ne partira pas au
-            voyageur : sans elle, rien ne distingue une note d'une reponse. */}
-        <InputGroup className={cn(internalNote && 'border-warning/50 bg-warning-soft/30')}>
+        <InputGroup>
           <InputGroupTextarea
             rows={2}
-            placeholder={
-              internalNote
-                ? t('messagingHub.internalNotePlaceholder', "Note pour l'équipe…")
-                : composePlaceholder
-            }
+            placeholder={composePlaceholder}
             value={draft}
             disabled={composeDisabled}
             onChange={(e) => onDraftChange(e.target.value)}
