@@ -690,7 +690,7 @@ const PlanningPage: React.FC = () => {
                     <HeaderSearchField
                       value={filters.searchQuery}
                       onChange={setSearchQuery}
-                      placeholder="Rechercher..."
+                      placeholder="Rechercher une réservation, un voyageur…"
                     />
                   )
                 )}

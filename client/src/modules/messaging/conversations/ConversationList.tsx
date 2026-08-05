@@ -5,9 +5,6 @@ import {
   AlertDescription,
   Badge,
   Button,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
   Spinner,
   Tooltip,
   TooltipContent,
@@ -15,8 +12,8 @@ import {
 } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import GuestAvatar from '../../../components/baitly/GuestAvatar';
+import HeaderSearchField from '../../../components/HeaderSearchField';
 import {
-  Search as SearchIcon,
   Archive as ArchiveIcon,
   Unarchive as UnarchiveIcon,
   Restore as RestoreIcon,
@@ -221,20 +218,10 @@ export default function ConversationList({
 
   return (
     <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
-      {/* En-tête : recherche + filtres */}
+      {/* En-tête : filtres. La recherche vit dans le champ UNIQUE du header —
+          le libellé suit la vue (boîte de réception / archives). */}
+      <HeaderSearchField value={search} onChange={setSearch} placeholder={searchLabel} />
       <div className="flex shrink-0 flex-col gap-2 border-b border-border p-3">
-        <InputGroup>
-          <InputGroupAddon>
-            <SearchIcon size={15} strokeWidth={1.75} />
-          </InputGroupAddon>
-          <InputGroupInput
-            aria-label={searchLabel}
-            placeholder={searchLabel}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </InputGroup>
-
         {/* Une ligne qui défile plutôt qu'un retour à la ligne : la hauteur de
             l'en-tête ne doit pas bouger selon le nombre de filtres visibles,
             qui dépend du rôle. */}

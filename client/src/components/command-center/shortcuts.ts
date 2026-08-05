@@ -38,6 +38,33 @@ export function shortcutOf(command: CommandDescriptor): string | undefined {
   return command.shortcutLabel;
 }
 
+/** Raccourci prêt à afficher : une touche par pastille. */
+export interface ShortcutDisplay {
+  keys: string[];
+  /**
+   * true = touches à enfoncer L'UNE APRÈS L'AUTRE (accord). C'est la
+   * distinction que l'affichage doit rendre lisible : « G D » sans indication
+   * se lit comme une combinaison, alors qu'il faut relâcher entre les deux.
+   */
+  sequence: boolean;
+}
+
+export function shortcutDisplay(command: CommandDescriptor): ShortcutDisplay | undefined {
+  if (command.chord) {
+    return { keys: command.chord.map((key) => key.toUpperCase()), sequence: true };
+  }
+  if (command.shortcutLabel) return { keys: [command.shortcutLabel], sequence: false };
+  return undefined;
+}
+
+/**
+ * Énoncé du raccourci pour les lecteurs d'écran et l'infobulle — les pastilles
+ * ne disent pas, à elles seules, qu'il s'agit d'une suite de touches.
+ */
+export function shortcutAria(display: ShortcutDisplay): string {
+  return display.sequence ? display.keys.join(' puis ') : display.keys.join(' ');
+}
+
 /**
  * true si la frappe part d'une zone de saisie — champ, zone de texte, contenu
  * éditable, ou n'importe quel widget qui gère lui-même son clavier (le

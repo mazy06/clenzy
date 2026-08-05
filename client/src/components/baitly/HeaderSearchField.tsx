@@ -2,8 +2,16 @@ import { SearchIcon, XIcon } from 'lucide-react';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '../ui';
 
 /**
- * Baitly — remaster de components/HeaderSearchField.tsx (MUI), construit
- * sur InputGroup : icône loupe en tête, bouton d'effacement quand rempli.
+ * Gabarit du champ de recherche — FIXTURE DE GALERIE UNIQUEMENT.
+ *
+ * <p>Aucun écran de l'application ne dessine son champ de recherche : il est
+ * rendu une seule fois par le `PageHeader`, via `components/GlobalSearchField`.
+ * Un écran s'y branche avec `useScreenSearch` (ou le pont
+ * `components/HeaderSearchField`, qui ne rend rien).</p>
+ *
+ * <p>Ce composant ne subsiste que pour montrer le gabarit dans la bibliothèque
+ * UI. Ne pas l'importer dans un écran — ce serait un SECOND champ de recherche
+ * à côté de celui du header.</p>
  */
 export interface HeaderSearchFieldProps {
   value: string;

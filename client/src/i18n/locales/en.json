@@ -892,6 +892,7 @@
     "emptyHint": "Try an everyday word: cleaning, OTA, invoice…",
     "filterScreen": "Filter this screen with",
     "more": "and {{count}} more — type to search",
+    "then": "then",
     "sections": {
       "suggestions": "Pick up where you left off",
       "screen": "On this screen",
@@ -940,7 +941,7 @@
       "navigate": "↑ ↓ browse",
       "run": "↵ run",
       "close": "esc close",
-      "open": "open"
+      "chord": "the keys on the right are pressed in sequence, no ⌘"
     }
   },
   "common": {

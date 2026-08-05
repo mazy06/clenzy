@@ -24,7 +24,6 @@ import {
   ItemMedia,
   ItemTitle,
 } from '../../components/ui';
-import { InputGroup, InputGroupAddon, InputGroupInput } from '../../components/ui';
 import {
   People,
   Group,
@@ -35,9 +34,9 @@ import {
   Build,
   CleaningServices,
   SupervisorAccount,
-  Search,
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
+import HeaderSearchField from '../../components/HeaderSearchField';
 import { useTeamUserAssignment } from './useTeamUserAssignment';
 
 // `getRoleColor` du hook rend un nom de couleur MUI : on le transpose ici, le
@@ -231,21 +230,14 @@ const TeamUserAssignmentForm: React.FC = () => {
               )}
             </p>
 
-            {/* Search bar */}
-            {/* Champ sans libelle visible (la section porte deja son titre) :
-                l'aria-label reste la seule etiquette. */}
-            <InputGroup className="mb-3">
-              <InputGroupAddon align="inline-start">
-                <span className="inline-flex text-muted-foreground"><Search size={18} strokeWidth={1.75} /></span>
-              </InputGroupAddon>
-              <InputGroupInput
-                id="team-user-search"
-                aria-label={t('portfolios.fields.searchUser')}
-                placeholder={t('portfolios.fields.searchUser')}
-                value={userSearchTerm}
-                onChange={(e) => setUserSearchTerm(e.target.value)}
-              />
-            </InputGroup>
+            {/* La recherche d'utilisateur vit dans le champ UNIQUE du header :
+                c'est le seul filtre de cet écran, il n'a pas besoin d'un second
+                champ à mi-hauteur du formulaire. */}
+            <HeaderSearchField
+              value={userSearchTerm}
+              onChange={setUserSearchTerm}
+              placeholder={t('portfolios.fields.searchUser')}
+            />
 
             {filteredUsers.length === 0 ? (
               <div className="text-center py-6">

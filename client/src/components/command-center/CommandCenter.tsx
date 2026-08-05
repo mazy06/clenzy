@@ -8,14 +8,13 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-  CommandShortcut,
 } from '../ui';
 import { Search } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useScreenChrome } from '../ScreenChrome';
 import { useCommandCenter } from './CommandCenterProvider';
 import { rankCommands } from './ranking';
-import { openShortcutLabel, shortcutOf } from './shortcuts';
+import { shortcutAria, shortcutDisplay } from './shortcuts';
 import type { CommandDescriptor, CommandSection } from './types';
 
 /**
@@ -68,19 +67,63 @@ export default function CommandCenter() {
       }
     : null;
 
-  const renderItem = (command: CommandDescriptor) => {
-    const shortcut = shortcutOf(command);
+  /**
+   * Pastilles de raccourci. Un accord (`G` puis `D`) est rendu en DEUX
+   * pastilles séparées par « puis » : côte à côte et nues, les deux lettres se
+   * lisaient comme une combinaison à enfoncer ensemble, ce qu'elles ne sont pas.
+   */
+  const renderShortcut = (command: CommandDescriptor) => {
+    const display = shortcutDisplay(command);
+    if (!display) return null;
     return (
-      <CommandItem key={command.id} value={command.id} onSelect={() => runCommand(command)}>
-        {command.icon}
-        <span className="truncate">{command.label}</span>
-        {command.hint && (
-          <span className="ms-auto shrink-0 text-2xs text-muted-foreground">{command.hint}</span>
-        )}
-        {shortcut && <CommandShortcut className={command.hint ? 'ms-2' : undefined}>{shortcut}</CommandShortcut>}
-      </CommandItem>
+      <span
+        className="flex items-center gap-1 whitespace-nowrap"
+        title={shortcutAria(display)}
+        aria-label={shortcutAria(display)}
+      >
+        {display.keys.map((key, index) => (
+          <React.Fragment key={key}>
+            {index > 0 && (
+              <span aria-hidden className="text-2xs text-muted-foreground/70">
+                {t('commandCenter.then', 'puis')}
+              </span>
+            )}
+            <kbd
+              aria-hidden
+              className="inline-flex min-w-[1.25rem] justify-center rounded border border-border bg-muted px-1 py-px font-sans text-2xs font-medium text-muted-foreground"
+            >
+              {key}
+            </kbd>
+          </React.Fragment>
+        ))}
+      </span>
     );
   };
+
+  /**
+   * Une ligne = 4 colonnes : icône, libellé, contexte, raccourci. Le contexte
+   * et le raccourci forment un bloc ancré à DROITE, avec une colonne de
+   * raccourci de largeur fixe — sans elle, les contextes s'arrêtaient à une
+   * abscisse différente selon la présence d'un raccourci, et la colonne partait
+   * en escalier.
+   */
+  const renderItem = (command: CommandDescriptor) => (
+    <CommandItem key={command.id} value={command.id} onSelect={() => runCommand(command)}>
+      {command.icon}
+      <span className="min-w-0 flex-1 truncate">{command.label}</span>
+      <span className="flex shrink-0 items-center gap-3">
+        {command.hint && (
+          <span className="hidden truncate text-2xs text-muted-foreground sm:inline">
+            {command.hint}
+          </span>
+        )}
+        {/* 5.25rem = la largeur du plus large raccourci (pastille + « puis » +
+            pastille). Fixe, donc la colonne des contextes s'arrête au même
+            endroit sur toutes les lignes, avec ou sans raccourci. */}
+        <span className="flex w-[5.25rem] justify-end">{renderShortcut(command)}</span>
+      </span>
+    </CommandItem>
+  );
 
   return (
     <CommandDialog
@@ -149,15 +192,15 @@ export default function CommandCenter() {
           ))}
         </CommandList>
 
-        {/* Pied d'aide : le raccourci d'ouverture et les accords ne s'inventent
-            pas — les montrer là où on vient de les utiliser est le seul endroit
-            où ils s'apprennent. */}
+        {/* Pied d'aide : le raccourci d'ouverture et la convention des accords
+            ne s'inventent pas — les montrer là où on vient de les utiliser est
+            le seul endroit où ils s'apprennent. */}
         <div className="flex items-center gap-3 border-t border-border px-3 py-2 text-2xs text-muted-foreground">
           <span>{t('commandCenter.hints.navigate', '↑ ↓ parcourir')}</span>
           <span>{t('commandCenter.hints.run', '↵ exécuter')}</span>
           <span>{t('commandCenter.hints.close', 'échap fermer')}</span>
-          <span className="ms-auto hidden sm:inline">
-            {t('commandCenter.hints.open', 'ouvrir')} {openShortcutLabel()}
+          <span className="ms-auto hidden truncate sm:inline">
+            {t('commandCenter.hints.chord', 'les touches à droite s’enchaînent, sans ⌘')}
           </span>
         </div>
       </Command>

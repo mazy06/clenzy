@@ -16,14 +16,21 @@ import { cn } from '../utils/cn';
 /**
  * Champ de recherche UNIQUE de l'application (Baitly UI).
  *
- * Il est rendu en permanence dans le `PageHeader` et a deux modes :
- *   - **filtre d'écran** — un écran s'est branché via `useScreenSearch` : la
- *     saisie filtre ses données (plus aucun champ local dans les toolbars) ;
- *   - **centre de commande** — aucun écran branché : le champ n'est plus un
- *     champ mais le déclencheur de la palette ⌘K, qui sait faire tout ce que
- *     l'ancienne liste déroulante faisait (aller à un écran) et le reste :
- *     créer, changer l'affichage, ouvrir un outil. Une seule liste à
- *     maintenir, un seul endroit où chercher.
+ * Rendu en permanence dans le `PageHeader`, il a deux modes — mais UN SEUL
+ * gabarit : même largeur, même bordure, même pastille ⌘K à droite. Un écran ne
+ * doit pas se distinguer d'un autre par la forme de sa barre de recherche ;
+ * c'est le CONTENU qui s'adapte, pas la coquille.
+ *
+ *   - **filtre d'écran** — un écran s'est branché via `useScreenSearch` : on
+ *     tape directement dedans pour filtrer ses données, en un geste. Le
+ *     placeholder vient de l'écran (« Rechercher un logement… »), la pastille
+ *     ⌘K rappelle que la palette reste ouvrable depuis le champ ;
+ *   - **centre de commande** — aucun écran branché : le champ devient le
+ *     déclencheur de la palette, qui sait aller à un écran, créer, changer
+ *     l'affichage, ouvrir un outil.
+ *
+ * Sous 768 px, les deux modes se replient en loupe : la barre de titre n'a plus
+ * la place d'un champ.
  */
 
 /**
@@ -35,22 +42,30 @@ import { cn } from '../utils/cn';
  */
 const HEADER_FIELD_BORDER = 'border-border';
 
+/** Largeur commune aux deux modes — c'est elle qui fait l'identité visuelle. */
+const FIELD_WIDTH = 'md:w-56 lg:w-64';
+
+/** Pastille du raccourci, identique dans le champ et dans le déclencheur. */
+const SHORTCUT_BADGE =
+  'shrink-0 rounded border border-border px-1 font-sans text-2xs font-medium text-muted-foreground';
+
 export default function GlobalSearchField({ className }: { className?: string }) {
   const { t } = useTranslation();
   const { search, setSearchValue, submitSearch } = useScreenChrome();
   const { openCenter } = useCommandCenter();
 
   /**
-   * Le champ de filtre est REPLIÉ en loupe par défaut, à toutes les largeurs :
-   * il occupait une place permanente pour un geste occasionnel. Déployé au clic
-   * (focus immédiat), replié quand on le quitte vide — jamais quand un filtre
-   * est encore actif, sinon on l'effacerait de vue.
+   * Repli en loupe SOUS 768 px uniquement. Au-dessus, le champ est permanent :
+   * l'emplacement est de toute façon occupé par le déclencheur sur les écrans
+   * sans filtre — le masquer ici ne rendrait aucune place et ferait diverger
+   * l'allure des deux modes.
    */
   const [expanded, setExpanded] = useState(false);
   const fieldWrapRef = useRef<HTMLDivElement | null>(null);
 
-  /** Déplie le champ ET y pose le focus — sinon le repli au blur ne peut
-   *  jamais s'engager et la loupe demanderait deux clics. */
+  const shortcut = openShortcutLabel();
+
+  /** Déplie le champ ET y pose le focus — sinon la loupe demanderait 2 clics. */
   const expandField = () => {
     setExpanded(true);
     requestAnimationFrame(() => fieldWrapRef.current?.querySelector('input')?.focus());
@@ -60,14 +75,15 @@ export default function GlobalSearchField({ className }: { className?: string })
   // Pas de champ : un déclencheur. La saisie se fait DANS la palette, qui porte
   // la navigation clavier, les groupes et les raccourcis.
   if (!search) {
+    const triggerLabel = t('commandCenter.trigger', 'Rechercher ou commander');
     return (
       <>
         <Button
           type="button"
           variant="outline"
           size="icon"
-          className={cn('shrink-0 md:hidden', className)}
-          aria-label={t('commandCenter.trigger', 'Rechercher ou commander')}
+          className="shrink-0 md:hidden"
+          aria-label={triggerLabel}
           aria-keyshortcuts="Meta+K Control+K"
           onClick={() => openCenter()}
         >
@@ -78,19 +94,18 @@ export default function GlobalSearchField({ className }: { className?: string })
           variant="outline"
           className={cn(
             HEADER_FIELD_BORDER,
+            FIELD_WIDTH,
             // Aucune hauteur imposee : le gabarit du kit (32 px) est deja celui
             // des boutons voisins de la barre de titre.
-            'hidden md:flex md:w-56 lg:w-64 justify-start gap-2 px-2.5 font-normal text-muted-foreground',
+            'hidden justify-start gap-2 px-2.5 font-normal text-muted-foreground md:flex',
             className,
           )}
           aria-keyshortcuts="Meta+K Control+K"
           onClick={() => openCenter()}
         >
           <SearchIcon />
-          <span className="truncate">{t('commandCenter.trigger', 'Rechercher ou commander')}</span>
-          <kbd className="ms-auto shrink-0 rounded border border-border px-1 text-2xs text-muted-foreground">
-            {openShortcutLabel()}
-          </kbd>
+          <span className="truncate">{triggerLabel}</span>
+          <kbd className={cn(SHORTCUT_BADGE, 'ms-auto')}>{shortcut}</kbd>
         </Button>
       </>
     );
@@ -109,7 +124,7 @@ export default function GlobalSearchField({ className }: { className?: string })
           size="icon"
           /* Pas de taille forcee : `size="icon"` porte le gabarit du kit (32 px,
              rayon 10). Un `size-9` maison desalignait ce bouton de ses voisins. */
-          className="shrink-0"
+          className="shrink-0 md:hidden"
           aria-label={label}
           aria-expanded={false}
           onClick={expandField}
@@ -119,14 +134,16 @@ export default function GlobalSearchField({ className }: { className?: string })
       )}
       <div
         ref={fieldWrapRef}
-        className={cn('items-center', expanded ? 'flex' : 'hidden')}
+        className={cn('items-center', expanded ? 'flex' : 'hidden md:flex')}
         onBlur={(event) => {
+          // Repli mobile uniquement, et jamais tant qu'un filtre est actif :
+          // on effacerait de vue un filtre encore en vigueur.
           if (value === '' && !event.currentTarget.contains(event.relatedTarget as Node)) {
             setExpanded(false);
           }
         }}
       >
-        <InputGroup className={cn(HEADER_FIELD_BORDER, 'w-44 md:w-56 lg:w-64', className)}>
+        <InputGroup className={cn(HEADER_FIELD_BORDER, 'w-44', FIELD_WIDTH, className)}>
           <InputGroupAddon>
             <SearchIcon />
           </InputGroupAddon>
@@ -135,6 +152,7 @@ export default function GlobalSearchField({ className }: { className?: string })
             value={value}
             placeholder={label}
             aria-label={label}
+            aria-keyshortcuts="Meta+K Control+K"
             onChange={(event) => setSearchValue(event.target.value)}
             // Entrée : soumet à l'écran branché s'il porte un onSubmit (ex.
             // Planning + constellation ouverte → demande aux agents). Sans
@@ -143,8 +161,8 @@ export default function GlobalSearchField({ className }: { className?: string })
               if (event.key === 'Enter') submitSearch();
             }}
           />
-          {value !== '' && (
-            <InputGroupAddon align="inline-end">
+          <InputGroupAddon align="inline-end">
+            {value !== '' ? (
               <InputGroupButton
                 aria-label={t('common.clear', 'Effacer')}
                 size="icon-xs"
@@ -152,8 +170,16 @@ export default function GlobalSearchField({ className }: { className?: string })
               >
                 <XIcon />
               </InputGroupButton>
-            </InputGroupAddon>
-          )}
+            ) : (
+              // Décorative : le raccourci est capté globalement (cf.
+              // `useCommandShortcuts`), y compris depuis ce champ. Elle n'est là
+              // que pour donner au filtre la MÊME signature que le déclencheur
+              // des écrans sans filtre.
+              <kbd aria-hidden className={cn(SHORTCUT_BADGE, 'pointer-events-none')}>
+                {shortcut}
+              </kbd>
+            )}
+          </InputGroupAddon>
         </InputGroup>
       </div>
     </>

@@ -892,6 +892,7 @@
     "emptyHint": "Essayez un mot du métier : ménage, OTA, facture…",
     "filterScreen": "Filtrer cet écran avec",
     "more": "et {{count}} de plus — tapez pour chercher",
+    "then": "puis",
     "sections": {
       "suggestions": "Reprendre",
       "screen": "Sur cet écran",
@@ -940,7 +941,7 @@
       "navigate": "↑ ↓ parcourir",
       "run": "↵ exécuter",
       "close": "échap fermer",
-      "open": "ouvrir"
+      "chord": "les touches à droite s’enchaînent, sans ⌘"
     }
   },
   "common": {
