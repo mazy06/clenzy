@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { cn } from '../../utils/cn';
 import {
+  Badge,
   Field,
   FieldLabel,
   FieldDescription,
@@ -9,7 +10,7 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from '../../components/ui';
-import { LocationOn } from '../../icons';
+import { Check, LocationOn } from '../../icons';
 import { Controller, useWatch } from 'react-hook-form';
 import type { Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -20,24 +21,12 @@ import type { GeocodedAddress } from '../../services/geocoderApi';
 import { COUNTRIES, COUNTRY_BY_CODE } from '../../constants/countries';
 import type { PropertyFormValues } from '../../schemas';
 
-// ─── Stable sx constants ────────────────────────────────────────────────────
+// ─── Stable class constants ─────────────────────────────────────────────────
 
-const SECTION_TITLE_SX = {
-  fontSize: '0.6875rem',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  color: 'text.secondary',
-  mb: 1.5,
-  display: 'flex',
-  alignItems: 'center',
-  gap: 0.5,
-} as const;
+/** Titre de section (icone + texte) — echelle « overline » de Baitly UI. */
+const SECTION_TITLE_CLASS = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-[9px] flex items-center gap-[3px]';
 
-/** Report en classes de `SECTION_TITLE_SX`. */
-const SECTION_TITLE_CLASS = 'text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-[var(--muted)] mb-[9px] flex items-center gap-[3px]';
-
-// Fuseaux pertinents pour les marchés Clenzy (Europe + Maghreb + DOM-TOM). La
+// Fuseaux pertinents pour les marchés Baitly (Europe + Maghreb + DOM-TOM). La
 // valeur courante est prepended si absente (édition d'un logement au fuseau exotique).
 const TIMEZONES = [
   'Europe/Paris', 'Europe/London', 'Europe/Madrid', 'Europe/Lisbon', 'Europe/Brussels',
@@ -104,7 +93,7 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
 
     return (
       <div>
-        <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
+        <p className={SECTION_TITLE_CLASS}>
           <LocationOn size={14} strokeWidth={1.75} />
           {t('properties.address')}
         </p>
@@ -276,13 +265,14 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
 
           {/* ─── Position GPS sur la carte ────────────────────────────── */}
           <div className="col-span-12">
-            <p className="cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-muted-foreground mt-0.5 mb-1.5 flex items-center gap-0.5">
+            <p className={cn(SECTION_TITLE_CLASS, 'mt-0.5 mb-1.5')}>
               <LocationOn size={14} strokeWidth={1.75} />
               Position GPS
               {latitude != null && longitude != null && (
-                <span className="ms-0.5 px-1 py-0 rounded-[999px] bg-[var(--ok-soft)] text-[var(--ok)] text-[9.5px] font-bold">
-                  ✓ DÉFINIE
-                </span>
+                <Badge variant="success" className="ms-0.5 gap-0.5 rounded-full px-1 text-2xs font-semibold">
+                  <Check size={10} strokeWidth={2.5} />
+                  DÉFINIE
+                </Badge>
               )}
             </p>
             <PropertyLocationPicker

@@ -1,20 +1,20 @@
 // Constantes partagées par ServiceRequestsList et ses vues (carte / grille / liste).
-// Styles alignés sur DESIGN_BASELINE (tokens var(--…), rayons 9/14, hairlines).
+// Styles alignés sur Baitly UI (palette --bui-*, rayon xl, hairlines).
 
 import { STATUS_TONES, type StatusTone } from '../../components/StatusChip';
 
 export const LIST_PAPER_SX = {
-  border: '1px solid var(--line)',
+  border: '1px solid var(--bui-border)',
   boxShadow: 'none',
-  borderRadius: '14px',
-  bgcolor: 'var(--card)',
+  borderRadius: '0.875rem',
+  bgcolor: 'var(--bui-card)',
 } as const;
 
 export const ITEMS_PER_PAGE = 6;
 
 // ─── Chips statut / priorité → tons sémantiques partagés (STATUS_TONES) ───
 // Mapping statut/priorité métier → ton ; les couleurs proviennent de la
-// primitive partagée. Géométrie pilule héritée du thème global MuiChip
+// primitive partagée. Géométrie pilule héritée du gabarit global de la puce
 // (donc PAS toneTokensSx ici : on ne réémet que color/bgcolor/border).
 
 const SR_STATUS_TONE: Record<string, StatusTone> = {
@@ -82,6 +82,6 @@ export const SELECT_CHIP_CLASS = 'h-[30px] text-[11.5px]';
  * (border-STYLE), que tailwind-merge ne considère pas en conflit avec `border`
  * (border-WIDTH) — sans lui, le liseré reste invisible.
  */
-export const FORM_TAG_TOKENS = { color: 'var(--body)', bg: 'var(--field)' } as const;
+export const FORM_TAG_TOKENS = { color: 'var(--bui-foreground)', bg: 'var(--bui-field)' } as const;
 export const FORM_TAG_CLASS =
-  'h-[30px] text-[11.5px] font-medium border border-solid border-[var(--field-line)] [&>svg]:text-[var(--accent)]';
+  'h-[30px] text-[11.5px] font-medium border border-solid border-field-line [&>svg]:text-primary';

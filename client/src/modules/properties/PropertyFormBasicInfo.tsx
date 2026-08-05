@@ -1,25 +1,24 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import { Field, FieldError, FieldLabel, Input, NativeSelect, Textarea } from '../../components/ui';
+import {
+  Field,
+  FieldError,
+  FieldLabel,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
+  Textarea,
+} from '../../components/ui';
 import { Description } from '../../icons';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { PropertyFormValues } from '../../schemas';
 
-// ─── Stable sx constants ────────────────────────────────────────────────────
+// ─── Stable class constants ─────────────────────────────────────────────────
 
-const SECTION_TITLE_SX = {
-  fontSize: '0.6875rem',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  color: 'text.secondary',
-  mb: 1.5,
-} as const;
-
-/** Report en classes de `SECTION_TITLE_SX`. */
-const SECTION_TITLE_CLASS = 'text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-[var(--muted)] mb-[9px]';
+/** Titre de section — echelle « overline » de Baitly UI. */
+const SECTION_TITLE_CLASS = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-[9px]';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -37,7 +36,7 @@ const PropertyFormBasicInfo: React.FC<PropertyFormBasicInfoProps> = React.memo(
 
     return (
       <div>
-        <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
+        <p className={SECTION_TITLE_CLASS}>
           {t('properties.tabs.overview')}
         </p>
 
@@ -86,9 +85,9 @@ const PropertyFormBasicInfo: React.FC<PropertyFormBasicInfoProps> = React.memo(
                     aria-invalid={!!fieldState.error}
                   >
                     {propertyTypes.map(type => (
-                      <option key={type.value} value={type.value}>
+                      <NativeSelectOption key={type.value} value={type.value}>
                         {type.label}
-                      </option>
+                      </NativeSelectOption>
                     ))}
                   </NativeSelect>
                   {fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
@@ -102,15 +101,20 @@ const PropertyFormBasicInfo: React.FC<PropertyFormBasicInfoProps> = React.memo(
               name="description"
               control={control}
               render={({ field, fieldState }) => (
-                <div className={cn('flex gap-1.5 py-[7.5px] px-[9px] rounded-[11px] bg-[var(--field)] border border-solid min-h-[80px]', fieldState.error ? 'border-[var(--err)]' : 'border-[var(--field-line)]')} style={{ transition: 'border-color 0.15s ease' }}>
-                  <span className="inline-flex text-muted-foreground opacity-60 mt-0 shrink-0"><Description size={16} strokeWidth={1.75} /></span>
-                  <div className="flex-1">
-                    <label
+                <div
+                  className={cn(
+                    'flex gap-1.5 py-[7.5px] px-[9px] rounded-lg bg-field border min-h-[80px] transition-[border-color] duration-150 ease-out',
+                    fieldState.error ? 'border-destructive' : 'border-field-line',
+                  )}
+                >
+                  <span className="inline-flex text-muted-foreground mt-0 shrink-0"><Description size={16} strokeWidth={1.75} /></span>
+                  <Field className="flex-1">
+                    <FieldLabel
                       htmlFor="property-description"
-                      className="cn-text-body1 block text-[0.625rem] font-bold uppercase tracking-[0.05em] text-muted-foreground opacity-60 mb-0.5"
+                      className="block text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-0.5"
                     >
                       {t('properties.description')}
-                    </label>
+                    </FieldLabel>
                     {/* Le champ est deshabille (ni bordure ni fond) : c'est la boite
                         englobante qui porte le cadre. field.ref n'est pas transmis
                         (primitives sans forwardRef, React 18). */}
@@ -126,12 +130,12 @@ const PropertyFormBasicInfo: React.FC<PropertyFormBasicInfoProps> = React.memo(
                       // retomber le champ a une ligne quand il est vide.
                       placeholder={t('properties.descriptionPlaceholder')}
                       aria-invalid={!!fieldState.error}
-                      className="min-h-[2lh] max-h-[101px] rounded-none border-0 bg-transparent p-0 text-[0.75rem] leading-[1.4] text-[var(--muted)] placeholder:text-[0.75rem] placeholder:text-[var(--faint)] focus-visible:border-0 focus-visible:ring-0 aria-invalid:ring-0"
+                      className="min-h-[2lh] max-h-[101px] rounded-none border-0 bg-transparent p-0 text-xs leading-[1.4] text-muted-foreground placeholder:text-xs placeholder:text-faint focus-visible:border-0 focus-visible:ring-0 aria-invalid:ring-0"
                     />
                     {fieldState.error && (
                       <FieldError className="mt-0.5">{fieldState.error.message}</FieldError>
                     )}
-                  </div>
+                  </Field>
                 </div>
               )}
             />

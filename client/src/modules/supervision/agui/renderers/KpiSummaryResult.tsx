@@ -29,44 +29,34 @@ interface KpiData {
   kpis?: Kpi[];
 }
 
-function statusColor(status?: string): string {
+/** Pastille décorative : teinte vive (elle ne porte pas de texte). */
+function statusDotClass(status?: string): string {
   switch ((status ?? '').toUpperCase()) {
     case 'OK':
-      return 'var(--ok)';
+      return 'bg-success';
     case 'WARNING':
-      return 'var(--warn)';
+      return 'bg-warning';
     case 'CRITICAL':
-      return 'var(--err)';
+      return 'bg-destructive';
     default:
-      return 'var(--line-2)';
+      return 'bg-border';
   }
 }
 
 const KpiTile: React.FC<{ kpi: Kpi; idx: number }> = ({ kpi, idx }) => (
-  // La pastille de statut est calculee a l'execution : elle passe par une custom
-  // property, la classe qui la consomme reste statique.
-  <div
-    className="relative px-[7.5px] py-1.5 rounded-[10px] bg-[var(--card)] border border-solid border-[var(--line)] before:content-[''] before:absolute before:top-2 before:end-2 before:w-[6px] before:h-[6px] before:rounded-full before:bg-[var(--kpi-dot)]"
-    style={{ '--kpi-dot': statusColor(kpi.status) } as React.CSSProperties}
-  >
-    <Overline
-      sx={{
-        mb: 0.25,
-        pr: 1.5,
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-      }}
-    >
+  <div className="relative rounded-lg border border-border bg-card px-2 py-1.5">
+    <span
+      aria-hidden
+      className={cn('absolute end-2 top-2 size-1.5 rounded-full', statusDotClass(kpi.status))}
+    />
+    <Overline className="mb-0.5 truncate pe-2.5">
       {kpi.name ?? kpi.id ?? `KPI ${idx + 1}`}
     </Overline>
-    <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.05rem] font-semibold leading-[1.2] tabular-nums text-[var(--ink)]">
+    <p className="text-[1.05rem] font-semibold leading-tight tabular-nums text-foreground font-[family-name:var(--font-display)]">
       {kpi.value ?? '—'}
     </p>
     {kpi.target && (
-      <p className="cn-text-body1 block text-[var(--muted)] text-[10.5px] mt-0.5 tabular-nums">
-        cible {kpi.target}
-      </p>
+      <p className="mt-0.5 block text-2xs tabular-nums text-muted-foreground">cible {kpi.target}</p>
     )}
   </div>
 );
@@ -81,16 +71,24 @@ export const KpiSummaryResult: React.FC<{ data: KpiData }> = ({ data }) => {
   return (
     <div className="mt-1.5 mb-2">
       {scorePct !== null && (
-        <div className={cn('flex items-baseline gap-[9px] mb-[9px] px-3 py-[10.5px] rounded-[12px]', critical ? 'bg-[var(--err-soft)]' : 'bg-[var(--ok-soft)]')}>
-          <p className={cn('cn-text-body1 text-[2.25rem] font-semibold leading-[1] tabular-nums tracking-[-0.02em]', critical ? 'text-[var(--err)]' : 'text-[var(--ok)]')} style={{ fontFamily: 'var(--font-display)' }}>
+        <div
+          className={cn(
+            'mb-2 flex items-baseline gap-2.5 rounded-xl px-3 py-2.5',
+            critical ? 'bg-destructive-soft' : 'bg-success-soft',
+          )}
+        >
+          <p
+            className={cn(
+              'text-[2.25rem] font-semibold leading-none tracking-tight tabular-nums font-[family-name:var(--font-display)]',
+              critical ? 'text-destructive-ink' : 'text-success-ink',
+            )}
+          >
             {scorePct}
-            <span className="text-[1.25rem] font-medium ms-0.5">
-              %
-            </span>
+            <span className="ms-0.5 text-[1.25rem] font-medium">%</span>
           </p>
           <div>
             <Overline>Readiness score</Overline>
-            <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">
+            <p className="text-2xs text-muted-foreground">
               {critical ? 'KPI critique en défaut' : 'Tous les KPI critiques OK'}
               {data.kpiCount !== undefined && ` · ${data.kpiCount} indicateurs`}
             </p>
@@ -99,7 +97,7 @@ export const KpiSummaryResult: React.FC<{ data: KpiData }> = ({ data }) => {
       )}
 
       {kpis.length > 0 && (
-        <div className="grid grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(3,_1fr)] gap-1.5">
+        <div className="grid grid-cols-2 gap-1.5 min-[900px]:grid-cols-3">
           {kpis.map((kpi, idx) => (
             <KpiTile key={kpi.id ?? idx} kpi={kpi} idx={idx} />
           ))}

@@ -9,6 +9,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
+  AlertDescription,
   Button,
   Dialog,
   DialogContent,
@@ -16,11 +18,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Input,
   Spinner,
   ToggleGroup,
   ToggleGroupItem,
 } from '../../../components/ui';
-import { Close } from '../../../icons';
+import { TriangleAlert } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Close } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { cn } from '../../../utils/cn';
 import { Money } from '../../../components/Money';
@@ -73,8 +77,15 @@ function nights(from: string, to: string): number {
   return Math.max(1, Math.round((new Date(to).getTime() - new Date(from).getTime()) / 86_400_000));
 }
 
-/** Couleur par segment (accents validés Clenzy), cyclée. */
+/** Couleur par segment (accents validés Baitly), cyclée. */
 const SEGMENT_COLORS = ['#4A9B8E', '#D4A574', '#7BA3C2', '#C97A7A', '#8E7BB5'];
+/**
+ * Encre posée SUR un aplat de segment. L'aplat est un hex figé, identique en
+ * clair et en sombre : l'encre l'est donc aussi, sinon elle suivrait le thème
+ * et disparaîtrait dans un des deux. C'est le bleu nuit de la marque, qui tient
+ * ≥ 4,9:1 sur les cinq teintes — le blanc y plafonnait à 1,9:1.
+ */
+const SEGMENT_INK = '#1B2A35';
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 function ymd(d: Date): string {
@@ -204,12 +215,12 @@ export function PriceAdjustmentModal({
     <Dialog open onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent className="sm:max-w-[900px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-[16px] font-extrabold">
+          <DialogTitle className="text-base font-semibold tracking-tight text-balance">
             {raise
               ? t('supervision.price.titleRaise', 'Relever les tarifs (demande forte)')
               : t('supervision.price.title', 'Ajuster les tarifs des créneaux creux')}
           </DialogTitle>
-          <DialogDescription className="text-[12.5px]">
+          <DialogDescription className="text-xs tabular-nums">
             {t('supervision.price.subtitle', '{{count}} créneau(x) · {{nights}} nuits', {
               count: segments.length, nights: totalNights,
             })}
@@ -223,17 +234,18 @@ export function PriceAdjustmentModal({
               <div className="flex items-center justify-between mb-0.5">
                 {mi === 0 ? (
                   // Navigation repetee dans un en-tete : tertiaire, gabarit carre.
+                  // Le chevron se retourne en RTL (sens de lecture inverse).
                   <Button
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
-                    className="text-[var(--muted)]"
+                    className="text-muted-foreground"
                     aria-label={t('common.previous', 'Précédent')}
                   >
-                    ‹
+                    <ChevronLeft size={16} className="rtl:rotate-180" />
                   </Button>
                 ) : <div className="w-[30px]" />}
-                <p className="cn-text-body1 text-[12.5px] font-bold capitalize">
+                <p className="text-xs font-semibold capitalize text-foreground">
                   {month.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
                 </p>
                 {mi === months.length - 1 ? (
@@ -241,16 +253,16 @@ export function PriceAdjustmentModal({
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
-                    className="text-[var(--muted)]"
+                    className="text-muted-foreground"
                     aria-label={t('common.next', 'Suivant')}
                   >
-                    ›
+                    <ChevronRight size={16} className="rtl:rotate-180" />
                   </Button>
                 ) : <div className="w-[30px]" />}
               </div>
               <div className="grid grid-cols-[repeat(7,_1fr)] gap-0.5">
                 {WEEKDAYS.map((d) => (
-                  <div className="text-center text-[10px] text-muted-foreground pb-0.5" key={`wd-${mi}-${d}`}>{d}</div>
+                  <div className="text-center text-2xs font-medium text-muted-foreground pb-0.5" key={`wd-${mi}-${d}`}>{d}</div>
                 ))}
                 {monthGrid(month).flat().map((day) => {
                   const inMonth = day.getMonth() === month.getMonth();
@@ -260,12 +272,12 @@ export function PriceAdjustmentModal({
                     <div
                       key={`d-${mi}-${day.getTime()}`}
                       className={cn(
-                        'rounded-[8px] py-[3px] text-center text-[11px] tabular-nums',
+                        'rounded-md py-[3px] text-center text-xs tabular-nums',
                         inMonth ? 'opacity-100' : 'opacity-40',
-                        color ? 'text-white' : inMonth ? 'text-[var(--ink)]' : 'text-[var(--faint)]',
+                        !color && (inMonth ? 'text-foreground' : 'text-faint'),
                       )}
                       // La teinte du segment n'est connue qu'a l'execution.
-                      style={{ backgroundColor: color ?? 'transparent' }}
+                      style={color ? { backgroundColor: color, color: SEGMENT_INK } : undefined}
                     >
                       {day.getDate()}
                     </div>
@@ -278,7 +290,7 @@ export function PriceAdjustmentModal({
 
         {/* Sélecteur de mode de saisie de la remise */}
         <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <p className="cn-text-body1 text-[12.5px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {t('supervision.price.discountMode', 'Remise en')}
           </p>
           {/* `exclusive` MUI = type="single" ; Radix renvoie '' a la deselection,
@@ -298,7 +310,7 @@ export function PriceAdjustmentModal({
             <ToggleGroupItem value="fixedAmount">{raise ? '+€' : '−€'}</ToggleGroupItem>
           </ToggleGroup>
           {!canConvert && (
-            <p className="cn-text-body1 text-[11px] text-[var(--bui-warning-ink)]">
+            <p className="text-xs font-medium text-warning-ink">
               {t('supervision.price.simulateFirst', 'Simulez pour convertir')}
             </p>
           )}
@@ -309,53 +321,57 @@ export function PriceAdjustmentModal({
           {segments.map((seg, i) => {
             const f = sim?.segments[i];
             return (
-              <div className="border border-[var(--line)] rounded-[12px] p-2" key={i}>
+              <div className="rounded-lg border border-solid border-border bg-card p-2" key={i}>
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <input
+                  {/* Champs du kit : plus de bordure dessinee a la main, l'anneau
+                      de focus et l'etat desactive viennent du gabarit `Input`. */}
+                  <Input
                     type="date"
                     aria-label={t('supervision.price.segmentFrom', 'Date de début')}
                     value={seg.from}
                     onChange={(e) => setSegments((p) => p.map((s, idx) => idx === i ? { ...s, from: e.target.value } : s))}
-                    style={{ padding: '4px 6px', borderRadius: 6, border: '1px solid var(--line, #ccc)' }}
+                    className="w-auto tabular-nums"
                   />
-                  <div className="text-muted-foreground text-[12px]">→</div>
-                  <input
+                  <div className="text-muted-foreground text-xs">→</div>
+                  <Input
                     type="date"
                     aria-label={t('supervision.price.segmentTo', 'Date de fin')}
                     value={seg.to}
                     onChange={(e) => setSegments((p) => p.map((s, idx) => idx === i ? { ...s, to: e.target.value } : s))}
-                    style={{ padding: '4px 6px', borderRadius: 6, border: '1px solid var(--line, #ccc)' }}
+                    className="w-auto tabular-nums"
                   />
                   <div className="flex-1" />
-                  <input
+                  <Input
                     type="number"
                     aria-label={t('supervision.price.segmentValue', 'Valeur de la remise')}
                     value={inputValue(i)}
                     disabled={!canConvert}
                     onChange={(e) => applyInput(i, Number(e.target.value))}
-                    style={{ width: 76, padding: '4px 6px', borderRadius: 6, border: '1px solid var(--line, #ccc)', textAlign: 'right' }}
+                    className="w-[76px] text-end tabular-nums"
                   />
-                  <div className="text-[12.5px] text-muted-foreground w-[16px]">{modeUnit}</div>
+                  <div className="text-xs text-muted-foreground w-[16px]">{modeUnit}</div>
                   <Button
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => removeSegment(i)}
                     aria-label={t('supervision.price.removeSegment', 'Retirer ce créneau')}
-                    className="text-[var(--faint)] hover:bg-transparent hover:text-[var(--err)]"
+                    className="text-faint hover:bg-transparent hover:text-destructive"
                   >
                     <Close size={15} />
                   </Button>
                 </div>
                 <div className="flex items-center gap-1 mt-0.5">
-                  <div className="w-[8px] h-[8px] rounded-[50%] shrink-0" style={{ backgroundColor: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }} />
-                  <p className="cn-text-body1 text-[11.5px] text-muted-foreground">
+                  {/* Pastille de reperage : elle rappelle la couleur du segment
+                      dans le calendrier, connue seulement a l'execution. */}
+                  <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: SEGMENT_COLORS[i % SEGMENT_COLORS.length] }} />
+                  <p className="text-xs text-muted-foreground tabular-nums">
                     {fmt(seg.from)}→{fmt(seg.to)} · {nights(seg.from, seg.to)} {t('supervision.price.nights', 'nuits')} · {raise ? '+' : '−'}{seg.percent}%
                   </p>
                 </div>
                 {f && (
-                  <p className="cn-text-body1 text-[11.5px] text-foreground mt-0.5 tabular-nums">
+                  <p className="text-xs text-foreground mt-0.5 tabular-nums">
                     {t('supervision.price.occ', 'Occupation')} {Math.round(f.baseline.occupancyRate * 100)}%
-                    {' → '}<b>{Math.round(f.scenario.occupancyRate * 100)}%</b>
+                    {' → '}<b className="font-semibold">{Math.round(f.scenario.occupancyRate * 100)}%</b>
                     {'  ·  '}{t('supervision.price.revenue', 'Revenu')} <Money value={f.deltaRevenue} from="EUR" decimals={0} />
                   </p>
                 )}
@@ -366,15 +382,16 @@ export function PriceAdjustmentModal({
 
         {/* Cumul de la prévision */}
         {sim && (
-          <div className="mt-2 p-2 bg-[var(--hover)] rounded-[12px]">
-            <p className="cn-text-body1 text-[12.5px] font-bold">
+          <div className="mt-2 p-2 bg-muted rounded-lg">
+            <p className="text-xs font-semibold text-foreground">
               {t('supervision.price.forecastTotal', 'Prévision cumulée')}
             </p>
-            <p className="cn-text-body1 text-[12.5px] mt-0.5 tabular-nums">
+            <p className="text-xs text-foreground mt-0.5 tabular-nums">
               {t('supervision.price.revenue', 'Revenu')} <Money value={sim.totalBaselineRevenue} from="EUR" decimals={0} />
-              {' → '}<b><Money value={sim.totalScenarioRevenue} from="EUR" decimals={0} /></b>
+              {' → '}<b className="font-semibold"><Money value={sim.totalScenarioRevenue} from="EUR" decimals={0} /></b>
               {'  ('}
-              <span className={sim.totalDeltaRevenue >= 0 ? 'text-[#4A9B8E]' : 'text-[#C97A7A]'}>
+              {/* Encre semantique (§2.4) : le delta est du TEXTE, pas un aplat. */}
+              <span className={sim.totalDeltaRevenue >= 0 ? 'text-success-ink font-semibold' : 'text-destructive-ink font-semibold'}>
                 {sim.totalDeltaRevenue >= 0 ? '+' : ''}<Money value={sim.totalDeltaRevenue} from="EUR" decimals={0} />
               </span>
               {')'}
@@ -382,7 +399,12 @@ export function PriceAdjustmentModal({
           </div>
         )}
 
-        {error && <p className="cn-text-body1 text-[12px] text-destructive mt-1.5">{error}</p>}
+        {error && (
+          <Alert variant="destructive" className="mt-1.5">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
         <DialogFooter>
           <Button variant="ghost" onClick={onClose} disabled={applying}>

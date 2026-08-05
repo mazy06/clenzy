@@ -38,30 +38,30 @@ export const QuoteResult: React.FC<{ data: QuoteData }> = ({ data }) => {
   const nights = data.nights ?? perNight.length;
 
   return (
-    <SurfaceCard sx={{ borderColor: 'var(--accent)' }}>
+    <SurfaceCard className="border-primary">
       {/* En-tête : libellé + total */}
       <div className="flex items-end justify-between gap-2">
         <div className="min-w-0">
           <Overline>Devis{data.propertyName ? ` · ${data.propertyName}` : ''}</Overline>
-          <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums mt-0.5">
+          <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
             {formatRange(data.from, data.to)}
             {nights > 0 && ` · ${nights} nuit${nights > 1 ? 's' : ''}`}
           </p>
         </div>
-        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.5rem] font-semibold leading-[1] tracking-[-0.02em] text-[var(--ink)] tabular-nums whitespace-nowrap">
+        <p className="whitespace-nowrap text-2xl font-semibold leading-none tracking-tight tabular-nums text-foreground font-[family-name:var(--font-display)]">
           {formatMoney(data.total, data.currency)}
         </p>
       </div>
 
       {/* Détail par nuit */}
       {perNight.length > 0 && (
-        <div className="mt-2 pt-1.5 border-t border-[var(--line)]">
+        <div className="mt-2 border-t border-border pt-1.5">
           {perNight.map((night) => (
-            <div className="flex justify-between items-baseline py-0.5" key={night.date}>
-              <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
+            <div className="flex items-baseline justify-between py-0.5" key={night.date}>
+              <p className="text-xs tabular-nums text-muted-foreground">
                 {new Date(night.date).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' })}
               </p>
-              <p className="cn-text-body1 text-[12.5px] text-[var(--body)] font-medium tabular-nums">
+              <p className="text-xs font-medium tabular-nums text-foreground">
                 {formatMoney(night.price, data.currency)}
               </p>
             </div>

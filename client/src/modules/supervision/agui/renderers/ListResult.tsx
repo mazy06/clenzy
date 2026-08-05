@@ -8,10 +8,17 @@
    1er item (en sautant les *Id techniques) et on rend une liste compacte.
    ============================================================ */
 import React from 'react';
-import { cn } from '../../../../utils/cn';
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../../components/ui';
 import {
   SurfaceCard,
-  Overline,
   StatusChip,
   formatDateShort,
   formatMoney,
@@ -62,8 +69,8 @@ export const ListResult: React.FC<{ data: ListData }> = ({ data }) => {
 
   if (items.length === 0) {
     return (
-      <SurfaceCard sx={{ textAlign: 'center' }}>
-        <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
+      <SurfaceCard className="text-center">
+        <p className="text-xs text-muted-foreground">
           Aucun résultat
           {data.from && data.to && ` du ${formatDateShort(data.from)} au ${formatDateShort(data.to)}`}.
         </p>
@@ -74,45 +81,39 @@ export const ListResult: React.FC<{ data: ListData }> = ({ data }) => {
   return (
     <div className="mt-1.5 mb-2">
       {data.from && data.to && (
-        <p className="cn-text-body1 block mb-1 text-[11.5px] text-[var(--muted)] tabular-nums">
+        <p className="mb-1 block text-2xs tabular-nums text-muted-foreground">
           Période : {formatDateShort(data.from)} → {formatDateShort(data.to)}
         </p>
       )}
 
-      <div className="rounded-[12px] overflow-hidden border border-[var(--line)] bg-[var(--card)]">
-        {/* En-têtes */}
-        <div className="grid gap-1.5 px-[9px] py-[4.5px] bg-[var(--surface-2)]" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`, borderBottom: '1px solid var(--line)' }}>
-          {columns.map((col) => (
-            <Overline key={col} sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {humanizeKey(col)}
-            </Overline>
-          ))}
-        </div>
-
-        {/* Lignes */}
-        {visible.map((item, idx) => (
-          <div
-            key={String(item.id ?? idx)}
-            className={cn(
-              'grid gap-1.5 px-[9px] py-1.5 items-center',
-              'transition-[background-color] duration-[120ms] hover:bg-[var(--hover)] motion-reduce:transition-none',
-              idx > 0 && 'border-t border-solid border-[var(--line)]',
-            )}
-            style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
-          >
-            {columns.map((col) => (
-              <div className="text-[12.5px] text-[var(--body)] whitespace-nowrap overflow-hidden text-ellipsis tabular-nums" key={col}>
-                {renderCell(col, item[col], item.currency)}
-              </div>
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {columns.map((col) => (
+                <TableHead key={col}>{humanizeKey(col)}</TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {visible.map((item, idx) => (
+              <TableRow key={String(item.id ?? idx)}>
+                {columns.map((col) => (
+                  <TableCell
+                    key={col}
+                    className="max-w-[18ch] overflow-hidden text-ellipsis tabular-nums text-foreground"
+                  >
+                    {renderCell(col, item[col], item.currency)}
+                  </TableCell>
+                ))}
+              </TableRow>
             ))}
-          </div>
-        ))}
+          </TableBody>
+        </Table>
       </div>
 
       {hidden > 0 && (
-        <p className="cn-text-body1 block mt-1 text-[11.5px] text-[var(--muted)] italic">
-          + {hidden} de plus
-        </p>
+        <p className="mt-1 block text-2xs italic text-muted-foreground">+ {hidden} de plus</p>
       )}
     </div>
   );

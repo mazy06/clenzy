@@ -60,12 +60,12 @@ export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
               className={cn(
                 'inline-flex items-center gap-[7px] h-[30px] px-[13px] rounded-full',
                 'border border-solid border-transparent',
-                'text-[12px] font-semibold font-[family-name:var(--font-sans)] cursor-pointer',
-                'transition-[background-color,color] duration-[140ms]',
-                'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+                'text-xs font-semibold font-[family-name:var(--font-sans)] cursor-pointer',
+                'transition-colors duration-150 motion-reduce:transition-none',
+                'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2',
                 active
-                  ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
-                  : 'bg-[var(--field)] text-[var(--muted)] hover:text-[var(--body)]',
+                  ? 'bg-primary-soft text-primary'
+                  : 'bg-field text-muted-foreground hover:text-foreground',
               )}
             >
               {st.icon}

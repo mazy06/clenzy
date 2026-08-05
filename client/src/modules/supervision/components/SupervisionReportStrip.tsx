@@ -31,44 +31,47 @@ export function SupervisionReportStrip() {
   const byType = report.acceptanceByType ?? [];
 
   return (
-    <div className="overflow-hidden rounded-[14px] border border-solid border-[var(--line,#e6e8ef)] bg-[var(--card,#fff)]">
-      <p className="cn-text-body1 p-[14px 16px 6px] font-extrabold text-[13.5px] text-[var(--ink,_#1b2240)]">
+    <div className="overflow-hidden rounded-xl border border-solid border-border bg-card">
+      {/* Les gabarits d'espacement etaient ecrits `p-[14px 16px 6px]` : une valeur
+          arbitraire a espaces, que Tailwind n'emet pas — le bandeau n'avait donc
+          aucune marge interieure. Repris sur l'echelle. */}
+      <p className="px-4 pt-3.5 pb-1.5 text-sm font-semibold text-foreground">
         {t('supervision.report.title', 'Bilan · 30 jours')}
       </p>
-      <div className="flex p-[2px 8px 14px]">
+      <div className="flex px-2 pt-0.5 pb-3.5">
         {stats.map((s) => (
           <div className="flex-1 text-center px-0.5 min-w-0" key={s.label}>
             <div
-              className="text-[17px] font-extrabold text-[var(--accent)] tabular-nums leading-[1.15] whitespace-nowrap overflow-hidden text-ellipsis"
+              className="cn-font-heading text-lg font-semibold text-foreground tabular-nums leading-[1.15] whitespace-nowrap overflow-hidden text-ellipsis"
               title={s.value}
             >
               {s.value}
             </div>
-            <div className="text-[10.5px] text-[var(--muted,_#6b7280)] mt-[3px] font-semibold">{s.label}</div>
+            <div className="text-2xs text-muted-foreground mt-[3px] font-medium">{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* Acceptation PAR TYPE (Vague 1) : lignes compactes type → décisions → taux. */}
       {byType.length > 0 && (
-        <div className="px-[9px] pt-1.5 pb-[7.5px]" style={{ borderTop: '1px solid var(--line, #e6e8ef)' }}>
-          <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[0.06em] text-[var(--muted,_#6b7280)] mb-[3px]">
+        <div className="px-[9px] pt-1.5 pb-[7.5px] border-t border-solid border-border">
+          <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-[3px]">
             {t('supervision.report.acceptanceByType', 'Acceptation par type')}
           </p>
           {byType.map((row) => {
             const decided = row.applied + row.dismissed;
             return (
               <div className="flex items-center gap-1.5 py-0.5 min-w-0" key={`${row.moduleKey}:${row.actionType}`}>
-                <p className="cn-text-body1 truncate flex-1 min-w-0 text-[11.5px] text-[var(--ink,_#1b2240)] font-semibold" title={row.actionType}>
+                <p className="truncate flex-1 min-w-0 text-xs text-foreground font-medium" title={row.actionType}>
                   {t(
                     `supervision.report.types.${row.actionType}`,
                     row.actionType.replaceAll('_', ' ').toLowerCase(),
                   )}
                 </p>
-                <p className="cn-text-body1 text-[11px] text-[var(--muted,_#6b7280)] tabular-nums">
+                <p className="text-xs text-muted-foreground tabular-nums">
                   {t('supervision.report.decisions', '{{count}} déc.', { count: decided })}
                 </p>
-                <span className={cn('min-w-[40px] text-end text-[11.5px] font-bold tabular-nums', decided === 0 ? 'text-[var(--muted,_#6b7280)]' : 'text-[var(--accent)]')}>
+                <span className={cn('min-w-[40px] text-end text-xs font-semibold tabular-nums', decided === 0 ? 'text-muted-foreground' : 'text-foreground')}>
                   {decided === 0 ? '—' : `${Math.round(row.acceptanceRate * 100)} %`}
                 </span>
               </div>

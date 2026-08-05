@@ -20,20 +20,19 @@ export const NavigationResult: React.FC<{
   onNavigate?: (path: string) => void;
 }> = ({ data, onNavigate }) => (
   <SurfaceCard>
-    <Overline sx={{ mb: 0.5 }}>Navigation suggérée</Overline>
-    <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)]">
+    <Overline className="mb-1">Navigation suggérée</Overline>
+    <p className="text-sm font-semibold text-balance text-foreground">
       {data.label ?? 'Page suggérée'}
     </p>
     {data.reason && (
-      <p className="cn-text-body1 text-[12px] text-[var(--muted)] mt-0.5 leading-[1.5]">
-        {data.reason}
-      </p>
+      <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{data.reason}</p>
     )}
     {data.path && onNavigate && (
       <div className="mt-2">
         <Button
           size="sm"
           variant="outline"
+          className="cursor-pointer"
           onClick={() => onNavigate(data.path as string)}
         >
           {data.label ? `Ouvrir ${data.label}` : 'Y aller'}

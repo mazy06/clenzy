@@ -1,8 +1,8 @@
 /* ============================================================
    <TaskDeckQueue> — file « Attend ta validation » en PILES par type
 
-   Refonte (handoff « Cartes empilées par type »), sur les primitifs Baitly UI
-   et les tokens maison.
+   Refonte (handoff « Cartes empilées par type »), sur les primitives et les
+   jetons Baitly UI.
    Les cartes sont regroupées par type (Finance / Opérations / Communication /
    Revenue / Avis) et empilées en « deck » ; une pile se déplie au clic (une
    seule à la fois), les autres sont floutées. Cartes restylées + en-tête (tri,
@@ -17,7 +17,7 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Button, Collapsible, CollapsibleContent } from '../../../components/ui';
+import { Badge, Button, Collapsible, CollapsibleContent } from '../../../components/ui';
 import {
   Check, ChevronDown, Edit, Timer, CreditCard, Schedule, VisibilityOff, Undo, OpenInNew,
 } from '../../../icons';
@@ -101,44 +101,40 @@ function TaskCard({
       data-urgent={(!payment && !reminder && !cd.expired && cd.hours < 1) || undefined}
       data-behind={behind || undefined}
       className={cn(
-        'flex flex-col bg-[var(--card)] border border-solid border-[var(--line)] rounded-[16px] p-[14px] min-h-[128px] overflow-hidden',
+        'flex flex-col overflow-hidden rounded-xl border border-border bg-card p-3.5 min-h-[128px]',
+        behind ? 'shadow-sm' : 'shadow-md',
         // Contenu masqué pour les cartes derrière (seuls les bords apparaissent).
         '[&>*]:transition-opacity [&>*]:duration-[250ms]',
         behind ? '[&>*]:opacity-0' : '[&>*]:opacity-100',
       )}
-      style={{
-        boxShadow: behind
-          ? 'var(--shadow-sm, 0 1px 2px rgba(0,0,0,.06))'
-          : 'var(--shadow-md, 0 4px 14px rgba(0,0,0,.08))',
-      }}
     >
       {/* En-tête : tuile d'icône + label du type + badge d'urgence */}
       <div className="flex items-center gap-1.5">
-        <div className="w-[32px] h-[32px] rounded-[10px] flex items-center justify-center shrink-0" style={{ background: tile, color: meta.color }}>
+        <div className="size-8 rounded-md flex items-center justify-center shrink-0" style={{ background: tile, color: meta.color }}>
           <AgentIcon token={meta.icon} size={16} />
         </div>
-        <div className="text-[12px] font-medium text-[var(--ink)] flex-1 min-w-0 whitespace-nowrap overflow-hidden text-ellipsis">
+        <div className="flex-1 min-w-0 truncate text-xs font-medium text-foreground">
           {t(meta.nameKey)}
         </div>
         {payment || reminder || guestCard ? (
           <div className="flex items-center gap-0.5 shrink-0">
-            <div className="w-[6px] h-[6px] rounded-[50%]" style={{ background: 'var(--warn)' }} />
-            <div className="text-[10.5px] font-medium text-[var(--warn)] whitespace-nowrap">
+            <div className="size-1.5 rounded-full shrink-0 bg-warning" />
+            <div className="text-2xs font-medium whitespace-nowrap text-warning-ink">
               {payment ? t('supervision.payment.badge', 'À régler')
                 : reminder ? t('supervision.reminder.badge', 'Rappel')
                 : t('supervision.guestCard.badge', 'À compléter')}
             </div>
           </div>
         ) : (
-          <div className={cn('flex items-center gap-[3px] px-[5.4px] py-[2.0999999999999996px] rounded-[999px] text-[10px] font-medium whitespace-nowrap tabular-nums shrink-0', cd.expired ? 'bg-[var(--err-soft)]' : 'bg-[var(--warn-soft)]', cd.expired ? 'text-[var(--err)]' : 'text-[var(--warn)]')}>
+          <Badge variant={cd.expired ? 'destructive' : 'warning'} className="shrink-0 tabular-nums">
             <Timer size={11} />
             {cd.expired ? t('supervision.hitl.expired') : remainingLabel(cd, t)}
-          </div>
+          </Badge>
         )}
       </div>
 
       {/* Titre (2 lignes max) */}
-      <div className="text-[12.5px] font-medium text-[var(--ink)] leading-[1.35] mt-1.5 mb-auto line-clamp-2">
+      <div className="mt-1.5 mb-auto line-clamp-2 text-xs font-medium leading-snug text-foreground">
         {action.title}
       </div>
 
@@ -197,7 +193,7 @@ function TaskCard({
           onClick={() => setWhy((w) => !w)}
           aria-expanded={why}
           aria-label={t('supervision.hitl.why')}
-          className="w-[34px] rounded-[10px] border border-solid border-[var(--line-2)] text-[var(--accent)] hover:bg-transparent"
+          className="w-[34px] rounded-md border border-border text-muted-foreground"
         >
           <ChevronDown size={16} style={{ transform: why ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
         </Button>
@@ -207,7 +203,7 @@ function TaskCard({
           ci-dessus porte deja l'etat `why`. */}
       <Collapsible open={why}>
         <CollapsibleContent>
-          <div className="mt-2 pt-2 border-t border-solid border-t-[var(--line)] text-[11.5px] leading-[1.5] text-[var(--muted)]">
+          <div className="mt-2 border-t border-border pt-2 text-2xs leading-relaxed text-muted-foreground">
             {action.reasoning}
           </div>
         </CollapsibleContent>
@@ -249,7 +245,7 @@ function TaskStack({
       <div className="flex flex-col">
         {/* Barre d'en-tête */}
         <div className="flex items-center gap-1.5 mb-2">
-          <div className="text-[11.5px] font-medium text-[var(--muted)] flex-1 min-w-0">
+          <div className="flex-1 min-w-0 text-2xs font-medium text-muted-foreground">
             {t('supervision.deck.count', { count: n })}
             {total > 0 && <> · <Money value={total} from="EUR" /></>}
           </div>
@@ -309,7 +305,7 @@ function TaskStack({
       {Array.from({ length: behind }).map((_, i) => {
         const d = i + 1;
         return (
-          <div className="absolute top-0 start-0 end-0 bg-[var(--card)] border border-solid border-[var(--line)] rounded-[16px]" style={{ bottom: -(d * PEEK), boxShadow: 'var(--shadow-sm, 0 1px 2px rgba(0,0,0,.06))', zIndex: 3 - i }} key={d} />
+          <div className="absolute top-0 start-0 end-0 rounded-xl border border-border bg-card shadow-sm" style={{ bottom: -(d * PEEK), zIndex: 3 - i }} key={d} />
         );
       })}
       {/* Carte du dessus (en flux : donne sa hauteur au deck) */}
@@ -318,7 +314,7 @@ function TaskStack({
       </div>
       {/* Pastille de comptage */}
       {n > 1 && (
-        <div className="absolute z-[6] min-w-[24px] h-[24px] px-[4.5px] rounded-[999px] bg-[var(--accent)] text-[var(--on-accent)] text-[11px] font-semibold flex items-center justify-center" style={{ top: -10, right: -9, boxShadow: 'var(--shadow-md, 0 4px 14px rgba(0,0,0,.18))' }}>
+        <div className="absolute z-[6] min-w-6 h-6 px-1 rounded-full bg-primary text-primary-foreground text-2xs font-semibold tabular-nums shadow-md flex items-center justify-center" style={{ top: -10, insetInlineEnd: -9 }}>
           {n}
         </div>
       )}
@@ -457,14 +453,14 @@ function TaskDeckQueueInner({ actions, onValidate, onEdit, onAdjustPrice, varian
 
       {/* Toast Undo */}
       {undo && (
-        <div className="fixed bottom-[26px] start-[50%] z-[1400] flex items-center gap-[9px] px-3 py-[7.5px] rounded-[12px] bg-[var(--ink)] text-[#fff]" style={{ transform: 'translateX(-50%)', boxShadow: 'var(--shadow-lg, 0 10px 30px rgba(0,0,0,.25))', animation: 'deckCascadeIn .3s ease both' }}>
-          <Check size={15} style={{ color: 'var(--ok)' }} />
-          <div className="text-[12px] font-medium">{undo.label}</div>
-          {/* Toast a fond encre : l'encre du ghost s'y perdrait, on garde la teinte
-              accent d'origine pour rester lisible sur ce fond sombre. */}
+        <div className="fixed bottom-[26px] start-[50%] z-[1400] flex items-center gap-2 px-3 py-2 rounded-lg bg-foreground text-background shadow-lg" style={{ transform: 'translateX(-50%)', animation: 'deckCascadeIn .3s ease both' }}>
+          <Check size={15} className="text-success" />
+          <div className="text-xs font-medium">{undo.label}</div>
+          {/* Toast a fond encre (surface inversee) : le ghost prend l'encre de la
+              surface, sinon son libelle se perdrait sur ce fond. */}
           <Button
             variant="ghost" size="sm" onClick={doUndo}
-            className="text-[var(--accent)] hover:text-[var(--accent)]"
+            className="text-background hover:bg-background/10 hover:text-background"
           >
             <Undo size={13} />
             {t('supervision.deck.undo', 'Annuler')}

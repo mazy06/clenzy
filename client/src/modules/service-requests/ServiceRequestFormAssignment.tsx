@@ -49,7 +49,7 @@ export interface ServiceRequestFormAssignmentProps {
   matchingUserIds?: number[];
 }
 
-// ─── Assignment type chip config (tokens — actif = texte couleur + fond -soft) ──
+// ─── Assignment type chip config (actif = encre `-ink` sur fond `-soft`) ──
 
 interface AssignmentTypeDef {
   value: '' | 'user' | 'team';
@@ -60,9 +60,9 @@ interface AssignmentTypeDef {
 }
 
 const ASSIGNMENT_TYPES: AssignmentTypeDef[] = [
-  { value: '', label: 'Aucune', icon: <BlockOutlined size={14} strokeWidth={1.75} />, fg: 'var(--muted)', bg: 'var(--hover)' },
-  { value: 'user', label: 'Individuel', icon: <Person size={14} strokeWidth={1.75} />, fg: 'var(--accent)', bg: 'var(--accent-soft)' },
-  { value: 'team', label: 'Équipe', icon: <Group size={14} strokeWidth={1.75} />, fg: 'var(--accent)', bg: 'var(--accent-soft)' },
+  { value: '', label: 'Aucune', icon: <BlockOutlined size={14} strokeWidth={1.75} />, fg: 'var(--bui-muted-foreground)', bg: 'var(--bui-muted)' },
+  { value: 'user', label: 'Individuel', icon: <Person size={14} strokeWidth={1.75} />, fg: 'var(--bui-primary)', bg: 'var(--bui-primary-soft)' },
+  { value: 'team', label: 'Équipe', icon: <Group size={14} strokeWidth={1.75} />, fg: 'var(--bui-primary)', bg: 'var(--bui-primary-soft)' },
 ];
 
 /** Determine the service category from a service type value */
@@ -157,7 +157,7 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
         {/* Type d'assignation - Chips */}
         {canAssignForProperty && (
           <div className="mb-3">
-            <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1">
+            <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
               {t('serviceRequests.fields.assignmentType')}
             </p>
             <div className="flex gap-1 flex-wrap">
@@ -186,14 +186,14 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                 const cat = getServiceCategory(watchedServiceType);
                 if (cat === 'cleaning') {
                   return (
-                    <p className="cn-text-body1 text-[10px] text-[var(--faint)] italic mt-0.5">
+                    <p className="text-2xs text-faint italic mt-0.5">
                       Type nettoyage → assignation équipe pré-sélectionnée
                     </p>
                   );
                 }
                 if (cat === 'maintenance') {
                   return (
-                    <p className="cn-text-body1 text-[10px] text-[var(--faint)] italic mt-0.5">
+                    <p className="text-2xs text-faint italic mt-0.5">
                       Type maintenance → assignation équipe pré-sélectionnée
                     </p>
                   );
@@ -236,11 +236,11 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                       >
                         <div className="flex items-center gap-1">
                           {watchedAssignedToType === 'user' ? (
-                            <span className={cn('inline-flex', hasValue ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Person size={16} strokeWidth={1.75} /></span>
+                            <span className={cn('inline-flex', hasValue ? 'text-primary' : 'text-faint')}><Person size={16} strokeWidth={1.75} /></span>
                           ) : (
-                            <span className={cn('inline-flex', hasValue ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Group size={16} strokeWidth={1.75} /></span>
+                            <span className={cn('inline-flex', hasValue ? 'text-primary' : 'text-faint')}><Group size={16} strokeWidth={1.75} /></span>
                           )}
-                          <span className={cn('cn-text-body1 text-[12.5px]', hasValue ? 'text-[var(--body)]' : 'text-[var(--faint)]')}>
+                          <span className={cn('text-[12.5px]', hasValue ? 'text-foreground' : 'text-faint')}>
                             {hasValue
                               ? watchedAssignedToType === 'user'
                                 ? `${(selectedItem as typeof users[number]).firstName} ${(selectedItem as typeof users[number]).lastName}`
@@ -254,17 +254,17 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                           ? getAssignableUsers().map((user) => (
                               <SelectItem key={user.id} value={String(user.id)}>
                                 <div className="flex items-center gap-1 w-full">
-                                  <span className={cn('inline-flex', matchingSet.has(user.id) ? 'text-[var(--ok)]' : 'text-[var(--accent)]')}><Person size={16} strokeWidth={1.75} /></span>
+                                  <span className={cn('inline-flex', matchingSet.has(user.id) ? 'text-success' : 'text-primary')}><Person size={16} strokeWidth={1.75} /></span>
                                   <div className="flex-1 min-w-0">
-                                    <span className="cn-text-body1 block text-[12.5px] text-[var(--body)]">
+                                    <span className="block text-[12.5px] text-foreground">
                                       {user.firstName} {user.lastName}
                                     </span>
-                                    <span className="cn-text-body1 block text-[10.5px] text-[var(--faint)]">
+                                    <span className="block text-[10.5px] text-faint">
                                       {user.role} • {user.email}
                                     </span>
                                   </div>
                                   {matchingSet.has(user.id) && (
-                                    <Badge variant="secondary" className="h-[18px] text-[9.5px] font-bold text-[var(--ok)] bg-[var(--ok-soft)] px-1">Propose</Badge>
+                                    <Badge variant="secondary" className="h-[18px] text-[9.5px] font-bold text-success-ink bg-success-soft px-1">Propose</Badge>
                                   )}
                                 </div>
                               </SelectItem>
@@ -272,12 +272,12 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
                           : filteredTeams.map((team) => (
                               <SelectItem key={team.id} value={String(team.id)}>
                                 <div className="flex items-center gap-1">
-                                  <span className="inline-flex text-[var(--accent)]"><Group size={16} strokeWidth={1.75} /></span>
+                                  <span className="inline-flex text-primary"><Group size={16} strokeWidth={1.75} /></span>
                                   <div>
-                                    <span className="cn-text-body1 block text-[12.5px] text-[var(--body)] font-medium">
+                                    <span className="block text-[12.5px] text-foreground font-medium">
                                       {team.name}
                                     </span>
-                                    <span className="cn-text-body1 block text-[10.5px] text-[var(--faint)]">
+                                    <span className="block text-[10.5px] text-faint">
                                       {team.memberCount} {t('serviceRequests.members')} • {getInterventionTypeLabel(team.interventionType)}
                                     </span>
                                   </div>

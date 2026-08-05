@@ -110,34 +110,39 @@ interface PropertyCardProps {
   cleaningEstimate?: number;
 }
 
-// Styles alignés sur DESIGN_BASELINE + référence maquette .pr-card (screen-properties).
+// Carte logement — référence maquette .pr-card (screen-properties), peinte en Baitly UI.
 // `--card-spacing: 0px` neutralise le rembourrage vertical du primitif Card : la
-// carte logement colle son bandeau image au bord, comme l'ancienne Card MUI.
+// carte logement colle son bandeau image au bord.
+// `ring-foreground/20` et non une bande latérale : le primitif Card porte déjà
+// un `ring-1 ring-foreground/10`, on ne fait que le renforcer au survol.
 const CARD_ROOT_CLASS =
   'h-full cursor-pointer [--card-spacing:0px] '
-  + '[transition:border-color_.14s,box-shadow_.14s,transform_.14s] '
-  + 'hover:-translate-y-[2px] hover:shadow-[var(--shadow-card)] hover:ring-[color:var(--line-2)] '
+  + '[transition:box-shadow_.14s,transform_.14s] '
+  + 'hover:-translate-y-[2px] hover:shadow-sm hover:ring-foreground/20 '
   + 'motion-reduce:transition-none motion-reduce:hover:translate-y-0';
 
 // Typographie de la carte et du dialogue, transcrite en classes.
 // `font-[family-name:var(...)]` et non `font-[var(...)]` : sur une valeur `var()`,
 // Tailwind ne peut pas trancher entre famille et graisse et emettrait un
 // `font-weight` invalide, silencieusement ignore par le navigateur.
+// `my-0` / `mt-0` sont indispensables sur les <p>/<h6> natifs : le projet
+// n'active pas le preflight complet (coexistence historique MUI), les marges
+// du navigateur reviendraient sinon.
 
-/** .pr-nm — nom d'entité en display (la graisse du `sx` primait sur la prop 700). */
+/** .pr-nm — nom d'entité en display. */
 const NAME_CLASS =
-  'cn-text-subtitle1 mb-[3px] min-w-0 flex-1 truncate font-[family-name:var(--font-display)] text-[15px] font-semibold tracking-[-.01em] text-[var(--ink)]';
-const ADDRESS_CLASS = 'cn-text-caption flex-1 truncate text-[11.5px] text-[var(--muted)]';
+  'mt-0 mb-[3px] min-w-0 flex-1 truncate font-[family-name:var(--font-display)] text-[15px] font-semibold tracking-[-.01em] text-foreground';
+const ADDRESS_CLASS = 'flex-1 truncate text-xs text-muted-foreground';
 /** .pr-stats — bande de stats hairline (valeurs display tabular-nums) */
 const STAT_VALUE_CLASS =
-  'cn-text-body1 font-[family-name:var(--font-display)] text-[15px] font-semibold leading-[1.2] text-[var(--ink)] tabular-nums';
+  'my-0 font-[family-name:var(--font-display)] text-[15px] font-semibold leading-[1.2] text-foreground tabular-nums';
 const STAT_LABEL_CLASS =
-  'cn-text-body1 mt-px text-[9.5px] font-bold uppercase tracking-[.04em] text-[var(--faint)]';
-// ── Dialog ── (skin global MuiDialog ; surfaces internes en tokens)
+  'mb-0 mt-px text-2xs font-semibold uppercase tracking-wide text-faint';
+// ── Dialog ── (surfaces internes en tokens Baitly UI)
 const DIALOG_SECTION_TITLE_CLASS =
-  'cn-text-body1 mb-[4.5px] text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]';
+  'mt-0 mb-[4.5px] text-2xs font-semibold uppercase tracking-wide text-faint';
 const DIALOG_DESCRIPTION_CLASS =
-  'cn-text-body2 line-clamp-4 leading-[1.4] text-[var(--muted)]';
+  'my-0 line-clamp-4 text-xs leading-[1.4] text-muted-foreground';
 
 // ─── Duration estimation (lightweight version for cards) ─────────────────────
 
@@ -203,7 +208,7 @@ const fmtEuro = (v: number) => <Money value={v} from="EUR" decimals={0} />;
 
 // Obtenir l'icône du type de propriété
 const getPropertyTypeIcon = (type: string, size: number = 48) => {
-  const iconProps = { size, color: 'var(--accent)', strokeWidth: 1.75 };
+  const iconProps = { size, color: 'var(--bui-primary)', strokeWidth: 1.75 };
   switch (type.toLowerCase()) {
     case 'appartement':
     case 'apartment':
@@ -256,21 +261,23 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
   const pill = (statusLc.includes('maintenance') || statusLc.includes('inacti'))
     ? { label: getPropertyStatusLabel(property.status, t), color: getPropertyStatusHex(property.status) }
     : kpi?.operationalStatus === 'occupied'
-      ? { label: t('properties.ops.occupied'), color: 'var(--ok)' }
+      ? { label: t('properties.ops.occupied'), color: 'var(--bui-success)' }
       : kpi?.operationalStatus === 'available'
-        ? { label: t('properties.ops.available'), color: 'var(--info)' }
+        ? { label: t('properties.ops.available'), color: 'var(--bui-info)' }
         : { label: getPropertyStatusLabel(property.status, t), color: getPropertyStatusHex(property.status) };
 
   // Pied opérationnel : intervention en cours > check-out (si occupé) > disponible.
+  // `color` habille une ICÔNE (teinte vive), jamais le texte — cf. la règle
+  // `-ink` de Baitly UI.
   const ops = kpi?.activeInterventionType === 'cleaning'
-    ? { icon: <BroomFill size={13} />, color: 'var(--accent)', strong: t('properties.ops.cleaning'), rest: t('properties.ops.inProgress') }
+    ? { icon: <BroomFill size={13} />, color: 'var(--bui-primary)', strong: t('properties.ops.cleaning'), rest: t('properties.ops.inProgress') }
     : kpi?.activeInterventionType === 'maintenance'
-      ? { icon: <Build size={13} strokeWidth={2} />, color: 'var(--warn)', strong: t('properties.ops.maintenance'), rest: t('properties.ops.inProgress') }
+      ? { icon: <Build size={13} strokeWidth={2} />, color: 'var(--bui-warning)', strong: t('properties.ops.maintenance'), rest: t('properties.ops.inProgress') }
       : (kpi?.operationalStatus === 'occupied' && kpi.currentCheckOut)
-        ? { icon: <Logout size={13} strokeWidth={2} />, color: 'var(--accent)', strong: t('properties.ops.checkout'),
+        ? { icon: <Logout size={13} strokeWidth={2} />, color: 'var(--bui-primary)', strong: t('properties.ops.checkout'),
             rest: `· ${relativeCheckoutLabel(kpi.currentCheckOut, kpi.currentCheckOutTime ?? property.defaultCheckOutTime ?? null, t)}` }
         : kpi?.operationalStatus === 'available'
-          ? { icon: <CheckCircle size={13} strokeWidth={2} />, color: 'var(--ok)', strong: t('properties.ops.available'), rest: '' }
+          ? { icon: <CheckCircle size={13} strokeWidth={2} />, color: 'var(--bui-success)', strong: t('properties.ops.available'), rest: '' }
           : null;
 
   const handleViewDetails = () => {
@@ -298,20 +305,21 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             backgroundPosition: 'center',
           }}
         >
-          {/* Icône immeuble centrée (blanc .7) */}
-          <div className="relative z-[1] inline-flex text-[rgba(255,255,255,.7)]">
+          {/* Icône immeuble centrée — encre blanche assumée : elle est posée sur
+              une photo, aucune couleur de surface ne conviendrait. */}
+          <div className="relative z-[1] inline-flex text-white/70">
             <Business size={30} strokeWidth={1.75} />
           </div>
 
-          {/* .pr-status — pastille statut opérationnel top-left (dot coloré + libellé) */}
-          <div className="absolute top-[10px] left-[10px] z-[2] inline-flex items-center gap-[3.75px] text-[10.5px] font-bold px-[9px] py-[4px] rounded-[20px] bg-[rgba(255,255,255,.92)] backdrop-blur-[4px] text-[#2A3942] leading-none">
-            <div className="w-[6px] h-[6px] rounded-[50%] shrink-0" style={{ backgroundColor: pill.color }} />
+          {/* .pr-status — pastille statut opérationnel (dot coloré + libellé) */}
+          <div className="absolute top-[10px] start-[10px] z-[2] inline-flex items-center gap-[3.75px] rounded-full bg-card/90 px-[9px] py-[4px] text-2xs font-semibold leading-none text-foreground backdrop-blur-[4px]">
+            <span aria-hidden className="size-[6px] shrink-0 rounded-full" style={{ backgroundColor: pill.color }} />
             {pill.label}
           </div>
 
-          {/* .pr-ch — slot canal/santé top-right (badge santé Channex + contrat) */}
+          {/* .pr-ch — slot canal/santé (badge santé Channex + contrat) */}
           {(channexMapping || missingContract) && (
-            <div className="absolute top-[10px] right-[10px] z-[2] flex items-center gap-[3px]">
+            <div className="absolute top-[10px] end-[10px] z-[2] flex items-center gap-[3px]">
               {channexMapping && (
                 <ChannexHealthBadge
                   mapping={channexMapping}
@@ -338,9 +346,9 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             </h6>
             {property.nightlyPrice > 0 && (
               <StatusChip
-                tokens={{ color: 'var(--body)', bg: 'var(--card)' }}
+                tokens={{ color: 'var(--bui-foreground)', bg: 'var(--bui-card)' }}
                 label={<><Money value={property.nightlyPrice} from="EUR" decimals={0} />/nuit</>}
-                className="shrink-0 border border-solid border-[var(--line-2)] tabular-nums"
+                className="shrink-0 border border-solid border-border tabular-nums"
               />
             )}
           </div>
@@ -357,9 +365,9 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
           </div>
 
           {/* Bande de KPI opérationnels (.pr-stats) — occupation / ADR / revenu */}
-          <div className="flex border-t border-b border-solid border-[var(--line)] mb-[7.5px]">
+          <div className="mb-[7.5px] flex border-y border-solid border-border">
             {kpiCells.map((metric) => (
-              <div key={metric.label} className="flex-1 py-[9px] text-center border-r border-solid border-[var(--line)] min-w-0 last:border-r-0">
+              <div key={metric.label} className="min-w-0 flex-1 border-e border-solid border-border py-[9px] text-center last:border-e-0">
                 <p className={STAT_VALUE_CLASS}>{metric.value}</p>
                 <p className={STAT_LABEL_CLASS}>{metric.label}</p>
               </div>
@@ -368,11 +376,11 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
 
           {/* .pr-foot — pied opérationnel : statut dynamique du logement
               (intervention en cours > check-out si occupé > disponible) */}
-          <div className="flex items-center gap-[5.25px] text-[11.5px] text-[var(--muted)] min-w-0 min-h-[18px]" onClick={(e) => e.stopPropagation()}>
+          <div className="flex min-h-[18px] min-w-0 items-center gap-[5.25px] text-xs text-muted-foreground" onClick={(e) => e.stopPropagation()}>
             {ops && (
               <>
                 <span className="inline-flex shrink-0" style={{ color: ops.color }}>{ops.icon}</span>
-                <span className="text-[var(--body)] font-semibold">{ops.strong}</span>
+                <span className="font-semibold text-foreground">{ops.strong}</span>
                 {ops.rest && (
                   <span className="overflow-hidden text-ellipsis whitespace-nowrap tabular-nums">
                     {ops.rest}
@@ -417,14 +425,14 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
         >
           <DialogHeader>
             <div className="flex items-center gap-2 pe-8">
-              <div className="w-10 h-10 rounded-[11px] flex items-center justify-center bg-[var(--accent-soft)] shrink-0">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary-soft">
                 {getPropertyTypeIcon(property.propertyType, 22)}
               </div>
               <div className="min-w-0">
-                <DialogTitle className="cn-text-h6 leading-[1.2]">
+                <DialogTitle className="text-sm font-semibold leading-[1.2]">
                   {property.name}
                 </DialogTitle>
-                <span className="cn-text-caption text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {getPropertyTypeLabel(property.propertyType, t)} • {getPropertyStatusLabel(property.status, t)}
                 </span>
               </div>
@@ -437,7 +445,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               <p className={DIALOG_SECTION_TITLE_CLASS}>
                 Adresse
               </p>
-              <p className="cn-text-body2">
+              <p className="my-0 text-xs">
                 {property.address}, {property.postalCode} {property.city}, {property.country}
               </p>
             </div>
@@ -460,12 +468,12 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                 ].map((item) => (
                   <div
                     key={item.label}
-                    className="flex items-center gap-[6px] bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[11px] px-[9px] py-[6px] min-w-[120px]"
+                    className="flex min-w-[120px] items-center gap-[6px] rounded-lg border border-solid border-field-line bg-field px-[9px] py-[6px]"
                   >
-                    <div className="text-[var(--accent)] flex">{item.icon}</div>
+                    <div className="flex text-primary">{item.icon}</div>
                     <div>
-                      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] tabular-nums">{item.value}</p>
-                      <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.04em] uppercase text-[var(--faint)]">{item.label}</p>
+                      <p className="my-0 font-[family-name:var(--font-display)] text-[15px] font-semibold text-foreground tabular-nums">{item.value}</p>
+                      <p className="my-0 text-2xs font-semibold uppercase tracking-wide text-faint">{item.label}</p>
                     </div>
                   </div>
                 ))}
@@ -482,14 +490,14 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                 {t('properties.cleaningEstimate')}
               </p>
               {cleaningPrice != null ? (
-                <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[22px] font-semibold text-[var(--ink)] tabular-nums tracking-[-.01em]">
-                  <Money value={cleaningPrice} from="EUR" decimals={0} /> <span className="cn-text-caption text-muted-foreground">{t('properties.priceEstimation.perIntervention')}</span>
+                <p className="my-0 font-[family-name:var(--font-display)] text-[22px] font-semibold tracking-[-.01em] text-foreground tabular-nums">
+                  <Money value={cleaningPrice} from="EUR" decimals={0} /> <span className="text-xs text-muted-foreground">{t('properties.priceEstimation.perIntervention')}</span>
                 </p>
               ) : (
-                <p className="cn-text-body2 text-muted-foreground">—</p>
+                <p className="my-0 text-xs text-muted-foreground">—</p>
               )}
               {property.nightlyPrice > 0 && (
-                <p className="cn-text-body2 text-muted-foreground mt-0.5">
+                <p className="mb-0 mt-0.5 text-xs text-muted-foreground">
                   <Money value={property.nightlyPrice} from="EUR" decimals={0} /> / {t('properties.perNight')}
                 </p>
               )}
@@ -500,7 +508,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               </p>
               <div className="flex items-center gap-1">
                 <span className="inline-flex text-muted-foreground"><BroomFill size={18} /></span>
-                <p className="cn-text-body2">{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</p>
+                <p className="my-0 text-xs">{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</p>
               </div>
             </div>
 
@@ -536,10 +544,10 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               <p className={DIALOG_SECTION_TITLE_CLASS}>
                 Contact
               </p>
-              <p className="cn-text-body2 mb-0.5">
+              <p className="mt-0 mb-0.5 text-xs">
                 {property.contactPhone || 'Téléphone non renseigné'}
               </p>
-              <p className="cn-text-body2 text-muted-foreground">
+              <p className="my-0 text-xs text-muted-foreground">
                 {property.contactEmail || 'Email non renseigné'}
               </p>
             </div>

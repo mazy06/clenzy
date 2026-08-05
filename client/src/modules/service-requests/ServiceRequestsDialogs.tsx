@@ -169,7 +169,7 @@ export function AssignDialog({
         </DialogHeader>
 
         {selectedRequest && (
-          <p className="cn-text-body2 text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {t('serviceRequests.assign')}: <strong>{selectedRequest.title}</strong>
           </p>
         )}
@@ -289,7 +289,7 @@ export function ErrorDialog({ open, onClose, message, t }: ErrorDialogProps) {
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-1.5 text-[var(--err)]">
+          <DialogTitle className="flex items-center gap-1.5 text-destructive-ink">
             <span className="inline-flex text-destructive"><Cancel size={20} strokeWidth={1.75} /></span>
             {t('common.error')}
           </DialogTitle>
@@ -325,8 +325,8 @@ export function SuccessDialog({ open, onClose, message, t }: SuccessDialogProps)
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-1.5 text-[var(--ok)]">
-            <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircle size={20} strokeWidth={1.75} /></span>
+          <DialogTitle className="flex items-center gap-1.5 text-success-ink">
+            <span className="inline-flex text-success"><CheckCircle size={20} strokeWidth={1.75} /></span>
             {t('common.success')}
           </DialogTitle>
           <DialogDescription>

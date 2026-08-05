@@ -33,11 +33,11 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  // Report en classes de LIST_PAPER_SX (hairline, r14, fond --card, sans ombre).
+  // Report en classes de LIST_PAPER_SX (hairline, rayon xl, surface de carte, sans ombre).
   return (
     <div
       ref={containerRef}
-      className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] shadow-none"
+      className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-xl border border-solid border-border bg-card shadow-none"
     >
       <div className="flex-1 overflow-hidden">
         <Table>
@@ -63,25 +63,25 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
                 onClick={() => navigate(`/service-requests/${request.id}`)}
               >
                 <TableCell>
-                  <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)]">
+                  <p className="text-[13px] font-semibold text-foreground">
                     {stripPropertySuffix(request.title, request.propertyName)}
                   </p>
                 </TableCell>
                 <TableCell>
-                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
+                  <p className="text-[12.5px] text-foreground">
                     {request.propertyName}
                   </p>
-                  <p className="cn-text-body1 text-[11px] text-[var(--muted)]">
+                  <p className="text-[11px] text-muted-foreground">
                     {request.propertyAddress}, {request.propertyCity}
                   </p>
                 </TableCell>
                 <TableCell>
-                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
+                  <p className="text-[12.5px] text-foreground">
                     {request.requestorName}
                   </p>
                 </TableCell>
                 <TableCell>
-                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
+                  <p className="text-[12.5px] text-foreground">
                     {request.assignedToName || '—'}
                   </p>
                 </TableCell>
@@ -92,17 +92,17 @@ const ServiceRequestsTableView: React.FC<ServiceRequestsTableViewProps> = ({
                   <StatusChip pill tokens={srPriorityTokens(request.priority)} label={getServiceRequestPriorityLabel(request.priority, t)} />
                 </TableCell>
                 <TableCell className="text-end">
-                  <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] font-[family-name:var(--font-display)] tabular-nums">
+                  <p className="text-[12.5px] font-semibold text-foreground font-[family-name:var(--font-display)] tabular-nums">
                     {request.estimatedCost != null ? <Money value={request.estimatedCost} from="EUR" /> : '—'}
                   </p>
                   {request.estimatedDuration > 0 && (
-                    <p className="cn-text-body1 text-[11px] text-[var(--muted)] tabular-nums">
+                    <p className="text-[11px] text-muted-foreground tabular-nums">
                       ~{request.estimatedDuration}h
                     </p>
                   )}
                 </TableCell>
                 <TableCell>
-                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)] tabular-nums">
+                  <p className="text-[12.5px] text-foreground tabular-nums">
                     {formatDateShort(request.dueDate)}
                   </p>
                 </TableCell>

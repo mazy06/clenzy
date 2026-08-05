@@ -8,8 +8,17 @@
    Aucun tool backend n'émet ce hint aujourd'hui — renderer forward-compatible.
    ============================================================ */
 import React from 'react';
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../../components/ui';
 import { cn } from '../../../../utils/cn';
-import { Overline, humanizeKey } from './shared';
+import { Overline, SurfaceCard, humanizeKey } from './shared';
 
 interface ColumnObj {
   key: string;
@@ -57,56 +66,52 @@ export const DataTableResult: React.FC<{ data: DataTableData }> = ({ data }) => 
 
   if (rows.length === 0 || columns.length === 0) {
     return (
-      <div className="mt-1.5 mb-2 px-3 py-3 rounded-[12px] border border-[var(--line)] bg-[var(--card)] text-center">
-        <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">Aucune donnée.</p>
-      </div>
+      <SurfaceCard className="text-center">
+        <p className="text-xs text-muted-foreground">Aucune donnée.</p>
+      </SurfaceCard>
     );
   }
 
   return (
     <div className="mt-1.5 mb-2">
-      {data.title && <Overline sx={{ mb: 0.75 }}>{data.title}</Overline>}
+      {data.title && <Overline className="mb-1.5">{data.title}</Overline>}
 
-      <div className="rounded-[12px] overflow-hidden border border-[var(--line)] bg-[var(--card)]">
-        <div className="grid gap-1.5 px-[9px] py-[4.5px] bg-[var(--surface-2)]" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`, borderBottom: '1px solid var(--line)' }}>
-          {columns.map((col) => (
-            <Overline key={col.key} sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: col.numeric ? 'right' : 'left' }}>
-              {col.label}
-            </Overline>
-          ))}
-        </div>
-
-        {visible.map((row, idx) => (
-          <div
-            key={idx}
-            className={cn(
-              'grid gap-1.5 px-[9px] py-1.5 transition-[background] duration-[120ms] hover:bg-[var(--hover)] motion-reduce:transition-none',
-              idx > 0 && 'border-t border-solid border-[var(--line)]',
-            )}
-            style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
-          >
-            {columns.map((col, colIdx) => {
-              const v = cellValue(row, col, colIdx);
-              return (
-                <p
-                  key={col.key}
-                  className={cn(
-                    'cn-text-body1 text-[12.5px] text-[var(--body)] whitespace-nowrap overflow-hidden text-ellipsis tabular-nums',
-                    col.numeric ? 'text-right font-medium' : 'text-left',
-                  )}
-                >
-                  {v === null || v === undefined || v === '' ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v)}
-                </p>
-              );
-            })}
-          </div>
-        ))}
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {columns.map((col) => (
+                <TableHead key={col.key} className={cn(col.numeric && 'text-end')}>
+                  {col.label}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {visible.map((row, idx) => (
+              <TableRow key={idx}>
+                {columns.map((col, colIdx) => {
+                  const v = cellValue(row, col, colIdx);
+                  return (
+                    <TableCell
+                      key={col.key}
+                      className={cn(
+                        'max-w-[18ch] overflow-hidden text-ellipsis tabular-nums text-foreground',
+                        col.numeric && 'text-end font-medium',
+                      )}
+                    >
+                      {v === null || v === undefined || v === '' ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v)}
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
 
       {hidden > 0 && (
-        <p className="cn-text-body1 block mt-1 text-[11.5px] text-[var(--muted)] italic">
-          + {hidden} de plus
-        </p>
+        <p className="mt-1 block text-2xs italic text-muted-foreground">+ {hidden} de plus</p>
       )}
     </div>
   );

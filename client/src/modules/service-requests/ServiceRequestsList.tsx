@@ -53,12 +53,12 @@ interface ServiceRequestsListProps {
   filtersContainer?: HTMLElement | null;
 }
 
-// Icon-button d'action principale : contour accent + fond accent-soft au survol
-// (pattern boutons baseline — jamais d'aplat plein).
+// Icon-button d'action principale : contour de marque + fond `primary-soft` au
+// survol (pattern boutons Baitly UI — jamais d'aplat plein).
 const CREATE_BUTTON_CLASS =
-  'rounded-[9px] border border-solid border-[var(--accent)] bg-transparent text-[var(--accent)] '
+  'rounded-[9px] border border-solid border-primary bg-transparent text-primary '
   + 'transition-[background-color,border-color,color] duration-[140ms] '
-  + 'hover:bg-[var(--accent-soft)] hover:border-[var(--accent-deep)] hover:text-[var(--accent-deep)]';
+  + 'hover:bg-primary-soft hover:border-primary-deep hover:text-primary-deep';
 
 export default function ServiceRequestsList({ embedded = false, actionsContainer, filtersContainer }: ServiceRequestsListProps) {
   const {
@@ -557,9 +557,9 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
           {/* Action d'assignation - visible pour managers et admins si la demande n'est pas assignee */}
           {(isAdmin() || isManager()) && selectedServiceRequest?.status === 'PENDING' && !selectedServiceRequest.assignedToId && (
             <DropdownMenuItem onSelect={() => handleAssignServiceRequest(selectedServiceRequest)}>
-              {/* `fontSize`/`color="primary"` etaient des props d'icone MUI passees a
-                  une icone lucide : sans effet. Aligne sur les entrees voisines. */}
-              <Assignment size={20} strokeWidth={1.75} color="var(--mui-primary)" />
+              {/* Icone teintee : l'assignation est l'action mise en avant de ce
+                  menu. La teinte vient du jeton de marque, pas d'une prop MUI. */}
+              <Assignment size={20} strokeWidth={1.75} className="text-primary" />
               {t('serviceRequests.assign')}
             </DropdownMenuItem>
           )}
@@ -589,11 +589,11 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
                 setStatusChangeDialogOpen(true);
               }}
             >
-              <Cancel size={20} strokeWidth={1.75} color="var(--warn)" />
-              {/* Deux lignes : reprend le couple primary / secondary du ListItemText. */}
+              <Cancel size={20} strokeWidth={1.75} className="text-warning" />
+              {/* Deux lignes : libelle d'action + delai restant en appui. */}
               <span className="flex flex-col">
                 <span>{t('serviceRequests.cancel')}</span>
-                <span className="cn-text-caption text-muted-foreground">
+                <span className="text-xs text-muted-foreground tabular-nums">
                   {`Temps restant: ${Math.round(getRemainingCancellationTime(selectedServiceRequest.createdAt))}h`}
                 </span>
               </span>

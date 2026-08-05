@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
+import EmptyState from '../../components/EmptyState';
 import { Button, Card, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import type { NavigateFunction } from 'react-router-dom';
 import { Visibility, LocationOn, Build as BuildIcon } from '../../icons';
@@ -15,8 +16,8 @@ import {
 import { stripPropertySuffix } from './serviceRequestDisplayMapper';
 import { srStatusTokens, srPriorityTokens } from './serviceRequestsListConstants';
 
-/** Report en classes de `LIST_PAPER_SX` (hairline, rayon 14, fond --card). */
-const LIST_SURFACE_CLASS = 'border border-solid border-[var(--line)] shadow-none rounded-[14px] bg-[var(--card)]';
+/** Report en classes de `LIST_PAPER_SX` (hairline, rayon xl, surface de carte). */
+const LIST_SURFACE_CLASS = 'border border-solid border-border shadow-none rounded-xl bg-card';
 
 interface ServiceRequestsMapViewProps {
   mapMarkers: PropertyMarker[];
@@ -44,40 +45,42 @@ const ServiceRequestsMapView: React.FC<ServiceRequestsMapViewProps> = ({
             onBoundsChange={onBoundsChange}
           />
         ) : (
-          <div className="h-[400px] flex flex-col items-center justify-center gap-1.5">
-            <span className="inline-flex text-[var(--faint)]"><BuildIcon size={36} strokeWidth={1.5} /></span>
-            <p className="cn-text-body1 text-[13px] text-[var(--muted)]">
-              Aucune demande avec coordonnées GPS
-            </p>
-          </div>
+          <EmptyState
+            variant="transparent"
+            minHeight={400}
+            icon={<BuildIcon />}
+            title="Aucune demande avec coordonnées GPS"
+            description="Renseignez l'adresse des logements concernés pour les voir apparaître sur la carte."
+          />
         )}
       </div>
 
       {mapMarkers.length > 0 && (
         <div className="mt-2 flex-1 min-h-0 flex flex-col">
-          <p className="cn-text-body1 mb-1.5 shrink-0 text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)] tabular-nums">
+          <p className="mb-1.5 shrink-0 text-2xs font-semibold uppercase tracking-wide text-muted-foreground tabular-nums">
             {viewportRequests.length} {viewportRequests.length > 1 ? 'demandes' : 'demande'} dans la zone visible
           </p>
 
           {viewportRequests.length === 0 ? (
-            <div className={cn(LIST_SURFACE_CLASS, 'p-3 text-center')}>
-              <p className="cn-text-body1 text-[13px] text-[var(--muted)]">
-                Aucune demande dans cette zone. Déplacez ou dézoomez la carte.
-              </p>
-            </div>
+            <EmptyState
+              variant="plain"
+              icon={<LocationOn />}
+              title="Aucune demande dans cette zone"
+              description="Déplacez ou dézoomez la carte."
+            />
           ) : (
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 pe-0.5">
               {viewportRequests.map((request) => {
                 return (
-                  <Card className="gap-0 py-0 bg-[var(--card)] p-2 cursor-pointer transition-colors duration-200 shrink-0 hover:border-[var(--line-2)] hover:bg-[var(--hover)]" key={request.id} onClick={() => navigate(`/service-requests/${request.id}`)}>
+                  <Card className="gap-0 py-0 bg-card p-2 cursor-pointer transition-colors duration-200 shrink-0 hover:bg-muted" key={request.id} onClick={() => navigate(`/service-requests/${request.id}`)}>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)] overflow-hidden text-ellipsis whitespace-nowrap">
+                        <p className="text-[13.5px] font-semibold text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                           {stripPropertySuffix(request.title, request.propertyName)}
                         </p>
                         <div className="flex items-center gap-0.5 mt-0.5">
-                          <span className="inline-flex text-[var(--accent)] shrink-0"><LocationOn size={13} strokeWidth={1.75} /></span>
-                          <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] overflow-hidden text-ellipsis whitespace-nowrap">
+                          <span className="inline-flex text-primary shrink-0"><LocationOn size={13} strokeWidth={1.75} /></span>
+                          <p className="text-[11.5px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                             {request.propertyName} — {request.propertyAddress}
                           </p>
                         </div>
@@ -86,7 +89,7 @@ const ServiceRequestsMapView: React.FC<ServiceRequestsMapViewProps> = ({
                         <StatusChip pill tokens={srStatusTokens(request.status)} label={getServiceRequestStatusLabel(request.status, t)} />
                         <StatusChip pill tokens={srPriorityTokens(request.priority)} label={getServiceRequestPriorityLabel(request.priority, t)} />
                         {request.assignedToName && (
-                          <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] ms-0.5">
+                          <p className="text-[11.5px] text-muted-foreground ms-0.5">
                             {request.assignedToName}
                           </p>
                         )}

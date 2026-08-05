@@ -49,12 +49,17 @@ export function AgentDrawer({
       {detail && meta && (
         <div data-agent-drawer>
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-[40px] h-[40px] rounded-[12px] text-[#fff] flex items-center justify-center shrink-0" style={{ background: meta.color }}>
+            {/* Pastille d'identité de l'agent : teinte de marque en aplat doux +
+                icône dans la teinte vive (§2.4 — aplat/icône, jamais du texte). */}
+            <div
+              className="size-10 rounded-lg flex items-center justify-center shrink-0"
+              style={{ background: `${meta.color}1F`, color: meta.color }}
+            >
               <AgentIcon token={meta.icon} size={20} />
             </div>
             <div className="flex-1 min-w-0">
-              <SheetTitle className="cn-text-body1 text-[15px] font-extrabold text-[var(--ink,_#1b2240)]">{t(meta.nameKey)}</SheetTitle>
-              <SheetDescription className="cn-text-body1 text-[12px] text-[var(--muted,_#6b7196)]">{t(meta.roleKey)}</SheetDescription>
+              <SheetTitle className="text-sm font-semibold tracking-tight text-foreground">{t(meta.nameKey)}</SheetTitle>
+              <SheetDescription className="text-xs text-muted-foreground">{t(meta.roleKey)}</SheetDescription>
             </div>
             <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label={t('supervision.states.retry')}>
               <Close size={18} />
@@ -62,34 +67,34 @@ export function AgentDrawer({
           </div>
 
           <div className="flex items-center gap-1 mb-2">
-            <div className="w-[8px] h-[8px] rounded-[50%]" style={{ background: STATUS[detail.status].color }} />
-            <p className="cn-text-body1 text-[12.5px] font-bold text-[var(--ink,_#1b2240)]">
+            <div className="size-2 rounded-full shrink-0" style={{ background: STATUS[detail.status].color }} />
+            <p className="m-0 text-xs font-medium text-foreground">
               {t(STATUS[detail.status].labelKey)}
             </p>
           </div>
 
           {detail.task && (
-            <p className="cn-text-body1 text-[13px] text-[var(--body,_#3a3f5a)] leading-[1.5] mb-3">{detail.task}</p>
+            <p className="m-0 mb-3 text-sm leading-relaxed text-foreground">{detail.task}</p>
           )}
 
           {detail.items.length > 0 ? (
             <>
-              <p className="cn-text-body1 text-[11px] font-bold tracking-[.06em] uppercase text-[var(--muted,_#6b7196)] mb-1.5">
+              <p className="m-0 mb-1.5 text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {t('supervision.drawer.ventilation')}
               </p>
               <div className="flex flex-col gap-1.5">
                 {detail.items.map((item) => (
-                  <div className="flex gap-1.5 p-1.5 rounded-[10px] bg-[var(--surface-2,_#f6f7fb)]" key={`${item.propertyId}-${item.task}`}>
-                    <div className="text-[var(--muted,_#6b7196)] mt-0.5">
+                  <div className="flex gap-1.5 p-1.5 rounded-md bg-muted" key={`${item.propertyId}-${item.task}`}>
+                    <div className="mt-0.5 text-muted-foreground">
                       <HomeWork size={15} />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1">
-                        <p className="cn-text-body1 text-[12.5px] font-extrabold text-[var(--ink,_#1b2240)]">{item.propertyName}</p>
-                        <div className="w-[6px] h-[6px] rounded-[50%]" style={{ background: STATUS[item.status].color }} />
-                        <p className="cn-text-body1 text-[11px] text-[var(--muted,_#6b7196)]">{t(STATUS[item.status].labelKey)}</p>
+                        <p className="m-0 text-xs font-semibold text-foreground">{item.propertyName}</p>
+                        <div className="size-1.5 rounded-full shrink-0" style={{ background: STATUS[item.status].color }} />
+                        <p className="m-0 text-2xs text-muted-foreground">{t(STATUS[item.status].labelKey)}</p>
                       </div>
-                      <p className="cn-text-body1 text-[12px] text-[var(--body,_#3a3f5a)] leading-[1.4]">{item.task}</p>
+                      <p className="m-0 text-xs leading-snug text-foreground">{item.task}</p>
                     </div>
                   </div>
                 ))}
@@ -98,21 +103,21 @@ export function AgentDrawer({
           ) : detail.metrics && detail.metrics.length > 0 ? (
             <div className="grid grid-cols-2 gap-1.5">
               {detail.metrics.map((metric) => (
-                <div className="p-[7.5px] rounded-[10px] bg-[var(--surface-2,_#f6f7fb)]" key={metric.label}>
-                  <p className="cn-text-body1 text-[16px] font-extrabold text-[var(--ink,_#1b2240)] tabular-nums">
+                <div className="p-2 rounded-md bg-muted" key={metric.label}>
+                  <p className="m-0 text-base font-semibold text-foreground tabular-nums">
                     {metric.value}
                   </p>
-                  <p className="cn-text-body1 text-[11px] text-[var(--muted,_#6b7196)]">{metric.label}</p>
+                  <p className="m-0 text-2xs text-muted-foreground">{metric.label}</p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="cn-text-body1 text-[12.5px] text-[var(--muted,_#6b7196)]">{t('supervision.drawer.noActivity')}</p>
+            <p className="m-0 text-xs text-muted-foreground">{t('supervision.drawer.noActivity')}</p>
           )}
 
           {/* Agent Réputation (vue par logement) : brouillons de réponse d'avis à valider (REP). */}
           {detail.id === 'rep' && propertyId != null && (
-            <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--line, #e6e8ef)' }}>
+            <div className="mt-3 pt-3 border-t border-border">
               <SupervisionReviewDrafts propertyId={Number(propertyId)} />
             </div>
           )}

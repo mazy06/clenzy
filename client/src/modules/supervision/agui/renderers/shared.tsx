@@ -2,79 +2,50 @@
    Primitives partagées des renderers de Generative UI (supervision).
 
    Volontairement local au dossier `agui/renderers/` : ce sont des écrans
-   de spike isolés, on évite tout couplage cross-module. Design system
-   Clenzy via tokens CSS (var(--card), var(--ink), …) — dark/light OK.
+   de spike isolés, on évite tout couplage cross-module. Peinture Baitly UI
+   (utilities sémantiques `bg-card`, `border-border`, `text-foreground`,
+   `text-muted-foreground`…) — clair / sombre OK.
    ============================================================ */
 import React from 'react';
 
-/** Couleurs accent Clenzy validées (réutilisées par le bar chart & les chips). */
-export const CLENZY_SERIES_COLORS = ['#4A9B8E', '#D4A574', '#6B8A9A', '#C97A7A', '#7BA3C2'];
+import { Alert, AlertDescription, Badge, Spinner } from '../../../../components/ui';
+import { Warning } from '../../../../icons';
+import { cn } from '../../../../utils/cn';
 
 /**
- * Le prop `sx` de `SurfaceCard` / `Overline` est l'API que neuf renderers
- * voisins alimentent — dont certains avec les raccourcis d'espacement MUI
- * (`mb: 1`, `pr: 1.5`). En style inline ces raccourcis ne veulent rien dire :
- * cette traduction les convertit (spacing du projet = 6 px), et laisse passer
- * telle quelle toute propriete CSS deja valide (`borderColor`, `textAlign`…).
- * Elle disparaitra le jour ou les neuf appelants passeront a des classes.
+ * Palette de séries du bar chart. Jetons graphiques Baitly (`--bui-chart-*`)
+ * plutôt que des hex figés : ils portent déjà leur variante sombre.
  */
-const MUI_SPACING_PX = 6;
-
-const SPACING_SHORTHANDS: Record<string, readonly string[]> = {
-  m: ['margin'],
-  mt: ['marginTop'],
-  mb: ['marginBottom'],
-  ml: ['marginLeft'],
-  mr: ['marginRight'],
-  mx: ['marginLeft', 'marginRight'],
-  my: ['marginTop', 'marginBottom'],
-  p: ['padding'],
-  pt: ['paddingTop'],
-  pb: ['paddingBottom'],
-  pl: ['paddingLeft'],
-  pr: ['paddingRight'],
-  px: ['paddingLeft', 'paddingRight'],
-  py: ['paddingTop', 'paddingBottom'],
-};
-
-function sxToStyle(sx?: object): React.CSSProperties {
-  if (!sx) return {};
-  const style: Record<string, unknown> = {};
-  Object.entries(sx as Record<string, unknown>).forEach(([key, value]) => {
-    const cibles = SPACING_SHORTHANDS[key];
-    if (cibles) {
-      const valeur = typeof value === 'number' ? `${value * MUI_SPACING_PX}px` : value;
-      cibles.forEach((cible) => { style[cible] = valeur; });
-      return;
-    }
-    style[key] = value;
-  });
-  return style as React.CSSProperties;
-}
+export const CLENZY_SERIES_COLORS = [
+  'var(--bui-chart-1)',
+  'var(--bui-chart-2)',
+  'var(--bui-chart-3)',
+  'var(--bui-chart-4)',
+  'var(--bui-chart-5)',
+];
 
 /** Carte de surface standard (hairline, plate, pas d'ombre au repos). */
-export const SurfaceCard: React.FC<{ children: React.ReactNode; sx?: object }> = ({
+export const SurfaceCard: React.FC<{ children: React.ReactNode; className?: string }> = ({
   children,
-  sx,
+  className,
 }) => (
-  <div
-    className="mt-1.5 mb-[9px] p-[9px] rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]"
-    style={sxToStyle(sx)}
-  >
+  <div className={cn('mt-1.5 mb-2 rounded-xl border border-border bg-card p-3', className)}>
     {children}
   </div>
 );
 
-/** Titre overline discret (10.5px, uppercase, --faint). */
-export const Overline: React.FC<{ children: React.ReactNode; sx?: object }> = ({
+/** Titre overline discret (uppercase, encre secondaire). */
+export const Overline: React.FC<{ children: React.ReactNode; className?: string }> = ({
   children,
-  sx,
+  className,
 }) => (
   // <span> et non <p> : sans preflight Tailwind, un paragraphe porterait la
   // marge par defaut du navigateur, que le Typography MUI annulait.
   <span
-    className="block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]"
-    style={sxToStyle(sx)}
+    className={cn(
+      'block text-2xs font-semibold uppercase tracking-wide text-muted-foreground',
+      className,
+    )}
   >
     {children}
   </span>
@@ -82,35 +53,41 @@ export const Overline: React.FC<{ children: React.ReactNode; sx?: object }> = ({
 
 /** Carte d'erreur discrète (le LLM explique dans son texte). */
 export const ErrorCard: React.FC<{ message?: string }> = ({ message }) => (
-  <div className="mt-1.5 mb-2 px-2 py-2 rounded-[10px] border border-[var(--err)] bg-[var(--err-soft)]">
-    <p className="cn-text-body1 text-[12.5px] text-[var(--err)] font-medium">
+  <Alert variant="destructive" className="mt-1.5 mb-2">
+    <Warning />
+    <AlertDescription>
       {message && message.trim() !== '' ? message : 'L’outil a échoué.'}
-    </p>
-  </div>
+    </AlertDescription>
+  </Alert>
 );
 
 /** État « en cours » uniforme pendant l'exécution du tool. */
 export const PendingHint: React.FC<{ label: string }> = ({ label }) => (
-  <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] py-0.5">{label}…</p>
+  <p className="flex items-center gap-1.5 py-0.5 text-xs text-muted-foreground">
+    <Spinner className="size-3" />
+    {label}…
+  </p>
 );
 
-/** Pastille de statut colorée (réservations, interventions, jours…). */
+/**
+ * Pastille de statut colorée (réservations, interventions, jours…).
+ * Couple `-soft` / `-ink` : la teinte vive en texte plafonne à ~2,2:1.
+ */
+const CHIP_TONE_CLASSES = {
+  ok: 'bg-success-soft text-success-ink border-transparent',
+  warn: 'bg-warning-soft text-warning-ink border-transparent',
+  err: 'bg-destructive-soft text-destructive-ink border-transparent',
+  neutral: 'bg-muted text-muted-foreground border-transparent',
+} as const;
+
 export const StatusChip: React.FC<{ label: string; tone?: 'ok' | 'warn' | 'err' | 'neutral' }> = ({
   label,
   tone = 'neutral',
-}) => {
-  const map = {
-    ok: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-    warn: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-    err: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-    neutral: { fg: 'var(--muted)', bg: 'var(--field)' },
-  }[tone];
-  return (
-    <span className="inline-flex items-center px-[4.5px] py-0.5 rounded-[6px] text-[11px] font-semibold whitespace-nowrap" style={{ color: map.fg, backgroundColor: map.bg }}>
-      {label}
-    </span>
-  );
-};
+}) => (
+  <Badge variant="secondary" className={CHIP_TONE_CLASSES[tone]}>
+    {label}
+  </Badge>
+);
 
 // ─── Formatters ──────────────────────────────────────────────────────────────
 

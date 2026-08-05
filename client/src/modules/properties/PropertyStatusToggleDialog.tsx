@@ -38,7 +38,7 @@ const PropertyStatusToggleDialog: React.FC<PropertyStatusToggleDialogProps> = ({
             {isActive ? 'Désactiver cette propriété ?' : 'Réactiver cette propriété ?'}
           </DialogTitle>
         </DialogHeader>
-        <p className="cn-text-body1 text-[13px] text-[var(--body)]">
+        <p className="text-sm text-foreground">
           {property && <><strong>{property.name}</strong>{' '}</>}
           {isActive
             ? 'ne sera plus visible dans le planning, les recherches et le booking engine. Tu pourras la réactiver à tout moment.'
@@ -46,17 +46,18 @@ const PropertyStatusToggleDialog: React.FC<PropertyStatusToggleDialogProps> = ({
         </p>
         <DialogFooter>
           {/* « Annuler » passe en ghost pour que l'action de droite reste la seule
-              cadree, y compris quand la desactivation la teinte en --warn. */}
+              cadree, y compris quand la desactivation la teinte en avertissement. */}
           <Button onClick={onClose} size="sm" variant="ghost" disabled={pending}>
             Annuler
           </Button>
-          {/* La desactivation est un geste a avertir : outline teinte --warn.
+          {/* La desactivation est un geste a avertir : outline teinte avertissement
+              (encre `-ink` pour le texte, teinte vive pour le filet — cf. contrat §2.4).
               La reactivation est benigne : encre pleine. */}
           <Button
             onClick={onConfirm}
             variant={isActive ? 'outline' : 'default'}
             size="sm"
-            className={isActive ? 'text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]' : undefined}
+            className={isActive ? 'text-warning-ink border-warning hover:bg-warning-soft' : undefined}
             disabled={pending}
           >
             {pending ? <Spinner className="size-3.5" /> : null}

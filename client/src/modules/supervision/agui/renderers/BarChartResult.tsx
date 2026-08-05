@@ -6,21 +6,22 @@
        series: [{ key, label?, color? }],
        title?, totalRevenue?, totalExpenses?, totalProfit? }
 
-   Réutilise recharts (déjà dépendance du projet) avec la palette Clenzy.
-   Les séries sans couleur prennent une couleur d'accent par défaut.
+   Rendu par le primitive `ChartContainer` de Baitly UI (recharts habillé :
+   ticks, grille, curseur et tooltip prennent les jetons du thème). Les séries
+   sans couleur prennent un jeton graphique Baitly par défaut.
    ============================================================ */
 import React from 'react';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+
 import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts';
-import { Overline, CLENZY_SERIES_COLORS } from './shared';
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '../../../../components/ui';
+import { Overline, SurfaceCard, CLENZY_SERIES_COLORS } from './shared';
 
 interface Series {
   key: string;
@@ -33,8 +34,6 @@ interface BarChartData {
   title?: string;
   stacked?: boolean;
 }
-
-const AXIS_TICK = { fontSize: 11, fill: 'var(--muted)' };
 
 /** Déduit les séries numériques si le backend ne les fournit pas. */
 function deriveSeries(items: Array<Record<string, string | number>>): Series[] {
@@ -55,52 +54,41 @@ export const BarChartResult: React.FC<{ data: BarChartData }> = ({ data }) => {
 
   if (items.length === 0 || series.length === 0) {
     return (
-      <div className="mt-1.5 mb-2 px-3 py-3 rounded-[12px] border border-[var(--line)] bg-[var(--card)] text-center">
-        <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
-          {data.title ?? 'Graphique'} — aucune donnée.
-        </p>
-      </div>
+      <SurfaceCard className="text-center">
+        <p className="text-xs text-muted-foreground">{data.title ?? 'Graphique'} — aucune donnée.</p>
+      </SurfaceCard>
     );
   }
 
+  // Le registre de séries alimente les libellés de la légende et du tooltip.
+  const config: ChartConfig = Object.fromEntries(
+    series.map((s) => [s.key, { label: s.label }]),
+  );
+
   return (
     <div className="mt-1.5 mb-2">
-      {data.title && <Overline sx={{ mb: 1 }}>{data.title}</Overline>}
+      {data.title && <Overline className="mb-1.5">{data.title}</Overline>}
 
-      <div className="p-2 rounded-[12px] bg-[var(--field)] h-[230px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={items} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
-            <XAxis dataKey="name" tick={AXIS_TICK} axisLine={false} tickLine={false} />
-            <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} />
-            <Tooltip
-              cursor={{ fill: 'var(--hover)' }}
-              contentStyle={{
-                background: 'var(--card)',
-                border: '1px solid var(--line-2)',
-                borderRadius: 10,
-                fontSize: 12,
-                color: 'var(--ink)',
-              }}
-              labelStyle={{ color: 'var(--muted)', fontWeight: 600 }}
+      <ChartContainer config={config} className="aspect-auto h-[230px] w-full rounded-xl bg-field p-2">
+        <BarChart accessibilityLayer data={items} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="name" axisLine={false} tickLine={false} tickMargin={6} />
+          <YAxis axisLine={false} tickLine={false} />
+          <ChartTooltip content={<ChartTooltipContent />} />
+          {series.length > 1 && <ChartLegend content={<ChartLegendContent />} />}
+          {series.map((s) => (
+            <Bar
+              key={s.key}
+              dataKey={s.key}
+              name={s.label}
+              fill={s.color}
+              stackId={data.stacked ? 'stack' : undefined}
+              radius={[3, 3, 0, 0]}
+              maxBarSize={32}
             />
-            {series.length > 1 && (
-              <Legend wrapperStyle={{ fontSize: 11, color: 'var(--muted)' }} iconType="circle" />
-            )}
-            {series.map((s) => (
-              <Bar
-                key={s.key}
-                dataKey={s.key}
-                name={s.label}
-                fill={s.color}
-                stackId={data.stacked ? 'stack' : undefined}
-                radius={[3, 3, 0, 0]}
-                maxBarSize={32}
-              />
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+          ))}
+        </BarChart>
+      </ChartContainer>
     </div>
   );
 };

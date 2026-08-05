@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Alert as UiAlert, AlertDescription, Button } from '../../components/ui';
+import { Alert as UiAlert, AlertDescription, Button, Card } from '../../components/ui';
 import { CircleCheck, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
@@ -19,8 +19,9 @@ import CleaningPriceEstimator from './CleaningPriceEstimator';
 
 // ─── Stable classes ─────────────────────────────────────────────────────────
 
-// Carte hairline r14 plate — p: 2.5 = 15 px (spacing MUI 6).
-const FORM_PANEL_CLASS = 'border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] p-[15px] min-w-0 overflow-auto';
+// Panneau de formulaire : `Card` du kit, mis a plat (pas d'ombre) et cadre au
+// rayon xl (14 px) de l'echelle Baitly UI.
+const FORM_PANEL_CLASS = 'gap-0 py-0 rounded-xl border border-border bg-card shadow-none p-[15px] min-w-0 overflow-auto';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -141,23 +142,23 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
       </div>
       <form
         onSubmit={handleSubmit((data) => submitForm(data))}
-        style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
+        className="flex flex-col flex-1 min-h-0"
       >
         <div className="flex gap-3 flex-1 min-h-0">
           {/* ── Colonne gauche : Infos principales ──────────────────── */}
           {/* `flex: 7` / `flex: 5` MUI = flex-grow/shrink 1 avec basis 0 : la
               repartition 7/5 des colonnes passe par un style (valeur numerique,
               pas de classe Tailwind equivalente). */}
-          <div className={FORM_PANEL_CLASS} style={{ flex: 7 }}>
+          <Card className={FORM_PANEL_CLASS} style={{ flex: 7 }}>
             <div className="flex flex-col gap-4">
               <PropertyFormBasicInfo control={control} errors={errors} propertyTypes={propertyTypes} />
               <PropertyFormAddress control={control} errors={errors} setValue={setValue} />
               <PropertyFormDetails control={control} errors={errors} />
             </div>
-          </div>
+          </Card>
 
           {/* ── Colonne droite : Configuration & Ménage ─────────────── */}
-          <div className={FORM_PANEL_CLASS} style={{ flex: 5 }}>
+          <Card className={FORM_PANEL_CLASS} style={{ flex: 5 }}>
             <PropertyFormSettings
               control={control}
               errors={errors}
@@ -167,7 +168,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
               isAdmin={isAdmin}
               isManager={isManager}
             />
-          </div>
+          </Card>
         </div>
 
         {/* Error message */}

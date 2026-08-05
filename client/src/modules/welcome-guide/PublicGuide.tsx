@@ -733,11 +733,13 @@ const PublicGuide: React.FC = () => {
           <DialogHeader>
             <DialogTitle>{payingUpsell?.title}</DialogTitle>
           </DialogHeader>
-          {/* Filets haut/bas = le `dividers` de la modale MUI. Le tunnel Stripe
-              embarque son propre padding, d'ou le p-0 dans ce seul cas. */}
+          {/* Filets haut/bas = le `dividers` de la modale MUI. La modale est
+              portalisee HORS du conteneur `.wb` : ses filets suivent donc les
+              jetons Baitly UI de l'app, pas les variables du livret. Le tunnel
+              Stripe embarque son propre padding, d'ou le p-0 dans ce seul cas. */}
           <div
             className={cn(
-              'border-y border-solid border-[var(--line)]',
+              'border-y border-solid border-border',
               payClientSecret && !paySuccess && !payError ? 'p-0' : 'p-[18px]',
             )}
           >

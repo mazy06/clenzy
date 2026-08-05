@@ -261,7 +261,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                 onClick={handleScan}
                 disabled={scanning}
                 aria-label={t('supervision.scan.button', 'Scanner')}
-                className="size-[26px] text-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
+                className="size-[26px] text-primary hover:bg-primary-soft hover:text-primary"
               >
                 {scanning ? <Spinner className="size-3.5" /> : <Radar size={16} />}
               </Button>
@@ -280,9 +280,9 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
   const belowHud = useMemo(
     () =>
       feed ? (
-        <div className="flex flex-col min-h-0 bg-[var(--card)] border border-solid border-[var(--line)] rounded-[13px] overflow-hidden" style={{ boxShadow: '0 10px 28px -18px rgba(0, 0, 0, 0.35)' }} data-feed-card>
+        <div className="flex flex-col min-h-0 overflow-hidden rounded-xl border border-border bg-card shadow-sm" data-feed-card>
           {/* data-feed-title : masqué dans le tiroir compact (titre déjà en en-tête). */}
-          <div className="px-[9px] pt-[7.5px] pb-[4.5px] font-extrabold text-[12.5px] text-[var(--ink)]" data-feed-title>
+          <div className="px-2.5 pt-2 pb-1 text-xs font-semibold text-foreground" data-feed-title>
             {t('supervision.feed.title')}
           </div>
           {/* data-vertical-scroll : le planning ne détourne PAS la molette
@@ -292,12 +292,12 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
             {feed.length > 0 ? (
               <ActivityFeed entries={feed} pending={feedPending} />
             ) : (
-              <div className="px-1.5 py-3 text-center text-[12px] text-[var(--muted)] leading-[1.5]">
+              <p className="m-0 px-1.5 py-3 text-center text-xs leading-relaxed text-muted-foreground">
                 {t(
                   'supervision.feed.emptyOnboarding',
                   'Les agents observent ce logement. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord.',
                 )}
-              </div>
+              </p>
             )}
           </div>
         </div>
@@ -584,7 +584,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
       {(toasts.length > 0 || status === 'offline') && (
         <div className="absolute top-[16px] start-[50%] z-[8] flex flex-col items-center gap-1.5" style={{ transform: 'translateX(-50%)' }}>
           {status === 'offline' && (
-            <div className="flex items-center gap-1.5 ps-[9px] pe-[3px] py-[3px] rounded-[7992px] bg-[rgba(20,24,58,.85)] text-[#E7E9FB] border border-solid border-[rgba(255,255,255,.12)] text-[12.5px] font-bold" style={{ backdropFilter: 'blur(8px)', boxShadow: '0 10px 28px -14px rgba(0,0,0,.6)' }} role="status">
+            <div className="flex items-center gap-1.5 ps-2.5 pe-1 py-1 rounded-full bg-[rgba(20,24,58,.85)] text-[#E7E9FB] border border-[rgba(255,255,255,.12)] text-xs font-semibold" style={{ backdropFilter: 'blur(8px)', boxShadow: '0 10px 28px -14px rgba(0,0,0,.6)' }} role="status">
               <WifiOff size={15} />
               {t('supervision.states.offline')} · {t('supervision.states.reconnecting')}
               {/* Bandeau a fond nuit : on conserve la teinte claire d'origine,

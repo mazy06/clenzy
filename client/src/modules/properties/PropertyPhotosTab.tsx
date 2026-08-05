@@ -38,27 +38,23 @@ interface PropertyPhotosTabProps {
   propertyId: number;
 }
 
-// ─── Stable sx constants ─────────────────────────────────────────────────────
+// ─── Gabarits (Baitly UI) ────────────────────────────────────────────────────
 
-// .fr-sec — overline de section (tokens baseline).
-const SECTION_TITLE_SX = {
-  fontSize: '10.5px',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '.06em',
-  color: 'var(--faint)',
-  mb: 1,
-} as const;
+// Sur-ligne de section (recette « overline » de l'échelle typographique).
+const SECTION_TITLE_CLASS = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5';
 
-/** Report en classes de `SECTION_TITLE_SX`. */
-const SECTION_TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-1.5';
+// Carte hairline plate.
+const CARD_CLASS = 'border border-solid border-border bg-card rounded-xl px-[18px] py-4';
 
-// .pd-card — carte hairline r14 plate.
-const CARD_CLASS = 'border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] px-[18px] py-4';
+// Zone de dépôt : filet en tirets au repos, teinte de marque au survol et au
+// glisser — la cible active se dit par le fond, pas par un liseré épais.
+const DROP_ZONE_CLASS = 'border-2 border-dashed border-border rounded-lg p-[18px] flex flex-col items-center justify-center cursor-pointer transition-colors duration-150 motion-reduce:transition-none hover:border-primary hover:bg-primary-soft';
 
-// Dropzone — pattern manquant au baseline (signalé) : dérivé minimal en tokens
-// (tirets --line-2, hover/drag accent + accent-soft), aucun style inventé au-delà.
-const DROP_ZONE_CLASS = 'border-2 border-dashed border-[var(--line-2)] rounded-[11px] p-[18px] flex flex-col items-center justify-center cursor-pointer transition-[border-color,background-color] duration-[140ms] hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]';
+// Pastille d'action posée SUR la photo : le voile est sombre dans les deux
+// thèmes, la pastille reste donc claire et son encre fixe — un jeton de thème
+// s'inverserait et deviendrait illisible sur le voile.
+const PHOTO_ACTION_CLASS =
+  'rounded-md bg-[rgba(248,250,252,0.92)] text-[#2A3942] hover:bg-[rgba(248,250,252,1)] hover:text-destructive';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -198,26 +194,26 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
   return (
     <div className="flex flex-col gap-2">
       {/* ── Sync info banner ─────────────────────────────────────────────── */}
-      <Alert variant="info" className="text-[0.75rem]">
+      <Alert variant="info" className="text-xs">
         <Info />
         <AlertDescription>{t('properties.photos.channelSync')}</AlertDescription>
       </Alert>
 
       {/* ── Upload zone ──────────────────────────────────────────────────── */}
       <div className={CARD_CLASS}>
-        <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>{t('properties.photos.upload')}</p>
+        <p className={SECTION_TITLE_CLASS}>{t('properties.photos.upload')}</p>
         <div
-          className={cn(DROP_ZONE_CLASS, isDragOver && 'border-[var(--accent)] bg-[var(--accent-soft)]')}
+          className={cn(DROP_ZONE_CLASS, isDragOver && 'border-primary bg-primary-soft')}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
         >
-          <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><CloudUpload size={36} strokeWidth={1.5} /></span>
-          <p className="cn-text-body1 text-[0.8125rem] font-medium text-muted-foreground text-center">
+          <span className="inline-flex text-faint mb-1.5"><CloudUpload size={36} strokeWidth={1.5} /></span>
+          <p className="text-sm font-medium text-muted-foreground text-center">
             {t('properties.photos.dragDrop')}
           </p>
-          <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60 mt-0.5">
+          <p className="text-xs text-faint mt-0.5">
             {t('properties.photos.maxSize')}
           </p>
         </div>
@@ -241,23 +237,23 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
       {/* ── Photo grid or empty state ────────────────────────────────────── */}
       {!loading && hasPhotos ? (
         <div className={CARD_CLASS}>
-          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
+          <p className={SECTION_TITLE_CLASS}>
             {t('properties.photos.title')} ({photos.length})
           </p>
           <div className="grid grid-cols-[repeat(2,_1fr)] min-[600px]:grid-cols-[repeat(3,_1fr)] min-[900px]:grid-cols-[repeat(4,_1fr)] gap-1.5">
             {photos.map((photo) => (
               <div
                 key={photo.id}
-                className="relative rounded-[11px] overflow-hidden border border-solid border-[var(--line)] aspect-[4/3] [&:hover_.photo-overlay]:opacity-100"
+                className="relative rounded-lg overflow-hidden border border-solid border-border aspect-[4/3] [&:hover_.photo-overlay]:opacity-100"
               >
                 <img className="w-full h-full object-cover block" src={photo.url} alt={photo.name} />
-                <div className="photo-overlay absolute inset-0 bg-[rgba(10,18,24,0.42)] opacity-0 transition-opacity duration-200 flex items-start justify-end p-[3px]">
+                <div className="photo-overlay absolute inset-0 bg-[rgba(10,18,24,0.42)] opacity-0 transition-opacity duration-200 motion-reduce:transition-none flex items-start justify-end p-[3px]">
                   <Button
                     variant="ghost"
                     size="icon-sm"
                     aria-label={t('common.delete')}
                     onClick={() => setDeleteTarget(photo)}
-                    className="rounded-[10px] bg-[rgba(255,255,255,0.92)] text-[#2A3942] hover:bg-[rgba(255,255,255,1)] hover:text-[var(--err)]"
+                    className={PHOTO_ACTION_CLASS}
                   >
                     <Delete size={16} strokeWidth={1.75} />
                   </Button>
@@ -266,12 +262,11 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
             ))}
 
             {/* Add more button */}
-            {/* `borderColor: 'divider'` (jeton MUI) => var(--line). */}
             <div
-              className={cn(DROP_ZONE_CLASS, 'p-0 aspect-[4/3] border-[var(--line)]')}
+              className={cn(DROP_ZONE_CLASS, 'p-0 aspect-[4/3]')}
               onClick={() => fileInputRef.current?.click()}
             >
-              <span className="inline-flex text-muted-foreground opacity-60"><AddPhotoAlternate size={28} strokeWidth={1.5} /></span>
+              <span className="inline-flex text-faint"><AddPhotoAlternate size={28} strokeWidth={1.5} /></span>
             </div>
           </div>
         </div>

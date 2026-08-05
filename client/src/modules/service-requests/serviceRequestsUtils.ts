@@ -77,7 +77,7 @@ export interface ServiceRequestApiResponse {
 // CONSTANTS
 // ============================================================================
 
-// Utilisation des enums partages pour les couleurs
+// Utilisation des enums partages pour les tons semantiques
 export const statusColors = Object.fromEntries(
   REQUEST_STATUS_OPTIONS.map(option => [option.value, option.color])
 ) as Record<RequestStatus, string>;
@@ -87,26 +87,29 @@ export const priorityColors = Object.fromEntries(
 ) as Record<Priority, string>;
 
 /**
- * Les couleurs des enums sont des NOMS de palette MUI ('warning', 'success'…) ;
+ * Les couleurs des enums sont des NOMS de palette ('warning', 'success'…) ;
  * la carte Baitly attend une couleur CSS pour son pastel color-mix. Ce pont
- * rabat les noms sur les jetons semantiques.
+ * rabat les noms sur les jetons semantiques Baitly UI.
+ *
+ * <p>La couleur retenue est la variante `-ink` : elle sert d'ENCRE sur le fond
+ * pastel color-mix de la puce, ou la teinte vive plafonne a ~2,2:1.</p>
  */
-const MUI_COLOR_TO_CSS: Record<string, string> = {
-  warning: 'var(--warn)',
-  success: 'var(--ok)',
-  error: 'var(--err)',
-  info: 'var(--info)',
-  primary: 'var(--accent)',
-  secondary: 'var(--muted)',
-  default: 'var(--muted)',
+const TONE_NAME_TO_CSS: Record<string, string> = {
+  warning: 'var(--bui-warning-ink)',
+  success: 'var(--bui-success-ink)',
+  error: 'var(--bui-destructive-ink)',
+  info: 'var(--bui-info-ink)',
+  primary: 'var(--bui-primary)',
+  secondary: 'var(--bui-muted-foreground)',
+  default: 'var(--bui-muted-foreground)',
 };
 
 export const statusCssColors: Record<string, string> = Object.fromEntries(
-  Object.entries(statusColors).map(([k, v]) => [k, MUI_COLOR_TO_CSS[v] ?? 'var(--muted)']),
+  Object.entries(statusColors).map(([k, v]) => [k, TONE_NAME_TO_CSS[v] ?? 'var(--bui-muted-foreground)']),
 );
 
 export const priorityCssColors: Record<string, string> = Object.fromEntries(
-  Object.entries(priorityColors).map(([k, v]) => [k, MUI_COLOR_TO_CSS[v] ?? 'var(--muted)']),
+  Object.entries(priorityColors).map(([k, v]) => [k, TONE_NAME_TO_CSS[v] ?? 'var(--bui-muted-foreground)']),
 );
 
 /**

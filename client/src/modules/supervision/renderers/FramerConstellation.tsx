@@ -545,7 +545,7 @@ const Root = styled.div<{ $flush?: boolean }>`
   }
   /* Bouton « Scanner » (icône) posé à droite du titre du HUD. */
   .cst__hudaction {
-    margin-left: auto;
+    margin-inline-start: auto;
     display: inline-flex;
     align-items: center;
   }
@@ -826,7 +826,7 @@ const Root = styled.div<{ $flush?: boolean }>`
     color: #fff;
   }
   .cst__sheetclose {
-    margin-left: auto;
+    margin-inline-start: auto;
     appearance: none;
     border: 0;
     background: transparent;
@@ -1202,7 +1202,8 @@ const Root = styled.div<{ $flush?: boolean }>`
 /* ── Bulle d'agent (portalisée dans <body>) ──────────────────────────────────
    Les couleurs ne peuvent pas venir des jetons de surface en SOMBRE : la bulle
    doit rester dans la gamme « nuit » du canvas (#141833), pas dans celle des
-   cartes de l'app. Le clair, lui, suit les jetons — d'où le même sélecteur
+   cartes de l'app. Le clair, lui, suit les jetons Baitly UI (--bui-*, lus en
+   CSS brut : le @theme est `inline`, il n'émet pas de --color-*) — d'où le même sélecteur
    html:not([data-theme='dark']) que le reste du fichier (le clair est le
    DÉFAUT, sans attribut ; [data-theme='light'] ne matcherait jamais). */
 const Tip = styled.div`
@@ -1218,7 +1219,7 @@ const Tip = styled.div`
   padding: 11px 13px;
   font-size: 11.5px;
   line-height: 1.45;
-  text-align: left;
+  text-align: start;
   pointer-events: none;
   box-shadow: 0 16px 38px -12px rgba(15, 23, 42, 0.75);
 
@@ -1241,17 +1242,17 @@ const Tip = styled.div`
   }
 
   html:not([data-theme='dark']) & {
-    background: var(--card);
-    color: var(--ink);
-    border-color: var(--line);
+    background: var(--bui-card);
+    color: var(--bui-foreground);
+    border-color: var(--bui-border);
     box-shadow: 0 16px 38px -12px rgba(15, 23, 42, 0.28);
   }
   html:not([data-theme='dark']) & .tip__task {
-    color: var(--muted);
+    color: var(--bui-muted-foreground);
   }
   html:not([data-theme='dark']) & .tip__meta {
-    color: var(--faint);
-    border-top-color: var(--line);
+    color: var(--bui-faint);
+    border-top-color: var(--bui-border);
   }
 `;
 

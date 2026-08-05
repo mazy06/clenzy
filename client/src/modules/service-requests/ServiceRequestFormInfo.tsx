@@ -30,36 +30,40 @@ interface CategoryDef {
   key: ServiceCategory;
   label: string;
   icon: React.ReactElement;
-  /** Tokens sémantiques (texte couleur + fond -soft). */
+  /** Tokens sémantiques : encre `-ink` sur fond `-soft` (cf. règle de contraste). */
   fg: string;
   bg: string;
   /** Catégories interventionTypes.ts correspondantes */
   mappedCategories: string[];
 }
 
+/** Repli quand la catégorie n'est pas trouvée : le ton de marque. */
+const FALLBACK_FG = 'var(--bui-primary)';
+const FALLBACK_BG = 'var(--bui-primary-soft)';
+
 const CATEGORIES: CategoryDef[] = [
   {
     key: 'cleaning',
     label: 'Nettoyage',
     icon: <AutoAwesome size={16} strokeWidth={1.75} />,
-    fg: 'var(--ok)',
-    bg: 'var(--ok-soft)',
+    fg: 'var(--bui-success-ink)',
+    bg: 'var(--bui-success-soft)',
     mappedCategories: ['cleaning'],
   },
   {
     key: 'maintenance',
     label: 'Maintenance / Travaux',
     icon: <Build size={16} strokeWidth={1.75} />,
-    fg: 'var(--warn)',
-    bg: 'var(--warn-soft)',
+    fg: 'var(--bui-warning-ink)',
+    bg: 'var(--bui-warning-soft)',
     mappedCategories: ['maintenance'],
   },
   {
     key: 'other',
     label: 'Autre',
     icon: <MoreHoriz size={16} strokeWidth={1.75} />,
-    fg: 'var(--muted)',
-    bg: 'var(--hover)',
+    fg: 'var(--bui-muted-foreground)',
+    bg: 'var(--bui-muted)',
     mappedCategories: ['specialized', 'other'],
   },
 ];
@@ -334,8 +338,8 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
     const renderWorkChip = (wp: WorkPrestation) => {
       const isSelected = (selectedWorkTypes ?? []).includes(wp.interventionType);
       const activeCat = CATEGORIES.find(c => c.key === 'maintenance');
-      const catFg = activeCat?.fg || 'var(--accent)';
-      const catBg = activeCat?.bg || 'var(--accent-soft)';
+      const catFg = activeCat?.fg || FALLBACK_FG;
+      const catBg = activeCat?.bg || FALLBACK_BG;
       return (
         <StatusChip
           key={wp.interventionType}
@@ -350,7 +354,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
               {wp.basePrice > 0 && (
                 <span
                   className="text-[10px] font-semibold tabular-nums"
-                  style={{ color: isSelected ? catFg : 'var(--muted)' }}
+                  style={{ color: isSelected ? catFg : 'var(--bui-muted-foreground)' }}
                 >
                   {wp.basePrice} €
                 </span>
@@ -372,7 +376,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
       <div
         className={cn(
           'flex flex-col',
-          (framed || pricingSlot) && 'border border-solid border-[var(--line)] rounded-[14px] p-3',
+          (framed || pricingSlot) && 'border border-solid border-border rounded-xl p-3',
         )}
       >
         {/* Chiffrage — positionné après « Service type » via l'ordre flex (order: 2). */}
@@ -383,7 +387,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
         )}
 
         {/* Type de service — Catégories principales */}
-        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1.5">
+        <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
           {t('serviceRequests.fields.serviceType')} *
         </p>
 
@@ -418,7 +422,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                 <div className="flex flex-col gap-2">
                   {workDomainGroups.map(([domain, items]) => (
                     <div key={domain}>
-                      <p className="cn-text-body1 text-[10px] font-bold text-[var(--faint)] uppercase tracking-[0.06em] mb-1">
+                      <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
                         {domain}
                       </p>
                       <div className="flex gap-1 flex-wrap">
@@ -434,8 +438,8 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                 {!useWorkCatalogue && subTypes.map((option) => {
                   const isSelected = watchedServiceType === option.value;
                   const activeCat = CATEGORIES.find(c => c.key === activeCategory);
-                  const catFg = activeCat?.fg || 'var(--accent)';
-                  const catBg = activeCat?.bg || 'var(--accent-soft)';
+                  const catFg = activeCat?.fg || FALLBACK_FG;
+                  const catBg = activeCat?.bg || FALLBACK_BG;
                   const IconComponent = option.icon;
 
                   return (
@@ -456,8 +460,8 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                 {/* Types personnalisés enregistrés + saisie d'un nouveau (Nettoyage & Maintenance) */}
                 {(activeCategory === 'cleaning' || activeCategory === 'maintenance') && (() => {
                   const activeCat = CATEGORIES.find(c => c.key === activeCategory);
-                  const catFg = activeCat?.fg || 'var(--accent)';
-                  const catBg = activeCat?.bg || 'var(--accent-soft)';
+                  const catFg = activeCat?.fg || FALLBACK_FG;
+                  const catBg = activeCat?.bg || FALLBACK_BG;
                   return (
                     <>
                       {/* Chips des types déjà enregistrés (réutilisables) */}
@@ -494,7 +498,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                             }}
                             onBlur={() => { if (!newCustomText.trim()) cancelAddCustom(); }}
                             placeholder="Nouveau type…"
-                            className="w-[150px] p-0 border-none bg-transparent outline-none text-[11.5px] placeholder:text-[var(--faint)] placeholder:opacity-100"
+                            className="w-[150px] p-0 border-none bg-transparent outline-none text-[11.5px] placeholder:text-faint placeholder:opacity-100"
                             style={{ color: catFg }}
                           />
                           <Button
@@ -540,7 +544,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
         {/* ─── Prestations à la carte (ménage uniquement) ─── */}
         {isCleaning && availablePrestations.length > 0 && (
           <div className="mt-3">
-            <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1.5">
+            <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
               Prestations à la carte
             </p>
 
@@ -565,19 +569,19 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
                     outlined
                     selected={isActive}
                     pressed={isActive}
-                    tone="accent"
+                    tokens={{ color: FALLBACK_FG, bg: FALLBACK_BG }}
                     icon={p.icon}
                     label={
                       <span className="inline-flex items-center gap-0.5">
                         <span>{chipLabel}</span>
                         {isIncluded ? (
-                          <span className="rounded-[4px] bg-[var(--ok-soft)] px-0.5 text-[9.5px] font-bold text-[var(--ok)]">
+                          <span className="rounded-[4px] bg-success-soft px-0.5 text-[9.5px] font-bold text-success-ink">
                             Inclus
                           </span>
                         ) : (
                           <span
                             className="text-[10px] font-medium tabular-nums"
-                            style={{ color: isActive ? 'var(--accent)' : 'var(--faint)' }}
+                            style={{ color: isActive ? 'var(--bui-primary)' : 'var(--bui-faint)' }}
                           >
                             {extraLabel}
                           </span>
@@ -595,7 +599,7 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
         )}
 
         {/* Séparateur reliant la sélection du type au chiffrage (modale). */}
-        {pricingSlot && <div className="order-[1px] mt-3" style={{ borderTop: '1px solid var(--line)' }} />}
+        {pricingSlot && <div className="order-[1px] mt-3 border-t border-solid border-border" />}
       </div>
     );
   }

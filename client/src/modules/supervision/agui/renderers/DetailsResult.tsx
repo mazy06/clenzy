@@ -7,7 +7,6 @@
    pour status / dates / montants, et un titre dérivé du nom métier.
    ============================================================ */
 import React from 'react';
-import { cn } from '../../../../utils/cn';
 
 import {
   SurfaceCard,
@@ -61,22 +60,22 @@ export const DetailsResult: React.FC<{ data: Details }> = ({ data }) => {
 
   return (
     <SurfaceCard>
-      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] mb-1.5 tracking-[-0.01em]">
+      <p className="mb-1.5 text-balance text-[15px] font-semibold tracking-tight text-foreground font-[family-name:var(--font-display)]">
         {title}
       </p>
 
-      <div className="flex flex-col">
-        {entries.map(([key, value], idx) => (
-          <div className="flex gap-[9px] py-[4.5px] items-baseline" style={{ borderTop: idx > 0 ? '1px solid var(--line)' : 'none' }} key={key}>
-            <p className="cn-text-body1 flex-[0_0_38%] text-[var(--muted)] text-[11.5px] font-medium">
+      <dl className="m-0 divide-y divide-border">
+        {entries.map(([key, value]) => (
+          <div className="flex items-baseline gap-2 py-1.5" key={key}>
+            <dt className="flex-[0_0_38%] text-xs font-medium text-muted-foreground">
               {humanizeKey(key)}
-            </p>
-            <div className="flex-1 text-[12.5px] text-[var(--body)] font-medium tabular-nums">
+            </dt>
+            <dd className="m-0 flex-1 text-xs font-medium tabular-nums text-foreground">
               {formatValue(key, value, data.currency)}
-            </div>
+            </dd>
           </div>
         ))}
-      </div>
+      </dl>
     </SurfaceCard>
   );
 };

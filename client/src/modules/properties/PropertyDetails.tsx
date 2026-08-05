@@ -97,85 +97,42 @@ import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
 import { propertyPhotosApi } from '../../services/api/propertyPhotosApi';
 import { useQuery } from '@tanstack/react-query';
 
-// ─── Stable sx constants ────────────────────────────────────────────────────
+// ─── Gabarits de la fiche bien (Baitly UI) ──────────────────────────────────
 
-// ── Constantes sx alignées DESIGN_BASELINE (réf maquette screen-property .pd-*) ──
-
-// .pd-kpi — tuile KPI centrée : icône accent-soft, valeur display tabular-nums, label overline.
+// Tuile KPI centrée : pastille d'icône `primary-soft`, valeur display
+// tabular-nums, libellé en sur-ligne. Le survol se dit par le fond, jamais par
+// un liseré coloré.
 const METRIC_CARD_CLASS =
-  'flex flex-col items-center justify-center text-center py-[14px] px-3 bg-[var(--card)] '
-  + 'border border-solid border-[var(--line)] rounded-[13px] min-h-[72px] '
-  + 'transition-[border-color] duration-[140ms] hover:border-[var(--line-2)]';
+  'flex flex-col items-center justify-center text-center py-[14px] px-3 bg-card '
+  + 'border border-solid border-border rounded-xl min-h-[72px] '
+  + 'transition-colors duration-150 motion-reduce:transition-none hover:bg-muted/40';
 
 const METRIC_ICON_BADGE_CLASS =
-  'w-8 h-8 rounded-[10px] bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center mb-2';
+  'w-8 h-8 rounded-md bg-primary-soft text-primary flex items-center justify-center mb-2';
 
-const METRIC_VALUE_SX = {
-  fontFamily: 'var(--font-display)',
-  fontSize: '18px',
-  fontWeight: 600,
-  color: 'var(--ink)',
-  lineHeight: 1.2,
-  fontVariantNumeric: 'tabular-nums',
-  letterSpacing: '-.01em',
-} as const;
-
-/** Report en classes de `METRIC_VALUE_SX`. */
 const METRIC_VALUE_CLASS =
-  'cn-text-body1 [font-family:var(--font-display)] text-[18px] font-semibold text-[var(--ink)] leading-[1.2] tabular-nums tracking-[-0.01em]';
+  '[font-family:var(--font-display)] text-lg font-semibold text-foreground leading-[1.2] tabular-nums tracking-[-0.01em]';
 
-const METRIC_LABEL_SX = {
-  fontSize: '10px',
-  fontWeight: 700,
-  color: 'var(--faint)',
-  textTransform: 'uppercase',
-  letterSpacing: '.04em',
-  mt: '3px',
-} as const;
+const METRIC_LABEL_CLASS = 'text-2xs font-semibold text-faint uppercase tracking-wide mt-[3px]';
 
-/** Report en classes de `METRIC_LABEL_SX`. */
-const METRIC_LABEL_CLASS = 'text-[10px] font-bold text-[var(--faint)] uppercase tracking-[.04em] mt-[3px]';
+// Sur-ligne de section (recette « overline » de l'échelle typographique).
+const SECTION_TITLE_CLASS = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5';
 
-// .fr-sec / .pd-sec — overline de section.
-const SECTION_TITLE_SX = {
-  fontSize: '10.5px',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '.06em',
-  color: 'var(--faint)',
-  mb: 1,
-} as const;
-
-/** Report en classes de `SECTION_TITLE_SX`. */
-const SECTION_TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] mb-1.5';
-
-// .pd-kv — bloc label/valeur (icône accent, label muted 11, valeur ink 13 fw600).
+// Bloc label/valeur : icône primaire, libellé muted, valeur en encre de corps.
 const INFO_ROW_CLASS = 'flex items-center gap-1.5 py-[4.5px]';
 
-const INFO_LABEL_SX = {
-  fontSize: '11px',
-  fontWeight: 500,
-  color: 'var(--muted)',
-} as const;
+const INFO_LABEL_CLASS = 'text-xs font-medium text-muted-foreground';
 
-/** Report en classes de `INFO_LABEL_SX`. */
-const INFO_LABEL_CLASS = 'text-[11px] font-medium text-[var(--muted)]';
+const INFO_VALUE_CLASS = 'text-sm font-semibold text-foreground mt-px';
 
-const INFO_VALUE_SX = {
-  fontSize: '13px',
-  fontWeight: 600,
-  color: 'var(--ink)',
-  mt: '1px',
-} as const;
+/** Icône inline d'un bloc label/valeur. */
+const INFO_ICON_CLASS = 'inline-flex text-primary';
 
-/** Report en classes de `INFO_VALUE_SX`. */
-const INFO_VALUE_CLASS = 'text-[13px] font-semibold text-[var(--ink)] mt-px';
-
-// .pd-card — carte hairline r14 plate.
+// Carte hairline plate.
 // `border-solid` est obligatoire : sans preflight Tailwind, `border` seul donne une
 // largeur mais un style `none` — bordure invisible.
 const CARD_CLASS =
-  'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] py-4 px-[18px]';
+  'border border-solid border-border bg-card shadow-none rounded-xl py-4 px-[18px]';
 
 // ─── Cleaning price estimation (mirrored from CleaningPriceEstimator) ───────
 
@@ -480,7 +437,7 @@ const PropertyDetails: React.FC = () => {
                     <p className={METRIC_VALUE_CLASS}>
                       {cleaningEstimate ? <Money value={cleaningEstimate.min} from="EUR" decimals={0} /> : '—'}
                     </p>
-                    <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningEstimate')}</p>
+                    <p className={METRIC_LABEL_CLASS}>{t('properties.cleaningEstimate')}</p>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="top">{t('properties.cleaningEstimateTooltip')}</TooltipContent>
@@ -490,28 +447,28 @@ const PropertyDetails: React.FC = () => {
               <div className={METRIC_CARD_CLASS}>
                 <div className={METRIC_ICON_BADGE_CLASS}><Bed size={16} strokeWidth={1.75} /></div>
                 <p className={METRIC_VALUE_CLASS}>{property.bedrooms}</p>
-                <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.bedrooms')}</p>
+                <p className={METRIC_LABEL_CLASS}>{t('properties.bedrooms')}</p>
               </div>
             </div>
             <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <div className={METRIC_CARD_CLASS}>
                 <div className={METRIC_ICON_BADGE_CLASS}><Bathroom size={16} strokeWidth={1.75} /></div>
                 <p className={METRIC_VALUE_CLASS}>{property.bathrooms}</p>
-                <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.bathroomCount')}</p>
+                <p className={METRIC_LABEL_CLASS}>{t('properties.bathroomCount')}</p>
               </div>
             </div>
             <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <div className={METRIC_CARD_CLASS}>
                 <div className={METRIC_ICON_BADGE_CLASS}><SquareFoot size={16} strokeWidth={1.75} /></div>
                 <p className={METRIC_VALUE_CLASS}>{property.surfaceArea} m²</p>
-                <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.surface')}</p>
+                <p className={METRIC_LABEL_CLASS}>{t('properties.surface')}</p>
               </div>
             </div>
             <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
               <div className={METRIC_CARD_CLASS}>
                 <div className={METRIC_ICON_BADGE_CLASS}><Group size={16} strokeWidth={1.75} /></div>
                 <p className={METRIC_VALUE_CLASS}>{property.maxGuests}</p>
-                <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.maxCapacity')}</p>
+                <p className={METRIC_LABEL_CLASS}>{t('properties.maxCapacity')}</p>
               </div>
             </div>
             <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
@@ -522,7 +479,7 @@ const PropertyDetails: React.FC = () => {
                 <p className={cn(METRIC_VALUE_CLASS, 'text-[12.5px] leading-[1.2]')}>
                   {getCleaningFrequencyLabel(property.cleaningFrequency, t)}
                 </p>
-                <p className={cn(METRIC_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningFrequency')}</p>
+                <p className={METRIC_LABEL_CLASS}>{t('properties.cleaningFrequency')}</p>
               </div>
             </div>
           </div>
@@ -530,7 +487,7 @@ const PropertyDetails: React.FC = () => {
           {/* ── Prestations à la carte chips ──────────────────────────── */}
           {featureChips.length > 0 && (
             <div className="flex items-center flex-wrap gap-1 mb-1.5">
-              <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0 me-[3px]')}>
+              <p className={cn(SECTION_TITLE_CLASS, 'mb-0 me-[3px]')}>
                 {t('properties.addOnServices.title')}
               </p>
               {featureChips.map((chip) => (
@@ -547,7 +504,7 @@ const PropertyDetails: React.FC = () => {
           {/* ── Équipements chips ──────────────────────────────────── */}
           {property.amenities && property.amenities.length > 0 && (
             <div className="flex items-center flex-wrap gap-1 mb-2">
-              <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0 me-[3px]')}>
+              <p className={cn(SECTION_TITLE_CLASS, 'mb-0 me-[3px]')}>
                 {t('properties.amenities.title')}
               </p>
               {property.amenities.map((amenity) => (
@@ -582,14 +539,14 @@ const PropertyDetails: React.FC = () => {
 
               {/* ── Col 2: Informations generales + Tarification menage ── */}
               <div className="flex-1 min-w-0">
-                <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
+                <p className={SECTION_TITLE_CLASS}>
                   {t('properties.informationsGeneral')}
                 </p>
                 <div className={INFO_ROW_CLASS}>
-                  <span className="inline-flex text-[var(--accent)]"><LocationOn size={16} strokeWidth={1.75} /></span>
+                  <span className={INFO_ICON_CLASS}><LocationOn size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
-                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.address')}</p>
-                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>
+                    <p className={INFO_LABEL_CLASS}>{t('properties.address')}</p>
+                    <p className={INFO_VALUE_CLASS}>
                       {property.address}, {property.city} {property.postalCode}
                     </p>
                   </div>
@@ -598,54 +555,54 @@ const PropertyDetails: React.FC = () => {
                   <>
                     <Separator className="my-[3px]" />
                     <div className={INFO_ROW_CLASS}>
-                      <span className="inline-flex text-[var(--accent)]"><Flag size={16} strokeWidth={1.75} /></span>
+                      <span className={INFO_ICON_CLASS}><Flag size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
-                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.country')}</p>
-                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{property.country}</p>
+                        <p className={INFO_LABEL_CLASS}>{t('properties.country')}</p>
+                        <p className={INFO_VALUE_CLASS}>{property.country}</p>
                       </div>
                     </div>
                   </>
                 )}
                 <Separator className="my-[3px]" />
                 <div className={INFO_ROW_CLASS}>
-                  <span className="inline-flex text-[var(--accent)]"><Home size={16} strokeWidth={1.75} /></span>
+                  <span className={INFO_ICON_CLASS}><Home size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
-                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.type')}</p>
-                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{getPropertyTypeLabel(property.propertyType, t)}</p>
+                    <p className={INFO_LABEL_CLASS}>{t('properties.type')}</p>
+                    <p className={INFO_VALUE_CLASS}>{getPropertyTypeLabel(property.propertyType, t)}</p>
                   </div>
                 </div>
                 {property.createdAt && (
                   <>
                     <Separator className="my-[3px]" />
                     <div className={INFO_ROW_CLASS}>
-                      <span className="inline-flex text-[var(--accent)]"><CalendarMonth size={16} strokeWidth={1.75} /></span>
+                      <span className={INFO_ICON_CLASS}><CalendarMonth size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
-                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.createdAt')}</p>
-                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{formatDate(property.createdAt)}</p>
+                        <p className={INFO_LABEL_CLASS}>{t('properties.createdAt')}</p>
+                        <p className={INFO_VALUE_CLASS}>{formatDate(property.createdAt)}</p>
                       </div>
                     </div>
                   </>
                 )}
 
-                <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mt-[9px]')}>
+                <p className={cn(SECTION_TITLE_CLASS, 'mt-[9px]')}>
                   {t('properties.cleaningPricing')}
                 </p>
                 <div className="flex flex-col gap-0.5">
                   {property.cleaningBasePrice != null && property.cleaningBasePrice > 0 && (
                     <div className={INFO_ROW_CLASS}>
-                      <span className="inline-flex text-[var(--accent)]"><Payments size={16} strokeWidth={1.75} /></span>
+                      <span className={INFO_ICON_CLASS}><Payments size={16} strokeWidth={1.75} /></span>
                       <div>
-                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningBasePrice')}</p>
-                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1 tabular-nums')} style={{ fontFamily: 'var(--font-display)' }}><Money value={property.cleaningBasePrice} from="EUR" decimals={0} /></p>
+                        <p className={INFO_LABEL_CLASS}>{t('properties.cleaningBasePrice')}</p>
+                        <p className={cn(INFO_VALUE_CLASS, 'tabular-nums [font-family:var(--font-display)]')}><Money value={property.cleaningBasePrice} from="EUR" decimals={0} /></p>
                       </div>
                     </div>
                   )}
                   {property.cleaningDurationMinutes != null && property.cleaningDurationMinutes > 0 && (
                     <div className={INFO_ROW_CLASS}>
-                      <span className="inline-flex text-[var(--accent)]"><Timer size={16} strokeWidth={1.75} /></span>
+                      <span className={INFO_ICON_CLASS}><Timer size={16} strokeWidth={1.75} /></span>
                       <div>
-                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningDuration')}</p>
-                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>
+                        <p className={INFO_LABEL_CLASS}>{t('properties.cleaningDuration')}</p>
+                        <p className={INFO_VALUE_CLASS}>
                           {property.cleaningDurationMinutes >= 60
                             ? `${Math.floor(property.cleaningDurationMinutes / 60)}h${property.cleaningDurationMinutes % 60 > 0 ? String(property.cleaningDurationMinutes % 60).padStart(2, '0') : ''}`
                             : `${property.cleaningDurationMinutes} min`}
@@ -655,23 +612,23 @@ const PropertyDetails: React.FC = () => {
                   )}
                   {property.numberOfFloors != null && property.numberOfFloors > 0 && (
                     <div className={INFO_ROW_CLASS}>
-                      <span className="inline-flex text-[var(--accent)]"><Stairs size={16} strokeWidth={1.75} /></span>
+                      <span className={INFO_ICON_CLASS}><Stairs size={16} strokeWidth={1.75} /></span>
                       <div>
-                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.numberOfFloors')}</p>
-                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{property.numberOfFloors}</p>
+                        <p className={INFO_LABEL_CLASS}>{t('properties.numberOfFloors')}</p>
+                        <p className={INFO_VALUE_CLASS}>{property.numberOfFloors}</p>
                       </div>
                     </div>
                   )}
                   {property.hasExterior && (
                     <div className={INFO_ROW_CLASS}>
-                      <span className="inline-flex text-[var(--accent)]"><Deck size={16} strokeWidth={1.75} /></span>
-                      <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{t('properties.hasExterior')}</p>
+                      <span className={INFO_ICON_CLASS}><Deck size={16} strokeWidth={1.75} /></span>
+                      <p className={INFO_VALUE_CLASS}>{t('properties.hasExterior')}</p>
                     </div>
                   )}
                   {property.hasLaundry && (
                     <div className={INFO_ROW_CLASS}>
-                      <span className="inline-flex text-[var(--accent)]"><LocalLaundryService size={16} strokeWidth={1.75} /></span>
-                      <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{t('properties.hasLaundry')}</p>
+                      <span className={INFO_ICON_CLASS}><LocalLaundryService size={16} strokeWidth={1.75} /></span>
+                      <p className={INFO_VALUE_CLASS}>{t('properties.hasLaundry')}</p>
                     </div>
                   )}
                 </div>
@@ -681,12 +638,12 @@ const PropertyDetails: React.FC = () => {
 
               {/* ── Col 3: Configuration ───────────────────────────── */}
               <div className="flex-1 min-w-0">
-                <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
+                <p className={SECTION_TITLE_CLASS}>
                   {t('properties.configuration')}
                 </p>
                 <div className={INFO_ROW_CLASS}>
                   <div>
-                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.status')}</p>
+                    <p className={INFO_LABEL_CLASS}>{t('properties.status')}</p>
                     <StatusChip
                       tokens={propertyStatusTokens(property.status)}
                       label={getPropertyStatusLabel(property.status, t)}
@@ -698,10 +655,10 @@ const PropertyDetails: React.FC = () => {
                   <>
                     <Separator className="my-[3px]" />
                     <div className={INFO_ROW_CLASS}>
-                      <span className="inline-flex text-[var(--accent)]"><Person size={16} strokeWidth={1.75} /></span>
+                      <span className={INFO_ICON_CLASS}><Person size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
-                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.owner')}</p>
-                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{property.ownerName}</p>
+                        <p className={INFO_LABEL_CLASS}>{t('properties.owner')}</p>
+                        <p className={INFO_VALUE_CLASS}>{property.ownerName}</p>
                       </div>
                     </div>
                   </>
@@ -712,19 +669,19 @@ const PropertyDetails: React.FC = () => {
                     <div className="flex flex-col gap-0.5">
                       {property.defaultCheckInTime && (
                         <div className={INFO_ROW_CLASS}>
-                          <span className="inline-flex text-[var(--accent)]"><Login size={16} strokeWidth={1.75} /></span>
+                          <span className={INFO_ICON_CLASS}><Login size={16} strokeWidth={1.75} /></span>
                           <div>
-                            <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.checkInTime')}</p>
-                            <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{formatTime(property.defaultCheckInTime)}</p>
+                            <p className={INFO_LABEL_CLASS}>{t('properties.checkInTime')}</p>
+                            <p className={INFO_VALUE_CLASS}>{formatTime(property.defaultCheckInTime)}</p>
                           </div>
                         </div>
                       )}
                       {property.defaultCheckOutTime && (
                         <div className={INFO_ROW_CLASS}>
-                          <span className="inline-flex text-[var(--accent)]"><Logout size={16} strokeWidth={1.75} /></span>
+                          <span className={INFO_ICON_CLASS}><Logout size={16} strokeWidth={1.75} /></span>
                           <div>
-                            <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.checkOutTime')}</p>
-                            <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{formatTime(property.defaultCheckOutTime)}</p>
+                            <p className={INFO_LABEL_CLASS}>{t('properties.checkOutTime')}</p>
+                            <p className={INFO_VALUE_CLASS}>{formatTime(property.defaultCheckOutTime)}</p>
                           </div>
                         </div>
                       )}
@@ -733,20 +690,20 @@ const PropertyDetails: React.FC = () => {
                 )}
                 <Separator className="my-[3px]" />
                 <div className={INFO_ROW_CLASS}>
-                  <span className="inline-flex text-[var(--accent)]"><CleaningServices size={16} strokeWidth={1.75} /></span>
+                  <span className={INFO_ICON_CLASS}><CleaningServices size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">
-                    <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.cleaningFrequency')}</p>
-                    <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</p>
+                    <p className={INFO_LABEL_CLASS}>{t('properties.cleaningFrequency')}</p>
+                    <p className={INFO_VALUE_CLASS}>{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</p>
                   </div>
                 </div>
                 {property.lastCleaning && (
                   <>
                     <Separator className="my-[3px]" />
                     <div className={INFO_ROW_CLASS}>
-                      <span className="inline-flex text-[var(--accent)]"><Schedule size={16} strokeWidth={1.75} /></span>
+                      <span className={INFO_ICON_CLASS}><Schedule size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
-                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('properties.lastCleaning')}</p>
-                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{formatDate(property.lastCleaning)}</p>
+                        <p className={INFO_LABEL_CLASS}>{t('properties.lastCleaning')}</p>
+                        <p className={INFO_VALUE_CLASS}>{formatDate(property.lastCleaning)}</p>
                       </div>
                     </div>
                   </>
@@ -796,14 +753,14 @@ const PropertyDetails: React.FC = () => {
               if (!hasAnyField) return null;
 
               const fields: { icon: React.ReactNode; label: string; value: string | null }[] = [
-                { icon: <span className="inline-flex text-[var(--accent)]"><VpnKey size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.accessCode'), value: ci.accessCode },
-                { icon: <span className="inline-flex text-[var(--accent)]"><Wifi size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.wifiName'), value: ci.wifiName },
-                { icon: <span className="inline-flex text-[var(--accent)]"><Wifi size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.wifiPassword'), value: ci.wifiPassword },
-                { icon: <span className="inline-flex text-[var(--accent)]"><LocalParking size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.parkingInfo'), value: ci.parkingInfo },
-                { icon: <span className="inline-flex text-[var(--accent)]"><Login size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.arrivalInstructions'), value: ci.arrivalInstructions },
-                { icon: <span className="inline-flex text-[var(--accent)]"><Logout size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.departureInstructions'), value: ci.departureInstructions },
-                { icon: <span className="inline-flex text-[var(--accent)]"><Gavel size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.houseRules'), value: ci.houseRules },
-                { icon: <span className="inline-flex text-[var(--accent)]"><Phone size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.emergencyContact'), value: ci.emergencyContact },
+                { icon: <span className={INFO_ICON_CLASS}><VpnKey size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.accessCode'), value: ci.accessCode },
+                { icon: <span className={INFO_ICON_CLASS}><Wifi size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.wifiName'), value: ci.wifiName },
+                { icon: <span className={INFO_ICON_CLASS}><Wifi size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.wifiPassword'), value: ci.wifiPassword },
+                { icon: <span className={INFO_ICON_CLASS}><LocalParking size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.parkingInfo'), value: ci.parkingInfo },
+                { icon: <span className={INFO_ICON_CLASS}><Login size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.arrivalInstructions'), value: ci.arrivalInstructions },
+                { icon: <span className={INFO_ICON_CLASS}><Logout size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.departureInstructions'), value: ci.departureInstructions },
+                { icon: <span className={INFO_ICON_CLASS}><Gavel size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.houseRules'), value: ci.houseRules },
+                { icon: <span className={INFO_ICON_CLASS}><Phone size={16} strokeWidth={1.75} /></span>, label: t('channels.checkIn.emergencyContact'), value: ci.emergencyContact },
               ];
 
               // Split: first 4 fields in 2-col grid, rest full-width
@@ -816,7 +773,7 @@ const PropertyDetails: React.FC = () => {
                 <div className="flex-[6] min-w-0">
                   <div className={CARD_CLASS}>
                     <div className="flex justify-between items-center mb-1.5">
-                      <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
+                      <p className={SECTION_TITLE_CLASS}>
                         {t('channels.checkIn.title')}
                       </p>
                       {/* Raccourci discret en tete de carte : `xs` remplace le gabarit 26 px du sx. */}
@@ -837,8 +794,8 @@ const PropertyDetails: React.FC = () => {
                           <div key={field.label} className={INFO_ROW_CLASS}>
                             {field.icon}
                             <div className="flex-1">
-                              <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{field.label}</p>
-                              <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{field.value}</p>
+                              <p className={INFO_LABEL_CLASS}>{field.label}</p>
+                              <p className={INFO_VALUE_CLASS}>{field.value}</p>
                             </div>
                           </div>
                         ))}
@@ -852,8 +809,8 @@ const PropertyDetails: React.FC = () => {
                         <div className={INFO_ROW_CLASS}>
                           {field.icon}
                           <div className="flex-1">
-                            <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{field.label}</p>
-                            <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1 whitespace-pre-line')}>{field.value}</p>
+                            <p className={INFO_LABEL_CLASS}>{field.label}</p>
+                            <p className={cn(INFO_VALUE_CLASS, 'whitespace-pre-line')}>{field.value}</p>
                           </div>
                         </div>
                       </React.Fragment>
@@ -881,26 +838,26 @@ const PropertyDetails: React.FC = () => {
             <div className={CARD_CLASS}>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <img className="w-[21px] h-[21px] rounded-[7px] object-contain" src={airbnbLogoSmall} alt="Airbnb" />
-                <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0')}>Airbnb</p>
-                <StatusChip tokens={{ color: channelStatus?.airbnb?.linked ? 'var(--ok)' : 'var(--muted)', bg: channelStatus?.airbnb?.linked ? 'var(--ok-soft)' : 'var(--hover)' }} label={channelStatus?.airbnb?.linked ? t('channels.connected') : t('channels.notConnected')} className="ms-auto h-[20px]" />
+                <p className={cn(SECTION_TITLE_CLASS, 'mb-0')}>Airbnb</p>
+                <StatusChip tone={channelStatus?.airbnb?.linked ? 'ok' : 'neutral'} label={channelStatus?.airbnb?.linked ? t('channels.connected') : t('channels.notConnected')} className="ms-auto h-[20px]" />
               </div>
               {channelStatus?.airbnb?.linked ? (
                 <div className="flex flex-col gap-0.5">
                   <div className={INFO_ROW_CLASS}>
-                    <span className={cn('inline-flex', channelStatus.airbnb.syncEnabled ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}><Sync size={16} strokeWidth={1.75} /></span>
+                    <span className={cn('inline-flex', channelStatus.airbnb.syncEnabled ? 'text-success' : 'text-muted-foreground')}><Sync size={16} strokeWidth={1.75} /></span>
                     <div className="flex-1">
-                      <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('channels.syncStatus.title')}</p>
-                      <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>
+                      <p className={INFO_LABEL_CLASS}>{t('channels.syncStatus.title')}</p>
+                      <p className={INFO_VALUE_CLASS}>
                         {channelStatus.airbnb.syncEnabled ? t('channels.syncStatus.syncOn') : t('channels.syncStatus.syncOff')}
                       </p>
                     </div>
                   </div>
                   {channelStatus.airbnb.lastSyncAt && (
                     <div className={INFO_ROW_CLASS}>
-                      <span className="inline-flex text-[var(--accent)]"><Schedule size={16} strokeWidth={1.75} /></span>
+                      <span className={INFO_ICON_CLASS}><Schedule size={16} strokeWidth={1.75} /></span>
                       <div className="flex-1">
-                        <p className={cn(INFO_LABEL_CLASS, 'cn-text-body1')}>{t('channels.syncStatus.lastSync')}</p>
-                        <p className={cn(INFO_VALUE_CLASS, 'cn-text-body1')}>{new Date(channelStatus.airbnb.lastSyncAt).toLocaleString('fr-FR')}</p>
+                        <p className={INFO_LABEL_CLASS}>{t('channels.syncStatus.lastSync')}</p>
+                        <p className={INFO_VALUE_CLASS}>{new Date(channelStatus.airbnb.lastSyncAt).toLocaleString('fr-FR')}</p>
                       </div>
                     </div>
                   )}
@@ -925,8 +882,8 @@ const PropertyDetails: React.FC = () => {
               <div key={ch.name} className={CARD_CLASS}>
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <img className="w-[21px] h-[21px] rounded-[7px] object-contain" src={ch.logo} alt={ch.name} />
-                  <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1 mb-0')}>{ch.name}</p>
-                  <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--hover)' }} label={t('channels.notConnected')} className="ms-auto h-[20px]" />
+                  <p className={cn(SECTION_TITLE_CLASS, 'mb-0')}>{ch.name}</p>
+                  <StatusChip tone="neutral" label={t('channels.notConnected')} className="ms-auto h-[20px]" />
                 </div>
                 <Button size="sm" variant="outline" onClick={() => navigate('/channels')}>
                   <Hub size={14} strokeWidth={1.75} />

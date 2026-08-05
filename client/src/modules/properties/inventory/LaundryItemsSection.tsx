@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Card } from '../../../components/ui';
+import EmptyState from '../../../components/EmptyState';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui';
 import { Button } from '../../../components/ui';
 import {
@@ -76,10 +76,10 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
     <div>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
-          <span className="inline-flex text-[var(--mui-info)]"><LocalLaundryService size={22} strokeWidth={1.75} /></span>
+          <span className="inline-flex text-info"><LocalLaundryService size={22} strokeWidth={1.75} /></span>
           <div>
-            <h6 className="cn-text-subtitle1 font-semibold">Linge de maison</h6>
-            <p className="cn-text-body2 text-muted-foreground text-[0.8rem]">
+            <h6 className="text-sm font-semibold tracking-tight">Linge de maison</h6>
+            <p className="text-xs text-muted-foreground">
               Articles de linge a preparer apres chaque sejour
             </p>
           </div>
@@ -98,21 +98,19 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
       </div>
 
       {items.length === 0 ? (
-        <Card className="gap-0 py-0 p-6 text-center">
-          <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><LocalLaundryService size={40} strokeWidth={1.5} /></span>
-          <p className="cn-text-body1 text-muted-foreground">Aucun article de linge configure</p>
-          {catalog.length === 0 && (
-            <p className="cn-text-body2 text-muted-foreground opacity-60 mt-0.5">
-              Configurez d'abord le catalogue blanchisserie dans Configuration tarifaire
-            </p>
-          )}
-          {canEdit && catalog.length > 0 && (
-            <Button size="sm" variant="ghost" onClick={openAdd} className="mt-1.5">
+        <EmptyState
+          icon={<LocalLaundryService />}
+          title="Aucun article de linge configure"
+          description={catalog.length === 0
+            ? "Configurez d'abord le catalogue blanchisserie dans Configuration tarifaire"
+            : undefined}
+          action={canEdit && catalog.length > 0 ? (
+            <Button size="sm" variant="ghost" onClick={openAdd}>
               <Add size={18} strokeWidth={1.75} />
               Ajouter un article
             </Button>
-          )}
-        </Card>
+          ) : undefined}
+        />
       ) : (
         <>
           <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
@@ -170,7 +168,7 @@ export default function LaundryItemsSection({ items, catalog, canEdit, onAdd, on
                                   size="icon-sm"
                                   onClick={() => onDelete(item.id)}
                                   aria-label={`Supprimer ${item.label}`}
-                                  className="text-[var(--err)] hover:bg-[var(--err-soft)]"
+                                  className="text-destructive hover:bg-destructive-soft"
                                 >
                                   <DeleteOutline size={16} strokeWidth={1.75} />
                                 </Button>

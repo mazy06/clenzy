@@ -36,8 +36,8 @@ interface FeedInvoiceModalProps {
 
 const row = (label: string, value: ReactNode) => (
   <div className="flex justify-between gap-3 py-0.5">
-    <p className="cn-text-body2 text-muted-foreground">{label}</p>
-    <div className="cn-text-body2 font-semibold text-end tabular-nums">
+    <p className="text-xs text-muted-foreground">{label}</p>
+    <div className="text-xs font-semibold text-end tabular-nums text-foreground">
       {value}
     </div>
   </div>
@@ -130,8 +130,14 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
         ) : invoice ? (
           <>
             <div className="flex items-center justify-between mb-1.5">
-              <p className="cn-text-body1 font-bold">{invoice.invoiceNumber}</p>
-              <StatusChip tokens={{ color: INVOICE_STATUS_COLORS[invoice.status] ?? 'var(--muted)', bg: `color-mix(in srgb, ${INVOICE_STATUS_COLORS[invoice.status] ?? 'var(--muted)'} 18%, transparent)` }} label={t(`supervision.invoiceModal.status.${invoice.status}`, invoice.status)} />
+              <p className="text-sm font-semibold text-foreground">{invoice.invoiceNumber}</p>
+              {/* Couleur de statut hors palette sémantique (une teinte par statut
+                  de facture) : la prop `color` de la primitive dérive elle-même
+                  le fond doux — pas de color-mix recopié ici. */}
+              <StatusChip
+                color={INVOICE_STATUS_COLORS[invoice.status] ?? 'var(--bui-muted-foreground)'}
+                label={t(`supervision.invoiceModal.status.${invoice.status}`, invoice.status)}
+              />
             </div>
             {row(
               t('supervision.invoiceModal.amount', 'Montant TTC'),
@@ -187,7 +193,7 @@ export function FeedInvoiceModal({ invoiceId, onClose }: FeedInvoiceModalProps) 
             )}
           </>
         ) : (
-          <p className="cn-text-body2 text-muted-foreground italic py-3">
+          <p className="text-xs text-muted-foreground italic py-3">
             {error ?? t('supervision.invoiceModal.loadError', 'Facture introuvable ou inaccessible.')}
           </p>
         )}

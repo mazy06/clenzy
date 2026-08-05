@@ -15,10 +15,9 @@
    ajouter une entrée, aucun branchement à modifier ailleurs.
    ============================================================ */
 import React from 'react';
-import { cn } from '../../../../utils/cn';
 
 import { parseToolResult } from './parseToolResult';
-import { humanizeKey, ErrorCard } from './shared';
+import { humanizeKey, ErrorCard, SurfaceCard } from './shared';
 
 import { ListResult } from './ListResult';
 import { DetailsResult } from './DetailsResult';
@@ -144,9 +143,9 @@ const KeyValueFallback: React.FC<{ data: unknown }> = ({ data }) => {
   // Chaîne brute (tool non-JSON) → petite note texte.
   if (typeof data === 'string') {
     return (
-      <div className="mt-1.5 mb-2 px-2 py-2 rounded-[10px] border border-[var(--line)] bg-[var(--card)]">
-        <p className="cn-text-body1 text-[12.5px] text-[var(--body)] whitespace-pre-wrap">{data}</p>
-      </div>
+      <SurfaceCard>
+        <p className="whitespace-pre-wrap text-xs leading-relaxed text-foreground">{data}</p>
+      </SurfaceCard>
     );
   }
 
@@ -165,17 +164,17 @@ const KeyValueFallback: React.FC<{ data: unknown }> = ({ data }) => {
   if (entries.length === 0) return null;
 
   return (
-    <div className="mt-1.5 mb-2 p-2 rounded-[10px] border border-[var(--line)] bg-[var(--card)]">
-      {entries.map(([k, v], idx) => (
-        <div className="flex gap-[9px] py-[3px] items-baseline" style={{ borderTop: idx > 0 ? '1px solid var(--line)' : 'none' }} key={k}>
-          <p className="cn-text-body1 flex-[0_0_38%] text-[var(--muted)] text-[11.5px]">
-            {humanizeKey(k)}
-          </p>
-          <p className="cn-text-body1 flex-1 text-[12.5px] text-[var(--body)] font-medium tabular-nums">
-            {String(v)}
-          </p>
-        </div>
-      ))}
-    </div>
+    <SurfaceCard>
+      <dl className="m-0 divide-y divide-border">
+        {entries.map(([k, v]) => (
+          <div className="flex items-baseline gap-2 py-1" key={k}>
+            <dt className="flex-[0_0_38%] text-xs text-muted-foreground">{humanizeKey(k)}</dt>
+            <dd className="m-0 flex-1 text-xs font-medium tabular-nums text-foreground">
+              {String(v)}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </SurfaceCard>
   );
 };

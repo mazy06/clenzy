@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { cn } from '../../utils/cn';
-import StatusChip from '../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Button, Card } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -31,14 +31,36 @@ import EmptyState from '../../components/EmptyState';
 import { Money } from '../../components/Money';
 import type { PropertyIntervention } from '../../hooks/usePropertyDetails';
 
-// Statut intervention → tokens sémantiques (pattern chips « texte couleur + fond -soft »).
-function interventionStatusTokens(status: string): { fg: string; bg: string } {
+// Statut intervention → ton sémantique du kit. La couleur elle-même n'est plus
+// portée ici : la puce la déduit du ton, les aplats passent par les tables de
+// classes ci-dessous.
+function interventionStatusTone(status: string): StatusTone {
   const lower = status.toLowerCase();
-  if (lower === 'completed' || lower === 'terminee' || lower === 'terminé') return { fg: 'var(--ok)', bg: 'var(--ok-soft)' };
-  if (lower === 'in_progress' || lower === 'en_cours') return { fg: 'var(--info)', bg: 'var(--info-soft)' };
-  if (lower === 'cancelled' || lower === 'annulee') return { fg: 'var(--muted)', bg: 'var(--hover)' };
-  return { fg: 'var(--warn)', bg: 'var(--warn-soft)' };
+  if (lower === 'completed' || lower === 'terminee' || lower === 'terminé') return 'ok';
+  if (lower === 'in_progress' || lower === 'en_cours') return 'info';
+  if (lower === 'cancelled' || lower === 'annulee') return 'neutral';
+  return 'warn';
 }
+
+/** Pastille pleine d'un ton — un aplat prend la teinte vive, jamais l'encre (§2.4). */
+const TONE_DOT_CLASS: Record<StatusTone, string> = {
+  ok: 'bg-success',
+  warn: 'bg-warning',
+  err: 'bg-destructive',
+  info: 'bg-info',
+  accent: 'bg-primary',
+  neutral: 'bg-muted-foreground',
+};
+
+/** Pastille d'icône d'une tuile de compteur : fond pastel + icône en teinte vive. */
+const TONE_BADGE_CLASS: Record<StatusTone, string> = {
+  ok: 'bg-success-soft text-success',
+  warn: 'bg-warning-soft text-warning',
+  err: 'bg-destructive-soft text-destructive',
+  info: 'bg-info-soft text-info',
+  accent: 'bg-primary-soft text-primary',
+  neutral: 'bg-muted text-muted-foreground',
+};
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -69,28 +91,29 @@ function buildCalendarGrid(monthAnchor: Date): Date[] {
   });
 }
 
-function statusIcon(status: string, size: number, color: string) {
+// L'icône n'impose plus sa couleur : elle hérite de l'encre de la puce
+// (`currentColor`), qui tient déjà le ton.
+function statusIcon(status: string, size: number) {
   const lower = status.toLowerCase();
   if (lower === 'completed' || lower === 'terminee' || lower === 'terminé') {
-    return <CheckCircle size={size} strokeWidth={2} color={color} />;
+    return <CheckCircle size={size} strokeWidth={2} />;
   }
   if (lower === 'in_progress' || lower === 'en_cours') {
-    return <PlayArrow size={size} strokeWidth={2} color={color} />;
+    return <PlayArrow size={size} strokeWidth={2} />;
   }
   if (lower === 'cancelled' || lower === 'annulee') {
-    return <Cancel size={size} strokeWidth={2} color={color} />;
+    return <Cancel size={size} strokeWidth={2} />;
   }
-  return <HourglassEmpty size={size} strokeWidth={2} color={color} />;
+  return <HourglassEmpty size={size} strokeWidth={2} />;
 }
 
 // Segmente de vue : l'etat choisi est porte par `data-state=on` cote Radix, la
 // ou MUI utilisait `.Mui-selected`.
 const TOGGLE_ITEM_CLASS =
-  'normal-case text-[12px] font-semibold px-[9px] py-[2.4px] gap-[3px] border-none rounded-[8px] '
-  + 'text-[var(--muted)] transition-[background-color,color] duration-[140ms] '
-  + 'hover:bg-transparent hover:text-[var(--body)] '
-  + 'data-[state=on]:bg-[var(--card)] data-[state=on]:text-[var(--accent)] '
-  + 'data-[state=on]:shadow-[0_1px_3px_color-mix(in_srgb,var(--ink)_10%,transparent)]';
+  'normal-case text-xs font-semibold px-[9px] py-[2.4px] gap-[3px] border-none rounded-md '
+  + 'text-muted-foreground transition-colors duration-150 motion-reduce:transition-none '
+  + 'hover:bg-transparent hover:text-foreground '
+  + 'data-[state=on]:bg-card data-[state=on]:text-primary data-[state=on]:shadow-sm';
 
 // ─── Stat card ───────────────────────────────────────────────────────────────
 
@@ -98,22 +121,21 @@ interface StatCardProps {
   icon: React.ReactNode;
   label: string;
   value: React.ReactNode;
-  /** Couple de tokens { fg, bg } (ex. var(--ok) / var(--ok-soft)). */
-  fg: string;
-  bg: string;
+  /** Ton sémantique de la pastille d'icône. */
+  tone: StatusTone;
 }
 
-function StatCard({ icon, label, value, fg, bg }: StatCardProps) {
+function StatCard({ icon, label, value, tone }: StatCardProps) {
   return (
-    <div className="px-4 py-[14px] rounded-[13px] border border-solid border-[var(--line)] bg-[var(--card)] shadow-none flex items-center gap-[7.5px] min-w-0 flex-[1_1_0]">
-      <div className="w-[36px] h-[36px] rounded-[11px] flex items-center justify-center shrink-0" style={{ color: fg, backgroundColor: bg }}>
+    <div className="px-4 py-[14px] rounded-xl border border-solid border-border bg-card shadow-none flex items-center gap-[7.5px] min-w-0 flex-[1_1_0]">
+      <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center shrink-0', TONE_BADGE_CLASS[tone])}>
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] font-bold uppercase tracking-[.04em] leading-[1.2]">
+        <p className="text-2xs text-faint font-semibold uppercase tracking-wide leading-[1.2]">
           {label}
         </p>
-        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[18px] font-semibold leading-[1.2] text-[var(--ink)] tabular-nums tracking-[-.01em]">
+        <p className="font-[family-name:var(--font-display)] text-lg font-semibold leading-[1.2] text-foreground tabular-nums tracking-[-.01em]">
           {value}
         </p>
       </div>
@@ -207,31 +229,31 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
           icon={<Build size={18} strokeWidth={1.75} />}
           label="Total"
           value={stats.total}
-          fg="var(--accent)" bg="var(--accent-soft)"
+          tone="accent"
         />
         <StatCard
           icon={<HourglassEmpty size={18} strokeWidth={1.75} />}
           label="En attente"
           value={stats.pending}
-          fg="var(--warn)" bg="var(--warn-soft)"
+          tone="warn"
         />
         <StatCard
           icon={<PlayArrow size={18} strokeWidth={1.75} />}
           label="En cours"
           value={stats.inProgress}
-          fg="var(--info)" bg="var(--info-soft)"
+          tone="info"
         />
         <StatCard
           icon={<CheckCircle size={18} strokeWidth={1.75} />}
           label="Terminées"
           value={stats.completed}
-          fg="var(--ok)" bg="var(--ok-soft)"
+          tone="ok"
         />
         <StatCard
           icon={<Euro size={18} strokeWidth={1.75} />}
           label="Revenus"
           value={<Money value={stats.revenue} from="EUR" decimals={0} />}
-          fg="var(--accent)" bg="var(--accent-soft)"
+          tone="accent"
         />
       </div>
 
@@ -245,7 +267,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
           // Radix renvoie '' quand on re-clique l'option active : le garde-fou
           // evite de laisser la vue sans mode.
           onValueChange={(v) => { if (v) setView(v as typeof view); }}
-          className="bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[10px] p-[3px] gap-[2px]"
+          className="bg-field border border-solid border-field-line rounded-lg p-[3px] gap-[2px]"
         >
           <ToggleGroupItem value="calendar" className={TOGGLE_ITEM_CLASS}>
             <CalendarMonth size={14} strokeWidth={1.75} />
@@ -266,7 +288,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
               <Button variant="ghost" size="icon-sm" aria-label="Mois précédent" onClick={prevMonth}>
                 <ChevronLeft size={18} strokeWidth={1.75} />
               </Button>
-              <p className="cn-text-body1 text-[0.875rem] font-semibold min-w-[130px] text-center capitalize">
+              <p className="text-sm font-semibold min-w-[130px] text-center capitalize tabular-nums">
                 {MONTH_NAMES_FR[monthAnchor.getMonth()]} {monthAnchor.getFullYear()}
               </p>
               <Button variant="ghost" size="icon-sm" aria-label="Mois suivant" onClick={nextMonth}>
@@ -281,11 +303,11 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
       {view === 'calendar' && (
         <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[1.5fr_1fr] gap-3">
           {/* Calendar grid */}
-          <Card className="gap-0 py-0 p-3 bg-[var(--card)]">
+          <Card className="gap-0 py-0 p-3 bg-card">
             {/* Weekday header */}
             <div className="grid grid-cols-7 mb-1.5">
               {DAY_LABELS_FR.map((d) => (
-                <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] text-center uppercase tracking-[.05em]" key={d}>
+                <p className="text-2xs font-semibold text-faint text-center uppercase tracking-wide" key={d}>
                   {d}
                 </p>
               ))}
@@ -306,29 +328,35 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                     onClick={() => setSelectedDay(d)}
                     // p 0.75 = 4.5px (theme.spacing = 6)
                     className={cn(
-                      'min-h-[56px] rounded-[8px] p-[4.5px] flex flex-col cursor-pointer border border-solid',
-                      'transition-[background-color,border-color] duration-[140ms]',
-                      'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+                      'min-h-[56px] rounded-md p-[4.5px] flex flex-col cursor-pointer border border-solid',
+                      'transition-colors duration-150 motion-reduce:transition-none',
+                      'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2',
                       isSelected
-                        ? 'bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent)]'
+                        ? 'bg-primary text-primary-foreground hover:bg-primary'
                         : cn(
-                            hasItems ? 'bg-[var(--accent-soft)]' : 'bg-transparent',
-                            'text-inherit hover:bg-[var(--hover)]',
+                            hasItems ? 'bg-primary-soft' : 'bg-transparent',
+                            'text-inherit hover:bg-muted',
                           ),
-                      isToday && !isSelected ? 'border-[var(--accent)]' : 'border-transparent',
+                      isToday && !isSelected ? 'border-primary' : 'border-transparent',
                       inMonth ? 'opacity-100' : 'opacity-35',
                     )}
                   >
-                    <p className={cn('cn-text-body1 text-[12px] text-end leading-[1.2] tabular-nums', isToday || isSelected ? 'font-bold' : 'font-medium')} style={{ fontFamily: 'var(--font-display)' }}>
+                    <p className={cn('[font-family:var(--font-display)] text-xs text-end leading-[1.2] tabular-nums', isToday || isSelected ? 'font-bold' : 'font-medium')}>
                       {d.getDate()}
                     </p>
                     {hasItems && (
                       <div className="flex flex-wrap gap-0.5 mt-auto">
                         {items.slice(0, 3).map((iv) => (
-                          <div className={cn('w-[6px] h-[6px] rounded-[3px]', isSelected ? 'opacity-90' : 'opacity-100')} style={{ backgroundColor: isSelected ? 'var(--on-accent)' : interventionStatusTokens(iv.status).fg }} key={iv.id} />
+                          <div
+                            key={iv.id}
+                            className={cn(
+                              'w-1.5 h-1.5 rounded-[3px]',
+                              isSelected ? 'bg-primary-foreground opacity-90' : TONE_DOT_CLASS[interventionStatusTone(iv.status)],
+                            )}
+                          />
                         ))}
                         {items.length > 3 && (
-                          <p className={cn('cn-text-body1 text-[0.5625rem] font-bold', isSelected ? 'text-[var(--on-accent)]' : 'text-[var(--muted)]')}>
+                          <p className={cn('text-[0.5625rem] font-bold', isSelected ? 'text-primary-foreground' : 'text-muted-foreground')}>
                             +{items.length - 3}
                           </p>
                         )}
@@ -340,32 +368,35 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
             </div>
 
             {/* Legend */}
-            <div className="flex gap-2 mt-3 pt-2 border-t border-[var(--line)] flex-wrap">
-              {[
-                { label: 'En attente', color: 'var(--warn)' },
-                { label: 'En cours', color: 'var(--info)' },
-                { label: 'Terminée', color: 'var(--ok)' },
-                { label: 'Annulée', color: 'var(--muted)' },
-              ].map((leg) => (
+            <div className="flex gap-2 mt-3 pt-2 border-t border-border flex-wrap">
+              {([
+                { label: 'En attente', tone: 'warn' },
+                { label: 'En cours', tone: 'info' },
+                { label: 'Terminée', tone: 'ok' },
+                { label: 'Annulée', tone: 'neutral' },
+              ] as { label: string; tone: StatusTone }[]).map((leg) => (
                 <div className="flex items-center gap-0.5" key={leg.label}>
-                  <div className="w-[9px] h-[9px] rounded-[3px]" style={{ backgroundColor: leg.color }} />
-                  <p className="cn-text-body1 text-[11.5px] text-[var(--muted)]">{leg.label}</p>
+                  <div className={cn('w-[9px] h-[9px] rounded-[3px]', TONE_DOT_CLASS[leg.tone])} />
+                  <p className="text-xs text-muted-foreground">{leg.label}</p>
                 </div>
               ))}
             </div>
           </Card>
 
           {/* Selected day details */}
-          <Card className="gap-0 py-0 p-3 bg-[var(--card)] flex flex-col">
+          <Card className="gap-0 py-0 p-3 bg-card flex flex-col">
             <div className="flex items-center gap-1.5 mb-2">
-              <div className={cn('w-[32px] h-[32px] rounded-[12px] flex items-center justify-center', isSameDay(selectedDay, today) ? 'bg-[var(--accent)]' : 'bg-[var(--accent-soft)]', isSameDay(selectedDay, today) ? 'text-[var(--on-accent)]' : 'text-[var(--accent)]')}>
+              <div className={cn(
+                'w-8 h-8 rounded-lg flex items-center justify-center',
+                isSameDay(selectedDay, today) ? 'bg-primary text-primary-foreground' : 'bg-primary-soft text-primary',
+              )}>
                 <CalendarMonth size={16} strokeWidth={1.75} />
               </div>
               <div>
-                <p className="cn-text-body1 text-[0.9375rem] font-bold capitalize leading-[1.2]">
+                <p className="text-sm font-semibold capitalize leading-[1.2] text-foreground">
                   {selectedDay.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </p>
-                <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {selectedDayItems.length === 0
                     ? 'Aucune intervention'
                     : `${selectedDayItems.length} intervention${selectedDayItems.length > 1 ? 's' : ''}`}
@@ -374,37 +405,41 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
             </div>
 
             {selectedDayItems.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center py-4 text-muted-foreground opacity-60">
+              <div className="flex-1 flex flex-col items-center justify-center py-4 text-faint">
                 <CalendarMonth size={28} strokeWidth={1.5} />
-                <p className="cn-text-body1 text-[0.75rem] mt-1.5">
+                <p className="text-xs mt-1.5">
                   Sélectionnez un jour avec un point coloré
                 </p>
               </div>
             ) : (
               <div className="flex flex-col gap-1.5">
                 {selectedDayItems.map((iv) => {
-                  const tk = interventionStatusTokens(iv.status);
+                  const tone = interventionStatusTone(iv.status);
                   return (
-                    <div className="p-[7.5px] rounded-[11px] border border-solid border-[var(--line)] cursor-pointer hover:border-[var(--line-2)] hover:bg-[var(--hover)]" style={{ transition: 'border-color .14s, background-color .14s' }} key={iv.id} onClick={() => navigate(`/interventions/${iv.id}`)}>
+                    <div
+                      key={iv.id}
+                      onClick={() => navigate(`/interventions/${iv.id}`)}
+                      className="p-[7.5px] rounded-lg border border-solid border-border cursor-pointer transition-colors duration-150 motion-reduce:transition-none hover:bg-muted"
+                    >
                       <div className="flex justify-between items-start mb-0.5 gap-1.5">
-                        <p className="cn-text-body1 text-[0.8125rem] font-semibold leading-[1.3]">
+                        <p className="text-sm font-semibold leading-[1.3] text-foreground">
                           {getInterventionTypeLabel(iv.type, t)}
                         </p>
-                        <StatusChip tokens={{ color: tk.fg, bg: tk.bg }} label={getInterventionStatusLabel(iv.status, t)} icon={statusIcon(iv.status, 12, tk.fg)} className="h-[20px]" />
+                        <StatusChip tone={tone} label={getInterventionStatusLabel(iv.status, t)} icon={statusIcon(iv.status, 12)} className="h-[20px]" />
                       </div>
                       {iv.description && (
                         // line-clamp-2 pose display/-webkit-box-orient/overflow d'un bloc
-                        <p className="cn-text-body1 text-[0.75rem] text-[var(--muted)] mb-[3px] line-clamp-2 leading-[1.4]">
+                        <p className="text-xs text-muted-foreground mb-[3px] line-clamp-2 leading-[1.4]">
                           {iv.description}
                         </p>
                       )}
                       <div className="flex justify-between items-center">
                         {iv.cost != null && iv.cost > 0 ? (
                           <div className="flex items-center gap-0.5">
-                            <span className="inline-flex text-[var(--accent)]">
+                            <span className="inline-flex text-primary">
                               <Euro size={12} strokeWidth={1.75} />
                             </span>
-                            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[12.5px] font-semibold text-[var(--ink)] tabular-nums">
+                            <p className="font-[family-name:var(--font-display)] text-xs font-semibold text-foreground tabular-nums">
                               <Money value={iv.cost} from="EUR" decimals={0} />
                             </p>
                           </div>
@@ -413,7 +448,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
                         )}
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="inline-flex text-muted-foreground opacity-60">
+                            <span className="inline-flex text-faint">
                               <ChevronRight size={14} strokeWidth={1.75} />
                             </span>
                           </TooltipTrigger>
@@ -431,7 +466,7 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
 
       {/* ─── List view ───────────────────────────────────────────────────── */}
       {view === 'list' && (
-        <Card className="gap-0 py-0 bg-[var(--card)] overflow-hidden">
+        <Card className="gap-0 py-0 bg-card overflow-hidden">
           {(() => {
             // Group by month-year
             const groups = new Map<string, PropertyIntervention[]>();
@@ -449,51 +484,54 @@ export default function PropertyInterventionsTab({ interventions, propertyId: _p
               const [y, m] = key.split('-').map(Number);
               return (
                 <div key={key}>
-                  <div className="px-3 py-1.5 bg-[var(--surface-2)] border-b border-[var(--line)] flex items-center justify-between sticky top-[0px] z-[1]">
-                    <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
+                  {/* Bandeau de mois collant : il doit rester opaque au défilement,
+                      d'où `bg-muted` plutôt que la surface de carte. */}
+                  <div className="px-3 py-1.5 bg-muted border-b border-border flex items-center justify-between sticky top-0 z-[1]">
+                    <p className="text-2xs font-semibold uppercase tracking-wide text-faint">
                       {MONTH_NAMES_FR[m]} {y}
                     </p>
-                    <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60">
+                    <p className="text-xs text-muted-foreground tabular-nums">
                       {items.length} intervention{items.length > 1 ? 's' : ''}
                     </p>
                   </div>
-                  {items.map((iv) => {
-                    const tk = interventionStatusTokens(iv.status);
-                    return (
-                      // Breakpoint MUI sm = 600px (non configure) : variante exacte min-[600px].
-                      <div
-                        key={iv.id}
-                        onClick={() => navigate(`/interventions/${iv.id}`)}
-                        className="grid grid-cols-[70px_1fr_auto] min-[600px]:grid-cols-[80px_1fr_130px_90px_20px] gap-[9px] items-center px-3 py-[7.5px] cursor-pointer border-b border-solid border-[var(--line)] last:border-b-0 hover:bg-[var(--hover)] transition-[background-color] duration-[140ms]"
-                      >
-                        <div className="text-center">
-                          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[17px] font-semibold leading-[1] text-[var(--ink)] tabular-nums">
-                            {new Date(iv.scheduledDate).getDate()}
-                          </p>
-                          <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[.06em]">
-                            {new Date(iv.scheduledDate).toLocaleDateString('fr-FR', { weekday: 'short' })}
-                          </p>
-                        </div>
-                        <div className="min-w-0">
-                          <p className="cn-text-body1 text-[0.8125rem] font-semibold">
-                            {getInterventionTypeLabel(iv.type, t)}
-                          </p>
-                          {iv.description && (
-                            <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap">
-                              {iv.description}
-                            </p>
-                          )}
-                        </div>
-                        <StatusChip tokens={{ color: tk.fg, bg: tk.bg }} label={getInterventionStatusLabel(iv.status, t)} icon={statusIcon(iv.status, 12, tk.fg)} />
-                        <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)] text-end hidden min-[600px]:block tabular-nums" style={{ fontFamily: 'var(--font-display)' }}>
-                          {iv.cost != null && iv.cost > 0 ? <Money value={iv.cost} from="EUR" decimals={0} /> : '—'}
+                  {items.map((iv) => (
+                    // Breakpoint MUI sm = 600px (non configure) : variante exacte min-[600px].
+                    <div
+                      key={iv.id}
+                      onClick={() => navigate(`/interventions/${iv.id}`)}
+                      className="grid grid-cols-[70px_1fr_auto] min-[600px]:grid-cols-[80px_1fr_130px_90px_20px] gap-[9px] items-center px-3 py-[7.5px] cursor-pointer border-b border-solid border-border last:border-b-0 hover:bg-muted transition-colors duration-150 motion-reduce:transition-none"
+                    >
+                      <div className="text-center">
+                        <p className="font-[family-name:var(--font-display)] text-lg font-semibold leading-[1] text-foreground tabular-nums">
+                          {new Date(iv.scheduledDate).getDate()}
                         </p>
-                        <div className="hidden min-[600px]:inline-flex text-[var(--faint)]">
-                          <ChevronRight size={16} strokeWidth={1.75} />
-                        </div>
+                        <p className="text-2xs font-semibold text-faint uppercase tracking-wide">
+                          {new Date(iv.scheduledDate).toLocaleDateString('fr-FR', { weekday: 'short' })}
+                        </p>
                       </div>
-                    );
-                  })}
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground">
+                          {getInterventionTypeLabel(iv.type, t)}
+                        </p>
+                        {iv.description && (
+                          <p className="text-xs text-muted-foreground mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap">
+                            {iv.description}
+                          </p>
+                        )}
+                      </div>
+                      <StatusChip
+                        tone={interventionStatusTone(iv.status)}
+                        label={getInterventionStatusLabel(iv.status, t)}
+                        icon={statusIcon(iv.status, 12)}
+                      />
+                      <p className="[font-family:var(--font-display)] text-sm font-semibold text-foreground text-end hidden min-[600px]:block tabular-nums">
+                        {iv.cost != null && iv.cost > 0 ? <Money value={iv.cost} from="EUR" decimals={0} /> : '—'}
+                      </p>
+                      <div className="hidden min-[600px]:inline-flex text-faint">
+                        <ChevronRight size={16} strokeWidth={1.75} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               );
             });

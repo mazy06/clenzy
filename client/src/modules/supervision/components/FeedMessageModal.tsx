@@ -64,11 +64,14 @@ export function FeedMessageModal({ logId, onClose }: FeedMessageModalProps) {
     };
   }, [logId]);
 
+  // L'iframe est un document ISOLÉ : il n'hérite ni de la feuille Baitly UI ni
+  // des variables --bui-*. Les teintes sont donc recopiées en dur, mais prises
+  // sur la palette (foreground / card / info-ink) — jamais de blanc ni de noir purs.
   const srcDoc = html
     ? `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.6;color:${
-        isDark ? '#e0e0e0' : '#333'
-      };background:${isDark ? '#1e1e1e' : '#fff'};padding:16px;margin:0;word-wrap:break-word;}a{color:${
-        isDark ? '#90caf9' : '#1976d2'
+        isDark ? '#D7E1EE' : '#1B2A35'
+      };background:${isDark ? '#111B31' : '#FBFCFD'};padding:16px;margin:0;word-wrap:break-word;}a{color:${
+        isDark ? '#5B8DF6' : '#1D4ED8'
       };}</style></head><body>${renderServerEmailPreview(html)}</body></html>`
     : '';
 
@@ -81,7 +84,7 @@ export function FeedMessageModal({ logId, onClose }: FeedMessageModalProps) {
           <DialogTitle>{t('supervision.messageModal.title', { defaultValue: 'Message envoyé' })}</DialogTitle>
         </DialogHeader>
         {/* Pendant du `dividers` de l'ancienne DialogContent MUI. */}
-        <div className="-mx-4 px-4 py-3 border-y border-solid border-[var(--line)]">
+        <div className="-mx-4 px-4 py-3 border-y border-solid border-border">
         {loading ? (
           <div className="flex justify-center py-6">
             <Spinner className="size-6" />
@@ -89,11 +92,11 @@ export function FeedMessageModal({ logId, onClose }: FeedMessageModalProps) {
         ) : html ? (
           <>
             {subject && (
-              <p className="cn-text-body2 mb-1.5">
-                <strong>{t('supervision.messageModal.subject', { defaultValue: 'Sujet' })} :</strong> {subject}
+              <p className="text-xs text-foreground mb-1.5">
+                <strong className="font-semibold">{t('supervision.messageModal.subject', { defaultValue: 'Sujet' })} :</strong> {subject}
               </p>
             )}
-            <div className="rounded-[8px] border border-[var(--line)] overflow-hidden">
+            <div className="rounded-md border border-solid border-border overflow-hidden">
               <iframe
                 sandbox=""
                 srcDoc={srcDoc}
@@ -103,7 +106,7 @@ export function FeedMessageModal({ logId, onClose }: FeedMessageModalProps) {
             </div>
           </>
         ) : (
-          <p className="cn-text-body2 text-muted-foreground italic py-3">
+          <p className="text-xs text-muted-foreground italic py-3">
             {t('supervision.messageModal.unavailable', { defaultValue: 'Aperçu du message indisponible.' })}
           </p>
         )}
