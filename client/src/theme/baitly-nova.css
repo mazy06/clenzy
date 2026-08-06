@@ -1508,9 +1508,19 @@
   @apply rounded-none border-0 bg-transparent py-2 shadow-none ring-0 focus-visible:ring-0 disabled:bg-transparent aria-invalid:ring-0 dark:bg-transparent dark:disabled:bg-transparent;
 }
 
-/* MARK: Menu Translucent */
+/* MARK: Menu Translucent
+   Le flou est pose par `backdrop-filter` sur l'element LUI-MEME, et non par un
+   `::before` en `absolute inset-0` comme a l'origine.
+   Raison : `DropdownMenuContent` combine cette classe avec `overflow-y-auto`.
+   Dans un conteneur qui defile, un enfant absolu appartient au contenu — il
+   remonte donc hors du champ des qu'on fait defiler, et le bas du menu se
+   retrouve avec `bg-popover/70` SANS flou : haut opaque, bas transparent, avec
+   la page qui transparait a travers les controles. Un `backdrop-filter` reste
+   attache a la boite visible.
+   `supports-backdrop-filter:` : sans le flou, le fond a 70 % serait trop
+   transparent — la regle ne s'applique donc que si le navigateur sait flouter. */
 .cn-menu-translucent {
-  @apply animate-none! relative bg-popover/70 before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:backdrop-blur-2xl before:backdrop-saturate-150 **:data-[slot$=-item]:focus:bg-foreground/10 **:data-[slot$=-item]:data-highlighted:bg-foreground/10 **:data-[slot$=-separator]:bg-foreground/5 **:data-[slot$=-trigger]:focus:bg-foreground/10 **:data-[slot$=-trigger]:aria-expanded:bg-foreground/10! **:data-[variant=destructive]:focus:bg-foreground/10! **:data-[variant=destructive]:text-accent-foreground! **:data-[variant=destructive]:**:text-accent-foreground!;
+  @apply animate-none! relative bg-popover/70 supports-backdrop-filter:backdrop-blur-2xl supports-backdrop-filter:backdrop-saturate-150 **:data-[slot$=-item]:focus:bg-foreground/10 **:data-[slot$=-item]:data-highlighted:bg-foreground/10 **:data-[slot$=-separator]:bg-foreground/5 **:data-[slot$=-trigger]:focus:bg-foreground/10 **:data-[slot$=-trigger]:aria-expanded:bg-foreground/10! **:data-[variant=destructive]:focus:bg-foreground/10! **:data-[variant=destructive]:text-accent-foreground! **:data-[variant=destructive]:**:text-accent-foreground!;
 }
 
 .cn-menu-translucent-aria {
