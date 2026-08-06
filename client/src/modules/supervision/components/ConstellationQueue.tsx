@@ -214,7 +214,10 @@ function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onOpenReview }:
           au focus clavier — visibles en permanence au tactile, sinon elles
           seraient inatteignables. Une carte expirée n'a plus d'actions. */}
       {!expired && (
-        <div className="mt-3 flex items-center gap-1">
+        // `flex-wrap` : dans le tiroir d'agent (etroit, ~307 px utiles) la
+        // rangee action principale + secondaires deborde ; en colonne large
+        // elle tient sur une ligne et rien ne bouge.
+        <div className="mt-3 flex flex-wrap items-center gap-1">
           <Button
             size="sm"
             disabled={resolving}
@@ -267,7 +270,7 @@ function QueueBlock({ action, onValidate, onEdit, onAdjustPrice, onOpenReview }:
               t('supervision.hitl.validate')
             )}
           </Button>
-          <div className="flex items-center gap-1 opacity-0 transition-opacity duration-150 group-focus-within/proposal:opacity-100 group-hover/proposal:opacity-100 [@media(hover:none)]:opacity-100">
+          <div className="flex flex-wrap items-center gap-1 opacity-0 transition-opacity duration-150 group-focus-within/proposal:opacity-100 group-hover/proposal:opacity-100 [@media(hover:none)]:opacity-100">
             <Button
               size="sm"
               variant="ghost"

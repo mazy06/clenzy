@@ -5,6 +5,7 @@
    = répartition de l'activité de l'agent par logement (openPortfolioAgent).
    ============================================================ */
 
+import type { ReactNode } from 'react';
 import { Button, Sheet, SheetContent, SheetDescription, SheetTitle } from '../../../components/ui';
 import { Close, HomeWork } from '../../../icons';
 import { AGENT_META, STATUS } from '../constants';
@@ -28,15 +29,23 @@ export function AgentDrawer({
   detail,
   onClose,
   propertyId,
+  queue,
 }: {
   open: boolean;
   detail: AgentDetail | null;
   onClose: () => void;
   /** Logement courant (vue par logement) : active les brouillons de réponse d'avis pour l'agent Réputation. */
   propertyId?: number | string;
+  /**
+   * File HITL de l'agent — la MEME `<ConstellationQueue>` que la colonne de
+   * droite en large. En etroit cette colonne n'existe pas : sans elle, ouvrir
+   * un agent qui a « 1 a valider » affichait « Aucune activite ».
+   */
+  queue?: ReactNode;
 }) {
   const { t } = useTranslation();
   const meta = detail ? AGENT_META[detail.id] : null;
+  const hasBreakdown = Boolean(detail && (detail.items.length > 0 || (detail.metrics?.length ?? 0) > 0));
 
   return (
     <Sheet open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
@@ -111,8 +120,15 @@ export function AgentDrawer({
                 </div>
               ))}
             </div>
-          ) : (
+          ) : !queue ? (
+            // Repli uniquement quand rien d'autre ne parle : la file porte deja
+            // son propre vide (« Rien a valider pour cet agent »), les deux
+            // ensemble se contrediraient.
             <p className="m-0 text-xs text-muted-foreground">{t('supervision.drawer.noActivity')}</p>
+          ) : null}
+
+          {queue && (
+            <div className={hasBreakdown ? 'mt-3 border-t border-border pt-3' : ''}>{queue}</div>
           )}
 
           {/* Agent Réputation (vue par logement) : brouillons de réponse d'avis à valider (REP). */}

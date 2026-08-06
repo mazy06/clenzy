@@ -604,7 +604,27 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
         </div>
       )}
 
-      <AgentDrawer open={Boolean(selected)} detail={detail} onClose={() => setSelected(null)} propertyId={propertyId} />
+      {/* En etroit, la colonne de droite (file HITL) n'est pas rendue : le
+          tiroir de l'agent devient le seul endroit ou ses cartes peuvent
+          vivre. On y branche la MEME file que la colonne large, filtree sur
+          l'agent ouvert. */}
+      <AgentDrawer
+        open={Boolean(selected)}
+        detail={detail}
+        onClose={() => setSelected(null)}
+        propertyId={propertyId}
+        queue={
+          selected ? (
+            <ConstellationQueue
+              agent={selected}
+              actions={snapshot.pending}
+              onValidate={handleValidate}
+              onEdit={handleEdit}
+              onAdjustPrice={handleAdjustPrice}
+            />
+          ) : undefined
+        }
+      />
 
       {priceAction && (
         <PriceAdjustmentModal
