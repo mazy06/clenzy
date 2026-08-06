@@ -53,9 +53,13 @@ export function MonthlyRevenueSplitCard({ months = 6 }: { months?: number }) {
     // `ring-1` et non `border` — même métrique de boîte que le `Card` du design
     // system, sinon cette carte se décale d'un pixel face à sa voisine de ligne
     // (rationnel détaillé sur `BlockCard`, DashboardOperationsBlocks).
-    // `flex h-full flex-col` : la carte est étirée à la hauteur de sa ligne, le
-    // graphique prend tout ce qui reste sous l'en-tête au lieu de laisser du vide.
-    <section className="flex h-full flex-col rounded-xl bg-card ring-1 ring-foreground/10 p-4">
+    // PAS de `h-full` ici : l'étirement à la hauteur de la ligne est déjà posé
+    // par le panneau redimensionnable, qui applique `[&>*]:h-full` à son enfant
+    // direct (DashboardWidgetGrid). Le redéclarer était sans effet sur desktop
+    // et desastreux en mobile : les widgets y sont EMPILÉS, sans panneau, donc
+    // `h-full` valait 100 % de toute la colonne — la carte passait de 294 px à
+    // 2167 px, avec un graphique étiré sur toute la hauteur de l'écran.
+    <section className="flex flex-col rounded-xl bg-card ring-1 ring-foreground/10 p-4">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h3 className="cn-font-heading m-0 text-[15px] font-semibold tracking-tight text-foreground">
           {t('dashboard.revenueSplit.title', 'Revenus et versements')} — {months}{' '}
@@ -288,10 +292,11 @@ export function OccupancyByPropertyCard({ period }: { period: DashboardPeriod })
   const view: OccupancyView = chosenView ?? (single ? 'radial' : 'bars');
 
   return (
-    // `flex h-full flex-col` : la carte est étirée à la hauteur de sa voisine de
-    // ligne ; sans colonne flex, le `flex-1` de la vue radiale n'aurait aucun
-    // espace à réclamer et le graphique resterait collé sous l'en-tête.
-    <section className="flex h-full flex-col rounded-xl bg-card ring-1 ring-foreground/10 p-4">
+    // La colonne flex reste — le `flex-1` de la vue radiale a besoin d'un axe
+    // pour réclamer son espace. En revanche PAS de `h-full` : le panneau
+    // redimensionnable le pose déjà sur son enfant direct, et en mobile, où les
+    // widgets sont empilés sans panneau, il valait 100 % de toute la colonne.
+    <section className="flex flex-col rounded-xl bg-card ring-1 ring-foreground/10 p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
         <h3 className="m-0 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
           {t('dashboard.occupancyByProperty.title', 'Occupation par logement')}
