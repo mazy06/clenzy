@@ -45,6 +45,11 @@ interface PlanningPropertyColumnProps {
   onToggleExpanded?: (propertyId: number) => void;
   /** Hauteur du spacer inséré sous une ligne déployée (= hauteur accordéon). */
   accordionHeight?: number;
+  /**
+   * Repliée en rail (mobile) : les lignes gardent leur hauteur — l'alignement
+   * avec la grille en dépend — mais perdent tout leur contenu et leurs gestes.
+   */
+  collapsed?: boolean;
 }
 
 const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo(({
@@ -61,6 +66,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
   expandedPropertyId = null,
   onToggleExpanded,
   accordionHeight = 600,
+  collapsed = false,
 }) => {
   // ── Popover logement (maquette) : ouvert au clic sur le nom ──────────────
   const [popover, setPopover] = useState<{ anchorEl: HTMLElement; propertyId: number } | null>(null);
@@ -157,6 +163,23 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             ? 'var(--ok)'
             : sync.synced > 0 ? 'var(--warn)' : 'var(--err)'
           : 'var(--faint)';
+        // Repliée : une ligne nue, à la seule hauteur qu'exige l'alignement.
+        if (collapsed) {
+          return (
+            <React.Fragment key={property.id}>
+              <div
+                className="bg-[var(--card)]"
+                style={{ height: effectiveRowHeight, borderBottom: '1px solid var(--line)' }}
+              />
+              {expandedPropertyId === property.id && (
+                <div
+                  className="bg-[var(--bg)]"
+                  style={{ height: accordionHeight, borderBottom: '1px solid var(--line)', width: 'calc(100% + 1px)' }}
+                />
+              )}
+            </React.Fragment>
+          );
+        }
         return (
           <React.Fragment key={property.id}>
           <div className={cn('relative flex flex-row items-center gap-0 px-0 cursor-pointer hover:bg-[var(--hover)]', selectedPropertyId === property.id || popover?.propertyId === property.id ? 'bg-[var(--accent-soft)]' : 'bg-[var(--card)]')} style={{ height: effectiveRowHeight, borderBottom: '1px solid var(--line)', transition: 'background-color 0.15s ease' }} onClick={(e) => setPopover({ anchorEl: e.currentTarget, propertyId: property.id })} onMouseEnter={() => prefetchPerformance(property.id)}>

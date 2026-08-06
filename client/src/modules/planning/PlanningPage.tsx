@@ -46,7 +46,12 @@ import { usePlanningMinNights } from './hooks/usePlanningMinNights';
 import { usePlanningChannelSync } from './hooks/usePlanningChannelSync';
 import { useResizablePropertyColWidth } from './hooks/useResizablePropertyColWidth';
 import { useUrgencyAnimation } from './hooks/useUrgencyAnimation';
-import { ACTION_PANEL_WIDTH, PLANNING_CHANNEL_KEYS, PLANNING_STATUS_KEYS } from './constants';
+import {
+  ACTION_PANEL_WIDTH,
+  COLLAPSED_PROPERTY_COL_WIDTH,
+  PLANNING_CHANNEL_KEYS,
+  PLANNING_STATUS_KEYS,
+} from './constants';
 import { formatMonthYear } from './utils/dateUtils';
 import type { PlanningChannelKey } from './constants';
 import type { PlanningEvent, PlanningProperty } from './types';
@@ -131,6 +136,18 @@ const PlanningPage: React.FC = () => {
   // par l'utilisateur (persiste dans localStorage).
   const { width: propertyColWidth, setWidth: setPropertyColWidth } = useResizablePropertyColWidth();
 
+  // Repli de la colonne logements — MOBILE uniquement : elle y mange la moitie
+  // de l'ecran alors que la grille est ce qu'on vient lire. Un appui sur son
+  // en-tete la reduit a un rail de 28 px ; le meme en-tete, devenu chevron, la
+  // ramene. Au-dela de 768 px l'etat est ignore : la colonne revient toujours.
+  const isMobileViewport = useMediaQuery('(max-width: 767.98px)');
+  const [propertyColCollapsedPref, setPropertyColCollapsedPref] = useState(false);
+  const propertyColCollapsed = isMobileViewport && propertyColCollapsedPref;
+  const togglePropertyCol = useCallback(() => setPropertyColCollapsedPref((v) => !v), []);
+  const effectivePropertyColWidth = propertyColCollapsed
+    ? COLLAPSED_PROPERTY_COL_WIDTH
+    : propertyColWidth;
+
   // Variante d'animation d'urgence des briques (per-device, localStorage)
   const [urgencyAnimation, setUrgencyAnimation] = useUrgencyAnimation();
 
@@ -139,7 +156,7 @@ const PlanningPage: React.FC = () => {
     anchorDate: nav.currentDate,
     zoom: nav.zoom,
     dayWidth: nav.dayWidth,
-    propertyColWidth,
+    propertyColWidth: effectivePropertyColWidth,
   });
 
   // Data fetching (chunked by 30-day aligned windows)
@@ -598,7 +615,7 @@ const PlanningPage: React.FC = () => {
       if (!el || timeline.days.length === 0) return;
       // Jour 0 de la grille à x = scrollLeft (la colonne logements est sticky) ;
       // sonde au tiers gauche de la zone de jours visible.
-      const gridViewportWidth = Math.max(0, el.clientWidth - propertyColWidth);
+      const gridViewportWidth = Math.max(0, el.clientWidth - effectivePropertyColWidth);
       const probeIndex = Math.floor((el.scrollLeft + gridViewportWidth / 3) / nav.dayWidth);
       const day = timeline.days[Math.min(timeline.days.length - 1, Math.max(0, probeIndex))];
       setVisibleMonthDate((prev) =>
@@ -607,7 +624,7 @@ const PlanningPage: React.FC = () => {
           : day,
       );
     });
-  }, [timeline.handleScroll, timeline.scrollRef, timeline.days, propertyColWidth, nav.dayWidth]);
+  }, [timeline.handleScroll, timeline.scrollRef, timeline.days, effectivePropertyColWidth, nav.dayWidth]);
 
   useEffect(() => () => {
     if (monthSyncRaf.current !== null) cancelAnimationFrame(monthSyncRaf.current);
@@ -904,8 +921,10 @@ const PlanningPage: React.FC = () => {
             quickCreateOpen={!!quickCreateData}
             scrollRef={timeline.scrollRef}
             onScroll={handleTimelineScroll}
-            propertyColWidth={propertyColWidth}
+            propertyColWidth={effectivePropertyColWidth}
             onPropertyColWidthChange={setPropertyColWidth}
+            propertyColCollapsed={propertyColCollapsed}
+            onTogglePropertyCol={isMobileViewport ? togglePropertyCol : undefined}
             showPrices={filters.showPrices}
             showInterventions={filters.showInterventions}
             pricingMap={pricingMap}

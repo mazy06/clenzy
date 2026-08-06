@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { ChevronRight } from '../../icons';
 import { isToday, isWeekend, formatDayNumber, formatDayShort, formatFullDate } from './utils/dateUtils';
 import { DATE_HEADER_HEIGHT, WEEKEND_HEADER_BG } from './constants';
 import type { ZoomLevel } from './types';
@@ -12,6 +13,10 @@ interface PlanningDateHeadersProps {
   totalGridWidth: number;
   propertyColWidth: number;
   propertyCount: number;
+  /** Colonne logements repliee en rail (mobile). */
+  collapsed?: boolean;
+  /** Fourni en mobile seulement : le coin devient l'interrupteur de la colonne. */
+  onToggleCollapse?: () => void;
 }
 
 const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
@@ -21,20 +26,43 @@ const PlanningDateHeaders: React.FC<PlanningDateHeadersProps> = React.memo(({
   totalGridWidth,
   propertyColWidth,
   propertyCount,
+  collapsed = false,
+  onToggleCollapse,
 }) => {
+  // Le coin n'est un bouton QUE si le parent fournit l'interrupteur (mobile) :
+  // ailleurs il reste la cellule inerte qu'il a toujours ete.
+  const CornerTag = onToggleCollapse ? 'button' : 'div';
   return (
     <div className="sticky top-0 z-[12] flex bg-[var(--surface-2)]" style={{ borderBottom: '1px solid var(--line)', minHeight: DATE_HEADER_HEIGHT }}>
       {/* Coin « LOGEMENT » (spec .pl-corner) : cellule unique sur toute la
           hauteur de l'entête — overline 10.5px fw700, centrée verticalement
           (la hauteur vient de la rangée, pas de ce padding). */}
-      <div
-        className="sticky left-0 z-[14] flex shrink-0 items-center border-r border-solid border-[var(--line)] bg-[var(--surface-2)] px-4 py-1"
+      <CornerTag
+        type={onToggleCollapse ? 'button' : undefined}
+        onClick={onToggleCollapse}
+        aria-expanded={onToggleCollapse ? !collapsed : undefined}
+        aria-label={
+          onToggleCollapse
+            ? collapsed
+              ? 'Afficher la colonne logements'
+              : 'Masquer la colonne logements'
+            : undefined
+        }
+        className={cn(
+          'sticky left-0 z-[14] flex shrink-0 items-center border-r border-solid border-[var(--line)] bg-[var(--surface-2)] py-1',
+          collapsed ? 'justify-center px-0' : 'px-4',
+          onToggleCollapse && 'cursor-pointer text-start hover:bg-[var(--hover)]',
+        )}
         style={{ width: propertyColWidth, minWidth: propertyColWidth }}
       >
-        <span className="font-bold text-[10.5px] text-[var(--faint)] uppercase tracking-[0.05em] overflow-hidden text-ellipsis whitespace-nowrap tabular-nums">
-          {propertyCount} {propertyCount > 1 ? 'logements' : 'logement'}
-        </span>
-      </div>
+        {collapsed ? (
+          <ChevronRight size={15} strokeWidth={2} className="text-[var(--muted)]" />
+        ) : (
+          <span className="font-bold text-[10.5px] text-[var(--faint)] uppercase tracking-[0.05em] overflow-hidden text-ellipsis whitespace-nowrap tabular-nums">
+            {propertyCount} {propertyCount > 1 ? 'logements' : 'logement'}
+          </span>
+        )}
+      </CornerTag>
 
       {/* Day row (spec .pl-day : padding 8px 0, hairlines, dernier sans) :
           jour abrégé + numéro (aujourd'hui = carré accent 24×24).

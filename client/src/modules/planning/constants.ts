@@ -35,6 +35,11 @@ export const PROPERTY_COL_WIDTH = 188;
 export const PROPERTY_COL_WIDTH_MD = 188;
 /** Small screens (<900px) */
 export const PROPERTY_COL_WIDTH_SM = 188;
+/**
+ * Largeur du rail quand la colonne est repliee (mobile). Pas zero : c'est le
+ * chevron de son en-tete qui la ramene — a zero, plus rien a toucher.
+ */
+export const COLLAPSED_PROPERTY_COL_WIDTH = 28;
 // 44px rangée jour : le contenu fait ~35px (jour abrégé 9.5px + carré
 // « aujourd'hui » 24×24, la seule pièce incompressible), le reste n'est que de
 // l'air — 8px de respiration suffisent, la spec d'origine en mettait 16 et la
