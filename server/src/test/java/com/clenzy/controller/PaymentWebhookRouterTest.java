@@ -24,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -371,6 +372,81 @@ class PaymentWebhookRouterTest {
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             verify(orchestrationService).failTransaction(eq("TX-1"), anyString());
         }
+
+        /**
+         * Audit 2026-07, P6-01. Le hash est3Dgate est calcule sur des noms tries SANS
+         * egard a la casse ; les parametres HTTP, eux, la distinguent. Un callback
+         * portant a la fois {@code oid} et {@code OID} faisait donc diverger le texte
+         * signe du texte relu par le routage. Le callback doit etre rejete AVANT tout
+         * effet de bord : ni resolution de transaction, ni dechiffrement de store_key,
+         * ni transition d'etat.
+         */
+        @Test
+        @DisplayName("rejette en 400 un doublon de parametre qui ne differe que par la casse")
+        void cmiRejectsCaseCollidingDuplicateParams() {
+            Map<String, String> params = new LinkedHashMap<>();
+            params.put("oid", "REF-VICTIME");
+            params.put("OID", "REF-ATTAQUANT");
+            params.put("ProcReturnCode", "99");
+            params.put("PROCRETURNCODE", "00");
+            params.put("Response", "Declined");
+            params.put("RESPONSE", "Approved");
+            params.put("HASH", "hash-du-callback-refuse");
+
+            ResponseEntity<String> response = router.handleCmiWebhook(params);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(400);
+            // Aucun effet de bord : la transaction n'est ni resolue, ni transitionnee.
+            verify(transactionRepository, never()).findByTransactionRef(any());
+            verify(orchestrationService, never()).completeTransaction(any());
+            verify(orchestrationService, never()).failTransaction(any(), any());
+        }
+
+        @Test
+        @DisplayName("un callback legitime continue de passer")
+        void cmiAcceptsLegitimateCallback() {
+            PaymentTransaction tx = buildTx("REF-1", 7L);
+            when(transactionRepository.findByTransactionRef("REF-1")).thenReturn(Optional.of(tx));
+            PaymentMethodConfig cfg = new PaymentMethodConfig();
+            when(configService.getOrCreateConfig(7L, PaymentProviderType.CMI)).thenReturn(cfg);
+            when(configService.decryptApiSecret(cfg)).thenReturn("store-key");
+            when(cmiHashService.verifyHash(any(), eq("store-key"))).thenReturn(true);
+
+            Map<String, String> params = new LinkedHashMap<>();
+            params.put("oid", "REF-1");
+            params.put("ProcReturnCode", "00");
+            params.put("Response", "Approved");
+            params.put("HASH", "hash-valide");
+
+            ResponseEntity<String> response = router.handleCmiWebhook(params);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            verify(orchestrationService).completeTransaction("REF-1");
+        }
+
+        /** La casse des noms ne doit plus decider du routage. */
+        @Test
+        @DisplayName("relit le statut quelle que soit la casse des noms de champ")
+        void cmiReadsStatusRegardlessOfFieldCase() {
+            PaymentTransaction tx = buildTx("REF-2", 7L);
+            when(transactionRepository.findByTransactionRef("REF-2")).thenReturn(Optional.of(tx));
+            PaymentMethodConfig cfg = new PaymentMethodConfig();
+            when(configService.getOrCreateConfig(7L, PaymentProviderType.CMI)).thenReturn(cfg);
+            when(configService.decryptApiSecret(cfg)).thenReturn("store-key");
+            when(cmiHashService.verifyHash(any(), eq("store-key"))).thenReturn(true);
+
+            Map<String, String> params = new LinkedHashMap<>();
+            params.put("OID", "REF-2");
+            params.put("PROCRETURNCODE", "00");
+            params.put("RESPONSE", "Approved");
+            params.put("hash", "hash-valide");
+
+            ResponseEntity<String> response = router.handleCmiWebhook(params);
+
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            verify(orchestrationService).completeTransaction("REF-2");
+        }
+
     }
 
     // ─── Payzone webhook ──────────────────────────────────────────────────────
