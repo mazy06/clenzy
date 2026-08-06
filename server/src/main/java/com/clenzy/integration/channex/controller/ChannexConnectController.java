@@ -62,6 +62,8 @@ public class ChannexConnectController {
     private final com.clenzy.integration.channex.service.ChannexAvailabilityRuleService availabilityRuleService;
     private final com.clenzy.integration.channex.service.ChannexGoogleReadinessService googleReadinessService;
     private final com.clenzy.integration.channex.service.ChannexBookingReportingService bookingReportingService;
+    // Cloisonnement du hub par organisation (groups Channex) + reprise de l'existant
+    private final com.clenzy.integration.channex.service.ChannexGroupService groupService;
 
     public ChannexConnectController(ChannexConnectService connectService,
                                       ChannexImportService importService,
@@ -80,7 +82,9 @@ public class ChannexConnectController {
                                       com.clenzy.integration.channex.service.ChannexCrsBookingService crsBookingService,
                                       com.clenzy.integration.channex.service.ChannexAvailabilityRuleService availabilityRuleService,
                                       com.clenzy.integration.channex.service.ChannexGoogleReadinessService googleReadinessService,
-                                      com.clenzy.integration.channex.service.ChannexBookingReportingService bookingReportingService) {
+                                      com.clenzy.integration.channex.service.ChannexBookingReportingService bookingReportingService,
+                                      com.clenzy.integration.channex.service.ChannexGroupService groupService) {
+        this.groupService = groupService;
         this.connectService = connectService;
         this.importService = importService;
         this.tenantContext = tenantContext;
@@ -879,5 +883,62 @@ public class ChannexConnectController {
     public void disconnectOtaChannel(@PathVariable String channelId) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         importService.disconnectOtaChannel(orgId, channelId);
+    }
+
+    /**
+     * Supprime du hub un logement ORPHELIN : present cote Channex sans mapping
+     * Baitly. Seule route indexee par l'identifiant Channex — toutes les autres
+     * passent par {@code clenzyPropertyId}, ce qui rendait ces orphelins
+     * impossibles a nettoyer depuis l'application.
+     *
+     * <p>Le service refuse la suppression si le logement appartient a une autre
+     * organisation, s'il est encore mappe, ou s'il porte encore des channels
+     * OTA.</p>
+     */
+    @DeleteMapping("/hub/properties/{channexPropertyId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Supprime du hub un logement orphelin (sans mapping Baitly)")
+    public void deleteOrphanHubProperty(@PathVariable String channexPropertyId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        importService.deleteOrphanHubProperty(orgId, channexPropertyId);
+    }
+
+    /**
+     * Reprise de l'existant : rattache chaque logement deja mappe au group
+     * Channex de son organisation.
+     *
+     * <p>Avant le cloisonnement par group, toutes les properties vivaient dans
+     * le group par defaut du compte — donc visibles de toutes les
+     * organisations. Ce backfill est ce qui ferme la fuite sur l'existant ; le
+     * cloisonnement seul ne couvre que ce qui est cree apres.</p>
+     *
+     * <p>Idempotent, re-jouable. Reserve au staff plateforme : l'operation
+     * traverse toutes les organisations.</p>
+     */
+    @PostMapping("/hub/groups/backfill")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Rattache les logements existants au group Channex de leur organisation")
+    public com.clenzy.integration.channex.service.ChannexGroupService.BackfillReport backfillHubGroups() {
+        return groupService.backfillExistingProperties();
+    }
+
+    /**
+     * Purge les logements du hub qui n'appartiennent a aucune organisation
+     * Baitly : ni dans un group, ni mappes, ni relies a une plateforme.
+     *
+     * <p><b>Simulation par defaut.</b> {@code confirm=true} est requis pour
+     * supprimer reellement — la suppression cote hub est irreversible et
+     * l'appelant doit d'abord voir la liste exacte de ce qui partira.</p>
+     *
+     * <p>Le service refuse la suppression tant que des logements connectes ne
+     * sont pas cloisonnes (backfill non joue) : dans cet etat, « sans group »
+     * ne signifie pas « sans proprietaire ».</p>
+     */
+    @PostMapping("/hub/properties/purge-ungrouped")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @Operation(summary = "Purge les logements du hub sans organisation (simulation par defaut)")
+    public com.clenzy.integration.channex.service.ChannexGroupService.UngroupedPurgeReport
+            purgeUngroupedHubProperties(@RequestParam(defaultValue = "false") boolean confirm) {
+        return groupService.purgeUngroupedHubProperties(!confirm);
     }
 }

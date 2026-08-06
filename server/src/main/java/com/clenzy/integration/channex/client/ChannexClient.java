@@ -35,8 +35,10 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -172,6 +174,105 @@ public class ChannexClient {
         }
         throw new ChannexException(ChannexException.Kind.NOT_FOUND,
             "No group_id found for Channex property " + channexPropertyId);
+    }
+
+    // ─── Groups (cloisonnement du hub par organisation) ─────────────────────
+
+    /**
+     * Tous les groups du compte Channex, indexes par titre.
+     *
+     * <p>Sert a retrouver le group d'une organisation par son titre canonique
+     * quand la table de correspondance locale ne le connait pas encore
+     * (premiere provision, ou reprise apres perte de la table) — sans quoi on
+     * creerait un doublon a chaque appel.</p>
+     *
+     * @return titre -> group id ; vide si le hub ne repond pas de liste
+     */
+    public Map<String, String> fetchGroupsByTitle() {
+        String url = props.getBaseUrl() + "/groups";
+        JsonNode response = exchange(HttpMethod.GET, url, null, JsonNode.class);
+        Map<String, String> byTitle = new LinkedHashMap<>();
+        if (response == null || !response.path("data").isArray()) return byTitle;
+        for (JsonNode g : response.path("data")) {
+            String id = g.path("id").asText(null);
+            String title = g.path("attributes").path("title").asText(null);
+            if (id != null && title != null && !title.isBlank()) {
+                byTitle.put(title, id);
+            }
+        }
+        return byTitle;
+    }
+
+    /** Cree un group et retourne son id. */
+    public String createGroup(String title) {
+        String url = props.getBaseUrl() + "/groups";
+        Map<String, Object> body = Map.of("group", Map.of("title", title));
+        JsonNode response = exchange(HttpMethod.POST, url, body, JsonNode.class);
+        String id = response != null ? response.path("data").path("id").asText(null) : null;
+        if (id == null || id.isBlank()) {
+            throw new ChannexException(ChannexException.Kind.TRANSPORT,
+                "Channex n'a pas retourne d'id pour le group '" + title + "'");
+        }
+        log.info("Channex: group cree id={} title='{}'", id, title);
+        return id;
+    }
+
+    /**
+     * Identifiants des properties contenues dans un group.
+     *
+     * <p>{@code GET /properties} n'accepte pas de filtre par group (filtres
+     * documentes : {@code id}, {@code title}, {@code is_active}) — c'est donc
+     * le group qu'on interroge, pas les properties.</p>
+     */
+    public Set<String> fetchPropertyIdsInGroup(String groupId) {
+        String url = props.getBaseUrl() + "/groups/" + groupId;
+        JsonNode response = exchange(HttpMethod.GET, url, null, JsonNode.class);
+        Set<String> ids = new LinkedHashSet<>();
+        if (response == null) return ids;
+        JsonNode props0 = response.path("data").path("relationships").path("properties").path("data");
+        if (props0.isArray()) {
+            for (JsonNode p : props0) {
+                String id = p.path("id").asText(null);
+                if (id != null && !id.isBlank()) ids.add(id);
+            }
+        }
+        return ids;
+    }
+
+    /** Rattache une property a un group (idempotent cote Channex). */
+    public void addPropertyToGroup(String groupId, String channexPropertyId) {
+        String url = props.getBaseUrl() + "/groups/" + groupId + "/properties/" + channexPropertyId;
+        exchange(HttpMethod.POST, url, null, Void.class);
+        log.info("Channex: property {} rattachee au group {}", channexPropertyId, groupId);
+    }
+
+    /**
+     * Detache une property d'un group.
+     *
+     * <p>Channex refuse de retirer une property de son SEUL group : il faut
+     * l'avoir d'abord rattachee ailleurs. L'ordre rattacher-puis-detacher est
+     * donc impose par l'API, pas par prudence.</p>
+     */
+    public void removePropertyFromGroup(String groupId, String channexPropertyId) {
+        String url = props.getBaseUrl() + "/groups/" + groupId + "/properties/" + channexPropertyId;
+        exchange(HttpMethod.DELETE, url, null, Void.class);
+        log.info("Channex: property {} detachee du group {}", channexPropertyId, groupId);
+    }
+
+    /** Tous les groups auxquels une property appartient (la relation est n-n). */
+    public List<String> fetchPropertyGroupIds(String channexPropertyId) {
+        String url = props.getBaseUrl() + "/properties/" + channexPropertyId;
+        JsonNode response = exchange(HttpMethod.GET, url, null, JsonNode.class);
+        List<String> ids = new ArrayList<>();
+        if (response == null) return ids;
+        JsonNode groups = response.path("data").path("relationships").path("groups").path("data");
+        if (groups.isArray()) {
+            for (JsonNode g : groups) {
+                String id = g.path("id").asText(null);
+                if (id != null && !id.isBlank()) ids.add(id);
+            }
+        }
+        return ids;
     }
 
     /**

@@ -35,6 +35,7 @@ import { Field, FieldLabel, FieldDescription, Input } from '../../../components/
 import { Plus, RefreshCw, Trash2, CheckCircle2, AlertCircle, Clock, PauseCircle, ExternalLink, Download, Link2, ArrowLeft, ChevronRight, Globe, Home, Sparkles, Settings as SettingsIcon } from 'lucide-react';
 
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useAuth } from '../../../hooks/useAuth';
 import { propertiesApi, type Property } from '../../../services/api/propertiesApi';
 import {
   channexApi,
@@ -120,19 +121,81 @@ function StatusBadge({ status }: { status: ChannexSyncStatus }) {
 }
 
 // Carte d'action « choix » — tokens Baitly UI, survol par le fond (jamais par
-// un liseré latéral) et sans transform.
+// un liseré latéral) et sans transform. Les trois cartes tiennent sur une seule
+// rangée : le choix se lit d'un coup d'œil au lieu de se dérouler.
 const CHOICE_CARD_CLASS = [
-  'flex items-center gap-[9px] w-full py-[14px] px-4 rounded-xl',
-  'border border-solid border-border bg-card text-start cursor-pointer',
+  'flex flex-col items-start gap-[9px] h-full w-full p-[13px] rounded-xl',
+  'border border-solid text-start cursor-pointer',
   'transition-[border-color,background-color] duration-150 motion-reduce:transition-none',
-  'hover:border-primary hover:bg-primary-soft/60',
   'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2',
 ].join(' ');
 
-const CHOICE_ICON_CLASS = 'size-10 rounded-lg bg-primary-soft text-primary flex items-center justify-center shrink-0';
+/**
+ * Carte d'entrée de l'écran de choix. `emphasis` porte la hiérarchie : les deux
+ * chemins qui font ENTRER un logement priment sur la maintenance des comptes,
+ * qui reste volontairement sourde.
+ */
+function ChoiceCard({
+  icon,
+  title,
+  description,
+  hint,
+  cta,
+  emphasis,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  hint?: string;
+  /** Libelle de l'appel a l'action, traduit par l'appelant (hook `t` en amont). */
+  cta: string;
+  emphasis: 'primary' | 'neutral' | 'quiet';
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        CHOICE_CARD_CLASS,
+        emphasis === 'primary' && 'border-primary/45 bg-primary-soft/45 hover:border-primary hover:bg-primary-soft/75',
+        emphasis === 'neutral' && 'border-border bg-card hover:border-primary hover:bg-primary-soft/45',
+        emphasis === 'quiet' && 'border-border bg-background hover:border-primary hover:bg-primary-soft/35',
+      )}
+    >
+      <div className="flex items-center gap-1.5 w-full">
+        <div
+          className={cn(
+            'size-9 rounded-lg flex items-center justify-center shrink-0',
+            emphasis === 'quiet' ? 'bg-muted text-muted-foreground' : 'bg-primary-soft text-primary',
+          )}
+        >
+          {icon}
+        </div>
+        {hint && (
+          // `--bui-primary` est un bleu nuit (#1B2A35 en clair, #E8EEF5 en
+          // sombre), pas une teinte vive : il tient comme encre de texte.
+          <span className="ms-auto text-2xs font-semibold uppercase tracking-wide text-primary">
+            {hint}
+          </span>
+        )}
+      </div>
+      <div className="min-w-0 w-full">
+        <p className="text-xs font-bold mb-0.5 text-foreground text-balance">{title}</p>
+        <span className="text-xs text-muted-foreground block leading-[1.5]">{description}</span>
+      </div>
+      <span className="mt-auto inline-flex items-center gap-1 text-xs font-semibold text-foreground">
+        {cta}
+        <ChevronRight size={14} className="cn-rtl-flip" />
+      </span>
+    </button>
+  );
+}
 
 export default function ChannexMappingDialog({ open, onClose, guided = false }: ChannexMappingDialogProps) {
   const { t } = useTranslation();
+  const { isSuperAdmin } = useAuth();
   /**
    * Mode guide : le diagnostic technique (ChannexPreflightBanner) est masque
    * par defaut et expose derriere ce toggle discret. Jamais de HTTP 401 /
@@ -185,20 +248,44 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
   /** Phase 5 audit O1 : dialog Price Drifts (liste + resolution). */
   const [priceDriftsOpen, setPriceDriftsOpen] = useState(false);
   /**
+   * Reprise du cloisonnement : rattache les logements deja mappes au group
+   * Channex de leur organisation. Necessaire une fois, sur l'existant cree
+   * avant l'introduction des groups — le cloisonnement seul ne couvre que ce
+   * qui est cree apres.
+   */
+  const [groupBackfill, setGroupBackfill] = useState<{
+    running: boolean;
+    report: import('../../../services/api/channexApi').ChannexGroupBackfillReport | null;
+    error: string | null;
+  }>({ running: false, report: null, error: null });
+  /**
+   * Purge des logements du hub sans organisation. Toujours en deux temps :
+   * la simulation etablit la liste exacte, la confirmation seule supprime.
+   * La suppression cote hub est irreversible.
+   */
+  const [purge, setPurge] = useState<{
+    running: boolean;
+    report: import('../../../services/api/channexApi').ChannexUngroupedPurgeReport | null;
+    error: string | null;
+    confirming: boolean;
+  }>({ running: false, report: null, error: null, confirming: false });
+  /**
    * Phase 5 audit UX fix : compteur de drifts actifs. On masque le bouton
    * "Voir les conflits" tant qu'il n'y en a aucun pour eviter la confusion
    * (un bouton orange visible signifierait un probleme alors qu'il n'y en a pas).
    */
   const [activeDriftsCount, setActiveDriftsCount] = useState<number>(0);
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
   /**
-   * Vue principale du dialog :
-   * - 'CHOICE' : ecran de choix initial (3 cards)
-   * - 'CONNECT_EXISTING' : liste des proprietes Baitly avec leur statut (sync, deconnexion, etc.)
-   * - 'MANAGE_OTAS' : liste des channels OTA connectes au hub avec bouton Disconnect
-   *   (le mode IMPORT_FROM_OTA bascule directement sur le sub-dialog ChannexImportDiscoveryDialog)
+   * Vue principale du dialog. Les quatre vues vivent dans la MEME coquille :
+   * l'import etait auparavant une modale empilee par-dessus celle-ci, ce qui
+   * cassait le fil de retour (fermer celle du dessus laissait celle du dessous
+   * ouverte, sans indice sur le chemin parcouru).
+   * - 'CHOICE' : ecran de choix initial (3 entrees)
+   * - 'IMPORT_FROM_OTA' : detection + import des annonces connues du hub
+   * - 'CONNECT_EXISTING' : liste des proprietes Baitly avec leur statut
+   * - 'MANAGE_OTAS' : plateformes reliees au hub, avec deconnexion
    */
-  const [view, setView] = useState<'CHOICE' | 'CONNECT_EXISTING' | 'MANAGE_OTAS'>('CHOICE');
+  const [view, setView] = useState<'CHOICE' | 'IMPORT_FROM_OTA' | 'CONNECT_EXISTING' | 'MANAGE_OTAS'>('CHOICE');
   // Etat de la vue MANAGE_OTAS : liste des channels chargee
   const [connectedOtas, setConnectedOtas] = useState<import('../../../services/api/channexApi').ChannexConnectedOta[]>([]);
   const [otasLoading, setOtasLoading] = useState(false);
@@ -308,6 +395,36 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
   useEffect(() => {
     if (open) refresh();
   }, [open, refresh]);
+
+  const handleGroupBackfill = async () => {
+    setGroupBackfill({ running: true, report: null, error: null });
+    try {
+      const report = await channexApi.backfillHubGroups();
+      setGroupBackfill({ running: false, report, error: null });
+    } catch (err) {
+      setGroupBackfill({
+        running: false,
+        report: null,
+        error: err instanceof Error ? err.message : 'Le cloisonnement a echoue.',
+      });
+    }
+  };
+
+  /** `confirm=false` simule, `true` supprime. La confirmation ferme la modale. */
+  const runPurge = async (confirm: boolean) => {
+    setPurge((s) => ({ ...s, running: true, error: null }));
+    try {
+      const report = await channexApi.purgeUngroupedHubProperties(confirm);
+      setPurge({ running: false, report, error: null, confirming: false });
+    } catch (err) {
+      setPurge({
+        running: false,
+        report: null,
+        error: err instanceof Error ? err.message : 'La purge a echoue.',
+        confirming: false,
+      });
+    }
+  };
 
   const handleConnectClick = (property: Property) => {
     setConnectForm({ ...initialConnectForm, open: true, property });
@@ -463,10 +580,50 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
     }
   };
 
+  /** Appel a l'action commun aux trois entrees de l'ecran de choix. */
+  const choiceCta = t('common.continue', 'Continuer');
+
+  /**
+   * En-tete par vue. L'ancien ternaire annoncait « Connecter mes proprietes aux
+   * OTAs » sur TOUTES les vues autres que le choix : le titre contredisait
+   * l'ecran des la gestion des plateformes.
+   */
+  const header: { title: string; subtitle: string } =
+    view === 'CHOICE'
+      ? {
+        title: guided
+          ? t('channexGuided.title', 'Distribuez vos logements')
+          : 'Distribution — que voulez-vous faire ?',
+        subtitle: guided
+          ? t('channexGuided.subtitle', 'Mettez vos annonces sur Airbnb, Booking, Vrbo… et synchronisez tout depuis Baitly.')
+          : 'Importer un logement déjà en ligne, en connecter un déjà présent dans Baitly, ou gérer vos plateformes.',
+      }
+      : view === 'IMPORT_FROM_OTA'
+        ? {
+          title: 'Importer un logement déjà en ligne',
+          subtitle: 'Autorisez votre compte, puis choisissez les annonces détectées à importer dans Baitly.',
+        }
+        : view === 'MANAGE_OTAS'
+          ? {
+            title: 'Mes plateformes connectées',
+            subtitle: 'Les plateformes reliées au hub de distribution, et leur déconnexion.',
+          }
+          : {
+            title: 'Connecter un logement Baitly',
+            subtitle: 'Sélectionnez un logement pour l\'enregistrer dans le hub, puis y brancher Airbnb, Booking, etc.',
+          };
+
   return (
     <>
       <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
-        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent
+          className={cn(
+            'max-h-[85vh] overflow-y-auto flex flex-col',
+            // Le tableau d'import porte des colonnes supplementaires : il a
+            // besoin de la largeur que les autres vues n'utiliseraient pas.
+            view === 'IMPORT_FROM_OTA' ? 'sm:max-w-4xl' : 'sm:max-w-3xl',
+          )}
+        >
           {/* La croix de fermeture vient de DialogContent : `pe-10` lui reserve sa place. */}
           <DialogHeader className="flex-row items-center gap-1.5 -mx-4 px-4 pb-[9px] pe-10 border-b border-solid border-border">
             {view !== 'CHOICE' && (
@@ -488,18 +645,10 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
             )}
             <div className="min-w-0 flex-1">
               <DialogTitle className="text-base font-bold tracking-tight text-balance">
-                {view === 'CHOICE'
-                  ? (guided
-                    ? t('channexGuided.title', 'Distribuez vos logements')
-                    : 'Distribution OTA — Que voulez-vous faire ?')
-                  : 'Connecter mes proprietes aux OTAs'}
+                {header.title}
               </DialogTitle>
               <DialogDescription className="text-xs">
-                {view === 'CHOICE'
-                  ? (guided
-                    ? t('channexGuided.subtitle', 'Mettez vos annonces sur Airbnb, Booking, Vrbo… et synchronisez tout depuis Baitly.')
-                    : 'Choisissez si vous voulez importer une propriete deja en ligne, ou connecter une propriete deja dans Baitly.')
-                  : 'Selectionnez une propriete pour l\'enregistrer dans le hub puis y brancher Airbnb, Booking, etc.'}
+                {header.subtitle}
               </DialogDescription>
             </div>
           </DialogHeader>
@@ -563,89 +712,52 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                 </div>
               )}
 
-              {!guided && (
-                <span className="text-xs text-muted-foreground block leading-[1.5] mb-0.5">
-                  Deux scenarios possibles selon votre situation :
-                </span>
-              )}
+              {/* Les trois entrées sur une rangée : le choix est comparatif,
+                  l'empilement obligeait à faire défiler pour le lire. */}
+              <div className="grid gap-[9px] items-stretch sm:grid-cols-3">
+                {/* Entrée 1 : importer un logement déjà en ligne sur un OTA */}
+                <ChoiceCard
+                  emphasis="primary"
+                  cta={choiceCta}
+                  hint={t('channexGuided.importHint', 'Le plus courant')}
+                  icon={<Globe size={20} />}
+                  onClick={() => setView('IMPORT_FROM_OTA')}
+                  title={guided
+                    ? t('channexGuided.importTitle', 'Importer mes annonces existantes')
+                    : 'Importer un logement déjà en ligne'}
+                  description={guided
+                    ? t('channexGuided.importDesc', 'Depuis Airbnb, Booking ou Vrbo — infos pré-remplies.')
+                    : 'Vos annonces Airbnb, Booking ou Vrbo pas encore dans Baitly : détectées et importées en lot, métadonnées pré-remplies.'}
+                />
 
-              {/* Card 1 : Importer une propriete deja en ligne dans un OTA */}
-              <button
-                type="button"
-                onClick={() => setImportDialogOpen(true)}
-                className={CHOICE_CARD_CLASS}
-              >
-                <div className={CHOICE_ICON_CLASS}>
-                  <Globe size={22} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold mb-0.5 text-foreground">
-                    {guided
-                      ? t('channexGuided.importTitle', 'Importer mes annonces existantes')
-                      : 'Importer une propriete deja en ligne'}
-                  </p>
-                  <span className="text-xs text-muted-foreground block leading-[1.5]">
-                    {guided
-                      ? t('channexGuided.importDesc', 'Depuis Airbnb, Booking ou Vrbo — infos pré-remplies.')
-                      : 'Vous avez deja des listings sur Airbnb / Booking / Vrbo qui ne sont pas encore dans Baitly. Detectez et importez-les en masse avec leurs metadonnees (nom, devise, capacite) deja pre-remplies.'}
-                  </span>
-                </div>
-                <div className="text-muted-foreground opacity-60 shrink-0 self-center">
-                  <ChevronRight size={18} className="cn-rtl-flip" />
-                </div>
-              </button>
+                {/* Entrée 2 : connecter un logement déjà dans le PMS */}
+                <ChoiceCard
+                  emphasis="neutral"
+                  cta={choiceCta}
+                  icon={<Home size={20} />}
+                  onClick={() => setView('CONNECT_EXISTING')}
+                  title={guided
+                    ? t('channexGuided.connectTitle', 'Connecter un de mes logements')
+                    : 'Connecter un logement déjà dans Baitly'}
+                  description={guided
+                    ? t('channexGuided.connectDesc', 'Un logement déjà dans Baitly, publié sur les plateformes.')
+                    : 'Un logement déjà saisi dans Baitly, à distribuer sur Airbnb, Booking, Vrbo… Il rejoint le hub, puis vous branchez les plateformes.'}
+                />
 
-              {/* Card 2 : Connecter une propriete deja dans le PMS */}
-              <button
-                type="button"
-                onClick={() => setView('CONNECT_EXISTING')}
-                className={CHOICE_CARD_CLASS}
-              >
-                <div className={CHOICE_ICON_CLASS}>
-                  <Home size={22} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold mb-0.5 text-foreground">
-                    {guided
-                      ? t('channexGuided.connectTitle', 'Connecter un de mes logements')
-                      : 'Connecter une propriete deja dans Baitly'}
-                  </p>
-                  <span className="text-xs text-muted-foreground block leading-[1.5]">
-                    {guided
-                      ? t('channexGuided.connectDesc', 'Un logement déjà dans Baitly, publié sur les plateformes.')
-                      : 'Vous avez une propriete dans Baitly que vous voulez distribuer sur Airbnb, Booking, Vrbo, etc. Connectez-la au hub puis branchez les OTAs en quelques clics.'}
-                  </span>
-                </div>
-                <div className="text-muted-foreground opacity-60 shrink-0 self-center">
-                  <ChevronRight size={18} className="cn-rtl-flip" />
-                </div>
-              </button>
-
-              {/* Card 3 : Gerer les OTAs connectes (voir/deconnecter Airbnb, Booking, etc.) */}
-              <button
-                type="button"
-                onClick={() => setView('MANAGE_OTAS')}
-                className={CHOICE_CARD_CLASS}
-              >
-                <div className={CHOICE_ICON_CLASS}>
-                  <Link2 size={22} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold mb-0.5 text-foreground">
-                    {guided
-                      ? t('channexGuided.manageTitle', 'Gerer mes OTA connectes')
-                      : 'Gerer les OTAs connectes'}
-                  </p>
-                  <span className="text-xs text-muted-foreground block leading-[1.5]">
-                    {guided
-                      ? t('channexGuided.manageDesc', 'Voir et déconnecter vos plateformes reliées.')
-                      : 'Voir tous les OTAs (Airbnb, Booking, Vrbo, ...) actuellement connectes au hub, et les deconnecter si besoin (supprime le channel + les tokens OAuth).'}
-                  </span>
-                </div>
-                <div className="text-muted-foreground opacity-60 shrink-0 self-center">
-                  <ChevronRight size={18} className="cn-rtl-flip" />
-                </div>
-              </button>
+                {/* Entrée 3 : maintenance des comptes OTA — volontairement sourde */}
+                <ChoiceCard
+                  emphasis="quiet"
+                  cta={choiceCta}
+                  icon={<Link2 size={20} />}
+                  onClick={() => setView('MANAGE_OTAS')}
+                  title={guided
+                    ? t('channexGuided.manageTitle', 'Gérer mes plateformes connectées')
+                    : 'Gérer les plateformes connectées'}
+                  description={guided
+                    ? t('channexGuided.manageDesc', 'Voir et déconnecter vos plateformes reliées.')
+                    : 'Voir les plateformes reliées au hub et les déconnecter (supprime le canal et les autorisations).'}
+                />
+              </div>
 
               {/* Mode guide : diagnostic technique masque derriere un toggle
                   discret. Jamais auto-affiche (pas de HTTP 401 / CHANNEX_API_KEY
@@ -666,7 +778,157 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
                 </div>
               )}
               {guided && showTechStatus && <ChannexPreflightBanner defaultCollapsed />}
+
+              {/* Reprise du cloisonnement, réservée au staff plateforme :
+                  l'opération traverse toutes les organisations. Volontairement
+                  discrète — c'est une maintenance ponctuelle, pas une action
+                  courante de l'écran. */}
+              {!guided && isSuperAdmin() && (
+                <div className="flex flex-col gap-1.5 pt-1.5 border-t border-solid border-border">
+                  <div className="flex flex-row items-center gap-1.5 flex-wrap">
+                    <span className="text-2xs text-muted-foreground flex-1 leading-[1.5] min-w-[220px]">
+                      Rattache les logements déjà connectés au groupe Channex de leur organisation.
+                      À lancer une fois : les logements créés avant le cloisonnement sont visibles
+                      des autres organisations tant que ce n'est pas fait.
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0"
+                      disabled={groupBackfill.running}
+                      onClick={handleGroupBackfill}
+                    >
+                      {groupBackfill.running ? <Spinner className="size-3" /> : <SettingsIcon size={14} />}
+                      {groupBackfill.running ? 'Cloisonnement…' : 'Cloisonner le hub par organisation'}
+                    </Button>
+                  </div>
+                  {groupBackfill.error && (
+                    <UiAlert variant="destructive" className="text-xs">
+                      <TriangleAlert />
+                      <AlertDescription>{groupBackfill.error}</AlertDescription>
+                    </UiAlert>
+                  )}
+                  {groupBackfill.report && (
+                    <UiAlert
+                      variant={groupBackfill.report.failures > 0 ? 'warning' : 'success'}
+                      className="text-xs"
+                    >
+                      <AlertDescription>
+                        <strong>{groupBackfill.report.propertiesAssigned}</strong> logement(s) rattaché(s)
+                        {' · '}<strong>{groupBackfill.report.propertiesAlreadyIsolated}</strong> déjà cloisonné(s)
+                        {' · '}<strong>{groupBackfill.report.organizationsProvisioned}</strong> groupe(s) créé(s)
+                        {groupBackfill.report.failures > 0 && (
+                          <> · <strong>{groupBackfill.report.failures}</strong> échec(s)</>
+                        )}
+                        {groupBackfill.report.messages.length > 0 && (
+                          <span className="block mt-0.5 opacity-80">
+                            {groupBackfill.report.messages.slice(0, 5).join(' · ')}
+                          </span>
+                        )}
+                      </AlertDescription>
+                    </UiAlert>
+                  )}
+
+                  {/* Purge des logements sans organisation. Simulation d'abord :
+                      le bouton de suppression n'apparaît qu'une fois la liste
+                      exacte établie. */}
+                  <div className="flex flex-row items-center gap-1.5 flex-wrap">
+                    <span className="text-2xs text-muted-foreground flex-1 leading-[1.5] min-w-[220px]">
+                      Supprime du hub les logements qui n'appartiennent à aucune organisation :
+                      ni dans un groupe, ni connectés à Baitly, ni reliés à une plateforme.
+                      À lancer après le cloisonnement.
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0"
+                      disabled={purge.running}
+                      onClick={() => runPurge(false)}
+                    >
+                      {purge.running ? <Spinner className="size-3" /> : <Trash2 size={14} />}
+                      {purge.running ? 'Analyse…' : 'Analyser les logements sans organisation'}
+                    </Button>
+                  </div>
+                  {purge.error && (
+                    <UiAlert variant="destructive" className="text-xs">
+                      <TriangleAlert />
+                      <AlertDescription>{purge.error}</AlertDescription>
+                    </UiAlert>
+                  )}
+                  {purge.report?.blockedByPendingBackfill && (
+                    <UiAlert variant="warning" className="text-xs">
+                      <TriangleAlert />
+                      <AlertDescription>
+                        Purge impossible pour l'instant : des logements connectés à Baitly ne sont
+                        pas encore rattachés à un groupe. Tant que c'est le cas, « sans groupe » ne
+                        veut pas dire « sans propriétaire ». Lancez d'abord le cloisonnement.
+                      </AlertDescription>
+                    </UiAlert>
+                  )}
+                  {purge.report && !purge.report.blockedByPendingBackfill && (
+                    <UiAlert
+                      variant={purge.report.failures > 0 ? 'warning' : purge.report.dryRun ? 'info' : 'success'}
+                      className="text-xs"
+                    >
+                      <AlertDescription>
+                        {purge.report.dryRun ? (
+                          <>
+                            <strong>{purge.report.candidates}</strong> logement(s) sur{' '}
+                            {purge.report.totalInHub} seraient supprimés du hub.
+                            {purge.report.candidates > 0 && (
+                              <span className="block mt-0.5 opacity-80">
+                                {purge.report.items
+                                  .filter((item) => item.decision === 'PURGE')
+                                  .slice(0, 8)
+                                  .map((item) => item.title || item.channexPropertyId)
+                                  .join(' · ')}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <strong>{purge.report.deleted}</strong> logement(s) supprimé(s) du hub
+                            {purge.report.failures > 0 && (
+                              <> · <strong>{purge.report.failures}</strong> échec(s)</>
+                            )}
+                          </>
+                        )}
+                      </AlertDescription>
+                    </UiAlert>
+                  )}
+                  {purge.report?.dryRun && purge.report.candidates > 0
+                    && !purge.report.blockedByPendingBackfill && (
+                    <div className="flex justify-end">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        disabled={purge.running}
+                        onClick={() => setPurge((s) => ({ ...s, confirming: true }))}
+                      >
+                        <Trash2 size={14} />
+                        Supprimer ces {purge.report.candidates} logement(s)
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+          ) : view === 'IMPORT_FROM_OTA' ? (
+            /* Import rendu comme vue de CE dialog (pas de modale empilee) :
+               l'en-tete et la fleche de retour ci-dessus restent le seul
+               chemin de sortie. */
+            <ChannexImportDiscoveryDialog
+              embedded
+              open
+              onClose={() => setView('CHOICE')}
+              onImported={() => {
+                // Les nouvelles properties Baitly doivent apparaitre : on
+                // recharge, puis on bascule sur la liste pour les montrer.
+                void refresh();
+                setView('CONNECT_EXISTING');
+              }}
+              onRequestConnectExisting={() => setView('CONNECT_EXISTING')}
+            />
           ) : view === 'MANAGE_OTAS' ? (
             <div className="flex flex-col gap-[9px]">
               {/* Mode guide : si la liste des OTAs n'a pas pu charger (API
@@ -1215,26 +1477,6 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
         }}
       />
 
-      {/* Import en masse depuis le hub (discovery des listings OTAs) */}
-      <ChannexImportDiscoveryDialog
-        open={importDialogOpen}
-        onClose={() => setImportDialogOpen(false)}
-        onImported={() => {
-          // Refresh la liste des properties + mappings pour faire apparaitre
-          // les nouvelles properties Baitly fraichement importees, et bascule
-          // sur la vue CONNECT_EXISTING pour les voir tout de suite.
-          void refresh();
-          setView('CONNECT_EXISTING');
-        }}
-        onRequestConnectExisting={() => {
-          // CTA depuis l'etat "hub vide" : ferme le sub-dialog et bascule la
-          // vue principale sur la liste des proprietes Baitly (pour que le
-          // user puisse en connecter une et faire l'OAuth Airbnb).
-          setImportDialogOpen(false);
-          setView('CONNECT_EXISTING');
-        }}
-      />
-
       {/* Smart Disconnect orchestre (Quick Win #2) — remplace l'ancien confirm
           basique qui n'effacait que le mapping local sans toucher les channels
           Channex (= laissait Airbnb/Booking bloques cote host). */}
@@ -1288,6 +1530,65 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
           onResyncSuccess={() => { void refresh(); }}
         />
       )}
+
+      {/* Confirmation de la purge. Action irreversible sur un service externe :
+          elle bloque le reste, et rappelle la liste exacte etablie par la
+          simulation plutot qu'un simple compte. */}
+      <Dialog
+        open={purge.confirming}
+        onOpenChange={(next) => { if (!next && !purge.running) setPurge((s) => ({ ...s, confirming: false })); }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader className="flex-row items-start gap-1.5 pe-10">
+            <div className="size-8 rounded-lg bg-destructive-soft text-destructive flex items-center justify-center shrink-0 mt-0.5">
+              <Trash2 size={18} />
+            </div>
+            <div className="min-w-0">
+              <DialogTitle className="font-semibold leading-[1.3]">
+                Supprimer {purge.report?.candidates} logement(s) du hub&nbsp;?
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+          <DialogDescription>
+            Ces logements n'appartiennent à aucune organisation Baitly. Ils seront définitivement
+            retirés du hub de distribution, avec leurs types de chambre et plans tarifaires.
+            Irréversible. Aucun logement Baitly n'est touché.
+          </DialogDescription>
+          {purge.report && purge.report.items.some((item) => item.decision === 'PURGE') && (
+            <div className="max-h-[180px] overflow-y-auto rounded-lg border border-solid border-border bg-background p-1.5">
+              {purge.report.items
+                .filter((item) => item.decision === 'PURGE')
+                .map((item) => (
+                  <span
+                    key={item.channexPropertyId ?? item.title}
+                    className="block text-xs text-muted-foreground leading-[1.6] truncate"
+                  >
+                    {item.title || item.channexPropertyId}
+                  </span>
+                ))}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={purge.running}
+              onClick={() => setPurge((s) => ({ ...s, confirming: false }))}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={purge.running}
+              onClick={() => runPurge(true)}
+            >
+              {purge.running ? <Spinner className="size-3" /> : <Trash2 size={14} />}
+              {purge.running ? 'Suppression…' : 'Supprimer définitivement'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirmation de deconnexion OTA (suppression channel + tokens OAuth) */}
       <Dialog

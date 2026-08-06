@@ -43,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -101,6 +102,7 @@ public class ChannexImportService {
     private final ObjectMapper objectMapper;
     private final AmenityManagementService amenityManagementService;
     private final ChannexPricingImporter pricingImporter;
+    private final ChannexGroupService groupService;
 
     /**
      * Self-reference via le proxy Spring : necessaire pour que la transaction
@@ -130,6 +132,7 @@ public class ChannexImportService {
                                   ObjectMapper objectMapper,
                                   AmenityManagementService amenityManagementService,
                                   ChannexPricingImporter pricingImporter,
+                                  ChannexGroupService groupService,
                                   ObjectProvider<ChannexImportService> self) {
         this.channexClient = channexClient;
         this.mappingRepository = mappingRepository;
@@ -145,6 +148,7 @@ public class ChannexImportService {
         this.objectMapper = objectMapper;
         this.amenityManagementService = amenityManagementService;
         this.pricingImporter = pricingImporter;
+        this.groupService = groupService;
         this.self = self;
     }
 
@@ -219,7 +223,32 @@ public class ChannexImportService {
         if (raw == null || !raw.path("data").isArray()) {
             return ChannexDiscoveryResponse.of(List.of(), 0);
         }
-        int totalInHub = raw.path("data").size();
+
+        // 1-bis. Cloisonnement multi-tenant. La cle API Channex est unique pour
+        //        toute la plateforme : le hub renvoie le compte ENTIER.
+        //
+        //        Deux sources, complementaires :
+        //         - les GROUPS Channex : un group par organisation, qui couvre
+        //           aussi les logements que personne n'a encore importes ;
+        //         - les MAPPINGS locaux : filet de securite, qui couvre ce qui
+        //           n'a pas encore ete rattache a un group (avant backfill, ou
+        //           quand la provision a echoue).
+        //
+        //        Un logement rattache a AUCUN group Baitly reste visible de
+        //        tous : masquer l'inconnu ferait disparaitre sans preavis des
+        //        logements crees hors de ce mecanisme. On masque ce qui est a
+        //        quelqu'un d'autre, pas ce qui n'est a personne.
+        Set<String> claimedByOtherOrgs = new HashSet<>(
+            mappingRepository.findChannexPropertyIdsClaimedByOtherOrgs(orgId));
+        claimedByOtherOrgs.addAll(groupService.propertyIdsOwnedByOtherOrgs(orgId));
+        int totalInHub = 0;
+        for (JsonNode prop : raw.path("data")) {
+            if (!claimedByOtherOrgs.contains(prop.path("id").asText(null))) totalInHub++;
+        }
+        if (!claimedByOtherOrgs.isEmpty()) {
+            log.debug("ChannexImport: discovery org={} — {} property(ies) masquee(s) (autre organisation)",
+                orgId, raw.path("data").size() - totalInHub);
+        }
 
         // 2. Map des UUIDs Channex deja mappes dans Clenzy pour cette org → infos Property Clenzy
         Map<String, com.clenzy.integration.channex.model.ChannexPropertyMapping> mappingsByChannexId = new HashMap<>();
@@ -277,6 +306,8 @@ public class ChannexImportService {
         for (JsonNode prop : raw.path("data")) {
             String channexId = prop.path("id").asText(null);
             if (channexId == null) continue;
+            // Appartient a une autre organisation : invisible ici.
+            if (claimedByOtherOrgs.contains(channexId)) continue;
 
             JsonNode attrs = prop.path("attributes");
             String title = attrs.path("title").asText("");
@@ -523,6 +554,20 @@ public class ChannexImportService {
                     continue;
                 }
 
+                // Cloisonnement : le hub est partage entre toutes les organisations
+                // (cle API unique). Une property deja revendiquee ailleurs ne peut
+                // pas etre importee ici, meme si un ID est forge dans la requete —
+                // la discovery la masque, ce controle rend la garantie effective.
+                var claimedElsewhere = mappingRepository.findByChannexPropertyIdAnyOrg(channexId);
+                if (claimedElsewhere.isPresent()) {
+                    log.warn("ChannexImport: org {} tente d'importer la property {} deja revendiquee par l'org {}",
+                        orgId, channexId, claimedElsewhere.get().getOrganizationId());
+                    details.add(new ChannexImportResult.Item(channexId,
+                        "ERROR", null, "Ce logement appartient a une autre organisation"));
+                    errors++;
+                    continue;
+                }
+
                 // Fetch les details Channex pour auto-filler la Property
                 JsonNode channexProp = channexClient.fetchPropertyRaw(channexId);
                 if (channexProp == null) {
@@ -737,6 +782,16 @@ public class ChannexImportService {
                 prop = persisted.property();
                 ChannexPropertyMapping mapping = persisted.mapping();
                 int photoCount = persisted.photoCount();
+
+                // L'import est l'acte d'appropriation : le logement rejoint le
+                // group de l'organisation, et quitte les autres. Sans ca, une
+                // annonce detectee via OAuth resterait dans le group commun,
+                // donc visible des autres organisations.
+                if (!groupService.assignPropertyToOrgGroup(orgId, channexId)) {
+                    log.warn("ChannexImport: property {} importee par l'org {} mais NON cloisonnee — "
+                        + "elle reste visible des autres organisations jusqu'au prochain backfill",
+                        channexId, orgId);
+                }
 
                 // 6. Creer les artefacts tarifaires Clenzy depuis le rate_plan OTA :
                 //    a) LengthOfStayDiscount (weekly/monthly factors)
@@ -1244,7 +1299,7 @@ public class ChannexImportService {
         final String CONSUMED_PREFIX = "[Clenzy] OAuth Container ";
 
         // 1. Cherche une pivot existante par titre canonique
-        String existingPivotId = findPivotPropertyId(PIVOT_TITLE);
+        String existingPivotId = findPivotPropertyId(PIVOT_TITLE, orgId);
 
         if (existingPivotId != null) {
             // 2. Tenter une suppression directe (cas : pivot orpheline sans channel attache)
@@ -1273,9 +1328,13 @@ public class ChannexImportService {
         }
 
         // 4. Crée une nouvelle pivot fraiche (parametres minimaux, jamais distribuee)
+        //    Cloisonnee comme les autres : c'est elle qui portera les listings
+        //    detectes apres l'OAuth, donc elle ne doit pas naitre dans le group
+        //    commun ou tout le monde la verrait.
         log.info("ChannexImport: creation d'une nouvelle pivot OAuth pour org={}", orgId);
+        String pivotGroupId = groupService.resolveGroupId(orgId).orElse(null);
         ChannexPropertyDto created = channexClient.createProperty(new ChannexCreatePropertyRequest(
-            PIVOT_TITLE, "EUR", "FR", "Europe/Paris", null
+            PIVOT_TITLE, "EUR", "FR", "Europe/Paris", pivotGroupId
         ));
         String pivotId = created.id();
 
@@ -1287,15 +1346,21 @@ public class ChannexImportService {
     /**
      * Liste tous les channels OTA actuellement connectes dans le hub.
      *
-     * <p>Affiche par la vue "Gerer les OTAs connectes" du modal Distribution.
+     * <p>Affiche par la vue "Mes plateformes connectees" du modal Distribution.
      * Permet a l'admin de voir ses OAuth Airbnb/Booking/Vrbo actifs et de les
      * deconnecter (suppression du channel hub + tokens).</p>
+     *
+     * <p><b>Cloisonne</b> : un channel dont TOUTES les properties appartiennent
+     * a d'autres organisations est ecarte. Sans ce filtre, la vue listait les
+     * connexions OTA du compte entier — et le bouton « Deconnecter » aurait
+     * coupe la distribution d'une autre organisation.</p>
      */
     public List<ChannexConnectedOta> listConnectedOtaChannels(Long orgId) {
         JsonNode raw = channexClient.fetchAllChannelsRaw();
         if (raw == null || !raw.path("data").isArray()) {
             return List.of();
         }
+        Set<String> foreignProperties = groupService.propertyIdsOwnedByOtherOrgs(orgId);
 
         // Pre-fetch les titres des properties du hub pour enrichir le DTO
         Map<String, String> propertyTitles = new HashMap<>();
@@ -1315,18 +1380,17 @@ public class ChannexImportService {
             String channelId = channel.path("id").asText(null);
             if (channelId == null) continue;
 
-            // Recupere la 1ere property liee (s'il y en a) pour traçabilite
-            String firstPropId = null;
-            JsonNode propsArr = attrs.path("properties");
-            if (propsArr.isArray() && propsArr.size() > 0) {
-                firstPropId = propsArr.get(0).asText(null);
+            Set<String> channelProperties = channelPropertyIds(channel);
+
+            // Channel entierement rattache a d'autres organisations : il ne
+            // regarde pas l'appelant. Un channel sans property reste visible —
+            // il n'appartient a personne, et le masquer le rendrait
+            // indeconnectable.
+            if (!channelProperties.isEmpty() && foreignProperties.containsAll(channelProperties)) {
+                continue;
             }
-            if (firstPropId == null) {
-                JsonNode rels = channel.path("relationships").path("properties").path("data");
-                if (rels.isArray() && rels.size() > 0) {
-                    firstPropId = rels.get(0).path("id").asText(null);
-                }
-            }
+
+            String firstPropId = channelProperties.stream().findFirst().orElse(null);
 
             boolean hasToken = attrs.path("settings").path("tokens").path("access_token").isTextual();
 
@@ -1367,6 +1431,20 @@ public class ChannexImportService {
     public void disconnectOtaChannel(Long orgId, String channelId) {
         log.info("ChannexImport: disconnect OTA channel {} demande par org {} (2-step: deactivate + delete)",
             channelId, orgId);
+        // La liste est cloisonnee, mais l'identifiant arrive du client : sans ce
+        // controle, un id forge suffirait a couper la distribution d'une autre
+        // organisation.
+        //
+        // Refus sur PREUVE, jamais sur doute : il faut etablir que le channel ne
+        // sert QUE des logements d'autrui. Si le hub ne repond pas, on laisse
+        // passer — deconnecter est l'action de remediation, la bloquer quand le
+        // hub va mal enfermerait l'utilisateur avec un OTA qu'il veut couper.
+        if (channelServesOnlyOtherOrgs(orgId, channelId)) {
+            log.warn("ChannexImport: org {} tente de deconnecter le channel {} qui ne lui appartient pas",
+                orgId, channelId);
+            throw new AccessDeniedException(
+                "Cette plateforme est connectee par une autre organisation");
+        }
         // Etape 1 : desactiver (toujours requis, meme si deja inactif → no-op cote Channex)
         try {
             channexClient.deactivateChannel(channelId);
@@ -1394,6 +1472,152 @@ public class ChannexImportService {
     }
 
     /**
+     * Supprime du hub une property ORPHELINE — presente cote Channex sans aucun
+     * mapping Baitly.
+     *
+     * <p>Ces orphelines s'accumulaient sans issue : elles naissent d'un logement
+     * pousse depuis Baitly puis desimporte, ou d'une tentative de connexion
+     * abandonnee. Toutes les autres routes de suppression sont indexees par
+     * {@code clenzyPropertyId} — sans mapping, plus rien ne les designait.</p>
+     *
+     * <p>Trois refus, dans cet ordre :</p>
+     * <ol>
+     *   <li><b>revendiquee par une autre organisation</b> → {@link AccessDeniedException} ;
+     *       le hub est partage, l'ID seul ne prouve aucun droit</li>
+     *   <li><b>mappee dans CETTE organisation</b> → passer par le Smart Disconnect,
+     *       qui libere d'abord les OTA et nettoie la base locale</li>
+     *   <li><b>des channels OTA y sont attaches</b> → deconnecter la plateforme
+     *       d'abord ; supprimer la property sous un channel actif laisserait
+     *       l'annonce OTA branchee sur un fantome</li>
+     * </ol>
+     *
+     * <p>Les deux refus d'etat levent une {@link IllegalArgumentException} : le
+     * handler global la traduit en 400 avec le message, la ou une
+     * {@code IllegalStateException} produirait un 500 et une stacktrace en
+     * ERROR pour ce qui n'est qu'un refus metier normal.</p>
+     *
+     * @param orgId             organisation appelante
+     * @param channexPropertyId identifiant de la property cote hub
+     * @throws AccessDeniedException    si la property appartient a une autre organisation
+     * @throws IllegalArgumentException si elle est encore mappee ou branchee a un OTA
+     */
+    public void deleteOrphanHubProperty(Long orgId, String channexPropertyId) {
+        // Le group prime : il couvre aussi les logements qu'aucune organisation
+        // n'a encore importes, donc sans mapping pour les rattacher.
+        if (groupService.propertyIdsOwnedByOtherOrgs(orgId).contains(channexPropertyId)) {
+            log.warn("ChannexImport: org {} tente de supprimer la property hub {} d'un autre group",
+                orgId, channexPropertyId);
+            throw new AccessDeniedException(
+                "Ce logement du hub appartient a une autre organisation");
+        }
+
+        var claimed = mappingRepository.findByChannexPropertyIdAnyOrg(channexPropertyId);
+        if (claimed.isPresent()) {
+            if (!orgId.equals(claimed.get().getOrganizationId())) {
+                log.warn("ChannexImport: org {} tente de supprimer la property hub {} de l'org {}",
+                    orgId, channexPropertyId, claimed.get().getOrganizationId());
+                throw new AccessDeniedException(
+                    "Ce logement du hub appartient a une autre organisation");
+            }
+            throw new IllegalArgumentException(
+                "Ce logement est encore connecte a Baitly. Utilisez la deconnexion complete, "
+                + "qui libere d'abord les plateformes avant de nettoyer le hub.");
+        }
+
+        List<String> attachedChannels = findChannelIdsForHubProperty(channexPropertyId);
+        if (!attachedChannels.isEmpty()) {
+            throw new IllegalArgumentException(
+                "Ce logement est encore relie a " + attachedChannels.size()
+                + " plateforme(s). Deconnectez-les avant de le supprimer du hub.");
+        }
+
+        channexClient.deleteProperty(channexPropertyId);
+        log.info("ChannexImport: property hub {} supprimee (orpheline, demande org {})",
+            channexPropertyId, orgId);
+    }
+
+    /**
+     * Channels du hub rattaches a une property donnee. Lecture best-effort : une
+     * enumeration en echec ne doit pas laisser croire qu'il n'y a aucun channel,
+     * donc l'exception remonte.
+     */
+    private List<String> findChannelIdsForHubProperty(String channexPropertyId) {
+        List<String> ids = new ArrayList<>();
+        JsonNode channelsRaw = channexClient.fetchAllChannelsRaw();
+        if (channelsRaw == null || !channelsRaw.path("data").isArray()) return ids;
+        for (JsonNode ch : channelsRaw.path("data")) {
+            String channelId = ch.path("id").asText(null);
+            if (channelId == null) continue;
+            JsonNode propsArr = ch.path("attributes").path("properties");
+            if (propsArr.isArray()) {
+                for (JsonNode pid : propsArr) {
+                    if (channexPropertyId.equals(pid.asText(""))) { ids.add(channelId); break; }
+                }
+            }
+            if (ids.contains(channelId)) continue;
+            JsonNode rels = ch.path("relationships").path("properties").path("data");
+            if (rels.isArray()) {
+                for (JsonNode r : rels) {
+                    if (channexPropertyId.equals(r.path("id").asText(""))) { ids.add(channelId); break; }
+                }
+            }
+        }
+        return ids;
+    }
+
+    /**
+     * Vrai uniquement s'il est ETABLI que ce channel ne dessert que des
+     * logements d'autres organisations.
+     *
+     * <p>Renvoie false des que le doute existe — channel introuvable, hub
+     * injoignable, channel sans logement rattache. C'est volontaire : la
+     * deconnexion est une remediation, et un refus sur doute enfermerait
+     * l'utilisateur avec un OTA qu'il veut couper.</p>
+     */
+    private boolean channelServesOnlyOtherOrgs(Long orgId, String channelId) {
+        JsonNode raw;
+        try {
+            raw = channexClient.fetchAllChannelsRaw();
+        } catch (Exception e) {
+            log.warn("ChannexImport: appartenance du channel {} indeterminable ({}) — "
+                + "deconnexion autorisee", channelId, e.getMessage());
+            return false;
+        }
+        if (raw == null || !raw.path("data").isArray()) return false;
+
+        for (JsonNode channel : raw.path("data")) {
+            if (!channelId.equals(channel.path("id").asText(null))) continue;
+            Set<String> properties = channelPropertyIds(channel);
+            if (properties.isEmpty()) return false;
+            return groupService.propertyIdsOwnedByOtherOrgs(orgId).containsAll(properties);
+        }
+        return false;
+    }
+
+    /**
+     * Properties rattachees a un channel, quelle que soit la forme du payload :
+     * tableau d'ids dans {@code attributes.properties}, ou relation JSON:API.
+     */
+    private Set<String> channelPropertyIds(JsonNode channel) {
+        Set<String> ids = new LinkedHashSet<>();
+        JsonNode attrsProps = channel.path("attributes").path("properties");
+        if (attrsProps.isArray()) {
+            for (JsonNode pid : attrsProps) {
+                String id = pid.asText(null);
+                if (id != null && !id.isBlank()) ids.add(id);
+            }
+        }
+        JsonNode rels = channel.path("relationships").path("properties").path("data");
+        if (rels.isArray()) {
+            for (JsonNode r : rels) {
+                String id = r.path("id").asText(null);
+                if (id != null && !id.isBlank()) ids.add(id);
+            }
+        }
+        return ids;
+    }
+
+    /**
      * Execute un nettoyage local sans laisser son echec masquer le resultat de
      * l'operation Channex : le channel est deja desactive/supprime cote hub,
      * l'UI doit voir ce succes meme si la ligne locale resiste.
@@ -1406,15 +1630,24 @@ public class ChannexImportService {
         }
     }
 
-    /** Cherche dans toutes les properties du hub celle qui sert de pivot OAuth (par titre). */
-    private String findPivotPropertyId(String pivotTitle) {
+    /**
+     * Cherche la property pivot OAuth de l'organisation, par titre.
+     *
+     * <p>Le titre canonique est le MEME pour toutes les organisations : depuis
+     * le cloisonnement par group, chacune a sa propre pivot ainsi nommee. Une
+     * recherche par titre seul rendrait donc la pivot d'une autre organisation
+     * — qu'on renommerait, supprimerait, ou dont on ouvrirait l'assistant
+     * OAuth. Les properties d'autrui sont ecartees avant la comparaison.</p>
+     */
+    private String findPivotPropertyId(String pivotTitle, Long orgId) {
         JsonNode raw = channexClient.fetchAllPropertiesRaw();
         if (raw == null || !raw.path("data").isArray()) return null;
+        Set<String> foreign = groupService.propertyIdsOwnedByOtherOrgs(orgId);
         for (JsonNode prop : raw.path("data")) {
+            String id = prop.path("id").asText(null);
+            if (id == null || foreign.contains(id)) continue;
             String title = prop.path("attributes").path("title").asText("");
-            if (pivotTitle.equals(title)) {
-                return prop.path("id").asText(null);
-            }
+            if (pivotTitle.equals(title)) return id;
         }
         return null;
     }

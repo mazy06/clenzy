@@ -50,6 +50,7 @@ class ChannexConnectServiceExtraTest {
     @Mock private ChannexBookingService bookingService;
     @Mock private PropertyRepository propertyRepository;
     @Mock private com.clenzy.integration.channex.repository.ChannexPriceDriftRepository priceDriftRepository;
+    @Mock private ChannexGroupService groupService;
 
     private ChannexConnectService service;
 
@@ -61,7 +62,8 @@ class ChannexConnectServiceExtraTest {
             new ChannexMetrics(new SimpleMeterRegistry()),
             new ChannexCapabilityService(),
             priceDriftRepository,
-            new com.clenzy.integration.channex.config.ChannexProperties()
+            new com.clenzy.integration.channex.config.ChannexProperties(),
+            groupService
         );
     }
 

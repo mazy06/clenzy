@@ -74,6 +74,7 @@ class ChannexImportServiceExtraTest {
     @Mock private BookingRestrictionRepository bookingRestrictionRepository;
     @Mock private AmenityManagementService amenityManagementService;
     @Mock private ChannexPricingImporter pricingImporter;
+    @Mock private ChannexGroupService groupService;
     @Mock private org.springframework.beans.factory.ObjectProvider<ChannexImportService> selfProvider;
 
     private ObjectMapper objectMapper;
@@ -87,7 +88,7 @@ class ChannexImportServiceExtraTest {
             connectService, userRepository, lengthOfStayDiscountRepository,
             ratePlanRepository, occupancyPricingRepository, rateOverrideRepository,
             bookingRestrictionRepository, objectMapper, amenityManagementService, pricingImporter,
-            selfProvider);
+            groupService, selfProvider);
         // self = l'instance elle-meme (pas de proxy Spring en test unitaire)
         when(selfProvider.getObject()).thenAnswer(inv -> service);
     }

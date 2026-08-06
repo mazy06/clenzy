@@ -480,7 +480,82 @@ export const channexApi = {
       `/integrations/channex/ota-channels/${channelId}`,
     );
   },
+
+  /**
+   * Supprime du hub un logement ORPHELIN (present cote hub, sans mapping
+   * Baitly). Irreversible.
+   *
+   * Le backend refuse si le logement appartient a une autre organisation, s'il
+   * est encore connecte a Baitly (passer par la deconnexion complete) ou s'il
+   * porte encore des channels OTA (deconnecter les plateformes d'abord).
+   */
+  deleteHubProperty(channexPropertyId: string): Promise<void> {
+    return apiClient.delete<void>(
+      `/integrations/channex/hub/properties/${channexPropertyId}`,
+    );
+  },
+
+  /**
+   * Reprise de l'existant : rattache chaque logement deja mappe au group
+   * Channex de son organisation (cloisonnement du hub).
+   *
+   * Idempotent, re-jouable. SUPER_ADMIN uniquement — l'operation traverse
+   * toutes les organisations.
+   */
+  backfillHubGroups(): Promise<ChannexGroupBackfillReport> {
+    return apiClient.post<ChannexGroupBackfillReport>(
+      '/integrations/channex/hub/groups/backfill',
+      {},
+    );
+  },
+
+  /**
+   * Purge les logements du hub qui n'appartiennent a aucune organisation :
+   * ni dans un groupe, ni connectes a Baitly, ni relies a une plateforme.
+   *
+   * `confirm: false` (defaut) = SIMULATION : rien n'est supprime, le rapport
+   * liste ce qui partirait. Toujours simuler avant de confirmer — la
+   * suppression cote hub est irreversible.
+   *
+   * Le backend refuse la suppression tant que des logements connectes ne sont
+   * pas cloisonnes (`blockedByPendingBackfill`) : lancer le backfill d'abord.
+   */
+  purgeUngroupedHubProperties(confirm = false): Promise<ChannexUngroupedPurgeReport> {
+    return apiClient.post<ChannexUngroupedPurgeReport>(
+      `/integrations/channex/hub/properties/purge-ungrouped?confirm=${confirm}`,
+      {},
+    );
+  },
 };
+
+/** Compte-rendu du rattachement des logements existants aux groups. */
+export interface ChannexGroupBackfillReport {
+  organizationsProvisioned: number;
+  propertiesAssigned: number;
+  propertiesAlreadyIsolated: number;
+  failures: number;
+  messages: string[];
+}
+
+/** Sort d'un logement du hub au regard de la purge. */
+export interface ChannexUngroupedProperty {
+  channexPropertyId: string | null;
+  title: string | null;
+  /** PURGE (candidat), DELETED, FAILED, ou KEPT. */
+  decision: 'PURGE' | 'DELETED' | 'FAILED' | 'KEPT';
+  reason: string;
+}
+
+export interface ChannexUngroupedPurgeReport {
+  dryRun: boolean;
+  /** Des logements connectes ne sont pas encore cloisonnes : purge refusee. */
+  blockedByPendingBackfill: boolean;
+  totalInHub: number;
+  candidates: number;
+  deleted: number;
+  failures: number;
+  items: ChannexUngroupedProperty[];
+}
 
 export interface ChannexOauthSetupResponse {
   embedUrl: string;

@@ -9,13 +9,17 @@
  *   <li><b>Synchroniser</b> : import dans Baitly + push initial automatique</li>
  * </ol>
  *
- * <p>L'etape courante est calculee depuis le state reel :</p>
- * <ul>
- *   <li>0 OTA connecte → etape 1 active</li>
- *   <li>OTA connecte mais 0 detection → etape 2 active</li>
- *   <li>Properties detectees mais 0 importee → etape 3 active</li>
- *   <li>Au moins 1 importee → etape 3 completed</li>
- * </ul>
+ * <p>L'etape courante est calculee depuis le state reel, et la progression est
+ * STRICTEMENT monotone : une etape n'est franchie que si toutes les precedentes
+ * le sont. Sans cette regle, le hub pouvait contenir des logements POUSSES
+ * DEPUIS BAITLY (mode AUTO_CREATE de « Connecter un de mes logements », ou
+ * pivot OAuth) alors qu'aucun compte OTA n'etait autorise : l'etape 1 et
+ * l'etape 3 s'allumaient en meme temps et l'utilisateur atterrissait
+ * visuellement sur « Synchroniser » sans avoir jamais connecte d'OTA.</p>
+ *
+ * <p>« Detecter » ne compte donc PAS le simple contenu du hub : il exige un OTA
+ * autorise. {@code otaDetectedCount} distingue les listings reellement
+ * rattaches a un OTA du reste du hub.</p>
  *
  * <p>Aucune navigation explicite : chaque etape est pilotee par l'action user
  * dans le dialog. Le stepper sert juste de boussole.</p>
@@ -27,10 +31,17 @@ import { Cable, Search, Check, ArrowRight } from 'lucide-react';
 interface ChannexImportProgressStepperProps {
   /** Nb d'OTAs (Airbnb/Booking/...) deja connectes cote hub Channex. */
   connectedOtaCount: number;
-  /** Nb de properties detectees par Channex (mappees + non mappees). */
+  /** Nb total de logements presents dans le hub (OTA + pousses depuis Baitly). */
   totalInHub: number;
+  /** Nb de logements du hub effectivement rattaches a un channel OTA. */
+  otaDetectedCount: number;
   /** Nb de properties deja importees dans Baitly. */
   importedCount: number;
+}
+
+/** Accord en nombre sans repeter le ternaire a chaque libelle. */
+function plural(count: number, singular: string, plural_: string): string {
+  return `${count} ${count > 1 ? plural_ : singular}`;
 }
 
 type StepStatus = 'COMPLETE' | 'ACTIVE' | 'UPCOMING';
@@ -45,40 +56,42 @@ interface Step {
 
 function computeSteps(p: ChannexImportProgressStepperProps): Step[] {
   const hasOta = p.connectedOtaCount > 0;
-  const hasHubProps = p.totalInHub > 0;
-  const hasImported = p.importedCount > 0;
+  // Un logement present dans le hub ne prouve PAS une detection OTA : il a pu y
+  // etre pousse depuis Baitly. La detection exige un compte OTA autorise.
+  const hasDetected = hasOta && p.totalInHub > 0;
+  const hasImported = hasDetected && p.importedCount > 0;
 
   return [
     {
       num: 1,
       title: 'Autoriser',
       hint: hasOta
-        ? `${p.connectedOtaCount} OTA connecte${p.connectedOtaCount > 1 ? 's' : ''}`
-        : 'Connecter Airbnb / Booking au hub',
+        ? plural(p.connectedOtaCount, 'compte OTA connecté', 'comptes OTA connectés')
+        : 'Connectez votre compte Airbnb ou Booking',
       Icon: Cable,
       status: hasOta ? 'COMPLETE' : 'ACTIVE',
     },
     {
       num: 2,
-      title: 'Detecter',
-      hint: hasHubProps
-        ? `${p.totalInHub} property${p.totalInHub > 1 ? 'ies' : ''} detectee${p.totalInHub > 1 ? 's' : ''}`
-        : hasOta
-          ? 'Channex va lister vos listings'
-          : 'En attente de l\'etape precedente',
+      title: 'Détecter',
+      hint: !hasOta
+        ? 'En attente de l\'étape 1'
+        : hasDetected
+          ? plural(p.otaDetectedCount > 0 ? p.otaDetectedCount : p.totalInHub, 'annonce détectée', 'annonces détectées')
+          : 'Recherche de vos annonces en cours',
       Icon: Search,
-      status: !hasOta ? 'UPCOMING' : hasHubProps ? 'COMPLETE' : 'ACTIVE',
+      status: !hasOta ? 'UPCOMING' : hasDetected ? 'COMPLETE' : 'ACTIVE',
     },
     {
       num: 3,
       title: 'Synchroniser',
       hint: hasImported
-        ? `${p.importedCount} importee${p.importedCount > 1 ? 's' : ''} dans Baitly`
-        : hasHubProps
-          ? 'Cocher + Importer en bas du tableau'
-          : 'En attente de detection',
+        ? plural(p.importedCount, 'annonce importée dans Baitly', 'annonces importées dans Baitly')
+        : hasDetected
+          ? 'Cochez les annonces, puis importez'
+          : 'En attente de détection',
       Icon: Check,
-      status: !hasHubProps ? 'UPCOMING' : hasImported ? 'COMPLETE' : 'ACTIVE',
+      status: !hasDetected ? 'UPCOMING' : hasImported ? 'COMPLETE' : 'ACTIVE',
     },
   ];
 }
@@ -97,7 +110,10 @@ function StepBubble({ step }: { step: Step }) {
   const color = STATUS_COLOR[step.status];
   const Icon = step.status === 'COMPLETE' ? Check : step.Icon;
   return (
-    <div className="flex items-start gap-1.5 min-w-0 flex-1">
+    <li
+      className="flex items-start gap-1.5 min-w-0 flex-1"
+      aria-current={step.status === 'ACTIVE' ? 'step' : undefined}
+    >
       {/* Teintes derivees du statut a l'execution : elles restent dans style. */}
       <div
         className="size-8 rounded-full flex items-center justify-center shrink-0 mt-[0.6px] font-bold text-xs tabular-nums"
@@ -119,24 +135,30 @@ function StepBubble({ step }: { step: Step }) {
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <span className={cn('block text-xs font-semibold leading-[1.3]', step.status === 'UPCOMING' ? 'text-faint' : 'text-foreground')}>
+        {/* `--bui-faint` plafonne a 2,41:1 : une etape a venir reste du texte,
+            donc `--bui-muted-foreground` (4,80:1) — cf. contrat Baitly UI §2. */}
+        <span className={cn('block text-xs font-semibold leading-[1.3]', step.status === 'UPCOMING' ? 'text-muted-foreground' : 'text-foreground')}>
           {step.title}
+          <span className="sr-only">
+            {step.status === 'COMPLETE' ? ' — terminée' : step.status === 'ACTIVE' ? ' — étape en cours' : ' — à venir'}
+          </span>
         </span>
-        <span className={cn('block text-2xs text-muted-foreground leading-[1.4]', step.status === 'UPCOMING' ? 'opacity-60' : 'opacity-100')}>
+        <span className="block text-2xs text-muted-foreground leading-[1.4]">
           {step.hint}
         </span>
       </div>
-    </div>
+    </li>
   );
 }
 
 function Connector({ next }: { next: StepStatus }) {
   const color = next === 'UPCOMING' ? 'var(--bui-border)' : STATUS_COLOR[next];
   // La fleche pointe le sens de lecture : elle se retourne en RTL avec la page.
+  // Purement decorative : la progression est deja portee par `aria-current`.
   return (
-    <div className="flex items-center shrink-0 mt-1.5 cn-rtl-flip" style={{ color }}>
+    <li className="flex items-center shrink-0 mt-1.5 cn-rtl-flip" style={{ color }} aria-hidden="true">
       <ArrowRight size={14} strokeWidth={2.2} />
-    </div>
+    </li>
   );
 }
 
@@ -148,13 +170,16 @@ export default function ChannexImportProgressStepper(props: ChannexImportProgres
     // propre alpha.
     <div className="rounded-lg border border-solid border-primary/15 bg-primary-soft/50 p-[7.5px]">
       {/* `sm` MUI = 600 px, pas le 640 de Tailwind. spacing 1/1.25 = 6 px/7,5 px. */}
-      <div className="flex flex-col gap-1.5 items-start min-[600px]:flex-row min-[600px]:gap-[7.5px] min-[600px]:items-center">
+      <ol
+        aria-label="Progression de la connexion"
+        className="flex flex-col gap-1.5 items-start min-[600px]:flex-row min-[600px]:gap-[7.5px] min-[600px]:items-center"
+      >
         <StepBubble step={steps[0]} />
         <Connector next={steps[1].status} />
         <StepBubble step={steps[1]} />
         <Connector next={steps[2].status} />
         <StepBubble step={steps[2]} />
-      </div>
+      </ol>
     </div>
   );
 }
