@@ -18,6 +18,7 @@ import EmptyState from '../../components/EmptyState';
 import ChannexHealthBadge from '../settings/components/ChannexHealthBadge';
 import MissingContractChip from './MissingContractChip';
 import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
+import MapWithSheet from '../../components/baitly/MapWithSheet';
 import { Money } from '../../components/Money';
 import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
@@ -52,47 +53,45 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  return (
-    <div className="flex flex-col h-[calc(100vh_-_140px)] min-h-[500px]">
-      {/* Carte fixe en haut */}
-      <div className={cn(LIST_SURFACE_CLASS, 'overflow-hidden shrink-0')}>
-        {mapMarkers.length > 0 ? (
-          <MapboxPropertyMap
-            properties={mapMarkers}
-            height={400}
-            onMarkerClick={(marker) => {
-              if (marker.id) navigate(`/properties/${marker.id}`);
-            }}
-            onBoundsChange={onBoundsChange}
-          />
-        ) : (
-          <EmptyState
-            variant="transparent"
-            minHeight={400}
-            icon={<Home />}
-            title="Aucune propriété avec coordonnées GPS"
-            description="Les coordonnées sont ajoutées automatiquement lors de la saisie de l'adresse"
-          />
-        )}
+  // Aucun marqueur : ni carte ni feuille, seulement l'explication.
+  if (mapMarkers.length === 0) {
+    return (
+      <div className={cn(LIST_SURFACE_CLASS, 'shrink-0 overflow-hidden')}>
+        <EmptyState
+          variant="transparent"
+          minHeight={400}
+          icon={<Home />}
+          title="Aucune propriété avec coordonnées GPS"
+          description="Les coordonnées sont ajoutées automatiquement lors de la saisie de l'adresse"
+        />
       </div>
+    );
+  }
 
-      {/* Liste scrollable en dessous */}
-      {mapMarkers.length > 0 && (
-        <div className="mt-2 flex-1 min-h-0 flex flex-col">
-          <h6 className="mt-0 mb-1.5 shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">
-            {viewportProperties.length} {viewportProperties.length > 1 ? 'propriétés' : 'propriété'} dans la zone visible
-          </h6>
-
-          {viewportProperties.length === 0 ? (
-            <EmptyState
-              variant="plain"
-              icon={<Home />}
-              title="Aucune propriété dans cette zone"
-              description="Déplacez ou dézoomez la carte."
-            />
-          ) : (
-            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 pe-0.5">
-              {viewportProperties.map((property) => {
+  return (
+    <MapWithSheet
+      className="h-[calc(100vh_-_140px)] min-h-[500px]"
+      map={
+        <MapboxPropertyMap
+          properties={mapMarkers}
+          height="100%"
+          onMarkerClick={(marker) => {
+            if (marker.id) navigate(`/properties/${marker.id}`);
+          }}
+          onBoundsChange={onBoundsChange}
+        />
+      }
+      listTitle={`${viewportProperties.length} ${viewportProperties.length > 1 ? 'propriétés' : 'propriété'} dans la zone visible`}
+      emptyState={viewportProperties.length === 0 ? (
+        <EmptyState
+          variant="plain"
+          icon={<Home />}
+          title="Aucune propriété dans cette zone"
+          description="Déplacez ou dézoomez la carte."
+        />
+      ) : undefined}
+    >
+      {viewportProperties.map((property) => {
                 const typeColor = getPropertyTypeHex(property.type);
                 return (
                   <Item
@@ -170,12 +169,8 @@ const PropertiesMapView: React.FC<PropertiesMapViewProps> = ({
                     </ItemActions>
                   </Item>
                 );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+      })}
+    </MapWithSheet>
   );
 };
 

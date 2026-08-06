@@ -14,6 +14,7 @@ import type { NavigateFunction } from 'react-router-dom';
 import { Build, LocationOn, Visibility as VisibilityIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
+import MapWithSheet from '../../components/baitly/MapWithSheet';
 import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
 import type { Intervention } from './useInterventionsList';
 import {
@@ -41,48 +42,44 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  return (
-    /* ─── Vue carte (sticky) + liste viewport (scrollable) ─── */
-    <div className="flex flex-col flex-1 min-h-0">
-      {/* Carte fixe en haut */}
-      <div className={cn(LIST_SURFACE_CLS, 'p-0 overflow-hidden shrink-0')}>
-        {mapMarkers.length > 0 ? (
-          <MapboxPropertyMap
-            properties={mapMarkers}
-            height={400}
-            onMarkerClick={(marker) => {
-              if (marker.id) navigate(`/interventions/${marker.id}`);
-            }}
-            onBoundsChange={onBoundsChange}
-          />
-        ) : (
-          <EmptyState
-            variant="transparent"
-            minHeight={400}
-            icon={<Build />}
-            title="Aucune intervention avec coordonnées GPS"
-            description="Renseignez l'adresse des logements concernés pour les voir apparaître sur la carte."
-          />
-        )}
+  // Aucun marqueur : ni carte ni feuille, seulement l'explication.
+  if (mapMarkers.length === 0) {
+    return (
+      <div className={cn(LIST_SURFACE_CLS, 'shrink-0 overflow-hidden p-0')}>
+        <EmptyState
+          variant="transparent"
+          minHeight={400}
+          icon={<Build />}
+          title="Aucune intervention avec coordonnées GPS"
+          description="Renseignez l'adresse des logements concernés pour les voir apparaître sur la carte."
+        />
       </div>
+    );
+  }
 
-      {/* Liste scrollable en dessous */}
-      {mapMarkers.length > 0 && (
-        <div className="mt-2 flex-1 min-h-0 flex flex-col">
-          <h6 className="mb-1.5 shrink-0 text-2xs font-semibold uppercase tracking-wide text-muted-foreground tabular-nums">
-            {viewportInterventions.length} {viewportInterventions.length > 1 ? 'interventions' : 'intervention'} dans la zone visible
-          </h6>
-
-          {viewportInterventions.length === 0 ? (
-            <EmptyState
-              variant="plain"
-              icon={<LocationOn />}
-              title="Aucune intervention dans cette zone"
-              description="Déplacez ou dézoomez la carte."
-            />
-          ) : (
-            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 pe-0.5">
-              {viewportInterventions.map((intervention) => {
+  return (
+    <MapWithSheet
+      map={
+        <MapboxPropertyMap
+          properties={mapMarkers}
+          height="100%"
+          onMarkerClick={(marker) => {
+            if (marker.id) navigate(`/interventions/${marker.id}`);
+          }}
+          onBoundsChange={onBoundsChange}
+        />
+      }
+      listTitle={`${viewportInterventions.length} ${viewportInterventions.length > 1 ? 'interventions' : 'intervention'} dans la zone visible`}
+      emptyState={viewportInterventions.length === 0 ? (
+        <EmptyState
+          variant="plain"
+          icon={<LocationOn />}
+          title="Aucune intervention dans cette zone"
+          description="Déplacez ou dézoomez la carte."
+        />
+      ) : undefined}
+    >
+      {viewportInterventions.map((intervention) => {
                 const statusTokens = getStatusTokens(intervention.status);
                 const typeTokens = getTypeTokens(intervention.type);
                 const priorityTokens = getPriorityTokens(intervention.priority);
@@ -106,30 +103,35 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
                       }
                     }}
                   >
-                    <div className="flex items-center gap-2">
-                      {/* Titre + adresse */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13.5px] font-semibold text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+                    {/* Le titre occupe sa PROPRE ligne, avant tout le reste.
+                        Il partageait auparavant une rangee avec trois pastilles,
+                        une barre de progression et le nom d'assigne, tous
+                        incompressibles : des que les libelles s'allongeaient, le
+                        titre — seule information qui identifie l'intervention —
+                        etait ecrase jusqu'a disparaitre. */}
+                    <div className="flex items-start gap-2">
+                      <div className="flex min-w-0 flex-1 flex-col gap-1">
+                        <p className="truncate text-[13.5px] font-semibold text-foreground">
                           {stripPropertySuffix(intervention.title, intervention.propertyName)}
                         </p>
-                        <div className="flex items-center gap-0.5 mt-0.5">
-                          <span className="inline-flex text-primary shrink-0"><LocationOn size={13} strokeWidth={1.75} /></span>
-                          <span className="text-[11.5px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+                        <div className="flex min-w-0 items-center gap-0.5">
+                          <span className="inline-flex shrink-0 text-primary"><LocationOn size={13} strokeWidth={1.75} /></span>
+                          <span className="truncate text-[11.5px] text-muted-foreground">
                             {intervention.propertyName} — {intervention.propertyAddress}
                           </span>
                         </div>
-                      </div>
 
-                      {/* Type + Statut + Priorité chips */}
-                      <div className="flex items-center gap-0.5 shrink-0">
-                        <StatusChip tokens={{ color: typeTokens.color, bg: typeTokens.bg }} label={getInterventionTypeLabel(intervention.type, t)} className="text-[0.62rem]" />
-                        <StatusChip tokens={{ color: statusTokens.color, bg: statusTokens.bg }} label={getInterventionStatusLabel(intervention.status, t)} className="text-[0.62rem]" />
-                        <StatusChip tokens={{ color: priorityTokens.color, bg: priorityTokens.bg }} label={getInterventionPriorityLabel(intervention.priority, t)} className="text-[0.62rem]" />
-                      </div>
+                        {/* Pastilles sous le titre, jamais en concurrence avec lui. */}
+                        <div className="flex flex-wrap items-center gap-0.5">
+                          <StatusChip tokens={{ color: typeTokens.color, bg: typeTokens.bg }} label={getInterventionTypeLabel(intervention.type, t)} className="text-[0.62rem]" />
+                          <StatusChip tokens={{ color: statusTokens.color, bg: statusTokens.bg }} label={getInterventionStatusLabel(intervention.status, t)} className="text-[0.62rem]" />
+                          <StatusChip tokens={{ color: priorityTokens.color, bg: priorityTokens.bg }} label={getInterventionPriorityLabel(intervention.priority, t)} className="text-[0.62rem]" />
+                        </div>
 
-                      {/* Progression + Assigné + Action */}
-                      <div className="flex items-center gap-2 shrink-0">
-                        <div className="flex items-center gap-1 min-w-[70px]">
+                        {/* Progression + assigne : une ligne a part, la barre a
+                            besoin d'une largeur reelle pour rester lisible. */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="flex min-w-[110px] flex-1 items-center gap-1">
                           {/* La teinte de la barre vit sur l'indicateur interne :
                               on la vise par son data-slot, en branches litterales
                               (une classe Tailwind ne naît pas d'une variable). */}
@@ -149,38 +151,38 @@ const InterventionsMapView: React.FC<InterventionsMapViewProps> = ({
                             {progress}%
                           </span>
                         </div>
-                        {intervention.assignedToName && (
-                          <span className="text-[11.5px] text-muted-foreground max-w-[90px] overflow-hidden text-ellipsis whitespace-nowrap">
-                            {intervention.assignedToName}
-                          </span>
-                        )}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            {/* Le span porte la ref que Radix pose : le kit n'en
-                                transmet pas (React 18). */}
-                            <span className="inline-flex">
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label="Détails"
-                                onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
-                              >
-                                <VisibilityIcon size={16} strokeWidth={1.75} />
-                              </Button>
+                          {intervention.assignedToName && (
+                            <span className="max-w-[45%] truncate text-[11.5px] text-muted-foreground">
+                              {intervention.assignedToName}
                             </span>
-                          </TooltipTrigger>
-                          <TooltipContent>Détails</TooltipContent>
-                        </Tooltip>
+                          )}
+                        </div>
                       </div>
+
+                      {/* L'action reste calee en haut a droite, hors du flux du
+                          texte : elle ne doit jamais rogner le titre. */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {/* Le span porte la ref que Radix pose : le kit n'en
+                              transmet pas (React 18). */}
+                          <span className="inline-flex shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label="Détails"
+                              onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
+                            >
+                              <VisibilityIcon size={16} strokeWidth={1.75} />
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Détails</TooltipContent>
+                      </Tooltip>
                     </div>
                   </Card>
                 );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+      })}
+    </MapWithSheet>
   );
 };
 
