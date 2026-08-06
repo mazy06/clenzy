@@ -31,6 +31,7 @@ export type { MockProviderOptions } from './provider/MockSupervisionProvider';
 // Provider RÉEL (AG-UI) + mapping + bascule mock⇄réel
 export { AgUiSupervisionProvider } from './provider/AgUiSupervisionProvider';
 export type { AgUiProviderOptions } from './provider/AgUiSupervisionProvider';
+export { AgUiPortfolioProvider } from './provider/AgUiPortfolioProvider';
 export { mapSpecialistToAgent } from './provider/specialistMapping';
 export { isSupervisionLiveEnabled } from './provider/supervisionFlags';
 export {

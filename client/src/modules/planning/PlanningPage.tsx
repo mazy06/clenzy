@@ -61,6 +61,7 @@ import {
   PortfolioPanel,
   SupervisionPanel,
   MockPortfolioProvider,
+  AgUiPortfolioProvider,
   MockSupervisionProvider,
   AgUiSupervisionProvider,
   isSupervisionLiveEnabled,
@@ -116,7 +117,13 @@ const PlanningPage: React.FC = () => {
   // (« email voyageur manquant ») : signal contrôlé transmis à PlanningActionPanel →
   // PanelFooterActions. Remis à null une fois consommé (permet une réouverture).
   const [autoOpenGuestCardReservationId, setAutoOpenGuestCardReservationId] = useState<string | null>(null);
-  const createPortfolioProvider = useCallback(() => new MockPortfolioProvider(), []);
+  // Vue d'ensemble : MÊME bascule que la vue par logement. Elle était restée
+  // clouée au provider de démonstration — l'ecran affichait des logements
+  // fictifs (« Duplex Marais »…) meme en live.
+  const createPortfolioProvider = useCallback(
+    () => (isSupervisionLiveEnabled() ? new AgUiPortfolioProvider() : new MockPortfolioProvider()),
+    [],
+  );
   const handleToggleExpanded = useCallback((propertyId: number) => {
     // Fermer = SUPPRIMER la préférence (retour au défaut null), et NON setPref(null) :
     // un PUT à corps null est envoyé sans body (apiClient : `if (body)`) → le backend
