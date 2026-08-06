@@ -41,6 +41,22 @@ const ORBIT_RADIUS_MAX = 38;
 const ORBIT_RADIUS_MIN = 28;
 /** Place réservée SOUS le dernier nœud pour son libellé (2 lignes + marge). */
 const LABEL_ROOM_PX = 38;
+/**
+ * Distance d'arc minimale entre deux nœuds voisins pour que TOUTES les légendes
+ * tiennent. En dessous, seuls les agents qui demandent quelque chose gardent la
+ * leur — un agent en veille n'a rien à dire, sa légende ne fait qu'entrer dans
+ * celle du voisin.
+ */
+const LABEL_MIN_ARC_PX = 110;
+/**
+ * Écartement horizontal de la légende vers l'EXTÉRIEUR de l'anneau, quand il
+ * est à l'étroit. Sur les flancs, une légende posée sous son nœud pointe vers
+ * le voisin ; la pousser dehors la dégage. On ne va pas jusqu'au placement
+ * radial complet — 98 px n'auraient pas la place de sortir du carré.
+ */
+const LABEL_SHIFT_PX = 30;
+/** Demi-largeur typique d'une légende — sert à ne pas la pousser hors du cadre. */
+const LABEL_HALF_WIDTH_PX = 50;
 const CORE_SIZE = 15;
 /** Diamètre uniforme des nœuds (% du canvas) — le volume ne se lit pas ici. */
 const NODE_SIZE = 13;
@@ -323,6 +339,14 @@ export function OrbitDiagram({
   );
   const radius = orbitRadiusFor(side);
 
+  // Anneau à l'étroit : distance d'arc entre deux nœuds voisins. En dessous de
+  // LABEL_MIN_ARC_PX, les légendes (44 à 98 px de large) débordent sur le nœud
+  // d'à côté — mesuré, 5 recouvrements sur 10 agents à 79 px d'arc, aucun à
+  // 142. Les placer radialement ne sauverait rien : sur les flancs, une légende
+  // de 98 px n'a pas la place de sortir du carré.
+  const arcPx = agents.length > 0 ? (2 * Math.PI * ((radius / 100) * side)) / agents.length : 0;
+  const crowded = arcPx > 0 && arcPx < LABEL_MIN_ARC_PX;
+
   return (
     <div ref={boxRef} className={cn('flex min-h-0 items-center justify-center', className)}>
       {/* marginBottom : le dessin n'est PAS centré dans son carré — les
@@ -415,6 +439,23 @@ export function OrbitDiagram({
                   ? `${statusLabel} · ${Math.round(agent.thinkingProgress)} %`
                   : statusLabel;
 
+            // Position de la légende quand l'anneau est à l'étroit. Le nœud
+            // porte déjà la rotation inverse de l'anneau : ses axes locaux sont
+            // ceux de l'écran, on raisonne donc en angle VISUEL.
+            const visualRad = ((baseAngle(index, agents.length) + rotation) * Math.PI) / 180;
+            // Moitié haute (sin < 0 en repère écran) : la légende passe AU-DESSUS.
+            // Posée dessous, elle descendait sur le nœud suivant de l'anneau —
+            // les deux recouvrements mesurés étaient exactement ceux-là.
+            const labelAbove = crowded && Math.sin(visualRad) < -0.25;
+            // Poussée vers l'extérieur, BORNÉE par la place réelle : le carré du
+            // dessin est plus large que sa boîte, pousser sans regarder coupait
+            // la légende au bord. On ne pousse que ce qui rentre encore.
+            const cos = Math.cos(visualRad);
+            const room = box.width / 2 - Math.abs(cos) * ((radius / 100) * side) - LABEL_HALF_WIDTH_PX;
+            const labelShift = crowded
+              ? Math.sign(cos) * Math.min(LABEL_SHIFT_PX, Math.max(0, room))
+              : 0;
+
             return (
               <div
                 key={agent.id}
@@ -460,29 +501,51 @@ export function OrbitDiagram({
                           {agent.badge}
                         </span>
                       )}
+                      {/* Anneau à l'étroit : le compte remplace la légende. */}
+                      {crowded && agent.badge == null && pending > 0 && (
+                        // `bg-warning-soft` + `text-warning-ink` : le couple du
+                        // contrat. Il n'existe pas de `warning-foreground` —
+                        // écrire du texte sur l'aplat vif n'aurait rien donné.
+                        <span className="absolute -end-1 -top-1 inline-flex min-w-4 items-center justify-center rounded-full border border-warning/60 bg-warning-soft px-1 text-[9px] font-bold text-warning-ink tabular-nums">
+                          {pending}
+                        </span>
+                      )}
                     </button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-[16rem] p-0">
                     <AgentNodeTooltip agent={agent} waiting={waiting} isSelected={isSelected} />
                   </TooltipContent>
                 </Tooltip>
-                <span className="absolute inset-x-0 top-full mt-2 flex flex-col items-center gap-0.5 leading-tight">
-                  <span className="text-xs font-medium whitespace-nowrap text-foreground">
-                    {t(meta.nameKey)}
-                  </span>
+                {/* Anneau à l'étroit : une SEULE légende, celle de l'agent
+                    ouvert (plus une escalade, qui doit être nommée). Le compte
+                    d'actions passe en pastille sur le nœud — attaché à l'icône
+                    plutôt que posé à côté, il ne peut plus recouvrir personne.
+                    Les noms restent dans l'infobulle et dans `aria-label`. */}
+                {(!crowded || isSelected || isAttention) && (
                   <span
                     className={cn(
-                      'text-xs whitespace-nowrap tabular-nums',
-                      isAttention
-                        ? 'font-medium text-destructive'
-                        : pending > 0
-                          ? 'font-medium text-warning-ink'
-                          : 'text-muted-foreground',
+                      'absolute inset-x-0 flex flex-col items-center gap-0.5 leading-tight',
+                      labelAbove ? 'bottom-full mb-2' : 'top-full mt-2',
                     )}
+                    style={labelShift ? { transform: `translateX(${labelShift.toFixed(1)}px)` } : undefined}
                   >
-                    {subLabel}
+                    <span className="text-xs font-medium whitespace-nowrap text-foreground">
+                      {t(meta.nameKey)}
+                    </span>
+                    <span
+                      className={cn(
+                        'text-xs whitespace-nowrap tabular-nums',
+                        isAttention
+                          ? 'font-medium text-destructive'
+                          : pending > 0
+                            ? 'font-medium text-warning-ink'
+                            : 'text-muted-foreground',
+                      )}
+                    >
+                      {subLabel}
+                    </span>
                   </span>
-                </span>
+                )}
               </div>
             );
           })}
