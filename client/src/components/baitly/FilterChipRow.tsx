@@ -53,8 +53,20 @@ function Chip({
           : undefined
       }
       className={cn(
-        'inline-flex cursor-pointer items-center gap-1 rounded-full border font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+        'relative inline-flex cursor-pointer items-center gap-1 rounded-full border font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
         compact ? 'h-[22px] px-2 text-xs' : 'h-[26px] px-2.5 text-xs',
+        // Zone tactile élargie SANS toucher au dessin : au doigt, la puce passe
+        // de 26 à 32 px de haut via un pseudo-élément transparent. 4 px et pas
+        // plus : la rangée a 6 px d'interligne, au-delà les zones de deux
+        // rangées se chevaucheraient franchement et on toucherait la mauvaise.
+        // (4 et non 3 : le bloc conteneur d'un absolu est la boîte de
+        // REMPLISSAGE, le filet de 1 px mange un pixel de chaque côté.)
+        // Sans effet à la souris, où 26 px se visent très bien.
+        // Variante NATIVE `pointer-coarse:` : la forme arbitraire
+        // `[@media(pointer:coarse)]:` marchait en dev (JIT) mais n'était pas
+        // émise dans le CSS bâti — vérifié dans dist/assets.
+        'pointer-coarse:after:absolute pointer-coarse:after:inset-x-0',
+        "pointer-coarse:after:-top-[4px] pointer-coarse:after:-bottom-[4px] pointer-coarse:after:content-['']",
         active
           ? 'border-primary/35 bg-primary-soft text-primary'
           : 'border-border bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
