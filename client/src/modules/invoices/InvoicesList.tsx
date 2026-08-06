@@ -33,6 +33,7 @@ import {
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/baitly/StatTile';
+import StatTileRow from '../../components/baitly/StatTileRow';
 import FilterChipRow from '../../components/baitly/FilterChipRow';
 import DateRangePicker from '../../components/baitly/DateRangePicker';
 import ExportButton from '../../components/baitly/ExportButton';
@@ -331,7 +332,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
 
       {/* ─── KPIs — les trois tuiles monetaires de la projection ─────────── */}
       {stats && (
-        <div className="grid grid-cols-1 gap-3 mb-3 sm:grid-cols-3">
+        <StatTileRow columns={3} className="mb-3">
           <StatTile
             icon={<ReceiptIcon />}
             label={t('invoices.stats.issuedTotal', 'Émis')}
@@ -355,7 +356,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
             hint={t('invoices.stats.overdueCount', { count: stats.retardNb, defaultValue: '{{count}} factures' })}
             loading={isLoading}
           />
-        </div>
+        </StatTileRow>
       )}
 
       {/* ─── Chips de statut — comptes par statut, couleurs semantiques ──── */}

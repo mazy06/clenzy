@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/baitly/StatusChip';
 import StatTile from '../../components/baitly/StatTile';
+import StatTileRow from '../../components/baitly/StatTileRow';
 import ShowcaseEmpty from '../../components/baitly/ShowcaseEmpty';
 import EmptyState from '../../components/EmptyState';
 import { Badge, Button } from '../../components/ui';
@@ -390,7 +391,7 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
   return (
     <>
       {/* ── KPI ── */}
-      <div className="grid grid-cols-2 gap-3 mb-3 min-[900px]:grid-cols-5">
+      <StatTileRow columns={5} className="mb-3">
         {kpis.map((kpi) => (
           <StatTile
             key={kpi.label}
@@ -401,7 +402,7 @@ const DashboardTab: React.FC<{ ownerId: number }> = ({ ownerId }) => {
             iconClassName={kpi.iconClassName}
           />
         ))}
-      </div>
+      </StatTileRow>
 
       {/* ── Revenu net par mois — l'aire de la projection ── */}
       {revenueSeries.length > 0 && (

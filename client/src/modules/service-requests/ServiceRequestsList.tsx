@@ -24,6 +24,7 @@ import {
 } from '../../icons';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import StatTile from '../../components/baitly/StatTile';
+import StatTileRow from '../../components/baitly/StatTileRow';
 import FilterChipRow from '../../components/baitly/FilterChipRow';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
@@ -432,7 +433,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
           meme la carte, et `shrink-0` les rendait incompressibles. Le plancher de
           largeur evite qu'elles se tassent, `snap` cale le defilement sur chaque
           tuile. A partir de `sm` on retrouve la grille a trois colonnes. */}
-      <div className="mb-3 flex shrink-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [&>*]:w-[68%] [&>*]:shrink-0 [&>*]:snap-start sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 sm:[&>*]:w-auto">
+      <StatTileRow columns={3} className="mb-3 shrink-0">
         <StatTile
           icon={<WarningIcon />}
           label={t('serviceRequests.kpi.late', 'En retard')}
@@ -459,7 +460,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
             : undefined}
           loading={loading}
         />
-      </div>
+      </StatTileRow>
 
       {/* ─── Chips par famille (le select de type fin reste dans la barre) ── */}
       <FilterChipRow

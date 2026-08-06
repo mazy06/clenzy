@@ -22,6 +22,7 @@ import { useDashboardLayout } from '../../hooks/useDashboardLayout';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import StatTile from '../../components/baitly/StatTile';
+import StatTileRow from '../../components/baitly/StatTileRow';
 import { Money } from '../../components/baitly/Money';
 import { Button, Skeleton } from '../../components/ui';
 import { cn } from '../../utils/cn';
@@ -157,7 +158,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
       label: t('dashboard.widgets.kpis', 'Indicateurs'),
       node: (
         <DashboardErrorBoundary widgetName="KPIs">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+          <StatTileRow columns={3} className="xl:grid-cols-6">
             <StatTile
               icon={<PercentIcon />}
               label={t('dashboard.analytics.occupancyShort', 'Occupation')}
@@ -223,7 +224,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                   : undefined
               }
             />
-          </div>
+          </StatTileRow>
         </DashboardErrorBoundary>
       ),
     });
@@ -296,7 +297,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
       label: t('dashboard.widgets.kpis', 'Indicateurs'),
       node: (
         <DashboardErrorBoundary widgetName="OperationalKPIs">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatTileRow columns={4}>
             <StatTile
               icon={<WrenchIcon />}
               label={t('dashboard.stats.upcomingInterventions', 'Interventions à venir')}
@@ -331,7 +332,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                   : undefined
               }
             />
-          </div>
+          </StatTileRow>
         </DashboardErrorBoundary>
       ),
     });

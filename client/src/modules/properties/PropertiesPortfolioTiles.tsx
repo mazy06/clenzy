@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import StatTile from '../../components/baitly/StatTile';
+import StatTileRow from '../../components/baitly/StatTileRow';
 import { Money } from '../../components/Money';
 import { Percent, Euro, TrendingUp } from '../../icons';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
@@ -69,7 +70,7 @@ const PropertiesPortfolioTiles: React.FC<PropertiesPortfolioTilesProps> = ({
   if (aggregates.covered === 0) return null;
 
   return (
-    <div className="grid grid-cols-1 gap-3 mb-[9px] shrink-0 min-[600px]:grid-cols-3">
+    <StatTileRow columns={3} className="mb-[9px] shrink-0">
       <StatTile
         icon={<Percent />}
         label="Occupation moyenne"
@@ -89,7 +90,7 @@ const PropertiesPortfolioTiles: React.FC<PropertiesPortfolioTilesProps> = ({
         value={aggregates.revenue != null ? <Money value={aggregates.revenue} decimals={0} /> : '—'}
         hint="alloué au mois courant, au prorata des nuits"
       />
-    </div>
+    </StatTileRow>
   );
 };
 

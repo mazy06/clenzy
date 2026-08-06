@@ -47,6 +47,7 @@ import {
 } from '../../icons';
 import FilterChipRow from '../../components/baitly/FilterChipRow';
 import StatTile from '../../components/baitly/StatTile';
+import StatTileRow from '../../components/baitly/StatTileRow';
 import HelpPopover from '../../components/HelpPopover';
 import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import EmptyState from '../../components/EmptyState';
@@ -903,28 +904,25 @@ export const ExpensesTab: React.FC = () => {
       {/* ── Stats — primitive StatTile ──
           La teinte de statut porte desormais l'ICONE et non le nombre : une
           valeur chiffree est du texte, et la teinte vive n'y tient pas le 4,5:1. */}
-      <div className="flex gap-2 mb-2">
+      <StatTileRow className="mb-2">
         <StatTile
-          className="flex-1"
           icon={<AttachMoneyIcon />}
           label={t('accounting.expenses.totalExpenses', 'Total depenses')}
           value={fmtCurrency(stats.total)}
         />
         <StatTile
-          className="flex-1"
           icon={<StepCategoryIcon />}
           label={t('accounting.expenses.pendingCount', 'En attente')}
           value={stats.pending}
           iconClassName="text-warning"
         />
         <StatTile
-          className="flex-1"
           icon={<ApproveIcon />}
           label={t('accounting.expenses.approvedCount', 'Approuvees')}
           value={stats.approved}
           iconClassName="text-success"
         />
-      </div>
+      </StatTileRow>
 
       {/* ── Filters + Actions ── */}
       <div className={cn(PANEL_CLASS, 'p-3 mb-[9px] flex gap-3 items-center flex-wrap')}>

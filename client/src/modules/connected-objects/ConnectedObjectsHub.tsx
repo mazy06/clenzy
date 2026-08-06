@@ -10,6 +10,7 @@ import { useNotification } from '../../hooks/useNotification';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, Warning, Home, ChevronRight } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import StatTile from '../../components/baitly/StatTile';
+import StatTileRow from '../../components/baitly/StatTileRow';
 import EmptyState from '../../components/EmptyState';
 import FilterChipRow from '../../components/baitly/FilterChipRow';
 import { useConnectedObjects } from './useConnectedObjects';
@@ -163,7 +164,7 @@ export default function ConnectedObjectsHub({
 
       {/* KPIs — les tuiles de la projection : la teinte ne porte que sur
           l'icone, et seulement la ou elle dit quelque chose. */}
-      <div className="grid grid-cols-2 gap-3 mb-[9px] lg:grid-cols-5">
+      <StatTileRow columns={5} className="mb-[9px]">
         <StatTile icon={<Inventory2 />} label="Objets" value={String(kpis.total)} loading={loading} />
         <StatTile
           icon={<MonitorHeart />}
@@ -177,7 +178,7 @@ export default function ConnectedObjectsHub({
         <StatTile icon={<WifiOff />} label="Hors ligne" value={String(kpis.offline)} iconClassName={kpis.offline > 0 ? 'text-destructive' : undefined} loading={loading} />
         <StatTile icon={<Warning />} label="Alertes" value={String(kpis.alerts)} iconClassName={kpis.alerts > 0 ? 'text-warning' : undefined} loading={loading} />
         <StatTile icon={<BatteryAlert />} label="Batterie faible" value={String(kpis.lowBattery)} iconClassName={kpis.lowBattery > 0 ? 'text-warning' : undefined} loading={loading} />
-      </div>
+      </StatTileRow>
 
       {/* Filtre par type */}
       {kindsPresent.length > 1 && (
