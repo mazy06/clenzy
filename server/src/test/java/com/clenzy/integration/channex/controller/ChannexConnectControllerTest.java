@@ -91,7 +91,9 @@ class ChannexConnectControllerTest {
             org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexCrsBookingService.class),
             org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexAvailabilityRuleService.class),
             org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexGoogleReadinessService.class),
-            org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexBookingReportingService.class));
+            org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexBookingReportingService.class),
+            // Cloisonnement du hub par organisation (groups Channex)
+            org.mockito.Mockito.mock(com.clenzy.integration.channex.service.ChannexGroupService.class));
         jwt = Jwt.withTokenValue("token")
             .header("alg", "RS256")
             .claim("sub", "user-123")

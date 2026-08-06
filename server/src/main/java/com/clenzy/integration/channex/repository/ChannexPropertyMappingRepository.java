@@ -42,6 +42,17 @@ public interface ChannexPropertyMappingRepository extends JpaRepository<ChannexP
     @Query("SELECT m FROM ChannexPropertyMapping m WHERE m.organizationId = :orgId ORDER BY m.createdAt DESC")
     List<ChannexPropertyMapping> findAllByOrgId(@Param("orgId") Long orgId);
 
+    /**
+     * Properties du hub deja revendiquees par une AUTRE organisation.
+     *
+     * <p>La cle API Channex est unique pour toute la plateforme : {@code GET
+     * /properties} renvoie le compte entier, toutes organisations confondues.
+     * Sans ce garde-fou, la decouverte presentait a une organisation les
+     * annonces d'une autre comme « non importees », donc importables.</p>
+     */
+    @Query("SELECT m.channexPropertyId FROM ChannexPropertyMapping m WHERE m.organizationId <> :orgId")
+    List<String> findChannexPropertyIdsClaimedByOtherOrgs(@Param("orgId") Long orgId);
+
     /** Pour le scheduler de rattrapage : mappings avec sync_status='error' a re-tenter. */
     @Query("SELECT m FROM ChannexPropertyMapping m WHERE m.syncStatus = 'error' ORDER BY m.updatedAt ASC")
     List<ChannexPropertyMapping> findAllInError();

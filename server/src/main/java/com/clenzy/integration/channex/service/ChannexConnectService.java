@@ -87,6 +87,7 @@ public class ChannexConnectService {
     private final ChannexCapabilityService capabilityService;
     private final com.clenzy.integration.channex.repository.ChannexPriceDriftRepository priceDriftRepository;
     private final com.clenzy.integration.channex.config.ChannexProperties channexProperties;
+    private final ChannexGroupService groupService;
 
     public ChannexConnectService(ChannexClient channexClient,
                                    ChannexPropertyMappingRepository mappingRepository,
@@ -97,7 +98,8 @@ public class ChannexConnectService {
                                    ChannexMetrics metrics,
                                    ChannexCapabilityService capabilityService,
                                    com.clenzy.integration.channex.repository.ChannexPriceDriftRepository priceDriftRepository,
-                                   com.clenzy.integration.channex.config.ChannexProperties channexProperties) {
+                                   com.clenzy.integration.channex.config.ChannexProperties channexProperties,
+                                   ChannexGroupService groupService) {
         this.channexClient = channexClient;
         this.mappingRepository = mappingRepository;
         this.otaChannelRepository = otaChannelRepository;
@@ -108,6 +110,7 @@ public class ChannexConnectService {
         this.capabilityService = capabilityService;
         this.priceDriftRepository = priceDriftRepository;
         this.channexProperties = channexProperties;
+        this.groupService = groupService;
     }
 
     // ─── Connect ────────────────────────────────────────────────────────────
@@ -219,9 +222,14 @@ public class ChannexConnectService {
         settings.put("state_length", Math.min(730, Math.max(100, channexProperties.getFullSyncDays())));
         settings.put("min_stay_type", "both");
 
+        // Cloisonnement : le logement nait dans le group de son organisation.
+        // Absent (hub muet sur les groups), on cree quand meme — l'isolation ne
+        // doit pas bloquer l'onboarding, le backfill rattrapera.
+        String groupId = groupService.resolveGroupId(property.getOrganizationId()).orElse(null);
+
         try {
             ChannexPropertyDto created = channexClient.createProperty(new ChannexCreatePropertyRequest(
-                title, currency, country, timezone, null,
+                title, currency, country, timezone, groupId,
                 email, phone, property.getPostalCode(), property.getCity(), property.getAddress(),
                 property.getLatitude(), property.getLongitude(),
                 "apartment", settings

@@ -71,6 +71,7 @@ class ChannexImportServiceTest {
     @Mock private BookingRestrictionRepository bookingRestrictionRepository;
     @Mock private AmenityManagementService amenityManagementService;
     @Mock private ChannexPricingImporter pricingImporter;
+    @Mock private ChannexGroupService groupService;
     @Mock private org.springframework.beans.factory.ObjectProvider<ChannexImportService> selfProvider;
 
     private ObjectMapper objectMapper;
@@ -84,7 +85,10 @@ class ChannexImportServiceTest {
             connectService, userRepository, lengthOfStayDiscountRepository,
             ratePlanRepository, occupancyPricingRepository, rateOverrideRepository,
             bookingRestrictionRepository,
-            objectMapper, amenityManagementService, pricingImporter, selfProvider);
+            objectMapper, amenityManagementService, pricingImporter, groupService, selfProvider);
+        // Par defaut, aucune property n'appartient a une autre organisation :
+        // les tests qui verifient le cloisonnement le redefinissent.
+        lenient().when(groupService.propertyIdsOwnedByOtherOrgs(anyLong())).thenReturn(java.util.Set.of());
         // Le service s'appelle via le proxy Spring pour la tx courte de
         // persistance — en test unitaire, self = l'instance elle-meme.
         lenient().when(selfProvider.getObject()).thenAnswer(inv -> service);
@@ -762,5 +766,134 @@ class ChannexImportServiceTest {
         assertThat(result.errors()).isZero();
         assertThat(result.details().get(0).status()).isEqualTo("SKIPPED_ALREADY_MAPPED");
         verify(propertyRepository, never()).save(any());
+    }
+
+    // ─── Cloisonnement multi-tenant du hub ──────────────────────────────────
+    //
+    // La cle API Channex est unique pour toute la plateforme : sans ces
+    // garde-fous, GET /properties expose le compte entier a tout appelant.
+
+    @Test
+    @DisplayName("whenPropertyBelongsToAnotherOrgGroup_thenHiddenFromDiscoveryAndCount")
+    void discover_hidesPropertiesOfOtherOrgGroups() {
+        String body = """
+            {"data":[
+              {"id":"mine","attributes":{"title":"Mon logement","currency":"EUR","country":"FR"}},
+              {"id":"theirs","attributes":{"title":"Logement d'une autre org","currency":"EUR","country":"FR"}}
+            ]}""";
+        when(channexClient.fetchAllPropertiesRaw()).thenReturn(jn(body));
+        when(mappingRepository.findAllByOrgId(42L)).thenReturn(List.of());
+        when(mappingRepository.findChannexPropertyIdsClaimedByOtherOrgs(42L)).thenReturn(List.of());
+        when(groupService.propertyIdsOwnedByOtherOrgs(42L)).thenReturn(java.util.Set.of("theirs"));
+        lenient().when(channexClient.fetchAllChannelsRaw()).thenReturn(jn("{\"data\":[]}"));
+
+        ChannexDiscoveryResponse result = service.discoverUnmappedProperties(42L);
+
+        assertThat(result.items()).extracting(p -> p.channexPropertyId()).containsExactly("mine");
+        // Le compteur doit suivre : sinon le stepper annonce des annonces
+        // qu'on ne montre pas, et l'ecran devient incoherent.
+        assertThat(result.totalInHub()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("whenPropertyClaimedByAnotherOrg_thenImportRefusedEvenIfIdIsForged")
+    void importProperties_refusesPropertyOfAnotherOrg() {
+        com.clenzy.model.User user = new com.clenzy.model.User();
+        user.setId(1L);
+        user.setOrganizationId(42L);
+        when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(user));
+        when(mappingRepository.findByChannexPropertyId("prop-autre", 42L)).thenReturn(Optional.empty());
+
+        ChannexPropertyMapping otherOrgMapping = new ChannexPropertyMapping();
+        otherOrgMapping.setOrganizationId(99L);
+        otherOrgMapping.setChannexPropertyId("prop-autre");
+        when(mappingRepository.findByChannexPropertyIdAnyOrg("prop-autre"))
+            .thenReturn(Optional.of(otherOrgMapping));
+
+        when(amenityManagementService.loadAliasesByOrg(42L)).thenReturn(java.util.Map.of());
+        when(amenityManagementService.loadIgnoredByOrg(42L)).thenReturn(java.util.Set.of());
+        lenient().when(channexClient.fetchAllChannelsRaw()).thenReturn(jn("{\"data\":[]}"));
+
+        var request = new com.clenzy.integration.channex.dto.ChannexImportRequest(
+            List.of(new com.clenzy.integration.channex.dto.ChannexImportRequest.Item(
+                "prop-autre", "APARTMENT")),
+            null, null);
+
+        var result = service.importProperties(42L, request, "kc-1", false);
+
+        assertThat(result.created()).isZero();
+        assertThat(result.errors()).isEqualTo(1);
+        verify(propertyRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("whenHubPropertyBelongsToAnotherOrg_thenDeleteRefused")
+    void deleteOrphanHubProperty_refusesForeignProperty() {
+        when(groupService.propertyIdsOwnedByOtherOrgs(42L)).thenReturn(java.util.Set.of("prop-autre"));
+
+        assertThatThrownBy(() -> service.deleteOrphanHubProperty(42L, "prop-autre"))
+            .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        verify(channexClient, never()).deleteProperty(anyString());
+    }
+
+    @Test
+    @DisplayName("whenHubPropertyStillMapped_thenDeleteRedirectsToFullDisconnect")
+    void deleteOrphanHubProperty_refusesMappedProperty() {
+        ChannexPropertyMapping own = new ChannexPropertyMapping();
+        own.setOrganizationId(42L);
+        own.setChannexPropertyId("prop-1");
+        when(mappingRepository.findByChannexPropertyIdAnyOrg("prop-1")).thenReturn(Optional.of(own));
+
+        assertThatThrownBy(() -> service.deleteOrphanHubProperty(42L, "prop-1"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("deconnexion complete");
+        verify(channexClient, never()).deleteProperty(anyString());
+    }
+
+    @Test
+    @DisplayName("whenHubPropertyStillHasChannels_thenDeleteRefused")
+    void deleteOrphanHubProperty_refusesWhenChannelsAttached() {
+        when(mappingRepository.findByChannexPropertyIdAnyOrg("prop-1")).thenReturn(Optional.empty());
+        when(channexClient.fetchAllChannelsRaw()).thenReturn(jn("""
+            {"data":[{"id":"chan-1","attributes":{"properties":["prop-1"]}}]}"""));
+
+        assertThatThrownBy(() -> service.deleteOrphanHubProperty(42L, "prop-1"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("plateforme");
+        verify(channexClient, never()).deleteProperty(anyString());
+    }
+
+    @Test
+    @DisplayName("whenHubPropertyIsOrphan_thenDeleted")
+    void deleteOrphanHubProperty_deletesOrphan() {
+        when(mappingRepository.findByChannexPropertyIdAnyOrg("prop-1")).thenReturn(Optional.empty());
+        when(channexClient.fetchAllChannelsRaw()).thenReturn(jn("{\"data\":[]}"));
+
+        service.deleteOrphanHubProperty(42L, "prop-1");
+
+        verify(channexClient).deleteProperty("prop-1");
+    }
+
+    @Test
+    @DisplayName("whenChannelOnlyServesAnotherOrg_thenAbsentFromListAndUndisconnectable")
+    void listAndDisconnectOta_areScopedToOrg() {
+        String channels = """
+            {"data":[
+              {"id":"chan-mine","attributes":{"title":"Airbnb","channel":"AirBNB",
+                "is_active":true,"properties":["mine"]}},
+              {"id":"chan-theirs","attributes":{"title":"Airbnb","channel":"AirBNB",
+                "is_active":true,"properties":["theirs"]}}
+            ]}""";
+        when(channexClient.fetchAllChannelsRaw()).thenReturn(jn(channels));
+        when(channexClient.fetchAllPropertiesRaw()).thenReturn(jn("{\"data\":[]}"));
+        when(groupService.propertyIdsOwnedByOtherOrgs(42L)).thenReturn(java.util.Set.of("theirs"));
+
+        List<ChannexConnectedOta> otas = service.listConnectedOtaChannels(42L);
+        assertThat(otas).extracting(ChannexConnectedOta::channelId).containsExactly("chan-mine");
+
+        // L'id vient du client : le controle se refait a la deconnexion.
+        assertThatThrownBy(() -> service.disconnectOtaChannel(42L, "chan-theirs"))
+            .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        verify(channexClient, never()).deactivateChannel("chan-theirs");
     }
 }

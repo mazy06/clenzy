@@ -3729,3 +3729,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0396__conversation_messages_internal_note.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0397-channex-organization-groups"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0397__channex_organization_groups.sql
+        relativeToChangelogFile: true

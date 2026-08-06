@@ -17,13 +17,27 @@ import java.util.List;
 /**
  * Service de retention des donnees — conformite RGPD.
  *
- * Execute automatiquement les politiques de retention :
- * - Utilisateurs supprimes/inactifs depuis > 3 ans : anonymisation
- * - Logs d'audit > 2 ans : suppression
- * - Webhook events > 90 jours : suppression
- * - Notifications in-app > 90 jours : suppression
+ * <p>Politiques APPLIQUEES :</p>
+ * <ul>
+ *   <li>Snapshots KPI &gt; 90 jours : suppression</li>
+ *   <li>Notifications in-app &gt; 90 jours : suppression</li>
+ * </ul>
  *
- * Execute chaque jour a 3h du matin.
+ * <p>Politiques declarees mais <b>NON IMPLEMENTEES</b> (audit securite 2026-07-26,
+ * constat P4-04) — anonymisation des inactifs, purge des logs d'audit et des
+ * webhook events :</p>
+ * <ul>
+ *   <li>Elles retournent 0 sans rien faire, et se signalent desormais en WARN. Le
+ *       journal et l'entree d'audit distinguent explicitement ce qui a ete applique
+ *       de ce qui ne l'est pas — auparavant, une politique jamais executee se lisait
+ *       comme une politique sans rien a purger, et l'entree d'audit affirmait
+ *       « Retention RGPD » appliquee. Un rapport de conformite trompeur est pire que
+ *       pas de rapport du tout : il ferme la question.</li>
+ *   <li>Les durees sont des decisions juridiques, pas techniques — cf.
+ *       {@code server/PLAN-RGPD-2026-08-06.md}.</li>
+ * </ul>
+ *
+ * <p>Execute chaque jour a 3h du matin.</p>
  */
 @Service
 public class DataRetentionService {
@@ -58,34 +72,45 @@ public class DataRetentionService {
     public void executeRetentionPolicies() {
         log.info("Demarrage du job de retention des donnees RGPD");
 
-        int anonymizedUsers = anonymizeInactiveUsers();
-        int deletedAuditLogs = cleanupOldAuditLogs();
-        int deletedWebhookEvents = cleanupOldWebhookEvents();
+        anonymizeInactiveUsers();
+        cleanupOldAuditLogs();
+        cleanupOldWebhookEvents();
         int deletedKpiSnapshots = cleanupOldKpiSnapshots();
         int deletedNotifications = cleanupOldNotifications();
 
-        log.info("Job de retention termine : {} utilisateurs anonymises, {} logs d'audit supprimes, {} webhook events supprimes, {} KPI snapshots supprimes, {} notifications supprimees",
-                anonymizedUsers, deletedAuditLogs, deletedWebhookEvents, deletedKpiSnapshots, deletedNotifications);
+        log.info("Job de retention termine — APPLIQUE : {} KPI snapshots supprimes, {} notifications supprimees. "
+                        + "NON IMPLEMENTE ({}) : {}",
+                deletedKpiSnapshots, deletedNotifications, POLITIQUES_NON_IMPLEMENTEES.size(),
+                String.join(", ", POLITIQUES_NON_IMPLEMENTEES));
 
-        // Audit du job
+        // Entree d'audit : elle sert de preuve de conformite, elle doit donc dire
+        // exactement ce qui a tourne. Melanger les deux etats reviendrait a produire
+        // la preuve d'une purge qui n'a pas eu lieu.
         auditLogService.logAction(AuditAction.DELETE, "DataRetention", "CRON",
                 null, null,
-                String.format("Retention RGPD : %d users anonymises, %d audit logs supprimes, %d webhook events supprimes, %d KPI snapshots supprimes, %d notifications supprimees",
-                        anonymizedUsers, deletedAuditLogs, deletedWebhookEvents, deletedKpiSnapshots, deletedNotifications),
+                String.format("Retention RGPD — applique : %d KPI snapshots, %d notifications. "
+                                + "NON IMPLEMENTE : %s (cf. audit 2026-07-26 P4-04)",
+                        deletedKpiSnapshots, deletedNotifications,
+                        String.join(", ", POLITIQUES_NON_IMPLEMENTEES)),
                 AuditSource.CRON);
     }
+
+    /** Politiques declarees par ce service mais sans implementation (constat P4-04). */
+    private static final List<String> POLITIQUES_NON_IMPLEMENTEES = List.of(
+            "anonymisation des comptes inactifs",
+            "purge des logs d'audit",
+            "purge des webhook events");
 
     /**
      * Anonymise les utilisateurs DELETED/INACTIVE depuis plus de 3 ans.
      */
     private int anonymizeInactiveUsers() {
-        LocalDateTime threshold = LocalDateTime.now().minusYears(3);
-        // Find users with status DELETED and updatedAt < threshold
-        // For each, call gdprService.anonymizeUser if not already anonymized
-        // Return count
-        // Implementation: query users where status = DELETED and updatedAt < threshold and firstName != 'Anonyme'
-        log.info("Recherche des utilisateurs inactifs depuis plus de 3 ans (avant {})", threshold);
-        // TODO: implement when UserRepository has the needed query
+        // NON IMPLEMENTE. Le journal annoncait « Recherche des utilisateurs inactifs
+        // depuis plus de 3 ans » avant de retourner 0 sans rien chercher : la trace
+        // decrivait un travail qui n'a jamais eu lieu.
+        log.warn("RETENTION/NON-APPLIQUE : anonymisation des comptes inactifs — aucune "
+                + "requete n'existe (UserRepository), aucun compte n'est anonymise. "
+                + "Duree de 3 ans a arbitrer, cf. server/PLAN-RGPD-2026-08-06.md.");
         return 0;
     }
 
@@ -93,9 +118,10 @@ public class DataRetentionService {
      * Supprime les logs d'audit de plus de 2 ans.
      */
     private int cleanupOldAuditLogs() {
-        Instant threshold = Instant.now().minus(730, ChronoUnit.DAYS); // ~2 years
-        // TODO: implement with AuditLogRepository.deleteByTimestampBefore(threshold)
-        log.info("Suppression des logs d'audit anterieurs a {}", threshold);
+        // NON IMPLEMENTE — cf. anonymizeInactiveUsers.
+        log.warn("RETENTION/NON-APPLIQUE : purge des logs d'audit — aucun log n'est "
+                + "supprime. La duree (2 ans annonces) engage la capacite a prouver "
+                + "un incident : arbitrage juridique, cf. server/PLAN-RGPD-2026-08-06.md.");
         return 0;
     }
 
@@ -103,9 +129,10 @@ public class DataRetentionService {
      * Supprime les webhook events de plus de 90 jours.
      */
     private int cleanupOldWebhookEvents() {
-        LocalDateTime threshold = LocalDateTime.now().minusDays(90);
-        // TODO: implement with AirbnbWebhookEventRepository.deleteByCreatedAtBefore(threshold)
-        log.info("Suppression des webhook events anterieurs a {}", threshold);
+        // NON IMPLEMENTE — cf. anonymizeInactiveUsers.
+        log.warn("RETENTION/NON-APPLIQUE : purge des webhook events — aucun evenement "
+                + "n'est supprime. Ces charges utiles portent des donnees de "
+                + "reservation, donc des PII. Cf. server/PLAN-RGPD-2026-08-06.md.");
         return 0;
     }
 

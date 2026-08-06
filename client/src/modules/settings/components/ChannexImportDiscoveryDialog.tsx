@@ -24,14 +24,18 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   NativeSelect,
   NativeSelectOption,
   Separator,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
-import { ArrowRight, Download, RefreshCw, CheckCircle2, AlertCircle, Info, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { ArrowRight, Download, RefreshCw, CheckCircle2, AlertCircle, Info, Sparkles, Trash2, Image as ImageIcon } from 'lucide-react';
 
 import {
   channexApi,
@@ -54,6 +58,14 @@ import { usersApi, type User } from '../../../services/api/usersApi';
 interface ChannexImportDiscoveryDialogProps {
   open: boolean;
   onClose: () => void;
+  /**
+   * Rend le contenu SANS sa propre coquille Dialog, pour qu'il s'affiche comme
+   * une vue du dialog parent (ChannexMappingDialog) au lieu d'une modale
+   * empilee par-dessus. Une modale sur une modale coupe le fil de retour :
+   * la croix de la modale du dessus laisse celle du dessous ouverte, et
+   * l'utilisateur perd le chemin qui l'a amene la.
+   */
+  embedded?: boolean;
   /** Callback declenche apres un import reussi (>=1 property creee) pour refresh la liste parent. */
   onImported?: () => void;
   /**
@@ -79,6 +91,7 @@ const OTA_BADGE_CLASS = 'h-[18px] text-2xs tabular-nums';
 export default function ChannexImportDiscoveryDialog({
   open,
   onClose,
+  embedded = false,
   onImported,
   onRequestConnectExisting,
 }: ChannexImportDiscoveryDialogProps) {
@@ -122,6 +135,11 @@ export default function ChannexImportDiscoveryDialog({
   // OTAs deja connectes (charges en parallele de la discovery) pour proposer
   // "Re-detecter mes listings" sur les OTAs deja OAuth (au lieu de tout recreer).
   const [connectedOtas, setConnectedOtas] = useState<ChannexConnectedOta[]>([]);
+  /** Deplie le choix d'OTA depuis l'encart « aucun compte connecte ». */
+  const [otaPickerExpanded, setOtaPickerExpanded] = useState(false);
+  /** Logement du hub en attente de confirmation de suppression (irreversible). */
+  const [hubDeleteTarget, setHubDeleteTarget] = useState<ChannexDiscoveredProperty | null>(null);
+  const [hubDeleting, setHubDeleting] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -170,6 +188,9 @@ export default function ChannexImportDiscoveryDialog({
       setSettingUpOta(null);
       setOauthEmbed(null);
       setConnectedOtas([]);
+      setOtaPickerExpanded(false);
+      setHubDeleteTarget(null);
+      setHubDeleting(false);
       setOrganizations([]);
       setUsersInOrg([]);
       setTargetOrgId('');
@@ -283,6 +304,30 @@ export default function ChannexImportDiscoveryDialog({
   };
 
   /**
+   * Supprime definitivement du hub un logement orphelin. Le backend refuse si
+   * le logement est encore mappe ou relie a une plateforme : son message est
+   * repris tel quel, c'est lui qui indique la bonne marche a suivre.
+   */
+  const handleDeleteHubProperty = async () => {
+    const target = hubDeleteTarget;
+    if (!target) return;
+    setHubDeleting(true);
+    setError(null);
+    try {
+      await channexApi.deleteHubProperty(target.channexPropertyId);
+      setHubDeleteTarget(null);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error
+        ? err.message
+        : 'Impossible de supprimer ce logement du hub.');
+      setHubDeleteTarget(null);
+    } finally {
+      setHubDeleting(false);
+    }
+  };
+
+  /**
    * Applique le diff calcule (imports + disconnects) en sequence.
    * Imports d'abord, puis disconnects pour eviter qu'une property soit
    * supprimee avant que les imports references soient resolus.
@@ -367,33 +412,97 @@ export default function ChannexImportDiscoveryDialog({
     && discovered.every((p) => rows[p.channexPropertyId]?.selected);
   const someSelected = !allSelected && selectedCount > 0;
 
-  return (
-    <>
-    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
-      <DialogContent className="sm:max-w-4xl min-h-[min(70vh,700px)] max-h-[90vh] overflow-y-auto flex flex-col">
-        {/* La croix de fermeture est fournie par DialogContent : `pe-14` reserve sa place. */}
-        <DialogHeader className="flex-row items-start gap-2 pe-14">
-          <div className="size-8 rounded-lg bg-primary-soft text-primary flex items-center justify-center shrink-0">
-            <Download size={18} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <DialogTitle className="text-sm font-semibold leading-[1.3]">
-              Importer une propriete deja en ligne
-            </DialogTitle>
-            <DialogDescription className="text-xs block leading-[1.4]">
-              Detecte les listings Airbnb/Booking/Vrbo deja connus du hub de distribution et non encore dans Baitly
-            </DialogDescription>
-          </div>
-        </DialogHeader>
+  /**
+   * Logements du hub reellement rattaches a un channel OTA. Distinct de
+   * `totalInHub`, qui compte aussi ceux que Baitly a pousses lui-meme
+   * (mode AUTO_CREATE, pivot OAuth) : sans cette distinction le stepper
+   * annoncait des annonces « detectees » alors qu'aucun OTA n'etait connecte.
+   */
+  const otaDetectedCount = useMemo(
+    () => discovered.filter((p) => (p.connectedOtas?.length ?? 0) > 0 || p.hasActiveOta).length,
+    [discovered],
+  );
 
+  const activeOtaCount = connectedOtas.filter((o) => o.isActive || o.hasOauthToken).length;
+
+  /**
+   * Liste des OTA connectables. Extraite de l'etat « hub vide » parce qu'elle
+   * sert desormais aussi quand le hub contient deja des logements sans qu'aucun
+   * compte OTA ne soit autorise : l'ecran ne proposait alors QUE l'import, donc
+   * la derniere etape, sans jamais offrir la premiere.
+   */
+  const otaPickerList = (
+    <div className="flex flex-col gap-1.5">
+      {CHANNEX_OTA_OPTIONS.map((option) => {
+        const isLoading = settingUpOta === option.code;
+        const disabled = settingUpOta !== null && !isLoading;
+        // Detecte si un channel pour cet OTA existe deja (OAuth fait)
+        const existing = connectedOtas.find(
+          (ota) => ota.otaName.toLowerCase() === option.apiChannelName.toLowerCase()
+            || ota.otaName.toLowerCase() === option.name.toLowerCase()
+        );
+        return (
+          // La couleur de marque est une valeur d'execution : elle passe par une
+          // variable CSS posee inline, que les classes hover/focus peuvent lire.
+          <button
+            type="button"
+            key={option.code}
+            onClick={() => handleSetupOauth(option.code, existing?.channelId)}
+            disabled={settingUpOta !== null}
+            style={{ '--ota-brand': option.brandColor } as React.CSSProperties}
+            className={cn(
+              'flex items-center gap-2 w-full p-[7.5px] rounded-xl border border-solid text-start',
+              'transition-colors duration-[180ms] ease-out-quart motion-reduce:transition-none',
+              'focus-visible:[outline:2px_solid_var(--ota-brand)] focus-visible:outline-offset-2',
+              settingUpOta !== null ? 'cursor-wait' : 'cursor-pointer',
+              isLoading
+                ? 'border-[var(--ota-brand)] bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)]'
+                : 'border-border bg-card',
+              settingUpOta === null
+                && 'hover:border-[var(--ota-brand)] hover:bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)]',
+              disabled && 'opacity-45',
+            )}
+          >
+            <img className="size-10 rounded-lg object-contain bg-card border border-solid border-border p-0.5 shrink-0" src={OTA_LOGO_BY_CODE[option.code]} alt={option.name} />
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-row items-center gap-[4.5px] mb-[1.5px]">
+                <p className="text-xs font-semibold leading-[1.3] text-foreground">
+                  {existing ? `Re-détecter mes annonces ${option.name}` : `Connecter ${option.name}`}
+                </p>
+                {existing && (
+                  <Badge variant="success" className="h-[18px] text-2xs [&>svg]:text-success [&>svg]:ms-0.5"><CheckCircle2 size={11} />Compte autorisé</Badge>
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground block leading-[1.3]">
+                {isLoading
+                  ? 'Préparation de la connexion…'
+                  : existing
+                    ? 'Rouvre l\'assistant pour rattacher les annonces ajoutées récemment'
+                    : option.description}
+              </span>
+            </div>
+            <div className={cn('shrink-0 flex items-center', !isLoading && 'text-muted-foreground')} style={isLoading ? { color: option.brandColor } : undefined}>
+              {isLoading
+                ? <Spinner className="size-3.5" style={{ color: option.brandColor }} />
+                : <ArrowRight size={14} strokeWidth={2.2} className="cn-rtl-flip" />}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const content = (
+    <>
         <div className="flex-1">
         {/* Phase 1 UX : Stepper visuel 3 etapes (Autoriser → Detecter → Synchroniser)
             qui montre ou en est l'utilisateur dans le flow Connect, base sur l'etat
             reel (nb OTAs connectes, nb properties detectees, nb importees). */}
         <div className="mb-2">
           <ChannexImportProgressStepper
-            connectedOtaCount={connectedOtas.filter((o) => o.isActive || o.hasOauthToken).length}
+            connectedOtaCount={activeOtaCount}
             totalInHub={totalInHub}
+            otaDetectedCount={otaDetectedCount}
             importedCount={discovered.filter((p) => p.isImported).length}
           />
         </div>
@@ -404,11 +513,50 @@ export default function ChannexImportDiscoveryDialog({
             <Info size={14} />
           </div>
           <span className="text-xs text-muted-foreground leading-[1.5]">
-            Apres avoir connecte votre compte Airbnb (ou autre OTA) via le widget de configuration,
-            tous vos listings detectes apparaissent ici. Selectionnez ceux a importer dans
-            Baitly — leur nom, devise, pays et capacite sont pre-remplis automatiquement.
+            Une fois votre compte Airbnb (ou autre plateforme) connecté, toutes les annonces
+            détectées apparaissent ici. Cochez celles à importer dans Baitly — leur nom,
+            devise, pays et capacité sont pré-remplis automatiquement.
           </span>
         </div>
+
+        {/* Etape 1 manquante alors que le hub contient deja des logements.
+            Ce cas se produit quand des logements ont ete POUSSES depuis Baitly
+            (« Connecter un de mes logements ») sans qu'aucun compte OTA ne soit
+            autorise : l'ecran ne montrait alors que le tableau d'import, c'est
+            a dire la derniere etape, sans jamais offrir la premiere. */}
+        {!loading && !error && activeOtaCount === 0 && totalInHub > 0 && (
+          <div className="mb-3 rounded-lg border border-solid border-warning/25 bg-warning-soft/40 p-[9px]">
+            <div className="flex flex-row items-start gap-1.5">
+              <div className="mt-[1.5px] shrink-0 text-warning">
+                <TriangleAlert size={14} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-foreground leading-[1.3] mb-0.5">
+                  Aucun compte OTA n'est encore connecté
+                </p>
+                <span className="text-xs text-muted-foreground block leading-[1.5]">
+                  Les {totalInHub} logement{totalInHub > 1 ? 's' : ''} ci-dessous {totalInHub > 1 ? 'viennent' : 'vient'} du
+                  hub de distribution, pas d'une plateforme. Connectez Airbnb ou Booking pour
+                  que vos annonces en ligne soient détectées.
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                aria-expanded={otaPickerExpanded}
+                onClick={() => setOtaPickerExpanded((v) => !v)}
+              >
+                {otaPickerExpanded ? 'Masquer' : 'Connecter une plateforme'}
+              </Button>
+            </div>
+            {otaPickerExpanded && (
+              <div className="mt-[9px]">
+                {otaPickerList}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Loading initial */}
         {loading && (
@@ -454,74 +602,18 @@ export default function ChannexImportDiscoveryDialog({
                 <Info size={24} />
               </div>
               <p className="text-xs font-semibold mb-0.5 text-foreground">
-                Connectez un compte OTA pour importer vos listings
+                Connectez un compte OTA pour importer vos annonces
               </p>
               <span className="text-xs text-muted-foreground block max-w-[500px] leading-[1.6]">
-                Choisissez l'OTA sur lequel vous avez deja des proprietes en ligne.
-                Apres authentification, Baitly detectera automatiquement vos listings
+                Choisissez la plateforme sur laquelle vos logements sont déjà en ligne.
+                Après authentification, Baitly détectera automatiquement vos annonces
                 et vous proposera de les importer.
               </span>
             </div>
 
-            {/* Picker OTA inline (5 cards horizontales en grid responsive)
-                + indication "Re-detecter" si un channel existe deja pour cet OTA */}
-            <div className="flex flex-col gap-1.5 mb-3">
-              {CHANNEX_OTA_OPTIONS.map((option) => {
-                const isLoading = settingUpOta === option.code;
-                const disabled = settingUpOta !== null && !isLoading;
-                // Detecte si un channel pour cet OTA existe deja (OAuth fait)
-                const existing = connectedOtas.find(
-                  (ota) => ota.otaName.toLowerCase() === option.apiChannelName.toLowerCase()
-                    || ota.otaName.toLowerCase() === option.name.toLowerCase()
-                );
-                return (
-                  // La couleur de marque est une valeur d'execution : elle passe par une
-                  // variable CSS posee inline, que les classes hover/focus peuvent lire.
-                  <button
-                    type="button"
-                    key={option.code}
-                    onClick={() => handleSetupOauth(option.code, existing?.channelId)}
-                    disabled={settingUpOta !== null}
-                    style={{ '--ota-brand': option.brandColor } as React.CSSProperties}
-                    className={cn(
-                      'flex items-center gap-2 w-full p-[7.5px] rounded-xl border border-solid text-start',
-                      'transition-colors duration-[180ms] ease-out-quart motion-reduce:transition-none',
-                      'focus-visible:[outline:2px_solid_var(--ota-brand)] focus-visible:outline-offset-2',
-                      settingUpOta !== null ? 'cursor-wait' : 'cursor-pointer',
-                      isLoading
-                        ? 'border-[var(--ota-brand)] bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)]'
-                        : 'border-border bg-card',
-                      settingUpOta === null
-                        && 'hover:border-[var(--ota-brand)] hover:bg-[color-mix(in_srgb,var(--ota-brand)_3%,transparent)]',
-                      disabled && 'opacity-45',
-                    )}
-                  >
-                    <img className="size-10 rounded-lg object-contain bg-card border border-solid border-border p-0.5 shrink-0" src={OTA_LOGO_BY_CODE[option.code]} alt={option.name} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-row items-center gap-[4.5px] mb-[1.5px]">
-                        <p className="text-xs font-semibold leading-[1.3] text-foreground">
-                          {existing ? `Re-detecter mes listings ${option.name}` : `Connecter ${option.name}`}
-                        </p>
-                        {existing && (
-                          <Badge variant="success" className="h-[18px] text-2xs [&>svg]:text-success [&>svg]:ms-0.5"><CheckCircle2 size={11} />OAuth fait</Badge>
-                        )}
-                      </div>
-                      <span className="text-xs text-muted-foreground block leading-[1.3]">
-                        {isLoading
-                          ? 'Preparation de la connexion...'
-                          : existing
-                            ? 'Rouvre le wizard pour mapper de nouveaux listings ajoutes recemment'
-                            : option.description}
-                      </span>
-                    </div>
-                    <div className={cn('shrink-0 flex items-center', !isLoading && 'text-faint')} style={isLoading ? { color: option.brandColor } : undefined}>
-                      {isLoading
-                        ? <Spinner className="size-3.5" style={{ color: option.brandColor }} />
-                        : <ArrowRight size={14} strokeWidth={2.2} className="cn-rtl-flip" />}
-                    </div>
-                  </button>
-                );
-              })}
+            {/* Picker OTA inline + indication "Re-detecter" si un channel existe deja */}
+            <div className="mb-3">
+              {otaPickerList}
             </div>
 
             {/* Action secondaire : si l'utilisateur prefere passer par une property Baitly existante */}
@@ -536,7 +628,7 @@ export default function ChannexImportDiscoveryDialog({
                   onClick={onRequestConnectExisting}
                   className="text-muted-foreground"
                 >
-                  Connecter une propriete Baitly existante
+                  Connecter un logement déjà dans Baitly
                 </Button>
                 <Button
                   variant="ghost"
@@ -686,6 +778,7 @@ export default function ChannexImportDiscoveryDialog({
                 // - importee & decochee → rouge (sera desimportee)
                 // - non-importee & cochee → marque (sera importee)
                 // - non-importee & decochee → neutre (ignoree)
+                const hasLinkedOta = (p.connectedOtas?.length ?? 0) > 0 || p.hasActiveOta;
                 const rowClass = p.isImported
                   ? (row.selected ? 'border-success/60 bg-success-soft/30' : 'border-destructive/60 bg-destructive-soft/30')
                   : (row.selected ? 'border-primary/60 bg-primary-soft/50' : 'border-border bg-card');
@@ -824,20 +917,49 @@ export default function ChannexImportDiscoveryDialog({
                       {/* Dropdown type Baitly : visible UNIQUEMENT pour les nouveaux
                           imports (proprietes non-importees). */}
                       {!p.isImported && (
-                        <NativeSelect
-                          size="sm"
-                          className="min-w-[130px]"
-                          aria-label="Type de propriete Baitly"
-                          value={row.propertyType}
-                          onChange={(e) => updateType(p.channexPropertyId, e.target.value)}
-                          disabled={!row.selected}
-                        >
-                          {propertyTypeOptions.map((opt) => (
-                            <NativeSelectOption key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </NativeSelectOption>
-                          ))}
-                        </NativeSelect>
+                        <div className="flex flex-row items-center gap-1">
+                          <NativeSelect
+                            size="sm"
+                            className="min-w-[130px]"
+                            aria-label="Type de propriete Baitly"
+                            value={row.propertyType}
+                            onChange={(e) => updateType(p.channexPropertyId, e.target.value)}
+                            disabled={!row.selected}
+                          >
+                            {propertyTypeOptions.map((opt) => (
+                              <NativeSelectOption key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </NativeSelectOption>
+                            ))}
+                          </NativeSelect>
+                          {/* Seule sortie pour un orphelin du hub : sans mapping
+                              Baitly, aucun autre ecran ne le designe. Reservee aux
+                              lignes non importees — une ligne importee se retire
+                              par la deconnexion complete, qui libere les OTA.
+                              Desactivee quand une plateforme y est encore reliee :
+                              le backend refuserait, autant le dire avant le clic. */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  disabled={hasLinkedOta}
+                                  aria-label={`Supprimer « ${p.title || 'ce logement'} » du hub`}
+                                  className="text-muted-foreground hover:text-destructive-ink hover:bg-destructive-soft"
+                                  onClick={() => setHubDeleteTarget(p)}
+                                >
+                                  <Trash2 size={15} />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              {hasLinkedOta
+                                ? 'Déconnectez d\'abord la plateforme reliée'
+                                : 'Supprimer du hub'}
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -877,7 +999,9 @@ export default function ChannexImportDiscoveryDialog({
 
       {/* Footer avec bouton Import */}
       {!loading && discovered.length > 0 && (
-        <div className="flex justify-between items-center gap-3 px-4 py-3 border-t border-solid border-border flex-wrap">
+        // Le trait de separation court d'un bord a l'autre : `-mx-4` annule la
+        // gouttiere du conteneur, `px-4` la restitue au contenu.
+        <div className="flex justify-between items-center gap-3 -mx-4 px-4 pt-3 mt-3 border-t border-solid border-border flex-wrap">
           {/* Override multi-tenant — visible uniquement pour les platform staff
               (SUPER_ADMIN / SUPER_MANAGER). Permet d'attribuer la property creee
               a une autre org + un autre user (sinon owner = self). */}
@@ -929,7 +1053,7 @@ export default function ChannexImportDiscoveryDialog({
           )}
           <div className="flex flex-row items-center gap-1.5 shrink-0">
           <Button variant="ghost" size="sm" onClick={onClose} className="text-muted-foreground">
-            Fermer
+            {embedded ? 'Retour' : 'Fermer'}
           </Button>
           <Button
             variant="default"
@@ -951,6 +1075,83 @@ export default function ChannexImportDiscoveryDialog({
           </div>
         </div>
       )}
+    </>
+  );
+
+  return (
+    <>
+    {embedded ? (
+      // Vue integree au dialog parent : pas de coquille, pas d'en-tete (le
+      // parent porte le titre et la fleche de retour).
+      // Hauteur laissee au contenu : le parent porte deja `max-h` + defilement.
+      // Un `flex-1 min-h-0` ici donnerait un plancher de zero a la vue.
+      open ? <div className="flex flex-col">{content}</div> : null
+    ) : (
+      <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+        <DialogContent className="sm:max-w-4xl min-h-[min(70vh,700px)] max-h-[90vh] overflow-y-auto flex flex-col">
+          {/* La croix de fermeture est fournie par DialogContent : `pe-14` reserve sa place. */}
+          <DialogHeader className="flex-row items-start gap-2 pe-14">
+            <div className="size-8 rounded-lg bg-primary-soft text-primary flex items-center justify-center shrink-0">
+              <Download size={18} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="text-sm font-semibold leading-[1.3]">
+                Importer un logement déjà en ligne
+              </DialogTitle>
+              <DialogDescription className="text-xs block leading-[1.4]">
+                Détecte les annonces Airbnb, Booking ou Vrbo déjà connues du hub de distribution et pas encore dans Baitly
+              </DialogDescription>
+            </div>
+          </DialogHeader>
+
+          {content}
+        </DialogContent>
+      </Dialog>
+    )}
+
+    {/* Confirmation de suppression d'un orphelin du hub. Modale de confirmation
+        au-dessus de la vue : c'est le cas ou l'empilement se justifie — une
+        action irreversible doit bloquer le reste. */}
+    <Dialog
+      open={hubDeleteTarget !== null}
+      onOpenChange={(next) => { if (!next && !hubDeleting) setHubDeleteTarget(null); }}
+    >
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader className="flex-row items-start gap-1.5 pe-10">
+          <div className="size-8 rounded-lg bg-destructive-soft text-destructive flex items-center justify-center shrink-0 mt-0.5">
+            <Trash2 size={18} />
+          </div>
+          <div className="min-w-0">
+            <DialogTitle className="font-semibold leading-[1.3]">
+              Supprimer ce logement du hub&nbsp;?
+            </DialogTitle>
+          </div>
+        </DialogHeader>
+        <DialogDescription>
+          <strong>{hubDeleteTarget?.title || 'Ce logement'}</strong> sera définitivement retiré du
+          hub de distribution, avec son type de chambre et son plan tarifaire. Cette action est
+          irréversible : pour le remettre en ligne, il faudra le recréer depuis Baitly ou le
+          redétecter depuis la plateforme. Aucun logement Baitly n'est touché.
+        </DialogDescription>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={hubDeleting}
+            onClick={() => setHubDeleteTarget(null)}
+          >
+            Annuler
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={hubDeleting}
+            onClick={handleDeleteHubProperty}
+          >
+            {hubDeleting ? <Spinner className="size-3" /> : <Trash2 size={14} />}
+            {hubDeleting ? 'Suppression…' : 'Supprimer du hub'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
 
