@@ -1,91 +1,70 @@
 /* ============================================================
-   ConstellationSkeleton — état de chargement (« le ciel s'allume »)
+   ConstellationSkeleton — attente de la constellation
 
-   Même canvas sombre que la constellation, cœur qui respire + libellé,
-   en attendant le snapshot. prefers-reduced-motion : pas de pulsation.
+   Un squelette Baitly UI qui a la FORME de ce qui arrive : en-tête, anneau,
+   file. L'ancien état montrait une sphère indigo pulsante sur un dégradé nuit
+   — écrit en @emotion/styled avec ses couleurs en dur, dernier reste du
+   registre MUI, et surtout sans rapport avec l'écran qu'il annonçait.
    ============================================================ */
 
-import styled from '@emotion/styled';
-import { keyframes } from '@emotion/react';
+import { Skeleton } from '../../../components/ui';
+import { cn } from '../../../utils/cn';
 import { useTranslation } from '../../../hooks/useTranslation';
-
-const glowBreathe = keyframes`
-  0%, 100% { opacity: .5; transform: translate(-50%, -50%) scale(.92); }
-  50% { opacity: .9; transform: translate(-50%, -50%) scale(1.12); }`;
-const dim = keyframes`0%, 100% { opacity: .55; } 50% { opacity: 1; }`;
-
-const Root = styled.div<{ $flush?: boolean }>`
-  position: relative;
-  /* Pleine cellule (Planning) : le skeleton REMPLIT l'accordéon exactement
-     comme la constellation chargée (même sticky box tirée à gauche) → pas de
-     couture avec la zone colonne pendant « Connecting to agents… ». Sinon :
-     carte 560px arrondie (vues standalone / portefeuille). */
-  height: ${(p) => (p.$flush ? '100%' : '560px')};
-  min-height: ${(p) => (p.$flush ? '380px' : 'auto')};
-  border-radius: ${(p) => (p.$flush ? '0' : '16px')};
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  background: radial-gradient(125% 100% at 50% 42%, #313a7e 0%, #1b2052 44%, #0c0e2a 100%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06)${(p) => (p.$flush ? '' : ', 0 18px 44px -20px rgba(13, 15, 44, 0.7)')};
-  @media (max-width: 600px) {
-    height: ${(p) => (p.$flush ? '100%' : '460px')};
-  }
-  html:not([data-theme='dark']) & {
-    background: radial-gradient(125% 100% at 50% 42%, #ffffff 0%, #eef3f6 58%, #e1e9ed 100%);
-    box-shadow: inset 0 0 0 1px rgba(43, 63, 73, 0.1), 0 18px 44px -26px rgba(43, 63, 73, 0.2);
-  }
-  html:not([data-theme='dark']) & .sk__label {
-    color: #5d7a8a;
-  }
-
-  .sk__glow {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(124, 124, 236, 0.4), rgba(124, 124, 236, 0) 68%);
-    animation: ${glowBreathe} 2.4s ease-in-out infinite;
-  }
-  .sk__core {
-    position: relative;
-    z-index: 1;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: radial-gradient(120% 120% at 32% 28%, #9b9bf6, #5b5bd6 60%, #4a45c0);
-    box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.18);
-  }
-  .sk__label {
-    position: relative;
-    z-index: 1;
-    font-size: 12.5px;
-    font-weight: 700;
-    color: #aeb4e0;
-    animation: ${dim} 1.8s ease-in-out infinite;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .sk__glow,
-    .sk__label {
-      animation: none;
-    }
-  }
-`;
 
 export function ConstellationSkeleton({ flush }: { flush?: boolean } = {}) {
   const { t } = useTranslation();
   return (
-    <Root data-supervision-skeleton $flush={flush} role="status" aria-live="polite">
-      <span className="sk__glow" />
-      <span className="sk__core" />
-      <span className="sk__label">{t('supervision.states.loading')}</span>
-    </Root>
+    <div
+      data-supervision-skeleton
+      role="status"
+      aria-live="polite"
+      aria-busy
+      aria-label={t('supervision.states.loading')}
+      className={cn(
+        'flex h-full min-h-[380px] flex-col gap-3 overflow-hidden bg-card p-3',
+        !flush && 'rounded-2xl border border-solid border-border',
+      )}
+    >
+      {/* En-tête : pastille d'état, identité, compteurs. */}
+      <div className="flex shrink-0 items-center gap-2">
+        <Skeleton className="size-2 rounded-full" />
+        <Skeleton className="h-3.5 w-28 rounded" />
+        <Skeleton className="h-3 w-40 rounded max-[520px]:hidden" />
+        <Skeleton className="ms-auto h-7 w-7 rounded-lg" />
+      </div>
+
+      {/* L'anneau : le noyau, puis les satellites sur leur orbite. Le carré
+          garde le rapport 1:1 du diagramme — au chargement l'écran ne bouge
+          donc plus quand la constellation arrive. */}
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <div className="relative aspect-square h-full max-h-[460px]">
+          <Skeleton className="absolute start-1/2 top-1/2 size-[70%] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-40" />
+          <Skeleton className="absolute start-1/2 top-1/2 size-[15%] -translate-x-1/2 -translate-y-1/2 rounded-full" />
+          {/* Six satellites suffisent à dire « un anneau » : au-delà, le
+              squelette dessinerait plus que ce qu'il annonce. */}
+          {[0, 60, 120, 180, 240, 300].map((angle) => {
+            const rad = (angle * Math.PI) / 180;
+            return (
+              <Skeleton
+                key={angle}
+                className="absolute size-[13%] rounded-full"
+                style={{
+                  left: `${50 + 35 * Math.cos(rad)}%`,
+                  top: `${50 + 35 * Math.sin(rad)}%`,
+                  transform: 'translate(-50%, -50%)',
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Pied : le bilan de valeur. */}
+      <div className="flex shrink-0 items-center gap-3">
+        <Skeleton className="h-3 w-16 rounded" />
+        <Skeleton className="h-3 w-24 rounded" />
+        <Skeleton className="h-3 w-20 rounded max-[520px]:hidden" />
+      </div>
+    </div>
   );
 }

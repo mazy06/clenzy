@@ -444,7 +444,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                absolute inset-0) doit s'ancrer à la RACINE du panneau — le
                repère dans lequel ses coordonnées sont mesurées. Une grille
                positionnée l'interceptait et décalait tout le dessin. */
-            <div className="mt-4 grid flex-1 min-h-0 grid-cols-1 items-stretch gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,1fr)]">
+            <div className="mt-4 grid flex-1 min-h-0 grid-cols-[minmax(0,1fr)_minmax(300px,1fr)] items-stretch gap-x-8 gap-y-6">
               {/* Colonne du diagramme : le carré prend toute la hauteur
                   restante (sans plafond), le bilan se cale sous lui, au ras du
                   bas de l'accordéon. */}
@@ -524,7 +524,7 @@ export function SupervisionPanel({ createProvider, deps, propertyId, reportWindo
                elle-même (avant, la liste était `shrink-0` dans un parent
                `overflow-hidden` : passé cinq agents elle débordait sans
                ascenseur et poussait la file hors du cadre). */
-            <div className="mt-4 grid flex-1 min-h-0 grid-cols-1 items-stretch gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,1fr)]">
+            <div className="mt-4 grid flex-1 min-h-0 grid-cols-[minmax(0,1fr)_minmax(300px,1fr)] items-stretch gap-x-8 gap-y-6">
               <div
                 data-vertical-scroll
                 className="min-h-0 overflow-y-auto overscroll-contain pe-1"

@@ -161,6 +161,86 @@ export function OrbitConstellation({
           : 'border-border bg-card text-foreground hover:bg-muted',
     );
 
+  // ── Fragments de l'en-tête, écrits UNE fois et composés différemment selon
+  //    la largeur. Les dupliquer aurait garanti que les deux versions divergent.
+
+  /** « ● Orchestrateur » — identité et état de la liaison. */
+  const identite = (
+    <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+      <span
+        aria-hidden
+        className={cn('size-1.5 shrink-0 rounded-full', online ? 'bg-success' : 'bg-muted-foreground/50')}
+      />
+      {t('supervision.hud.orchestrator')}
+    </span>
+  );
+
+  /**
+   * Les trois compteurs. `whitespace-nowrap` sur CHAQUE unité : sans lui, en
+   * étroit, le nombre se séparait de son libellé (« 10 » sur une ligne,
+   * « agents » sur la suivante) — une valeur orpheline ne veut plus rien dire.
+   */
+  const compteurs = (
+    <>
+      <span className="whitespace-nowrap">
+        <b className="font-semibold text-foreground tabular-nums">{hud.agentsCount}</b> {t('supervision.hud.agents')}
+      </span>
+      <span className="whitespace-nowrap">
+        <b className="font-semibold text-foreground tabular-nums">{hud.actingCount}</b> {t('supervision.hud.acting')}
+      </span>
+      <span className={cn('whitespace-nowrap', hud.awaitingCount > 0 && 'text-warning-ink')}>
+        <b className="font-semibold tabular-nums">{hud.awaitingCount}</b> {t('supervision.hud.awaiting')}
+      </span>
+    </>
+  );
+
+  /** L'exception, nommée — jamais masquée, jamais tassée. */
+  const exception = attention.length > 0 && (
+    <span className="flex min-w-0 items-center gap-1.5 text-destructive">
+      <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-destructive" />
+      <span className="truncate">{attention.map((agent) => t(AGENT_META[agent.id].nameKey)).join(', ')}</span>
+    </span>
+  );
+
+  /** Pastilles de tiroir (compact seulement). */
+  const pastilles = compact && (
+    <>
+      {report && (
+        <button
+          type="button"
+          aria-expanded={sheet === 'hud'}
+          onClick={() => toggleSheet('hud')}
+          className={pillClass(sheet === 'hud')}
+        >
+          {t('supervision.report.titleBase', 'Bilan')}
+        </button>
+      )}
+      {belowHud && (
+        <button
+          type="button"
+          aria-expanded={sheet === 'live'}
+          onClick={() => toggleSheet('live')}
+          className={pillClass(sheet === 'live')}
+        >
+          {t('supervision.feed.title')}
+        </button>
+      )}
+      {hitl && (hitlCount ?? 0) > 0 && (
+        <button
+          type="button"
+          aria-expanded={sheet === 'hitl'}
+          onClick={() => toggleSheet('hitl')}
+          className={pillClass(sheet === 'hitl', true)}
+        >
+          {t('supervision.compact.hitl', 'À traiter')}
+          <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-warning-soft px-1 text-[11px] font-bold text-warning-ink tabular-nums">
+            {hitlCount}
+          </span>
+        </button>
+      )}
+    </>
+  );
+
   return (
     <div
       role="group"
@@ -177,72 +257,45 @@ export function OrbitConstellation({
              compteurs à gauche, contrôles alignés à droite — même grammaire
              que l'en-tête du panneau large. Plus de carte flottante ni de rail
              posés SUR le canvas : la surface entière revient au diagramme. */}
-      {!focused && (
-        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 px-3 pt-3">
-          <p className="m-0 flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2.5 gap-y-0.5 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-              <span
-                aria-hidden
-                className={cn('size-1.5 shrink-0 rounded-full', online ? 'bg-success' : 'bg-muted-foreground/50')}
-              />
-              {t('supervision.hud.orchestrator')}
-            </span>
-            <span><b className="font-semibold text-foreground tabular-nums">{hud.agentsCount}</b> {t('supervision.hud.agents')}</span>
-            <span><b className="font-semibold text-foreground tabular-nums">{hud.actingCount}</b> {t('supervision.hud.acting')}</span>
-            <span className={cn(hud.awaitingCount > 0 && 'text-warning-ink')}>
-              <b className="font-semibold tabular-nums">{hud.awaitingCount}</b> {t('supervision.hud.awaiting')}
-            </span>
-            {/* L'exception, nommée — elle reste sur la ligne, jamais masquée. */}
-            {attention.length > 0 && (
-              <span className="flex items-center gap-1.5 text-destructive">
-                <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-destructive" />
-                {attention.map((agent) => t(AGENT_META[agent.id].nameKey)).join(', ')}
-              </span>
-            )}
+      {!focused && (compact ? (
+        /* ── Étroit : trois registres empilés, chacun avec un seul travail —
+              qui parle, ce qu'il en est, ce qu'on peut ouvrir. Tout tenait
+              auparavant sur une seule rangée en `flex-wrap` : les compteurs,
+              coincés entre l'identité et les pastilles, se repliaient à une
+              unité par ligne et coupaient même le nombre de son libellé. */
+        <div className="flex shrink-0 flex-col gap-2 px-3 pt-3">
+          <div className="flex items-center gap-2">
+            <span className="min-w-0 flex-1">{identite}</span>
+            {headerAction && <span className="shrink-0">{headerAction}</span>}
+          </div>
+
+          {/* Bande de valeurs : séparateurs fins plutôt que du blanc, pour que
+              les trois nombres se lisent comme une même mesure. */}
+          <p className="m-0 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-muted-foreground [&>span+span]:before:me-2 [&>span+span]:before:text-faint [&>span+span]:before:content-['·']">
+            {compteurs}
           </p>
 
-          {/* Compact : les pastilles de tiroir vivent DANS la ligne, à droite
-              avec les autres contrôles (elles ne flottent plus sur le canvas). */}
-          {compact && (
-            <span className="flex flex-wrap items-center gap-2">
-              {report && (
-                <button
-                  type="button"
-                  aria-expanded={sheet === 'hud'}
-                  onClick={() => toggleSheet('hud')}
-                  className={pillClass(sheet === 'hud')}
-                >
-                  {t('supervision.report.titleBase', 'Bilan')}
-                </button>
-              )}
-              {belowHud && (
-                <button
-                  type="button"
-                  aria-expanded={sheet === 'live'}
-                  onClick={() => toggleSheet('live')}
-                  className={pillClass(sheet === 'live')}
-                >
-                  {t('supervision.feed.title')}
-                </button>
-              )}
-              {hitl && (hitlCount ?? 0) > 0 && (
-                <button
-                  type="button"
-                  aria-expanded={sheet === 'hitl'}
-                  onClick={() => toggleSheet('hitl')}
-                  className={pillClass(sheet === 'hitl', true)}
-                >
-                  {t('supervision.compact.hitl', 'À traiter')}
-                  <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-warning-soft px-1 text-[11px] font-bold text-warning-ink tabular-nums">
-                    {hitlCount}
-                  </span>
-                </button>
-              )}
-            </span>
+          {exception && <p className="m-0 text-xs">{exception}</p>}
+
+          {/* Pastilles réparties sur toute la largeur : une rangée alignée à
+              gauche laissait un vide à droite qui lisait comme un oubli. */}
+          {pastilles && (
+            <div className="flex items-stretch gap-2 [&>button]:flex-1 [&>button]:justify-center">
+              {pastilles}
+            </div>
           )}
+        </div>
+      ) : (
+        /* ── Large : tout tient sur une ligne, l'espace ne manque pas. */
+        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 px-3 pt-3">
+          <p className="m-0 flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2.5 gap-y-0.5 text-xs text-muted-foreground">
+            {identite}
+            {compteurs}
+            {exception}
+          </p>
           {headerAction && <span className="shrink-0">{headerAction}</span>}
         </div>
-      )}
+      ))}
 
       {/* Contenu optionnel sous l'en-tête (feed en large) — le compact le sert
           dans son tiroir « En direct ». */}

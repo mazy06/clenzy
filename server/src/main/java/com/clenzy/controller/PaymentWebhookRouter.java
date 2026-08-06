@@ -22,6 +22,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -247,6 +249,8 @@ public class PaymentWebhookRouter {
      * autres acquereurs Maroc Telecommerce).
      *
      * <ol>
+     *   <li>Canonise les noms de champ et rejette tout doublon insensible a la
+     *       casse (400) — voir {@link #canonicalize}.</li>
      *   <li>Exige {@code HASH} et {@code oid} (401/400 sinon).</li>
      *   <li>Resout la transaction via {@code oid} → orgId.</li>
      *   <li>Charge le store_key de l'org pour le {@code providerType} donne.</li>
@@ -258,12 +262,29 @@ public class PaymentWebhookRouter {
     private ResponseEntity<String> handleEst3DGateWebhook(Map<String, String> params,
                                                           PaymentProviderType providerType,
                                                           String label) {
-        String hash = params.get("HASH");
+        // Audit 2026-07 (P6-01). Le hash est calcule sur des noms tries SANS egard a
+        // la casse, alors que les parametres HTTP, eux, la distinguent : `oid` et
+        // `OID` sont deux entrees. Le texte hashe et le texte relu ici pouvaient donc
+        // porter sur des valeurs differentes. CmiHashService refuse deja de hasher un
+        // tel callback (fail-closed), mais on le rejette AVANT tout effet de bord —
+        // avant la resolution de transaction et le dechiffrement du store_key — et on
+        // relit tout depuis la carte canonique, pour que la casse ne puisse plus faire
+        // diverger la signature du routage. Un callback est3Dgate legitime ne contient
+        // jamais deux fois le meme nom de champ.
+        final Map<String, String> canonical;
+        try {
+            canonical = canonicalize(params);
+        } catch (IllegalArgumentException duplicate) {
+            log.warn("{} webhook : {} — rejet", label, duplicate.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Duplicate parameter");
+        }
+
+        String hash = canonical.get("hash");
         if (hash == null || hash.isBlank()) {
             log.warn("{} webhook received without HASH field — rejecting", label);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing HASH");
         }
-        String oid = params.get("oid");
+        String oid = canonical.get("oid");
         if (oid == null || oid.isBlank()) {
             log.warn("{} webhook received without oid (transaction ref) — rejecting", label);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing oid");
@@ -292,18 +313,38 @@ public class PaymentWebhookRouter {
         }
 
         // 4. Routage selon le statut : ProcReturnCode="00" + Approved = succes
-        String procReturnCode = params.get("ProcReturnCode");
-        String response = params.get("Response");
+        String procReturnCode = canonical.get("procreturncode");
+        String response = canonical.get("response");
         if ("00".equals(procReturnCode) && "Approved".equalsIgnoreCase(response)) {
             orchestrationService.completeTransaction(oid);
             log.info("{} webhook : transaction {} confirmee", label, oid);
         } else {
-            String errorMessage = params.getOrDefault("ErrMsg",
+            String errorMessage = canonical.getOrDefault("errmsg",
                 label + " " + procReturnCode + ": " + (response != null ? response : "rejected"));
             orchestrationService.failTransaction(oid, errorMessage);
             log.info("{} webhook : transaction {} echouee ({}, {})", label, oid, procReturnCode, response);
         }
         return ResponseEntity.ok("OK");
+    }
+
+    /**
+     * Indexe les parametres d'un callback est3Dgate par nom en MINUSCULES.
+     *
+     * @throws IllegalArgumentException si deux noms ne different que par la casse —
+     *         la seule facon de faire diverger le texte signe du texte relu.
+     */
+    private static Map<String, String> canonicalize(Map<String, String> params) {
+        Map<String, String> canonical = new LinkedHashMap<>();
+        if (params == null) return canonical;
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            if (entry.getKey() == null) continue;
+            String key = entry.getKey().toLowerCase(Locale.ROOT);
+            String previous = canonical.put(key, entry.getValue());
+            if (previous != null) {
+                throw new IllegalArgumentException("doublon de parametre insensible a la casse: " + key);
+            }
+        }
+        return canonical;
     }
 
     /**
