@@ -16,7 +16,7 @@ import {
 } from '../../icons';
 import type { ZoomLevel, PlanningFilters } from './types';
 import type { ReservationStatus } from '../../services/api';
-import { ZOOM_LABELS } from './constants';
+import { ZOOM_LABELS, ZOOM_LABELS_SHORT } from './constants';
 import type { PlanningChannelKey } from './constants';
 import { formatMonthYear } from './utils/dateUtils';
 import { ChannelLegendChips, StatusLegendChips, InterventionLegendChip } from './LegendChips';
@@ -54,7 +54,7 @@ const NAV_BTN_CLS =
 
 /** Segment du selecteur de zoom — l'onglet actif se detache en carte encrée. */
 const ZOOM_ITEM_CLS =
-  'rounded-[7px] border-0 px-[13px] py-[6px] text-[0.75rem] font-semibold leading-none normal-case tracking-[0.01em] '
+  'inline-flex h-[22px] items-center rounded-[6px] border-0 px-[9px] min-[480px]:px-[13px] py-0 text-[0.75rem] font-semibold leading-none normal-case tracking-[0.01em] '
   + 'text-[var(--muted)] transition-[background-color,color] duration-[140ms] motion-reduce:transition-none '
   + 'hover:bg-transparent hover:text-[var(--body)] '
   + 'data-[state=on]:bg-[var(--card)] data-[state=on]:text-[var(--ink)] '
@@ -85,7 +85,10 @@ export const PlanningDateNav: React.FC<PlanningDateNavProps> = ({
   onGoNext,
   onZoomChange,
 }) => (
-  <>
+  // Conteneur SANS retour a la ligne : les trois controles forment un seul bloc
+  // insecable. Ils etaient auparavant trois freres directs d'une rangee
+  // `flex-wrap`, donc le zoom basculait seul sur une 2e ligne sous ~500 px.
+  <div className="flex min-w-0 items-center gap-1 min-[480px]:gap-1.5">
     {/* Navigation */}
     <div className="flex items-center gap-0.5">
       <Button
@@ -99,7 +102,7 @@ export const PlanningDateNav: React.FC<PlanningDateNavProps> = ({
       </Button>
 
       {/* Month title : info principale (display, encre) */}
-      <h6 className="cn-text-subtitle2 font-[family-name:var(--font-display)] text-[0.9375rem] font-semibold capitalize text-[var(--ink)] tracking-[-0.01em] min-w-[110px] text-center">
+      <h6 className="cn-text-subtitle2 font-[family-name:var(--font-display)] text-[0.9375rem] font-semibold capitalize text-[var(--ink)] tracking-[-0.01em] whitespace-nowrap px-1 min-[480px]:px-0 min-[480px]:min-w-[110px] text-center">
         {formatMonthYear(currentDate)}
       </h6>
 
@@ -114,7 +117,17 @@ export const PlanningDateNav: React.FC<PlanningDateNavProps> = ({
       </Button>
     </div>
 
-    <Badge variant="outline" className="text-[0.6875rem] font-semibold h-[28px] rounded-[9px] cursor-pointer bg-[var(--card)] border-[var(--line-2)] text-[var(--body)] hover:bg-[var(--hover)] hover:border-[var(--faint)] [&>svg]:text-[13px] [&>svg]:text-[var(--accent)]" onClick={onGoToday}><TodayOutlined size={13} strokeWidth={1.75} />Aujourd'hui</Badge>
+    {/* Sous 420 px, le libelle cede la place : l'icone calendrier suffit, le
+        nom reste porte par `aria-label` pour le clavier et la synthese vocale. */}
+    <Badge
+      variant="outline"
+      aria-label="Aller à aujourd'hui"
+      onClick={onGoToday}
+      className="size-[28px] shrink-0 justify-center gap-0 p-0 min-[480px]:size-auto min-[480px]:gap-1 min-[480px]:px-2 min-[480px]:py-0 text-[0.6875rem] font-semibold min-[480px]:h-[28px] rounded-[9px] cursor-pointer bg-[var(--card)] border-[var(--line-2)] text-[var(--body)] hover:bg-[var(--hover)] hover:border-[var(--faint)] [&>svg]:text-[13px] [&>svg]:text-[var(--accent)]"
+    >
+      <TodayOutlined size={13} strokeWidth={1.75} />
+      <span className="hidden min-[480px]:inline">Aujourd'hui</span>
+    </Badge>
 
     {/* Zoom selector — segmented control Signature (.s-seg) */}
     <ToggleGroup
@@ -125,15 +138,18 @@ export const PlanningDateNav: React.FC<PlanningDateNavProps> = ({
       onValueChange={(value) => value && onZoomChange(value as ZoomLevel)}
       size="sm"
       spacing={0}
-      className="gap-[2px] rounded-[10px] border border-solid border-[var(--field-line)] bg-[var(--field)] p-[3px]"
+      // Hauteur alignee sur les fleches et la pastille du jour : 22 (segment)
+      // + 2x2 (padding) + 2x1 (filet) = 28 px, comme tout le reste du groupe.
+      className="h-[28px] shrink-0 gap-[2px] rounded-[9px] border border-solid border-[var(--field-line)] bg-[var(--field)] p-[2px]"
     >
       {(Object.keys(ZOOM_LABELS) as ZoomLevel[]).map((level) => (
         <ToggleGroupItem key={level} value={level} className={ZOOM_ITEM_CLS}>
-          {ZOOM_LABELS[level]}
+          <span className="min-[480px]:hidden">{ZOOM_LABELS_SHORT[level]}</span>
+          <span className="hidden min-[480px]:inline">{ZOOM_LABELS[level]}</span>
         </ToggleGroupItem>
       ))}
     </ToggleGroup>
-  </>
+  </div>
 );
 
 // ─── Main component ──────────────────────────────────────────────────────────
@@ -164,7 +180,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
             dans la zone planning. Symétrique au spacer de queue → centrage qui
             s'adapte à la largeur de contenu (donc à l'écran ET à l'état de la
             sidebar, le contenu étant un flex-sibling de la sidebar). */}
-        <div className="flex-1 min-w-[8px]" aria-hidden />
+        <div className="flex-1 min-w-0" aria-hidden />
 
         <PlanningDateNav
           currentDate={currentDate}
@@ -175,7 +191,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
           onZoomChange={onZoomChange}
         />
 
-        <div className="flex-1 min-w-[8px]" />
+        <div className="flex-1 min-w-0" />
 
         {/* Plein écran — escape hatch : seul moment où le PageHeader (qui porte
             désormais le toggle) est masqué, donc on le réaffiche ici pour

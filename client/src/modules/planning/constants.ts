@@ -102,6 +102,16 @@ export const ZOOM_LABELS: Record<ZoomLevel, string> = {
   month: 'Mois',
 };
 
+// Abreviations affichees sous ~420 px : les libelles pleins font 138 px de
+// texte seul, de quoi faire passer le groupe de navigation a la ligne. Memes
+// mots abreges — pas de nouvelle semantique (« 14 j » aurait fait croire a une
+// duree parametrable).
+export const ZOOM_LABELS_SHORT: Record<ZoomLevel, string> = {
+  week: 'Sem.',
+  fortnight: 'Quinz.',
+  month: 'Mois',
+};
+
 // ─── Bar styling ─────────────────────────────────────────────────────────────
 
 export const BAR_BORDER_RADIUS = 9;
