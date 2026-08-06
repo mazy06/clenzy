@@ -115,8 +115,10 @@ const SepaDebtorSettings = forwardRef<SepaDebtorHandle, SepaDebtorSettingsProps>
     );
   }
 
+  // `tone="ok"` plutot qu'un couple de tokens ecrit a la main : la primitive
+  // porte deja le couple conforme AA (fond `-soft`, encre `-ink`).
   const configuredChip = config?.configured ? (
-    <StatusChip tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label={t('settings.sepaDebtor.configured', 'Configuré')} icon={<VerifiedUser size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
+    <StatusChip tone="ok" label={t('settings.sepaDebtor.configured', 'Configuré')} icon={<VerifiedUser size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
   ) : undefined;
 
   return (
