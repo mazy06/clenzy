@@ -28,25 +28,34 @@
   @apply bg-card text-card-foreground;
 }
 
+/* Encre `-ink`, et AUCUNE opacite. La variante d'origine tenait la teinte VIVE :
+   mesure au navigateur, 3,12:1 pour le titre et 2,75:1 pour la description a
+   90 % — la pire des quatre alertes. Avec `-ink` : 6,66:1. */
 .cn-alert-variant-destructive {
-  @apply text-destructive bg-card *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current;
+  @apply text-destructive-ink bg-card *:data-[slot=alert-description]:text-destructive-ink *:[svg]:text-current;
 }
 
 /* Tons de statut. Le kit shadcn n'expose que `default` et `destructive`, alors
    que les ecrans en ont besoin de trois autres (une config absente, desactivee
    ou active ne se disent pas de la meme couleur). Encre `-ink` et non la teinte
    vive : sur fond pastel, #14B8A6 en texte plafonne a ~2,2:1, tres loin du
-   seuil AA — c'est la regle deja posee pour les pastilles de statut. */
+   seuil AA — c'est la regle deja posee pour les pastilles de statut.
+
+   AUCUNE opacite sur la description. Elle etait a 85 %, ce qui la faisait passer
+   SOUS le seuil sur le fond pastel de sa propre alerte : mesure au navigateur,
+   info 4,27:1, warning 4,28:1 et success 3,85:1. A pleine encre : 5,61 / 5,92 /
+   5,10. La hierarchie entre le titre et la description passe par la graisse et
+   la taille, pas par une transparence qui coute la lisibilite. */
 .cn-alert-variant-info {
-  @apply border-transparent bg-[var(--bui-info-soft)] text-[var(--bui-info-ink)] *:data-[slot=alert-description]:text-[var(--bui-info-ink)]/85 *:[svg]:text-current;
+  @apply border-transparent bg-[var(--bui-info-soft)] text-[var(--bui-info-ink)] *:data-[slot=alert-description]:text-[var(--bui-info-ink)] *:[svg]:text-current;
 }
 
 .cn-alert-variant-success {
-  @apply border-transparent bg-[var(--bui-success-soft)] text-[var(--bui-success-ink)] *:data-[slot=alert-description]:text-[var(--bui-success-ink)]/85 *:[svg]:text-current;
+  @apply border-transparent bg-[var(--bui-success-soft)] text-[var(--bui-success-ink)] *:data-[slot=alert-description]:text-[var(--bui-success-ink)] *:[svg]:text-current;
 }
 
 .cn-alert-variant-warning {
-  @apply border-transparent bg-[var(--bui-warning-soft)] text-[var(--bui-warning-ink)] *:data-[slot=alert-description]:text-[var(--bui-warning-ink)]/85 *:[svg]:text-current;
+  @apply border-transparent bg-[var(--bui-warning-soft)] text-[var(--bui-warning-ink)] *:data-[slot=alert-description]:text-[var(--bui-warning-ink)] *:[svg]:text-current;
 }
 
 .cn-alert-title {
