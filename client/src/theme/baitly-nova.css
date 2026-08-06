@@ -135,8 +135,13 @@
   @apply border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground;
 }
 
+/* Alignee sur les variantes success / warning / info du composant Badge :
+   fond `-soft`, encre `-ink`. Elle tenait `text-destructive`, c'est-a-dire la
+   teinte VIVE en texte sur un fond de la meme teinte a 10 % — mesure au
+   navigateur : 2,38:1. La teinte vive est faite pour les aplats, les pastilles
+   et les filets ; le texte prend l'encre. */
 .cn-badge-variant-destructive {
-  @apply bg-destructive/10 [a]:hover:bg-destructive/20 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 text-destructive dark:bg-destructive/20;
+  @apply border-transparent bg-destructive-soft text-destructive-ink [a]:hover:bg-destructive/20 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40;
 }
 
 .cn-badge-variant-ghost {
@@ -186,7 +191,7 @@
 }
 
 .cn-button-variant-secondary {
-  @apply bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground;
+  @apply bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--bui-secondary),var(--bui-foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground;
 }
 
 .cn-button-variant-ghost {
@@ -1205,7 +1210,7 @@
 }
 
 .cn-sidebar-menu-button-variant-outline {
-  @apply bg-background hover:bg-sidebar-accent hover:text-sidebar-accent-foreground shadow-[0_0_0_1px_var(--sidebar-border)] hover:shadow-[0_0_0_1px_var(--sidebar-accent)];
+  @apply bg-background hover:bg-sidebar-accent hover:text-sidebar-accent-foreground shadow-[0_0_0_1px_var(--bui-sidebar-border)] hover:shadow-[0_0_0_1px_var(--bui-sidebar-accent)];
 }
 
 .cn-sidebar-menu-button-size-default {
@@ -1318,23 +1323,26 @@
      cellules (comme chez MUI), pas par la ligne : sinon il doublerait. */
   @apply data-[state=selected]:bg-muted transition-colors duration-[.12s];
 }
-.cn-table-row:hover { background-color: var(--hover); }
+.cn-table-row:hover { background-color: var(--bui-muted); }
 
 .cn-table-row-aria {
   @apply data-selected:bg-muted;
 }
 
 .cn-table-head {
-  /* Report EXACT de MuiTableCell.head (signature/signatureTheme.ts) + du
-     padding de theme.ts, mesure sur trois tableaux de l'app : 6px 12px,
-     10.5px/700, uppercase .05em, encre --faint, filet --line. Sans ce report,
-     migrer un tableau MUI vers ce primitif changerait son apparence. */
+  /* Report du gabarit de MuiTableCell.head (6px 12px, 10.5px/700,
+     uppercase .05em), mais PAS de son encre.
+     L'original tenait `--faint` : mesure au navigateur, 2,48:1 sur une carte —
+     tres loin du 4,5:1 exige, sur les en-tetes de TOUS les tableaux de l'app.
+     `--bui-faint` n'aurait rien change (2,41:1) : une correspondance fidele de
+     token ne reglait pas le probleme, il fallait monter d'un cran vers
+     `--color-muted-foreground` (4,80:1). */
   @apply px-3 py-1.5 text-start align-middle whitespace-nowrap uppercase [&:has([role=checkbox])]:pe-0;
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: .05em;
-  color: var(--faint);
-  border-bottom: 1px solid var(--line);
+  color: var(--bui-muted-foreground);
+  border-bottom: 1px solid var(--bui-border);
 }
 
 .cn-table-head-aria {
@@ -1346,7 +1354,7 @@
      (8px 12px) ; les ecrans qui s'en ecartent posent leur propre classe. */
   @apply px-3 py-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pe-0;
   font-size: 12.5px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--bui-border);
 }
 
 .cn-table-cell-aria {
@@ -1514,15 +1522,19 @@
 }
 
 .cn-bubble-variant-secondary {
-  @apply *:data-[slot=bubble-content]:bg-secondary *:data-[slot=bubble-content]:text-secondary-foreground [&>[data-slot=bubble-content]:is(button,a):hover]:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)];
+  @apply *:data-[slot=bubble-content]:bg-secondary *:data-[slot=bubble-content]:text-secondary-foreground [&>[data-slot=bubble-content]:is(button,a):hover]:bg-[color-mix(in_oklch,var(--bui-secondary),var(--bui-foreground)_5%)];
 }
 
+/* `--color-muted` / `--color-foreground` et NON `--muted` / `--foreground` :
+   ces derniers ne sont pas definis par Baitly UI, mais `--muted` existe cote
+   Signature ou il vaut #67757C — un gris de TEXTE. Le survol composait donc son
+   fond a partir d'un gris sombre au lieu du #EEF3F7 attendu. */
 .cn-bubble-variant-muted {
-  @apply *:data-[slot=bubble-content]:bg-muted [&>[data-slot=bubble-content]:is(button,a):hover]:bg-[color-mix(in_oklch,var(--muted),var(--foreground)_5%)];
+  @apply *:data-[slot=bubble-content]:bg-muted [&>[data-slot=bubble-content]:is(button,a):hover]:bg-[color-mix(in_oklch,var(--bui-muted),var(--bui-foreground)_5%)];
 }
 
 .cn-bubble-variant-tinted {
-  @apply *:data-[slot=bubble-content]:bg-[oklch(from_var(--primary)_0.93_calc(c*0.4)_h)] dark:*:data-[slot=bubble-content]:bg-[oklch(from_var(--primary)_0.3_calc(c*0.4)_h)] *:data-[slot=bubble-content]:text-foreground [&>[data-slot=bubble-content]:is(button,a):hover]:bg-[oklch(from_var(--primary)_0.88_calc(c*0.5)_h)] dark:[&>[data-slot=bubble-content]:is(button,a):hover]:bg-[oklch(from_var(--primary)_0.35_calc(c*0.5)_h)];
+  @apply *:data-[slot=bubble-content]:bg-[oklch(from_var(--bui-primary)_0.93_calc(c*0.4)_h)] dark:*:data-[slot=bubble-content]:bg-[oklch(from_var(--bui-primary)_0.3_calc(c*0.4)_h)] *:data-[slot=bubble-content]:text-foreground [&>[data-slot=bubble-content]:is(button,a):hover]:bg-[oklch(from_var(--bui-primary)_0.88_calc(c*0.5)_h)] dark:[&>[data-slot=bubble-content]:is(button,a):hover]:bg-[oklch(from_var(--bui-primary)_0.35_calc(c*0.5)_h)];
 }
 
 .cn-bubble-variant-outline {

@@ -156,6 +156,15 @@
 
 /* ---- Palette Baitly (light) — brand bleu nuit #1B2A35 (wordmark) ---- */
 :root {
+  /* Rayon de BASE attendu par la feuille portee depuis shadcn, qui compose
+     `calc(var(--radius) - 3px)` et `- 5px` (Kbd, InputGroup). Personne ne le
+     definissait : ces trois regles produisaient un `calc()` invalide, donc
+     aucun arrondi. Valeur de l'echelle shadcn, alignee sur --radius-lg.
+     A NE PAS confondre avec `--radius-md`, que la feuille lit aussi mais qui
+     appartient au jeu Signature ET sert a thematiser les sites clients
+     (PublicBookingPage l'ecrase par site) : celui-la ne se touche pas ici. */
+  --radius: 0.625rem;
+
   --bui-background: #F4F7F9;
   --bui-foreground: #1B2A35;
 
@@ -169,7 +178,13 @@
 
   --bui-secondary: #EEF3F7;
   --bui-muted: #EEF3F7;
-  --bui-muted-foreground: #5F7382;
+  /* Assombri de #5F7382 : cette encre tenait 4,80:1 sur une carte mais tombait
+     a 4,41:1 posee sur --bui-muted — c'est-a-dire sur toutes les pastilles de
+     ton `neutral` et tous les encarts `bg-muted`, qui echouaient donc l'AA de
+     peu. Mesure de la nouvelle valeur : 4,75 sur muted, 4,93 sur la page,
+     5,17 sur une carte. L'ecart visuel est imperceptible.
+     Le mode sombre n'est pas concerne (6,15 a 7,31). */
+  --bui-muted-foreground: #5A6E7C;
 
   --bui-destructive: #C97A7A;
   --bui-destructive-soft: rgba(201, 122, 122, 0.13);
