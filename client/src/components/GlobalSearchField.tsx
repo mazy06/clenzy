@@ -1,271 +1,146 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 import { SearchIcon, XIcon } from 'lucide-react';
-import {
-  Button,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-  Popover,
-  PopoverAnchor,
-  PopoverContent,
-} from './ui';
-import { useAuth } from '../hooks/useAuth';
+import { Button } from './ui';
 import { useTranslation } from '../hooks/useTranslation';
-import {
-  NAVIGATION_HUBS,
-  STANDALONE_SCREENS,
-  accessibleHubTabs,
-  type HubAccess,
-} from '../config/navigationHubs';
-import { SCREEN_ICON, sizedIcon } from '../config/navigationIcons';
 import { useScreenChrome } from './ScreenChrome';
+import { useCommandCenter } from './command-center';
+import { openShortcutLabel } from './command-center/shortcuts';
 import { cn } from '../utils/cn';
 
 /**
- * Champ de recherche UNIQUE de l'application (Baitly UI).
+ * Point d'entrée UNIQUE de la recherche — rendu en permanence dans le
+ * `PageHeader`.
  *
- * Il est rendu en permanence dans le `PageHeader` et a deux modes :
- *   - **filtre d'écran** — un écran s'est branché via `useScreenSearch` : la
- *     saisie filtre ses données (plus aucun champ local dans les toolbars) ;
- *   - **aller à l'écran** — aucun écran branché : la saisie propose les écrans
- *     accessibles et navigue, pour que le champ reste utile partout.
+ * <p>Ce n'est pas un champ mais un DÉCLENCHEUR, et c'est le même partout : un
+ * clic (ou ⌘K) ouvre le centre de commande, avec sa liste défilante, ses
+ * groupes et sa navigation clavier. Un écran ne doit pas se distinguer d'un
+ * autre par ce qui se passe quand on clique sur sa loupe.</p>
+ *
+ * <p>Ce qui s'adapte, c'est ce qu'il ANNONCE :</p>
+ * <ul>
+ *   <li>écran sans filtre → « Rechercher ou commander » ;</li>
+ *   <li>écran qui filtre ses données, filtre inactif → le libellé de l'écran
+ *       (« Rechercher un logement… ») ;</li>
+ *   <li>filtre actif → la valeur en cours, avec une croix pour l'annuler sans
+ *       passer par la palette.</li>
+ * </ul>
+ *
+ * <p>La saisie, elle, vit dans la palette : c'est là que la liste défile et que
+ * les résultats se montrent. Deux endroits où taper, c'était deux moteurs à
+ * comprendre.</p>
  */
-
-interface ScreenTarget {
-  label: string;
-  path: string;
-  group: string;
-  icon?: React.ReactNode;
-}
-
-const normalize = (value: string) =>
-  value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
 
 /**
  * Exception locale au kit, assumee : les champs portent normalement la hairline
  * `--bui-input`, plus marquee que le `--bui-border` des boutons, pour signaler
- * une zone de saisie. Dans la barre de titre, ce champ n'a pour voisins QUE des
- * boutons \u2014 la nuance ne distinguait plus rien, elle se lisait comme un defaut
- * d'alignement. Ailleurs dans l'app, les champs gardent leur bordure de champ.
+ * une zone de saisie. Dans la barre de titre, ce declencheur n'a pour voisins
+ * QUE des boutons — la nuance ne distinguait plus rien, elle se lisait comme un
+ * defaut d'alignement.
  */
 const HEADER_FIELD_BORDER = 'border-border';
 
+/** Largeur du déclencheur déployé. */
+const FIELD_WIDTH = 'md:w-56 lg:w-64';
+
+/** Pastille du raccourci. */
+const SHORTCUT_BADGE =
+  'shrink-0 rounded border border-border px-1 font-sans text-2xs font-medium text-muted-foreground';
+
 export default function GlobalSearchField({ className }: { className?: string }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const { user, isAdmin, isManager } = useAuth();
-  const { search, setSearchValue, submitSearch } = useScreenChrome();
+  const { search, setSearchValue } = useScreenChrome();
+  const { openCenter } = useCommandCenter();
 
-  const [navQuery, setNavQuery] = useState('');
-  const [open, setOpen] = useState(false);
-  /**
-   * Le champ est REPLIÉ en loupe par défaut, à toutes les largeurs : il
-   * occupait une place permanente pour un geste occasionnel. Déployé au clic
-   * (focus immédiat), replié quand on le quitte vide — jamais quand un filtre
-   * est encore actif, sinon on l'effacerait de vue.
-   */
-  const [expanded, setExpanded] = useState(false);
-  const fieldWrapRef = useRef<HTMLDivElement | null>(null);
+  const activeFilter = search?.value ?? '';
+  const hasFilter = activeFilter.trim() !== '';
 
-  const screens = useMemo<ScreenTarget[]>(() => {
-    const access: HubAccess = {
-      permissions: user?.permissions ?? [],
-      isAdmin: isAdmin(),
-      isManager: isManager(),
-    };
-    const targets: ScreenTarget[] = [];
-    NAVIGATION_HUBS.forEach((hub) => {
-      accessibleHubTabs(hub, access).forEach((tab) => {
-        targets.push({
-          label: t(tab.translationKey, tab.fallbackLabel),
-          path: tab.path,
-          group: t(hub.translationKey, hub.fallbackLabel),
-          icon: SCREEN_ICON[tab.path],
-        });
-      });
-    });
-    STANDALONE_SCREENS.forEach((screen) => {
-      targets.push({
-        label: t(screen.translationKey, screen.fallbackLabel),
-        path: screen.path,
-        group: t('navigation.screens', 'Écrans'),
-        icon: SCREEN_ICON[screen.path],
-      });
-    });
-    return targets;
-  }, [user?.permissions, isAdmin, isManager, t]);
+  /** Ce que le déclencheur annonce, selon l'écran et l'état du filtre. */
+  const label = hasFilter
+    ? activeFilter
+    : search?.placeholder ?? t('commandCenter.trigger', 'Rechercher ou commander');
 
-  const matches = useMemo(() => {
-    const query = normalize(navQuery.trim());
-    if (!query) return [];
-    return screens.filter((screen) => normalize(screen.label).includes(query)).slice(0, 6);
-  }, [navQuery, screens]);
+  /** Nom accessible : la valeur seule ne dirait pas ce qu'on ouvre. */
+  const ariaLabel = hasFilter
+    ? `${t('commandCenter.trigger', 'Rechercher ou commander')} — ${activeFilter}`
+    : label;
 
-  const goTo = (path: string) => {
-    setNavQuery('');
-    setOpen(false);
-    if (path !== pathname) navigate(path);
-  };
+  // Ouvre la palette pré-remplie du filtre en cours : on affine ce qui est déjà
+  // posé plutôt que de le retaper.
+  const open = () => openCenter(activeFilter);
 
-  /** Déplie le champ ET y pose le focus — sinon le repli au blur ne peut
-   *  jamais s'engager et la loupe demanderait deux clics. */
-  const expandField = () => {
-    setExpanded(true);
-    requestAnimationFrame(() => fieldWrapRef.current?.querySelector('input')?.focus());
-  };
-
-  /** Icone de repli — champ fermé. */
-  const collapsedTrigger = (
-    <Button
-      type="button"
-      variant="outline"
-      size="icon"
-      /* Pas de taille forcee : `size="icon"` porte le gabarit du kit (32 px,
-         rayon 10). Un `size-9` maison desalignait ce bouton de ses voisins. */
-      className="shrink-0"
-      aria-label={t('common.search', 'Rechercher…')}
-      aria-expanded={false}
-      onClick={expandField}
-    >
-      <SearchIcon />
-    </Button>
-  );
-
-  /**
-   * Enveloppe le champ : masqué tant qu'il n'est pas déployé. Le repli se fait
-   * à la sortie du champ, et seulement s'il est vide — sinon on effacerait de
-   * vue un filtre encore actif.
-   */
-  const withCollapse = (field: React.ReactNode, isEmpty: boolean) => (
+  return (
     <>
-      {!expanded && collapsedTrigger}
-      <div
-        ref={fieldWrapRef}
-        className={cn('items-center', expanded ? 'flex' : 'hidden')}
-        onBlur={(event) => {
-          if (isEmpty && !event.currentTarget.contains(event.relatedTarget as Node)) {
-            setExpanded(false);
-          }
-        }}
+      {/* Sous 768 px la barre de titre n'a plus la place d'un libellé : loupe
+          seule, même action. */}
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className={cn('shrink-0 md:hidden', hasFilter && 'border-primary text-primary')}
+        aria-label={ariaLabel}
+        aria-keyshortcuts="Meta+K Control+K"
+        onClick={open}
       >
-        {field}
-      </div>
-    </>
-  );
+        <SearchIcon />
+      </Button>
 
-  // Aucune hauteur imposee sur les champs : `cn-input-group` pose deja 32 px,
-  // la meme que les boutons de la barre. Un `h-9` maison les faisait depasser
-  // de 4 px leurs voisins et cassait l'alignement du header.
-  // ── Mode filtre d'écran ───────────────────────────────────────────────────
-  if (search) {
-    const value = search.value;
-    return withCollapse(
-      <InputGroup className={cn(HEADER_FIELD_BORDER, 'w-44 md:w-56 lg:w-64', className)}>
-        <InputGroupAddon>
-          <SearchIcon />
-        </InputGroupAddon>
-        <InputGroupInput
-          type="search"
-          value={value}
-          placeholder={search.placeholder ?? t('common.search', 'Rechercher…')}
-          aria-label={search.placeholder ?? t('common.search', 'Rechercher…')}
-          onChange={(event) => setSearchValue(event.target.value)}
-          // Entrée : soumet à l'écran branché s'il porte un onSubmit (ex.
-          // Planning + constellation ouverte → demande aux agents). Sans
-          // onSubmit, ne fait rien — le filtre agit déjà à la frappe.
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') submitSearch();
-          }}
-        />
-        {value !== '' && (
-          <InputGroupAddon align="inline-end">
-            <InputGroupButton
-              aria-label={t('common.clear', 'Effacer')}
-              size="icon-xs"
-              onClick={() => setSearchValue('')}
-            >
-              <XIcon />
-            </InputGroupButton>
-          </InputGroupAddon>
-        )}
-      </InputGroup>,
-      value === '',
-    );
-  }
-
-  // ── Mode « aller à l'écran » ──────────────────────────────────────────────
-  return withCollapse(
-    <Popover open={open && matches.length > 0} onOpenChange={setOpen}>
-      {/* L'ancre enveloppe un <div> (élément hôte) : Radix y pose sa ref de
-          positionnement, qu'un composant fonction React 18 ne peut pas recevoir. */}
-      <PopoverAnchor asChild>
-        <div className={cn('w-40 md:w-56 lg:w-64', className)}>
-        <InputGroup className={cn(HEADER_FIELD_BORDER, 'w-full')}>
-          <InputGroupAddon>
-            <SearchIcon />
-          </InputGroupAddon>
-          <InputGroupInput
-            type="search"
-            value={navQuery}
-            placeholder={t('search.goToScreen', 'Aller à un écran…')}
-            aria-label={t('search.goToScreen', 'Aller à un écran…')}
-            onChange={(event) => {
-              setNavQuery(event.target.value);
-              setOpen(true);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                setOpen(false);
-                setNavQuery('');
-              }
-              if (event.key === 'Enter' && matches[0]) goTo(matches[0].path);
-            }}
-          />
-          {navQuery !== '' && (
-            <InputGroupAddon align="inline-end">
-              <InputGroupButton
-                aria-label={t('common.clear', 'Effacer')}
-                size="icon-xs"
-                onClick={() => {
-                  setNavQuery('');
-                  setOpen(false);
-                }}
-              >
-                <XIcon />
-              </InputGroupButton>
-            </InputGroupAddon>
+      {/* Filtre inactif : un simple bouton, tout l'objet est cliquable. */}
+      {!hasFilter && (
+        <Button
+          type="button"
+          variant="outline"
+          className={cn(
+            HEADER_FIELD_BORDER,
+            FIELD_WIDTH,
+            // Aucune hauteur imposee : le gabarit du kit (32 px) est deja celui
+            // des boutons voisins de la barre de titre.
+            'hidden justify-start gap-2 px-2.5 font-normal text-muted-foreground md:flex',
+            className,
           )}
-        </InputGroup>
+          aria-label={ariaLabel}
+          aria-keyshortcuts="Meta+K Control+K"
+          onClick={open}
+        >
+          <SearchIcon />
+          <span className="truncate">{label}</span>
+          <kbd className={cn(SHORTCUT_BADGE, 'ms-auto')}>{openShortcutLabel()}</kbd>
+        </Button>
+      )}
+
+      {/* Filtre actif : DEUX commandes côte à côte — ouvrir la palette, annuler
+          le filtre. Annuler est trop fréquent pour imposer un aller-retour par
+          la palette, et un élément focusable dans un `<button>` est interdit
+          par le HTML : c'est l'enveloppe qui porte la bordure, pas le bouton.
+          Gabarit repris du kit (h-8, rounded-lg, border-border) pour rester
+          aligné sur les boutons voisins de la barre de titre. */}
+      {hasFilter && (
+        <div
+          className={cn(
+            'hidden h-8 items-center gap-2 rounded-lg border border-border bg-background bg-clip-padding ps-2.5 pe-1 md:flex dark:border-input dark:bg-input/30',
+            FIELD_WIDTH,
+            className,
+          )}
+        >
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-start text-sm text-foreground outline-none focus-visible:underline"
+            aria-label={ariaLabel}
+            aria-keyshortcuts="Meta+K Control+K"
+            onClick={open}
+          >
+            <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
+            <span className="truncate">{label}</span>
+          </button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            aria-label={t('common.clear', 'Effacer')}
+            onClick={() => setSearchValue('')}
+          >
+            <XIcon />
+          </Button>
         </div>
-      </PopoverAnchor>
-      <PopoverContent
-        align="end"
-        className="w-64 p-1"
-        onOpenAutoFocus={(event) => event.preventDefault()}
-      >
-        <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
-          {matches.map((match) => (
-            <li key={match.path}>
-              <button
-                type="button"
-                onClick={() => goTo(match.path)}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-sm text-foreground transition-colors hover:bg-accent"
-              >
-                <span className="shrink-0 text-muted-foreground">{sizedIcon(match.icon, 14)}</span>
-                <span className="truncate">{match.label}</span>
-                <span className="ms-auto shrink-0 text-2xs text-muted-foreground">{match.group}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </PopoverContent>
-    </Popover>,
-    navQuery === '',
+      )}
+    </>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import StatusChip from '../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -17,30 +17,30 @@ import {
 } from '../../icons';
 import type { LucideIcon } from 'lucide-react';
 
-// Statut d'invitation → tokens semantiques (envoyee --info, acceptee --ok, expiree muted, annulee --err)
-const STATUS_STYLE: Record<string, { label: string; fg: string; bg: string; Icon?: LucideIcon }> = {
-  PENDING: { label: 'En attente', fg: 'var(--info)', bg: 'var(--info-soft)', Icon: ClockIcon },
-  ACCEPTED: { label: 'Acceptée', fg: 'var(--ok)', bg: 'var(--ok-soft)', Icon: CheckCircle },
-  EXPIRED: { label: 'Expirée', fg: 'var(--muted)', bg: 'var(--hover)', Icon: HourglassEmpty },
-  CANCELLED: { label: 'Annulée', fg: 'var(--err)', bg: 'var(--err-soft)', Icon: CancelIcon },
+// Statut d'invitation → ton sémantique de la primitive. Le couple fond doux /
+// encre est porté par StatusChip : on n'en redéclare pas les teintes ici.
+const STATUS_STYLE: Record<string, { label: string; tone: StatusTone; Icon?: LucideIcon }> = {
+  PENDING: { label: 'En attente', tone: 'info', Icon: ClockIcon },
+  ACCEPTED: { label: 'Acceptée', tone: 'ok', Icon: CheckCircle },
+  EXPIRED: { label: 'Expirée', tone: 'neutral', Icon: HourglassEmpty },
+  CANCELLED: { label: 'Annulée', tone: 'err', Icon: CancelIcon },
 };
-
-const DEFAULT_STATUS_STYLE = { label: '', fg: 'var(--muted)', bg: 'var(--hover)' };
 
 // ─── Classes partagées pour les boutons d'action ────────────────────────────
 // Ecrites en litteraux : une classe Tailwind ne peut pas naitre d'une fabrique
-// parametree (les classes sont emises en scannant les sources).
+// parametree (les classes sont emises en scannant les sources). Le focus visible
+// vient du primitif Button — on ne le redefinit pas.
 
 const ACTION_BTN_BASE_CLS =
-  'size-7 rounded-[7px] text-[var(--muted)] border border-solid border-[var(--line-2)] bg-[var(--card)] disabled:border-[var(--line)] [transition:border-color_150ms_cubic-bezier(0.22,1,0.36,1),background-color_150ms_cubic-bezier(0.22,1,0.36,1),color_150ms_cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none';
+  'size-7 rounded-[7px] text-muted-foreground border border-solid border-border bg-card disabled:border-border transition-colors duration-150 ease-out motion-reduce:transition-none';
 
-/** Variante de bouton d'action : hover teinte (texte couleur, bord 40%, fond -soft) */
+/** Variante de bouton d'action : hover teinte (encre `-ink`, bord vif, fond -soft) */
 const ACTION_BTN_PRIMARY_CLS =
-  'hover:text-[var(--accent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] hover:bg-[var(--accent-soft)] focus-visible:[outline:2px_solid_var(--accent)] focus-visible:outline-offset-2';
+  'hover:text-primary hover:border-primary hover:bg-primary-soft';
 const ACTION_BTN_WARM_CLS =
-  'hover:text-[var(--warn)] hover:border-[color-mix(in_srgb,var(--warn)_40%,transparent)] hover:bg-[var(--warn-soft)] focus-visible:[outline:2px_solid_var(--warn)] focus-visible:outline-offset-2';
+  'hover:text-warning-ink hover:border-warning hover:bg-warning-soft';
 const ACTION_BTN_DANGER_CLS =
-  'hover:text-[var(--err)] hover:border-[color-mix(in_srgb,var(--err)_40%,transparent)] hover:bg-[var(--err-soft)] focus-visible:[outline:2px_solid_var(--err)] focus-visible:outline-offset-2';
+  'hover:text-destructive-ink hover:border-destructive hover:bg-destructive-soft';
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
 import ConfirmationModal from '../../components/ConfirmationModal';
 
@@ -50,10 +50,10 @@ interface Props {
 }
 
 const getStatusChip = (status: string) => {
-  const style = STATUS_STYLE[status] ?? { ...DEFAULT_STATUS_STYLE, label: status };
-  const { Icon, fg, bg, label } = style;
+  const fallback: { label: string; tone: StatusTone; Icon?: LucideIcon } = { label: status, tone: 'neutral' };
+  const { Icon, tone, label } = STATUS_STYLE[status] ?? fallback;
   return (
-    <StatusChip tokens={{ color: fg, bg: bg }} label={label} icon={Icon ? <Icon size={11} strokeWidth={2} /> : undefined} />
+    <StatusChip tone={tone} label={label} icon={Icon ? <Icon size={11} strokeWidth={2} /> : undefined} />
   );
 };
 
@@ -171,7 +171,7 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
 
   if (invitations.length === 0) {
     return (
-      <p className="cn-text-body2 text-muted-foreground py-3 text-center">
+      <p className="text-xs text-muted-foreground py-3 text-center">
         Aucune invitation envoyee.
       </p>
     );
@@ -199,7 +199,7 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
           {invitations.map((inv) => (
             <TableRow key={inv.id}>
               <TableCell className={CELL_EMAIL_CLS}>
-                <p className="cn-text-body2 font-medium text-[0.75rem] overflow-hidden text-ellipsis whitespace-nowrap" title={inv.invitedEmail}>
+                <p className="text-xs font-medium overflow-hidden text-ellipsis whitespace-nowrap" title={inv.invitedEmail}>
                   {inv.invitedEmail}
                 </p>
               </TableCell>
@@ -208,7 +208,9 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
                   const roleColor = getOrgRoleHex(inv.roleInvited);
                   const RoleIcon = getOrgRoleIcon(inv.roleInvited);
                   return (
-                    <StatusChip tokens={{ color: roleColor, bg: `${roleColor}18` }} label={getRoleLabel(inv.roleInvited)} icon={<RoleIcon size={11} strokeWidth={2} />} />
+                    // Teinte de rôle : valeur runtime hors palette sémantique,
+                    // la primitive en dérive le fond doux elle-même.
+                    <StatusChip color={roleColor} label={getRoleLabel(inv.roleInvited)} icon={<RoleIcon size={11} strokeWidth={2} />} />
                   );
                 })()}
               </TableCell>
@@ -216,12 +218,12 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
                 {getStatusChip(inv.status)}
               </TableCell>
               <TableCell className={CELL_CLS}>
-                <p className="cn-text-body2 text-muted-foreground text-[0.75rem] tabular-nums">
+                <p className="text-xs text-muted-foreground tabular-nums">
                   {formatShortDate(inv.createdAt)}
                 </p>
               </TableCell>
               <TableCell className={CELL_CLS}>
-                <p className="cn-text-body2 text-muted-foreground text-[0.75rem] tabular-nums">
+                <p className="text-xs text-muted-foreground tabular-nums">
                   {formatShortDate(inv.expiresAt)}
                 </p>
               </TableCell>

@@ -48,8 +48,8 @@ const CATEGORY_STYLE: Record<Notification['category'], { icon: React.ReactNode; 
   team: { icon: <Groups size={16} strokeWidth={1.75} />, accent: 'text-info bg-info-soft' },
   service_request: { icon: <Description size={16} strokeWidth={1.75} />, accent: 'text-warning bg-warning-soft' },
   document: { icon: <Description size={16} strokeWidth={1.75} />, accent: 'text-warning bg-warning-soft' },
-  contact: { icon: <Email size={16} strokeWidth={1.75} />, accent: 'text-destructive bg-destructive/10' },
-  guest_messaging: { icon: <Email size={16} strokeWidth={1.75} />, accent: 'text-destructive bg-destructive/10' },
+  contact: { icon: <Email size={16} strokeWidth={1.75} />, accent: 'text-destructive bg-destructive-soft' },
+  guest_messaging: { icon: <Email size={16} strokeWidth={1.75} />, accent: 'text-destructive bg-destructive-soft' },
   system: { icon: <Info size={16} strokeWidth={1.75} />, accent: 'text-muted-foreground bg-muted' },
 };
 
@@ -390,7 +390,7 @@ export default function NotificationsPage() {
                                 size="icon-xs"
                                 aria-label={t('common.delete')}
                                 onClick={(e) => handleDelete(e, notification.id)}
-                                className="text-[var(--faint)] hover:text-[var(--err)]"
+                                className="text-faint hover:text-destructive"
                               >
                                 <DeleteOutline size={15} strokeWidth={1.75} />
                               </Button>

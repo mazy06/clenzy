@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { cn } from '../../utils/cn';
-import { Button } from '../../components/ui';
+import { Alert, AlertDescription, Button } from '../../components/ui';
 import { ShoppingCartOutlined, Memory, CheckCircleOutline } from '../../icons';
 import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -133,9 +133,9 @@ const ShopPage: React.FC = () => {
             size="icon"
             onClick={() => setDrawerOpen(true)}
             aria-label={t('shop.cart')}
-            className="relative rounded-[10px] border border-solid border-[var(--line-2)] transition-[border-color,background-color] duration-[180ms] ease-[cubic-bezier(.16,1,.3,1)] hover:border-[var(--faint)] hover:bg-[var(--hover)]"
+            className="relative rounded-lg border border-solid border-border transition-colors duration-150 hover:border-primary/40 hover:bg-muted motion-reduce:transition-none"
           >
-            <span className="inline-flex text-[var(--ink)]">
+            <span className="inline-flex text-foreground">
               <ShoppingCartOutlined size={20} strokeWidth={1.75} />
             </span>
             {/* Pastille de compteur : le `Badge` du kit est une puce en flux, pas
@@ -143,7 +143,7 @@ const ShopPage: React.FC = () => {
             {cartCount > 0 && (
               <span
                 aria-hidden
-                className="pointer-events-none absolute -top-1 -end-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-solid border-[var(--card)] bg-[var(--accent)] px-[3px] text-[0.625rem] font-bold leading-none tabular-nums text-[var(--on-accent)]"
+                className="pointer-events-none absolute -top-1 -end-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-solid border-card bg-primary px-[3px] text-2xs font-bold leading-none tabular-nums text-primary-foreground"
               >
                 {cartCount > 99 ? '99+' : cartCount}
               </span>
@@ -152,15 +152,13 @@ const ShopPage: React.FC = () => {
         )}
       />
 
-      {/* Info banner — alerte -soft tokenisée */}
-      <div className="flex items-start gap-[7.5px] p-[9px] mb-[15px] rounded-[10px] border border-solid border-[color-mix(in_srgb,_var(--info)_30%,_transparent)] bg-[var(--info-soft)]">
-        <div className="text-[var(--info)] inline-flex mt-px shrink-0">
-          <CheckCircleOutline size={16} strokeWidth={1.75} />
-        </div>
-        <p className="cn-text-body1 text-[0.8rem] text-[var(--body)] leading-[1.5]">
+      {/* Info banner — primitive `Alert` du kit (variante `info`) */}
+      <Alert variant="info" className="mb-[15px]">
+        <CheckCircleOutline />
+        <AlertDescription>
           {t('shop.infoBanner')}
-        </p>
-      </div>
+        </AlertDescription>
+      </Alert>
 
       {/* Category filter — pill row */}
       <div className="flex gap-1 mb-3.5 flex-wrap" role="tablist">
@@ -168,7 +166,8 @@ const ShopPage: React.FC = () => {
           const active = selectedCategory === cat.id;
           const count = categoryCounts[cat.id] ?? 0;
           return (
-            // gap 0.75 = 4.5px, px 1.25 = 7.5px, py 0.625 = 3.75px (theme.spacing = 6)
+            // Demi-pas de la grille (4,5 / 7,5 / 3,75 px) : la rangee doit rester
+            // plus dense que les puces de filtre standard du kit.
             <div
               key={cat.id}
               role="tab"
@@ -182,16 +181,16 @@ const ShopPage: React.FC = () => {
                 }
               }}
               className={cn(
-                'inline-flex items-center gap-[4.5px] px-[7.5px] py-[3.75px] cursor-pointer select-none rounded-[8px] border border-solid text-[0.78rem] font-semibold tracking-[0.01em]',
-                'transition-[border-color,background-color,color] duration-[180ms] ease-[cubic-bezier(.16,1,.3,1)]',
-                'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+                'inline-flex items-center gap-[4.5px] px-[7.5px] py-[3.75px] cursor-pointer select-none rounded-md border border-solid text-[0.78rem] font-semibold',
+                'transition-colors duration-150 motion-reduce:transition-none',
+                'focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2',
                 active
-                  ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)] hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]'
-                  : 'border-[var(--line-2)] bg-[var(--card)] text-[var(--body)] hover:border-[var(--faint)] hover:bg-[var(--hover)]',
+                  ? 'border-primary bg-primary-soft text-primary'
+                  : 'border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted',
               )}
             >
               {t(categoryTranslationKeys[cat.id]) || cat.label}
-              <span className={cn('text-[0.6875rem] font-bold tracking-[0.02em] px-[3.75px] py-[0.75px] rounded-[5px] tabular-nums min-w-[16px] text-center', active ? 'bg-[var(--accent)]' : 'bg-[var(--field)]', active ? 'text-[var(--on-accent)]' : 'text-[var(--muted)]')}>
+              <span className={cn('min-w-[16px] rounded-sm px-[3.75px] py-[0.75px] text-center text-2xs font-bold tabular-nums', active ? 'bg-primary text-primary-foreground' : 'bg-field text-muted-foreground')}>
                 {count}
               </span>
             </div>

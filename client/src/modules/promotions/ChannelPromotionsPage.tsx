@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import StatusChip from '../../components/StatusChip';
+import StatusChip, { type ToneTokens } from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { CircleCheck, X, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -29,6 +29,7 @@ import {
   Campaign as CampaignIcon,
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { useTranslation } from '../../hooks/useTranslation';
 import { propertiesApi } from '../../services/api/propertiesApi';
@@ -45,12 +46,10 @@ import type {
   ChannelPromotion,
   CreateChannelPromotionData,
   ChannelName,
+  PromotionStatus,
   PromotionType,
 } from '../../services/api/channelPromotionsApi';
-import {
-  PROMOTION_TYPE_LABELS,
-  PROMOTION_STATUS_COLORS,
-} from '../../services/api/channelPromotionsApi';
+import { PROMOTION_TYPE_LABELS } from '../../services/api/channelPromotionsApi';
 import { useQuery } from '@tanstack/react-query';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -71,14 +70,25 @@ const PROMOTION_TYPE_OPTIONS: { value: PromotionType; label: string }[] = [
   { value: 'country_rate', label: 'Country Rate' },
 ];
 
-/** Surface de carte du kit : bordure --line, rayon 12px, sans ombre. */
-const CARD_CLASS = 'rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]';
+/** Surface de carte du kit : filet, rayon xl, sans ombre. */
+const CARD_CLASS = 'rounded-xl border border-solid border-border bg-card';
+
+/**
+ * Statut de promotion → ton sémantique Baitly (§2.4) : fond pastel `-soft`,
+ * texte `-ink`. L'ancienne pastille était du blanc pur sur aplat de couleur.
+ */
+const STATUS_TOKENS: Record<PromotionStatus, ToneTokens> = {
+  PENDING: { color: 'var(--bui-warning-ink)', bg: 'var(--bui-warning-soft)' },
+  ACTIVE: { color: 'var(--bui-success-ink)', bg: 'var(--bui-success-soft)' },
+  EXPIRED: { color: 'var(--bui-muted-foreground)', bg: 'var(--bui-field)' },
+  REJECTED: { color: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' },
+};
 
 /** Valeur sentinelle du filtre : le Select du kit interdit la chaine vide. */
 const ALL_PROPERTIES = 'ALL';
 
 const channelColor = (name: string) =>
-  CHANNEL_OPTIONS.find((c) => c.value === name)?.color ?? '#666';
+  CHANNEL_OPTIONS.find((c) => c.value === name)?.color ?? 'var(--bui-muted-foreground)';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -263,23 +273,18 @@ const ChannelPromotionsPage: React.FC = () => {
           <AlertDescription>{t('promotions.error', 'Erreur lors du chargement des promotions')}</AlertDescription>
         </BuiAlert>
       ) : promotions.length === 0 ? (
-        <div className={`${CARD_CLASS} p-6 text-center`}>
-          <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><CampaignIcon size={48} strokeWidth={1.75} /></span>
-          <p className="cn-text-body1 text-[0.875rem] text-muted-foreground">
-            {t('promotions.empty', 'Aucune promotion configuree')}
-          </p>
-          <BuiButton
-            size="sm"
-            variant="outline"
-            className="mt-[9px]"
-            onClick={handleOpenCreate}
-          >
-            <AddIcon />
-            {t('promotions.create', 'Nouvelle promotion')}
-          </BuiButton>
-        </div>
+        <EmptyState
+          icon={<CampaignIcon />}
+          title={t('promotions.empty', 'Aucune promotion configuree')}
+          action={
+            <BuiButton size="sm" variant="outline" onClick={handleOpenCreate}>
+              <AddIcon />
+              {t('promotions.create', 'Nouvelle promotion')}
+            </BuiButton>
+          }
+        />
       ) : (
-        <div className="overflow-x-auto rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)]">
+        <div className={`${CARD_CLASS} overflow-x-auto`}>
           <Table>
             <TableHeader>
               <TableRow>
@@ -297,7 +302,9 @@ const ChannelPromotionsPage: React.FC = () => {
               {promotions.map((promo) => (
                 <TableRow key={promo.id}>
                   <TableCell>
-                    <StatusChip tokens={{ color: '#fff', bg: channelColor(promo.channelName) }} label={promo.channelName} />
+                    {/* Teinte de marque du canal : `color` en dérive le fond
+                        pastel et une encre lisible en clair comme en sombre. */}
+                    <StatusChip color={channelColor(promo.channelName)} label={promo.channelName} />
                   </TableCell>
                   <TableCell>
                     {propertyMap[promo.propertyId] ?? `#${promo.propertyId}`}
@@ -315,7 +322,7 @@ const ChannelPromotionsPage: React.FC = () => {
                       : '—'}
                   </TableCell>
                   <TableCell className="text-center">
-                    <StatusChip size="sm" tokens={{ color: '#fff', bg: PROMOTION_STATUS_COLORS[promo.status] ?? '#9e9e9e' }} label={promo.status} className="h-[20px]" />
+                    <StatusChip size="sm" tokens={STATUS_TOKENS[promo.status] ?? STATUS_TOKENS.EXPIRED} label={promo.status} className="h-[20px]" />
                   </TableCell>
                   <TableCell className="text-center">
                     <Switch
@@ -353,7 +360,7 @@ const ChannelPromotionsPage: React.FC = () => {
                               size="icon-sm"
                               aria-label={t('common.delete', 'Supprimer')}
                               onClick={() => setDeleteTarget(promo)}
-                              className="text-[var(--err)]"
+                              className="text-destructive"
                             >
                               <DeleteIcon size={'1rem'} strokeWidth={1.75} />
                             </BuiButton>

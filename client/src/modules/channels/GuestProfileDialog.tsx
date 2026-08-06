@@ -75,7 +75,6 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
-      {/* `sm` MUI = 600px, r16 : deux valeurs hors echelle Tailwind, ecrites en litteral. */}
       <DialogContent
         className="sm:max-w-[600px] rounded-2xl max-h-[85vh] overflow-y-auto"
         showCloseButton={false}
@@ -107,22 +106,22 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
           <div className="flex flex-col gap-2">
             {/* Header */}
             <div className="flex items-center gap-3">
-              <div className="w-[48px] h-[48px] rounded-[50%] bg-[var(--mui-primary)] flex items-center justify-center text-[white] text-[1.125rem] font-bold">
+              <div className="w-[48px] h-[48px] rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[1.125rem] font-bold">
                 {guest.name.charAt(0).toUpperCase()}
               </div>
               <div>
-                <p className="cn-text-body1 text-[0.9375rem] font-bold">{guest.name}</p>
+                <p className="text-base font-semibold tracking-tight">{guest.name}</p>
                 <div className="flex gap-2 mt-0.5">
                   {guest.email && (
                     <div className="flex items-center gap-0.5">
                       <span className="inline-flex text-muted-foreground"><EmailIcon size={'0.75rem'} strokeWidth={1.75} /></span>
-                      <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">{guest.email}</p>
+                      <p className="text-xs text-muted-foreground">{guest.email}</p>
                     </div>
                   )}
                   {guest.phone && (
                     <div className="flex items-center gap-0.5">
                       <span className="inline-flex text-muted-foreground"><PhoneIcon size={'0.75rem'} strokeWidth={1.75} /></span>
-                      <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">{guest.phone}</p>
+                      <p className="text-xs text-muted-foreground">{guest.phone}</p>
                     </div>
                   )}
                 </div>
@@ -138,7 +137,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                   label={t('channels.guest.avgRating')}
                   value={
                     <div className="flex items-center gap-0.5">
-                      <StarIcon size={'0.75rem'} strokeWidth={1.75} color='var(--warn)' />
+                      <StarIcon size={'0.75rem'} strokeWidth={1.75} color='var(--bui-warning)' />
                       {guest.averageRating.toFixed(1)}
                     </div>
                   }
@@ -154,10 +153,10 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
               <>
                 <Separator />
                 <div>
-                  <p className="cn-text-body1 text-[0.6875rem] font-semibold mb-0.5 uppercase text-muted-foreground">
+                  <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-0.5">
                     {t('channels.guest.specialRequests')}
                   </p>
-                  <p className="cn-text-body1 text-[0.8125rem] bg-[var(--hover)] p-1.5 rounded-[8px]">
+                  <p className="text-sm bg-muted p-1.5 rounded-md">
                     {guest.specialRequests}
                   </p>
                 </div>
@@ -168,9 +167,9 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
             <Separator />
             <div>
               <div className="flex items-center justify-between mb-0.5">
-                {/* Le titre de section fait office de libelle : le champ MUI n'en
-                    portait aucun, on l'associe par aria-labelledby. */}
-                <p id="guest-notes-label" className="cn-text-body1 text-[0.6875rem] font-semibold uppercase text-muted-foreground">
+                {/* Le titre de section fait office de libelle : le champ n'en
+                    porte aucun, on l'associe par aria-labelledby. */}
+                <p id="guest-notes-label" className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
                   <span className="inline-flex me-[1.5px] align-[middle]"><NoteIcon size={'0.75rem'} strokeWidth={1.75} /></span>
                   {t('channels.guest.notes')}
                 </p>
@@ -185,7 +184,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                   <Textarea
                     id="guest-notes"
                     aria-labelledby="guest-notes-label"
-                    className="w-full text-[0.8125rem]"
+                    className="w-full text-sm"
                     rows={3}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
@@ -200,7 +199,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                   </div>
                 </div>
               ) : (
-                <p className={cn('cn-text-body1 text-[0.8125rem]', guest.notes ? 'text-[var(--ink)]' : 'text-[var(--muted)]', guest.notes ? 'not-italic' : 'italic')}>
+                <p className={cn('text-sm', guest.notes ? 'text-foreground not-italic' : 'text-muted-foreground italic')}>
                   {guest.notes || t('channels.guest.noNotes')}
                 </p>
               )}
@@ -211,22 +210,22 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
               <>
                 <Separator />
                 <div>
-                  <p className="cn-text-body1 text-[0.6875rem] font-semibold mb-1 uppercase text-muted-foreground">
+                  <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
                     <span className="inline-flex me-[1.5px] align-[middle]"><CalendarIcon size={'0.75rem'} strokeWidth={1.75} /></span>
                     {t('channels.guest.reservationHistory')} ({guest.reservations.length})
                   </p>
                   <div className="flex flex-col gap-0.5">
                     {guest.reservations.map((r) => (
-                      <div className="flex justify-between items-center border border-[var(--line)] rounded-[6px] px-1.5 py-0.5" key={r.id}>
+                      <div className="flex justify-between items-center border border-border rounded-md px-1.5 py-0.5" key={r.id}>
                         <div>
-                          <p className="cn-text-body1 text-[0.75rem] font-semibold">{r.propertyName}</p>
-                          <p className="cn-text-body1 text-[0.625rem] text-muted-foreground">
+                          <p className="text-xs font-semibold">{r.propertyName}</p>
+                          <p className="text-2xs text-muted-foreground tabular-nums">
                             {new Date(r.checkIn).toLocaleDateString('fr-FR')} → {new Date(r.checkOut).toLocaleDateString('fr-FR')}
                           </p>
                         </div>
                         <div className="flex items-center gap-1">
-                          <p className="cn-text-body1 text-[0.75rem] font-semibold"><Money value={r.totalPrice} from="EUR" /></p>
-                          <StatusChip size="sm" tokens={{ color: RESERVATION_STATUS_COLORS[r.status as keyof typeof RESERVATION_STATUS_COLORS] ?? '#757575', bg: `${RESERVATION_STATUS_COLORS[r.status as keyof typeof RESERVATION_STATUS_COLORS] ?? '#757575'}20` }} label={r.status} className="text-[0.5625rem]" />
+                          <p className="text-xs font-semibold tabular-nums"><Money value={r.totalPrice} from="EUR" /></p>
+                          <StatusChip size="sm" tokens={{ color: RESERVATION_STATUS_COLORS[r.status as keyof typeof RESERVATION_STATUS_COLORS] ?? 'var(--bui-muted-foreground)', bg: `color-mix(in srgb, ${RESERVATION_STATUS_COLORS[r.status as keyof typeof RESERVATION_STATUS_COLORS] ?? 'var(--bui-muted-foreground)'} 12%, transparent)` }} label={r.status} className="text-[0.5625rem]" />
                         </div>
                       </div>
                     ))}
@@ -243,9 +242,9 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
 
 function StatBox({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="border border-[var(--line)] rounded-[8px] px-2 py-1 text-center">
-      <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground uppercase font-medium">{label}</p>
-      <p className="cn-text-body1 text-[0.875rem] font-bold mt-0.5">{value}</p>
+    <div className="border border-border rounded-md px-2 py-1 text-center">
+      <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-sm font-semibold tabular-nums mt-0.5">{value}</p>
     </div>
   );
 }

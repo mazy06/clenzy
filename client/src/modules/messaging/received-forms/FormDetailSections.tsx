@@ -1,5 +1,6 @@
 import React from 'react';
-import { cn } from '../../../utils/cn';
+import { Badge, Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '../../../components/ui';
+import StatTile from '../../../components/baitly/StatTile';
 import {
   Home as HomeIcon,
   SquareFoot as RulerIcon,
@@ -18,109 +19,63 @@ import {
 import type { ReceivedForm } from '../../../services/api/receivedFormsApi';
 import { formatFieldValue, toList } from './formatters';
 
-// ─── Primitives .fr-* (référence « Messagerie Formulaires », section B) ──────
+// ─── Primitives de section ───────────────────────────────────────────────────
 
-/** .fr-sec — overline + filet. */
-function FrSection({ title }: { title: string }) {
+/**
+ * Titre de section.
+ *
+ * <p>Un vrai titre, et non l'ancienne « sur-ligne + filet horizontal » : le
+ * filet ajoutait une ligne de bruit tous les trois éléments et hachait la
+ * lecture d'une fiche déjà dense. La hiérarchie passe par la taille et
+ * l'espacement.</p>
+ */
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-[9px] m-[26px 0 14px]">
-      <span className="text-[11px] font-bold tracking-[.08em] uppercase text-[var(--faint)] whitespace-nowrap">
-        {title}
-      </span>
-      <div className="flex-1 h-[1px] bg-[var(--line)]" />
-    </div>
+    <section className="flex flex-col gap-2.5">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
+      {children}
+    </section>
   );
 }
 
-/** .fr-tile — icône accent-soft 36 r11, label overline, valeur display 20. */
-function Tile({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="bg-[var(--card)] border border-solid border-[var(--line)] rounded-[13px] p-[15px] min-w-0 transition-[border-color,box-shadow] duration-[140ms] hover:border-[var(--line-2)] hover:shadow-[0_8px_24px_-18px_var(--ink)]">
-      <div className="w-[36px] h-[36px] rounded-[11px] bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center mb-3">
-        {icon}
-      </div>
-      <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.04em] uppercase text-[var(--faint)]">
-        {label}
-      </p>
-      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[20px] font-semibold text-[var(--ink)] mt-[4px] tracking-[-.01em] tabular-nums truncate">
-        {value}
-      </p>
-    </div>
-  );
-}
-
-/** .fr-svc__h — entête de colonne services. */
-function SvcHeader({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <div className="flex items-center gap-[8px] mb-[10px] text-[11px] font-bold tracking-[.04em] uppercase text-[var(--muted)] [&_svg]:text-[var(--accent)]">
-      {icon}
-      {label}
-    </div>
-  );
-}
-
-/** .fr-chip — field par défaut, accent-soft pour « sur devis », muted pour vide. */
-function ServiceChip({ icon, label, variant = 'default' }: {
-  icon?: React.ReactNode; label: string; variant?: 'default' | 'devis' | 'muted';
+/**
+ * Service demandé.
+ *
+ * <p>Le « sur devis » se distingue par la TEINTE (ambre) et non par une icône
+ * différente : c'est une information de coût, pas de nature. L'opérateur doit
+ * repérer d'un balayage ce qui reste à chiffrer.</p>
+ */
+function ServiceChip({ label, variant = 'default' }: {
+  label: string;
+  variant?: 'default' | 'devis' | 'muted';
 }) {
+  if (variant === 'muted') {
+    return <Badge variant="secondary" className="text-muted-foreground">{label}</Badge>;
+  }
   return (
-    <span className={cn(
-      'inline-flex items-center gap-[7px] text-[12.5px] font-semibold rounded-[9px] p-[7px_12px] border border-solid',
-      '[&_svg]:text-[var(--accent)] [&_svg]:shrink-0',
-      variant === 'devis'
-        ? 'bg-[var(--accent-soft)] border-transparent text-[var(--accent)]'
-        : cn(
-            'bg-[var(--field)] border-[var(--field-line)]',
-            variant === 'muted' ? 'text-[var(--muted)]' : 'text-[var(--ink)]',
-          ),
-    )}>
-      {icon}
+    <Badge variant={variant === 'devis' ? 'warning' : 'secondary'}>
+      {variant === 'devis' ? <FilePenIcon size={12} strokeWidth={2} /> : <CheckIcon size={12} strokeWidth={2} />}
       {label}
-    </span>
+    </Badge>
   );
 }
 
-/** .fr-sync — ligne synchro calendrier ok-soft. */
-function SyncRow({ value }: { value: string }) {
-  return (
-    <div className="flex items-center gap-[10px] bg-[var(--ok-soft)] rounded-[11px] p-[11px_14px] mt-[14px] text-[13px] text-[var(--body)] [&>svg]:text-[var(--ok)] [&>svg]:shrink-0">
-      <RefreshIcon size={16} strokeWidth={1.75} />
-      <b className="text-[13px] text-[var(--ink)] font-semibold">
-        Synchronisation calendrier
-      </b>
-      <span className="ms-auto text-[11px] font-bold text-[var(--ok)]">
-        {value}
-      </span>
-    </div>
-  );
-}
-
-/** .fr-pcard — carte planning (icône 40 r12 accent-soft, label overline, valeur 14.5). */
+/** Carte de planning — primitive Item partagée, plutôt qu'une carte maison. */
 function PlanCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-[13px] bg-[var(--card)] border border-solid border-[var(--line)] rounded-[13px] p-[14px 16px] min-w-0">
-      <div className="w-[40px] h-[40px] rounded-[12px] bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center shrink-0">
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <p className="cn-text-body1 text-[11px] font-bold tracking-[.04em] uppercase text-[var(--faint)]">
-          {label}
-        </p>
-        <p className="cn-text-body1 text-[14.5px] font-semibold text-[var(--ink)] mt-0.5">
-          {value}
-        </p>
-      </div>
-    </div>
+    <Item variant="outline" size="sm">
+      <ItemMedia variant="icon">{icon}</ItemMedia>
+      <ItemContent>
+        <ItemDescription>{label}</ItemDescription>
+        <ItemTitle>{value}</ItemTitle>
+      </ItemContent>
+    </Item>
   );
 }
 
 /** Paragraphe libre (description / message). */
 function BodyText({ text }: { text: string }) {
-  return (
-    <p className="cn-text-body1 text-[13px] text-[var(--body)] leading-[1.6] whitespace-pre-wrap">
-      {text}
-    </p>
-  );
+  return <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{text}</p>;
 }
 
 // ─── Sections par type de formulaire ─────────────────────────────────────────
@@ -131,11 +86,11 @@ function DevisSections({ data }: { data: Record<string, unknown> }) {
     return v != null && v !== '' && !(Array.isArray(v) && v.length === 0);
   };
 
-  const tiles: { key: string; icon: React.ReactNode; label: string; value: string }[] = [];
-  if (has('propertyType')) tiles.push({ key: 'propertyType', icon: <HomeIcon size={18} strokeWidth={1.75} />, label: 'Type de bien', value: formatFieldValue('propertyType', data.propertyType) });
-  if (has('surface')) tiles.push({ key: 'surface', icon: <RulerIcon size={18} strokeWidth={1.75} />, label: 'Surface', value: `${data.surface} m²` });
-  if (has('guestCapacity')) tiles.push({ key: 'guestCapacity', icon: <UsersIcon size={18} strokeWidth={1.75} />, label: 'Voyageurs', value: formatFieldValue('guestCapacity', data.guestCapacity) });
-  if (has('propertyCount')) tiles.push({ key: 'propertyCount', icon: <BuildingIcon size={18} strokeWidth={1.75} />, label: 'Logements', value: String(data.propertyCount) });
+  const tiles: { key: string; icon: React.ReactNode; label: string; value: string; unit?: string }[] = [];
+  if (has('propertyType')) tiles.push({ key: 'propertyType', icon: <HomeIcon />, label: 'Type de bien', value: formatFieldValue('propertyType', data.propertyType) });
+  if (has('surface')) tiles.push({ key: 'surface', icon: <RulerIcon />, label: 'Surface', value: String(data.surface), unit: 'm²' });
+  if (has('guestCapacity')) tiles.push({ key: 'guestCapacity', icon: <UsersIcon />, label: 'Voyageurs', value: formatFieldValue('guestCapacity', data.guestCapacity) });
+  if (has('propertyCount')) tiles.push({ key: 'propertyCount', icon: <BuildingIcon />, label: 'Logements', value: String(data.propertyCount) });
 
   const forfait = toList(data.services);
   const devis = toList(data.servicesDevis);
@@ -144,63 +99,73 @@ function DevisSections({ data }: { data: Record<string, unknown> }) {
   return (
     <>
       {tiles.length > 0 && (
-        <>
-          <FrSection title="Aperçu du bien" />
-          <div className="grid grid-cols-[repeat(2,_1fr)] min-[900px]:grid-cols-[repeat(4,_1fr)] gap-3">
-            {tiles.map((t) => <Tile key={t.key} icon={t.icon} label={t.label} value={t.value} />)}
+        <Section title="Aperçu du bien">
+          <div className="grid grid-cols-2 gap-3 min-[900px]:grid-cols-4">
+            {tiles.map((tile) => (
+              <StatTile key={tile.key} icon={tile.icon} label={tile.label} value={tile.value} unit={tile.unit} />
+            ))}
           </div>
-        </>
+        </Section>
       )}
 
       {hasServices && (
-        <>
-          <FrSection title="Services souhaités" />
-          <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_1fr)] gap-[18px]">
-            <div>
-              <SvcHeader icon={<SparklesIcon size={15} strokeWidth={1.75} />} label="Services forfait" />
-              <div className="flex flex-wrap gap-2">
+        <Section title="Services souhaités">
+          <div className="grid grid-cols-1 gap-4 min-[900px]:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <SparklesIcon size={14} strokeWidth={1.75} className="text-primary" />
+                Services forfait
+              </span>
+              <div className="flex flex-wrap gap-1.5">
                 {forfait.length > 0
-                  ? forfait.map((s) => (
-                      <ServiceChip key={s} icon={<CheckIcon size={14} strokeWidth={2} />} label={formatFieldValue('services', s)} />
-                    ))
+                  ? forfait.map((s) => <ServiceChip key={s} label={formatFieldValue('services', s)} />)
                   : <ServiceChip variant="muted" label="Aucun" />}
               </div>
             </div>
-            <div>
-              <SvcHeader icon={<FileTextIcon size={15} strokeWidth={1.75} />} label="Services sur devis" />
-              <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <FileTextIcon size={14} strokeWidth={1.75} className="text-primary" />
+                Services sur devis
+              </span>
+              <div className="flex flex-wrap gap-1.5">
                 {devis.length > 0
-                  ? devis.map((s) => (
-                      <ServiceChip key={s} variant="devis" icon={<FilePenIcon size={14} strokeWidth={2} />} label={formatFieldValue('servicesDevis', s)} />
-                    ))
+                  ? devis.map((s) => <ServiceChip key={s} variant="devis" label={formatFieldValue('servicesDevis', s)} />)
                   : <ServiceChip variant="muted" label="Aucun" />}
               </div>
             </div>
           </div>
-        </>
+        </Section>
       )}
-      {has('calendarSync') && <SyncRow value={formatFieldValue('calendarSync', data.calendarSync)} />}
 
-      {(has('bookingFrequency') || has('cleaningSchedule')) && (
-        <>
-          <FrSection title="Planning" />
-          <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_1fr)] gap-3.5">
+      {(has('calendarSync') || has('bookingFrequency') || has('cleaningSchedule')) && (
+        <Section title="Planning">
+          <div className="grid grid-cols-1 gap-3 min-[900px]:grid-cols-2">
             {has('bookingFrequency') && (
               <PlanCard
-                icon={<CalendarRangeIcon size={19} strokeWidth={1.75} />}
+                icon={<CalendarRangeIcon />}
                 label="Fréquence des réservations"
                 value={formatFieldValue('bookingFrequency', data.bookingFrequency)}
               />
             )}
             {has('cleaningSchedule') && (
               <PlanCard
-                icon={<ClockIcon size={19} strokeWidth={1.75} />}
+                icon={<ClockIcon />}
                 label="Planning ménage"
                 value={formatFieldValue('cleaningSchedule', data.cleaningSchedule)}
               />
             )}
+            {/* La synchro calendrier rejoint le Planning : c'en est une donnée,
+                pas un bandeau d'état. Elle occupait seule une bande verte pleine
+                largeur qui criait plus fort que les chiffres du bien. */}
+            {has('calendarSync') && (
+              <PlanCard
+                icon={<RefreshIcon />}
+                label="Synchronisation calendrier"
+                value={formatFieldValue('calendarSync', data.calendarSync)}
+              />
+            )}
           </div>
-        </>
+        </Section>
       )}
     </>
   );
@@ -214,34 +179,34 @@ function MaintenanceSections({ data }: { data: Record<string, unknown> }) {
   return (
     <>
       {works.length > 0 && (
-        <>
-          <FrSection title="Travaux demandés" />
-          <div className="flex flex-wrap gap-2">
+        <Section title="Travaux demandés">
+          <div className="flex flex-wrap gap-1.5">
             {works.map((w) => (
-              <ServiceChip key={w} icon={<HandymanIcon size={14} strokeWidth={2} />} label={formatFieldValue('selectedWorks', w)} />
+              <Badge key={w} variant="secondary">
+                <HandymanIcon size={12} strokeWidth={2} />
+                {formatFieldValue('selectedWorks', w)}
+              </Badge>
             ))}
           </div>
-        </>
+        </Section>
       )}
 
       {hasUrgency && (
-        <>
-          <FrSection title="Urgence" />
-          <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_1fr)] gap-3.5">
+        <Section title="Urgence">
+          <div className="grid grid-cols-1 gap-3 min-[900px]:grid-cols-2">
             <PlanCard
-              icon={<UrgencyIcon size={19} strokeWidth={1.75} />}
+              icon={<UrgencyIcon />}
               label="Niveau d'urgence"
               value={formatFieldValue('urgency', data.urgency)}
             />
           </div>
-        </>
+        </Section>
       )}
 
       {description && (
-        <>
-          <FrSection title="Description" />
+        <Section title="Description">
           <BodyText text={description} />
-        </>
+        </Section>
       )}
     </>
   );
@@ -253,16 +218,14 @@ function SupportSections({ data }: { data: Record<string, unknown> }) {
   return (
     <>
       {subject && (
-        <>
-          <FrSection title="Sujet" />
+        <Section title="Sujet">
           <BodyText text={subject} />
-        </>
+        </Section>
       )}
       {message && (
-        <>
-          <FrSection title="Message" />
+        <Section title="Message">
           <BodyText text={message} />
-        </>
+        </Section>
       )}
     </>
   );
@@ -276,11 +239,7 @@ export default function FormPayloadSections({ form }: { form: ReceivedForm }) {
   try {
     data = JSON.parse(form.payload);
   } catch {
-    return (
-      <p className="cn-text-body1 text-[13px] text-[var(--muted)] mt-5">
-        Données non lisibles
-      </p>
-    );
+    return <p className="text-sm text-muted-foreground">Données non lisibles</p>;
   }
 
   if (form.formType === 'DEVIS') return <DevisSections data={data} />;

@@ -75,7 +75,7 @@ function dispatchQuickReply(text: string) {
  *       repondre dans le champ chat.</li>
  * </ul>
  *
- * <p>Pattern « Signature » : tokens var(--…), overlines 10.5px {@code --faint}.
+ * <p>Habillage Baitly UI : sur-titres en petites capitales {@code text-faint}.
  * Pour les boolean quick replies, on emet un
  * {@link ASSISTANT_QUICK_REPLY_EVENT} sur la window que la page chat ecoute
  * pour rappeler {@code sendMessage}.</p>
@@ -99,26 +99,26 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
     <div className="mt-1.5 mb-2 flex flex-col gap-2">
       {/* Header titre + meta */}
       <div className="flex items-baseline gap-1.5 flex-wrap">
-        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
+        <p className="text-2xs font-bold uppercase tracking-[.05em] text-faint">
           {data.title || 'Workflow'}
         </p>
         {data.estimatedDuration && (
-          <p className="cn-text-body1 text-[11.5px] text-[var(--faint)] tabular-nums">
+          <p className="text-xs text-faint tabular-nums">
             ≈ {data.estimatedDuration} min
           </p>
         )}
         {data.status && data.status !== 'ACTIVE' && (
           <StatusChip size="sm" tokens={{ color: data.status === 'COMPLETED'
-                ? 'var(--ok)'
-                : 'var(--muted)', bg: data.status === 'COMPLETED'
-                ? 'var(--ok-soft)'
-                : 'var(--hover)' }} label={data.status} className="text-[10.5px] tracking-[.04em] uppercase" />
+                ? 'var(--color-success-ink)'
+                : 'var(--color-muted-foreground)', bg: data.status === 'COMPLETED'
+                ? 'var(--color-success-soft)'
+                : 'var(--color-accent)' }} label={data.status} className="text-2xs tracking-[.04em] uppercase" />
         )}
       </div>
 
       {/* Stepper visuel */}
       {stepsForStepper.length > 0 && (
-        <div className="px-2 py-2 rounded-[12px] bg-[var(--accent-soft)] overflow-x-auto">
+        <div className="px-2 py-2 rounded-xl bg-primary-soft overflow-x-auto">
           {/* Le primitif derive « franchie / courante / a venir » de activeStep :
               la prop `completed` par etape n'a plus lieu d'etre. */}
           <Stepper activeStep={isCompleted ? stepsForStepper.length : currentIdx}>
@@ -133,8 +133,8 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
 
       {/* Step courant */}
       {!isCompleted && data.currentStep && data.currentStep.prompt && (
-        <div className="px-2 py-2 rounded-[12px] bg-[var(--field)]">
-          <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--accent)] mb-1">
+        <div className="px-2 py-2 rounded-xl bg-muted">
+          <p className="block text-2xs font-bold uppercase tracking-[.05em] text-primary mb-1">
             Etape {currentIdx + 1}/{total}
             {data.currentStep.title ? ` · ${data.currentStep.title}` : ''}
           </p>
@@ -163,13 +163,13 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
               </Button>
             </div>
           ) : (
-            <p className="cn-text-body1 block mt-2 text-[11.5px] italic text-[var(--faint)]">
+            <p className="block mt-2 text-xs italic text-faint">
               Reponds dans le chat ci-dessous puis j'enchainerai l'etape suivante.
             </p>
           )}
 
           {data.currentStep.suggestTool?.name && (
-            <p className="cn-text-body1 block mt-2 text-[11.5px] text-[var(--muted)]">
+            <p className="block mt-2 text-xs text-muted-foreground">
               Indice : je peux aussi te diriger vers <code>{data.currentStep.suggestTool.name}</code>.
             </p>
           )}
@@ -178,12 +178,12 @@ export const WorkflowWidget: React.FC<WorkflowWidgetProps> = ({ data }) => {
 
       {/* Etat completed */}
       {isCompleted && (
-        <div className="px-2 py-2 rounded-[12px] bg-[var(--ok-soft)]">
-          <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ok)]">
+        <div className="px-2 py-2 rounded-xl bg-success-soft">
+          <p className="text-xs font-semibold text-success-ink">
             Workflow termine.
           </p>
           {data.suggestedAction?.toolName && (
-            <p className="cn-text-body1 block mt-0.5 text-[11.5px] text-[var(--muted)]">
+            <p className="block mt-0.5 text-xs text-muted-foreground">
               Prochaine action suggeree : <code>{data.suggestedAction.toolName}</code>
             </p>
           )}

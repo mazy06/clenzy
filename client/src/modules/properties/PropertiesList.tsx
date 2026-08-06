@@ -302,12 +302,14 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
     <div className="flex gap-1 items-center">
       <Tooltip>
         <TooltipTrigger asChild>
+          {/* Action principale de l'écran, mais dans un en-tête déjà dense :
+              contour de marque plutôt qu'un aplat plein. */}
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon-sm"
             aria-label={t('properties.create')}
             onClick={() => navigate('/properties/new')}
-            className="rounded-[9px] border border-solid border-[var(--accent)] bg-transparent text-[var(--accent)] hover:bg-[var(--accent-soft)] hover:border-[var(--accent-deep)] hover:text-[var(--accent-deep)]"
+            className="border-solid border-primary bg-transparent text-primary hover:bg-primary-soft hover:text-primary"
           >
             <Add size={20} strokeWidth={1.75} />
           </Button>
@@ -359,9 +361,9 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-      {/* Portal actions into parent's PageHeader when embedded.
-          Ternaires explicites (au lieu de &&) pour eviter de passer le
-          booleen false en children — MUI Box.propTypes rale sinon. */}
+      {/* Portail des actions vers le PageHeader du parent en mode embarqué.
+          Ternaires explicites (au lieu de &&) pour ne jamais passer le booléen
+          `false` en children. */}
       {embedded && actionsContainer ? createPortal(actionButtons, actionsContainer) : null}
       {embedded && filtersContainer ? createPortal(filterBar, filtersContainer) : null}
 
@@ -379,22 +381,24 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
         </div>
       ) : null}
 
-      {/* Gate de rattrapage : rappel des logements sans contrat de gestion actif. */}
+      {/* Gate de rattrapage : rappel des logements sans contrat de gestion actif.
+          Le variant `warning` du primitif porte deja le fond pastel et l'encre
+          `-ink` : aucune couleur n'est reecrite ici, seule la mise en ligne. */}
       {canManageContracts && missingContractIds.size > 0 ? (
         <Alert
           variant="warning"
-          className="mb-1.5 shrink-0 flex items-center gap-2 rounded-[11px] text-[12.5px] bg-[var(--warn-soft)] text-[var(--body)] border border-solid border-[color-mix(in_srgb,var(--warn)_30%,transparent)]"
+          className="mb-1.5 flex shrink-0 items-center gap-2"
         >
-          <AlertDescription className="flex-1 min-w-0 text-[12.5px] text-[var(--body)]">
+          <AlertDescription className="min-w-0 flex-1 text-xs">
             {`${missingContractIds.size} ${t('contracts.gate.banner', "logement(s) sans contrat de gestion actif. La répartition par défaut de l'organisation s'applique en attendant.")}`}
           </AlertDescription>
-          {/* CTA d'un bandeau d'avertissement : la teinte --warn est portee par
-              le bouton lui-meme. */}
+          {/* CTA d'un bandeau d'avertissement : la teinte est portee par le
+              bouton lui-meme, encre `-ink` pour le libelle. */}
           <Button
             variant="outline"
             size="sm"
             onClick={() => openContractModal([...missingContractIds][0] ?? null)}
-            className="shrink-0 text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+            className="shrink-0 border-warning bg-transparent text-warning-ink hover:bg-warning-soft hover:text-warning-ink"
           >
             {t('contracts.gate.cta', 'Établir les contrats')}
           </Button>
@@ -506,15 +510,15 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
 
       {/* FAB pour ajouter rapidement */}
       {(isAdmin() || isManager() || isHost()) ? (
-        // Le Fab MUI n'a pas d'equivalent dans le kit : c'est un bouton rond
-        // flottant, rendu ici par le Button du kit. `md` MUI = 900 px (les
-        // breakpoints Tailwind lisent 768), d'ou le seuil explicite.
+        // Le bouton d'action flottant n'a pas d'equivalent dans le kit : c'est
+        // un bouton rond, rendu ici par le Button du kit. Le seuil de 900 px est
+        // explicite (les breakpoints Tailwind lisent 768).
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           aria-label={t('properties.create')}
           onClick={() => navigate('/properties/new')}
-          className="fixed bottom-4 right-4 z-40 size-10 rounded-full min-[900px]:hidden bg-[var(--card)] text-[var(--accent)] border border-solid border-[var(--accent)] shadow-[var(--shadow-pop)] hover:bg-[var(--accent-soft)]"
+          className="fixed bottom-4 end-4 z-40 size-10 rounded-full border-solid border-primary bg-card text-primary shadow-lg hover:bg-primary-soft hover:text-primary min-[900px]:hidden"
         >
           <Add size={20} strokeWidth={1.75} />
         </Button>

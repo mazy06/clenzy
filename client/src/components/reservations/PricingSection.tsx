@@ -16,20 +16,20 @@ interface Props {
 const segTabCls = (on: boolean) =>
   cn(
     'inline-flex flex-1 cursor-pointer items-center justify-center gap-[5px] rounded-[7px] border-0 p-[7px]',
-    '[font-family:inherit] text-[12px] font-semibold whitespace-nowrap',
+    '[font-family:inherit] text-xs font-semibold whitespace-nowrap',
     'transition-[background,color] duration-[140ms]',
-    'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]',
+    'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary',
     on
-      ? 'bg-[var(--card)] text-[var(--accent)] shadow-[0_1px_3px_rgba(21,36,45,.12)]'
-      : 'bg-transparent text-[var(--muted)] shadow-none',
+      ? 'bg-card text-primary shadow-sm'
+      : 'bg-transparent text-muted-foreground shadow-none',
   );
 
 // Transposition en classes de SEC_SX (.rm-sec) — la constante reste exportee
 // dans reservationDialogStyles pour les consommateurs sx eventuels.
-const SEC_CLS = 'cn-text-body1 text-[10.5px] font-bold tracking-[0.08em] uppercase text-[var(--faint)]';
+const SEC_CLS = 'text-2xs font-bold tracking-[0.08em] uppercase text-faint';
 
 // Ligne de detail du recap (override / menage / taxe de sejour).
-const RECAP_LINE_CLS = 'cn-text-body1 text-[12.5px] text-[var(--muted)] mt-[2px] tabular-nums';
+const RECAP_LINE_CLS = 'text-[12.5px] text-muted-foreground mt-[2px] tabular-nums';
 
 /**
  * Tarification : base /nuit DYNAMIQUE (PriceEngine, lecture seule) + override
@@ -61,7 +61,7 @@ const PricingSection: React.FC<Props> = ({ form }) => {
       <FieldLabel htmlFor="pricing-base-per-night">{t('reservations.dialog.basePerNight')}</FieldLabel>
       <InputGroup>
         <InputGroupAddon>
-          <span className="text-[var(--faint)] text-[14px] font-semibold">€</span>
+          <span className="text-faint text-sm font-semibold">€</span>
         </InputGroupAddon>
         <InputGroupInput
           id="pricing-base-per-night"
@@ -72,9 +72,9 @@ const PricingSection: React.FC<Props> = ({ form }) => {
         {(form.pricingLoading || form.priceVaries) && (
           <InputGroupAddon align="inline-end">
             {form.pricingLoading ? (
-              <Spinner className="size-3.5 text-[var(--accent)]" />
+              <Spinner className="size-3.5 text-primary" />
             ) : (
-              <span className="rounded-[6px] bg-[var(--accent-soft)] px-1.5 py-[2px] text-[10px] font-bold uppercase tracking-[0.04em] whitespace-nowrap text-[var(--accent)]">
+              <span className="rounded-sm bg-primary-soft px-1.5 py-[2px] text-2xs font-bold uppercase tracking-[0.04em] whitespace-nowrap text-primary">
                 {t('reservations.dialog.priceVariable')}
               </span>
             )}
@@ -121,7 +121,7 @@ const PricingSection: React.FC<Props> = ({ form }) => {
       {/* Onglets tarification (.rm-tariftabs) */}
       <div
         className={cn(
-          'inline-flex w-full gap-[2px] rounded-[10px] border border-solid border-[var(--field-line)] bg-[var(--field)] p-[3px]',
+          'inline-flex w-full gap-[2px] rounded-lg border border-solid border-field-line bg-field p-[3px]',
           locked && 'opacity-50 pointer-events-none',
         )}
       >
@@ -141,12 +141,12 @@ const PricingSection: React.FC<Props> = ({ form }) => {
 
       {/* Récap (.rm-recap) */}
       {form.numberOfNights > 0 && (
-        <div className="rounded-[12px] bg-[var(--accent-soft)] px-4 py-[14px]">
-          <p className="cn-text-body1 text-[13px] text-[var(--body)] tabular-nums">
+        <div className="rounded-[12px] bg-primary-soft px-4 py-[14px]">
+          <p className="text-[13px] text-foreground tabular-nums">
             {form.nightsText} · {t('reservations.dialog.accommodation')} :{' '}
-            <b className="text-[var(--ink)]">{form.baseAccommodationTotal.toFixed(2)} €</b>
+            <b className="text-foreground">{form.baseAccommodationTotal.toFixed(2)} €</b>
             {form.priceVaries && (
-              <span className="text-[var(--accent)] font-semibold"> · {t('reservations.dialog.priceVariable')}</span>
+              <span className="text-primary font-semibold"> · {t('reservations.dialog.priceVariable')}</span>
             )}
           </p>
           {overrideActive && (
@@ -164,7 +164,7 @@ const PricingSection: React.FC<Props> = ({ form }) => {
               + {t('reservations.dialog.touristTaxLine')} : {form.touristTaxAmount.toFixed(2)} €
             </p>
           )}
-          <p className="cn-text-body1 [font-family:var(--font-display)] text-[17px] font-semibold text-[var(--accent-deep)] mt-[6px] tabular-nums">
+          <p className="[font-family:var(--font-display)] text-[17px] font-semibold text-primary-deep mt-[6px] tabular-nums">
             {t('reservations.dialog.total')} : {form.totalPrice.toFixed(2)} €
           </p>
         </div>

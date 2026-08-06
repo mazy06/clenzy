@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Skeleton } from '../../components/ui';
+import { Badge, Button, Skeleton } from '../../components/ui';
 import { cn } from '../../utils/cn';
-import StatusChip from '../../components/StatusChip';
 import { CleaningServices, TrendingUp, Timer, CheckCircle } from '../../icons';
 import { useWatch } from 'react-hook-form';
 import type { Control, UseFormSetValue } from 'react-hook-form';
@@ -18,131 +17,62 @@ import type { PropertyFormValues } from '../../schemas';
 // Prix conseillé = MÉDIANE mise en avant (ancrage), fourchette min–max discrète,
 // durée normée, et décomposition transparente des minutes (pattern price book).
 
-// ─── Stable sx constants ────────────────────────────────────────────────────
+// ─── Gabarits (Baitly UI) ───────────────────────────────────────────────────
 
-const TITLE_SX = {
-  fontSize: '10.5px',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '.06em',
-  color: 'var(--faint)',
-  whiteSpace: 'nowrap',
-} as const;
-
-/** Report en classes de `TITLE_SX`. */
-const TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)] whitespace-nowrap';
+const TITLE_CLASS = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap';
 
 const CARDS_ROW_CLASS = 'grid grid-cols-[1fr_1fr_1fr] gap-3 max-[700px]:grid-cols-[1fr]';
 
-// Carte option sélectionnable : tuile hairline, sélection accent-soft + bordure accent.
+// Carte option sélectionnable : tuile hairline ; la sélection se dit par le
+// fond `primary-soft` et un filet d'1 px, jamais par une bande latérale.
 const PRICE_CARD_CLASS =
-  'relative flex flex-col items-center justify-center gap-[4.5px] py-[15px] px-3 rounded-[13px] '
-  + 'border border-solid cursor-pointer '
-  + 'focus-visible:[outline:2px_solid_var(--accent)] focus-visible:[outline-offset:2px]';
-
-/** Prix conseillé (médiane) : l'ancre visuelle, en avant. */
-const RECOMMENDED_SX = {
-  fontFamily: 'var(--font-display)',
-  fontSize: '22px',
-  fontWeight: 600,
-  color: 'var(--accent)',
-  whiteSpace: 'nowrap',
-  lineHeight: 1.2,
-  fontVariantNumeric: 'tabular-nums',
-  letterSpacing: '-.01em',
-} as const;
-
-const RECOMMENDED_SECONDARY_SX = {
-  ...RECOMMENDED_SX,
-  fontSize: '19px',
-  color: 'var(--ink)',
-} as const;
+  'relative flex flex-col items-center justify-center gap-[4.5px] py-[15px] px-3 rounded-xl '
+  + 'border border-solid cursor-pointer transition-colors duration-150 motion-reduce:transition-none '
+  + 'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2';
 
 /**
- * Report en classes de `RECOMMENDED_SX` / `RECOMMENDED_SECONDARY_SX`.
- * `[font-family:…]` (propriete arbitraire) et non `font-[…]` : ce dernier se
- * lit comme une graisse et non comme une famille.
+ * Prix conseillé (médiane) : l'ancre visuelle. Les tailles des valeurs
+ * chiffrées restent explicites — c'est une hiérarchie d'affichage propre à la
+ * tuile, pas du corps de texte. `[font-family:…]` (propriété arbitraire) et non
+ * `font-[…]` : ce dernier se lit comme une graisse et non comme une famille.
  */
 const RECOMMENDED_CLASS =
-  '[font-family:var(--font-display)] text-[22px] font-semibold text-[var(--accent)] '
+  '[font-family:var(--font-display)] text-[22px] font-semibold text-primary '
   + 'whitespace-nowrap leading-[1.2] tabular-nums tracking-[-.01em]';
 
 const RECOMMENDED_SECONDARY_CLASS =
-  '[font-family:var(--font-display)] text-[19px] font-semibold text-[var(--ink)] '
+  '[font-family:var(--font-display)] text-[19px] font-semibold text-foreground '
   + 'whitespace-nowrap leading-[1.2] tabular-nums tracking-[-.01em]';
 
 /** Fourchette min–max : discrète, sous la médiane. */
-const RANGE_SX = {
-  fontSize: '11.5px',
-  color: 'var(--muted)',
-  lineHeight: 1,
-  fontVariantNumeric: 'tabular-nums',
-} as const;
+const RANGE_CLASS = 'text-xs text-muted-foreground leading-[1] tabular-nums';
 
-/** Report en classes de `RANGE_SX`. */
-const RANGE_CLASS = 'text-[11.5px] text-[var(--muted)] leading-[1] tabular-nums';
+const PER_LABEL_CLASS = 'text-xs text-muted-foreground leading-[1]';
 
-const PER_LABEL_SX = {
-  fontSize: '11px',
-  color: 'var(--muted)',
-  lineHeight: 1,
-} as const;
+const HINT_CLASS = 'text-xs text-muted-foreground italic text-center py-[18px]';
 
-/** Report en classes de `PER_LABEL_SX`. */
-const PER_LABEL_CLASS = 'text-[11px] text-[var(--muted)] leading-[1]';
-
-const HINT_SX = {
-  fontSize: '12.5px',
-  color: 'var(--muted)',
-  fontStyle: 'italic',
-  textAlign: 'center',
-  py: 3,
-} as const;
-
-/** Report en classes de `HINT_SX`. */
-const HINT_CLASS = 'text-[12.5px] text-[var(--muted)] italic text-center py-[18px]';
-
-// Bandeau durée : pattern alerte -soft pleine largeur (accent).
+// Bandeau durée : encart pastel pleine largeur.
 const DURATION_BANNER_CLASS =
-  'flex items-center justify-center gap-1.5 py-[7.5px] px-3 mb-3 rounded-[11px] '
-  + 'border border-solid border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[var(--accent-soft)]';
+  'flex items-center justify-center gap-1.5 py-[7.5px] px-3 mb-3 rounded-lg '
+  + 'border border-solid border-primary/30 bg-primary-soft';
 
-const DURATION_VALUE_SX = {
-  fontFamily: 'var(--font-display)',
-  fontSize: '17px',
-  fontWeight: 600,
-  color: 'var(--accent)',
-  lineHeight: 1.2,
-  fontVariantNumeric: 'tabular-nums',
-} as const;
-
-/** Report en classes de `DURATION_VALUE_SX`. */
 const DURATION_VALUE_CLASS =
-  '[font-family:var(--font-display)] text-[17px] font-semibold text-[var(--accent)] leading-[1.2] tabular-nums';
+  '[font-family:var(--font-display)] text-[17px] font-semibold text-primary leading-[1.2] tabular-nums';
 
-const DURATION_LABEL_SX = {
-  fontSize: '11.5px',
-  fontWeight: 500,
-  color: 'var(--body)',
-} as const;
-
-/** Report en classes de `DURATION_LABEL_SX`. */
-const DURATION_LABEL_CLASS = 'text-[11.5px] font-medium text-[var(--body)]';
+const DURATION_LABEL_CLASS = 'text-xs font-medium text-foreground';
 
 // Décomposition minutes (pattern price book) : lignes hairline lisibles.
-const BREAKDOWN_CLASS = 'mt-3 border border-solid border-[var(--line)] rounded-[11px] overflow-hidden';
+const BREAKDOWN_CLASS = 'mt-3 border border-solid border-border rounded-lg overflow-hidden';
 
 // Le selecteur d'origine ('& + &') posait un filet entre deux lignes consecutives :
 // toutes les lignes sauf la premiere, la liste ne contenant que des lignes.
+// `border-solid` est obligatoire : sans preflight, une largeur seule reste invisible.
 const BREAKDOWN_ROW_CLASS =
   'flex items-center justify-between px-[10.5px] py-[4.5px] '
-  + '[&:not(:first-child)]:[border-top:1px_solid_var(--line)]';
+  + '[&:not(:first-child)]:border-t [&:not(:first-child)]:border-solid [&:not(:first-child)]:border-border';
 
-const ADOPT_BTN_CLASS =
-  'inline-flex items-center gap-[7px] h-8 px-[14px] py-0 rounded-[10px] '
-  + 'border border-solid border-[var(--accent)] bg-transparent text-[var(--accent)] '
-  + '[font-family:inherit] text-[12px] font-semibold cursor-pointer hover:bg-[var(--accent-soft)] '
-  + 'focus-visible:[outline:2px_solid_var(--accent)] focus-visible:[outline-offset:2px]';
+/** Puce du type de ménage : puce de SÉLECTION, donc filet visible et fond plein une fois choisie. */
+const TYPE_BADGE_CLASS = 'h-[22px] rounded-md px-1.5 text-[0.6875rem] font-semibold border border-solid';
 
 // ─── Types & helpers ─────────────────────────────────────────────────────────
 
@@ -253,20 +183,20 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
   // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="border border-solid border-[var(--line)] rounded-[14px] bg-[var(--card)] mb-3 px-[15px] py-3">
+    <div className="border border-solid border-border rounded-xl bg-card mb-3 px-[15px] py-3">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-[4.5px]">
-          <span className="inline-flex text-[var(--accent)]"><CleaningServices size={20} strokeWidth={1.75} /></span>
-          <p className={cn(TITLE_CLASS, 'cn-text-body1')}>
+          <span className="inline-flex text-primary"><CleaningServices size={20} strokeWidth={1.75} /></span>
+          <p className={TITLE_CLASS}>
             {t('properties.priceEstimation.title')}
           </p>
         </div>
 
         {preview && (
           <div className="flex items-center gap-[3px]">
-            <span className="inline-flex text-[var(--muted)]"><TrendingUp size={13} strokeWidth={1.75} /></span>
-            <p className={cn(PER_LABEL_CLASS, 'cn-text-body1')}>
+            <span className="inline-flex text-muted-foreground"><TrendingUp size={13} strokeWidth={1.75} /></span>
+            <p className={PER_LABEL_CLASS}>
               {t('properties.cleaningEstimator.engineBadge')}
             </p>
           </div>
@@ -276,16 +206,16 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
       {/* Duration banner — durée normée du moteur pour le type sélectionné */}
       {selectedQuote != null && (
         <div className={DURATION_BANNER_CLASS}>
-          <span className="inline-flex text-[var(--accent)]"><Timer size={20} strokeWidth={1.75} /></span>
+          <span className="inline-flex text-primary"><Timer size={20} strokeWidth={1.75} /></span>
           <div className="flex items-baseline gap-1">
-            <p className={cn(DURATION_VALUE_CLASS, 'cn-text-body1')}>
+            <p className={DURATION_VALUE_CLASS}>
               {formatDuration(selectedQuote.durationMinutes)}
             </p>
-            <p className={cn(DURATION_LABEL_CLASS, 'cn-text-body1')}>
+            <p className={DURATION_LABEL_CLASS}>
               {t('properties.durationEstimation.title')}
             </p>
           </div>
-          <p className="cn-text-body1 text-[10.5px] text-[var(--muted)] italic ms-auto">
+          <p className="text-2xs text-muted-foreground italic ms-auto">
             {t('properties.durationEstimation.computed')}
           </p>
         </div>
@@ -295,7 +225,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
       {loading && (
         <div className={CARDS_ROW_CLASS}>
           {CLEANING_TYPES.map((ct) => (
-            <Skeleton key={ct} className="h-[118px] rounded-[13px]" />
+            <Skeleton key={ct} className="h-[118px] rounded-xl" />
           ))}
         </div>
       )}
@@ -324,30 +254,32 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
                   className={cn(
                     PRICE_CARD_CLASS,
                     isSelected
-                      ? 'border-[var(--accent)] bg-[var(--accent-soft)] hover:border-[var(--accent)]'
-                      : 'border-[var(--line)] bg-[var(--card)] hover:border-[var(--line-2)]',
+                      ? 'border-primary bg-primary-soft'
+                      : 'border-border bg-card hover:bg-muted/40',
                   )}
-                  style={{ transition: 'border-color .14s, background-color .14s' }}
                 >
-                  {isSelected && <span className="absolute top-[6px] end-[6px] inline-flex text-[var(--accent)]"><CheckCircle size={18} strokeWidth={1.75} /></span>}
-                  <StatusChip
-                    label={t(`properties.priceEstimation.cleaningTypes.${type}`)}
-                    tokens={isSelected
-                      ? { color: 'var(--accent)', bg: 'var(--card)' }
-                      : { color: 'var(--muted)', bg: 'var(--field)' }}
-                    className="border border-solid"
-                    sx={{ borderColor: isSelected ? 'var(--accent)' : 'var(--field-line)' }}
-                  />
+                  {isSelected && <span className="absolute top-[6px] end-[6px] inline-flex text-primary"><CheckCircle size={18} strokeWidth={1.75} /></span>}
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      TYPE_BADGE_CLASS,
+                      isSelected
+                        ? 'border-primary bg-card text-primary'
+                        : 'border-field-line bg-field text-muted-foreground',
+                    )}
+                  >
+                    {t(`properties.priceEstimation.cleaningTypes.${type}`)}
+                  </Badge>
                   {/* Médiane = ancre visuelle */}
-                  <p className={cn(isSelected ? RECOMMENDED_CLASS : RECOMMENDED_SECONDARY_CLASS, 'cn-text-body1')}>
+                  <p className={isSelected ? RECOMMENDED_CLASS : RECOMMENDED_SECONDARY_CLASS}>
                     <Money value={quote.recommended} from="EUR" decimals={0} />
                   </p>
                   {/* Fourchette discrète */}
-                  <p className={cn(RANGE_CLASS, 'cn-text-body1')}>
+                  <p className={RANGE_CLASS}>
                     <Money value={quote.min} from="EUR" decimals={0} /> – <Money value={quote.max} from="EUR" decimals={0} />
                     {' · '}{formatDuration(quote.durationMinutes)}
                   </p>
-                  <p className={cn(PER_LABEL_CLASS, 'cn-text-body1')}>
+                  <p className={PER_LABEL_CLASS}>
                     {t('properties.priceEstimation.perIntervention')}
                   </p>
                 </div>
@@ -360,26 +292,28 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
             <div className="flex items-center gap-2 mt-3">
               {adopted ? (
                 <div className="inline-flex items-center gap-1">
-                  <span className="inline-flex text-[var(--ok,_var(--accent))]">
+                  <span className="inline-flex text-success">
                     <CheckCircle size={15} strokeWidth={1.75} />
                   </span>
-                  <p className="cn-text-body1 text-[12px] font-semibold text-[var(--body)]">
+                  <p className="text-xs font-semibold text-success-ink">
                     {t('properties.cleaningEstimator.adopted')}
                   </p>
                 </div>
               ) : (
-                <button
+                // `type="button"` explicite : l'estimateur vit dans le formulaire
+                // de logement, un bouton sans type le soumettrait.
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => setValue('cleaningBasePrice', Number(recommendedStandard), { shouldDirty: true })}
-                  className={ADOPT_BTN_CLASS}
-                  style={{ transition: 'background .14s, color .14s' }}
                 >
                   <CheckCircle size={14} strokeWidth={1.75} />
                   {t('properties.cleaningEstimator.adoptAsBasePrice')}
-                </button>
+                </Button>
               )}
               {cleaningBasePrice != null && Number(cleaningBasePrice) > 0 && !adopted && (
-                <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums">
+                <p className="text-xs text-muted-foreground tabular-nums">
                   {t('properties.cleaningEstimator.currentBasePrice')} : <Money value={Number(cleaningBasePrice)} from="EUR" decimals={0} />
                 </p>
               )}
@@ -389,20 +323,20 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
           {/* Décomposition minutes — transparence du conseil (pattern price book) */}
           {breakdownEntries.length > 0 && (
             <div className={BREAKDOWN_CLASS}>
-              <div className={cn(BREAKDOWN_ROW_CLASS, 'bg-[var(--surface-2)]')}>
-                <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
+              <div className={cn(BREAKDOWN_ROW_CLASS, 'bg-muted')}>
+                <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {t('properties.cleaningEstimator.breakdownTitle')}
                 </p>
-                <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] tabular-nums">
+                <p className="text-2xs font-semibold text-muted-foreground tabular-nums">
                   {formatDuration(breakdownEntries.reduce((sum, e) => sum + e.minutes, 0))}
                 </p>
               </div>
               {breakdownEntries.map(({ key, minutes }) => (
                 <div key={key} className={BREAKDOWN_ROW_CLASS}>
-                  <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
+                  <p className="text-xs text-muted-foreground">
                     {t(`properties.cleaningEstimator.breakdown.${key}`)}
                   </p>
-                  <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] tabular-nums">
+                  <p className="text-xs font-semibold text-foreground tabular-nums">
                     {minutes} min
                   </p>
                 </div>
@@ -411,7 +345,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
           )}
         </>
       ) : !loading ? (
-        <p className={cn(HINT_CLASS, 'cn-text-body1')}>
+        <p className={HINT_CLASS}>
           {t('properties.priceEstimation.noEstimation')}
         </p>
       ) : null}

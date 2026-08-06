@@ -3,8 +3,8 @@ import { cn } from '../utils/cn';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui';
 
 /**
- * Tooltip « riche » (contenu large) — peau popover Signature : panneau
- * hairline `--line`, r12, `--shadow-pop` (les tokens gèrent le dark mode).
+ * Tooltip « riche » (contenu large) — peau popover Baitly UI : panneau carte,
+ * filet hairline, arrondi et ombre portée (les utilities gèrent le dark mode).
  * Pour les tooltips texte courts, le TooltipContent nu du kit (encre/fond
  * inversés) suffit — ce composant est réservé aux contenus composés.
  */
@@ -54,7 +54,7 @@ export default function ThemedTooltip({
         sideOffset={6}
         className={cn(
           // `[&>svg]` vise la fleche Radix, seul svg enfant direct du contenu.
-          'max-w-[360px] rounded-[12px] border border-solid border-[var(--line)] bg-[var(--card)] px-3 py-2.5 text-[11.5px] font-medium text-[var(--body)] shadow-[var(--shadow-pop)] [&>svg]:fill-[var(--card)]',
+          'max-w-[360px] rounded-xl border border-solid border-border bg-card px-3 py-2.5 text-xs font-medium text-foreground shadow-lg [&>svg]:fill-card',
           className,
         )}
       >

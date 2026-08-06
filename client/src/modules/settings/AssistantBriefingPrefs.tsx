@@ -10,6 +10,9 @@ import {
   FieldLabel,
   FieldDescription,
   Input,
+  Item,
+  ItemContent,
+  ItemMedia,
   NativeSelect,
   NativeSelectOption,
   Separator,
@@ -175,19 +178,19 @@ export const AssistantBriefingPrefs: React.FC = () => {
             checked={prefs.enabled}
             onCheckedChange={(checked) => update('enabled', checked)}
           />
-          <FieldLabel htmlFor="briefing-enabled" className="cn-text-body2 font-semibold">
+          <FieldLabel htmlFor="briefing-enabled" className="text-xs font-semibold">
             {prefs.enabled ? 'Activé' : 'Désactivé'}
           </FieldLabel>
         </Field>
       }
     >
-      <div className={cn(prefs.enabled ? 'opacity-100' : 'opacity-50', prefs.enabled ? 'pointer-events-auto' : 'pointer-events-none')} style={{ transition: 'opacity 150ms ease' }}>
+      <div className={cn('transition-opacity duration-150 motion-reduce:transition-none', prefs.enabled ? 'opacity-100' : 'opacity-50', prefs.enabled ? 'pointer-events-auto' : 'pointer-events-none')}>
         {/* ── Ligne 1 : Frequence + Heure + Fuseau ─────────────────────── */}
         <div className="mb-[18px] grid grid-cols-[1fr] items-start gap-3 min-[600px]:grid-cols-[1fr_1fr] min-[900px]:grid-cols-[minmax(240px,_2fr)_140px_minmax(220px,_1fr)]">
           <Field>
             <FieldLabel
               htmlFor="briefing-frequency"
-              className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]"
+              className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground"
             >
               Fréquence
             </FieldLabel>
@@ -212,7 +215,7 @@ export const AssistantBriefingPrefs: React.FC = () => {
             {/* La typo overline est celle de toute la ligne (Frequence / Heure / Fuseau). */}
             <FieldLabel
               htmlFor="briefing-time-local"
-              className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]"
+              className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground"
             >
               Heure d'envoi
             </FieldLabel>
@@ -229,7 +232,7 @@ export const AssistantBriefingPrefs: React.FC = () => {
           <Field>
             <FieldLabel
               htmlFor="briefing-timezone"
-              className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]"
+              className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground"
             >
               Fuseau horaire
             </FieldLabel>
@@ -239,46 +242,49 @@ export const AssistantBriefingPrefs: React.FC = () => {
               onChange={(e) => update('timezone', e.target.value)}
               className="w-full"
             />
-            <FieldDescription className="text-[0.7rem]">{`Détecté : ${detectTimezone()}`}</FieldDescription>
+            <FieldDescription className="text-xs">{`Détecté : ${detectTimezone()}`}</FieldDescription>
           </Field>
         </div>
 
         {/* ── Ligne 2 : Canaux en grille 3 colonnes ───────────────────── */}
         <div>
-          <span className="cn-text-overline font-bold text-[var(--muted)] tracking-[0.6px] text-[0.7rem]">
+          <span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
             Canaux
           </span>
           <div className="mt-[4.5px] grid grid-cols-[1fr] min-[600px]:grid-cols-[1fr_1fr] min-[900px]:grid-cols-[repeat(3,_1fr)] gap-[9px]">
             {CHANNEL_OPTIONS.map((opt) => {
               const checked = prefs.channels.includes(opt.value);
               return (
-                <div
+                <Item
                   key={opt.value}
+                  variant="outline"
+                  size="xs"
                   onClick={() => toggleChannel(opt.value)}
                   className={cn(
-                    'flex items-start gap-1.5 p-[7.5px] rounded-[12px] border border-solid cursor-pointer',
+                    'items-start cursor-pointer',
                     'transition-[border-color,background-color] duration-150 ease-out motion-reduce:transition-none',
-                    'hover:border-[color-mix(in_srgb,var(--mui-primary)_50%,transparent)]',
-                    checked
-                      ? 'border-[var(--mui-primary)] bg-[color-mix(in_srgb,var(--mui-primary)_4%,transparent)]'
-                      : 'border-[var(--line)] bg-transparent',
+                    'hover:border-primary/50',
+                    // L'etat retenu se dit par le fond, pas par un lisere epais.
+                    checked && 'border-primary bg-primary-soft/50',
                   )}
                 >
-                  <Checkbox
-                    checked={checked}
-                    onCheckedChange={() => toggleChannel(opt.value)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="mt-[1.5px]"
-                  />
-                  <div className="min-w-0">
-                    <p className="cn-text-body2 font-semibold leading-[1.3]">
+                  <ItemMedia>
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={() => toggleChannel(opt.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="mt-[1.5px]"
+                    />
+                  </ItemMedia>
+                  <ItemContent className="min-w-0 gap-0.5">
+                    <p className="text-xs font-semibold leading-[1.3]">
                       {opt.label}
                     </p>
-                    <span className="cn-text-caption text-muted-foreground block leading-[1.4]">
+                    <span className="text-xs text-muted-foreground block leading-[1.4]">
                       {opt.description}
                     </span>
-                  </div>
-                </div>
+                  </ItemContent>
+                </Item>
               );
             })}
           </div>

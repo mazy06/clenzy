@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import StatusChip from '../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Alert as UiAlert, AlertAction, AlertDescription } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -40,7 +40,7 @@ import PageHeader from '../../components/PageHeader';
 import { FilterSearchBar } from '../../components/FilterSearchBar';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 import PaymentCheckoutModal from '../../components/PaymentCheckoutModal';
-import StatTile from '../../components/StatTile';
+import StatTile from '../../components/baitly/StatTile';
 import EmptyState from '../../components/EmptyState';
 import { Money } from '../../components/Money';
 import PagePagination from '../../components/PagePagination';
@@ -61,23 +61,15 @@ const formatDate = (dateStr: string) => {
   }
 };
 
-// ── Statuts → tokens sémantiques Signature (chips -soft : texte couleur + fond -soft) ──
-const STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
-  PAID: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  PENDING: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  PROCESSING: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-  FAILED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  REFUNDED: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-  // Neutre : pas de token sémantique dédié — repli muted/hover (pattern manquant signalé)
-  CANCELLED: { fg: 'var(--muted)', bg: 'var(--hover)' },
+// ── Statuts → ton sémantique Baitly UI (la puce applique le couple -soft / -ink) ──
+const STATUS_TONE: Record<string, StatusTone> = {
+  PAID: 'ok',
+  PENDING: 'warn',
+  PROCESSING: 'info',
+  FAILED: 'err',
+  REFUNDED: 'info',
+  CANCELLED: 'neutral',
 };
-
-/** Chip -soft : texte couleur + fond -soft (pilule/typo via thème global MuiChip) */
-const chipSx = (fg: string, bg: string) => ({
-  backgroundColor: bg,
-  color: fg,
-  '& .MuiChip-icon': { color: fg, marginLeft: '6px' },
-});
 
 const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = false }) => {
   const { t } = useTranslation();
@@ -304,13 +296,9 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
     CANCELLED: t('payments.history.cancelled'),
   };
 
-  const getStatusChip = (status: PaymentRecord['status']) => {
-    const tk = STATUS_TOKEN[status] ?? STATUS_TOKEN.CANCELLED;
-    return <StatusChip tokens={{ color: tk.fg, bg: tk.bg }} label={STATUS_LABEL[status] || status} />;
-  };
-
-  /** Type → accent palette Clenzy (fond soft dérivé du hex, sans border) */
-  const typeChipSx = (hex: string) => chipSx(hex, `${hex}18`);
+  const getStatusChip = (status: PaymentRecord['status']) => (
+    <StatusChip tone={STATUS_TONE[status] ?? 'neutral'} label={STATUS_LABEL[status] || status} />
+  );
 
   const getTypeChip = (payment: PaymentRecord) => {
     if (payment.type === 'RESERVATION') {
@@ -332,31 +320,31 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
 
   const totalDue = summary.totalPending;
 
-  // KPI StatTile — couleurs = palette accents Clenzy validée
+  // KPI StatTile — teintes d'icone Baitly UI
   const summaryCards = isAdminOrManager
     ? [
         {
           label: t('payments.history.totalPaid'),
           value: <Money value={summary.totalPaid} from="EUR" />,
-          color: '#4A9B8E',
+          iconClass: 'text-success',
           icon: <CheckCircleIcon />,
         },
         {
           label: t('payments.history.totalPending'),
           value: <Money value={summary.totalPending} from="EUR" />,
-          color: '#D4A574',
+          iconClass: 'text-warning',
           icon: <HourglassEmptyIcon />,
         },
         {
           label: t('payments.history.totalRefunded'),
           value: <Money value={summary.totalRefunded} from="EUR" />,
-          color: '#7BA3C2',
+          iconClass: 'text-info',
           icon: <MoneyOffIcon />,
         },
         {
           label: t('payments.history.transactions'),
           value: String(summary.transactionCount),
-          color: '#6B8A9A',
+          iconClass: 'text-primary',
           icon: <ReceiptIcon />,
         },
       ]
@@ -364,19 +352,19 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
         {
           label: t('payments.history.totalPaid'),
           value: <Money value={summary.totalPaid} from="EUR" />,
-          color: '#4A9B8E',
+          iconClass: 'text-success',
           icon: <CheckCircleIcon />,
         },
         {
           label: t('payments.history.totalDue'),
           value: <Money value={totalDue} from="EUR" />,
-          color: totalDue > 0 ? '#C97A7A' : '#D4A574',
+          iconClass: totalDue > 0 ? 'text-destructive' : 'text-warning',
           icon: <WarningIcon />,
         },
         {
           label: t('payments.history.transactions'),
           value: String(summary.transactionCount),
-          color: '#6B8A9A',
+          iconClass: 'text-primary',
           icon: <ReceiptIcon />,
         },
       ];
@@ -457,7 +445,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
             icon={card.icon}
             label={card.label}
             value={card.value}
-            color={card.color}
+            iconClassName={card.iconClass}
             loading={loading}
           />
         ))}
@@ -482,7 +470,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
         {/* Le `sx` d'origine posait le padding vertical par selecteur descendant sur
             toutes les cellules : garde tel quel en variantes arbitraires, plutot que
             de repeter la classe sur chacune des seize cellules. */}
-        <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)] [&_th]:py-[7.5px] [&_th]:whitespace-nowrap [&_td]:py-[7.5px]">
+        <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card [&_th]:py-[7.5px] [&_th]:whitespace-nowrap [&_td]:py-[7.5px]">
           <Table>
             <TableHeader>
               <TableRow>
@@ -510,36 +498,36 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                   onClick={() => navigate(detailPath)}
                 >
                   <TableCell>
-                    <p className="cn-text-body2 text-[12.5px] text-[var(--muted)] tabular-nums">
+                    <p className="text-xs text-muted-foreground tabular-nums">
                       {formatDate(payment.transactionDate)}
                     </p>
                   </TableCell>
                   <TableCell>
-                    <p className="cn-text-body2 font-semibold text-[12.5px] text-[var(--ink)]">
+                    <p className="text-xs font-semibold text-foreground">
                       {payment.hostName || '\u2014'}
                     </p>
                   </TableCell>
                   <TableCell>{getTypeChip(payment)}</TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-0">
-                      <p className="cn-text-body2 font-semibold text-[12.5px] text-[var(--ink)] leading-[1.3]">
+                      <p className="text-xs font-semibold text-foreground leading-[1.3]">
                         {payment.description}
                       </p>
                       {payment.subDescription && (
-                        <span className="cn-text-caption text-[11px] text-[var(--muted)] tabular-nums leading-[1.2]">
+                        <span className="text-[11px] text-muted-foreground tabular-nums leading-[1.2]">
                           {payment.subDescription}
                         </span>
                       )}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <p className="cn-text-body2 text-[12.5px] text-[var(--body)]">
+                    <p className="text-xs text-foreground">
                       {payment.propertyName}
                     </p>
                   </TableCell>
                   <TableCell className="text-end">
                     {/* Montant : display tabular-nums, encre \u2014 jamais proportional */}
-                    <p className="cn-text-body2 font-[family-name:var(--font-display)] tabular-nums font-semibold text-[0.8125rem] text-[var(--ink)]">
+                    <p className="font-[family-name:var(--font-display)] tabular-nums font-semibold text-[0.8125rem] text-foreground">
                       <Money value={payment.amount} from={payment.currency ?? 'EUR'} />
                     </p>
                   </TableCell>
@@ -581,10 +569,10 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                                   handleSendPaymentLink(payment);
                                 }}
                                 disabled={sendingPaymentLink === payment.referenceId}
-                                className="text-[var(--info)] hover:bg-[var(--info-soft)] hover:text-[var(--info)] disabled:opacity-45"
+                                className="text-info hover:bg-info-soft hover:text-info disabled:opacity-45"
                               >
                                 {sendingPaymentLink === payment.referenceId ? (
-                                  <Spinner className="size-3.5 text-[var(--info)]" />
+                                  <Spinner className="size-3.5 text-info" />
                                 ) : (
                                   <SendIcon size={16} strokeWidth={1.75} />
                                 )}
@@ -607,10 +595,10 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                                   handlePay(payment);
                                 }}
                                 disabled={processingPayment === payment.referenceId}
-                                className="text-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] disabled:opacity-45"
+                                className="text-primary hover:bg-primary-soft hover:text-primary disabled:opacity-45"
                               >
                                 {processingPayment === payment.referenceId ? (
-                                  <Spinner className="size-3.5 text-[var(--accent)]" />
+                                  <Spinner className="size-3.5 text-primary" />
                                 ) : (
                                   <PaymentIcon size={16} strokeWidth={1.75} />
                                 )}
@@ -635,10 +623,10 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                                   handleRefundClick(payment);
                                 }}
                                 disabled={refundingPayment === payment.referenceId}
-                                className="text-[var(--err)] hover:bg-[var(--err-soft)] hover:text-[var(--err)] disabled:opacity-45"
+                                className="text-destructive hover:bg-destructive-soft hover:text-destructive disabled:opacity-45"
                               >
                                 {refundingPayment === payment.referenceId ? (
-                                  <Spinner className="size-3.5 text-[var(--err)]" />
+                                  <Spinner className="size-3.5 text-destructive" />
                                 ) : (
                                   <MoneyOffIcon size={16} strokeWidth={1.75} />
                                 )}
@@ -692,12 +680,12 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
           </DialogHeader>
           <div>
             {refundTarget && (
-              <p className="cn-text-body2 mb-1.5">
+              <p className="text-xs mb-1.5">
                 Voulez-vous rembourser <strong><Money value={refundTarget.amount} from={refundTarget.currency ?? 'EUR'} /></strong> pour
                 <strong> {refundTarget.description}</strong> ?
               </p>
             )}
-            <span className="cn-text-caption text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               Cette action est irréversible. Le montant sera remboursé via Stripe.
             </span>
             {refundError && (
@@ -739,7 +727,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
             <DialogTitle>Email du client</DialogTitle>
           </DialogHeader>
           <div>
-            <p className="cn-text-body2 mb-3 text-muted-foreground">
+            <p className="text-xs mb-3 text-muted-foreground">
               Aucune adresse email n'est renseignée pour cette réservation. Veuillez saisir l'email du client pour envoyer le lien de paiement.
             </p>
             <Field>

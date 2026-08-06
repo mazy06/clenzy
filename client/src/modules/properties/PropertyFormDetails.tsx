@@ -1,5 +1,4 @@
 import React, { useCallback } from 'react';
-import { cn } from '../../utils/cn';
 import {
   Field,
   FieldError,
@@ -22,36 +21,16 @@ import type { Control, FieldErrors } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { PropertyFormValues } from '../../schemas';
 
-// ─── Stable sx constants ────────────────────────────────────────────────────
+// ─── Stable class constants ─────────────────────────────────────────────────
 
-const SECTION_TITLE_SX = {
-  fontSize: '0.6875rem',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  color: 'text.secondary',
-  mb: 1.5,
-} as const;
+/** Titre de section — echelle « overline » de Baitly UI. */
+const SECTION_TITLE_CLASS = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-[9px]';
 
-/** Report en classes de `SECTION_TITLE_SX`. */
-const SECTION_TITLE_CLASS = 'text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-[var(--muted)] mb-[9px]';
+/** Titre de categorie d'equipements. */
+const CATEGORY_TITLE_CLASS = 'text-xs font-semibold text-foreground mb-[4.5px]';
 
-const CATEGORY_TITLE_SX = {
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  color: 'text.primary',
-  mb: 0.75,
-} as const;
-
-/** Report en classes de `CATEGORY_TITLE_SX`. */
-const CATEGORY_TITLE_CLASS = 'text-[0.75rem] font-semibold text-[var(--ink)] mb-[4.5px]';
-
-const CHECKBOX_LABEL_SX = {
-  fontSize: '0.8125rem',
-} as const;
-
-/** Report en classes de `CHECKBOX_LABEL_SX`. */
-const CHECKBOX_LABEL_CLASS = 'text-[0.8125rem]';
+/** Libelle de case a cocher — poids normal, contraste plein. */
+const CHECKBOX_LABEL_CLASS = 'text-[0.8125rem] font-normal';
 
 // ─── Amenities configuration ────────────────────────────────────────────────
 
@@ -78,7 +57,7 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
 
     return (
       <div>
-        <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
+        <p className={SECTION_TITLE_CLASS}>
           {t('properties.characteristics')}
         </p>
 
@@ -261,7 +240,7 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
 
         {/* ─── Amenities Section ─────────────────────────────────────────── */}
         <div className="mt-4">
-          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
+          <p className={SECTION_TITLE_CLASS}>
             {t('properties.amenities.title')}
           </p>
 
@@ -272,7 +251,7 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
               <div className="flex flex-col gap-3">
                 {AMENITIES_CATEGORIES.map((category) => (
                   <div key={category.key}>
-                    <p className={cn(CATEGORY_TITLE_CLASS, 'cn-text-body1')}>
+                    <p className={CATEGORY_TITLE_CLASS}>
                       {t(`properties.amenities.categories.${category.key}`)}
                     </p>
                     <div className="grid grid-cols-12 gap-[3px]">
@@ -293,7 +272,7 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                               />
                               <FieldLabel
                                 htmlFor={`property-amenity-${amenity}`}
-                                className={cn(CHECKBOX_LABEL_CLASS, 'cn-text-body1 font-normal')}
+                                className={CHECKBOX_LABEL_CLASS}
                               >
                                 {t(`properties.amenities.items.${amenity}`)}
                               </FieldLabel>

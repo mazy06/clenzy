@@ -83,7 +83,7 @@ export default function IntegrationsWhatsAppConfig() {
             size="icon-sm"
             onClick={() => setOpen(true)}
             aria-label="Configurer WhatsApp"
-            className={configured ? 'text-[var(--muted)]' : 'text-[var(--warn)]'}
+            className={configured ? 'text-muted-foreground' : 'text-warning'}
           >
             <Settings2 size={16} strokeWidth={2} />
           </Button>
@@ -106,7 +106,7 @@ export default function IntegrationsWhatsAppConfig() {
             onClick={() => setDisconnectOpen(true)}
             disabled={disconnect.isPending}
             aria-label="Déconnecter WhatsApp"
-            className="text-[var(--muted)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+            className="text-muted-foreground hover:text-destructive-ink hover:bg-destructive-soft"
           >
             <LinkOffIcon size={16} strokeWidth={2} />
           </Button>
@@ -123,7 +123,7 @@ export default function IntegrationsWhatsAppConfig() {
             size="icon-sm"
             onClick={() => setOpen(true)}
             aria-label="Connecter WhatsApp"
-            className="text-[var(--ok)] hover:bg-[var(--ok-soft)]"
+            className="text-success-ink hover:bg-success-soft"
           >
             <LinkIcon size={16} strokeWidth={2} />
           </Button>
@@ -139,10 +139,10 @@ export default function IntegrationsWhatsAppConfig() {
     <>
       {/* Section + card : design identique aux cartes IoT (Objets connectés). */}
       <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5">
-        <p className="cn-text-body1 text-[0.82rem] font-semibold mb-0.5">
+        <p className="text-sm font-semibold tracking-tight mb-0.5">
           Messagerie
         </p>
-        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
+        <p className="text-xs text-muted-foreground mb-0.5">
           Envoyez vos messages WhatsApp via l'API native du provider, sans intermédiaire.
           Compte WhatsApp unique pour toute la plateforme.
         </p>
@@ -179,15 +179,15 @@ export default function IntegrationsWhatsAppConfig() {
       <IntegrationConfigDialog open={open} onClose={closeConfig} maxWidth="lg">
         <Card className="gap-0 py-0 overflow-hidden">
           {/* Header — uniforme avec les autres modales d'intégration. */}
-          <div className="px-3 py-2.5 flex items-center gap-2 border-b border-[var(--line)]">
-            <div className="w-[40px] h-[40px] rounded-[10px] inline-flex items-center justify-center shrink-0 text-[0.85rem] font-bold tracking-[-0.02em]" style={{ backgroundColor: service.brandColor, color: service.brandTextColor }} aria-hidden="true">
+          <div className="px-3 py-2.5 flex items-center gap-2 border-b border-border">
+            <div className="size-10 rounded-lg inline-flex items-center justify-center shrink-0 text-sm font-bold tracking-[-0.02em]" style={{ backgroundColor: service.brandColor, color: service.brandTextColor }} aria-hidden="true">
               WA
             </div>
             <div className="flex-1 min-w-0">
-              <p className="cn-text-body1 text-[0.92rem] font-semibold">
+              <p className="text-base font-semibold tracking-tight text-balance">
                 {service.name}
               </p>
-              <p className="cn-text-body1 text-[0.74rem] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {service.shortDescription}
               </p>
             </div>

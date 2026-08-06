@@ -36,7 +36,7 @@ import { guestsApi } from '../../services/api/guestsApi';
 import { documentsApi, type DocumentGeneration } from '../../services/api/documentsApi';
 import { useGenerations, useVerifyDocumentIntegrity } from './hooks/useDocuments';
 import GenerateDialog from './GenerateDialog';
-import FilterChipRow from '../../components/FilterChipRow';
+import FilterChipRow from '../../components/baitly/FilterChipRow';
 import EmptyState from '../../components/EmptyState';
 import { renderServerEmailPreview } from '../../utils/emailMarkdown';
 import PagePagination from '../../components/PagePagination';
@@ -48,23 +48,30 @@ import { cn } from '../../utils/cn';
 // suivantes au lieu de les preceder.
 const INLINE_LINK_BTN_CLS =
   'inline-flex cursor-pointer appearance-none items-center gap-1 border-0 bg-transparent p-0 '
-  + '[font-family:inherit] text-[12.5px] font-semibold whitespace-nowrap text-[var(--accent)] '
-  + 'hover:text-[var(--accent-deep)] '
-  + 'focus-visible:rounded-[6px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]';
+  + '[font-family:inherit] text-[12.5px] font-semibold whitespace-nowrap text-primary '
+  + 'hover:text-primary-deep '
+  + 'focus-visible:rounded-[6px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type HistoryFilter = 'all' | 'messages' | 'documents';
 
-/** Ton sémantique (tokens Signature) pour les chips de statut -soft. */
+/**
+ * Ton sémantique (tokens Baitly UI) pour les chips de statut -soft.
+ *
+ * <p>L'encre est le jeton `-ink` : ces tons habillent du TEXTE, et la teinte
+ * vive plafonne à ~2,2:1 sur `bg-card`. La couleur étant résolue à l'exécution
+ * (table de statuts), elle reste une valeur CSS — Tailwind n'émet ses classes
+ * qu'à la compilation.</p>
+ */
 interface Tone { c: string; bg: string }
 
 const TONES: Record<'ok' | 'warn' | 'err' | 'info' | 'muted', Tone> = {
-  ok:    { c: 'var(--ok)',    bg: 'var(--ok-soft)' },
-  warn:  { c: 'var(--warn)',  bg: 'var(--warn-soft)' },
-  err:   { c: 'var(--err)',   bg: 'var(--err-soft)' },
-  info:  { c: 'var(--info)',  bg: 'var(--info-soft)' },
-  muted: { c: 'var(--muted)', bg: 'var(--hover)' },
+  ok:    { c: 'var(--bui-success-ink)',      bg: 'var(--bui-success-soft)' },
+  warn:  { c: 'var(--bui-warning-ink)',      bg: 'var(--bui-warning-soft)' },
+  err:   { c: 'var(--bui-destructive-ink)',  bg: 'var(--bui-destructive-soft)' },
+  info:  { c: 'var(--bui-info-ink)',         bg: 'var(--bui-info-soft)' },
+  muted: { c: 'var(--bui-muted-foreground)', bg: 'var(--bui-muted)' },
 };
 
 interface UnifiedRow {
@@ -89,7 +96,7 @@ interface UnifiedRow {
   correctsId?: number;
 }
 
-// ─── Status Configs (tokens Signature) ──────────────────────────────────────
+// ─── Status Configs (tokens Baitly UI) ──────────────────────────────────────
 
 const MSG_STATUS: Record<string, { tone: Tone; label: string }> = {
   SENT: { tone: TONES.ok, label: 'Envoye' },
@@ -115,9 +122,12 @@ const CHANNEL_LABELS: Record<string, string> = {
   SMS: 'SMS',
 };
 
-/** Couleur de pastille par canal — constantes messagerie validées + token info. */
+/**
+ * Couleur de pastille par canal — aplats pleins, donc TEINTE VIVE (et non `-ink`,
+ * réservé au texte). Les deux hex sont des couleurs de marque de canal.
+ */
 const CHANNEL_PASTILLE: Record<string, { bg: string; icon: React.ReactNode }> = {
-  EMAIL: { bg: 'var(--info)', icon: <EmailIcon size={15} strokeWidth={1.75} /> },
+  EMAIL: { bg: 'var(--bui-info)', icon: <EmailIcon size={15} strokeWidth={1.75} /> },
   WHATSAPP: { bg: '#25A36F', icon: <ForumIcon size={15} strokeWidth={1.75} /> },
   SMS: { bg: '#C28A52', icon: <SmsIcon size={15} strokeWidth={1.75} /> },
 };
@@ -407,8 +417,8 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
       <div className="mb-3">
         <FilterChipRow
           options={[
-            { value: 'messages', label: t('documents.history.filterMessages'), color: 'var(--info)', count: messageLogs.length },
-            { value: 'documents', label: t('documents.history.filterDocuments'), color: 'var(--accent)', count: docTotalElements },
+            { value: 'messages', label: t('documents.history.filterMessages'), color: 'var(--bui-info)', count: messageLogs.length },
+            { value: 'documents', label: t('documents.history.filterDocuments'), color: 'var(--bui-primary)', count: docTotalElements },
           ]}
           value={filter === 'all' ? '' : filter}
           onChange={(v) => setFilter((v === '' ? 'all' : v) as HistoryFilter)}
@@ -435,7 +445,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
             {unifiedRows.map((row) => {
               const isFailed = row.statusTone === TONES.err && (row.status === 'Echoue' || row.status === 'Rebondi');
               const pastille = row.kind === 'document'
-                ? { bg: 'var(--err)', icon: null }
+                ? { bg: 'var(--bui-destructive)', icon: null }
                 : CHANNEL_PASTILLE[(row.messageLog?.channel ?? 'EMAIL')] ?? CHANNEL_PASTILLE.EMAIL;
               const meta = [
                 formatDate(row.dateStr),
@@ -457,14 +467,14 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                     'flex items-center gap-3 rounded-[12px] border border-solid px-[15px] py-[13px]',
                     '[transition:border-color_.14s,box-shadow_.14s] motion-reduce:transition-none',
                     isFailed
-                      ? 'border-[var(--err)] bg-[var(--err-soft)]'
-                      : 'border-[var(--line)] bg-[var(--card)] hover:border-[var(--accent)] hover:shadow-[0_8px_22px_-16px_var(--accent)]',
+                      ? 'border-destructive bg-destructive-soft'
+                      : 'border-border bg-card hover:border-primary hover:shadow-[0_8px_22px_-16px_var(--bui-primary)]',
                   )}
                 >
                   {/* Pastille type 34 r9 — PDF = --err, canaux mappés sémantiquement */}
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="w-[34px] h-[34px] rounded-[9px] text-[var(--on-accent)] flex items-center justify-center shrink-0 text-[9px] font-extrabold" style={{ backgroundColor: isFailed ? 'var(--err)' : pastille.bg }}>
+                      <div className="w-[34px] h-[34px] rounded-[9px] text-primary-foreground flex items-center justify-center shrink-0 text-[9px] font-extrabold" style={{ backgroundColor: isFailed ? 'var(--bui-destructive)' : pastille.bg }}>
                         {isFailed
                           ? <AlertTriangleIcon size={15} strokeWidth={1.75} />
                           : row.kind === 'document' ? 'PDF' : pastille.icon}
@@ -478,7 +488,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                   {/* Nom + méta */}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <p className={cn('cn-text-body1 truncate text-[13px] font-semibold', isFailed ? 'text-[var(--err)]' : 'text-[var(--ink)]')}>
+                      <p className={cn('truncate text-[13px] font-semibold', isFailed ? 'text-destructive-ink' : 'text-foreground')}>
                         {row.name}
                       </p>
                       {row.legalNumber && (
@@ -490,7 +500,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                         />
                       )}
                     </div>
-                    <p className="cn-text-body1 truncate text-[11.5px] text-[var(--muted)] mt-px">
+                    <p className="truncate text-[11.5px] text-muted-foreground mt-px">
                       {isFailed && row.errorMessage ? `${row.errorMessage} · ${meta}` : meta}
                     </p>
                   </div>
@@ -530,7 +540,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                                     setEditEmailValue(row.messageLog!.recipient === 'N/A' ? '' : row.messageLog!.recipient);
                                   }}
                                   aria-label="Modifier l'email"
-                                  className="text-[var(--muted)] hover:bg-[var(--warn-soft)] hover:text-[var(--warn)]"
+                                  className="text-muted-foreground hover:bg-warning-soft hover:text-warning-ink"
                                 >
                                   <EditIcon size={16} strokeWidth={1.75} />
                                 </BuiButton>
@@ -571,8 +581,8 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                                     aria-label="Renvoyer"
                                     className={cn(
                                       canResend
-                                        ? 'text-[var(--ok)] hover:bg-[var(--ok-soft)] hover:text-[var(--ok)]'
-                                        : 'text-[var(--faint)]',
+                                        ? 'text-success-ink hover:bg-success-soft hover:text-success-ink'
+                                        : 'text-faint',
                                     )}
                                   >
                                     {resendingId === row.messageLog!.id
@@ -609,7 +619,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                                   size="icon-sm"
                                   onClick={() => handleVerify(row.documentGeneration!)}
                                   aria-label="Verifier l'integrite"
-                                  className="text-[var(--muted)] hover:bg-[var(--info-soft)] hover:text-[var(--info)]"
+                                  className="text-muted-foreground hover:bg-info-soft hover:text-info-ink"
                                 >
                                   <Fingerprint size={16} strokeWidth={1.75} />
                                 </BuiButton>
@@ -621,7 +631,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                         {row.correctsId && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="inline-flex text-[var(--muted)]"><VerifiedUser size={16} strokeWidth={1.75} /></span>
+                              <span className="inline-flex text-muted-foreground"><VerifiedUser size={16} strokeWidth={1.75} /></span>
                             </TooltipTrigger>
                             <TooltipContent>{`Correction du document #${row.correctsId}`}</TooltipContent>
                           </Tooltip>
@@ -667,20 +677,20 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
           </DialogHeader>
           {detailLog && (
             <div className="flex flex-col gap-2 pt-1.5">
-              <p className="cn-text-body2"><strong>Template :</strong> {detailLog.templateName || '—'}</p>
-              <p className="cn-text-body2"><strong>Sujet :</strong> {detailLog.subject || '—'}</p>
-              <p className="cn-text-body2"><strong>Destinataire :</strong> {detailLog.recipient}</p>
-              <p className="cn-text-body2"><strong>Voyageur :</strong> {detailLog.guestName || '—'}</p>
-              <p className="cn-text-body2"><strong>Canal :</strong> {detailLog.channel}</p>
-              <p className="cn-text-body2"><strong>Statut :</strong> {detailLog.status}</p>
+              <p className="text-xs"><strong>Template :</strong> {detailLog.templateName || '—'}</p>
+              <p className="text-xs"><strong>Sujet :</strong> {detailLog.subject || '—'}</p>
+              <p className="text-xs"><strong>Destinataire :</strong> {detailLog.recipient}</p>
+              <p className="text-xs"><strong>Voyageur :</strong> {detailLog.guestName || '—'}</p>
+              <p className="text-xs"><strong>Canal :</strong> {detailLog.channel}</p>
+              <p className="text-xs"><strong>Statut :</strong> {detailLog.status}</p>
               {detailLog.errorMessage && (
                 <BuiAlert variant="destructive" className="mt-1.5">
                   <TriangleAlert />
                   <AlertDescription>{detailLog.errorMessage}</AlertDescription>
                 </BuiAlert>
               )}
-              <p className="cn-text-body2"><strong>Reservation :</strong> #{detailLog.reservationId}</p>
-              <p className="cn-text-body2 text-muted-foreground">
+              <p className="text-xs"><strong>Reservation :</strong> #{detailLog.reservationId}</p>
+              <p className="text-xs text-muted-foreground">
                 Cree le {formatDate(detailLog.createdAt)}
                 {detailLog.sentAt && ` — Envoye le ${formatDate(detailLog.sentAt)}`}
               </p>
@@ -688,13 +698,13 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
               {/* Apercu du contenu email */}
               {detailLog.channel === 'EMAIL' && detailLog.templateId && (
                 <>
-                  <h6 className="cn-text-subtitle2 mt-1.5">Contenu de l&apos;email</h6>
+                  <h6 className="text-xs font-medium mt-1.5">Contenu de l&apos;email</h6>
                   {previewLoading ? (
                     <div className="flex justify-center py-3">
                       <Spinner className="size-6" />
                     </div>
                   ) : previewHtml ? (
-                    <div className="mt-0.5 rounded-[8px] border border-[var(--line)] overflow-hidden">
+                    <div className="mt-0.5 rounded-md border border-border overflow-hidden">
                       <iframe
                         sandbox=""
                         srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.6;color:${isDark ? '#e0e0e0' : '#333'};background:${isDark ? '#1e1e1e' : '#fff'};padding:16px;margin:0;word-wrap:break-word;}a{color:${isDark ? '#90caf9' : '#1976d2'};}</style></head><body>${renderServerEmailPreview(previewHtml)}</body></html>`}
@@ -707,7 +717,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                       />
                     </div>
                   ) : (
-                    <p className="cn-text-body2 text-muted-foreground opacity-60 italic">
+                    <p className="text-xs text-muted-foreground opacity-60 italic">
                       Apercu indisponible
                     </p>
                   )}
@@ -719,7 +729,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
           {detailLog?.status === 'FAILED' && detailLog.guestId && (
             <BuiButton
               variant="outline"
-              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              className="text-warning-ink border-warning hover:bg-warning-soft"
               onClick={() => {
                 setEditEmailLog(detailLog);
                 setEditEmailValue(detailLog.recipient === 'N/A' ? '' : detailLog.recipient);
@@ -734,7 +744,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
             const resendButton = (
               <BuiButton
                 variant="outline"
-                className="text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]"
+                className="text-success-ink border-success hover:bg-success-soft"
                 disabled={!canResend || resendingId === detailLog.id}
                 onClick={() => {
                   if (!canResend) return;
@@ -767,7 +777,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
           <DialogHeader>
             <DialogTitle>Modifier l&apos;email du voyageur</DialogTitle>
           </DialogHeader>
-          <p className="cn-text-body2 text-muted-foreground mb-3">
+          <p className="text-xs text-muted-foreground mb-3">
             Saisissez l&apos;email du voyageur pour {editEmailLog?.guestName || 'ce voyageur'}.
             Le message sera automatiquement renvoye apres la mise a jour.
           </p>
@@ -805,12 +815,12 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
           <div className="flex min-h-0 flex-col overflow-hidden">
           {pdfLoading ? (
             <div className="flex justify-center items-center flex-1">
-              <Spinner className="size-10 text-[var(--accent)]" />
+              <Spinner className="size-10 text-primary" />
             </div>
           ) : pdfUrl ? (
             <object data={pdfUrl} type="application/pdf" width="100%" style={{ flex: 1, border: 'none', minHeight: 0 }}>
               <div className="p-4 text-center">
-                <p className="cn-text-body2 text-[var(--muted)] mb-3">
+                <p className="text-xs text-muted-foreground mb-3">
                   {t('documents.history.pdfNotSupported', 'Votre navigateur ne supporte pas la visualisation PDF.')}
                 </p>
                 <BuiButton asChild>
@@ -823,7 +833,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
             </object>
           ) : (
             <div className="p-4 text-center">
-              <p className="cn-text-body2 text-[var(--muted)]">
+              <p className="text-xs text-muted-foreground">
                 {t('documents.history.pdfLoadError', 'Erreur lors du chargement du document')}
               </p>
             </div>

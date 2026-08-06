@@ -31,7 +31,7 @@ const validate = (file: File): string | null => {
  * <h4>Design rules respected</h4>
  * <ul>
  *   <li>No emoji icons, no glassmorphism.</li>
- *   <li>Soft-tinted accent (var(--accent-soft)) for the drop zone.</li>
+ *   <li>Soft-tinted accent (`bg-primary-soft`) for the drop zone.</li>
  *   <li>`prefers-reduced-motion` respected.</li>
  *   <li>Inline error feedback, no modal-first reflex.</li>
  * </ul>
@@ -98,11 +98,10 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        // borderRadius: 2 = 16px (shape.borderRadius = 8 dans le theme)
         className={cn(
-          'flex items-center gap-3 p-3 rounded-[16px] border border-dashed',
-          '[transition:border-color_150ms_ease,background-color_150ms_ease] motion-reduce:[transition:none]',
-          dragOver ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line-2)] bg-transparent',
+          'flex items-center gap-3 p-3 rounded-xl border border-dashed',
+          'transition-[border-color,background-color] duration-150 ease-out-quart motion-reduce:transition-none',
+          dragOver ? 'border-primary bg-primary-soft' : 'border-border bg-transparent',
         )}
       >
         <div className="relative shrink-0">
@@ -110,21 +109,24 @@ const AvatarUploader: React.FC<AvatarUploaderProps> = ({ user, onChange }) => {
               existe, couvre entierement l'avatar. */}
           <Avatar className="size-[72px] rounded-full">
             {photoUrl && <AvatarImage src={photoUrl} alt="" />}
-            <AvatarFallback className="text-[1.5rem] font-[family-name:var(--font-display)] font-semibold text-[var(--on-accent)] bg-[var(--accent)] rounded-full">
+            <AvatarFallback className="text-[1.5rem] font-[family-name:var(--font-display)] font-semibold text-primary-foreground bg-primary rounded-full">
               {initials}
             </AvatarFallback>
           </Avatar>
           {uploading && (
-            <div className="absolute inset-[0px] rounded-[50%] bg-[rgba(15,23,42,0.45)] flex items-center justify-center">
-              <Spinner className="size-[22px] text-[#FFFFFF]" />
+            // Voile teinte vers le bleu nuit de la marque, jamais du noir pur.
+            <div className="absolute inset-0 rounded-full bg-[rgba(15,23,42,0.45)] flex items-center justify-center">
+              <Spinner className="size-[22px] text-white" />
             </div>
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="cn-text-body1 text-[0.875rem] font-semibold">
+          {/* `m-0` : sans preflight Tailwind, un <p> natif reprend les marges UA
+              que neutralisait `cn-text-*`. */}
+          <p className="m-0 text-sm font-semibold text-foreground">
             Photo de profil
           </p>
-          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mt-0.5">
+          <p className="m-0 mt-0.5 text-xs text-muted-foreground">
             Glissez-déposez une image ou utilisez le bouton. JPEG, PNG, WebP ou GIF, 5 Mo max. La photo est
             synchronisée avec les OTA connectées.
           </p>

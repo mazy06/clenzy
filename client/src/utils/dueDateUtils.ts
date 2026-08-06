@@ -26,7 +26,15 @@ export function getDueMeta(
   return { label: target.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }), tone: 'normal' };
 }
 
-/** Couleur (token) associée au `tone` d'échéance. */
+/**
+ * Couleur (token Baitly UI) associée au `tone` d'échéance.
+ *
+ * La valeur habille du TEXTE (la valeur d'un StatTile), d'où les jetons `-ink`
+ * plutôt que les teintes vives : celles-ci plafonnent à ~2,2:1 sur une carte,
+ * très loin du seuil AA de 4,5:1.
+ */
 export function dueToneColor(tone: DueTone): string {
-  return tone === 'overdue' ? 'var(--err)' : tone === 'soon' ? 'var(--warn)' : 'var(--ink)';
+  if (tone === 'overdue') return 'var(--bui-destructive-ink)';
+  if (tone === 'soon') return 'var(--bui-warning-ink)';
+  return 'var(--bui-foreground)';
 }

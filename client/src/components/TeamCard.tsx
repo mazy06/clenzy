@@ -152,7 +152,7 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
     <Card
       onClick={handleViewDetails}
       style={{ '--team-accent': `${accent}66` } as React.CSSProperties}
-      className="h-full cursor-pointer overflow-hidden rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)] ring-0 shadow-none [--card-spacing:0px] transition-[border-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none hover:border-[var(--team-accent)] hover:shadow-[var(--shadow-card)] hover:-translate-y-px"
+      className="h-full cursor-pointer overflow-hidden rounded-xl border border-solid border-border bg-card ring-0 shadow-none [--card-spacing:0px] transition-[border-color,box-shadow,transform] duration-200 ease-out-quart motion-reduce:transition-none hover:border-[var(--team-accent)] hover:shadow-sm hover:-translate-y-px"
     >
       <CardContent className="grow p-[10.5px] pb-[7.5px]">
         {/* Header */}
@@ -162,10 +162,10 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
               <TypeIcon size={18} strokeWidth={1.75} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="cn-text-body1 font-semibold text-[0.9rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={team.name}>
+              <p className="font-semibold text-sm leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={team.name}>
                 {team.name}
               </p>
-              <p className="cn-text-body1 text-muted-foreground text-[0.7rem] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap block" title={team.description || 'Aucune description'}>
+              <p className="text-muted-foreground text-xs leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap block" title={team.description || 'Aucune description'}>
                 {team.description || 'Aucune description'}
               </p>
             </div>
@@ -174,7 +174,7 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
             variant="ghost"
             size="icon-sm"
             onClick={(e) => { e.stopPropagation(); onMenuOpen(e, team); }}
-            className="ms-[1.5px] text-[var(--muted)]"
+            className="ms-[1.5px] text-muted-foreground"
             aria-label="Options"
           >
             <MoreVert size={16} strokeWidth={1.75} />
@@ -194,11 +194,11 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
         <div className="flex items-center justify-between gap-1.5 mb-1">
           {members.length > 0 ? (
             <div className="flex items-center gap-1">
-              <AvatarGroup className="*:data-[slot=avatar]:ring-[var(--card)]">
+              <AvatarGroup className="*:data-[slot=avatar]:ring-card">
                 {shownMembers.map((member) => (
                   <Avatar key={member.id} size="sm">
                     <AvatarFallback
-                      className="text-[0.625rem] font-[family-name:var(--font-display)] font-semibold"
+                      className="text-2xs font-[family-name:var(--font-display)] font-semibold"
                       style={{ backgroundColor: `${accent}1F`, color: accent }}
                     >
                       {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
@@ -207,14 +207,14 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
                 ))}
                 {surplusMembers > 0 && (
                   <AvatarGroupCount
-                    className="text-[0.625rem] font-[family-name:var(--font-display)] font-semibold ring-[var(--card)] tabular-nums"
+                    className="text-2xs font-[family-name:var(--font-display)] font-semibold ring-card tabular-nums"
                     style={{ backgroundColor: `${accent}1F`, color: accent }}
                   >
                     +{surplusMembers}
                   </AvatarGroupCount>
                 )}
               </AvatarGroup>
-              <p className="cn-text-body1 text-[0.7rem] text-muted-foreground tabular-nums ms-0.5">
+              <p className="text-xs text-muted-foreground tabular-nums ms-0.5">
                 {members.length} {members.length > 1 ? 'membres' : 'membre'}
               </p>
             </div>
@@ -223,7 +223,7 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
               <div className="inline-flex text-muted-foreground opacity-60">
                 <PersonIcon size={13} strokeWidth={1.75} />
               </div>
-              <p className="cn-text-body1 text-[0.7rem] text-muted-foreground opacity-60">
+              <p className="text-xs text-muted-foreground opacity-60">
                 Aucun membre
               </p>
             </div>
@@ -234,7 +234,7 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
               <div className="inline-flex text-muted-foreground">
                 <Build size={12} strokeWidth={1.75} />
               </div>
-              <p className="cn-text-body1 text-[0.7rem] text-muted-foreground tabular-nums">
+              <p className="text-xs text-muted-foreground tabular-nums">
                 {team.totalInterventions}
               </p>
             </div>
@@ -246,7 +246,7 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
             <div className="inline-flex text-muted-foreground shrink-0">
               <GroupIcon size={13} strokeWidth={1.75} />
             </div>
-            <p className="cn-text-body1 text-[0.7rem] text-muted-foreground tabular-nums">
+            <p className="text-xs text-muted-foreground tabular-nums">
               Créée le {formatShortDate(team.createdAt)}
             </p>
           </div>

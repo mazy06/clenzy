@@ -67,8 +67,8 @@ interface PortfolioOverviewWidgetProps {
  *   <li>Patterns detectes : items avec icone par type + chip severity</li>
  * </ol>
  *
- * <p>Pattern « Signature » : tokens var(--…), labels overline 10.5px
- * {@code --faint}, valeurs display tabular-nums, fonds {@code -soft}.</p>
+ * <p>Habillage Baitly UI : sur-titres en petites capitales {@code text-faint},
+ * valeurs en {@code tabular-nums}, fonds sémantiques {@code -soft}.</p>
  */
 export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = ({ data }) => {
   const total = data.totalProperties ?? 0;
@@ -83,8 +83,8 @@ export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = (
   if (total === 0) {
     return (
       <div className="mt-1.5 mb-2">
-        <div className="p-4 rounded-[12px] bg-[var(--warn-soft)] text-center">
-          <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--warn)]">
+        <div className="p-4 rounded-xl bg-warning-soft text-center">
+          <p className="text-xs font-semibold text-warning-ink">
             Aucune propriete dans le portefeuille — ajoute-en une pour commencer.
           </p>
         </div>
@@ -95,7 +95,7 @@ export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = (
   return (
     <div className="mt-1.5 mb-2 flex flex-col gap-2">
       {data.title && (
-        <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
+        <p className="block text-2xs font-bold uppercase tracking-[.05em] text-faint">
           {data.title}
         </p>
       )}
@@ -131,7 +131,7 @@ export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = (
           <SectionHeader
             label="Top performers"
             icon={<TrendUpIcon size={14} />}
-            color="var(--ok)"
+            color="var(--color-success-ink)"
           />
           {/* md MUI = 900px. Le nombre de colonnes ne vaut que 1, 2 ou 3 : on enumere les
               classes plutot que de les construire (Tailwind compile en scannant le source). */}
@@ -158,7 +158,7 @@ export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = (
           <SectionHeader
             label={`Sous-performants (${underPerformers.length})`}
             icon={<TrendDownIcon size={14} />}
-            color="var(--warn)"
+            color="var(--color-warning-ink)"
           />
           <div className="flex flex-col gap-1">
             {underPerformers.map((p) => (
@@ -174,7 +174,7 @@ export const PortfolioOverviewWidget: React.FC<PortfolioOverviewWidgetProps> = (
           <SectionHeader
             label="Patterns detectes"
             icon={<WarningIcon size={14} />}
-            color="var(--err)"
+            color="var(--color-destructive-ink)"
           />
           <div className="flex flex-col gap-1">
             {patterns.map((pat, idx) => (
@@ -196,20 +196,20 @@ const StatTile: React.FC<{
   accent?: 'positive' | 'negative' | 'neutral';
 }> = ({ label, value, hint, accent = 'neutral' }) => {
   const tileBg =
-    accent === 'positive' ? 'var(--ok-soft)'
-    : accent === 'negative' ? 'var(--warn-soft)'
-    : 'var(--field)';
+    accent === 'positive' ? 'var(--color-success-soft)'
+    : accent === 'negative' ? 'var(--color-warning-soft)'
+    : 'var(--color-muted)';
 
   return (
-    <div className="px-[7.5px] py-1.5 rounded-[10px]" style={{ backgroundColor: tileBg }}>
-      <p className="cn-text-body1 block text-[var(--faint)] text-[10.5px] font-bold uppercase tracking-[.05em] mb-0.5">
+    <div className="px-[7.5px] py-1.5 rounded-lg" style={{ backgroundColor: tileBg }}>
+      <p className="block text-faint text-2xs font-bold uppercase tracking-[.05em] mb-0.5">
         {label}
       </p>
-      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.15rem] font-semibold leading-[1.2] tabular-nums text-[var(--ink)] tracking-[-0.01em]">
+      <p className="text-[1.15rem] font-semibold leading-[1.2] tabular-nums text-foreground tracking-[-0.01em]">
         {value}
       </p>
       {hint && (
-        <p className="cn-text-body1 block text-[var(--muted)] text-[10.5px] mt-0.5">
+        <p className="block text-muted-foreground text-2xs mt-0.5">
           {hint}
         </p>
       )}
@@ -227,7 +227,7 @@ const SectionHeader: React.FC<{
     {/* `color` est une prop : sa valeur n'existe qu'a l'execution, donc style
         inline (comme l'icone au-dessus) et non classe Tailwind. */}
     <p
-      className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em]"
+      className="text-2xs font-bold uppercase tracking-[.05em]"
       style={{ color }}
     >
       {label}
@@ -239,29 +239,29 @@ const TopPerformerCard: React.FC<{ performer: TopPerformer }> = ({ performer }) 
   const occupancyPct = Math.round(performer.occupancy * 100);
 
   return (
-    <div className="px-2 py-1.5 rounded-[10px] bg-[var(--ok-soft)]">
-      <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)] whitespace-nowrap overflow-hidden text-ellipsis">
+    <div className="px-2 py-1.5 rounded-lg bg-success-soft">
+      <p className="text-[13.5px] font-semibold text-foreground whitespace-nowrap overflow-hidden text-ellipsis">
         {performer.name}
       </p>
       {performer.city && (
-        <p className="cn-text-body1 block text-[var(--muted)] text-[11.5px]">
+        <p className="block text-muted-foreground text-xs">
           {performer.city}
         </p>
       )}
       <div className="flex items-baseline gap-1 mt-0.5">
-        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1rem] font-semibold tabular-nums text-[var(--ok)]">
+        <p className="text-[1rem] font-semibold tabular-nums text-success-ink">
           {formatCurrency(performer.revenue)}
         </p>
-        <p className="cn-text-body1 text-[var(--faint)] text-[11.5px]">
+        <p className="text-faint text-xs">
           {performer.reservations} resa
         </p>
       </div>
       <div className="mt-1">
         <Progress
           value={occupancyPct}
-          className="h-1 rounded-[2px] bg-[color-mix(in_srgb,var(--ok)_14%,transparent)] [&>[data-slot=progress-indicator]]:rounded-[2px] [&>[data-slot=progress-indicator]]:bg-[var(--ok)]"
+          className="h-1 rounded-[2px] bg-[color-mix(in_srgb,var(--color-success-ink)_14%,transparent)] [&>[data-slot=progress-indicator]]:rounded-[2px] [&>[data-slot=progress-indicator]]:bg-[var(--color-success-ink)]"
         />
-        <p className="cn-text-body1 block text-[10.5px] mt-0.5 text-[var(--muted)] tabular-nums">
+        <p className="block text-2xs mt-0.5 text-muted-foreground tabular-nums">
           Occupation {occupancyPct}%
         </p>
       </div>
@@ -271,26 +271,26 @@ const TopPerformerCard: React.FC<{ performer: TopPerformer }> = ({ performer }) 
 
 const UnderPerformerRow: React.FC<{ performer: UnderPerformer }> = ({ performer }) => {
   return (
-    <div className="px-2 py-1.5 rounded-[10px] bg-[var(--warn-soft)] flex gap-1.5 items-start">
+    <div className="px-2 py-1.5 rounded-lg bg-warning-soft flex gap-1.5 items-start">
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-1.5">
-          <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)]">
+          <p className="text-[13.5px] font-semibold text-foreground">
             {performer.name}
           </p>
           {performer.city && (
-            <p className="cn-text-body1 text-[var(--muted)] text-[11.5px]">
+            <p className="text-muted-foreground text-xs">
               {performer.city}
             </p>
           )}
         </div>
-        <p className="cn-text-body1 block text-[var(--warn)] text-[11.5px] font-semibold mt-0.5">
+        <p className="block text-warning-ink text-xs font-semibold mt-0.5">
           {performer.reason}
         </p>
-        <p className="cn-text-body1 block text-[var(--muted)] text-[11.5px] italic mt-0.5">
+        <p className="block text-muted-foreground text-xs italic mt-0.5">
           → {performer.recommendation}
         </p>
       </div>
-      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.85rem] font-semibold tabular-nums text-[var(--warn)] whitespace-nowrap">
+      <p className="text-[0.85rem] font-semibold tabular-nums text-warning-ink whitespace-nowrap">
         {Math.round(performer.occupancy * 100)}%
       </p>
     </div>
@@ -302,22 +302,22 @@ const PatternRow: React.FC<{ pattern: Pattern }> = ({ pattern }) => {
   const Icon = patternIcon(pattern.type);
 
   return (
-    <div className="px-[7.5px] py-1.5 rounded-[10px] flex gap-1.5 items-start" style={{ backgroundColor: sevSoft }}>
+    <div className="px-[7.5px] py-1.5 rounded-lg flex gap-1.5 items-start" style={{ backgroundColor: sevSoft }}>
       <div className="inline-flex mt-[0.75px]" style={{ color: sevColor }}>
         <Icon size={16} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1 mb-0.5">
-          <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)]">
+          <p className="text-[13.5px] font-semibold text-foreground">
             {pattern.title}
           </p>
-          <StatusChip size="sm" tokens={{ color: sevColor, bg: 'var(--card)' }} label={pattern.severity} className="text-[10.5px] tracking-[.04em] uppercase" />
+          <StatusChip size="sm" tokens={{ color: sevColor, bg: 'var(--color-card)' }} label={pattern.severity} className="text-2xs tracking-[.04em] uppercase" />
         </div>
-        <p className="cn-text-body1 block text-[var(--muted)] text-[11.5px]">
+        <p className="block text-muted-foreground text-xs">
           {pattern.description}
         </p>
         {pattern.items && pattern.items.length > 0 && (
-          <p className="cn-text-body1 block text-[var(--faint)] text-[11.5px] mt-0.5">
+          <p className="block text-faint text-xs mt-0.5">
             {pattern.items.join(' · ')}
           </p>
         )}
@@ -342,12 +342,12 @@ function severityColors(severity: string): [string, string] {
   switch (severity?.toUpperCase()) {
     case 'CRITICAL':
     case 'HIGH':
-      return ['var(--err)', 'var(--err-soft)'];
+      return ['var(--color-destructive-ink)', 'var(--color-destructive-soft)'];
     case 'MEDIUM':
-      return ['var(--warn)', 'var(--warn-soft)'];
+      return ['var(--color-warning-ink)', 'var(--color-warning-soft)'];
     case 'LOW':
     default:
-      return ['var(--info)', 'var(--info-soft)'];
+      return ['var(--color-info-ink)', 'var(--color-info-soft)'];
   }
 }
 

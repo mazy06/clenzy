@@ -59,10 +59,10 @@ const HelpPopover: React.FC<HelpPopoverProps> = ({
               aria-label={label}
               className={cn(
                 buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
-                'cursor-pointer rounded-[9px] text-[var(--faint)] transition-colors duration-150',
-                'hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]',
+                'cursor-pointer rounded-[9px] text-faint transition-colors duration-150',
+                'hover:text-primary hover:bg-primary-soft',
                 'motion-reduce:transition-none',
-                open && 'text-[var(--accent)] bg-[var(--accent-soft)]',
+                open && 'text-primary bg-primary-soft',
               )}
             >
               <InfoIcon size={18} strokeWidth={1.75} />
@@ -80,29 +80,31 @@ const HelpPopover: React.FC<HelpPopoverProps> = ({
         sideOffset={4}
         // Filet 1 px en haut (accent) — seul filet autorise, pas un side-stripe.
         className={cn(
-          'relative overflow-hidden rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]',
+          'relative overflow-hidden rounded-[14px] border border-solid border-border bg-card',
           'w-[calc(100vw-32px)] max-w-[460px] min-[600px]:w-[420px]',
           'p-[10.5px] min-[600px]:p-[13.5px]',
-          "before:content-[''] before:absolute before:top-0 before:inset-x-0 before:h-px before:bg-[var(--accent)] before:opacity-50",
+          "before:content-[''] before:absolute before:top-0 before:inset-x-0 before:h-px before:bg-primary before:opacity-50",
         )}
+        // Le lavis et l'ombre sont des couleurs composees (color-mix) : elles restent
+        // en CSS et passent par les variables Baitly UI, pas par des utilities.
         style={{
           backgroundImage:
-            'radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, var(--accent) 4%, transparent) 0%, transparent 60%)',
-          boxShadow: '0 12px 32px -8px color-mix(in srgb, var(--ink) 22%, transparent)',
+            'radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, var(--bui-primary) 4%, transparent) 0%, transparent 60%)',
+          boxShadow: '0 12px 32px -8px color-mix(in srgb, var(--bui-ink) 22%, transparent)',
         }}
       >
         {/* Header — chip AIDE + titre */}
         <div className="flex items-start gap-1.5 mb-1">
-          <div className="text-[10.5px] font-bold tracking-[.06em] uppercase text-[var(--accent)] bg-[var(--accent-soft)] border border-solid border-[color-mix(in_srgb,_var(--accent)_25%,_transparent)] rounded-[8px] px-[4.5px] py-[1.5px] mt-[1.5px] shrink-0 leading-[1.2]" aria-hidden>
+          <div className="text-[10.5px] font-bold tracking-[.06em] uppercase text-primary bg-primary-soft border border-solid border-primary/25 rounded-[8px] px-[4.5px] py-[1.5px] mt-[1.5px] shrink-0 leading-[1.2]" aria-hidden>
             AIDE
           </div>
-          <p className="cn-text-body1 [font-family:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] leading-[1.3] tracking-[-.01em] flex-1 text-balance">
+          <p className="m-0 [font-family:var(--font-display)] text-[15px] font-semibold text-foreground leading-[1.3] tracking-[-.01em] flex-1 text-balance">
             {title}
           </p>
         </div>
 
         {/* Description */}
-        <p className={cn('cn-text-body1 text-[12.5px] text-[var(--muted)] leading-[1.55]', steps.length > 0 ? 'mb-3' : 'mb-0')}>
+        <p className={cn('m-0 text-[12.5px] text-muted-foreground leading-[1.55]', steps.length > 0 ? 'mb-3' : 'mb-0')}>
           {description}
         </p>
 

@@ -17,6 +17,7 @@ import {
   CalendarMonth,
   Speed,
 } from '../../icons';
+import { useMediaQuery } from '../../hooks/use-media-query';
 import { useTranslation } from '../../hooks/useTranslation';
 import { getCleaningFrequencyLabel } from '../../utils/statusUtils';
 import { Money } from '../../components/Money';
@@ -59,6 +60,9 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
   // (prop `anchorEl`) reste donc inchange pour l'appelant.
   const anchorRef = React.useMemo(() => ({ current: anchorEl }), [anchorEl]);
 
+  // Ecran etroit : le panneau se pose SOUS la ligne (cf. commentaire du rendu).
+  const isNarrow = useMediaQuery('(max-width: 767.98px)');
+
   const address = [property.address, property.city].filter(Boolean).join(', ');
   const currency = property.currency || 'EUR';
   const fmt = React.useMemo(
@@ -80,10 +84,16 @@ const PropertyPopover: React.FC<PropertyPopoverProps> = ({ anchorEl, property, p
           `motion-reduce:animate-none` remplace le transitionDuration 0 que le
           composant calculait via useMediaQuery. */}
       <PopoverContent
-        side="right"
-        align="center"
+        // A droite de la ligne en large. En mobile la ligne occupe la moitie de
+        // l'ecran : 270 px a sa droite sortent du cadre, et le repli a gauche
+        // n'irait pas mieux — Radix garde alors le cote demande et laisse le
+        // panneau deborder. En dessous, le decalage se fait sur l'axe
+        // horizontal, ou il reste de la place.
+        side={isNarrow ? 'bottom' : 'right'}
+        align={isNarrow ? 'start' : 'center'}
         sideOffset={8}
-        className="w-[270px] p-0 gap-0 rounded-[14px] ring-0 border border-solid border-[var(--line)] bg-[var(--card)] shadow-[var(--shadow-pop)] overflow-hidden motion-reduce:animate-none"
+        collisionPadding={8}
+        className="w-[270px] max-w-[calc(100vw-16px)] p-0 gap-0 rounded-[14px] ring-0 border border-solid border-[var(--line)] bg-[var(--card)] shadow-[var(--shadow-pop)] overflow-hidden motion-reduce:animate-none"
       >
       {/* Héro : fond accent-soft, icône bâtiment, nom en overlay */}
       <div className="relative m-2.5 h-[72px] rounded-[10px] bg-[var(--accent-soft)] flex items-center justify-center overflow-hidden">

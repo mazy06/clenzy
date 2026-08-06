@@ -50,7 +50,13 @@ function DropdownMenuContent({
         sideOffset={sideOffset}
         align={align}
         className={cn(
-          "cn-dropdown-menu-content cn-menu-target cn-menu-translucent z-50 max-h-(--radix-dropdown-menu-content-available-height) w-(--radix-dropdown-menu-trigger-width) origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto data-[state=closed]:overflow-hidden",
+          // Largeur : le panneau se dimensionne sur son CONTENU, avec pour
+          // plancher la largeur du déclencheur (utile quand celui-ci est un
+          // champ) sans descendre sous 8rem. Il était auparavant FORCÉ à la
+          // largeur du déclencheur : ouvert depuis un bouton-icône de 32 px, il
+          // retombait au plancher de 8rem et coupait chaque libellé sur deux ou
+          // trois lignes.
+          "cn-dropdown-menu-content cn-menu-target cn-menu-translucent z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[max(8rem,var(--radix-dropdown-menu-trigger-width))] max-w-(--radix-dropdown-menu-content-available-width) origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto data-[state=closed]:overflow-hidden",
           className
         )}
         {...props}

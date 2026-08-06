@@ -1,5 +1,5 @@
 import StatusChip from '../../../components/StatusChip';
-import { Alert, Card } from '../../../components/ui';
+import { Alert, AlertDescription, Card } from '../../../components/ui';
 import ProviderLogo from './ProviderLogos';
 import { CheckCircle } from '../../../icons';
 
@@ -29,7 +29,7 @@ const STEPS: Array<{ title: string; detail: string }> = [
   },
   {
     title: 'Activer le provider',
-    detail: 'Basculer SIGNATURE_PROVIDER=docuseal puis redéployer. Sans cette bascule, le workflow interne Clenzy (SES) reste utilisé.',
+    detail: 'Basculer SIGNATURE_PROVIDER=docuseal puis redéployer. Sans cette bascule, le workflow interne Baitly (SES) reste utilisé.',
   },
 ];
 
@@ -37,20 +37,20 @@ export default function DocuSealInfoCard({ available, active }: DocuSealInfoCard
   return (
     <Card className="gap-0 py-0 border-border overflow-hidden">
       {/* Header */}
-      <div className="px-3 py-2.5 flex items-start gap-2 border-b border-[var(--line)]">
+      <div className="px-3 py-2.5 flex items-start gap-2 border-b border-border">
         <ProviderLogo provider="DOCUSEAL" size={40} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <p className="cn-text-body1 text-[0.9rem] font-semibold">DocuSeal</p>
+            <p className="text-sm font-semibold tracking-tight">DocuSeal</p>
             {active ? (
-              <StatusChip size="sm" tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label="Provider actif" className="text-[0.6rem]" />
+              <StatusChip size="sm" tone="ok" label="Provider actif" />
             ) : available ? (
-              <StatusChip size="sm" tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label="Instance connectée — non activé" className="text-[0.6rem]" />
+              <StatusChip size="sm" tone="ok" label="Instance connectée — non activé" />
             ) : (
-              <StatusChip size="sm" tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }} label="Prêt — à brancher" className="text-[0.6rem]" />
+              <StatusChip size="sm" tone="warn" label="Prêt — à brancher" />
             )}
           </div>
-          <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Alternative open source (AGPL) auto-hébergée à DocuSign — signature SES avec scellement cryptographique du PDF, données sur votre infrastructure, 0 € de licence.
           </p>
         </div>
@@ -58,35 +58,40 @@ export default function DocuSealInfoCard({ available, active }: DocuSealInfoCard
 
       {/* Corps */}
       <div className="px-3 py-2.5">
-        <Alert variant={available ? 'success' : 'info'} className="rounded-[8px] text-[0.75rem] py-[1.5px] mb-[9px]">
-          {available
-            ? "L'instance DocuSeal est configurée. Le provider est implémenté et fonctionnel — il ne sera utilisé qu'après la bascule SIGNATURE_PROVIDER=docuseal."
-            : "L'intégration est entièrement implémentée côté code (création de la demande, lien de signature, statut, téléchargement du document signé). Elle est inactive tant que l'instance self-hosted n'est pas déployée et branchée — opération d'infrastructure, pas de saisie ici."}
+        <Alert variant={available ? 'success' : 'info'} className="rounded-md py-[1.5px] mb-[9px]">
+          <AlertDescription className="text-xs">
+            {available
+              ? "L'instance DocuSeal est configurée. Le provider est implémenté et fonctionnel — il ne sera utilisé qu'après la bascule SIGNATURE_PROVIDER=docuseal."
+              : "L'intégration est entièrement implémentée côté code (création de la demande, lien de signature, statut, téléchargement du document signé). Elle est inactive tant que l'instance self-hosted n'est pas déployée et branchée — opération d'infrastructure, pas de saisie ici."}
+          </AlertDescription>
         </Alert>
 
-        <p className="cn-text-body1 text-[0.7rem] font-bold uppercase tracking-[0.06em] text-muted-foreground mb-1.5">
+        <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
           Branchement (opération infra)
         </p>
+        {/* Volontairement des <div> et non un <ol> : le projet tourne sans
+            preflight Tailwind, une liste native rapporterait puce, retrait et
+            marges du navigateur — et un second numerotage. */}
         <div className="flex flex-col gap-1.5">
           {STEPS.map((step, i) => (
             <div className="flex gap-2 items-start" key={step.title}>
-              <div className="w-[20px] h-[20px] rounded-[50%] shrink-0 inline-flex items-center justify-center text-[0.65rem] font-bold bg-[var(--accent-soft)] text-[var(--accent)]">
+              <span className="size-5 rounded-full shrink-0 inline-flex items-center justify-center text-2xs font-semibold tabular-nums bg-primary-soft text-primary">
                 {i + 1}
-              </div>
+              </span>
               <div>
-                <p className="cn-text-body1 text-[0.78rem] font-semibold leading-[1.3]">{step.title}</p>
-                <p className="cn-text-body1 text-[0.72rem] text-muted-foreground leading-[1.45]">{step.detail}</p>
+                <p className="text-sm font-medium leading-snug">{step.title}</p>
+                <p className="text-xs text-muted-foreground">{step.detail}</p>
               </div>
             </div>
           ))}
         </div>
 
         <div className="flex items-center gap-1 mt-2">
-          <span className="inline-flex text-[var(--ok)]">
+          <span className="inline-flex text-success">
             <CheckCircle size={13} strokeWidth={2} />
           </span>
-          <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">
-            En attendant, la signature électronique fonctionne via le workflow interne Clenzy (SES, lien public + certificat de preuve).
+          <p className="text-xs text-muted-foreground">
+            En attendant, la signature électronique fonctionne via le workflow interne Baitly (SES, lien public + certificat de preuve).
           </p>
         </div>
       </div>

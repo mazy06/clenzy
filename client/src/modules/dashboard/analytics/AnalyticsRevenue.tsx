@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent } from '../../../components/ui';
+import { Card, CardContent, Spinner } from '../../../components/ui';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart,
   PieChart, Pie, Cell, BarChart, Bar,
@@ -20,13 +20,13 @@ const CHART_SUCCESS = '#4A9B8E';
 const CHART_ERROR = '#C97A7A';
 
 /** La carte porte sa hauteur ; le padding vertical du gabarit est neutralise,
- *  c'est le contenu qui le pose (p 1.25 = 7.5 px, theme.spacing vaut 6). */
+ *  c'est le contenu qui le pose (7,5 px). */
 const CHART_CARD_CLASS = 'w-full h-[220px] py-0 gap-0';
 const CHART_CONTENT_CLASS = 'p-[7.5px] h-full flex flex-col';
 
-/** Etiquette de section (mb 0.5 = 3 px, theme.spacing vaut 6). */
+/** Etiquette de section, rôle « overline » de l'échelle Baitly UI. */
 const SECTION_LABEL_CLASS =
-  'cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.04em] text-[var(--muted)] mb-[3px] shrink-0';
+  'text-[0.6875rem] font-bold uppercase tracking-[0.04em] text-muted-foreground mb-[3px] shrink-0';
 
 interface Props {
   data: RevenueMetrics | null;
@@ -44,7 +44,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
     >
       <div className="grid grid-cols-12 gap-[9px]">
         {/* Revenue trend area chart */}
-        <div className="col-span-12 min-[600px]:col-span-4">
+        <div className="col-span-12 @[600px]:col-span-4">
           <Card className={CHART_CARD_CLASS}>
             <CardContent className={CHART_CONTENT_CLASS}>
               <p className={SECTION_LABEL_CLASS}>
@@ -52,7 +52,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
               </p>
               {loading || !data ? (
                 <div className="flex-1 flex items-center justify-center">
-                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                  <Spinner className="text-muted-foreground" />
                 </div>
               ) : (
                 <div className="flex-1 min-h-0 relative">
@@ -73,7 +73,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
         </div>
 
         {/* Channel distribution donut */}
-        <div className="col-span-12 min-[600px]:col-span-4">
+        <div className="col-span-12 @[600px]:col-span-4">
           <Card className={CHART_CARD_CLASS}>
             <CardContent className={CHART_CONTENT_CLASS}>
               <p className={SECTION_LABEL_CLASS}>
@@ -81,7 +81,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
               </p>
               {loading || !data ? (
                 <div className="flex-1 flex items-center justify-center">
-                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                  <Spinner className="text-muted-foreground" />
                 </div>
               ) : (
                 <div className="flex-1 min-h-0 flex flex-col">
@@ -108,7 +108,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
                     {data.byChannel.map((ch) => (
                       <div className="flex items-center gap-0.5" key={ch.name}>
                         <div className="w-[8px] h-[8px] rounded-[2px] shrink-0" style={{ backgroundColor: ch.color }} />
-                        <p className="cn-text-body1 text-[0.5625rem] text-muted-foreground">
+                        <p className="text-[0.5625rem] text-muted-foreground">
                           {ch.name}
                         </p>
                       </div>
@@ -121,7 +121,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
         </div>
 
         {/* Top properties bar chart */}
-        <div className="col-span-12 min-[600px]:col-span-4">
+        <div className="col-span-12 @[600px]:col-span-4">
           <Card className={CHART_CARD_CLASS}>
             <CardContent className={CHART_CONTENT_CLASS}>
               <p className={SECTION_LABEL_CLASS}>
@@ -129,7 +129,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
               </p>
               {loading || !data ? (
                 <div className="flex-1 flex items-center justify-center">
-                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                  <Spinner className="text-muted-foreground" />
                 </div>
               ) : (
                 <div className="flex-1 min-h-0 relative">
@@ -149,7 +149,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
         </div>
 
         {/* Avg revenue per booking */}
-        <div className="col-span-6 min-[600px]:col-span-4">
+        <div className="col-span-6 @[600px]:col-span-4">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.avgPerBooking')}
             value={data ? <Money value={data.avgRevenuePerBooking} from="EUR" /> : '-'}

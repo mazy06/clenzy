@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import {
   Button,
+  Card,
   Spinner,
   Table,
   TableBody,
@@ -15,6 +16,8 @@ import {
 } from '../../components/ui';
 import { ChevronLeft as ChevronLeftIcon } from '../../icons';
 import { ChevronRight as ChevronRightIcon } from '../../icons';
+import { CalendarMonth as CalendarMonthIcon } from '../../icons';
+import EmptyState from '../../components/EmptyState';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
 import { calendarPricingApi } from '../../services/api/calendarPricingApi';
@@ -24,9 +27,6 @@ import { dynamicPricingKeys } from '../../hooks/useDynamicPricing';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
-// Surface « carte » : le Paper MUI ne portait que ces declarations.
-const CARD_CLASS = 'border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px]';
-
 // Le primitif Table pose lui-meme son conteneur `cn-table-container`
 // (overflow-x-auto) : c'est LUI qui doit porter la hauteur max, sinon l'en-tete
 // `sticky top-0` se collerait a un scrollport qui ne defile pas verticalement.
@@ -34,10 +34,9 @@ const TABLE_SCROLL_CLASS =
   '[&_[data-slot=table-container]]:max-h-[calc(100vh-280px)] '
   + '[&_[data-slot=table-container]]:overflow-y-auto';
 
-// Premiere colonne figee. Le fond doit etre opaque, sinon les colonnes de
-// droite defilent par transparence dessous.
-const STICKY_COL_CLASS =
-  'sticky left-0 min-w-[150px] bg-[var(--card)] [border-right:1px_solid_var(--line)]';
+// Premiere colonne figee, en propriete LOGIQUE (le PMS est RTL). Le fond doit
+// etre opaque, sinon les colonnes suivantes defilent par transparence dessous.
+const STICKY_COL_CLASS = 'sticky start-0 min-w-[150px] bg-card border-e border-border';
 
 const SOURCE_COLORS: Record<string, string> = {
   OVERRIDE: '#D98E8E',
@@ -108,7 +107,7 @@ const PropertyRow: React.FC<{
   return (
     <TableRow>
       <TableCell className={cn(STICKY_COL_CLASS, 'z-[5]')}>
-        <p className="cn-text-body2 font-semibold truncate text-[0.8125rem]">
+        <p className="text-sm font-semibold truncate">
           {property.name}
         </p>
       </TableCell>
@@ -136,14 +135,14 @@ const PropertyRow: React.FC<{
             {entry && entry.nightlyPrice !== null ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="cn-text-caption font-semibold cursor-default tabular-nums" style={{ color: sourceColor }}>
+                  <span className="text-xs font-semibold cursor-default tabular-nums" style={{ color: sourceColor }}>
                     {entry.nightlyPrice}
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>{`${entry.priceSource} - ${dateStr}`}</TooltipContent>
               </Tooltip>
             ) : (
-              <span className="cn-text-caption text-muted-foreground opacity-60">
+              <span className="text-xs text-muted-foreground opacity-60">
                 -
               </span>
             )}
@@ -174,50 +173,51 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
   return (
     <div className="flex flex-col gap-2">
       {/* Month navigation */}
-      <div className={cn(CARD_CLASS, 'p-[9px]')}>
+      <Card className="gap-0 py-0 p-[9px]">
         <div className="flex items-center justify-center gap-0.5">
           <Button variant="ghost" size="icon-sm" aria-label={t('common.previous', 'Précédent')} onClick={onPrevMonth}>
             <ChevronLeftIcon size={20} strokeWidth={1.75} />
           </Button>
-          <p className="cn-text-body2 font-semibold min-w-[140px] text-center capitalize text-[0.8125rem]">
+          <p className="text-sm font-semibold min-w-[140px] text-center capitalize">
             {formatMonth(currentMonth, isFrench)}
           </p>
           <Button variant="ghost" size="icon-sm" aria-label={t('common.next', 'Suivant')} onClick={onNextMonth}>
             <ChevronRightIcon size={20} strokeWidth={1.75} />
           </Button>
         </div>
-      </div>
+      </Card>
 
       {/* Loading */}
       {propertiesLoading && (
-        <div className={cn(CARD_CLASS, 'flex justify-center px-[9px] py-6')}>
+        <Card className="gap-0 items-center px-[9px] py-6">
           <Spinner className="size-7" />
-        </div>
+        </Card>
       )}
 
       {/* Empty state */}
       {!propertiesLoading && properties.length === 0 && (
-        <div className={cn(CARD_CLASS, 'p-6 text-center')}>
-          <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
-            {t('dynamicPricing.calendar.noProperty')}
-          </p>
-        </div>
+        <EmptyState
+          icon={<CalendarMonthIcon />}
+          title={t('dynamicPricing.calendar.noProperty')}
+          description={t('dynamicPricing.calendar.noPropertyHint')}
+          variant="plain"
+        />
       )}
 
       {/* Overview table */}
       {!propertiesLoading && properties.length > 0 && (
-        <div className={cn(CARD_CLASS, TABLE_SCROLL_CLASS, 'overflow-hidden')}>
+        <Card className={cn('gap-0 py-0', TABLE_SCROLL_CLASS)}>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className={cn(STICKY_COL_CLASS, 'top-0 z-20')}>
-                  <span className="cn-text-caption text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em]">
+                  <span className="text-2xs font-semibold uppercase tracking-wide text-faint">
                     {t('common.name')}
                   </span>
                 </TableHead>
                 {days.map((day) => (
-                  <TableHead key={day} className="sticky top-0 z-10 bg-[var(--card)] text-center px-[3px] min-w-[40px]">
-                    <span className="cn-text-caption font-semibold text-[0.6875rem] text-[var(--faint)] tabular-nums">
+                  <TableHead key={day} className="sticky top-0 z-10 bg-card text-center px-[3px] min-w-[40px]">
+                    <span className="text-2xs font-semibold text-faint tabular-nums">
                       {day}
                     </span>
                   </TableHead>
@@ -238,23 +238,23 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
               ))}
             </TableBody>
           </Table>
-        </div>
+        </Card>
       )}
 
       {/* Legend */}
       {!propertiesLoading && properties.length > 0 && (
-        <div className={cn(CARD_CLASS, 'p-[9px]')}>
+        <Card className="gap-0 py-0 p-[9px]">
           <div className="flex flex-wrap gap-2">
             {Object.entries(SOURCE_COLORS).map(([key, color]) => (
               <div className="flex items-center gap-0.5" key={key}>
-                <div className="w-[10px] h-[10px] rounded-[50%]" style={{ backgroundColor: color }} />
-                <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
+                <div className="w-[10px] h-[10px] rounded-full" style={{ backgroundColor: color }} />
+                <span className="text-2xs text-muted-foreground">
                   {t(`dynamicPricing.priceSource.${key}`)}
                 </span>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

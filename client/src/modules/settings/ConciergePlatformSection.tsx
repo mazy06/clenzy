@@ -89,7 +89,7 @@ const ConciergePlatformSection: React.FC = () => {
             }
           />
           {settings?.updatedBy && (
-            <p className="cn-text-body1 text-[0.7rem] text-muted-foreground opacity-60 mt-1.5">
+            <p className="mt-1.5 text-2xs text-muted-foreground">
               Dernière modification par {settings.updatedBy}.
             </p>
           )}

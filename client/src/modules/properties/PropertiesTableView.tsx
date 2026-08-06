@@ -63,14 +63,14 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
   const { t } = useTranslation();
 
   return (
-    // Equivalent classes de LIST_PAPER_SX (hairline --line, r14, fond --card).
-    <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] shadow-none">
+    // Surface « carte » de la liste : hairline + rayon xl (14 px) + fond carte.
+    <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-xl border border-solid border-border bg-card shadow-none">
       <div className="flex-1 overflow-hidden">
         <Table className="table-fixed w-full">
           <TableHeader>
             {/* .pr-lhead — entête overline sur surface sur-élevée (h42) ; seuls le
                 fond, la hauteur et le py:0 s'ecartent du primitif. */}
-            <TableRow className="bg-[var(--surface-2)] h-[42px]">
+            <TableRow className="bg-muted h-[42px]">
               <TableHead className="w-[28%] py-0">Nom</TableHead>
               <TableHead className="w-[11%] py-0">Type</TableHead>
               <TableHead className="w-[20%] py-0">Caractéristiques</TableHead>
@@ -84,18 +84,19 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
               const details = toPropertyDetails(property);
               const price = cleaningEstimates[Number(property.id)];
               const duration = estimateCleaningDuration(details);
-              // .pr-lrow:hover → fond accent doux, plus soutenu que le --hover du primitif
+              // .pr-lrow:hover → fond de marque doux, plus soutenu que le `bg-muted` du primitif
               return (
                 <TableRow
                   key={property.id}
-                  className="cursor-pointer hover:bg-[var(--accent-soft)] motion-reduce:transition-none"
+                  className="cursor-pointer hover:bg-primary-soft motion-reduce:transition-none"
                   onClick={() => navigate(`/properties/${property.id}`)}
                 >
                   <TableCell className="py-1.5 pe-1.5">
                     <div className="flex items-center min-w-0 gap-2">
-                      {/* .pr-lthumb — vignette dégradé déterministe + icône immeuble (photo en overlay si dispo) */}
+                      {/* .pr-lthumb — vignette dégradé déterministe + icône immeuble (photo en overlay si dispo).
+                          Encre blanche assumée : elle est posée sur une photo. */}
                       <div
-                        className="w-11 h-11 rounded-[11px] shrink-0 flex items-center justify-center text-[rgba(255,255,255,.8)]"
+                        className="size-11 rounded-lg shrink-0 flex items-center justify-center text-white/80"
                         style={{
                           background: propertyGradientCss(property.id || property.name),
                           ...(property.photoUrls && property.photoUrls.length > 0
@@ -111,7 +112,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center min-w-0 gap-1">
-                          <p className="cn-text-body2 font-[family-name:var(--font-display)] font-semibold text-[14px] text-[var(--ink)] tracking-[-.01em] min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                          <p className="my-0 min-w-0 truncate font-[family-name:var(--font-display)] text-sm font-semibold tracking-[-.01em] text-foreground">
                             {property.name}
                           </p>
                           {/* Quick Win #4 : badge sante Channex (visible si mapping present) */}
@@ -130,7 +131,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                           )}
                         </div>
                         {/* .pr-lci — localisation (ville) sous le nom */}
-                        <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] overflow-hidden text-ellipsis whitespace-nowrap mt-[1px]">
+                        <p className="mb-0 mt-px truncate text-xs text-muted-foreground">
                           {property.city}
                         </p>
                       </div>
@@ -142,7 +143,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                     ); })()}
                   </TableCell>
                   <TableCell>
-                    <p className="cn-text-body2 text-muted-foreground text-[0.78rem] overflow-hidden text-ellipsis whitespace-nowrap">
+                    <p className="my-0 truncate text-xs tabular-nums text-muted-foreground">
                       {property.bedrooms} ch. · {property.bathrooms} sdb · {property.squareMeters ?? 0} m² · {property.guests} voy.
                     </p>
                   </TableCell>
@@ -179,7 +180,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                         )}
                       </div>
                     ) : (
-                      <p className="cn-text-body2 text-muted-foreground">—</p>
+                      <p className="my-0 text-xs text-muted-foreground">—</p>
                     )}
                   </TableCell>
                   <TableCell>
@@ -196,17 +197,17 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                       ); })()}
                       {price != null ? (
                         <div className="min-w-0">
-                          <p className="cn-text-body2 font-[family-name:var(--font-display)] font-semibold text-[13px] leading-[1.2] text-[var(--ink)] tabular-nums">
+                          <p className="my-0 font-[family-name:var(--font-display)] text-[13px] font-semibold leading-[1.2] text-foreground tabular-nums">
                             <Money value={price} from="EUR" decimals={0} />
                           </p>
                           {duration != null && (
-                            <span className="cn-text-caption text-muted-foreground text-[0.68rem]">
+                            <span className="text-2xs tabular-nums text-muted-foreground">
                               ~{formatDuration(duration)}
                             </span>
                           )}
                         </div>
                       ) : (
-                        <p className="cn-text-body2 text-muted-foreground text-[0.82rem]">—</p>
+                        <p className="my-0 text-xs text-muted-foreground">—</p>
                       )}
                     </div>
                   </TableCell>
@@ -273,7 +274,7 @@ const PropertiesTableView: React.FC<PropertiesTableViewProps> = ({
                               size="icon-sm"
                               aria-label="Supprimer"
                               onClick={(e) => { e.stopPropagation(); onDelete(property); }}
-                              className="text-[var(--err)]"
+                              className="text-destructive"
                             >
                               <Delete size={18} strokeWidth={1.75} />
                             </Button>

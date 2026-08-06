@@ -143,7 +143,7 @@ export default function ServicesCatalog({
       { icon: Calendar, label: 'Annulation', value: selected.cancel },
     ];
     return (
-      <section className="mp" style={{ ['--mp-action' as string]: 'var(--accent)', ['--mp-action-soft' as string]: 'var(--accent-soft)' }}>
+      <section className="mp" style={{ ['--mp-action' as string]: 'var(--bui-primary)', ['--mp-action-soft' as string]: 'var(--bui-primary-soft)' }}>
         <button type="button" className="mp-back" onClick={() => setSelectedId(null)}>
           <ArrowLeft size={16} strokeWidth={2} /> Retour au catalogue
         </button>
@@ -240,7 +240,7 @@ export default function ServicesCatalog({
 
   // ── Vue catalogue (grille / liste unifiée + pagination) ─────────────────────
   return (
-    <section className="mp" style={{ ['--mp-action' as string]: 'var(--accent)', ['--mp-action-soft' as string]: 'var(--accent-soft)' }}>
+    <section className="mp" style={{ ['--mp-action' as string]: 'var(--bui-primary)', ['--mp-action-soft' as string]: 'var(--bui-primary-soft)' }}>
       {kpis}
       <div className="mp__bar">
         <div className="mp__pills">
@@ -267,7 +267,7 @@ export default function ServicesCatalog({
           <div className="mp-grid">
             {Array.from({ length: 8 }).map((_, i) => (
               <div className="mp-card" key={i}>
-                <Skeleton className="h-[138px] w-full rounded-none bg-[var(--hover)]" />
+                <Skeleton className="h-[138px] w-full rounded-none bg-muted" />
                 <div className="mp-card__body">
                   <Skeleton className="h-[18px] w-[80%]" /><Skeleton className="h-[14px] w-[60%]" />
                   {/* mt: 1 = 6 px (theme.spacing vaut 6). */}
@@ -277,7 +277,7 @@ export default function ServicesCatalog({
             ))}
           </div>
         ) : (
-          <div className="tbl mp-tbl">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[60px] w-full bg-[var(--hover)]" />)}</div>
+          <div className="tbl mp-tbl">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[60px] w-full bg-muted" />)}</div>
         )
       ) : visible.length === 0 ? (
         <p className="mp-empty">Aucun service pour ce filtre.</p>

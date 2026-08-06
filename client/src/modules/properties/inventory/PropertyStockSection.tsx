@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Card, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, NativeSelect, NativeSelectOption, Spinner, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui';
+import { Button, Card, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, FieldLabel, Input, NativeSelect, NativeSelectOption, Spinner, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui';
 import { Add, DeleteOutline, Edit, Inventory2 } from '../../../icons';
 import StatusChip from '../../../components/StatusChip';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -95,7 +95,7 @@ export default function PropertyStockSection({ propertyId, canEdit }: Props) {
     <Card className="p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Inventory2 size={18} strokeWidth={1.75} className="text-[var(--muted)]" />
+          <Inventory2 size={18} strokeWidth={1.75} className="text-muted-foreground" />
           <h3 className="m-0 text-[13.5px] font-semibold">
             {t('properties.stock.title', 'Stock consommable')}
           </h3>
@@ -109,7 +109,7 @@ export default function PropertyStockSection({ propertyId, canEdit }: Props) {
       </div>
 
       {items.length === 0 ? (
-        <p className="m-0 py-4 text-[12.5px] text-[var(--muted)]">
+        <p className="m-0 py-4 text-xs text-muted-foreground">
           {t('properties.stock.empty',
             "Aucun article suivi. Le niveau descend automatiquement à chaque ménage ; sous le seuil, l'agent Opérations propose la commande fournisseur.")}
         </p>
@@ -132,7 +132,7 @@ export default function PropertyStockSection({ propertyId, canEdit }: Props) {
                 <TableRow key={item.id}>
                   <TableCell>
                     <span className="font-medium">{item.name}</span>
-                    <span className="block text-[11.5px] text-[var(--muted)]">
+                    <span className="block text-2xs text-muted-foreground">
                       {CATEGORY_LABELS[item.category]}
                     </span>
                   </TableCell>
@@ -149,7 +149,7 @@ export default function PropertyStockSection({ propertyId, canEdit }: Props) {
                   <TableCell className="tabular-nums">{item.consumptionPerStay}</TableCell>
                   <TableCell>{item.supplierName ?? '—'}</TableCell>
                   {canEdit && (
-                    <TableCell className="text-right whitespace-nowrap">
+                    <TableCell className="text-end whitespace-nowrap">
                       {low && (
                         <Button
                           variant="outline" size="xs"
@@ -197,17 +197,19 @@ export default function PropertyStockSection({ propertyId, canEdit }: Props) {
             </DialogHeader>
             <div className="grid gap-3 py-1">
               <div className="grid grid-cols-2 gap-3">
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('properties.stock.name', 'Article')}
+                <Field>
+                  <FieldLabel htmlFor="stock-name">{t('properties.stock.name', 'Article')}</FieldLabel>
                   <Input
+                    id="stock-name"
                     value={form.name}
                     onChange={(e) => setField('name', e.target.value)}
                     placeholder={t('properties.stock.nameHint', 'Draps housse 160, gel douche…')}
                   />
-                </label>
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('properties.stock.category', 'Catégorie')}
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="stock-category">{t('properties.stock.category', 'Catégorie')}</FieldLabel>
                   <NativeSelect
+                    id="stock-category"
                     value={form.category}
                     onChange={(e) => setField('category', e.target.value as PropertyStockItem['category'])}
                   >
@@ -215,70 +217,81 @@ export default function PropertyStockSection({ propertyId, canEdit }: Props) {
                       <NativeSelectOption key={value} value={value}>{label}</NativeSelectOption>
                     ))}
                   </NativeSelect>
-                </label>
+                </Field>
               </div>
               <div className="grid grid-cols-3 gap-3">
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('properties.stock.quantity', 'En stock')}
+                <Field>
+                  <FieldLabel htmlFor="stock-quantity">{t('properties.stock.quantity', 'En stock')}</FieldLabel>
                   <Input
+                    id="stock-quantity"
                     type="number" min={0}
+                    className="tabular-nums"
                     value={form.quantity}
                     onChange={(e) => setField('quantity', Math.max(0, Number(e.target.value) || 0))}
                   />
-                </label>
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('properties.stock.unit', 'Unité')}
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="stock-unit">{t('properties.stock.unit', 'Unité')}</FieldLabel>
                   <Input
+                    id="stock-unit"
                     value={form.unit ?? ''}
                     onChange={(e) => setField('unit', e.target.value || null)}
                     placeholder={t('properties.stock.unitHint', 'pièces, flacons…')}
                   />
-                </label>
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('properties.stock.perStay', 'Conso / ménage')}
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="stock-per-stay">{t('properties.stock.perStay', 'Conso / ménage')}</FieldLabel>
                   <Input
+                    id="stock-per-stay"
                     type="number" min={0}
+                    className="tabular-nums"
                     value={form.consumptionPerStay}
                     onChange={(e) => setField('consumptionPerStay', Math.max(0, Number(e.target.value) || 0))}
                   />
-                </label>
+                </Field>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('properties.stock.threshold', 'Seuil de commande')}
+                <Field>
+                  <FieldLabel htmlFor="stock-threshold">{t('properties.stock.threshold', 'Seuil de commande')}</FieldLabel>
                   <Input
+                    id="stock-threshold"
                     type="number" min={0}
+                    className="tabular-nums"
                     value={form.reorderThreshold}
                     onChange={(e) => setField('reorderThreshold', Math.max(0, Number(e.target.value) || 0))}
                   />
-                </label>
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('properties.stock.reorderQty', 'Quantité de réappro')}
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="stock-reorder-qty">{t('properties.stock.reorderQty', 'Quantité de réappro')}</FieldLabel>
                   <Input
+                    id="stock-reorder-qty"
                     type="number" min={0}
+                    className="tabular-nums"
                     value={form.reorderQuantity}
                     onChange={(e) => setField('reorderQuantity', Math.max(0, Number(e.target.value) || 0))}
                   />
-                </label>
+                </Field>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('properties.stock.supplierName', 'Fournisseur')}
+                <Field>
+                  <FieldLabel htmlFor="stock-supplier-name">{t('properties.stock.supplierName', 'Fournisseur')}</FieldLabel>
                   <Input
+                    id="stock-supplier-name"
                     value={form.supplierName ?? ''}
                     onChange={(e) => setField('supplierName', e.target.value || null)}
                   />
-                </label>
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('properties.stock.supplierEmail', 'Email fournisseur')}
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="stock-supplier-email">{t('properties.stock.supplierEmail', 'Email fournisseur')}</FieldLabel>
                   <Input
+                    id="stock-supplier-email"
                     type="email"
                     value={form.supplierEmail ?? ''}
                     onChange={(e) => setField('supplierEmail', e.target.value || null)}
                   />
-                </label>
+                </Field>
               </div>
-              <p className="m-0 text-[11.5px] text-[var(--muted)]">
+              <p className="m-0 text-2xs text-muted-foreground">
                 {t('properties.stock.supplierHint',
                   'Sans email fournisseur, la constellation signale le stock bas en information ; avec, elle propose le bon de commande en un clic.')}
               </p>

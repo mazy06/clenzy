@@ -15,19 +15,19 @@ const NotFoundPage: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-12 px-4 min-h-[480px] text-center">
-      {/* alpha(primary.main, .4) et alpha(text.primary, .06) deviennent des
-          color-mix : les deux teintes sont statiques, donc des classes. */}
-      <div className="text-[5rem] font-semibold tabular-nums leading-[1] text-[color-mix(in_srgb,var(--mui-primary)_40%,transparent)]">
+      {/* Le code d'etat porte l'ecran : accent de marque attenue, chiffres a
+          chasse fixe comme toute valeur numerique du PMS. */}
+      <div className="text-[5rem] font-semibold tabular-nums leading-none text-primary/40">
         404
       </div>
 
       <div>
-        <h6 className="cn-text-h6 mb-1.5 font-semibold">
+        <h1 className="mb-1.5 text-base font-semibold tracking-tight text-balance">
           Page introuvable
-        </h6>
-        <p className="cn-text-body2 text-muted-foreground max-w-[480px]">
+        </h1>
+        <p className="max-w-[480px] text-xs text-muted-foreground">
           L&apos;adresse{' '}
-          <code className="px-[4.5px] py-[1.5px] rounded-[4px] text-[0.85em] font-mono bg-[color-mix(in_srgb,var(--ink)_6%,transparent)]">
+          <code className="rounded-sm bg-field px-[4.5px] py-[1.5px] font-mono text-[0.85em] text-foreground">
             {location.pathname}
           </code>{' '}
           ne correspond a aucune page. Verifie l&apos;orthographe ou retourne au dashboard.

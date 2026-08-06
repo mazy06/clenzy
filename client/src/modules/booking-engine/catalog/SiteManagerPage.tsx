@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+  Alert,
+  AlertDescription,
   Button,
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +11,7 @@ import {
   DropdownMenuTrigger,
   Skeleton,
 } from '../../../components/ui';
-import { Sparkles, Rocket, AlertTriangle, Check, ArrowUp, Wand2, SquarePen, ChevronDown } from 'lucide-react';
+import { Sparkles, Rocket, AlertTriangle, ArrowLeft, Check, ArrowUp, Wand2, SquarePen, ChevronDown } from 'lucide-react';
 import { sitesApi, type Site, type SitePage } from '../../../services/api/sitesApi';
 
 /**
@@ -158,24 +160,27 @@ export default function SiteManagerPage() {
   if ((site === null || pages === null) && !error) {
     return (
       <div className="p-4">
-        <Skeleton className="h-[80vh] w-full rounded-[16px] bg-[var(--hover)]" />
+        <Skeleton className="h-[80vh] w-full rounded-xl" />
       </div>
     );
   }
 
   return (
-    <div className="h-[100vh] flex flex-col bg-[var(--bg)]">
+    <div className="h-[100vh] flex flex-col bg-background">
       {/* Barre supérieure */}
-      <div className="flex items-center gap-3 px-4 py-2 border-b border-[var(--line)] shrink-0">
-        <Button variant="ghost" onClick={() => navigate('/booking-engine/studio')} className="text-[var(--muted)]">← Studio</Button>
-        <div className="text-[15px] font-bold text-[var(--ink)]">{site?.name ?? 'Mon site'}</div>
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-border shrink-0">
+        <Button variant="ghost" onClick={() => navigate('/booking-engine/studio')} className="text-muted-foreground">
+          <ArrowLeft size={16} strokeWidth={2} />
+          Studio
+        </Button>
+        <div className="text-sm font-semibold text-foreground">{site?.name ?? 'Mon site'}</div>
         <div className="flex-1" />
         {/* Passage en ÉDITION MANUELLE : ouvre l'éditeur GrapesJS sur ce site (config liée). */}
         <Button
           variant="ghost"
           onClick={() => { if (site?.bookingEngineConfigId) navigate(`/booking-engine/studio/${site.bookingEngineConfigId}`); }}
           disabled={!site?.bookingEngineConfigId}
-          className="text-[var(--muted)]"
+          className="text-muted-foreground"
         >
           <SquarePen size={16} strokeWidth={2} />
           Édition manuelle
@@ -190,9 +195,10 @@ export default function SiteManagerPage() {
       </div>
 
       {error && (
-        <div className="flex items-center gap-1.5 mx-4 mt-2 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[13px]">
-          <AlertTriangle size={16} strokeWidth={2} /> {error}
-        </div>
+        <Alert variant="destructive" className="mx-4 mt-2">
+          <AlertTriangle />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {/* Corps : aperçu | conversation (la sélection de page vit dans la barre d'adresse de l'aperçu). */}
@@ -200,21 +206,21 @@ export default function SiteManagerPage() {
 
         {/* Aperçu live */}
         <div className="p-3 min-w-0 flex flex-col">
-          <div className="flex-1 min-h-0 border border-solid border-[var(--line)] rounded-[var(--radius-lg,_14px)] overflow-hidden flex flex-col" style={{ boxShadow: '0 10px 40px -24px rgba(20,30,55,0.35)' }}>
+          <div className="flex-1 min-h-0 border border-border rounded-xl overflow-hidden flex flex-col shadow-sm">
             {/* Chrome navigateur */}
-            <div className="flex items-center gap-1.5 px-[9px] py-1.5 bg-[var(--surface-2,_#f4f5f8)] shrink-0" style={{ borderBottom: '1px solid var(--line)' }}>
+            <div className="flex items-center gap-1.5 px-[9px] py-1.5 bg-muted border-b border-border shrink-0">
               <div className="flex gap-1">
-                {['#ff5f57', '#febc2e', '#28c840'].map((c) => <div className="w-[10px] h-[10px] rounded-[50%]" style={{ backgroundColor: c }} key={c} />)}
+                {['#ff5f57', '#febc2e', '#28c840'].map((c) => <div className="w-[10px] h-[10px] rounded-full" style={{ backgroundColor: c }} key={c} />)}
               </div>
               {/* Barre d'adresse = sélecteur de page (remplace la colonne « Pages » retirée). */}
               <div className="flex-1 flex justify-center min-w-0">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="inline-flex items-center gap-[4.5px] max-w-full cursor-pointer border border-solid border-[var(--line)] bg-[var(--field,_#fff)] rounded-[var(--radius-pill,_999px)] px-[9px] py-[2.4000000000000004px] text-[var(--muted)] text-[12px] hover:border-[var(--accent)]" style={{ transition: 'border-color 150ms ease' }} type="button" aria-label="Changer de page">
+                    <button className="inline-flex items-center gap-[4.5px] max-w-full cursor-pointer border border-field-line bg-field rounded-full px-[9px] py-[2.4px] text-muted-foreground text-xs transition-[border-color] duration-150 ease-out-quart motion-reduce:transition-none hover:border-primary" type="button" aria-label="Changer de page">
                       <span className="tabular-nums whitespace-nowrap overflow-hidden text-ellipsis">
                         {site?.slug ? `${site.slug}.baitly.site` : 'aperçu'}{selected?.path && selected.path !== '/' ? selected.path : ''}
                       </span>
-                      {selected?.dirty && <div className="w-[6px] h-[6px] rounded-[50%] bg-[var(--accent)] shrink-0" />}
+                      {selected?.dirty && <div className="w-[6px] h-[6px] rounded-full bg-primary shrink-0" />}
                       <ChevronDown size={13} strokeWidth={2.2} style={{ flexShrink: 0 }} />
                     </button>
                   </DropdownMenuTrigger>
@@ -223,15 +229,15 @@ export default function SiteManagerPage() {
                       <DropdownMenuItem
                         key={p.id}
                         onSelect={() => setSelectedId(p.id)}
-                        className="text-[13px] gap-[9px] min-w-[240px]"
+                        className="text-sm gap-[9px] min-w-[240px]"
                       >
                         <div className="min-w-0 flex-1">
-                          <div className="font-semibold text-[var(--ink)] whitespace-nowrap overflow-hidden text-ellipsis">{p.title || p.path}</div>
-                          <div className="text-[11px] text-[var(--muted)] tabular-nums">{p.path}</div>
+                          <div className="font-semibold text-foreground whitespace-nowrap overflow-hidden text-ellipsis">{p.title || p.path}</div>
+                          <div className="text-2xs text-muted-foreground tabular-nums">{p.path}</div>
                         </div>
                         {p.dirty
-                          ? <div className="w-[7px] h-[7px] rounded-[50%] bg-[var(--accent)] shrink-0" title="Brouillon non publié" />
-                          : <Check size={14} strokeWidth={2.4} color="var(--muted)" />}
+                          ? <div className="w-[7px] h-[7px] rounded-full bg-primary shrink-0" title="Brouillon non publié" />
+                          : <Check size={14} strokeWidth={2.4} color="var(--color-muted-foreground)" />}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>
@@ -239,9 +245,10 @@ export default function SiteManagerPage() {
               </div>
             </div>
 
-            <div className="relative flex-1 min-h-0 bg-[#fff]">
+            {/* Le fond blanc n'est pas du chrome Baitly : c'est la page du client rendue dans l'iframe. */}
+            <div className="relative flex-1 min-h-0 bg-white">
               {refining && (
-                <div className="absolute inset-0 bg-[rgba(255,255,255,0.55)] grid place-items-[center] z-[2] text-[13px] text-[var(--muted)] gap-1.5">
+                <div className="absolute inset-0 bg-background/70 grid place-items-center z-[2] text-sm text-muted-foreground gap-1.5">
                   <Wand2 size={20} strokeWidth={1.8} /> Retouche en cours…
                 </div>
               )}
@@ -251,15 +258,15 @@ export default function SiteManagerPage() {
         </div>
 
         {/* Conversation d'itération */}
-        <div className="border-s border-[var(--line)] flex flex-col min-h-0">
-          <div className="px-3 py-2 border-b border-[var(--line)] flex items-center gap-1.5 shrink-0">
-            <Sparkles size={16} strokeWidth={2} color="var(--accent)" />
-            <div className="text-[13.5px] font-bold text-[var(--ink)]">Assistant de design</div>
+        <div className="border-s border-border flex flex-col min-h-0">
+          <div className="px-3 py-2 border-b border-border flex items-center gap-1.5 shrink-0">
+            <Sparkles size={16} strokeWidth={2} color="var(--color-primary)" />
+            <div className="text-sm font-semibold text-foreground">Assistant de design</div>
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-2" ref={logRef}>
             {turns.length === 0 && !refining && (
-              <div className="text-[var(--muted)] text-[13px] leading-[1.6]">
+              <div className="text-muted-foreground text-sm leading-[1.6]">
                 Décrivez une modification de la page <b>{selected?.title || selected?.path}</b> en langage naturel.
                 <ul className="ps-3.5 mt-1.5 flex flex-col gap-0.5">
                   <li>« Rends le hero plus chaleureux »</li>
@@ -269,19 +276,19 @@ export default function SiteManagerPage() {
               </div>
             )}
             {turns.map((turn, i) => (
-              <div className={cn('max-w-[88%] px-[9px] py-1.5 rounded-[var(--radius-md)] text-[13px] leading-[1.5] flex gap-[4.5px] items-start', turn.role === 'user' ? 'self-end' : 'self-start', turn.role === 'user' ? 'bg-[var(--accent)]' : turn.error ? 'bg-[var(--err-soft)]' : 'bg-[var(--hover)]', turn.role === 'user' ? 'text-[#fff]' : turn.error ? 'text-[var(--err)]' : 'text-[var(--ink)]')} key={i}>
+              <div className={cn('max-w-[88%] px-[9px] py-1.5 rounded-lg text-sm leading-[1.5] flex gap-[4.5px] items-start', turn.role === 'user' ? 'self-end' : 'self-start', turn.role === 'user' ? 'bg-primary text-primary-foreground' : turn.error ? 'bg-destructive-soft text-destructive-ink' : 'bg-muted text-foreground')} key={i}>
                 {turn.role === 'assistant' && !turn.error && <Check size={15} strokeWidth={2.4} style={{ flexShrink: 0, marginTop: 1 }} />}
                 {turn.role === 'assistant' && turn.error && <AlertTriangle size={15} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />}
                 <span>{turn.text}</span>
               </div>
             ))}
             {refining && (
-              <div className="self-start px-2 py-1.5 rounded-[var(--radius-md)] bg-[var(--hover)] text-[var(--muted)] text-[13px]">…</div>
+              <div className="self-start px-2 py-1.5 rounded-lg bg-muted text-muted-foreground text-sm">…</div>
             )}
           </div>
 
-          <div className="p-2 border-t border-[var(--line)] shrink-0">
-            <div className="flex items-end gap-1.5 border border-solid border-[var(--line)] rounded-[var(--radius-md)] px-1.5 py-[4.5px] bg-[var(--field,_#fff)]">
+          <div className="p-2 border-t border-border shrink-0">
+            <div className="flex items-end gap-1.5 border border-field-line rounded-lg px-1.5 py-[4.5px] bg-field">
               <textarea
                 value={instruction}
                 onChange={(e) => setInstruction(e.target.value)}
@@ -289,11 +296,19 @@ export default function SiteManagerPage() {
                 placeholder="Décrivez une modification…"
                 disabled={refining}
                 rows={2}
-                className="flex-1 resize-none border-0 outline-0 bg-transparent [font-family:inherit] text-[13.5px] text-[var(--ink)] leading-[1.5] py-[3px]"
+                className="flex-1 resize-none border-0 outline-0 bg-transparent [font-family:inherit] text-sm text-foreground leading-[1.5] py-[3px]"
               />
-              <button className={cn('shrink-0 w-[34px] h-[34px] rounded-[50%] text-[#fff] grid place-items-[center]', refining || !instruction.trim() ? 'cursor-default' : 'cursor-pointer', instruction.trim() && !refining ? 'bg-[var(--accent)]' : 'bg-[var(--line)]')} style={{ border: 0, transition: 'background 150ms ease' }} type="button" aria-label="Envoyer" onClick={handleRefine} disabled={refining || !instruction.trim()}>
+              {/* Envoi : gabarit du kit (fond primaire, focus clavier, etat desactive) plutot qu'un bouton refait a la main. */}
+              <Button
+                type="button"
+                size="icon"
+                aria-label="Envoyer"
+                onClick={handleRefine}
+                disabled={refining || !instruction.trim()}
+                className="shrink-0 size-[34px] rounded-full"
+              >
                 <ArrowUp size={17} strokeWidth={2.4} />
-              </button>
+              </Button>
             </div>
           </div>
         </div>

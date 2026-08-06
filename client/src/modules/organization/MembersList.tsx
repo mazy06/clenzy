@@ -13,6 +13,7 @@ import {
   TooltipTrigger,
 } from '../../components/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import {
   Edit as EditIcon,
   PersonRemove as PersonRemoveIcon,
@@ -56,6 +57,15 @@ const CELL_ACTIONS_CLASS = 'whitespace-nowrap py-[4.5px] ps-1.5 pe-[7.5px] text-
 // l'espace disponible. Sans ça, l'email long pousse la table et la colonne Actions se fait
 // clipper par le `overflow: hidden` du SettingsSection.
 const CELL_MEMBER_CLASS = 'py-[4.5px] px-1.5 max-w-0 w-full';
+
+// ─── Boutons d'action de ligne ──────────────────────────────────────────────
+// Ecrits en litteraux : une classe Tailwind ne peut pas naitre d'une fabrique
+// parametree (les classes sont emises en scannant les sources). Le focus visible
+// vient du primitif Button — on ne le redefinit pas.
+const ROW_ACTION_CLASS =
+  'rounded-[7px] border-solid border-border bg-card text-muted-foreground transition-colors duration-150 ease-out motion-reduce:transition-none';
+const ROW_ACTION_PRIMARY_CLASS = 'hover:border-primary hover:bg-primary-soft hover:text-primary';
+const ROW_ACTION_DANGER_CLASS = 'hover:border-destructive hover:bg-destructive-soft hover:text-destructive-ink';
 
 export default function MembersList({ organizationId, refreshTrigger, onMemberChanged }: Props) {
   const { hasAnyRole, user } = useAuth();
@@ -127,7 +137,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
 
   if (members.length === 0) {
     return (
-      <p className="cn-text-body2 text-muted-foreground py-3 text-center">
+      <p className="text-xs text-muted-foreground py-3 text-center">
         Aucun membre dans cette organisation
       </p>
     );
@@ -179,10 +189,10 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
-                        <p className="cn-text-body1 text-[0.82rem] font-semibold text-foreground leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap" title={getMemberName(member)}>
+                        <p className="text-[0.82rem] font-semibold text-foreground leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap" title={getMemberName(member)}>
                           {getMemberName(member)}
                         </p>
-                        <p className="cn-text-body1 text-[0.7rem] text-muted-foreground leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap" title={member.email}>
+                        <p className="text-2xs text-muted-foreground leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap" title={member.email}>
                           {member.email}
                         </p>
                       </div>
@@ -197,7 +207,10 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                           {/* Le `span` porte la ref que Tooltip pose sur son enfant :
                               StatusChip est une fonction et n'en transmet pas. */}
                           <span className="inline-flex">
-                            <StatusChip tokens={{ color: roleColor, bg: `${roleColor}18` }} label={getOrgRoleLabel(member.roleInOrg)} icon={<RoleIcon size={11} strokeWidth={2} />} />
+                            {/* Teinte de rôle : valeur runtime hors palette sémantique,
+                                la primitive en dérive le fond doux (même API que le
+                                chip de rôle plateforme juste en dessous). */}
+                            <StatusChip color={roleColor} label={getOrgRoleLabel(member.roleInOrg)} icon={<RoleIcon size={11} strokeWidth={2} />} />
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>Rôle dans l'organisation</TooltipContent>
@@ -225,7 +238,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
 
                   {/* Depuis */}
                   <TableCell className={CELL_NOWRAP_CLASS}>
-                    <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums">
+                    <p className="text-2xs text-muted-foreground tabular-nums">
                       {member.joinedAt
                         ? new Date(member.joinedAt).toLocaleDateString('fr-FR')
                         : '—'}
@@ -246,7 +259,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                                   size="icon-sm"
                                   onClick={() => setChangeRoleMember(member)}
                                   aria-label="Changer le rôle"
-                                  className="rounded-[7px] border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] transition-[border-color,background-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none hover:text-[var(--accent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] hover:bg-[var(--accent-soft)]"
+                                  className={cn(ROW_ACTION_CLASS, ROW_ACTION_PRIMARY_CLASS)}
                                 >
                                   <EditIcon size={13} strokeWidth={1.75} />
                                 </Button>
@@ -263,7 +276,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                                   size="icon-sm"
                                   onClick={() => setRemoveMember(member)}
                                   aria-label="Retirer de l'organisation"
-                                  className="rounded-[7px] border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] transition-[border-color,background-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none hover:text-[var(--err)] hover:border-[color-mix(in_srgb,var(--err)_40%,transparent)] hover:bg-[var(--err-soft)]"
+                                  className={cn(ROW_ACTION_CLASS, ROW_ACTION_DANGER_CLASS)}
                                 >
                                   <PersonRemoveIcon size={13} strokeWidth={1.75} />
                                 </Button>

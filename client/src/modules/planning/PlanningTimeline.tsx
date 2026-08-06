@@ -45,6 +45,10 @@ interface PlanningTimelineProps {
   onScroll: () => void;
   propertyColWidth: number;
   onPropertyColWidthChange?: (width: number) => void;
+  /** Colonne logements repliee en rail (mobile). */
+  propertyColCollapsed?: boolean;
+  /** Fourni en mobile seulement : l'en-tete de la colonne devient l'interrupteur. */
+  onTogglePropertyCol?: () => void;
   showPrices: boolean;
   showInterventions: boolean;
   pricingMap: PricingMap;
@@ -83,6 +87,8 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   onScroll,
   propertyColWidth,
   onPropertyColWidthChange,
+  propertyColCollapsed = false,
+  onTogglePropertyCol,
   showPrices,
   showInterventions,
   pricingMap,
@@ -210,6 +216,8 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
               totalGridWidth={totalGridWidth}
               propertyColWidth={propertyColWidth}
               propertyCount={properties.length}
+              collapsed={propertyColCollapsed}
+              onToggleCollapse={onTogglePropertyCol}
             />
 
             {/* Body: property column + grid rows */}
@@ -220,7 +228,8 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                 density={density}
                 selectedPropertyId={null}
                 colWidth={propertyColWidth}
-                onColWidthChange={onPropertyColWidthChange}
+                onColWidthChange={propertyColCollapsed ? undefined : onPropertyColWidthChange}
+                collapsed={propertyColCollapsed}
                 effectiveRowHeight={effectiveRowHeight}
                 emptyRowCount={emptyRowCount}
                 reservationCountByProperty={reservationCountByProperty}
@@ -311,6 +320,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                 totalGridWidth={totalGridWidth}
                 propertyColWidth={propertyColWidth}
                 occupancy={dayOccupancy}
+                collapsed={propertyColCollapsed}
               />
             )}
           </div>

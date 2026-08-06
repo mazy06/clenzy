@@ -37,9 +37,13 @@ const MAP_STYLES = {
   dark: 'mapbox://styles/mapbox/dark-v11',
 } as const;
 
+// Teintes Baitly ecrites en clair : mapbox-gl injecte cette couleur dans un
+// attribut de presentation SVG, ou un `var(--bui-…)` ne se resoudrait pas.
+// Valeurs du palier clair de `theme/baitly-ui.css` (--bui-info / --bui-warning),
+// lisibles sur les deux styles de carte.
 const MARKER_COLORS: Record<string, string> = {
-  property: '#1976d2',
-  key_exchange: '#f57c00',
+  property: '#2563EB',
+  key_exchange: '#D4A574',
 };
 
 /**
@@ -165,11 +169,11 @@ export function MapboxPropertyMap({
     return (
       // `height` vient des props (valeur d'execution) : elle reste en style inline.
       <div
-        className="flex flex-col items-center justify-center gap-1.5 rounded-lg bg-[var(--hover)]"
+        className="flex flex-col items-center justify-center gap-1.5 rounded-lg bg-muted"
         style={{ height }}
       >
-        <span className="inline-flex text-muted-foreground opacity-60"><MapIcon size={48} strokeWidth={1.5} /></span>
-        <p className="cn-text-body2 text-muted-foreground">
+        <span className="inline-flex text-faint"><MapIcon size={48} strokeWidth={1.5} /></span>
+        <p className="text-xs text-muted-foreground">
           Carte indisponible : token Mapbox non configure (VITE_MAPBOX_TOKEN)
         </p>
       </div>

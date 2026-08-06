@@ -22,6 +22,12 @@ import {
   FieldDescription,
   FieldLabel,
   Input,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemTitle,
   NativeSelect,
   Switch,
   Textarea,
@@ -46,6 +52,7 @@ import { useCurrency } from '../../hooks/useCurrency';
 import { softChipSx, semanticToHex } from '../../utils/statusUtils';
 import { usePageHeaderActions, usePageHeaderFilters } from '../../components/PageHeaderActionsContext';
 import { Money } from '../../components/Money';
+import EmptyState from '../../components/EmptyState';
 import { SectionHeading } from './formPrimitives';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { upsellApi, type UpsellOffer, type UpsellOrder } from '../../services/api/upsellApi';
@@ -69,7 +76,7 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 // Filtre du PageHeader actif (Canal / Catégorie) : seule la teinte accent reste
 // a porter, le gabarit (hauteur, rayon, graisse) vient du bouton du kit.
-const HEADER_FILTER_ACTIVE = 'text-[var(--accent)] border-[var(--accent)] bg-[var(--accent-soft)]';
+const HEADER_FILTER_ACTIVE = 'text-primary border-primary bg-primary-soft';
 
 // Icône lucide par type de service.
 const TYPE_ICON: Record<string, typeof Tag> = {
@@ -580,7 +587,7 @@ const UpsellsAdmin: React.FC = () => {
               <h1>{offer.title}</h1>
               <div className="dhead__meta">
                 <span>{typeLabel(offer.type)}</span><span>·</span>
-                <span className="src-tag int"><span className="pdot" style={{ background: 'var(--accent)' }} />{t('upsells.detail.internal', 'Service interne')}</span>
+                <span className="src-tag int"><span className="pdot" style={{ background: 'var(--bui-primary)' }} />{t('upsells.detail.internal', 'Service interne')}</span>
               </div>
             </div>
             <div className="dhead__act">
@@ -653,7 +660,8 @@ const UpsellsAdmin: React.FC = () => {
                   <div className="d"><span>{t('upsells.fields.type', 'Catégorie')}</span><b>{typeLabel(offer.type)}</b></div>
                   <div className="d"><span>{t('upsells.detail.source', 'Source')}</span><b>{t('upsells.detail.internalShort', 'Interne')}</b></div>
                   <div className="d"><span>{t('upsells.fields.currency', 'Devise')}</span><b>{offer.currency}</b></div>
-                  <div className="d"><span>{t('upsells.detail.statusLabel', 'Statut')}</span><b style={{ color: offer.active ? 'var(--ok)' : 'var(--muted)' }}>{offer.active ? t('upsells.active', 'Actif') : t('upsells.inactive', 'Inactif')}</b></div>
+                  {/* Statut = TEXTE : jeton `-ink` (la teinte vive plafonne a 2,2:1 sur la carte). */}
+                  <div className="d"><span>{t('upsells.detail.statusLabel', 'Statut')}</span><b style={{ color: offer.active ? 'var(--bui-success-ink)' : 'var(--bui-muted-foreground)' }}>{offer.active ? t('upsells.active', 'Actif') : t('upsells.inactive', 'Inactif')}</b></div>
                 </div>
               </div>
             </aside>
@@ -678,15 +686,15 @@ const UpsellsAdmin: React.FC = () => {
             <DialogTitle>{t('upsells.preview.title', 'Aperçu côté voyageur')}</DialogTitle>
           </DialogHeader>
           {previewOffer && (
-            <div className="border border-solid border-[var(--line)] rounded-[16px] overflow-hidden max-w-[320px] mx-auto">
+            <div className="border border-solid border-border rounded-xl overflow-hidden max-w-[320px] mx-auto">
               <div
-                className="h-[150px] bg-[var(--hover)] bg-cover bg-center"
+                className="h-[150px] bg-muted bg-cover bg-center"
                 style={{ backgroundImage: previewOffer.imageUrl ? `url(${previewOffer.imageUrl})` : 'none' }}
               />
               <div className="p-3">
                 <div className="font-semibold">{previewOffer.title}</div>
                 {previewOffer.description ? (
-                  <div className="text-[14px] text-muted-foreground mt-0.5">{previewOffer.description}</div>
+                  <div className="text-sm text-muted-foreground mt-0.5">{previewOffer.description}</div>
                 ) : null}
                 <div className="font-bold mt-1.5"><Money value={previewOffer.price} from={previewOffer.currency} /></div>
                 <Button className="w-full mt-[9px] shrink" disabled>
@@ -716,16 +724,17 @@ const UpsellsAdmin: React.FC = () => {
               title={t('upsells.commissions.title', 'Commissions activités')}
               actions={
                 <div className="text-end">
-                  <h6 className="cn-text-subtitle1 font-bold tabular-nums text-[var(--ok)] leading-[1.15]">
+                  {/* Montant = TEXTE : `success-ink` (5,73:1), jamais la teinte vive. */}
+                  <h6 className="text-sm font-bold tabular-nums text-success-ink leading-[1.15]">
                     <Money value={commissionSummary.totalHostShare} from={commissionSummary.currency} />
                   </h6>
-                  <span className="cn-text-caption text-muted-foreground block">
+                  <span className="text-xs text-muted-foreground block">
                     {commissionSummary.count} {t('upsells.commissions.bookings', 'réservation(s)')}
                   </span>
                 </div>
               }
             />
-            <span className="cn-text-caption text-muted-foreground block">
+            <span className="text-xs text-muted-foreground block">
               {t('upsells.commissions.note', "Votre part sur les réservations d'activités, reversée via vos paiements. Active dès qu'un fournisseur d'activités est connecté.")}
             </span>
           </CardContent>
@@ -882,9 +891,9 @@ const UpsellsAdmin: React.FC = () => {
                 une interaction exterieure — le dialog se refermerait. */}
             <Field>
               <FieldLabel>{t('upsells.fields.bundle', 'Offres incluses (bundle)')}</FieldLabel>
-              <div className="flex flex-col gap-1.5 max-h-[132px] overflow-y-auto rounded-[6px] border border-solid border-[var(--line)] p-1.5">
+              <div className="flex flex-col gap-1.5 max-h-[132px] overflow-y-auto rounded-md border border-solid border-border p-1.5">
                 {bundleCandidates.length === 0 ? (
-                  <span className="cn-text-caption text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {t('upsells.fields.bundleEmpty', 'Aucune autre offre disponible.')}
                   </span>
                 ) : (
@@ -917,12 +926,12 @@ const UpsellsAdmin: React.FC = () => {
               </FieldDescription>
             </Field>
             <div>
-              <span className="cn-text-caption text-muted-foreground block mb-1">
+              <span className="text-xs text-muted-foreground block mb-1">
                 {t('upsells.fields.image', 'Image (optionnel)')}
               </span>
               <div className="flex items-center gap-2 flex-wrap">
                 {edit.imageUrl ? (
-                  <img className="w-[72px] h-[72px] rounded-[12px] object-cover block border border-[var(--line)]" src={edit.imageUrl} alt="" />
+                  <img className="w-[72px] h-[72px] rounded-lg object-cover block border border-border" src={edit.imageUrl} alt="" />
                 ) : null}
                 {/* asChild : le declencheur reste un <label> pour ouvrir l'input fichier masque.
                     cursor-pointer explicite : la regle globale du kit ne vise que button/[role=button]. */}
@@ -982,25 +991,25 @@ const UpsellsAdmin: React.FC = () => {
               <Spinner className="size-10" />
             </div>
           ) : orders.length === 0 ? (
-            <p className="cn-text-body2 text-muted-foreground">
-              {t('upsells.orders.empty', 'Aucune vente pour le moment.')}
-            </p>
+            <EmptyState
+              variant="transparent"
+              icon={<Receipt />}
+              title={t('upsells.orders.empty', 'Aucune vente pour le moment.')}
+            />
           ) : (
-            <div className="flex flex-col gap-[7.5px]">
+            <ItemGroup className="gap-1.5">
               {orders.map((order: UpsellOrder) => (
-                <div className="border-b border-[var(--line)] pb-1.5" key={order.id}>
-                  <div className="flex justify-between items-center gap-1.5">
-                    <p className="cn-text-body2 font-semibold">
-                      {order.title}
-                    </p>
-                    <StatusChip color={semanticToHex(order.status === 'PAID' ? 'success' : 'default')} label={orderStatusLabel(order.status)} />
-                  </div>
-                  <div className="flex justify-between mt-0.5">
-                    <span className="cn-text-caption text-muted-foreground">
+                <Item key={order.id} variant="outline" size="xs" className="items-start">
+                  <ItemContent>
+                    <ItemTitle className="text-xs font-semibold">{order.title}</ItemTitle>
+                    <ItemDescription className="text-xs">
                       {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}
                       {order.guestEmail ? ` · ${order.guestEmail}` : ''}
-                    </span>
-                    <span className="cn-text-caption tabular-nums">
+                    </ItemDescription>
+                  </ItemContent>
+                  <ItemActions className="flex-col items-end gap-0.5">
+                    <StatusChip color={semanticToHex(order.status === 'PAID' ? 'success' : 'default')} label={orderStatusLabel(order.status)} />
+                    <span className="text-xs text-muted-foreground tabular-nums text-end">
                       <Money value={order.amount} from={order.currency} />
                       {order.hostAmount != null ? (
                         <>
@@ -1009,10 +1018,10 @@ const UpsellsAdmin: React.FC = () => {
                         </>
                       ) : null}
                     </span>
-                  </div>
-                </div>
+                  </ItemActions>
+                </Item>
               ))}
-            </div>
+            </ItemGroup>
           )}
           </div>
           <DialogFooter>

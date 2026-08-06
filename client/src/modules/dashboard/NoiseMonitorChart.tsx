@@ -36,28 +36,36 @@ import type { TimeWindowThreshold } from './NoiseAlertConfigPanel';
 
 // ─── Styling constants ──────────────────────────────────────────────────────
 
-const AXIS_TICK = { fontSize: 11, fill: '#94A3B8' } as const;
-const GRID_STROKE = '#F1F5F9';
+const AXIS_TICK = { fontSize: 11, fill: 'var(--bui-faint)' } as const;
+const GRID_STROKE = 'var(--bui-border)';
 
+/** Une série par capteur — palette de graphique Baitly UI (`--bui-chart-1..5`). */
 const PROPERTY_COLORS = [
-  '#6B8A9A', // Baitly primary
-  '#4A9B8E', // teal
-  '#D4A574', // warm
-  '#8B7EC8', // purple
-  '#C97A7A', // coral
+  'var(--bui-chart-1)',
+  'var(--bui-chart-2)',
+  'var(--bui-chart-3)',
+  'var(--bui-chart-4)',
+  'var(--bui-chart-5)',
 ];
+
+/**
+ * Voile doux d'une couleur de série. Les tokens etant des `var()`, la vieille
+ * concatenation d'alpha hexadecimale (`${color}10`) ne s'applique plus :
+ * `color-mix` accepte les deux formes.
+ */
+const seriesTint = (color: string, percent: number) =>
+  `color-mix(in srgb, ${color} ${percent}%, transparent)`;
 
 // Overlay non bloquant centré sur la zone de tracé (le graphique reste visible derrière).
 const CHART_OVERLAY_CLASS =
   'absolute inset-0 flex items-center justify-center pointer-events-none p-3';
 
 // Pastille translucide qui porte le message sans masquer les axes alentour.
-// `background.paper` -> var(--card), `divider` -> var(--line) ; les alpha du sx
-// d'origine deviennent un color-mix et une ombre ecrite en clair.
+// Le voile n'est pas decoratif : il isole le message des courbes qui passent
+// dessous, sans quoi le texte devient illisible sur un graphe dense.
 const CHART_OVERLAY_PILL_CLASS =
   'flex flex-col items-center gap-0.5 text-center px-[15px] py-[9px] max-w-[320px] ' +
-  'rounded-[16px] border border-solid border-[var(--line)] backdrop-blur-[2px] ' +
-  'bg-[color-mix(in_srgb,var(--card)_86%,transparent)] shadow-[0_6px_20px_rgba(0,0,0,0.06)]';
+  'rounded-xl border border-border backdrop-blur-[2px] bg-card/85 shadow-md';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -85,17 +93,16 @@ const NoiseTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) 
   if (!active || !payload?.length) return null;
 
   return (
-    // boxShadow: 1 = index dans theme.shadows (aucun override projet) => elevation 1 de MUI, ecrite en clair.
-    <div className="bg-[var(--card)] border border-solid border-[var(--line)] rounded-[8px] p-[6px] min-w-[140px] shadow-[0px_2px_1px_-1px_rgba(0,0,0,0.2),0px_1px_1px_0px_rgba(0,0,0,0.14),0px_1px_3px_0px_rgba(0,0,0,0.12)]">
-      <p className="cn-text-body1 text-[0.6875rem] font-semibold text-muted-foreground mb-0.5">
+    <div className="bg-card border border-border rounded-lg p-[6px] min-w-[140px] shadow-md">
+      <p className="text-[0.6875rem] font-semibold text-muted-foreground mb-0.5">
         {label}
       </p>
       {payload.map((entry) => {
         const status = getNoiseStatus(entry.value);
         return (
           <div className="flex items-center gap-0.5 mb-0.5" key={entry.name}>
-            <div className="w-[8px] h-[8px] rounded-[50%] shrink-0" style={{ backgroundColor: entry.color }} />
-            <p className="cn-text-body1 text-[0.6875rem] flex-1">{entry.name}</p>
+            <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+            <p className="text-[0.6875rem] flex-1 text-foreground">{entry.name}</p>
             <StatusChip size="sm" tone={status.tone} label={`${entry.value} dB`} />
           </div>
         );
@@ -200,7 +207,7 @@ const ThresholdLinesRenderer: React.FC<ThresholdLinesRendererProps> = ({
         <g key={`${tw.label}-warn-${ri}`}>
           <line
             x1={x1} y1={yWarn} x2={x2} y2={yWarn}
-            stroke="#ED6C02"
+            stroke="var(--bui-warning)"
             strokeDasharray="6 4"
             strokeWidth={1.5}
           />
@@ -208,7 +215,7 @@ const ThresholdLinesRenderer: React.FC<ThresholdLinesRendererProps> = ({
             <text
               x={x2 - 4} y={yWarn - 4}
               textAnchor="end"
-              fontSize={9} fontWeight={600} fill="#ED6C02"
+              fontSize={9} fontWeight={600} fill="var(--bui-warning-ink)"
             >
               {tw.label} {tw.warning} dB
             </text>
@@ -222,7 +229,7 @@ const ThresholdLinesRenderer: React.FC<ThresholdLinesRendererProps> = ({
         <g key={`${tw.label}-crit-${ri}`}>
           <line
             x1={x1} y1={yCrit} x2={x2} y2={yCrit}
-            stroke="#D32F2F"
+            stroke="var(--bui-destructive)"
             strokeDasharray="6 4"
             strokeWidth={1.5}
           />
@@ -230,7 +237,7 @@ const ThresholdLinesRenderer: React.FC<ThresholdLinesRendererProps> = ({
             <text
               x={x2 - 4} y={yCrit - 4}
               textAnchor="end"
-              fontSize={9} fontWeight={600} fill="#D32F2F"
+              fontSize={9} fontWeight={600} fill="var(--bui-destructive-ink)"
             >
               {tw.label} {tw.critical} dB
             </text>
@@ -305,10 +312,10 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
         <div className="flex items-center justify-between mb-1 shrink-0">
           <div className="flex items-center gap-1">
             <span className="inline-flex text-primary"><VolumeUp size={16} strokeWidth={1.75} /></span>
-            <p className="cn-text-body1 text-[0.75rem] font-bold uppercase tracking-[0.04em] text-muted-foreground">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {isDevice ? 'Niveau sonore' : 'Monitoring sonore'}
             </p>
-            <Badge variant="outline" className="h-[18px] text-[0.5625rem] font-semibold border-[var(--mui-primary)] text-[var(--mui-primary)] px-0.5">{isDevice ? 'Dernières 24 h' : `${data.properties.length} capteur${data.properties.length > 1 ? 's' : ''}`}</Badge>
+            <Badge variant="outline" className="h-[18px] text-[0.5625rem] font-semibold border-primary text-primary px-0.5">{isDevice ? 'Dernières 24 h' : `${data.properties.length} capteur${data.properties.length > 1 ? 's' : ''}`}</Badge>
           </div>
 
           {!isDevice && (
@@ -334,12 +341,13 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
         <div className="flex gap-1 mb-1 shrink-0 flex-wrap">
           {data.properties.map((prop, idx) => {
             const status = getNoiseStatus(prop.currentLevel);
+            const seriesColor = PROPERTY_COLORS[idx % PROPERTY_COLORS.length];
             return (
               <Tooltip key={prop.propertyId}>
                 <TooltipTrigger asChild>
-                  <div className="flex items-center gap-[3px] px-[4.5px] py-[1.5px] rounded-[8px] border border-solid" style={{ backgroundColor: `${PROPERTY_COLORS[idx % PROPERTY_COLORS.length]}10`, borderColor: `${PROPERTY_COLORS[idx % PROPERTY_COLORS.length]}30` }}>
-                    <div className="w-[6px] h-[6px] rounded-[50%]" style={{ backgroundColor: PROPERTY_COLORS[idx % PROPERTY_COLORS.length] }} />
-                    <p className="cn-text-body1 text-[0.625rem] font-semibold text-muted-foreground">
+                  <div className="flex items-center gap-[3px] px-[4.5px] py-[1.5px] rounded-lg border" style={{ backgroundColor: seriesTint(seriesColor, 6), borderColor: seriesTint(seriesColor, 19) }}>
+                    <div className="size-1.5 rounded-full" style={{ backgroundColor: seriesColor }} />
+                    <p className="text-2xs font-semibold text-muted-foreground">
                       {prop.propertyName}
                     </p>
                     <StatusChip
@@ -398,17 +406,17 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
                 <>
                   <ReferenceLine
                     y={NOISE_THRESHOLDS.warning}
-                    stroke="#ED6C02"
+                    stroke="var(--bui-warning)"
                     strokeDasharray="6 4"
                     strokeWidth={1.5}
-                    label={{ value: `${NOISE_THRESHOLDS.warning} dB`, position: 'insideRight', style: { fontSize: 10, fill: '#ED6C02', fontWeight: 600 } }}
+                    label={{ value: `${NOISE_THRESHOLDS.warning} dB`, position: 'insideRight', style: { fontSize: 10, fill: 'var(--bui-warning-ink)', fontWeight: 600 } }}
                   />
                   <ReferenceLine
                     y={NOISE_THRESHOLDS.critical}
-                    stroke="#D32F2F"
+                    stroke="var(--bui-destructive)"
                     strokeDasharray="6 4"
                     strokeWidth={1.5}
-                    label={{ value: `${NOISE_THRESHOLDS.critical} dB`, position: 'insideRight', style: { fontSize: 10, fill: '#D32F2F', fontWeight: 600 } }}
+                    label={{ value: `${NOISE_THRESHOLDS.critical} dB`, position: 'insideRight', style: { fontSize: 10, fill: 'var(--bui-destructive-ink)', fontWeight: 600 } }}
                   />
                 </>
               )}
@@ -438,7 +446,7 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
             <div className={CHART_OVERLAY_CLASS}>
               <div className={CHART_OVERLAY_PILL_CLASS}>
                 <Spinner className="size-[22px]" />
-                <span className="cn-text-caption text-muted-foreground font-semibold">
+                <span className="text-xs font-semibold text-muted-foreground">
                   Chargement de l'historique…
                 </span>
               </div>
@@ -452,10 +460,10 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
                 <span className="inline-flex text-primary">
                   <VolumeUp size={24} strokeWidth={1.5} />
                 </span>
-                <p className="cn-text-body2 font-bold">
+                <p className="text-xs font-semibold text-foreground">
                   En attente des premières mesures
                 </p>
-                <span className="cn-text-caption text-muted-foreground leading-[1.4]">
+                <span className="text-xs text-muted-foreground leading-[1.4]">
                   Les courbes s'afficheront ici dès que le capteur remontera ses relevés.
                 </span>
               </div>
@@ -465,7 +473,7 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
 
         {/* Recent alerts strip */}
         {recentAlerts.length > 0 && (
-          <div className="flex gap-[3px] mt-[3px] shrink-0 overflow-x-auto [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-[var(--line)] [&::-webkit-scrollbar-thumb]:rounded-[16px]">
+          <div className="flex gap-[3px] mt-[3px] shrink-0 overflow-x-auto [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full">
             {recentAlerts.map(alert => (
               <StatusChip
                 key={alert.id}

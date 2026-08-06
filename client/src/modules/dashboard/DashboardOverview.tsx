@@ -22,6 +22,7 @@ import { useDashboardLayout } from '../../hooks/useDashboardLayout';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { usePageHeaderActions } from '../../components/PageHeaderActionsContext';
 import StatTile from '../../components/baitly/StatTile';
+import StatTileRow from '../../components/baitly/StatTileRow';
 import { Money } from '../../components/baitly/Money';
 import { Button, Skeleton } from '../../components/ui';
 import { cn } from '../../utils/cn';
@@ -157,7 +158,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
       label: t('dashboard.widgets.kpis', 'Indicateurs'),
       node: (
         <DashboardErrorBoundary widgetName="KPIs">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+          <StatTileRow columns={3} className="xl:grid-cols-6">
             <StatTile
               icon={<PercentIcon />}
               label={t('dashboard.analytics.occupancyShort', 'Occupation')}
@@ -223,7 +224,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                   : undefined
               }
             />
-          </div>
+          </StatTileRow>
         </DashboardErrorBoundary>
       ),
     });
@@ -296,7 +297,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
       label: t('dashboard.widgets.kpis', 'Indicateurs'),
       node: (
         <DashboardErrorBoundary widgetName="OperationalKPIs">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatTileRow columns={4}>
             <StatTile
               icon={<WrenchIcon />}
               label={t('dashboard.stats.upcomingInterventions', 'Interventions à venir')}
@@ -331,7 +332,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                   : undefined
               }
             />
-          </div>
+          </StatTileRow>
         </DashboardErrorBoundary>
       ),
     });
@@ -415,9 +416,19 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
               </div>
             )}
 
+            {/* `[&>*]:shrink-0` — les tuiles ne doivent JAMAIS etre comprimees :
+                cette colonne vit dans une zone qui defile deja, sa hauteur doit
+                donc suivre son contenu.
+                Sans cette regle, le deficit de hauteur de la colonne etait absorbe
+                en entier par la SEULE tuile capable de se reduire. Une tuile porte
+                `overflow: hidden` (.cn-card), or `min-height: auto` ne vaut la
+                hauteur du contenu que si `overflow` est `visible` : son plancher
+                tombait a zero quand celui des autres tenait bon. « Revenus par
+                canal » se retrouvait ainsi ecrasee a 61 px pour 372 px de contenu,
+                reduite a son seul en-tete. */}
             <div
               className={cn(
-                'flex flex-col gap-4',
+                'flex flex-col gap-4 [&>*]:shrink-0',
                 showOnboardingOverlay && 'pointer-events-none select-none',
               )}
             >

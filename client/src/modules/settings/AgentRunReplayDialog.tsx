@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import StatusChip from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
@@ -9,8 +8,12 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  Item,
+  ItemContent,
+  ItemMedia,
   Skeleton,
 } from '../../components/ui';
+import { cn } from '../../utils/cn';
 import { Field, FieldLabel, Input } from '../../components/ui';
 import { Brain, Wrench, GitBranch, PauseCircle, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -56,11 +59,11 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
       .finally(() => setLoading(false));
   }, [open, runId, t]);
 
-  // `theme.palette.error.main` -> jeton Signature equivalent (plus de useTheme).
-  const statusColor = (status: string): string => {
-    if (status === 'ERROR') return 'var(--err)';
-    if (status === 'PAUSED') return '#D4A574';
-    return '#4A9B8E';
+  // Statut du run -> ton semantique Baitly UI (fond `-soft`, texte `-ink`).
+  const statusVariant = (status: string): 'destructive' | 'warning' | 'success' => {
+    if (status === 'ERROR') return 'destructive';
+    if (status === 'PAUSED') return 'warning';
+    return 'success';
   };
 
   return (
@@ -78,9 +81,9 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
         </DialogHeader>
         {loading && (
           <div className="flex flex-col gap-1.5">
-            <Skeleton className="h-12 rounded-[8px]" />
-            <Skeleton className="h-12 rounded-[8px]" />
-            <Skeleton className="h-12 rounded-[8px]" />
+            <Skeleton className="h-12 rounded-md" />
+            <Skeleton className="h-12 rounded-md" />
+            <Skeleton className="h-12 rounded-md" />
           </div>
         )}
         {error && <Alert variant="warning">
@@ -90,7 +93,9 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
         {replay && !loading && (
           <>
             <div className="flex gap-1 mb-2 flex-wrap">
-              <StatusChip tokens={{ color: '#fff', bg: statusColor(replay.status) }} label={t(`agentReplay.status.${replay.status}`, replay.status)} />
+              <Badge variant={statusVariant(replay.status)}>
+                {t(`agentReplay.status.${replay.status}`, replay.status)}
+              </Badge>
               <Badge variant="outline">{`${replay.steps.length} ${t('agentReplay.steps', 'étapes')}`}</Badge>
             </div>
             {replay.error && (
@@ -103,50 +108,49 @@ export default function AgentRunReplayDialog({ runId, open, onClose }: Props) {
               {replay.steps.map((step) => {
                 const Icon = KIND_ICON[step.kind] ?? Brain;
                 const tokens = step.promptTokens + step.completionTokens;
+                const failed = step.status === 'ERROR';
                 return (
-                  <div
+                  <Item
                     key={step.seq}
-                    className="flex items-start gap-[7.5px] p-1.5 rounded-[8px] border border-solid border-[var(--line)] border-l-2"
-                    // Teinte d'erreur decidee a l'execution ; sinon le lisere
-                    // garde la couleur de bordure posee par la classe.
-                    style={{ borderLeftColor: step.status === 'ERROR' ? 'var(--err)' : undefined }}
+                    variant="outline"
+                    size="xs"
+                    // Une etape en echec se dit par le fond, pas par un lisere
+                    // lateral colore (interdit produit).
+                    className={cn('items-start', failed && 'border-destructive/40 bg-destructive-soft/50')}
                   >
-                    <Icon
-                      size={16}
-                      style={{ marginTop: 2, flexShrink: 0 }}
-                      color="var(--muted)"
-                      aria-hidden
-                    />
-                    <div className="min-w-0 flex-1">
+                    <ItemMedia variant="icon" className={cn('mt-0.5', failed ? 'text-destructive' : 'text-muted-foreground')}>
+                      <Icon size={16} aria-hidden />
+                    </ItemMedia>
+                    <ItemContent className="min-w-0 gap-0.5">
                       <div className="flex items-center gap-1 flex-wrap">
-                        <p className="cn-text-body2 font-semibold">
+                        <p className="text-xs font-semibold">
                           {t(`agentReplay.kind.${step.kind}`, step.kind)}
                         </p>
-                        <span className="cn-text-caption text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">
                           {step.toolName ?? step.agent}
                         </span>
                       </div>
                       {step.detail && (
-                        <span className="cn-text-caption text-muted-foreground block">
+                        <span className="text-xs text-muted-foreground block">
                           {step.detail}
                         </span>
                       )}
-                    </div>
+                    </ItemContent>
                     {tokens > 0 && (
-                      <span className="cn-text-caption text-muted-foreground tabular-nums whitespace-nowrap">
+                      <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
                         {tokens.toLocaleString()} tok
                       </span>
                     )}
-                  </div>
+                  </Item>
                 );
               })}
             </div>
             {replay.userQuery && (
-              <div className="mt-3 pt-2 border-t border-[var(--line)]">
-                <h6 className="cn-text-subtitle2 mb-0.5">
+              <div className="mt-3 pt-2 border-t border-border">
+                <h6 className="text-xs font-medium mb-0.5">
                   {t('agentReplay.whatIf.title', 'Et si… ? (rejouer avec une hypothèse)')}
                 </h6>
-                <span className="cn-text-caption text-muted-foreground block mb-1.5">
+                <span className="text-xs text-muted-foreground block mb-1.5">
                   {t('agentReplay.whatIf.subtitle',
                     'Le prompt de re-analyse est copié — collez-le dans le chat de l\u2019assistant pour lancer le what-if.')}
                 </span>

@@ -36,11 +36,12 @@ export const AssistantUsageBadge: React.FC<AssistantUsageBadgeProps> = ({
   return (
     <Tooltip delayDuration={300}>
       <TooltipTrigger asChild>
-        <div className="inline-flex items-center gap-[4.5px] px-[7.5px] h-[28px] rounded-[7992px] text-[11.5px] font-semibold text-[var(--muted)] bg-[var(--card)] border border-solid border-[var(--line)] cursor-help tabular-nums select-none hover:border-[var(--line-2)]" style={{ transition: 'border-color .15s' }} aria-label={`Consommation assistant : ${costLabel} ${periodLabel}, ${tokensLabel} tokens`}>
-          <span className="font-semibold text-[var(--body)]">{costLabel}</span>
-          <span className="text-[var(--faint)]">
-            · {tokensLabel} tokens
-          </span>
+        <div
+          className="inline-flex h-7 cursor-help select-none items-center gap-1 rounded-full border border-border bg-card px-2 text-xs font-medium tabular-nums text-muted-foreground transition-colors duration-150 hover:border-muted-foreground/40 motion-reduce:transition-none"
+          aria-label={`Consommation assistant : ${costLabel} ${periodLabel}, ${tokensLabel} tokens`}
+        >
+          <span className="font-semibold text-foreground">{costLabel}</span>
+          <span className="text-faint">· {tokensLabel} tokens</span>
         </div>
       </TooltipTrigger>
       <TooltipContent side="bottom" align="end">
@@ -52,16 +53,23 @@ export const AssistantUsageBadge: React.FC<AssistantUsageBadgeProps> = ({
 
 // ─── Tooltip detaille (breakdown par modele) ─────────────────────────────────
 
+/**
+ * Surtitre de section du tooltip. La surface du tooltip est INVERSEE : son encre
+ * vient du composant, d'ou une attenuation par opacite plutot que
+ * `text-muted-foreground`, qui y perdrait tout contraste.
+ */
+const OVERLINE = 'text-2xs font-semibold uppercase tracking-wide opacity-70';
+
 const UsageTooltipContent: React.FC<{
   usage: AssistantUsage | null;
   loading: boolean;
 }> = ({ usage, loading }) => {
   if (loading) {
-    return <span className="cn-text-caption">Chargement…</span>;
+    return <span className="text-xs">Chargement…</span>;
   }
   if (!usage || usage.requestCount === 0) {
     return (
-      <div className="min-w-[200px] text-[0.75rem]">
+      <div className="min-w-[200px] text-xs">
         Aucune consommation enregistree pour cette periode.
       </div>
     );
@@ -74,28 +82,24 @@ const UsageTooltipContent: React.FC<{
       : null;
 
   return (
-    <div className="min-w-[240px] text-[0.75rem] leading-[1.5]">
-      <span className="cn-text-overline text-[0.625rem] tracking-[0.8px] font-bold opacity-70">
-        {periodLabel}
-      </span>
+    <div className="min-w-[240px] text-xs leading-normal">
+      <span className={OVERLINE}>{periodLabel}</span>
 
       <div className="flex justify-between mt-0.5">
         <span>Cout total</span>
-        <strong style={{ fontVariantNumeric: 'tabular-nums' }}>
-          {formatCost(usage.costUsd, true)}
-        </strong>
+        <strong className="tabular-nums">{formatCost(usage.costUsd, true)}</strong>
       </div>
       <div className="flex justify-between">
         <span>Tokens entree</span>
-        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatTokens(usage.tokensIn)}</span>
+        <span className="tabular-nums">{formatTokens(usage.tokensIn)}</span>
       </div>
       <div className="flex justify-between">
         <span>Tokens sortie</span>
-        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatTokens(usage.tokensOut)}</span>
+        <span className="tabular-nums">{formatTokens(usage.tokensOut)}</span>
       </div>
       <div className="flex justify-between">
         <span>Appels LLM</span>
-        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{usage.requestCount}</span>
+        <span className="tabular-nums">{usage.requestCount}</span>
       </div>
 
       {budgetPct !== null && (
@@ -107,17 +111,13 @@ const UsageTooltipContent: React.FC<{
 
       {usage.byModel.length > 0 && (
         <>
-          <div className="mt-1.5 pt-[4.5px]" style={{ borderTop: '1px solid color-mix(in srgb, var(--bg) 25%, transparent)' }}>
-            <span className="cn-text-overline text-[0.625rem] tracking-[0.8px] font-bold opacity-70">
-              Par modele
-            </span>
+          <div className="mt-1.5 border-t border-current/20 pt-1">
+            <span className={OVERLINE}>Par modele</span>
           </div>
           {usage.byModel.map((m) => (
             <div className="flex justify-between items-baseline" key={m.model}>
-              <span style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {shortenModelName(m.model)}
-              </span>
-              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCost(m.costUsd, true)}</span>
+              <span className="max-w-[140px] truncate">{shortenModelName(m.model)}</span>
+              <span className="tabular-nums">{formatCost(m.costUsd, true)}</span>
             </div>
           ))}
         </>

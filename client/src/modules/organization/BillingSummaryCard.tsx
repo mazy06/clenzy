@@ -53,7 +53,7 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
   if (loading) {
     return (
       <SettingsSection title={t('billing.title')} icon={ReceiptIcon} accent="accent">
-        <Skeleton className="h-[100px] w-full rounded-[8px]" />
+        <Skeleton className="h-[100px] w-full rounded-lg" />
       </SettingsSection>
     );
   }
@@ -75,32 +75,32 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
   const discountPercent = Math.round((1 - summary.billingPeriodDiscount) * 100);
 
   const periodChip = (
-    <Badge variant="secondary" className="bg-[var(--accent-soft)] text-[var(--accent)] px-1.5">{BILLING_PERIOD_LABELS[summary.billingPeriod] || summary.billingPeriod}</Badge>
+    <Badge variant="secondary" className="bg-primary-soft text-primary px-1.5">{BILLING_PERIOD_LABELS[summary.billingPeriod] || summary.billingPeriod}</Badge>
   );
 
   return (
     <SettingsSection title={t('billing.title')} icon={ReceiptIcon} accent="accent" action={periodChip}>
       {/* Base plan */}
       <div className="flex justify-between items-baseline mb-1">
-        <p className="cn-text-body1 text-[0.8rem] text-muted-foreground">
+        <p className="text-[0.8rem] text-muted-foreground">
           {t('billing.basePlan')}
         </p>
-        <p className="cn-text-body1 text-[0.8rem] font-semibold text-foreground tabular-nums">
+        <p className="text-[0.8rem] font-semibold text-foreground tabular-nums">
           <Money value={summary.basePriceCents / 100} />
         </p>
       </div>
 
       {/* Per-seat */}
       <div className="flex justify-between items-baseline mb-0.5">
-        <p className="cn-text-body1 text-[0.8rem] text-muted-foreground">
+        <p className="text-[0.8rem] text-muted-foreground">
           {t('billing.seats')} ({summary.billableSeats} × <Money value={summary.perSeatPriceCents / 100} />)
         </p>
-        <p className="cn-text-body1 text-[0.8rem] font-semibold text-foreground tabular-nums">
+        <p className="text-[0.8rem] font-semibold text-foreground tabular-nums">
           <Money value={summary.seatsTotalCents / 100} />
         </p>
       </div>
 
-      <p className="cn-text-body1 block text-[0.7rem] text-muted-foreground opacity-60 tabular-nums mb-1.5">
+      <p className="block text-2xs text-faint tabular-nums mb-1.5">
         {summary.memberCount} {t('billing.members')} · {summary.freeSeats} {t('billing.included')}
       </p>
 
@@ -108,13 +108,14 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
 
       {/* Total */}
       <div className={cn('flex justify-between items-baseline', hasDiscount ? 'mb-[3.75px]' : 'mb-0')}>
-        <p className="cn-text-body1 text-[0.85rem] font-bold text-foreground">
+        <p className="text-[0.85rem] font-bold text-foreground">
           {t('billing.monthlyTotal')}
         </p>
+        {/* Montants : du TEXTE sur fond de carte → encre `-ink`, jamais la teinte vive. */}
         <p
           className={cn(
-            'cn-text-body1 text-[0.95rem] font-bold tabular-nums tracking-[-0.01em]',
-            hasDiscount ? 'text-[var(--faint)] line-through' : 'text-[var(--ok)]',
+            'text-[0.95rem] font-bold tabular-nums tracking-[-0.01em]',
+            hasDiscount ? 'text-faint line-through' : 'text-success-ink',
           )}
         >
           <Money value={summary.totalMonthlyCents / 100} />
@@ -125,12 +126,12 @@ export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 
       {hasDiscount && (
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-1">
-            <p className="cn-text-body1 text-[0.85rem] font-bold text-[var(--ok)]">
+            <p className="text-[0.85rem] font-bold text-success-ink">
               {t('billing.effectiveMonthly')}
             </p>
-            <Badge variant="secondary" className="h-[18px] text-[0.65rem] bg-[var(--ok-soft)] text-[var(--ok)] tabular-nums px-1">{`-${discountPercent}%`}</Badge>
+            <Badge variant="secondary" className="h-[18px] text-2xs bg-success-soft text-success-ink tabular-nums px-1">{`-${discountPercent}%`}</Badge>
           </div>
-          <p className="cn-text-body1 text-[0.95rem] font-bold text-[var(--ok)] tabular-nums tracking-[-0.01em]">
+          <p className="text-[0.95rem] font-bold text-success-ink tabular-nums tracking-[-0.01em]">
             <Money value={summary.effectiveMonthlyCents / 100} />
           </p>
         </div>

@@ -48,7 +48,7 @@ function BaitlyWordmark({ size = 'lg' }: { size?: 'sm' | 'lg' }) {
   return (
     <div
       className={cn(
-        'font-bold leading-none tracking-[-0.02em] text-[#0f172a] select-none',
+        'font-bold leading-none tracking-[-0.02em] text-foreground select-none',
         size === 'lg' ? 'text-[26px]' : 'text-[18px]',
       )}
     >
@@ -60,7 +60,7 @@ function BaitlyWordmark({ size = 'lg' }: { size?: 'sm' | 'lg' }) {
 /** Petit chip "INVITATION" uppercase letter-spacing — meme style que le sous-titre email. */
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="cn-text-body1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#94a3b8]">
+    <p className="text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
       {children}
     </p>
   );
@@ -319,10 +319,10 @@ export default function AcceptInvitationPage() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-[100vh] flex items-center justify-center p-3" style={{ background: '#f8fafc' }}>
+    <div className="min-h-[100vh] flex items-center justify-center p-3 bg-background">
         {/* borderRadius: 2 = 22 px (shape.borderRadius vaut 11 dans ce theme) ;
             p 3 / 4.5 = 18 / 27 px (spacing 6), rupture sm MUI = 600 px. */}
-        <div className="w-full max-w-[480px] rounded-[22px] border border-solid border-[#e2e8f0] bg-[#ffffff] p-[18px] min-[600px]:p-[27px] text-left shadow-none">
+        <div className="w-full max-w-[480px] rounded-3xl border border-solid border-border bg-card p-[18px] min-[600px]:p-[27px] text-start shadow-sm">
           {/* Wordmark Baitly minimaliste (coherent avec l'email d'invitation) */}
           <div className="flex justify-center mb-5">
             <BaitlyWordmark size="lg" />
@@ -330,9 +330,9 @@ export default function AcceptInvitationPage() {
 
           {/* Loading */}
           {state === 'loading' && (
-            <div className="py-6">
+            <div className="flex flex-col items-center gap-3 py-6">
               <Spinner className="size-12" />
-              <p className="cn-text-body1 text-muted-foreground mt-3">
+              <p className="text-sm text-muted-foreground">
                 Chargement de l'invitation...
               </p>
             </div>
@@ -345,33 +345,33 @@ export default function AcceptInvitationPage() {
                   satureee — typographie pure, comme l'email. */}
               <div className="mb-5 text-center">
                 <SectionLabel>Invitation</SectionLabel>
-                <p className="cn-text-body1 mt-1.5 text-[14px] text-[#64748b] leading-[1.5]">
+                <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
                   Tu es invite a rejoindre l'organisation
                 </p>
-                <p className="cn-text-body1 mt-1 text-[22px] font-bold tracking-[-0.01em] text-[#0f172a] leading-[1.2]">
+                <p className="mt-1 text-[22px] font-bold tracking-tight text-foreground leading-[1.2] text-balance">
                   {invitation.organizationName}
                 </p>
               </div>
 
               {/* Bloc info : Role + email + expiration, layout aere */}
-              <div className="mb-4 border-t border-[#f1f5f9] border-b border-[#f1f5f9] py-3 flex flex-col gap-2">
+              <div className="mb-4 border-y border-border py-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-1.5">
-                  <p className="cn-text-body1 text-[13px] text-[#64748b]">Role</p>
+                  <p className="text-sm text-muted-foreground">Role</p>
                   <StatusChip
                     tone={getRoleTone(invitation.roleInvited)}
                     label={getRoleLabel(invitation.roleInvited)}
                   />
                 </div>
                 <div className="flex items-center justify-between gap-1.5">
-                  <p className="cn-text-body1 text-[13px] text-[#64748b]">Email</p>
-                  <p className="cn-text-body1 text-[13px] font-semibold text-[#0f172a] max-w-[60%] overflow-hidden text-ellipsis whitespace-nowrap" title={invitation.invitedEmail}>
+                  <p className="text-sm text-muted-foreground">Email</p>
+                  <p className="text-sm font-semibold text-foreground max-w-[60%] overflow-hidden text-ellipsis whitespace-nowrap" title={invitation.invitedEmail}>
                     {invitation.invitedEmail}
                   </p>
                 </div>
                 {invitation.expiresAt && (
                   <div className="flex items-center justify-between gap-1.5">
-                    <p className="cn-text-body1 text-[13px] text-[#64748b]">Expire</p>
-                    <p className="cn-text-body1 text-[13px] text-[#475569]">
+                    <p className="text-sm text-muted-foreground">Expire</p>
+                    <p className="text-sm text-foreground tabular-nums">
                       {new Date(invitation.expiresAt).toLocaleDateString('fr-FR', {
                         day: 'numeric',
                         month: 'long',
@@ -390,7 +390,7 @@ export default function AcceptInvitationPage() {
 
                   return emailMismatch ? (
                     <div className="flex flex-col gap-2">
-                      <BuiAlert variant="warning" className="text-left">
+                      <BuiAlert variant="warning" className="text-start">
                         <TriangleAlert />
                         <AlertDescription>
                           Vous etes connecte avec <strong>{currentEmail}</strong> mais cette
@@ -468,8 +468,8 @@ export default function AcceptInvitationPage() {
             <div className="py-1.5 text-start">
               <div className="text-center mb-4">
                 <SectionLabel>Creation de compte</SectionLabel>
-                <p className="cn-text-body1 mt-2 text-[14px] text-[#475569] leading-[1.5]">
-                  Rejoins <strong style={{ color: '#0f172a' }}>{invitation.organizationName}</strong>{' '}
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed text-balance">
+                  Rejoins <strong className="text-foreground">{invitation.organizationName}</strong>{' '}
                   en tant que {getRoleLabel(invitation.roleInvited).toLowerCase()}.
                 </p>
               </div>
@@ -609,9 +609,9 @@ export default function AcceptInvitationPage() {
 
           {/* Accepting */}
           {state === 'accepting' && (
-            <div className="py-6">
+            <div className="flex flex-col items-center gap-3 py-6">
               <Spinner className="size-12" />
-              <p className="cn-text-body1 text-muted-foreground mt-3">
+              <p className="text-sm text-muted-foreground">
                 Acceptation en cours...
               </p>
             </div>
@@ -621,11 +621,11 @@ export default function AcceptInvitationPage() {
           {state === 'complete_profile' && (
             <div className="py-3 text-start">
               <div className="text-center mb-4">
-                <span className="inline-flex text-[var(--bui-success-ink)] mb-1.5"><CheckCircle size={48} strokeWidth={1.75} /></span>
-                <h6 className="cn-text-h6 font-bold">
+                <span className="inline-flex text-success mb-1.5"><CheckCircle size={48} strokeWidth={1.75} /></span>
+                <h6 className="text-base font-semibold tracking-tight text-balance">
                   Completez votre profil
                 </h6>
-                <p className="cn-text-body2 text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Vous avez rejoint <strong>{invitation?.organizationName}</strong>.
                   Verifiez vos informations avant de continuer.
                 </p>
@@ -686,15 +686,15 @@ export default function AcceptInvitationPage() {
 
           {/* Accepted */}
           {state === 'accepted' && (
-            <div className="py-4">
-              <span className="inline-flex text-[var(--bui-success-ink)] mb-3"><CheckCircle size={64} strokeWidth={1.75} /></span>
-              <h5 className="cn-text-h5 font-bold mb-[0.35em]">
+            <div className="py-4 text-center">
+              <span className="inline-flex text-success mb-3"><CheckCircle size={64} strokeWidth={1.75} /></span>
+              <h5 className="mb-1 text-base font-semibold tracking-tight text-balance">
                 Bienvenue !
               </h5>
-              <p className="cn-text-body1 text-muted-foreground">
-                Vous avez rejoint <strong>{invitation?.organizationName}</strong> avec succes.
+              <p className="text-sm text-muted-foreground">
+                Vous avez rejoint <strong className="text-foreground">{invitation?.organizationName}</strong> avec succes.
               </p>
-              <p className="cn-text-body2 text-muted-foreground mt-1.5">
+              <p className="text-xs text-muted-foreground mt-1.5">
                 Redirection vers le tableau de bord...
               </p>
             </div>
@@ -702,12 +702,12 @@ export default function AcceptInvitationPage() {
 
           {/* Error */}
           {state === 'error' && (
-            <div className="py-4">
+            <div className="py-4 text-center">
               <span className="inline-flex text-destructive mb-3"><ErrorOutline size={64} strokeWidth={1.75} /></span>
-              <h6 className="cn-text-h6 font-semibold mb-[0.35em]">
+              <h6 className="mb-1 text-base font-semibold tracking-tight text-balance">
                 Invitation non valide
               </h6>
-              <BuiAlert variant="destructive" className="mt-3 text-left">
+              <BuiAlert variant="destructive" className="mt-3 text-start">
                 <TriangleAlert />
                 <AlertDescription>{error}</AlertDescription>
               </BuiAlert>

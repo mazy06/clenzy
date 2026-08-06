@@ -60,8 +60,8 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   if (photos.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
-        <span className="inline-flex mb-1.5 opacity-50"><PhotoCameraIcon size={48} strokeWidth={1.5} /></span>
-        <p className="cn-text-body2 text-muted-foreground">
+        <span className="inline-flex mb-1.5 text-faint"><PhotoCameraIcon size={48} strokeWidth={1.5} /></span>
+        <p className="text-xs text-muted-foreground">
           {emptyMessage}
         </p>
       </div>
@@ -92,43 +92,45 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             <div
               key={`gallery-${photoId ?? index}`}
               className={cn(
-                'group relative cursor-pointer overflow-hidden rounded-[8px]',
+                'group relative cursor-pointer overflow-hidden rounded-md',
                 isDeleting && 'opacity-50 pointer-events-none',
               )}
               onClick={() => handlePhotoClick(index)}
             >
+              {/* Le survol se dit par l'opacite : un `scale()` deplacerait la mise
+                  en page et la campagne l'interdit. */}
               <img
                 src={photoUrl}
                 alt={`Aperçu ${index + 1}`}
                 loading="lazy"
-                className="h-[120px] w-full object-cover transition-transform duration-200 ease-out group-hover:scale-105"
+                className="h-[120px] w-full object-cover transition-opacity duration-200 ease-out group-hover:opacity-90"
               />
 
               {/* Loading overlay when deleting */}
               {isDeleting && (
-                <div className="absolute top-[0px] start-[0px] end-[0px] bottom-[0px] flex items-center justify-center bg-[rgba(255,255,255,0.6)]">
+                <div className="absolute inset-0 flex items-center justify-center bg-card/60">
                   <Spinner className="size-6" />
                 </div>
               )}
 
               {/* Overlay "+N more" sur la dernière photo */}
               {isLastWithOverflow && (
-                <div className="absolute top-0 start-0 end-0 bottom-0 bg-[rgba(0,_0,_0,_0.6)] flex items-center justify-center">
-                  <h6 className="cn-text-h6 text-[white] font-bold">
+                <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                  <span className="text-sm font-semibold tabular-nums text-white">
                     +{overflowCount}
-                  </h6>
+                  </span>
                 </div>
               )}
 
               {/* Action bar (delete + download) */}
               {!isLastWithOverflow && (canDelete || showDownload) && (
-                <div className="absolute inset-x-0 top-0 z-[3] flex justify-end gap-0.5 p-1 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.5)_0%,rgba(0,0,0,0)_100%)]">
+                <div className="absolute inset-x-0 top-0 z-[3] flex justify-end gap-0.5 bg-gradient-to-b from-black/50 to-transparent p-1 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100">
                   {canDelete && photoId != null && (
                     <Button
                       variant="ghost"
                       size="icon-sm"
                       aria-label={`Supprimer la photo ${index + 1}`}
-                      className="text-[#FFFFFF] hover:text-[var(--err)] hover:bg-[rgba(255,255,255,0.15)]"
+                      className="text-white hover:bg-white/15 hover:text-destructive"
                       onClick={(e) => {
                         e.stopPropagation();
                         onDelete(photoId);
@@ -142,7 +144,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                       variant="ghost"
                       size="icon-sm"
                       aria-label={`Télécharger la photo ${index + 1}`}
-                      className="text-[#FFFFFF] hover:bg-[rgba(255,255,255,0.15)]"
+                      className="text-white hover:bg-white/15 hover:text-white"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDownload(photoUrl, index);

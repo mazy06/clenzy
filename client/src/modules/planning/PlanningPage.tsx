@@ -46,7 +46,12 @@ import { usePlanningMinNights } from './hooks/usePlanningMinNights';
 import { usePlanningChannelSync } from './hooks/usePlanningChannelSync';
 import { useResizablePropertyColWidth } from './hooks/useResizablePropertyColWidth';
 import { useUrgencyAnimation } from './hooks/useUrgencyAnimation';
-import { ACTION_PANEL_WIDTH, PLANNING_CHANNEL_KEYS, PLANNING_STATUS_KEYS } from './constants';
+import {
+  ACTION_PANEL_WIDTH,
+  COLLAPSED_PROPERTY_COL_WIDTH,
+  PLANNING_CHANNEL_KEYS,
+  PLANNING_STATUS_KEYS,
+} from './constants';
 import { formatMonthYear } from './utils/dateUtils';
 import type { PlanningChannelKey } from './constants';
 import type { PlanningEvent, PlanningProperty } from './types';
@@ -131,6 +136,18 @@ const PlanningPage: React.FC = () => {
   // par l'utilisateur (persiste dans localStorage).
   const { width: propertyColWidth, setWidth: setPropertyColWidth } = useResizablePropertyColWidth();
 
+  // Repli de la colonne logements — MOBILE uniquement : elle y mange la moitie
+  // de l'ecran alors que la grille est ce qu'on vient lire. Un appui sur son
+  // en-tete la reduit a un rail de 28 px ; le meme en-tete, devenu chevron, la
+  // ramene. Au-dela de 768 px l'etat est ignore : la colonne revient toujours.
+  const isMobileViewport = useMediaQuery('(max-width: 767.98px)');
+  const [propertyColCollapsedPref, setPropertyColCollapsedPref] = useState(false);
+  const propertyColCollapsed = isMobileViewport && propertyColCollapsedPref;
+  const togglePropertyCol = useCallback(() => setPropertyColCollapsedPref((v) => !v), []);
+  const effectivePropertyColWidth = propertyColCollapsed
+    ? COLLAPSED_PROPERTY_COL_WIDTH
+    : propertyColWidth;
+
   // Variante d'animation d'urgence des briques (per-device, localStorage)
   const [urgencyAnimation, setUrgencyAnimation] = useUrgencyAnimation();
 
@@ -139,7 +156,7 @@ const PlanningPage: React.FC = () => {
     anchorDate: nav.currentDate,
     zoom: nav.zoom,
     dayWidth: nav.dayWidth,
-    propertyColWidth,
+    propertyColWidth: effectivePropertyColWidth,
   });
 
   // Data fetching (chunked by 30-day aligned windows)
@@ -257,7 +274,14 @@ const PlanningPage: React.FC = () => {
   // Menu « ⋯ » du header : les actions du planning regroupées sous une seule
   // icône. Le popover de filtres s'ancre sur ce même bouton (anchorEl).
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
-  const moreAnchorRef = useRef<HTMLSpanElement | null>(null);
+  // ETAT et non `useRef` : `PlanningFilterButton` n'efface son propre
+  // declencheur que s'il RECOIT une ancre. Une ref lue pendant le rendu vaut
+  // `null` au premier passage, et rien ne provoque de second rendu — le
+  // composant restait donc sur sa branche autonome et affichait un bouton
+  // « Filtres » EN PLUS du menu « Actions du planning ». D'ou deux popovers
+  // empiles derriere le meme ⋯. Un ref callback dans un state met a jour le
+  // rendu des que le noeud est monte.
+  const [moreAnchorEl, setMoreAnchorEl] = useState<HTMLSpanElement | null>(null);
 
   // Constellation ouverte : le champ UNIQUE du header devient l'entrée
   // opérateur → agents (Entrée = envoi). Le filtre de logements n'a pas de
@@ -358,6 +382,43 @@ const PlanningPage: React.FC = () => {
   const handleCreateReservation = useCallback(() => {
     setCreateOpen(true);
   }, []);
+
+  // Seuil du repli du PageHeader (`isCompact`, lg) : sous cette largeur les
+  // actions vivent DEJA dans son menu ⋯, il ne faut donc pas en ouvrir un second.
+  const inHeaderMenu = useMediaQuery('(max-width: 1023.98px)');
+
+  // Source UNIQUE des entrées d'action : la même liste alimente le menu ⋯ propre
+  // au planning (desktop) et les lignes à plat du menu du header (mobile).
+  // Deux balisages séparés auraient divergé à la première évolution.
+  const PLANNING_ACTIONS = [
+    // Dans le menu ⋯ du header, le panneau de filtres est rendu EN LIGNE juste
+    // en dessous : une entrée qui ouvrirait le même panneau en popover ferait
+    // doublon, et remettrait la couche qu'on vient de supprimer.
+    ...(inHeaderMenu
+      ? []
+      : [{
+          label: 'Filtres & affichage',
+          icon: <FilterList size={15} strokeWidth={1.75} />,
+          onSelect: () => setFilterMenuOpen(true),
+        }]),
+    {
+      label: 'Plein écran',
+      icon: <Fullscreen size={15} strokeWidth={1.75} />,
+      onSelect: nav.toggleFullscreen,
+    },
+    {
+      label: 'Importer / connecter des canaux',
+      icon: <CloudDownload size={15} strokeWidth={1.75} />,
+      onSelect: () => setImportChooserOpen(true),
+    },
+    {
+      label: 'Nouvelle réservation',
+      icon: <Add size={15} strokeWidth={1.75} />,
+      onSelect: handleCreateReservation,
+      disabled: properties.length === 0,
+      separatorBefore: true,
+    },
+  ];
 
   // Handle event click: SR blocks redirect to linked reservation's Paiement tab
   const handleEventClick = useCallback((event: PlanningEvent) => {
@@ -554,7 +615,7 @@ const PlanningPage: React.FC = () => {
       if (!el || timeline.days.length === 0) return;
       // Jour 0 de la grille à x = scrollLeft (la colonne logements est sticky) ;
       // sonde au tiers gauche de la zone de jours visible.
-      const gridViewportWidth = Math.max(0, el.clientWidth - propertyColWidth);
+      const gridViewportWidth = Math.max(0, el.clientWidth - effectivePropertyColWidth);
       const probeIndex = Math.floor((el.scrollLeft + gridViewportWidth / 3) / nav.dayWidth);
       const day = timeline.days[Math.min(timeline.days.length - 1, Math.max(0, probeIndex))];
       setVisibleMonthDate((prev) =>
@@ -563,7 +624,7 @@ const PlanningPage: React.FC = () => {
           : day,
       );
     });
-  }, [timeline.handleScroll, timeline.scrollRef, timeline.days, propertyColWidth, nav.dayWidth]);
+  }, [timeline.handleScroll, timeline.scrollRef, timeline.days, effectivePropertyColWidth, nav.dayWidth]);
 
   useEffect(() => () => {
     if (monthSyncRaf.current !== null) cancelAnimationFrame(monthSyncRaf.current);
@@ -667,8 +728,10 @@ const PlanningPage: React.FC = () => {
                 )}
                 {/* Constellation déployée : la navigation de dates + zoom
                     REMONTE ici — la toolbar disparaît et rend sa hauteur à
-                    l'accordéon. */}
-                {!isOverview && supervisorExpanded && (
+                    l'accordéon. PAS sous lg : le header replie alors ses
+                    éléments dans le menu ⋯, où ce groupe de 414 px se
+                    retrouverait tronqué. La toolbar le garde. */}
+                {!isOverview && supervisorExpanded && !inHeaderMenu && (
                   <PlanningDateNav
                     currentDate={visibleMonthDate}
                     zoom={nav.zoom}
@@ -690,7 +753,7 @@ const PlanningPage: React.FC = () => {
                     <HeaderSearchField
                       value={filters.searchQuery}
                       onChange={setSearchQuery}
-                      placeholder="Rechercher..."
+                      placeholder="Rechercher une réservation, un voyageur…"
                     />
                   )
                 )}
@@ -699,49 +762,60 @@ const PlanningPage: React.FC = () => {
             actions={
               isOverview ? undefined : (
                 <>
-                  {/* Les actions du planning tiennent sous UNE icône : filtres,
-                      plein écran, import, création. Le span porte l'ancre du
-                      popover de filtres (rendu à part, contrôlé). */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <span ref={moreAnchorRef} className="inline-flex">
+                  {/* Sous `lg`, le PageHeader replie DEJA ses actions dans son
+                      menu ⋯ : y remettre un menu revient a empiler deux couches
+                      pour une seule intention. Les entrees sont donc rendues a
+                      PLAT, comme des lignes de ce menu. Au-dessus, elles
+                      retrouvent leur propre ⋯ — la barre a la place de l'afficher.
+                      Le span porte, dans les deux cas, l'ancre du popover de
+                      filtres (rendu a part, controle). */}
+                  {inHeaderMenu ? (
+                    <span ref={setMoreAnchorEl} className="flex flex-col items-stretch gap-1">
+                      {PLANNING_ACTIONS.map((action) => (
                         <Button
+                          key={action.label}
                           variant="ghost"
-                          size="icon"
-                          aria-label="Actions du planning"
-                          className="relative"
+                          size="sm"
+                          disabled={action.disabled}
+                          onClick={action.onSelect}
+                          className="w-full justify-start gap-2"
                         >
-                          <MoreVert size={18} strokeWidth={1.85} />
-                          {/* Des filtres sont actifs : le point le dit même menu fermé. */}
-                          {hasActiveFilters && (
-                            <span className="absolute top-1 end-1 size-1.5 rounded-full bg-[var(--accent)]" aria-hidden />
-                          )}
+                          {action.icon}
+                          {action.label}
                         </Button>
-                      </span>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onSelect={() => setFilterMenuOpen(true)}>
-                        <FilterList size={15} strokeWidth={1.75} />
-                        Filtres & affichage
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={nav.toggleFullscreen}>
-                        <Fullscreen size={15} strokeWidth={1.75} />
-                        Plein écran
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setImportChooserOpen(true)}>
-                        <CloudDownload size={15} strokeWidth={1.75} />
-                        Importer / connecter des canaux
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        disabled={properties.length === 0}
-                        onSelect={handleCreateReservation}
-                      >
-                        <Add size={15} strokeWidth={1.75} />
-                        Nouvelle réservation
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                      ))}
+                    </span>
+                  ) : (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <span ref={setMoreAnchorEl} className="inline-flex">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Actions du planning"
+                            className="relative"
+                          >
+                            <MoreVert size={18} strokeWidth={1.85} />
+                            {/* Des filtres sont actifs : le point le dit même menu fermé. */}
+                            {hasActiveFilters && (
+                              <span className="absolute top-1 end-1 size-1.5 rounded-full bg-[var(--accent)]" aria-hidden />
+                            )}
+                          </Button>
+                        </span>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {PLANNING_ACTIONS.map((action) => (
+                          <React.Fragment key={action.label}>
+                            {action.separatorBefore && <DropdownMenuSeparator />}
+                            <DropdownMenuItem disabled={action.disabled} onSelect={action.onSelect}>
+                              {action.icon}
+                              {action.label}
+                            </DropdownMenuItem>
+                          </React.Fragment>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                   <PlanningFilterButton
                     filters={filters}
                     density={nav.density}
@@ -760,7 +834,8 @@ const PlanningPage: React.FC = () => {
                     onToggleStatus={toggleStatus}
                     open={filterMenuOpen}
                     onOpenChange={setFilterMenuOpen}
-                    anchorEl={moreAnchorRef.current}
+                    anchorEl={moreAnchorEl}
+                    inline={inHeaderMenu}
                   />
                 </>
               )
@@ -772,8 +847,9 @@ const PlanningPage: React.FC = () => {
       {/* Toolbar — navigation/zoom/légendes du planning : masquée en Vue
           d'ensemble, et quand la constellation est déployée (la navigation vit
           alors dans le PageHeader) — SAUF en plein écran, où le header n'existe
-          pas : la toolbar reste la seule porteuse de la navigation. */}
-      {!isOverview && (!supervisorExpanded || nav.isFullscreen) && (
+          pas : la toolbar reste la seule porteuse de la navigation. Idem sous
+          lg, où le header replie ses éléments dans le menu ⋯. */}
+      {!isOverview && (!supervisorExpanded || nav.isFullscreen || inHeaderMenu) && (
         <div className="shrink-0 mb-1.5">
           <PlanningToolbar
             currentDate={visibleMonthDate}
@@ -845,8 +921,10 @@ const PlanningPage: React.FC = () => {
             quickCreateOpen={!!quickCreateData}
             scrollRef={timeline.scrollRef}
             onScroll={handleTimelineScroll}
-            propertyColWidth={propertyColWidth}
+            propertyColWidth={effectivePropertyColWidth}
             onPropertyColWidthChange={setPropertyColWidth}
+            propertyColCollapsed={propertyColCollapsed}
+            onTogglePropertyCol={isMobileViewport ? togglePropertyCol : undefined}
             showPrices={filters.showPrices}
             showInterventions={filters.showInterventions}
             pricingMap={pricingMap}

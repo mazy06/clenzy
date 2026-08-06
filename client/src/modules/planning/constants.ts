@@ -35,6 +35,11 @@ export const PROPERTY_COL_WIDTH = 188;
 export const PROPERTY_COL_WIDTH_MD = 188;
 /** Small screens (<900px) */
 export const PROPERTY_COL_WIDTH_SM = 188;
+/**
+ * Largeur du rail quand la colonne est repliee (mobile). Pas zero : c'est le
+ * chevron de son en-tete qui la ramene — a zero, plus rien a toucher.
+ */
+export const COLLAPSED_PROPERTY_COL_WIDTH = 28;
 // 44px rangée jour : le contenu fait ~35px (jour abrégé 9.5px + carré
 // « aujourd'hui » 24×24, la seule pièce incompressible), le reste n'est que de
 // l'air — 8px de respiration suffisent, la spec d'origine en mettait 16 et la
@@ -99,6 +104,16 @@ export const ZOOM_CONFIGS: Record<ZoomLevel, ZoomConfig> = {
 export const ZOOM_LABELS: Record<ZoomLevel, string> = {
   week: 'Semaine',
   fortnight: 'Quinzaine',
+  month: 'Mois',
+};
+
+// Abreviations affichees sous ~420 px : les libelles pleins font 138 px de
+// texte seul, de quoi faire passer le groupe de navigation a la ligne. Memes
+// mots abreges — pas de nouvelle semantique (« 14 j » aurait fait croire a une
+// duree parametrable).
+export const ZOOM_LABELS_SHORT: Record<ZoomLevel, string> = {
+  week: 'Sem.',
+  fortnight: 'Quinz.',
   month: 'Mois',
 };
 

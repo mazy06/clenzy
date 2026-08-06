@@ -9,7 +9,6 @@
    ============================================================ */
 
 import { useCallback, useEffect, useState } from 'react';
-import { cn } from '../../../utils/cn';
 import { Button, Spinner, Textarea } from '../../../components/ui';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { reviewsApi, type GuestReview } from '../../../services/api/reviewsApi';
@@ -71,7 +70,7 @@ export function SupervisionReviewDrafts({ propertyId }: { propertyId: number }) 
 
   if (drafts.length === 0) {
     return (
-      <p className="cn-text-body1 text-[12.5px] text-[var(--muted,_#6b7196)]">
+      <p className="text-xs text-muted-foreground">
         {t('supervision.reviewDrafts.empty', 'Aucun brouillon de réponse en attente.')}
       </p>
     );
@@ -79,16 +78,16 @@ export function SupervisionReviewDrafts({ propertyId }: { propertyId: number }) 
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="cn-text-body1 text-[11px] font-bold tracking-[.06em] uppercase text-[var(--muted,_#6b7196)]">
+      <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
         {t('supervision.reviewDrafts.title', 'Brouillons de réponse (IA)')}
       </p>
       {drafts.map((review) => (
-        <div className="p-[7.5px] rounded-[10px] bg-[var(--surface-2,_#f6f7fb)] border border-solid border-[var(--line,_#e6e8ef)]" key={review.id}>
-          <p className="cn-text-body1 text-[12px] font-bold text-[var(--muted,_#6b7196)] mb-[3px]">
+        <div className="p-2.5 rounded-lg bg-card border border-solid border-border" key={review.id}>
+          <p className="text-xs font-semibold text-muted-foreground tabular-nums mb-[3px]">
             {(review.rating != null ? `${review.rating}/5 · ` : '') + (review.guestName || 'Voyageur')}
           </p>
           {review.reviewText && (
-            <p className="cn-text-body1 text-[12px] text-[var(--body,_#3a3f5a)] italic mb-1.5 leading-[1.4]">
+            <p className="text-xs text-foreground italic mb-1.5 leading-relaxed">
               «&nbsp;{review.reviewText.length > 160 ? `${review.reviewText.slice(0, 160)}…` : review.reviewText}&nbsp;»
             </p>
           )}
@@ -98,7 +97,7 @@ export function SupervisionReviewDrafts({ propertyId }: { propertyId: number }) 
             id={`review-draft-${review.id}`}
             rows={3}
             aria-label={t('supervision.reviewDrafts.title', 'Brouillon de réponse')}
-            className="mb-1.5 text-[12.5px] leading-[1.5]"
+            className="mb-1.5 text-xs leading-relaxed"
             value={edited[review.id] ?? ''}
             onChange={(e) => setEdited((prev) => ({ ...prev, [review.id]: e.target.value }))}
           />

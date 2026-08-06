@@ -19,7 +19,7 @@ interface Props {
   onStatusChange?: (connected: boolean) => void;
 }
 
-const ACCENT = 'var(--ok)';
+const ACCENT = 'var(--bui-success-ink)';
 
 const ApiKeyProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
   const meta = PROVIDER_META[provider];

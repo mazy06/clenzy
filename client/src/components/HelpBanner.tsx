@@ -38,15 +38,20 @@ interface HelpBannerProps {
 /** Auto-cycle palette when the caller doesn't pass an explicit accent per step. */
 const DEFAULT_ACCENT_CYCLE: HelpStepAccent[] = ['info', 'success', 'warning', 'primary', 'secondary'];
 
-/** Tokens sémantiques Signature par accent (couleur + fond -soft assorti). */
+/**
+ * Tokens sémantiques Baitly UI par accent (teinte vive + fond `-soft` assorti).
+ * L'accent est résolu à l'exécution : ces valeurs alimentent des styles inline,
+ * une classe Tailwind ne peut pas naître d'une variable. La teinte vive sert
+ * uniquement d'aplat d'icône et de filet — jamais de couleur de texte.
+ */
 const ACCENT_TOKENS: Record<HelpStepAccent, { color: string; soft: string }> = {
-  info: { color: 'var(--info)', soft: 'var(--info-soft)' },
-  success: { color: 'var(--ok)', soft: 'var(--ok-soft)' },
-  warning: { color: 'var(--warn)', soft: 'var(--warn-soft)' },
-  error: { color: 'var(--err)', soft: 'var(--err-soft)' },
-  primary: { color: 'var(--accent)', soft: 'var(--accent-soft)' },
-  secondary: { color: 'var(--accent)', soft: 'var(--accent-soft)' },
-  default: { color: 'var(--muted)', soft: 'var(--hover)' },
+  info: { color: 'var(--bui-info)', soft: 'var(--bui-info-soft)' },
+  success: { color: 'var(--bui-success)', soft: 'var(--bui-success-soft)' },
+  warning: { color: 'var(--bui-warning)', soft: 'var(--bui-warning-soft)' },
+  error: { color: 'var(--bui-destructive)', soft: 'var(--bui-destructive-soft)' },
+  primary: { color: 'var(--bui-primary)', soft: 'var(--bui-primary-soft)' },
+  secondary: { color: 'var(--bui-primary)', soft: 'var(--bui-primary-soft)' },
+  default: { color: 'var(--bui-muted-foreground)', soft: 'var(--bui-muted)' },
 };
 
 /**
@@ -84,12 +89,12 @@ export const HelpStepsGrid: React.FC<{ steps: HelpStep[]; columns?: number }> = 
                   Le filet depend de l'accent resolu a l'execution : une classe Tailwind ne
                   peut pas en naitre, il reste donc en style inline. */}
               <p
-                className="cn-text-body1 text-[12.5px] font-bold text-[var(--ink)] leading-[1.25] mb-[1.5px] [text-wrap:balance] inline-block pb-[0.75px]"
+                className="m-0 mb-[1.5px] text-[12.5px] font-bold text-foreground leading-[1.25] [text-wrap:balance] inline-block pb-[0.75px]"
                 style={{ borderBottom: `2px solid color-mix(in srgb, ${accent.color} 45%, transparent)` }}
               >
                 {step.title}
               </p>
-              <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] leading-[1.45] mt-0.5">
+              <p className="m-0 mt-0.5 text-[11.5px] text-muted-foreground leading-[1.45]">
                 {step.description}
               </p>
             </div>
@@ -183,14 +188,14 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
     <div
       role="region"
       aria-label={title}
-      className="relative rounded-[14px] border border-solid border-[var(--line)] mb-[9px] p-[10.5px] min-[600px]:p-[13.5px] overflow-hidden bg-[var(--card)] before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-px before:bg-[var(--accent)] before:opacity-50"
+      className="relative rounded-[14px] border border-solid border-border mb-[9px] p-[10.5px] min-[600px]:p-[13.5px] overflow-hidden bg-card before:content-[''] before:absolute before:top-0 before:inset-x-0 before:h-px before:bg-primary before:opacity-50"
     >
       {/* Header row — accent chip + title + dismiss button */}
       <div className="flex items-start gap-1.5 mb-1">
-        <div className="text-[10.5px] font-bold tracking-[.06em] uppercase text-[var(--accent)] bg-[var(--accent-soft)] border border-solid border-[color-mix(in_srgb,_var(--accent)_25%,_transparent)] rounded-[8px] px-[4.5px] py-[1.5px] mt-[1.5px] shrink-0 leading-[1.2]" aria-hidden>
+        <div className="text-[10.5px] font-bold tracking-[.06em] uppercase text-primary bg-primary-soft border border-solid border-primary/25 rounded-[8px] px-[4.5px] py-[1.5px] mt-[1.5px] shrink-0 leading-[1.2]" aria-hidden>
           AIDE
         </div>
-        <p className="cn-text-body1 [font-family:var(--font-display)] text-[15px] font-semibold text-[var(--ink)] leading-[1.3] tracking-[-.01em] flex-1 [text-wrap:balance]">
+        <p className="m-0 [font-family:var(--font-display)] text-[15px] font-semibold text-foreground leading-[1.3] tracking-[-.01em] flex-1 [text-wrap:balance]">
           {title}
         </p>
         <Button
@@ -199,14 +204,14 @@ const HelpBanner: React.FC<HelpBannerProps> = ({
           size="icon-sm"
           onClick={handleDismiss}
           aria-label={dismissLabel}
-          className="text-[var(--faint)] hover:text-[var(--ink)] hover:bg-[var(--hover)]"
+          className="text-faint hover:text-foreground hover:bg-muted"
         >
           <CloseIcon size={16} strokeWidth={1.75} />
         </Button>
       </div>
 
       {/* Description */}
-      <p className={cn('cn-text-body1 text-[12.5px] text-[var(--muted)] leading-[1.55] max-w-[80ch]', steps.length > 0 ? 'mb-3' : 'mb-0')}>
+      <p className={cn('m-0 text-[12.5px] text-muted-foreground leading-[1.55] max-w-[80ch]', steps.length > 0 ? 'mb-3' : 'mb-0')}>
         {description}
       </p>
 

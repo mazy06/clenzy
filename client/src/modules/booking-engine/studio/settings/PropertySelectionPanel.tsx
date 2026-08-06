@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Checkbox, Skeleton } from '../../../../components/ui';
+import { Alert, AlertDescription, Checkbox, Skeleton } from '../../../../components/ui';
+import EmptyState from '../../../../components/EmptyState';
 import { AlertTriangle, Home, Info } from 'lucide-react';
 import { propertiesApi, type Property } from '../../../../services/api/propertiesApi';
 import type { StudioConfigState } from '../useStudioConfig';
@@ -69,27 +70,28 @@ export default function PropertySelectionPanel({ cfg }: PropertySelectionPanelPr
   if (!properties && !loadError) {
     return (
       <div className="max-w-[720px] mx-auto px-6 py-6">
-        <Skeleton className="h-[220px] w-full rounded-[var(--radius-lg)] bg-[var(--hover)]" />
+        <Skeleton className="h-[220px] w-full rounded-xl" />
       </div>
     );
   }
 
   if (loadError) {
     return (
-      <div className="flex items-center gap-1.5 m-6 p-3 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
-        <AlertTriangle size={18} strokeWidth={2} /> {loadError}
-      </div>
+      <Alert variant="destructive" className="m-6">
+        <AlertTriangle />
+        <AlertDescription>{loadError}</AlertDescription>
+      </Alert>
     );
   }
 
   if (properties && properties.length === 0) {
     return (
-      <div className="text-center py-12 px-6">
-        <div className="w-[56px] h-[56px] mx-auto mb-3 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--accent-soft)] text-[var(--accent)]">
-          <Home size={26} strokeWidth={1.85} />
-        </div>
-        <div className="text-[var(--text-lg)] font-[family-name:var(--fw-semibold)] mb-0.5">Aucune propriété</div>
-        <div className="text-[var(--text-md)] text-[var(--muted)]">Ajoutez des propriétés pour les proposer à la réservation.</div>
+      <div className="px-6 py-12">
+        <EmptyState
+          icon={<Home />}
+          title="Aucune propriété"
+          description="Ajoutez des propriétés pour les proposer à la réservation."
+        />
       </div>
     );
   }
@@ -113,8 +115,8 @@ export default function PropertySelectionPanel({ cfg }: PropertySelectionPanelPr
       {!showAll && (
         <SettingCard title={`Propriétés (${selected.size} sélectionnée${selected.size > 1 ? 's' : ''})`} description="Cochez les biens à afficher.">
           {selected.size === 0 && (
-            <div className="flex items-center gap-1.5 py-2 text-[var(--text-sm)] text-[var(--muted)]">
-              <Info size={15} strokeWidth={2} /> Aucune sélection : toutes les propriétés restent affichées.
+            <div className="flex items-center gap-1.5 py-2 text-xs text-muted-foreground">
+              <Info size={15} strokeWidth={2} className="shrink-0 text-info" /> Aucune sélection : toutes les propriétés restent affichées.
             </div>
           )}
           <div className="py-0.5">
@@ -129,17 +131,17 @@ export default function PropertySelectionPanel({ cfg }: PropertySelectionPanelPr
                   type="button"
                   aria-pressed={checked}
                   onClick={() => onToggleProperty(p.id)}
-                  className="flex items-center gap-1.5 w-full text-start px-1 py-[4.5px] rounded-[var(--radius-md)] cursor-pointer bg-transparent border-0 appearance-none font-[inherit] hover:bg-[var(--hover)] focus-visible:[outline:2px_solid_var(--accent)] focus-visible:[outline-offset:-2px]"
+                  className="flex items-center gap-1.5 w-full text-start px-1 py-[4.5px] rounded-md cursor-pointer bg-transparent border-0 appearance-none font-[inherit] transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
                 >
                   <Checkbox
                     checked={checked}
                     tabIndex={-1}
                     aria-hidden
-                    className="pointer-events-none shrink-0 data-[state=unchecked]:text-[var(--faint)]"
+                    className="pointer-events-none shrink-0 data-[state=unchecked]:text-faint"
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="text-[var(--text-md)] text-[var(--ink)] whitespace-nowrap overflow-hidden text-ellipsis">{p.name}</div>
-                    {p.city && <div className="text-[var(--text-2xs)] text-[var(--faint)]">{p.city}</div>}
+                    <div className="text-sm text-foreground whitespace-nowrap overflow-hidden text-ellipsis">{p.name}</div>
+                    {p.city && <div className="text-2xs text-faint">{p.city}</div>}
                   </div>
                 </button>
               );

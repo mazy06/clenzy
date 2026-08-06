@@ -20,14 +20,25 @@ export function ScopeSwitch({ value, onChange }: { value: SupervisionScope; onCh
   const option = (scope: SupervisionScope, icon: ReactNode, label: string) => {
     const active = value === scope;
     return (
-      <button className={cn('flex items-center justify-center px-[7.5px] py-1.5 rounded-[9px] border-none cursor-pointer hover:text-[var(--ink,_#1b2240)]', active ? 'text-[var(--accent,_#5453D6)]' : 'text-[var(--muted,_#6b7196)]')} style={{ background: active ? 'var(--card, #fff)' : 'transparent', boxShadow: active ? 'var(--sh-sm, 0 1px 2px rgba(20,24,58,.1))' : 'none', transition: 'color .15s, background .15s' }} type="button" onClick={() => onChange(scope)} aria-pressed={active} aria-label={label} title={label}>
+      <button
+        type="button"
+        className={cn(
+          'flex items-center justify-center rounded-lg px-[7.5px] py-1.5 cursor-pointer',
+          'transition-colors duration-150 motion-reduce:transition-none hover:text-foreground',
+          active ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground',
+        )}
+        onClick={() => onChange(scope)}
+        aria-pressed={active}
+        aria-label={label}
+        title={label}
+      >
         {icon}
       </button>
     );
   };
 
   return (
-    <div className="inline-flex gap-[3px] p-[3px] rounded-[12px] bg-[var(--surface-2,_#f1f3f7)]" data-scope-switch>
+    <div className="inline-flex gap-[3px] rounded-xl bg-muted p-[3px]" data-scope-switch>
       {option('property', <HomeWork size={16} />, t('supervision.scope.byProperty'))}
       {option('portfolio', <CorporateFare size={16} />, t('supervision.scope.portfolio'))}
     </div>

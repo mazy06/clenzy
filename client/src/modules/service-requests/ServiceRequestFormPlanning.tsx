@@ -58,7 +58,7 @@ export interface ServiceRequestFormPlanningProps {
   estimatedDurationMinutes?: number;
 }
 
-// ─── Priority config (tokens sémantiques — texte couleur + fond -soft) ──────
+// ─── Priority config (tokens sémantiques — encre `-ink` sur fond `-soft`) ────
 
 interface PriorityDef {
   value: string;
@@ -69,11 +69,14 @@ interface PriorityDef {
 }
 
 const PRIORITIES: PriorityDef[] = [
-  { value: 'LOW', labelKey: 'serviceRequests.priorities.low', fg: 'var(--muted)', bg: 'var(--hover)', icon: <ArrowDownward size={14} strokeWidth={1.75} /> },
-  { value: 'NORMAL', labelKey: 'serviceRequests.priorities.normal', fg: 'var(--info)', bg: 'var(--info-soft)', icon: <FiberManualRecord size={10} strokeWidth={1.75} /> },
-  { value: 'HIGH', labelKey: 'serviceRequests.priorities.high', fg: 'var(--warn)', bg: 'var(--warn-soft)', icon: <ArrowUpward size={14} strokeWidth={1.75} /> },
-  { value: 'CRITICAL', labelKey: 'serviceRequests.priorities.critical', fg: 'var(--err)', bg: 'var(--err-soft)', icon: <Bolt size={14} strokeWidth={1.75} /> },
+  { value: 'LOW', labelKey: 'serviceRequests.priorities.low', fg: 'var(--bui-muted-foreground)', bg: 'var(--bui-muted)', icon: <ArrowDownward size={14} strokeWidth={1.75} /> },
+  { value: 'NORMAL', labelKey: 'serviceRequests.priorities.normal', fg: 'var(--bui-info-ink)', bg: 'var(--bui-info-soft)', icon: <FiberManualRecord size={10} strokeWidth={1.75} /> },
+  { value: 'HIGH', labelKey: 'serviceRequests.priorities.high', fg: 'var(--bui-warning-ink)', bg: 'var(--bui-warning-soft)', icon: <ArrowUpward size={14} strokeWidth={1.75} /> },
+  { value: 'CRITICAL', labelKey: 'serviceRequests.priorities.critical', fg: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)', icon: <Bolt size={14} strokeWidth={1.75} /> },
 ];
+
+/** Ton de marque des puces et encarts de ce panneau (encre + fond pastel). */
+const BRAND_TOKENS = { color: 'var(--bui-primary)', bg: 'var(--bui-primary-soft)' } as const;
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -153,15 +156,15 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
     return (
       <>
         {/* Header */}
-        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-2">
+        <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
           {t('serviceRequests.sections.priorityPlanning')}
         </p>
 
         <div className="flex flex-col gap-3">
 
-          {/* ─── Priorité (Chips sélectionnables, sémantique -soft) ─── */}
+          {/* ─── Priorité (Chips sélectionnables, encre `-ink` sur fond `-soft`) ─── */}
           <div>
-            <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1">
+            <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
               {t('serviceRequests.fields.priority')} *
             </p>
             <Controller
@@ -200,7 +203,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
 
           {/* ─── Durée estimée (chip + popover pour admin) ─── */}
           <div>
-            <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1">
+            <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
               {t('serviceRequests.fields.estimatedDuration')} *
             </p>
             <Controller
@@ -237,28 +240,28 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                       } : undefined}
                       className={cn(
                         'inline-flex items-center gap-[4.5px] py-[4.5px] px-[9px] rounded-[11px]',
-                        'border border-solid bg-[var(--accent-soft)] transition-[border-color,background-color] duration-150',
+                        'border border-solid bg-primary-soft transition-[border-color,background-color] duration-150',
                         durationOpen
-                          ? 'border-[var(--accent)]'
-                          : 'border-[color-mix(in_srgb,var(--accent)_30%,transparent)]',
-                        canEdit ? 'cursor-pointer hover:border-[var(--accent)]' : 'cursor-default',
+                          ? 'border-primary'
+                          : 'border-[color-mix(in_srgb,var(--bui-primary)_30%,transparent)]',
+                        canEdit ? 'cursor-pointer hover:border-primary' : 'cursor-default',
                       )}
                     >
-                      <span className="inline-flex text-[var(--accent)]"><Timer size={18} strokeWidth={1.75} /></span>
+                      <span className="inline-flex text-primary"><Timer size={18} strokeWidth={1.75} /></span>
                       <div className="flex items-baseline gap-0.5">
-                        <p className="cn-text-body1 text-[16px] font-semibold text-[var(--accent)] leading-[1.2] font-[family-name:var(--font-display)] tabular-nums">
+                        <p className="text-[16px] font-semibold text-primary leading-[1.2] font-[family-name:var(--font-display)] tabular-nums">
                           {displayLabel}
                         </p>
-                        <p className="cn-text-body1 text-[10.5px] font-medium text-[var(--muted)]">
+                        <p className="text-[10.5px] font-medium text-muted-foreground">
                           durée estimée
                         </p>
                       </div>
                       {canEdit ? (
-                        <span className="inline-flex text-[var(--accent)] ms-auto"><EditIcon size={13} strokeWidth={1.75} /></span>
+                        <span className="inline-flex text-primary ms-auto"><EditIcon size={13} strokeWidth={1.75} /></span>
                       ) : (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="inline-flex text-[var(--faint)] ms-auto"><Lock size={13} strokeWidth={1.75} /></span>
+                            <span className="inline-flex text-faint ms-auto"><Lock size={13} strokeWidth={1.75} /></span>
                           </TooltipTrigger>
                           <TooltipContent>Calculée automatiquement, modifiable par un manager</TooltipContent>
                         </Tooltip>
@@ -273,7 +276,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                       sideOffset={3}
                       className="p-3 min-w-[220px]"
                     >
-                      <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1.5">
+                      <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
                         Modifier la durée
                       </p>
                       <Field>
@@ -297,12 +300,12 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                             step={5}
                           />
                           <InputGroupAddon align="inline-end">
-                            <InputGroupText className="text-[12px] text-[var(--faint)] whitespace-nowrap">
+                            <InputGroupText className="text-[12px] text-faint whitespace-nowrap">
                               min
                             </InputGroupText>
                           </InputGroupAddon>
                         </InputGroup>
-                        <FieldDescription className="text-[10.5px] font-medium text-[var(--accent)]">
+                        <FieldDescription className="text-[10.5px] font-medium text-primary">
                           {durationInputValue && !isNaN(parseInt(durationInputValue, 10)) && parseInt(durationInputValue, 10) > 0
                             ? `= ${formatDurationMins(parseInt(durationInputValue, 10))}`
                             : 'Saisissez la durée en minutes'}
@@ -317,7 +320,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                       </FieldError>
                     )}
                     {!isAdminOrManager && (
-                      <p className="cn-text-body1 text-[10px] text-[var(--faint)] italic mt-0.5">
+                      <p className="text-2xs text-faint italic mt-0.5">
                         Calculée automatiquement depuis les caractéristiques du logement
                       </p>
                     )}
@@ -330,11 +333,11 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
           {/* ─── Date d'échéance ─── */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
+              <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {t('serviceRequests.fields.dueDate')} *
               </p>
 
-              {/* Toggle checkout / custom — chips sélecteurs accent-soft */}
+              {/* Toggle checkout / custom — chips sélecteurs au ton de marque */}
               <div className="flex gap-0.5">
                 {([
                   { key: 'checkout' as const, label: 'Checkout', icon: <EventAvailable size={14} strokeWidth={1.75} />, onClick: handleSwitchToCheckout },
@@ -347,7 +350,7 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                       outlined
                       selected={isActive}
                       pressed={isActive}
-                      tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
+                      tokens={BRAND_TOKENS}
                       icon={mode.icon}
                       label={mode.label}
                       onClick={mode.onClick}
@@ -380,34 +383,34 @@ const ServiceRequestFormPlanning: React.FC<ServiceRequestFormPlanningProps> = Re
                                   'flex items-center gap-1.5 py-[4.5px] px-[7.5px] rounded-[11px] border border-solid',
                                   'transition-[background-color,border-color] duration-150',
                                   isSelected
-                                    ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
-                                    : 'border-[var(--field-line)] bg-[var(--field)]',
-                                  disabled ? 'cursor-default opacity-45' : 'cursor-pointer hover:border-[var(--accent)]',
+                                    ? 'border-primary bg-primary-soft'
+                                    : 'border-field-line bg-field',
+                                  disabled ? 'cursor-default opacity-45' : 'cursor-pointer hover:border-primary',
                                 )}
                               >
-                                <span className={cn('inline-flex', isSelected ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><CalendarMonth size={16} strokeWidth={1.75} /></span>
+                                <span className={cn('inline-flex', isSelected ? 'text-primary' : 'text-faint')}><CalendarMonth size={16} strokeWidth={1.75} /></span>
                                 <div className="flex-1">
-                                  <p className={cn('cn-text-body1 text-[12px] leading-[1.3] tabular-nums', isSelected ? 'font-semibold' : 'font-medium', isSelected ? 'text-[var(--accent)]' : 'text-[var(--ink)]')}>
+                                  <p className={cn('text-[12px] leading-[1.3] tabular-nums', isSelected ? 'font-semibold' : 'font-medium', isSelected ? 'text-primary' : 'text-foreground')}>
                                     {formatCheckoutDateDisplay(co.checkOut, co.checkOutTime)}
                                   </p>
-                                  <p className="cn-text-body1 text-[10.5px] text-[var(--faint)] leading-[1.2]">
+                                  <p className="text-[10.5px] text-faint leading-[1.2]">
                                     Départ {co.guestName}
                                   </p>
                                 </div>
                                 {isSelected && (
-                                  <StatusChip size="sm" tokens={{ color: 'var(--accent)', bg: 'var(--card)' }} label="Sélectionné" className="text-[10px]" />
+                                  <StatusChip size="sm" tokens={{ color: 'var(--bui-primary)', bg: 'var(--bui-card)' }} label="Sélectionné" className="text-[10px]" />
                                 )}
                               </div>
                             );
                           })}
                         </div>
                       ) : (
-                        <div className="py-[9px] px-[9px] rounded-[11px] bg-[var(--field)] border border-dashed border-[var(--line-2)] text-center">
-                          <p className="cn-text-body1 text-[11.5px] text-[var(--faint)]">
+                        <div className="py-[9px] px-[9px] rounded-[11px] bg-field border border-dashed border-border text-center">
+                          <p className="text-[11.5px] text-faint">
                             Aucun checkout à venir pour cette propriété
                           </p>
                           <StatusChip
-                            tokens={{ color: 'var(--accent)', bg: 'var(--accent-soft)' }}
+                            tokens={BRAND_TOKENS}
                             label="Saisir une date manuellement"
                             onClick={handleSwitchToCustom}
                             className="mt-1 text-[10.5px]"

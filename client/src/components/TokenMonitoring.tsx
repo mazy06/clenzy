@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { cn } from '../utils/cn';
-import StatusChip from './StatusChip';
+import StatusChip, { STATUS_TONES, type StatusTone } from './StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from './ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from './ui';
@@ -37,7 +37,7 @@ import {
   Tooltip as ChartTooltip,
 } from 'recharts';
 import TokenService, { TokenStats, TokenMetrics } from '../services/TokenService';
-import StatTile from './StatTile';
+import StatTile from './baitly/StatTile';
 import { useMonitoringHeader } from '../modules/admin/MonitoringPage';
 import { useAuth } from '../hooks/useAuth';
 import { userAvatarSrc } from '../services/api/usersApi';
@@ -52,6 +52,20 @@ const RING_SIZE = 96;
 const RING_THICKNESS = 3;
 const RING_RADIUS = (RING_SIZE - RING_THICKNESS) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
+/**
+ * Teinte VIVE de chaque ton : anneau, barre de progression et aplats. Ce n'est
+ * pas de l'encre — le texte du meme ton passe par `STATUS_TONES[...].color`,
+ * qui pointe le jeton `-ink` conforme AA (§2.4 du contrat Baitly UI).
+ */
+const TONE_TINT: Record<StatusTone, string> = {
+  ok: 'var(--bui-success)',
+  warn: 'var(--bui-warning)',
+  err: 'var(--bui-destructive)',
+  info: 'var(--bui-info)',
+  accent: 'var(--bui-primary)',
+  neutral: 'var(--bui-muted-foreground)',
+};
 
 function formatDuration(seconds: number): string {
   if (seconds <= 0) return 'Expiré';
@@ -159,13 +173,14 @@ const TokenMonitoring: React.FC = () => {
           )}
           Actualiser
         </BuiButton>
-        {/* color="warning" n'a pas de variante dediee : outline + teinte --warn. */}
+        {/* Pas de variante « avertissement » au kit : outline + teinte warning.
+            Le libelle prend l'encre `-ink` (AA), le filet la teinte vive. */}
         <BuiButton
           variant="outline"
           size="sm"
           onClick={cleanupTokens}
           disabled={isLoading}
-          className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+          className="text-warning-ink border-warning hover:bg-warning-soft"
         >
           <Delete size={16} strokeWidth={1.75} />
           Nettoyer expirés
@@ -181,12 +196,14 @@ const TokenMonitoring: React.FC = () => {
   const totalLifetime = Math.max(timeUntilExpiry, 900);
   const remainingPct = totalLifetime > 0 ? Math.round((timeUntilExpiry / totalLifetime) * 100) : 0;
 
-  // Token status (active / expiring / expired) — tokens semantiques
-  const tokenStatus = useMemo(() => {
-    if (!currentToken.isAuthenticated) return { label: 'Non authentifié', fg: 'var(--muted)', soft: 'var(--hover)' };
-    if (timeUntilExpiry <= 0) return { label: 'Expiré', fg: 'var(--err)', soft: 'var(--err-soft)' };
-    if (timeUntilExpiry < 300) return { label: 'Expiration proche', fg: 'var(--warn)', soft: 'var(--warn-soft)' };
-    return { label: 'Authentifié', fg: 'var(--ok)', soft: 'var(--ok-soft)' };
+  // Token status (active / expiring / expired) — ton semantique Baitly UI. Le
+  // ton porte les trois jetons a la fois : `-ink` pour le texte via
+  // STATUS_TONES, teinte vive pour l'anneau et la barre via TONE_TINT.
+  const tokenStatus = useMemo((): { label: string; tone: StatusTone } => {
+    if (!currentToken.isAuthenticated) return { label: 'Non authentifié', tone: 'neutral' };
+    if (timeUntilExpiry <= 0) return { label: 'Expiré', tone: 'err' };
+    if (timeUntilExpiry < 300) return { label: 'Expiration proche', tone: 'warn' };
+    return { label: 'Authentifié', tone: 'ok' };
   }, [currentToken.isAuthenticated, timeUntilExpiry]);
 
   // Donut data
@@ -195,9 +212,10 @@ const TokenMonitoring: React.FC = () => {
     const expired = tokenStats?.expiredTokens ?? 0;
     const total = active + expired;
     if (total === 0) return [];
+    // Parts de graphique et pastilles de legende : des aplats, donc la teinte vive.
     return [
-      { name: 'Actifs', value: active, color: 'var(--ok)' },
-      { name: 'Expirés', value: expired, color: 'var(--err)' },
+      { name: 'Actifs', value: active, color: 'var(--bui-success)' },
+      { name: 'Expirés', value: expired, color: 'var(--bui-destructive)' },
     ];
   }, [tokenStats]);
 
@@ -231,7 +249,7 @@ const TokenMonitoring: React.FC = () => {
       )}
 
       {/* ─── Hero card : current token ─────────────────────────────── */}
-      <Card className="gap-0 py-0 p-4 bg-[var(--card)] border-[var(--line)] relative overflow-hidden">
+      <Card className="gap-0 py-0 p-4 relative overflow-hidden">
         {currentToken.isAuthenticated ? (
           <div className="flex items-center gap-4 flex-wrap">
             {/* Countdown ring + avatar */}
@@ -239,7 +257,7 @@ const TokenMonitoring: React.FC = () => {
               {/* `-rotate-90` + `origin-center` : le remplissage demarre a midi et
                   tourne dans le sens horaire, comme le faisait MUI. */}
               <svg
-                className="absolute top-0 left-0 -rotate-90 origin-center"
+                className="absolute top-0 start-0 -rotate-90 origin-center"
                 width={RING_SIZE}
                 height={RING_SIZE}
                 viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
@@ -250,7 +268,7 @@ const TokenMonitoring: React.FC = () => {
                   cy={RING_SIZE / 2}
                   r={RING_RADIUS}
                   fill="none"
-                  stroke="var(--hover)"
+                  stroke="var(--bui-muted)"
                   strokeWidth={RING_THICKNESS}
                 />
                 <circle
@@ -258,7 +276,7 @@ const TokenMonitoring: React.FC = () => {
                   cy={RING_SIZE / 2}
                   r={RING_RADIUS}
                   fill="none"
-                  stroke={tokenStatus.fg}
+                  stroke={TONE_TINT[tokenStatus.tone]}
                   strokeWidth={RING_THICKNESS}
                   strokeLinecap="round"
                   strokeDasharray={RING_CIRCUMFERENCE}
@@ -271,7 +289,7 @@ const TokenMonitoring: React.FC = () => {
                   src={userAvatarSrc(user)}
                   alt={currentToken.username || currentToken.email || 'avatar'}
                 />
-                <AvatarFallback className="bg-[var(--accent)] text-[var(--on-accent)] font-[family-name:var(--font-display)] font-semibold text-[1.5rem] tracking-[0.05em]">
+                <AvatarFallback className="bg-primary text-primary-foreground font-[family-name:var(--font-display)] font-semibold text-2xl tracking-[0.05em]">
                   {getInitials(currentToken.username || currentToken.email)}
                 </AvatarFallback>
               </Avatar>
@@ -280,19 +298,19 @@ const TokenMonitoring: React.FC = () => {
             {/* User info */}
             <div className="flex-1 min-w-[220px]">
               <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                <p className="cn-text-body1 text-[1.125rem] font-bold">
+                <p className="text-lg font-bold">
                   {currentToken.username || 'admin'}
                 </p>
-                <StatusChip tokens={{ color: tokenStatus.fg, bg: tokenStatus.soft }} label={tokenStatus.label} icon={<span className="inline-flex text-inherit ms-0.5">
-                      <div className="w-[6px] h-[6px] rounded-[50%]" style={{ backgroundColor: tokenStatus.fg }} />
-                    </span>} />
+                {/* `dot` : la pastille du primitif reprend deja la teinte vive du
+                    ton — inutile de la redessiner a la main. */}
+                <StatusChip tone={tokenStatus.tone} dot label={tokenStatus.label} />
               </div>
               <div className="flex flex-row flex-wrap gap-x-3 gap-y-[3px] mb-1.5">
                 <div className="flex items-center gap-0.5">
                   <span className="inline-flex text-muted-foreground opacity-60">
                     <Email size={13} strokeWidth={1.75} />
                   </span>
-                  <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground">
+                  <p className="text-[0.8125rem] text-muted-foreground">
                     {currentToken.email || 'N/A'}
                   </p>
                 </div>
@@ -300,7 +318,7 @@ const TokenMonitoring: React.FC = () => {
                   <span className="inline-flex text-muted-foreground opacity-60">
                     <Person size={13} strokeWidth={1.75} />
                   </span>
-                  <p className="cn-text-body1 text-[0.75rem] text-muted-foreground opacity-60 font-mono">
+                  <p className="text-xs text-muted-foreground opacity-60 font-mono">
                     {currentToken.userId?.slice(0, 8) ?? '—'}
                   </p>
                   {currentToken.userId && (
@@ -313,7 +331,7 @@ const TokenMonitoring: React.FC = () => {
                           onClick={copyUserId}
                         >
                           {copied ? (
-                            <CheckCircle size={12} strokeWidth={2} color="var(--ok)" />
+                            <CheckCircle size={12} strokeWidth={2} color="var(--bui-success)" />
                           ) : (
                             <ContentCopy size={12} strokeWidth={1.75} />
                           )}
@@ -336,7 +354,7 @@ const TokenMonitoring: React.FC = () => {
                     />
                   ))
                 ) : (
-                  <p className="cn-text-body1 text-[0.75rem] text-muted-foreground opacity-60 italic">
+                  <p className="text-xs text-muted-foreground opacity-60 italic">
                     Aucun rôle assigné
                   </p>
                 )}
@@ -344,17 +362,18 @@ const TokenMonitoring: React.FC = () => {
             </div>
 
             {/* Countdown */}
-            {/* Le filet gauche n'apparait qu'a partir du breakpoint MUI md (900px). */}
-            <div className="min-w-[200px] pl-[18px] min-[900px]:border-l min-[900px]:border-solid min-[900px]:border-l-[var(--line)]">
-              <p className="cn-text-body1 text-[0.625rem] font-bold uppercase tracking-[0.6px] text-[var(--muted)] mb-[3px]">
-                <AccessTime size={11} strokeWidth={1.75} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+            {/* Le filet de tete de colonne n'apparait qu'a partir de 900 px. */}
+            <div className="min-w-[200px] ps-[18px] min-[900px]:border-s min-[900px]:border-solid min-[900px]:border-s-border">
+              <p className="text-2xs font-bold uppercase tracking-[0.6px] text-muted-foreground mb-[3px]">
+                <AccessTime size={11} strokeWidth={1.75} style={{ verticalAlign: 'middle', marginInlineEnd: 4 }} />
                 Temps avant expiration
               </p>
-              <p className="cn-text-body1 text-[1.5rem] font-semibold tabular-nums tracking-[-0.02em] leading-[1.1]" style={{ color: tokenStatus.fg, fontFamily: 'var(--font-display)' }}>
+              {/* Valeur de decompte : du TEXTE, donc l'encre `-ink` du ton. */}
+              <p className="text-2xl font-semibold tabular-nums tracking-[-0.02em] leading-[1.1]" style={{ color: STATUS_TONES[tokenStatus.tone].color, fontFamily: 'var(--font-display)' }}>
                 {formatDuration(timeUntilExpiry)}
               </p>
               {currentToken.expiresAt && (
-                <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60 mt-0.5">
+                <p className="text-[0.6875rem] text-muted-foreground opacity-60 mt-0.5">
                   {new Date(currentToken.expiresAt).toLocaleString('fr-FR', {
                     day: '2-digit',
                     month: 'short',
@@ -367,8 +386,8 @@ const TokenMonitoring: React.FC = () => {
                   une variable CSS posee inline, lue par la classe du remplissage. */}
               <Progress
                 value={remainingPct}
-                style={{ '--bar': tokenStatus.fg } as React.CSSProperties}
-                className="mt-1.5 h-1 rounded-full bg-[var(--hover)] [&_[data-slot=progress-indicator]]:bg-[var(--bar)] [&_[data-slot=progress-indicator]]:rounded-full"
+                style={{ '--bar': TONE_TINT[tokenStatus.tone] } as React.CSSProperties}
+                className="mt-1.5 h-1 rounded-full bg-muted [&_[data-slot=progress-indicator]]:bg-[var(--bar)] [&_[data-slot=progress-indicator]]:rounded-full"
               />
             </div>
           </div>
@@ -386,14 +405,14 @@ const TokenMonitoring: React.FC = () => {
           icon={<Storage />}
           label="Total des tokens"
           value={tokenStats?.totalTokens ?? 0}
-          color="#6B8A9A"
+          iconClassName="text-primary"
           loading={isLoading && !tokenStats}
         />
         <StatTile
           icon={<CheckCircle />}
           label="Tokens actifs"
           value={tokenStats?.activeTokens ?? 0}
-          color="#4A9B8E"
+          iconClassName="text-success"
           hint={
             tokenStats?.totalTokens
               ? `${Math.round(((tokenStats.activeTokens ?? 0) / tokenStats.totalTokens) * 100)}% du total`
@@ -405,7 +424,7 @@ const TokenMonitoring: React.FC = () => {
           icon={<Warning />}
           label="Tokens expirés"
           value={tokenStats?.expiredTokens ?? 0}
-          color="#C97A7A"
+          iconClassName="text-destructive"
           hint={
             tokenStats?.totalTokens
               ? `${Math.round(((tokenStats.expiredTokens ?? 0) / tokenStats.totalTokens) * 100)}% du total`
@@ -417,7 +436,7 @@ const TokenMonitoring: React.FC = () => {
           icon={<TrendingUp />}
           label="Taux de succès"
           value={tokenStats?.successRate ?? 'N/A'}
-          color="#7B68A8"
+          iconClassName="text-primary"
           loading={isLoading && !tokenStats}
         />
       </div>
@@ -425,11 +444,11 @@ const TokenMonitoring: React.FC = () => {
       {/* ─── Visualisation + métriques ─────────────────────────────── */}
       <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[1fr_1.4fr] gap-3">
         {/* Donut */}
-        <Card className="gap-0 py-0 p-3.5 bg-[var(--card)] border-[var(--line)]">
-          <p className="cn-text-body1 text-[0.875rem] font-bold mb-0.5">
+        <Card className="gap-0 py-0 p-3.5">
+          <p className="text-sm font-bold mb-0.5">
             Distribution des tokens
           </p>
-          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mb-3">
+          <p className="text-xs text-muted-foreground mb-3">
             Répartition entre tokens actifs et expirés
           </p>
 
@@ -438,7 +457,7 @@ const TokenMonitoring: React.FC = () => {
               <span className="inline-flex mb-1.5">
                 <HourglassEmpty size={32} strokeWidth={1.5} />
               </span>
-              <p className="cn-text-body1 text-[0.75rem]">
+              <p className="text-xs">
                 En attente de données
               </p>
             </div>
@@ -463,18 +482,18 @@ const TokenMonitoring: React.FC = () => {
                       contentStyle={{
                         fontSize: 12,
                         borderRadius: 8,
-                        border: '1px solid var(--line)',
-                        background: 'var(--card)',
-                        color: 'var(--ink)',
+                        border: '1px solid var(--bui-border)',
+                        background: 'var(--bui-card)',
+                        color: 'var(--bui-foreground)',
                       }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-[0px] flex flex-col items-center justify-center pointer-events-none">
-                  <p className="cn-text-body1 text-[1.5rem] font-bold leading-[1]">
+                  <p className="text-2xl font-bold leading-none tabular-nums">
                     {tokenStats?.totalTokens ?? 0}
                   </p>
-                  <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground mt-0.5">
+                  <p className="text-[0.6875rem] text-muted-foreground mt-0.5">
                     Total
                   </p>
                 </div>
@@ -483,8 +502,8 @@ const TokenMonitoring: React.FC = () => {
                 {donutData.map((entry) => (
                   <div className="flex items-center gap-1.5" key={entry.name}>
                     <div className="w-[10px] h-[10px] rounded-[50%]" style={{ backgroundColor: entry.color }} />
-                    <p className="cn-text-body1 text-[0.8125rem] flex-1">{entry.name}</p>
-                    <p className="cn-text-body1 text-[0.8125rem] font-bold">
+                    <p className="text-[0.8125rem] flex-1">{entry.name}</p>
+                    <p className="text-[0.8125rem] font-bold tabular-nums">
                       {entry.value}
                     </p>
                   </div>
@@ -495,11 +514,11 @@ const TokenMonitoring: React.FC = () => {
         </Card>
 
         {/* Refresh metrics */}
-        <Card className="gap-0 py-0 p-3.5 bg-[var(--card)] border-[var(--line)]">
-          <p className="cn-text-body1 text-[0.875rem] font-bold mb-0.5">
+        <Card className="gap-0 py-0 p-3.5">
+          <p className="text-sm font-bold mb-0.5">
             Métriques de rafraîchissement
           </p>
-          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mb-3">
+          <p className="text-xs text-muted-foreground mb-3">
             Indicateurs de performance du service de tokens
           </p>
 
@@ -507,20 +526,22 @@ const TokenMonitoring: React.FC = () => {
           {successRateNum !== null && (
             <div className="mb-3.5">
               <div className="flex justify-between items-center mb-0.5">
-                <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] font-semibold uppercase tracking-[0.4px]">
+                <p className="text-[0.6875rem] text-muted-foreground font-semibold uppercase tracking-[0.4px]">
                   Fiabilité globale
                 </p>
-                <p className={cn('cn-text-body1 text-[0.8125rem] font-bold', successRateNum >= 95 ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
+                {/* Le pourcentage est du texte : encre `-ink`. La barre, elle,
+                    est un aplat et garde la teinte vive. */}
+                <p className={cn('text-[0.8125rem] font-bold tabular-nums', successRateNum >= 95 ? 'text-success-ink' : 'text-warning-ink')}>
                   {successRateNum.toFixed(1)}%
                 </p>
               </div>
               <Progress
                 value={successRateNum}
                 className={cn(
-                  'h-1.5 rounded-full bg-[var(--hover)] [&_[data-slot=progress-indicator]]:rounded-full',
+                  'h-1.5 rounded-full bg-muted [&_[data-slot=progress-indicator]]:rounded-full',
                   successRateNum >= 95
-                    ? '[&_[data-slot=progress-indicator]]:bg-[var(--ok)]'
-                    : '[&_[data-slot=progress-indicator]]:bg-[var(--warn)]',
+                    ? '[&_[data-slot=progress-indicator]]:bg-success'
+                    : '[&_[data-slot=progress-indicator]]:bg-warning',
                 )}
               />
             </div>
@@ -531,29 +552,29 @@ const TokenMonitoring: React.FC = () => {
               icon={<Refresh size={14} strokeWidth={1.75} />}
               label="Rafraîchissements"
               value={tokenMetrics?.refreshCount ?? 0}
-              fg="var(--info)"
-              bg="var(--info-soft)"
+              fg="var(--bui-info)"
+              bg="var(--bui-info-soft)"
             />
             <MetricRow
               icon={<ErrorIcon size={14} strokeWidth={1.75} />}
               label="Erreurs"
               value={tokenMetrics?.errorCount ?? 0}
-              fg={(tokenMetrics?.errorCount ?? 0) > 0 ? 'var(--err)' : 'var(--ok)'}
-              bg={(tokenMetrics?.errorCount ?? 0) > 0 ? 'var(--err-soft)' : 'var(--ok-soft)'}
+              fg={(tokenMetrics?.errorCount ?? 0) > 0 ? 'var(--bui-destructive)' : 'var(--bui-success)'}
+              bg={(tokenMetrics?.errorCount ?? 0) > 0 ? 'var(--bui-destructive-soft)' : 'var(--bui-success-soft)'}
             />
             <MetricRow
               icon={<AccessTime size={14} strokeWidth={1.75} />}
               label="Dernier refresh"
               value={formatRelativeTime(tokenMetrics?.lastRefresh)}
-              fg="var(--accent)"
-              bg="var(--accent-soft)"
+              fg="var(--bui-primary)"
+              bg="var(--bui-primary-soft)"
             />
             <MetricRow
               icon={<Bolt size={14} strokeWidth={1.75} />}
               label="Temps moyen"
               value={`${tokenMetrics?.averageRefreshTime ?? 0}ms`}
-              fg="var(--warn)"
-              bg="var(--warn-soft)"
+              fg="var(--bui-warning)"
+              bg="var(--bui-warning-soft)"
             />
           </div>
         </Card>
@@ -584,19 +605,21 @@ function MetricRow({
   icon: React.ReactNode;
   label: string;
   value: string | number;
+  /** Teinte VIVE de la pastille d'icone (`--bui-<famille>`), pas de l'encre. */
   fg: string;
+  /** Fond pastel de la pastille (`--bui-<famille>-soft`). */
   bg: string;
 }) {
   return (
     <div className="flex items-center gap-2">
-      <div className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center shrink-0" style={{ color: fg, backgroundColor: bg }}>
+      <div className="w-[28px] h-[28px] rounded-md flex items-center justify-center shrink-0" style={{ color: fg, backgroundColor: bg }}>
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="cn-text-body1 text-[0.625rem] text-[var(--muted)] font-semibold uppercase tracking-[0.4px] leading-[1.2]">
+        <p className="text-2xs text-muted-foreground font-semibold uppercase tracking-[0.4px] leading-[1.2]">
           {label}
         </p>
-        <p className="cn-text-body1 text-[0.875rem] font-bold leading-[1.2] mt-0.5 tabular-nums">
+        <p className="text-sm font-bold leading-[1.2] mt-0.5 tabular-nums">
           {value}
         </p>
       </div>

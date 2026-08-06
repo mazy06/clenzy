@@ -1,11 +1,26 @@
 import React, { lazy, Suspense, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import ProtectedRoute from '../components/ProtectedRoute';
 import SmartRedirect from '../components/SmartRedirect';
 import RouteFallback from '../components/RouteFallback';
 import { useAuth } from '../hooks/useAuth';
 import { warmHotRoutes } from './routePrefetch';
+import { ASSISTANT_CONVERSATION_PARAM } from '../components/AssistantDockTab';
+
+/**
+ * Ancien lien profond des notifications et emails de briefing
+ * ({@code /assistant/conversations/:id}). La page dédiée n'existe plus : on
+ * redirige vers le tableau de bord en passant l'id au panneau assistant, qui
+ * s'ouvre alors sur la bonne conversation.
+ */
+function AssistantConversationRedirect() {
+  const { conversationId } = useParams<{ conversationId: string }>();
+  const target = conversationId && /^\d+$/.test(conversationId)
+    ? `/dashboard?${ASSISTANT_CONVERSATION_PARAM}=${conversationId}`
+    : '/dashboard';
+  return <Navigate to={target} replace />;
+}
 
 // Pages : chargées en lazy (code-splitting par route). Chaque page + son sous-arbre devient un
 // chunk séparé → sort le module booking-engine/studio et les dialogs paiements du bundle initial.
@@ -204,9 +219,17 @@ const AuthenticatedApp: React.FC = () => {
           </ErrorBoundary>
         } />
 
-        {/* Assistant : page dediee supprimee (remplacee par le widget bulle +
+        {/* Assistant : page dediee supprimee (remplacee par le panneau docke +
             plein ecran accessible partout). Redirects pour les anciens bookmarks
-            et la typo courante. */}
+            et la typo courante.
+
+            /assistant/conversations/:id est le lien porte par les notifications
+            et les emails de briefing. Sans cette route il ne matchait RIEN (la
+            route /assistant est exacte) : le CTA « Ouvrir dans l'assistant »
+            tombait sur la page introuvable. On le renvoie vers le tableau de
+            bord en conservant l'id, que le panneau lit pour ouvrir directement
+            la bonne conversation. */}
+        <Route path="/assistant/conversations/:conversationId" element={<AssistantConversationRedirect />} />
         <Route path="/assistant" element={<Navigate to="/dashboard" replace />} />
         <Route path="/assitant" element={<Navigate to="/dashboard" replace />} />
 

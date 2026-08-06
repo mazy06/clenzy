@@ -17,6 +17,8 @@ import {
   GRID_STROKE,
   TOOLTIP_CONTENT_STYLE,
   LEGEND_WRAPPER_STYLE,
+  WIDGET_CARD,
+  WIDGET_OVERLINE,
 } from './chartConstants';
 import { EmptyChart } from './EmptyChart';
 
@@ -51,14 +53,10 @@ export const LineChartWidget: React.FC<LineChartWidgetProps> = ({ data }) => {
   }));
 
   return (
-    <div className="mt-1.5 mb-2">
-      {data.title && (
-        <p className="cn-text-body1 block mb-1.5 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
-          {data.title}
-        </p>
-      )}
+    <div className="flex flex-col gap-1.5">
+      {data.title && <p className={WIDGET_OVERLINE}>{data.title}</p>}
 
-      <div className="p-[9px] rounded-[12px] bg-[var(--field)]" style={{ height: CHART_HEIGHT + 30 }}>
+      <div className={WIDGET_CARD} style={{ height: CHART_HEIGHT + 30 }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={items} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />

@@ -664,15 +664,16 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
         <div className="flex gap-3 items-start">
           {/* ─── Colonne gauche : Propriété + Infos ─── */}
           <div className={cn('flex flex-col gap-[9px] min-w-0', isPropertySelected ? 'flex-[7]' : 'flex-1')} style={{ transition: 'flex 0.4s ease' }}>
-            {/* 1. Propriété — en premier pour auto-fill (anneau accent-soft tant que rien n'est sélectionné) */}
-            <div
+            {/* 1. Propriété — en premier pour auto-fill (halo `primary-soft` tant que rien n'est sélectionné) */}
+            <Card
               className={cn(
-                'border border-solid bg-[var(--card)] rounded-[14px] p-3',
-                '[transition:border-color_0.3s_ease,box-shadow_0.3s_ease] motion-reduce:transition-none',
+                'gap-0 py-0 p-3',
+                '[transition:box-shadow_0.3s_ease] motion-reduce:transition-none',
                 // Branches litterales : Tailwind emet ses classes a la compilation.
+                // Un anneau, jamais un liseré latéral : l'état se dit sur tout le pourtour.
                 isPropertySelected
-                  ? 'border-[var(--line)] shadow-none'
-                  : 'border-[var(--accent)] shadow-[0_0_0_3px_var(--accent-soft)]',
+                  ? 'shadow-none'
+                  : 'ring-2 ring-primary shadow-[0_0_0_3px_var(--bui-primary-soft)]',
               )}
             >
               <ServiceRequestFormProperty
@@ -684,7 +685,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                 selectedProperty={selectedProperty}
                 currentUser={currentUserInfo}
               />
-            </div>
+            </Card>
 
             {/* Message d'aide quand aucune propriété n'est sélectionnée */}
             <Collapse open={!isPropertySelected} duration={300}>
@@ -696,7 +697,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
             {/* 2. Informations de base — révélé quand propriété sélectionnée */}
             <Collapse open={isPropertySelected} duration={400}>
-              <Card className="gap-0 py-0 bg-[var(--card)] p-3">
+              <Card className="gap-0 py-0 p-3">
                 <ServiceRequestFormInfo
                   control={control}
                   errors={errors}
@@ -721,7 +722,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
             // a declarer de keyframes, impossible depuis une classe utilitaire.
             <div className="flex-[5] flex flex-col gap-[9px] min-w-0 animate-in fade-in slide-in-from-right-5 duration-[400ms] motion-reduce:animate-none">
               {/* 3. Planification */}
-              <Card className="gap-0 py-0 bg-[var(--card)] p-3">
+              <Card className="gap-0 py-0 p-3">
                 <ServiceRequestFormPlanning
                   control={control}
                   errors={errors}
@@ -733,8 +734,8 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
               </Card>
 
               {/* 4. Assignation et statut */}
-              <Card className="gap-0 py-0 bg-[var(--card)] p-3">
-                <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-2">
+              <Card className="gap-0 py-0 p-3">
+                <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                   {t('serviceRequests.sections.requestorAssignment')}
                 </p>
 

@@ -16,28 +16,28 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNotification } from '../../../hooks/useNotification';
 import { VpnKey, History, Add, Delete as Trash, LocationOn } from '../../../icons';
 import EmptyState from '../../../components/EmptyState';
-import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 import { keyExchangeApi, type KeyExchangeCodeDto } from '../../../services/api/keyExchangeApi';
 import type { ConnectedDevice } from '../types';
 import PageTabs from '../../../components/PageTabs';
 
-// Statuts de code : tokens sémantiques désaturés (texte couleur + fond `-soft`) —
-// actif = --ok, utilisé = --info, expiré = neutre, annulé = --err.
-const CODE_STATUS_TOKENS: Record<string, ToneTokens> = {
-  ACTIVE: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
-  USED: { color: 'var(--info)', bg: 'var(--info-soft)' },
-  EXPIRED: { color: 'var(--muted)', bg: 'var(--hover)' },
-  CANCELLED: { color: 'var(--err)', bg: 'var(--err-soft)' },
+// Statuts de code → tons sémantiques de la primitive : actif = ok, utilisé =
+// info, expiré = neutre, annulé = err. Le couple encre `-ink` / fond `-soft`
+// conforme AA est porté par STATUS_TONES, plus par une table locale.
+const CODE_STATUS_TONES: Record<string, StatusTone> = {
+  ACTIVE: 'ok',
+  USED: 'info',
+  EXPIRED: 'neutral',
+  CANCELLED: 'err',
 };
-const codeStatusTokens = (status: string): ToneTokens =>
-  CODE_STATUS_TOKENS[status] ?? { color: 'var(--muted)', bg: 'var(--hover)' };
+const codeStatusTone = (status: string): StatusTone => CODE_STATUS_TONES[status] ?? 'neutral';
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
   return (
     <div className="flex justify-between gap-3 py-0.5">
-      <span className="cn-text-caption text-muted-foreground">{label}</span>
-      <span className="cn-text-caption font-semibold text-foreground text-end">{value}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-xs font-semibold text-foreground text-end">{value}</span>
     </div>
   );
 }
@@ -97,7 +97,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
     <div className="flex flex-col gap-3">
       {/* Infos du point */}
       <Card className="gap-0 py-0 p-3">
-        <h6 className="cn-text-subtitle2 mb-1.5 font-bold flex items-center gap-0.5">
+        <h6 className="text-xs font-semibold mb-1.5 flex items-center gap-0.5">
           <LocationOn size={15} strokeWidth={1.75} /> Point de remise
         </h6>
         <InfoRow label="Fournisseur" value={point?.provider ?? device.provider} />
@@ -150,11 +150,11 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
 
               {/* Liste */}
               {codesQuery.isLoading ? (
-                <Skeleton className="h-[140px] w-full rounded-[var(--radius-lg)]" />
+                <Skeleton className="h-[140px] w-full rounded-xl" />
               ) : codes.length === 0 ? (
                 <EmptyState icon={<VpnKey />} title="Aucun code actif" description="Générez un code de remise pour un voyageur." />
               ) : (
-                <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]">
+                <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -168,14 +168,14 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                       {codes.map((c) => (
                         <TableRow key={c.id}>
                           <TableCell>
-                            {/* Code PIN : display (Space Grotesk) tabular-nums sur fond --field */}
-                            <span className="font-[family-name:var(--font-display)] tabular-nums font-semibold tracking-[0.06em] text-[var(--ink)] bg-[var(--field)] rounded-[9px] px-1.5 py-0.5 inline-block">
+                            {/* Code PIN : display (Space Grotesk) tabular-nums sur fond de champ */}
+                            <span className="font-[family-name:var(--font-display)] tabular-nums font-semibold tracking-[0.06em] text-foreground bg-field rounded-md px-1.5 py-0.5 inline-block">
                               {c.code}
                             </span>
                           </TableCell>
                           <TableCell>{c.guestName || '—'}</TableCell>
                           <TableCell>
-                            <StatusChip tokens={codeStatusTokens(c.status)} label={c.status} pill />
+                            <StatusChip tone={codeStatusTone(c.status)} label={c.status} pill />
                           </TableCell>
                           <TableCell className="text-end">
                             {c.status === 'ACTIVE' && (
@@ -189,7 +189,7 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                                       aria-label="Annuler ce code"
                                       onClick={() => cancel.mutate(c.id)}
                                       disabled={cancel.isPending}
-                                      className="text-[var(--err)] hover:text-[var(--err)]"
+                                      className="text-destructive hover:text-destructive-ink"
                                     >
                                       <Trash size={16} strokeWidth={1.75} />
                                     </Button>
@@ -210,11 +210,11 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
 
           {subTab === 1 && (
             eventsQuery.isLoading ? (
-              <Skeleton className="h-[140px] w-full rounded-[var(--radius-lg)]" />
+              <Skeleton className="h-[140px] w-full rounded-xl" />
             ) : (eventsQuery.data?.content.length ?? 0) === 0 ? (
               <EmptyState icon={<History />} title="Aucun mouvement" description="Les remises et collectes de clés de ce logement apparaîtront ici." />
             ) : (
-              <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]">
+              <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -229,8 +229,8 @@ export default function KeyboxDetail({ device }: { device: ConnectedDevice }) {
                       <TableRow key={ev.id}>
                         <TableCell>{ev.eventType}</TableCell>
                         <TableCell>{ev.actorName || '—'}</TableCell>
-                        <TableCell className="text-[var(--muted)]">{ev.notes || '—'}</TableCell>
-                        <TableCell className="text-end whitespace-nowrap text-[var(--faint)]">
+                        <TableCell className="text-muted-foreground">{ev.notes || '—'}</TableCell>
+                        <TableCell className="text-end whitespace-nowrap tabular-nums text-faint">
                           {new Date(ev.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </TableCell>
                       </TableRow>

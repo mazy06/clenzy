@@ -7,13 +7,20 @@
    texte de l'orchestrateur s'accumule dans `conversation`.
 
    N'est rendue qu'en mode live (le mock ne déclenche aucun run réel). Le
-   registre visuel suit la constellation (deep-space), pas une carte produit :
-   surface sombre translucide, accent indigo (#9B9BF6) cohérent avec le HUD.
+   registre visuel est celui du PMS : surface de carte Baitly UI, accent de
+   marque, et bulles de conversation du kit (Bubble/BubbleContent).
    ============================================================ */
 
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Button, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
+import {
+  Bubble,
+  BubbleContent,
+  Button,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../components/ui';
 import { Send, SmartToy } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { ConversationTurn } from '../types';
@@ -55,16 +62,15 @@ export function SupervisionChatBar({ conversation, busy, onSend }: SupervisionCh
   const hasTranscript = conversation.length > 0;
 
   return (
-    // Surface/bordure via tokens de session → suit le thème (clair ou sombre) et
-    // matche le reste du PMS. L'ombre reprend `alpha(common.black, .35)` : les deux
-    // palettes du projet fixent common.black a #000000, elle est donc figeable.
-    // Focus du champ → bordure au token d'accent de la session.
+    // Surface/bordure sur les tokens Baitly UI → suit le thème (clair ou sombre)
+    // et matche le reste du PMS. Le focus du champ reprend l'anneau du kit
+    // (border-ring + ring/50), le même que les champs de formulaire.
     <div
       className={
-        'overflow-hidden rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] ' +
-        'backdrop-blur-[10px] shadow-[0_16px_40px_-22px_rgba(0,0,0,0.35)] ' +
-        'transition-[border-color,box-shadow] duration-[160ms] ease-[ease] ' +
-        'focus-within:border-[var(--accent)] focus-within:shadow-[0_0_0_3px_var(--accent-soft)]'
+        'overflow-hidden rounded-xl border border-solid border-border bg-card shadow-lg ' +
+        'transition-[border-color,box-shadow] duration-[160ms] ease-[cubic-bezier(0.16,1,0.3,1)] ' +
+        'motion-reduce:transition-none ' +
+        'focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50'
       }
     >
       {/* Transcription */}
@@ -81,7 +87,7 @@ export function SupervisionChatBar({ conversation, busy, onSend }: SupervisionCh
       <div
         className={cn(
           'flex items-end gap-1.5 px-[7.5px] py-1.5',
-          hasTranscript && 'border-t border-solid border-[var(--line)]',
+          hasTranscript && 'border-t border-solid border-border',
         )}
       >
         <textarea
@@ -100,9 +106,9 @@ export function SupervisionChatBar({ conversation, busy, onSend }: SupervisionCh
           }}
           className={
             'flex-1 resize-none border-none outline-none bg-transparent [font-family:inherit] ' +
-            'max-h-[96px] px-[3px] py-[4.5px] text-[13.5px] leading-normal text-[var(--ink)] caret-[var(--accent)] ' +
-            'placeholder:text-[var(--muted)] placeholder:opacity-100 ' +
-            'disabled:cursor-not-allowed disabled:text-[var(--faint)]'
+            'max-h-[96px] px-[3px] py-[4.5px] text-sm leading-normal text-foreground caret-primary ' +
+            'placeholder:text-muted-foreground placeholder:opacity-100 ' +
+            'disabled:cursor-not-allowed disabled:text-faint'
           }
         />
         <Tooltip>
@@ -114,13 +120,13 @@ export function SupervisionChatBar({ conversation, busy, onSend }: SupervisionCh
                 onClick={submit}
                 disabled={busy || value.trim().length === 0}
                 aria-label={t('supervision.chat.send', 'Envoyer')}
-                // Token d'accent de la session (var(--accent)) — pas le primary
-                // MUI figé sur l'indigo par défaut.
+                // Le gabarit `default` porte deja bg-primary / text-primary-foreground
+                // et son survol. Seuls le disque et l'etat desactive sont locaux :
+                // desactive, le bouton reste lisible (aplat doux) plutot que fondu.
                 className={
-                  'size-[34px] rounded-full bg-[var(--accent)] text-[var(--on-accent)] ' +
-                  'transition-[background-color,opacity] duration-[180ms] ' +
-                  'hover:bg-[var(--accent-deep)] ' +
-                  'disabled:opacity-100 disabled:bg-[var(--accent-soft)] disabled:text-[var(--accent)]'
+                  'size-[34px] rounded-full ' +
+                  'transition-[background-color,opacity] duration-[180ms] motion-reduce:transition-none ' +
+                  'disabled:opacity-100 disabled:bg-primary-soft disabled:text-primary'
                 }
               >
                 <Send size={16} strokeWidth={2} />
@@ -138,19 +144,24 @@ function ConversationBubble({ turn }: { turn: ConversationTurn }) {
   const isOperator = turn.role === 'operator';
   return (
     <div className={cn('flex flex-col', isOperator ? 'items-end' : 'items-start')}>
-      <div
-        className={cn(
-          'max-w-[85%] border border-solid px-[7.5px] py-[4.5px] text-[13px] leading-normal',
-          'text-[var(--ink)] whitespace-pre-wrap wrap-break-word',
-          isOperator
-            ? 'rounded-[12px_12px_4px_12px] border-[var(--accent)] bg-[var(--accent-soft)]'
-            : 'rounded-[12px_12px_12px_4px] border-[var(--line)] bg-[var(--hover)]',
-        )}
+      {/* Bulle du kit : l'operateur porte la teinte de marque, l'agent la
+          surface neutre. La pointe se dit par un coin LOGIQUE (ee/es), qui
+          suit le sens de lecture — l'ancien raccourci physique ne le faisait pas. */}
+      <Bubble
+        variant={isOperator ? 'tinted' : 'muted'}
+        align={isOperator ? 'end' : 'start'}
       >
-        {turn.text || '…'}
-      </div>
+        <BubbleContent
+          className={cn(
+            'whitespace-pre-wrap text-foreground',
+            isOperator ? 'rounded-ee-sm' : 'rounded-es-sm',
+          )}
+        >
+          {turn.text || '…'}
+        </BubbleContent>
+      </Bubble>
       {turn.at && (
-        <div className="mt-0.5 text-[10.5px] text-muted-foreground opacity-60 tabular-nums">
+        <div className="mt-0.5 text-2xs text-muted-foreground opacity-60 tabular-nums">
           {formatTime(turn.at)}
         </div>
       )}
@@ -160,7 +171,7 @@ function ConversationBubble({ turn }: { turn: ConversationTurn }) {
 
 function ThinkingRow({ label }: { label: string }) {
   return (
-    <div role="status" className="flex items-center gap-[4.5px] text-[var(--accent)] text-[12px] font-semibold">
+    <div role="status" className="flex items-center gap-[4.5px] text-primary text-xs font-semibold">
       <SmartToy size={14} />
       <span>{label}</span>
       <span className="inline-flex gap-[3px] ms-[1.5px]">
@@ -170,7 +181,7 @@ function ThinkingRow({ label }: { label: string }) {
         {[0, 1, 2].map((i) => (
           <span
             key={i}
-            className="size-[4px] rounded-full bg-[var(--accent)] animate-[pulse_1.2s_ease-in-out_infinite] motion-reduce:animate-none motion-reduce:opacity-60"
+            className="size-[4px] rounded-full bg-primary animate-[pulse_1.2s_ease-in-out_infinite] motion-reduce:animate-none motion-reduce:opacity-60"
             style={{ animationDelay: `${i * 0.16}s` }}
           />
         ))}

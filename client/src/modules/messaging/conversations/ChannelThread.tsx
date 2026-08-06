@@ -4,6 +4,7 @@ import {
   Alert,
   AlertAction,
   AlertDescription,
+  Badge,
   Button,
   Tooltip,
   TooltipContent,
@@ -14,7 +15,6 @@ import {
   Archive as ArchiveIcon,
   AutoAwesome as SparklesIcon,
   Description as TemplateIcon,
-  EventNote as ReservationIcon,
   Link as LinkIcon,
   Person as PersonIcon,
   Send as SendIcon,
@@ -37,9 +37,14 @@ import GuestProfileDialog from '../../channels/GuestProfileDialog';
 import ThreadView, { type ThreadAction } from './ThreadView';
 import { type ThreadMessage, getChannelBadge } from './unified';
 
+/** Date de séjour au format court « ven. 25 juil. » (locale du navigateur). */
+function formatStayDate(date: Date): string {
+  return date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
 /** Equivalent classes de `composeToolSx` (meme transcription que InternalThread). */
 const COMPOSE_TOOL_CLASS =
-  'w-[30px] h-[30px] rounded-[8px] border-0 bg-transparent text-[var(--muted)] flex items-center justify-center cursor-pointer p-0 shrink-0 transition-[background,color] duration-[140ms] hover:bg-[var(--bg)] hover:text-[var(--accent)] disabled:opacity-[0.45] disabled:cursor-default';
+  'flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-primary disabled:cursor-default disabled:opacity-45 motion-reduce:transition-none';
 
 interface ChannelThreadProps {
   conv: ConversationDto;
@@ -61,6 +66,7 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
   const [attachOpen, setAttachOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [guestOpen, setGuestOpen] = useState(false);
+  const [internalNote, setInternalNote] = useState(false);
 
   const { data: messagesData, isLoading } = useConversationMessages(conv.id);
   const sendMessageMutation = useSendMessage();
@@ -73,6 +79,9 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
   // Reset du brouillon au changement de conversation.
   useEffect(() => {
     setDraft('');
+    // Changer de conversation remet la bascule a zero : une note destinee a un
+    // dossier ne doit pas rester armee sur le suivant.
+    setInternalNote(false);
   }, [conv.id]);
 
   // Concierge IA : brouillon de réponse pré-rédigé, à valider par l'opérateur
@@ -93,6 +102,7 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
         text: msg.content,
         at: msg.sentAt,
         sender: msg.senderName,
+        internalNote: msg.internalNote,
       })),
     [messagesData],
   );
@@ -116,8 +126,16 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
 
   const handleSend = () => {
     sendMessageMutation.mutate(
-      { conversationId: conv.id, content: draft.trim() },
-      { onSuccess: () => setDraft('') },
+      { conversationId: conv.id, content: draft.trim(), internalNote },
+      {
+        onSuccess: () => {
+          setDraft('');
+          // La bascule NE se réarme pas : laisser « note interne » actif après
+          // envoi ferait passer la réponse suivante pour une note, et le
+          // voyageur ne la recevrait jamais sans que personne s'en aperçoive.
+          setInternalNote(false);
+        },
+      },
     );
   };
 
@@ -157,14 +175,10 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
       onClick: () => setAttachOpen(true),
     });
   } else {
-    // « Voir la réservation » de la projection : le fil connait son sejour,
-    // l'entete y mene (surlignage deep-link de la liste des reservations).
-    actions.push({
-      key: 'reservation',
-      title: t('messagingHub.viewReservation', 'Voir la réservation'),
-      icon: <ReservationIcon size={16} strokeWidth={1.75} />,
-      onClick: () => navigate(`/reservations?highlight=${conv.reservationId}`),
-    });
+    // « Voir la réservation » n'est plus une icone : elle devient l'action
+    // contextuelle LIBELLEE de l'entete (cf. `contextAction` plus bas), comme
+    // dans la projection. Une icone de calendrier de plus, au milieu de trois
+    // autres, ne disait pas ou elle menait.
     actions.push({
       key: 'template',
       title: t('messagingHub.sendTemplate', 'Envoyer un template WhatsApp'),
@@ -172,6 +186,43 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
       onClick: () => setTemplateOpen(true),
     });
   }
+
+  // ─── Statut du séjour ────────────────────────────────────────────────────
+  // Dérivé des dates DÉJÀ portées par la conversation : aucune requête de plus,
+  // et surtout aucun statut inventé. La conversation ne connaît pas l'état
+  // administratif de la réservation (confirmée, annulée) — seulement ses dates.
+  // On dit donc ce qu'on sait vraiment : où en est le séjour aujourd'hui.
+  const stay = useMemo(() => {
+    if (!conv.reservationId || !conv.checkIn) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const checkIn = new Date(conv.checkIn);
+    checkIn.setHours(0, 0, 0, 0);
+    const checkOut = conv.checkOut ? new Date(conv.checkOut) : null;
+    if (checkOut) checkOut.setHours(0, 0, 0, 0);
+
+    if (checkOut && today > checkOut) return { key: 'past' as const, date: checkOut };
+    if (today >= checkIn) return { key: 'current' as const, date: checkOut ?? checkIn };
+    return { key: 'upcoming' as const, date: checkIn };
+  }, [conv.reservationId, conv.checkIn, conv.checkOut]);
+
+  const stayBadge = stay ? (
+    <Badge variant={stay.key === 'current' ? 'success' : stay.key === 'upcoming' ? 'info' : 'secondary'}>
+      {stay.key === 'current'
+        ? t('messagingHub.stayCurrent', 'Séjour en cours')
+        : stay.key === 'upcoming'
+          ? t('messagingHub.stayUpcoming', 'À venir')
+          : t('messagingHub.stayPast', 'Séjour terminé')}
+    </Badge>
+  ) : undefined;
+
+  const stayLabel = stay
+    ? stay.key === 'upcoming'
+      ? t('messagingHub.stayArrival', 'arrivée {{date}}', { date: formatStayDate(stay.date) })
+      : stay.key === 'current'
+        ? t('messagingHub.stayDeparture', 'départ {{date}}', { date: formatStayDate(stay.date) })
+        : formatStayDate(stay.date)
+    : '';
 
   return (
     <>
@@ -203,7 +254,19 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
             </span>
             {badge.label}
             {conv.propertyName ? ` · ${conv.propertyName}` : ''}
+            {stayLabel ? ` · ${stayLabel}` : ''}
           </>
+        }
+        statusBadge={stayBadge}
+        contextAction={
+          conv.reservationId
+            ? {
+                label: t('messagingHub.viewReservation', 'Voir la réservation'),
+                // Il n'existe pas de route /reservations/:id : la liste porte le
+                // surlignage par ?highlight=, c'est donc le lien profond reel.
+                onClick: () => navigate(`/reservations?highlight=${conv.reservationId}`),
+              }
+            : undefined
         }
         actions={actions}
         menuItems={[
@@ -226,20 +289,28 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
             ? t('messagingHub.whatsappWindowPlaceholder', 'Réponse libre indisponible (template requis)')
             : t('messagingHub.replyTo', 'Répondre à {{name}}…', { name: conv.guestName || badge.label })
         }
-        composeDisabled={whatsappWindowExpired}
+        internalNote={internalNote}
+        onInternalNoteChange={setInternalNote}
+        // La fenêtre WhatsApp de 24 h interdit d'ÉCRIRE AU VOYAGEUR. Une note
+        // interne ne lui est pas transmise : elle reste donc permise, et c'est
+        // même là qu'elle sert le plus — consigner le contexte quand on ne peut
+        // pas répondre.
+        composeDisabled={whatsappWindowExpired && !internalNote}
         composeNotice={
           aiDraft || whatsappWindowExpired ? (
             <>
               {/* Concierge IA : brouillon à valider (C1) — jamais envoyé sans l'opérateur. */}
               {aiDraft && (
-                <div className="p-2 bg-[var(--hover)] border-b border-[var(--line)]">
-                  <div className="flex items-center gap-1 mb-1 text-primary">
-                    <SparklesIcon size={16} strokeWidth={1.75} />
-                    <span className="cn-text-caption font-bold text-[var(--mui-primary)] uppercase tracking-[0.4px]">
+                // Carte teintee marque : le brouillon IA doit se distinguer d'un
+                // message reellement envoye, sans passer pour une alerte.
+                <div className="mb-2 rounded-lg border border-border bg-primary-soft/40 p-2.5">
+                  <div className="mb-1 flex items-center gap-1 text-primary">
+                    <SparklesIcon size={14} strokeWidth={1.75} />
+                    <span className="text-2xs font-semibold uppercase tracking-wide">
                       {t('concierge.draftTitle', 'Brouillon Concierge IA')}
                     </span>
                   </div>
-                  <p className="cn-text-body2 mb-1.5 whitespace-pre-wrap text-foreground">
+                  <p className="mb-1.5 whitespace-pre-wrap text-xs text-foreground">
                     {aiDraft}
                   </p>
                   <div className="flex gap-1.5">
@@ -261,7 +332,7 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
                       size="sm"
                       onClick={handleDismissDraft}
                       disabled={dismissAiDraftMutation.isPending}
-                      className="text-[var(--muted)]"
+                      className="text-muted-foreground"
                     >
                       {t('common.reject', 'Rejeter')}
                     </Button>
@@ -269,7 +340,7 @@ export default function ChannelThread({ conv, onArchived, showBack, onBack }: Ch
                 </div>
               )}
               {whatsappWindowExpired && (
-                <Alert variant="warning" className="rounded-none items-center text-[0.72rem] py-[1.5px]">
+                <Alert variant="warning" className="mb-2 items-center py-1 text-2xs">
                   <TriangleAlert />
                   <AlertDescription>
                     {t(

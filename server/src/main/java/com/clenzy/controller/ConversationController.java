@@ -207,8 +207,13 @@ public class ConversationController {
         String senderName = jwt.getClaimAsString("name");
         if (senderName == null) senderName = jwt.getClaimAsString("preferred_username");
 
-        ConversationMessage msg = conversationService.sendOutboundMessage(
-            conv, senderName, jwt.getSubject(), request.content(), request.contentHtml());
+        // Deux chemins DISTINCTS, pas un drapeau passe au meme envoi : la note
+        // interne n'emprunte aucune livraison canal (cf. sendInternalNote).
+        ConversationMessage msg = request.isInternalNote()
+            ? conversationService.sendInternalNote(
+                conv, senderName, jwt.getSubject(), request.content())
+            : conversationService.sendOutboundMessage(
+                conv, senderName, jwt.getSubject(), request.content(), request.contentHtml());
         return ResponseEntity.ok(ConversationMessageDto.from(msg));
     }
 

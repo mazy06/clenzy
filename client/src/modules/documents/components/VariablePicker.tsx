@@ -13,7 +13,7 @@ import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
 import type { TemplateVariable } from '../../../services/api/guestMessagingApi';
 
 /**
- * Sidebar de variables interpolables — chips tonales par categorie (tokens Signature).
+ * Sidebar de variables interpolables — chips tonales par categorie (tokens Baitly UI).
  *
  * <h3>Categorisation</h3>
  * Le groupement par categorie facilite la decouverte quand il y a beaucoup de
@@ -33,17 +33,21 @@ import type { TemplateVariable } from '../../../services/api/guestMessagingApi';
  * serveur.</p>
  */
 
-// ─── Tons sémantiques (tokens Signature) ────────────────────────────────────
+// ─── Tons sémantiques (tokens Baitly UI) ────────────────────────────────────
+// L'encre est le jeton `-ink` : ces tons habillent d'abord du TEXTE (puces de
+// variables), et la teinte vive plafonne à ~2,2:1 sur `bg-card`. La couleur
+// étant résolue à l'exécution, elle reste une valeur CSS — Tailwind n'émet ses
+// classes qu'à la compilation.
 
 interface Tone { c: string; bg: string }
 
 const TONES: Record<'ok' | 'accent' | 'warn' | 'err' | 'info' | 'muted', Tone> = {
-  ok:     { c: 'var(--ok)',     bg: 'var(--ok-soft)' },
-  accent: { c: 'var(--accent)', bg: 'var(--accent-soft)' },
-  warn:   { c: 'var(--warn)',   bg: 'var(--warn-soft)' },
-  err:    { c: 'var(--err)',    bg: 'var(--err-soft)' },
-  info:   { c: 'var(--info)',   bg: 'var(--info-soft)' },
-  muted:  { c: 'var(--muted)',  bg: 'var(--hover)' },
+  ok:     { c: 'var(--bui-success-ink)',     bg: 'var(--bui-success-soft)' },
+  accent: { c: 'var(--bui-primary)',         bg: 'var(--bui-primary-soft)' },
+  warn:   { c: 'var(--bui-warning-ink)',     bg: 'var(--bui-warning-soft)' },
+  err:    { c: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' },
+  info:   { c: 'var(--bui-info-ink)',        bg: 'var(--bui-info-soft)' },
+  muted:  { c: 'var(--bui-muted-foreground)', bg: 'var(--bui-muted)' },
 };
 
 // Le picker parle son propre vocabulaire de tons {c,bg} ; la primitive attend {color,bg}.
@@ -126,7 +130,7 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
     <div className="flex flex-col gap-3">
       {/* Search bar discrete */}
       {variables.length > 10 && (
-        <InputGroup className="bg-[var(--field)]">
+        <InputGroup className="bg-field">
           <InputGroupAddon align="inline-start">
             <span className="inline-flex text-muted-foreground opacity-60">
               <Search size={14} strokeWidth={1.75} />
@@ -175,7 +179,7 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
       {/* Groupes user-insertable, chacun avec sa couleur */}
       {groupedFiltered.length === 0 ? (
         <div className="py-4 text-center text-muted-foreground opacity-60">
-          <span className="cn-text-caption">Aucune variable ne correspond à « {query} »</span>
+          <span className="text-xs">Aucune variable ne correspond à « {query} »</span>
         </div>
       ) : (
         groupedFiltered.map((group) => (
@@ -226,7 +230,7 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
       {showDetails && variables.length > 0 && (
         <div>
           <Separator className="mb-[9px]" />
-          <span className="cn-text-caption font-semibold block mb-[0.35em]">
+          <span className="text-xs font-semibold block mb-[0.35em]">
             Détail des variables
           </span>
           <div className="max-h-[200px] overflow-y-auto">
@@ -234,12 +238,12 @@ const VariablePicker: React.FC<VariablePickerProps> = ({
               <div className="mb-0.5" key={v.key}>
                 {/* Teinte de la categorie connue seulement a l'execution : style inline. */}
                 <span
-                  className="cn-text-caption font-mono font-semibold"
+                  className="text-xs font-mono font-semibold"
                   style={{ color: CATEGORIES[CATEGORY_OF[v.key] ?? 'uncategorized'].tone.c }}
                 >
                   {`{${v.key}}`}
                 </span>
-                <span className="cn-text-caption text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {' — '}{v.description}
                 </span>
               </div>
@@ -261,7 +265,7 @@ interface SectionHeadingProps {
 const SectionHeading: React.FC<SectionHeadingProps> = ({ label, tone }) => (
   <div className="flex items-center gap-1 mb-1">
     <div className="w-[12px] h-[2px] rounded-[8px]" style={{ backgroundColor: tone.c }} />
-    <div className="cn-text-caption text-[0.65rem] font-semibold tracking-[0.08em] text-muted-foreground">
+    <div className="text-[0.65rem] font-semibold tracking-[0.08em] text-muted-foreground">
       {label}
     </div>
   </div>

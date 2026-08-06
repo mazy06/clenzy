@@ -30,7 +30,7 @@ const PropertyDeleteDialog: React.FC<PropertyDeleteDialogProps> = ({
             {t('properties.confirmDelete')}
           </DialogTitle>
         </DialogHeader>
-        <p className="cn-text-body1 text-[13px] text-[var(--body)]">
+        <p className="text-sm text-foreground">
           {t('properties.confirmDeleteMessage', { name: propertyName })}
         </p>
         <DialogFooter>

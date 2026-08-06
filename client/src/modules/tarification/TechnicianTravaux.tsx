@@ -139,8 +139,8 @@ export default function TechnicianTravaux() {
             {grouped.map(([domain, entries]) => (
               <React.Fragment key={domain}>
                 <TableRow>
-                  <TableCell colSpan={3} className="py-[4.5px] bg-[var(--field)]">
-                    <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
+                  <TableCell colSpan={3} className="py-[4.5px] bg-field">
+                    <p className="text-2xs font-semibold uppercase tracking-wide text-faint">
                       {domain}
                     </p>
                   </TableCell>

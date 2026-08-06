@@ -4,10 +4,10 @@
    Carte d'action posée sur le canvas. Compte à rebours d'expiration en
    direct, « Pourquoi ? » dépliable, Valider / Modifier.
 
-   THÈME : la carte suit le thème de l'app (clair/sombre) via les tokens
-   signature (var(--card)/--line/--ink/--muted/--warn/--err…). Elle s'assombrit
-   donc en mode sombre au lieu de rester crème. Les couleurs d'agent (meta.color)
-   et l'accent (bouton primaire) restent des tokens/valeurs de marque.
+   THÈME : la carte suit le thème de l'app (clair/sombre) via les jetons
+   Baitly UI (bg-card / border-border / text-foreground / text-muted-foreground /
+   warning / destructive). Elle s'assombrit donc en mode sombre au lieu de rester
+   crème. Les couleurs d'agent (meta.color) restent des valeurs de marque.
 
    SÉCURITÉ : `reasoning`/`motif`/`title` rendus en TEXTE BRUT (jamais de
    HTML). Le serveur a déjà nettoyé le « Pourquoi ? » (aucun token / prompt
@@ -17,7 +17,7 @@
 import { useState } from 'react';
 import { cn } from '../../../utils/cn';
 import { Spinner } from '../../../components/ui';
-import { Button, Collapsible, CollapsibleContent } from '../../../components/ui';
+import { Badge, Button, Collapsible, CollapsibleContent } from '../../../components/ui';
 import { Check, ChevronDown, Edit, Timer, HomeWork, VisibilityOff, CreditCard, Schedule } from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { Money } from '../../../components/Money';
@@ -97,8 +97,7 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, o
 
   return (
     <div
-      className={cn('w-full bg-[var(--card)] border border-solid border-[var(--line)] rounded-[12px] p-[13px 14px]', expired ? 'opacity-72' : 'opacity-100')}
-      style={{ boxShadow: 'none' }}
+      className={cn('w-full rounded-lg border border-border bg-card p-3.5', expired ? 'opacity-70' : 'opacity-100')}
       data-pending-action={action.id}
       data-expired={expired ? '1' : undefined}
       // Ancrages de l'overlay d'attaches (SupervisionTethers) : agent porteur
@@ -109,47 +108,47 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, o
     >
       {/* en-tête : agent + statut + expiration */}
       <div className="flex items-center gap-2 mb-1.5">
-        <div className="w-[30px] h-[30px] rounded-[9px] flex items-center justify-center shrink-0" style={{ background: `${meta.color}14`, color: meta.color }}>
+        <div className="size-[30px] rounded-md flex items-center justify-center shrink-0" style={{ background: `${meta.color}14`, color: meta.color }}>
           <AgentIcon token={meta.icon} size={16} />
         </div>
-        <div className="min-w-0 flex-1 text-[12px] font-medium text-[var(--ink)] whitespace-nowrap overflow-hidden text-ellipsis">
+        <div className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
           {t(meta.nameKey)}
         </div>
         {/* Statut à DROITE, sur la même ligne que le nom : « À régler »/« Rappel »
             pour paiement/rappel, sinon le compte à rebours d'expiration. */}
         {isPayment || isReminder ? (
           <div className="flex items-center gap-1 shrink-0">
-            <div className="w-[6px] h-[6px] rounded-[50%] shrink-0" style={{ background: 'var(--warn)' }} />
-            <div className="text-[10.5px] font-medium tracking-[.01em] text-[var(--warn)] whitespace-nowrap">
+            <div className="size-1.5 rounded-full shrink-0 bg-warning" />
+            <div className="text-2xs font-medium whitespace-nowrap text-warning-ink">
               {isPayment ? t('supervision.payment.badge', 'À régler') : t('supervision.reminder.badge', 'Rappel')}
             </div>
           </div>
         ) : (
-          <div className={cn('flex items-center gap-[3px] px-1.5 py-[3px] rounded-[7px] text-[10.5px] font-medium whitespace-nowrap tabular-nums shrink-0', expired ? 'bg-[var(--err-soft)]' : 'bg-[var(--warn-soft)]', expired ? 'text-[var(--err)]' : 'text-[var(--warn)]')}>
+          <Badge variant={expired ? 'destructive' : 'warning'} className="shrink-0 tabular-nums">
             <Timer size={12} />
             {expired ? t('supervision.hitl.expired') : t('supervision.hitl.expiresIn', { time: formatRemaining(cd, t) })}
-          </div>
+          </Badge>
         )}
       </div>
 
       {propertyName && (
-        <div className="flex items-center gap-0.5 mb-1 text-[11.5px] font-normal text-[var(--muted)]">
+        <div className="flex items-center gap-0.5 mb-1 text-2xs text-muted-foreground">
           <HomeWork size={13} />
           {propertyName}
         </div>
       )}
 
       {/* titre + motif (texte brut) — plus de gras (sobriété demandée) */}
-      <div className={cn('text-[12.5px] font-medium text-[var(--ink)] leading-[1.35]', isPayment ? 'mb-[7.5px]' : 'mb-[3px]')}>
+      <div className={cn('text-xs font-medium leading-snug text-foreground', isPayment ? 'mb-2' : 'mb-0.5')}>
         {displayTitle}
       </div>
       {/* En 'payment' : plus de ligne « Montant à régler » — le montant est
           affiché DIRECTEMENT dans le bouton « Régler ». */}
-      {!isPayment && <div className="text-[11.5px] text-[var(--muted)] mb-2">{action.motif}</div>}
+      {!isPayment && <div className="mb-2 text-2xs text-muted-foreground">{action.motif}</div>}
 
       {/* actions */}
       {expired ? (
-        <div className="text-[12px] font-medium text-[var(--err)]">{t('supervision.hitl.expired')}</div>
+        <div className="text-xs font-medium text-destructive-ink">{t('supervision.hitl.expired')}</div>
       ) : (
         <div className="flex items-center gap-1.5">
           <Button
@@ -236,7 +235,7 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, o
             onClick={() => setWhy((w) => !w)}
             aria-expanded={why}
             aria-label={t('supervision.hitl.why')}
-            className="ms-auto text-[var(--accent)] hover:bg-transparent hover:text-[var(--accent)]"
+            className="ms-auto text-muted-foreground"
           >
             <ChevronDown size={16} style={{ transform: why ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
           </Button>
@@ -248,7 +247,7 @@ export function PendingActionCard({ action, onValidate, onEdit, onAdjustPrice, o
           la rangee d'actions au-dessus et pilote l'etat `why`. */}
       <Collapsible open={why} onOpenChange={setWhy}>
         <CollapsibleContent>
-          <div className="mt-2 pt-2 border-t border-solid border-[var(--line)] text-[11.5px] leading-[1.5] text-[var(--muted)]">
+          <div className="mt-2 border-t border-border pt-2 text-2xs leading-relaxed text-muted-foreground">
             {displayReasoning}
           </div>
         </CollapsibleContent>

@@ -267,6 +267,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
+import { useCommandCenter, openShortcutLabel } from '../../components/command-center';
 import { addDays } from 'date-fns';
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from 'input-otp';
 import { useForm } from 'react-hook-form';
@@ -1133,6 +1134,26 @@ function ToastDemo() {
       >
         Toast avec action
       </Button>
+    </div>
+  );
+}
+
+/**
+ * Le centre de commande REEL — pas une maquette : le provider est monte par
+ * `MainLayoutFull`, donc ce bouton ouvre la meme palette que ⌘K, avec les
+ * commandes et les habitudes de l'utilisateur qui regarde la galerie.
+ */
+function CommandCenterDemo() {
+  const { openCenter } = useCommandCenter();
+  return (
+    <div className="flex flex-col items-start gap-2">
+      <Button variant="outline" onClick={() => openCenter()}>
+        Ouvrir le centre de commande
+      </Button>
+      <span className="text-2xs text-muted-foreground">
+        Ou {openShortcutLabel()} depuis n'importe quel ecran. Accords : G puis P (logements),
+        N puis I (nouvelle intervention).
+      </span>
     </div>
   );
 }
@@ -2435,7 +2456,10 @@ const GALLERY_SECTIONS: GallerySectionDef[] = [
     { key: 'menubar', label: 'Menubar', component: 'menubar', Demo: MenubarDemo },
   ] },
   { category: 'overlays', title: 'Toast (Sonner)', component: 'sonner', i18nKey: 'designSystem.toast.description', fallback: "Notifications transitoires empilées : succès, erreur, action. Toaster monté sur la page, thème suivi via data-theme.", variants: single(ToastDemo) },
-  { category: 'overlays', title: 'Command', component: 'command', i18nKey: 'designSystem.command.description', fallback: "Palette de commandes (cmdk) : recherche floue, groupes, navigation clavier. Base du futur ⌘K global.", variants: single(CommandDemo) },
+  { category: 'overlays', title: 'Command', component: 'command', i18nKey: 'designSystem.command.description', fallback: "Palette de commandes (cmdk) : recherche floue, groupes, navigation clavier. Le ⌘K global de l'application est construit dessus (components/command-center).", variants: [
+    { key: 'command-center', label: 'Centre de commande (réel)', Demo: CommandCenterDemo },
+    { key: 'primitive', label: 'Primitive', Demo: CommandDemo },
+  ] },
   // Navigation
   { category: 'navigation', title: 'Tabs', component: 'tabs', i18nKey: 'designSystem.tabs.description', fallback: "Onglets Radix : variante par défaut (fond muted) et variante line (soulignement). Navigation clavier.", variants: [
     { key: 'default', label: 'Défaut', Demo: TabsDefaultDemo },
@@ -2464,12 +2488,12 @@ const GALLERY_SECTIONS: GallerySectionDef[] = [
   { category: 'primitives', group: 'Données', title: 'StatusChip', i18nKey: 'designSystem.remaster.description', i18nParams: { file: 'StatusChip.tsx' }, fallback: "Remaster de components/StatusChip.tsx (MUI) avec le kit Baitly UI — API équivalente, prêt pour la migration.", variants: single(BStatusChipDemo) },
   { category: 'primitives', group: 'Données', title: 'Money', i18nKey: 'designSystem.remaster.description', i18nParams: { file: 'Money.tsx' }, fallback: "Remaster de components/Money.tsx (MUI) avec le kit Baitly UI — API équivalente, prêt pour la migration.", variants: single(BMoneyDemo) },
   { category: 'primitives', group: 'États & feedback', title: 'ListSkeleton', i18nKey: 'designSystem.remaster.description', i18nParams: { file: 'ListSkeleton.tsx' }, fallback: "Remaster de components/ListSkeleton.tsx (MUI) avec le kit Baitly UI — API équivalente, prêt pour la migration.", variants: single(BListSkeletonDemo) },
-  { category: 'primitives', group: 'Formulaires & filtres', title: 'HeaderSearchField', i18nKey: 'designSystem.remaster.description', i18nParams: { file: 'HeaderSearchField.tsx' }, fallback: "Remaster de components/HeaderSearchField.tsx (MUI) avec le kit Baitly UI — API équivalente, prêt pour la migration.", variants: single(BHeaderSearchFieldDemo) },
+  { category: 'primitives', group: 'Formulaires & filtres', title: 'HeaderSearchField', i18nKey: 'designSystem.headerSearchField.description', fallback: "Gabarit du champ de recherche. AUCUN écran ne le dessine lui-même : la recherche est rendue une seule fois par le PageHeader (components/GlobalSearchField). Un écran s'y branche via useScreenSearch et n'a que sa valeur et son placeholder à fournir.", variants: single(BHeaderSearchFieldDemo) },
   { category: 'primitives', group: 'Données', title: 'GuestAvatar', i18nKey: 'designSystem.remaster.description', i18nParams: { file: 'GuestAvatar.tsx' }, fallback: "Remaster de components/GuestAvatar.tsx (MUI) avec le kit Baitly UI — API équivalente, prêt pour la migration.", variants: single(BGuestAvatarDemo) },
   { category: 'primitives', group: 'Overlays', title: 'ConfirmationModal', i18nKey: 'designSystem.remaster.description', i18nParams: { file: 'ConfirmationModal.tsx' }, fallback: "Remaster de components/ConfirmationModal.tsx (MUI) avec le kit Baitly UI — API équivalente, prêt pour la migration.", variants: single(BConfirmationModalDemo) },
   // Vague 2
   { category: 'primitives', group: 'Structure', title: 'PageTabs', i18nKey: 'designSystem.remaster.description', i18nParams: { file: 'PageTabs.tsx' }, fallback: "Remaster de components/PageTabs.tsx (MUI) avec le kit Baitly UI — API équivalente, prêt pour la migration.", variants: single(BPageTabsDemo) },
-  { category: 'primitives', group: 'Formulaires & filtres', title: 'FilterSearchBar', i18nKey: 'designSystem.remaster.description', i18nParams: { file: 'FilterSearchBar.tsx' }, fallback: "Remaster de components/FilterSearchBar.tsx (MUI) avec le kit Baitly UI — API équivalente, prêt pour la migration.", variants: single(BFilterSearchBarDemo) },
+  { category: 'primitives', group: 'Formulaires & filtres', title: 'FilterSearchBar', i18nKey: 'designSystem.filterSearchBar.description', fallback: "Barre de filtres d'une liste : filtres, compteur, bascule de vue. Sa recherche est déléguée au champ unique du header (useScreenSearch) — le champ visible ici n'est qu'une illustration du gabarit.", variants: single(BFilterSearchBarDemo) },
   { category: 'primitives', group: 'États & feedback', title: 'DataFetchWrapper', i18nKey: 'designSystem.remaster.description', i18nParams: { file: 'DataFetchWrapper.tsx' }, fallback: "Remaster de components/DataFetchWrapper.tsx (MUI) avec le kit Baitly UI — API équivalente, prêt pour la migration.", variants: single(BDataFetchWrapperDemo) },
   { category: 'primitives', group: 'États & feedback', title: 'HelpBanner', i18nKey: 'designSystem.remaster.description', i18nParams: { file: 'HelpBanner.tsx' }, fallback: "Remaster de components/HelpBanner.tsx (MUI) avec le kit Baitly UI — API équivalente, prêt pour la migration.", variants: single(BHelpBannerDemo) },
   { category: 'primitives', group: 'États & feedback', title: 'HelpPopover', i18nKey: 'designSystem.remaster.description', i18nParams: { file: 'HelpPopover.tsx' }, fallback: "Remaster de components/HelpPopover.tsx (MUI) avec le kit Baitly UI — API équivalente, prêt pour la migration.", variants: single(BHelpPopoverDemo) },

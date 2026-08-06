@@ -28,6 +28,8 @@ import {
   AlertAction,
   AlertDescription,
   Button,
+  Card,
+  CardContent,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -102,25 +104,25 @@ function formatRelative(iso: string | null): string {
 function SyncSnapshotPanel({ snapshot }: { snapshot: ChannexSyncSnapshot }) {
   const meta = CHANNEX_STATUS_META[snapshot.status];
   return (
-    <div className="border border-solid border-[var(--line)] rounded-[8px] p-2 bg-[var(--surface-2)]">
-      <div className="flex flex-col gap-[5px]">
+    <Card size="sm">
+      <CardContent className="flex flex-col gap-[5px]">
         <div className="flex items-center gap-2">
-          <span className="cn-text-caption text-muted-foreground min-w-[110px] font-medium">
+          <span className="text-xs text-muted-foreground min-w-[110px] font-medium">
             Statut sync
           </span>
-          <StatusChip tokens={{ color: meta.color, bg: `${meta.color}1A` }} label={meta.label} className="h-[20px] text-[0.7rem]" />
+          <StatusChip tokens={{ color: meta.color, bg: `${meta.color}1A` }} label={meta.label} className="h-5 text-2xs" />
         </div>
         <div className="flex items-center gap-2">
-          <span className="cn-text-caption text-muted-foreground min-w-[110px] font-medium">
+          <span className="text-xs text-muted-foreground min-w-[110px] font-medium">
             Derniere sync
           </span>
-          <p className="cn-text-body2">{formatRelative(snapshot.lastSyncAt)}</p>
+          <p className="text-xs text-foreground tabular-nums">{formatRelative(snapshot.lastSyncAt)}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="cn-text-caption text-muted-foreground min-w-[110px] font-medium">
+          <span className="text-xs text-muted-foreground min-w-[110px] font-medium">
             OTAs actifs
           </span>
-          <p className={cn('cn-text-body2', !snapshot.otaCountKnown && 'text-[var(--muted)]')}>
+          <p className={cn('text-xs tabular-nums', snapshot.otaCountKnown ? 'text-foreground' : 'text-muted-foreground')}>
             {!snapshot.otaCountKnown
               ? 'inconnu — hub injoignable'
               : snapshot.activeOtaCount > 0
@@ -128,18 +130,19 @@ function SyncSnapshotPanel({ snapshot }: { snapshot: ChannexSyncSnapshot }) {
                 : 'aucun'}
           </p>
         </div>
+        {/* Le message d'erreur est du TEXTE → encre `-ink` (contrat §2.4). */}
         {snapshot.lastSyncError && snapshot.status === 'ERROR' && (
-          <div className="pt-[3px] mt-[1.5px] border-t border-dashed border-t-[var(--line)]">
-            <span className="cn-text-caption text-muted-foreground block mb-0.5 font-medium">
+          <div className="pt-[3px] mt-[1.5px] border-t border-dashed border-t-border">
+            <span className="text-xs text-muted-foreground block mb-0.5 font-medium">
               Derniere erreur
             </span>
-            <p className="cn-text-body2 text-[0.78rem] text-[var(--err)] font-mono break-words leading-[1.45]">
+            <p className="text-xs text-destructive-ink font-mono break-words leading-[1.45]">
               {snapshot.lastSyncError}
             </p>
           </div>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -157,20 +160,20 @@ function ActionButton({
   return (
     <div
       className={cn(
-        'flex gap-[7.5px] p-[7.5px] rounded-[8px] border border-solid items-start',
+        'flex gap-[7.5px] p-[7.5px] rounded-lg border border-solid items-start',
         isPrimary
-          ? 'border-[color-mix(in_srgb,var(--accent)_25%,transparent)] bg-[var(--accent-soft)]'
-          : 'border-[var(--line)] bg-transparent',
+          ? 'border-primary/25 bg-primary-soft/60'
+          : 'border-border bg-transparent',
       )}
     >
-      <div className={cn('w-[32px] h-[32px] rounded-[6px] flex items-center justify-center shrink-0', isPrimary ? 'bg-[var(--accent-soft)]' : 'bg-[var(--hover)]', isPrimary ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}>
+      <div className={cn('size-8 rounded-md flex items-center justify-center shrink-0', isPrimary ? 'bg-primary-soft text-primary' : 'bg-muted text-muted-foreground')}>
         <Icon size={16} strokeWidth={2.2} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="cn-text-body2 font-semibold leading-[1.3] mb-0.5">
+        <p className="text-xs font-semibold leading-[1.3] mb-0.5 text-foreground">
           {action.label}
         </p>
-        <span className="cn-text-caption text-muted-foreground block leading-[1.45] mb-1.5">
+        <span className="text-xs text-muted-foreground block leading-[1.45] mb-1.5">
           {action.detail}
         </span>
         <Button
@@ -273,20 +276,26 @@ export default function ChannexDiagnoseDialog({
   };
 
   const StatusIcon = report ? STATUS_ICONS[report.sync.status] : Stethoscope;
+  // Teinte VIVE de l'etat : elle peint la pastille d'icone du titre, pas du texte.
   const accent = report
     ? CHANNEX_STATUS_META[report.sync.status].color
-    : 'var(--accent)';
+    : 'var(--bui-primary)';
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent className="max-w-[600px] max-h-[85vh] overflow-y-auto" showCloseButton={false}>
         <DialogHeader>
           <div className="flex items-start gap-[9px]">
-            <div className="w-[36px] h-[36px] rounded-[8px] flex items-center justify-center shrink-0 mt-[1.5px]" style={{ backgroundColor: `${accent}1A`, color: accent }}>
+            {/* `color-mix` et non `${accent}1A` : la concatenation d'un alpha ne
+                marche pas quand la teinte est un `var()`. */}
+            <div
+              className="size-9 rounded-lg flex items-center justify-center shrink-0 mt-[1.5px] bg-[color-mix(in_srgb,var(--dg-accent)_12%,transparent)] text-[var(--dg-accent)]"
+              style={{ '--dg-accent': accent } as React.CSSProperties}
+            >
               <StatusIcon size={20} />
             </div>
             <div className="min-w-0 flex-1">
-              <DialogTitle className="font-semibold leading-[1.3] text-[1.05rem]">
+              <DialogTitle className="text-base font-semibold tracking-tight text-balance leading-[1.3]">
                 Diagnostic Channex
               </DialogTitle>
               {report && (
@@ -299,7 +308,7 @@ export default function ChannexDiagnoseDialog({
             <Button
               variant="ghost"
               size="icon-sm"
-              className="text-[var(--muted)]"
+              className="text-muted-foreground"
               onClick={onClose}
               aria-label="Fermer"
             >
@@ -340,7 +349,7 @@ export default function ChannexDiagnoseDialog({
             )}
 
             <div>
-              <span className="cn-text-caption block mb-1.5 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
+              <span className="block mb-1.5 text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Actions recommandees
               </span>
               <div className="flex flex-col gap-1.5">

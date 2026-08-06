@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Badge, Button, InputGroup, InputGroupAddon, InputGroupInput } from '../../components/ui';
+import { Badge, Button } from '../../components/ui';
 import {
   ViewList,
   ChatBubbleOutline,
@@ -16,6 +16,7 @@ import {
 import { useTabKeyParam } from '../../components/tabKeyParam';
 import PageHeader from '../../components/PageHeader';
 import PageTabs from '../../components/PageTabs';
+import HeaderSearchField from '../../components/HeaderSearchField';
 import {
   PageHeaderActionsProvider,
   usePageHeaderActionsSlot,
@@ -126,8 +127,10 @@ const DocumentsPage: React.FC = () => {
     documentsTabMeta,
   );
 
-  // Inline actions per tab
-  const inlineActions = (() => {
+  // Actions de l'onglet actif. Elles vont dans le slot `actions` du PageHeader,
+  // et NON sur la rangee d'onglets : celle-ci passe a deux lignes des sept
+  // onglets, et des boutons poses dessus la rendaient illisible.
+  const tabActions = (() => {
     if (activeTab === TAB_CATALOG) {
       return (
         <Button variant="ghost" size="sm" onClick={() => docTemplatesRef.current?.fetchTemplates()}>
@@ -186,45 +189,12 @@ const DocumentsPage: React.FC = () => {
         </>
       );
     }
-    if (activeTab === TAB_VARIABLES) {
-      return (
-        // Champ de recherche de la barre d'onglets : aucun libelle visible,
-        // d'ou aria-label plutot qu'un FieldLabel.
-        <InputGroup className="w-[220px]">
-          <InputGroupAddon align="inline-start">
-            <span className="inline-flex text-muted-foreground"><Search size={14} strokeWidth={1.75} /></span>
-          </InputGroupAddon>
-          <InputGroupInput
-            id="documents-tags-search"
-            aria-label={t('documents.tabs.searchTag')}
-            placeholder={t('documents.tabs.searchTag')}
-            value={tagsSearch}
-            onChange={(e) => setTagsSearch(e.target.value)}
-          />
-        </InputGroup>
-      );
-    }
     if (activeTab === TAB_COMPLIANCE) {
       return (
-        <>
-          <Button variant="ghost" size="sm" onClick={() => complianceRef.current?.fetchData()}>
-            <Refresh size={14} strokeWidth={1.75} />
-            {t('common.refresh')}
-          </Button>
-          <InputGroup className="w-[220px]">
-            <InputGroupAddon align="inline-start">
-              <span className="inline-flex text-muted-foreground"><Search size={14} strokeWidth={1.75} /></span>
-            </InputGroupAddon>
-            <InputGroupInput
-              id="documents-compliance-search"
-              aria-label="Rechercher par numéro de document"
-              placeholder="Ex: FAC-2025-00001"
-              value={complianceSearch}
-              onChange={(e) => setComplianceSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && complianceRef.current?.searchByNumber(complianceSearch)}
-            />
-          </InputGroup>
-        </>
+        <Button variant="ghost" size="sm" onClick={() => complianceRef.current?.fetchData()}>
+          <Refresh size={14} strokeWidth={1.75} />
+          {t('common.refresh')}
+        </Button>
       );
     }
     return null;
@@ -248,13 +218,33 @@ const DocumentsPage: React.FC = () => {
           }
           backPath="/dashboard"
           showBackButton={false}
-          actions={headerActionsPortal}
+          actions={<>{tabActions}{headerActionsPortal}</>}
         />
+
+        {/* Les deux recherches d'onglet passent par le champ UNIQUE du header
+            (useScreenSearch) au lieu d'un InputGroup dessine dans la page.
+            Montees conditionnellement : le champ ne doit apparaitre que sur
+            l'onglet qui sait quoi en faire. */}
+        {activeTab === TAB_VARIABLES && (
+          <HeaderSearchField
+            value={tagsSearch}
+            onChange={setTagsSearch}
+            placeholder={t('documents.tabs.searchTag')}
+          />
+        )}
+        {activeTab === TAB_COMPLIANCE && (
+          <HeaderSearchField
+            value={complianceSearch}
+            onChange={setComplianceSearch}
+            placeholder="Ex: FAC-2025-00001"
+            onSubmit={(v) => complianceRef.current?.searchByNumber(v)}
+          />
+        )}
+
         <PageTabs
           options={tabs}
           value={activeTab}
           onChange={handleTabChange}
-          inlineActions={inlineActions}
         />
 
         {/* ── Tab content ── */}

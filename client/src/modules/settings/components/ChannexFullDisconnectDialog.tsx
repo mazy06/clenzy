@@ -72,37 +72,33 @@ const STEP_LABEL_FR: Record<ChannexFullDisconnectStep['code'], string> = {
   CLEANUP_LOCAL: 'Nettoyage du mapping local Baitly',
 };
 
+/** Icone decorative → teinte VIVE, jamais `-ink` (contrat §2.4). */
 function StepIcon({ status }: { status: ChannexFullDisconnectStep['status'] }) {
   if (status === 'SUCCESS') {
-    return <CheckCircle2 size={18} color="var(--ok)" strokeWidth={2.2} />;
+    return <CheckCircle2 size={18} strokeWidth={2.2} className="text-success" />;
   }
   if (status === 'FAILED') {
-    return <XCircle size={18} color="var(--err)" strokeWidth={2.2} />;
+    return <XCircle size={18} strokeWidth={2.2} className="text-destructive" />;
   }
-  return <MinusCircle size={18} color="var(--muted)" strokeWidth={2.2} />;
+  return <MinusCircle size={18} strokeWidth={2.2} className="text-muted-foreground" />;
 }
 
+/** Le statut est un ensemble ferme : la teinte de la ligne tient en classes. */
+const STEP_ROW_CLASS: Record<ChannexFullDisconnectStep['status'], string> = {
+  SUCCESS: 'border-success/25 bg-success-soft/40',
+  FAILED:  'border-destructive/25 bg-destructive-soft/40',
+  SKIPPED: 'border-border bg-muted',
+};
+
 function StepRow({ step }: { step: ChannexFullDisconnectStep }) {
-  const bg =
-    step.status === 'SUCCESS'
-      ? 'color-mix(in srgb, var(--ok) 6%, transparent)'
-      : step.status === 'FAILED'
-        ? 'color-mix(in srgb, var(--err) 6%, transparent)'
-        : 'var(--hover)';
-  const borderColor =
-    step.status === 'SUCCESS'
-      ? 'color-mix(in srgb, var(--ok) 20%, transparent)'
-      : step.status === 'FAILED'
-        ? 'color-mix(in srgb, var(--err) 20%, transparent)'
-        : 'var(--line-2)';
   return (
-    <div className="flex gap-[9px] p-[7.5px] rounded-[8px] items-start" style={{ border: `1px solid ${borderColor}`, backgroundColor: bg }}>
+    <div className={cn('flex gap-[9px] p-[7.5px] rounded-lg items-start border border-solid', STEP_ROW_CLASS[step.status] ?? STEP_ROW_CLASS.SKIPPED)}>
       <div className="mt-0.5">
         <StepIcon status={step.status} />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1 mb-0.5">
-          <p className="cn-text-body2 font-semibold leading-[1.3] text-foreground">
+          <p className="text-xs font-semibold leading-[1.3] text-foreground">
             {STEP_LABEL_FR[step.code] ?? step.label}
           </p>
           {step.targetId && (
@@ -110,11 +106,11 @@ function StepRow({ step }: { step: ChannexFullDisconnectStep }) {
               size="sm"
               tone="neutral"
               label={step.targetId.slice(0, 8)}
-              className="text-[0.65rem] font-mono"
+              className="text-2xs font-mono"
             />
           )}
         </div>
-        <span className="cn-text-caption text-muted-foreground block leading-[1.45]">
+        <span className="text-xs text-muted-foreground block leading-[1.45]">
           {step.detail}
         </span>
       </div>
@@ -179,14 +175,14 @@ export default function ChannexFullDisconnectDialog({
         <>
           <DialogHeader>
             <div className="flex items-start gap-2">
-              <div className="w-[36px] h-[36px] rounded-[8px] bg-[var(--err-soft)] text-[var(--err)] flex items-center justify-center shrink-0 mt-0.5">
+              <div className="size-9 rounded-lg bg-destructive-soft text-destructive flex items-center justify-center shrink-0 mt-0.5">
                 <ShieldAlert size={20} />
               </div>
               <div className="min-w-0 flex-1">
-                <DialogTitle className="cn-text-h6 font-semibold leading-[1.3] text-[1.05rem]">
+                <DialogTitle className="text-base font-semibold tracking-tight text-balance leading-[1.3]">
                   Deconnexion complete de « {propertyName} »
                 </DialogTitle>
-                <DialogDescription className="cn-text-caption mt-0.5">
+                <DialogDescription className="text-xs mt-0.5">
                   Smart Disconnect orchestre · libere les OTA + nettoie le hub
                 </DialogDescription>
               </div>
@@ -194,43 +190,40 @@ export default function ChannexFullDisconnectDialog({
           </DialogHeader>
 
           <div>
-            <p className="cn-text-body2 text-muted-foreground mb-3">
+            <p className="text-xs text-muted-foreground mb-3">
               Cette operation va executer en sequence&nbsp;:
             </p>
-            <div className="flex flex-col gap-[4.5px] mb-3 ps-3 border-s-2 border-solid border-[var(--line-2)]">
-              <p className="cn-text-body2 text-foreground">
+            {/* Filet de 1 px : une bande laterale plus epaisse est proscrite. */}
+            <div className="flex flex-col gap-[4.5px] mb-3 ps-3 border-s border-solid border-border">
+              <p className="text-xs text-foreground">
                 1. <b>Detecter</b> tous les channels OTA actifs sur cette property
               </p>
-              <p className="cn-text-body2 text-foreground">
+              <p className="text-xs text-foreground">
                 2. <b>Desactiver</b> chaque channel (les hosts reprennent la main immediatement)
               </p>
-              <p className="cn-text-body2 text-foreground">
+              <p className="text-xs text-foreground">
                 3. <b>Supprimer</b> chaque channel du hub (tokens OAuth detruits)
               </p>
-              <p className="cn-text-body2 text-foreground">
+              <p className="text-xs text-foreground">
                 4. <b>Nettoyer</b> le mapping local Baitly
               </p>
             </div>
 
             <Field
               orientation="horizontal"
-              className="items-start gap-2 rounded-[8px] border border-solid p-[7.5px]"
-              style={{
-                borderColor: 'color-mix(in srgb, var(--err) 20%, transparent)',
-                backgroundColor: 'color-mix(in srgb, var(--err) 4%, transparent)',
-              }}
+              className="items-start gap-2 rounded-lg border border-solid border-destructive/20 bg-destructive-soft/30 p-[7.5px]"
             >
               <Checkbox
                 id="channex-delete-pivot"
                 checked={deletePivot}
                 onCheckedChange={(checked) => setDeletePivot(checked === true)}
-                className="mt-0.5 data-checked:border-[var(--err)] data-checked:bg-[var(--err)]"
+                className="mt-0.5 data-checked:border-destructive data-checked:bg-destructive"
               />
               <FieldContent>
-                <FieldLabel htmlFor="channex-delete-pivot" className="cn-text-body2 font-semibold">
+                <FieldLabel htmlFor="channex-delete-pivot" className="text-xs font-semibold">
                   Reset complet : supprimer aussi la property cote hub
                 </FieldLabel>
-                <FieldDescription className="cn-text-caption">
+                <FieldDescription className="text-xs">
                   Plus de trace dans le dashboard Channex. Irreversible : il faudra recreer la
                   property pour reconnecter.
                 </FieldDescription>
@@ -261,14 +254,14 @@ export default function ChannexFullDisconnectDialog({
       {phase === 'RUNNING' && (
         <div className="py-[30px]">
           <div className="flex flex-col items-center gap-3">
-            <Spinner className="size-[42px] text-[var(--err)]" />
+            <Spinner className="size-[42px] text-destructive" />
             <div className="text-center">
               {/* Radix exige un titre par contenu de modale : celui de la phase
                   RUNNING est le libelle deja affiche a l'ecran. */}
-              <DialogTitle className="cn-text-subtitle1 font-semibold mb-0.5">
+              <DialogTitle className="text-sm font-semibold mb-0.5">
                 Deconnexion en cours…
               </DialogTitle>
-              <DialogDescription className="cn-text-caption">
+              <DialogDescription className="text-xs">
                 Le hub libere les OTA et nettoie les channels. 5 a 10 secondes selon le nombre
                 d'OTA connectes.
               </DialogDescription>
@@ -282,7 +275,7 @@ export default function ChannexFullDisconnectDialog({
         <>
           <DialogHeader>
             <div className="flex items-start gap-2">
-              <div className={cn('w-[36px] h-[36px] rounded-[8px] flex items-center justify-center shrink-0 mt-[1.5px]', result.overallSuccess ? 'bg-[var(--ok-soft)]' : 'bg-[var(--warn-soft)]', result.overallSuccess ? 'text-[var(--ok)]' : 'text-[var(--warn)]')}>
+              <div className={cn('size-9 rounded-lg flex items-center justify-center shrink-0 mt-[1.5px]', result.overallSuccess ? 'bg-success-soft text-success' : 'bg-warning-soft text-warning')}>
                 {result.overallSuccess ? (
                   <CheckCircle2 size={20} />
                 ) : (
@@ -290,12 +283,12 @@ export default function ChannexFullDisconnectDialog({
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <DialogTitle className="cn-text-h6 font-semibold leading-[1.3] text-[1.05rem]">
+                <DialogTitle className="text-base font-semibold tracking-tight text-balance leading-[1.3]">
                   {result.overallSuccess
                     ? 'Deconnexion reussie'
                     : 'Deconnexion partielle'}
                 </DialogTitle>
-                <DialogDescription className="cn-text-caption mt-0.5">
+                <DialogDescription className="text-xs mt-0.5 tabular-nums">
                   {successCount} reussie{successCount > 1 ? 's' : ''}
                   {failedCount > 0 && ` · ${failedCount} echec${failedCount > 1 ? 's' : ''}`}
                   {skippedCount > 0 && ` · ${skippedCount} ignoree${skippedCount > 1 ? 's' : ''}`}

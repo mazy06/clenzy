@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import StatusChip from '../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Alert as UiAlert, AlertAction, AlertDescription } from '../../components/ui';
 import { Info } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -47,14 +47,18 @@ const CATEGORY_LABELS: Record<TaxCategoryType, string> = {
   FOOD: 'Restauration',
 };
 
-const CATEGORY_STYLE: Record<TaxCategoryType, { Icon: LucideIcon; color: string }> = {
-  ACCOMMODATION: { Icon: Hotel, color: 'var(--ok)' },
-  STANDARD: { Icon: Percent, color: 'var(--accent)' },
-  CLEANING: { Icon: CleaningServices, color: 'var(--info)' },
-  FOOD: { Icon: Restaurant, color: 'var(--warn)' },
+/**
+ * Categorie de taxe → icone + ton semantique du kit. Le ton porte deja le
+ * couple fond doux / encre conforme AA : plus de `color-mix` a la volee.
+ */
+const CATEGORY_STYLE: Record<TaxCategoryType, { Icon: LucideIcon; tone: StatusTone }> = {
+  ACCOMMODATION: { Icon: Hotel, tone: 'ok' },
+  STANDARD: { Icon: Percent, tone: 'accent' },
+  CLEANING: { Icon: CleaningServices, tone: 'info' },
+  FOOD: { Icon: Restaurant, tone: 'warn' },
 };
 
-const DEFAULT_CATEGORY_STYLE = { Icon: Percent, color: 'var(--muted)' };
+const DEFAULT_CATEGORY_STYLE: { Icon: LucideIcon; tone: StatusTone } = { Icon: Percent, tone: 'neutral' };
 
 const EMPTY_FORM: TaxRuleRequest = {
   countryCode: 'FR',
@@ -222,7 +226,7 @@ const TaxRulesSection: React.FC = () => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-1.5">
             <span className="inline-flex text-primary"><Gavel size={20} strokeWidth={1.75} /></span>
-            <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
+            <h6 className="text-[0.95rem] font-semibold tracking-tight">
               {t('fiscal.taxRules.title')}
             </h6>
           </div>
@@ -275,12 +279,12 @@ const TaxRulesSection: React.FC = () => {
               <TableBody>
                 {sortedRules.map(rule => {
                   const catKey = rule.taxCategory as TaxCategoryType;
-                  const { Icon: CategoryIcon, color: categoryColor } =
+                  const { Icon: CategoryIcon, tone: categoryTone } =
                     CATEGORY_STYLE[catKey] ?? DEFAULT_CATEGORY_STYLE;
                   return (
                   <TableRow key={rule.id}>
                     <TableCell>
-                      <StatusChip tokens={{ color: categoryColor, bg: `color-mix(in srgb, ${categoryColor} 8%, transparent)` }} label={categoryLabel(catKey)} icon={<CategoryIcon size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
+                      <StatusChip tone={categoryTone} label={categoryLabel(catKey)} icon={<CategoryIcon size={11} strokeWidth={2} />} className="tracking-[0.01em] px-0.5" />
                     </TableCell>
                     <TableCell>{rule.taxName}</TableCell>
                     <TableCell className="text-end font-semibold tabular-nums">
@@ -289,10 +293,10 @@ const TaxRulesSection: React.FC = () => {
                     <TableCell className="text-[0.8rem] tabular-nums">
                       {rule.effectiveFrom}
                     </TableCell>
-                    <TableCell className="text-[0.8rem] text-[var(--muted)] tabular-nums">
+                    <TableCell className="text-[0.8rem] text-muted-foreground tabular-nums">
                       {rule.effectiveTo ?? '—'}
                     </TableCell>
-                    <TableCell className="text-[0.8rem] text-[var(--muted)] max-w-[200px]">
+                    <TableCell className="text-[0.8rem] text-muted-foreground max-w-[200px]">
                       {rule.description ?? '—'}
                     </TableCell>
                     {isSuperAdmin && (
@@ -309,7 +313,7 @@ const TaxRulesSection: React.FC = () => {
                                   size="icon-sm"
                                   onClick={() => openEditDialog(rule)}
                                   aria-label={t('fiscal.taxRules.edit')}
-                                  className="text-[var(--muted)] hover:text-[var(--accent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)] hover:bg-[var(--accent-soft)]"
+                                  className="text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary-soft"
                                 >
                                   <Edit size={13} strokeWidth={1.75} />
                                 </Button>
@@ -325,7 +329,7 @@ const TaxRulesSection: React.FC = () => {
                                   size="icon-sm"
                                   onClick={() => setDeleteTarget(rule)}
                                   aria-label={t('fiscal.taxRules.delete')}
-                                  className="text-[var(--muted)] hover:text-[var(--err)] hover:border-[color-mix(in_srgb,var(--err)_40%,transparent)] hover:bg-[var(--err-soft)]"
+                                  className="text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive-soft"
                                 >
                                   <Delete size={13} strokeWidth={1.75} />
                                 </Button>
@@ -467,7 +471,7 @@ const TaxRulesSection: React.FC = () => {
           <DialogHeader>
             <DialogTitle>{t('fiscal.taxRules.deleteConfirmTitle')}</DialogTitle>
           </DialogHeader>
-          <p className="cn-text-body2">
+          <p className="text-sm text-muted-foreground">
             {t('fiscal.taxRules.deleteConfirmMessage', {
               name: deleteTarget?.taxName ?? '',
               category: deleteTarget ? categoryLabel(deleteTarget.taxCategory) : '',

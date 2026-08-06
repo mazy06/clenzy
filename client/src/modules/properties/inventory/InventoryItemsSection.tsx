@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import StatusChip from '../../../components/StatusChip';
+import EmptyState from '../../../components/EmptyState';
 import { Card } from '../../../components/ui';
 import { Button } from '../../../components/ui';
 import {
@@ -116,7 +117,7 @@ interface Props {
 const FieldLabel = ({ icon, htmlFor, children }: { icon: React.ReactNode; htmlFor?: string; children: React.ReactNode }) => (
   <label
     htmlFor={htmlFor}
-    className="cn-text-caption flex items-center gap-0.5 font-bold text-[var(--faint)] mb-0.5 uppercase tracking-[.06em] text-[10.5px]"
+    className="flex items-center gap-0.5 text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-0.5"
   >
     {icon}
     {children}
@@ -176,28 +177,28 @@ function PhotoUpload({ photoUrl, onChange }: { photoUrl: string | null; onChange
       />
       {photoUrl ? (
         <div
-          className="relative w-16 h-16 rounded-[12px] overflow-hidden border border-solid border-[var(--line)] bg-cover bg-center cursor-pointer transition-[border-color] duration-150 hover:border-[#C97A7A] [&:hover_.photo-remove]:opacity-100"
+          className="relative w-16 h-16 rounded-xl overflow-hidden border border-border bg-cover bg-center cursor-pointer transition-[border-color] duration-150 ease-out hover:border-destructive [&:hover_.photo-remove]:opacity-100"
           style={{ backgroundImage: `url(${photoUrl})` }}
           onClick={() => onChange(null)}
           title="Cliquer pour retirer la photo"
         >
-          <div className="photo-remove absolute inset-0 flex items-center justify-center bg-[color-mix(in_srgb,_var(--err)_75%,_transparent)] text-[var(--on-accent)] opacity-0" style={{ transition: 'opacity 150ms' }}>
+          <div className="photo-remove absolute inset-0 flex items-center justify-center bg-destructive/75 text-destructive-foreground opacity-0 transition-opacity duration-150 ease-out">
             <Close size={20} strokeWidth={2} />
           </div>
         </div>
       ) : (
         <div
           onClick={() => inputRef.current?.click()}
-          className="w-16 h-16 rounded-[12px] border-[1.5px] border-dashed border-[var(--line)] flex flex-col items-center justify-center gap-[1.5px] cursor-pointer text-[var(--faint)] transition-[border-color,color,background-color] duration-150 hover:border-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
+          className="w-16 h-16 rounded-xl border-[1.5px] border-dashed border-border flex flex-col items-center justify-center gap-[1.5px] cursor-pointer text-faint transition-[border-color,color,background-color] duration-150 ease-out hover:border-primary hover:text-primary hover:bg-primary-soft"
         >
           <PhotoCamera size={20} strokeWidth={1.75} />
-          <p className="cn-text-body1 text-[0.5625rem] font-semibold leading-[1]">
+          <p className="text-[0.5625rem] font-semibold leading-[1]">
             Ajouter
           </p>
         </div>
       )}
       {error && (
-        <p className="cn-text-body1 text-[0.625rem] text-destructive mt-0.5">
+        <p className="text-2xs text-destructive-ink mt-0.5">
           {error}
         </p>
       )}
@@ -213,7 +214,7 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
     onChange({ ...value, quantity: Math.max(1, value.quantity + delta) });
 
   return (
-    <Card className="gap-0 py-0 p-3 mb-3 bg-[var(--surface-2)]">
+    <Card className="gap-0 py-0 p-3 mb-3">
       <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[64px_1.5fr_2fr_0.9fr_1.6fr] gap-3">
         {/* Photo */}
         <PhotoUpload
@@ -263,8 +264,8 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
                   // elles transitent par des variables CSS, une classe Tailwind
                   // ne pouvant pas naitre d'une valeur d'execution.
                   style={{
-                    color: selected ? cat.color : 'var(--muted)',
-                    borderColor: selected ? cat.color : 'var(--line-2)',
+                    color: selected ? cat.color : 'var(--bui-muted-foreground)',
+                    borderColor: selected ? cat.color : 'var(--bui-border)',
                     '--cat-bg': selected ? `${cat.color}1F` : 'transparent',
                     '--cat-hover': selected ? `${cat.color}1F` : `${cat.color}15`,
                   } as React.CSSProperties}
@@ -293,7 +294,7 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
               aria-label="Diminuer la quantite"
               onClick={() => incrementQty(-1)}
               disabled={value.quantity <= 1}
-              className="border border-solid border-[var(--line-2)] bg-[var(--card)] rounded-[8px]"
+              className="border border-border bg-card rounded-md"
             >
               <Remove size={14} strokeWidth={1.75} />
             </Button>
@@ -313,7 +314,7 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
               size="icon-sm"
               aria-label="Augmenter la quantite"
               onClick={() => incrementQty(1)}
-              className="border border-solid border-[var(--line-2)] bg-[var(--card)] rounded-[8px]"
+              className="border border-border bg-card rounded-md"
             >
               <Add size={14} strokeWidth={1.75} />
             </Button>
@@ -361,10 +362,9 @@ function InlineForm({ value, onChange, onSubmit, onCancel, submitLabel, submitti
 const renderCategoryChip = (categoryValue: string) => {
   const cat = CATEGORY_BY_VALUE[categoryValue];
   if (!cat) {
-    // Pilule -soft neutre (pattern baseline §2 : texte couleur + fond soft)
-    return (
-      <StatusChip tokens={{ color: 'var(--muted)', bg: 'var(--hover)' }} label={categoryValue} />
-    );
+    // Pilule -soft neutre : le ton « neutral » de la primitive porte deja le
+    // couple fond doux / encre, inutile de composer des tokens a la main.
+    return <StatusChip tone="neutral" label={categoryValue} />;
   }
   return (
     <StatusChip tokens={{ color: cat.color, bg: `${cat.color}1F` }} label={cat.label} icon={React.cloneElement(
@@ -436,14 +436,14 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
     <div>
       {/* Header */}
       <div className="flex items-center gap-1.5 mb-3">
-        <span className="inline-flex text-[var(--accent)]">
+        <span className="inline-flex text-primary">
           <Inventory2 size={22} strokeWidth={1.75} />
         </span>
         <div>
-          <h6 className="cn-text-subtitle1 font-semibold">
+          <h6 className="text-sm font-semibold tracking-tight">
             Inventaire du logement
           </h6>
-          <p className="cn-text-body2 text-muted-foreground text-[0.8rem]">
+          <p className="text-xs text-muted-foreground">
             Mobilier, electromenager et equipements presents dans la propriete
           </p>
         </div>
@@ -462,17 +462,11 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
 
       {/* Items table — appears as soon as there is at least one item */}
       {items.length === 0 ? (
-        <Card className="gap-0 py-0 p-6 text-center bg-[var(--card)]">
-          <span className="inline-flex text-muted-foreground opacity-60 mb-1.5">
-            <Inventory2 size={36} strokeWidth={1.5} />
-          </span>
-          <p className="cn-text-body1 text-muted-foreground text-[0.875rem]">
-            Aucun objet reference pour cette propriete
-          </p>
-          <p className="cn-text-body1 text-muted-foreground opacity-60 text-[0.75rem] mt-0.5">
-            Remplis le formulaire ci-dessus pour ajouter ton premier objet
-          </p>
-        </Card>
+        <EmptyState
+          icon={<Inventory2 />}
+          title="Aucun objet reference pour cette propriete"
+          description="Remplis le formulaire ci-dessus pour ajouter ton premier objet"
+        />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
           <Table>
@@ -492,7 +486,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                 if (isEditing) {
                   return (
                     <TableRow key={item.id}>
-                      <TableCell colSpan={6} className="p-1.5 bg-[var(--hover)]">
+                      <TableCell colSpan={6} className="p-1.5 bg-muted">
                         <InlineForm
                           value={editForm}
                           onChange={setEditForm}
@@ -514,11 +508,11 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="block w-11 h-11 rounded-[8px] bg-cover bg-center border border-solid border-[var(--line)] cursor-zoom-in transition-[border-color,box-shadow] duration-[140ms] hover:border-[var(--line-2)] hover:shadow-[var(--shadow-card)]"
+                          className="block w-11 h-11 rounded-md bg-cover bg-center border border-border cursor-zoom-in transition-[border-color,box-shadow] duration-[140ms] ease-out hover:border-primary/40 hover:shadow-sm"
                           style={{ backgroundImage: `url(${item.photoUrl})` }}
                         />
                       ) : (
-                        <div className="w-11 h-11 rounded-[8px] border border-dashed border-[var(--line)] flex items-center justify-center text-[var(--faint)]">
+                        <div className="w-11 h-11 rounded-md border border-dashed border-border flex items-center justify-center text-faint">
                           <ImageIcon size={16} strokeWidth={1.5} />
                         </div>
                       )}
@@ -526,7 +520,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                     <TableCell>{item.name}</TableCell>
                     <TableCell>{item.category && renderCategoryChip(item.category)}</TableCell>
                     <TableCell className="text-center">{item.quantity}</TableCell>
-                    <TableCell className="text-[var(--muted)] text-[0.8rem]">
+                    <TableCell className="text-muted-foreground text-xs">
                       {item.notes || '—'}
                     </TableCell>
                     {canEdit && (
@@ -557,7 +551,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                                 size="icon-sm"
                                 aria-label={`Supprimer ${item.name}`}
                                 onClick={() => onDelete(item.id)}
-                                className="text-[var(--err)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+                                className="text-destructive hover:text-destructive hover:bg-destructive-soft"
                               >
                                 <DeleteOutline size={16} strokeWidth={1.75} />
                               </Button>

@@ -2,7 +2,9 @@ package com.clenzy.scheduler;
 
 import com.clenzy.model.AssistantBriefingLog;
 import com.clenzy.model.AssistantBriefingPref;
+import com.clenzy.model.NotificationKey;
 import com.clenzy.repository.AssistantBriefingLogRepository;
+import com.clenzy.service.NotificationPreferenceService;
 import com.clenzy.service.agent.briefing.AssistantBriefingPrefService;
 import com.clenzy.service.agent.briefing.BriefingComposer;
 import com.clenzy.service.agent.briefing.BriefingDelivery;
@@ -30,8 +32,10 @@ import java.util.Optional;
  * Scheduler horaire des briefings proactifs.
  *
  * <p>Cron : toutes les heures pile ({@code "0 0 * * * *"}). Pour chaque user
- * dont la pref est activee, on resout l'heure locale dans sa timezone et on
- * declenche le briefing si :
+ * dont la pref EFFECTIVE est activee — enregistree, ou issue de la politique par
+ * defaut appliquee aux proprietaires de logement (cf.
+ * {@code BriefingDefaultPolicy}) — on resout l'heure locale dans sa timezone et
+ * on declenche le briefing si :
  * <ul>
  *   <li>L'heure courante (locale) correspond a {@code timeLocal} (precision heure)</li>
  *   <li>La date n'a pas deja un log d'envoi (idempotence stricte : 1 par jour)</li>
@@ -51,17 +55,31 @@ public class AssistantBriefingScheduler {
     private final BriefingDelivery delivery;
     private final AssistantBriefingLogRepository logRepository;
     private final ObjectMapper objectMapper;
+    /** Preferences de notification — porte le desabonnement. Nullable (tests legacy). */
+    private final NotificationPreferenceService preferenceService;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public AssistantBriefingScheduler(AssistantBriefingPrefService prefService,
                                         BriefingComposer composer,
                                         BriefingDelivery delivery,
                                         AssistantBriefingLogRepository logRepository,
-                                        ObjectMapper objectMapper) {
+                                        ObjectMapper objectMapper,
+                                        NotificationPreferenceService preferenceService) {
         this.prefService = prefService;
         this.composer = composer;
         this.delivery = delivery;
         this.logRepository = logRepository;
         this.objectMapper = objectMapper;
+        this.preferenceService = preferenceService;
+    }
+
+    /** Constructeur historique — sans garde de desabonnement. */
+    public AssistantBriefingScheduler(AssistantBriefingPrefService prefService,
+                                        BriefingComposer composer,
+                                        BriefingDelivery delivery,
+                                        AssistantBriefingLogRepository logRepository,
+                                        ObjectMapper objectMapper) {
+        this(prefService, composer, delivery, logRepository, objectMapper, null);
     }
 
     /**
@@ -81,7 +99,7 @@ public class AssistantBriefingScheduler {
     void runFor(LocalDateTime utcNow) {
         List<AssistantBriefingPref> all;
         try {
-            all = prefService.listAllEnabled();
+            all = prefService.listEffectivePrefs();
         } catch (Exception e) {
             log.error("AssistantBriefingScheduler: lookup prefs failed", e);
             return;
@@ -177,6 +195,19 @@ public class AssistantBriefingScheduler {
             return;
         }
 
+        // Desabonnement : si AUCUN canal demande n'est encore ecoute par
+        // l'utilisateur, on s'arrete AVANT de composer. Sans cette garde,
+        // NotificationService jetait bien la notification desactivee, mais le
+        // briefing avait deja ete genere : appel LLM facture et conversation
+        // « Weekly review » empilee dans un historique que personne ne lit. Le
+        // desabonnement n'aurait masque que la partie visible.
+        List<String> channels = prefService.parseChannels(pref);
+        if (isFullyMuted(pref.getKeycloakId(), channels)) {
+            log.debug("Briefing {} : tous les canaux sont coupes — aucun run declenche",
+                    pref.getKeycloakId());
+            return;
+        }
+
         AssistantBriefingLog logEntry = new AssistantBriefingLog(
                 pref.getOrganizationId(),
                 pref.getKeycloakId(),
@@ -199,7 +230,6 @@ public class AssistantBriefingScheduler {
             return;
         }
 
-        List<String> channels = prefService.parseChannels(pref);
         List<String> delivered = delivery.dispatch(result, pref.getKeycloakId(),
                 pref.getOrganizationId(), channels);
 
@@ -212,6 +242,33 @@ public class AssistantBriefingScheduler {
             logEntry.setStatusEnum(AssistantBriefingLog.Status.SENT);
         }
         logRepository.save(logEntry);
+    }
+
+    /**
+     * L'utilisateur a-t-il coupe TOUS les canaux demandes ?
+     *
+     * <p>Seul {@code in_app} est reellement debrayable par l'utilisateur, via la
+     * cle {@link com.clenzy.model.NotificationKey#BRIEFING_READY} de ses
+     * preferences de notification. Email et WhatsApp n'ont pas d'interrupteur
+     * dedie : leur presence dans les canaux suffit a maintenir le briefing —
+     * on ne coupe donc que si {@code in_app} est le seul canal ET qu'il est
+     * desactive.</p>
+     *
+     * <p>En cas d'erreur de lecture des preferences, on repond {@code false} :
+     * mieux vaut un briefing de trop qu'un desabonnement silencieux provoque
+     * par une panne de base.</p>
+     */
+    boolean isFullyMuted(String keycloakId, List<String> channels) {
+        if (preferenceService == null || channels == null || channels.isEmpty()) return false;
+        boolean onlyInApp = channels.stream().allMatch(BriefingDelivery.CHANNEL_IN_APP::equals);
+        if (!onlyInApp) return false;
+        try {
+            return !preferenceService.isEnabled(keycloakId, NotificationKey.BRIEFING_READY);
+        } catch (Exception e) {
+            log.warn("Preferences de notification illisibles pour {} : {} — briefing maintenu",
+                    keycloakId, e.getMessage());
+            return false;
+        }
     }
 
     private String serializeChannelsSafe(List<String> channels) {

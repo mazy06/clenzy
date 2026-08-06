@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import {
+  Alert,
+  AlertDescription,
   Button,
-  Card,
   Collapsible,
   CollapsibleContent,
   Table,
@@ -20,6 +21,7 @@ import {
 } from '../../../icons';
 import type { LaundryQuote, GenerateLaundryQuoteRequest } from '../../../services/api/propertyInventoryApi';
 import { Money } from '../../../components/Money';
+import EmptyState from '../../../components/EmptyState';
 import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 
 const STATUS_CONFIG: Record<string, { label: string; tone: StatusTone }> = {
@@ -64,10 +66,10 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
     <div>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
-          <span className="inline-flex text-[var(--bui-warning-ink)]"><Receipt size={22} strokeWidth={1.75} /></span>
+          <span className="inline-flex text-warning"><Receipt size={22} strokeWidth={1.75} /></span>
           <div>
-            <h6 className="cn-text-subtitle1 font-semibold">Devis / Factures blanchisserie</h6>
-            <p className="cn-text-body2 text-muted-foreground text-[0.8rem]">
+            <h6 className="text-sm font-semibold tracking-tight">Devis / Factures blanchisserie</h6>
+            <p className="text-xs text-muted-foreground">
               Historique des devis generes pour cette propriete
             </p>
           </div>
@@ -81,18 +83,18 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
       </div>
 
       {!hasLaundryItems && (
-        <Card className="gap-0 py-0 p-4 text-center mb-3 bg-[var(--hover)]">
-          <p className="cn-text-body2 text-muted-foreground">
+        <Alert className="mb-3">
+          <AlertDescription>
             Configurez d'abord les articles de linge avant de generer un devis
-          </p>
-        </Card>
+          </AlertDescription>
+        </Alert>
       )}
 
       {quotes.length === 0 ? (
-        <Card className="gap-0 py-0 p-6 text-center">
-          <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><Receipt size={40} strokeWidth={1.5} /></span>
-          <p className="cn-text-body1 text-muted-foreground">Aucun devis genere pour cette propriete</p>
-        </Card>
+        <EmptyState
+          icon={<Receipt />}
+          title="Aucun devis genere pour cette propriete"
+        />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
           <Table>
@@ -132,8 +134,9 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                       {canEdit && (
                         <TableCell className="text-end" onClick={(e) => e.stopPropagation()}>
                           {/* Le Button du kit ne transmet pas de ref : span d'ancrage.
-                              Action de ligne repetee -> taille xs, teinte --ok (pas de variante
-                              « success » dans le kit). */}
+                              Action de ligne repetee -> taille xs, teinte de succes (pas de
+                              variante « success » dans le kit) : encre `-ink` pour le texte,
+                              teinte vive pour le filet — cf. contrat §2.4. */}
                           {quote.status === 'DRAFT' && (
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -141,7 +144,7 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                                   <Button
                                     variant="outline"
                                     size="xs"
-                                    className="text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]"
+                                    className="text-success-ink border-success hover:bg-success-soft"
                                     onClick={() => onConfirm(quote.id)}
                                   >
                                     <CheckCircle size={14} strokeWidth={1.75} />
@@ -163,7 +166,7 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                             la ligne du tableau, pas un CollapsibleTrigger. */}
                         <Collapsible open={isExpanded}>
                           <CollapsibleContent>
-                          <div className="p-3 bg-[var(--hover)]">
+                          <div className="p-3 bg-muted">
                             <Table>
                               <TableHeader>
                                 <TableRow>
@@ -187,12 +190,12 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                               </TableBody>
                             </Table>
                             {quote.notes && (
-                              <p className="cn-text-body2 text-muted-foreground mt-1.5 italic">
+                              <p className="text-xs text-muted-foreground mt-1.5 italic">
                                 {quote.notes}
                               </p>
                             )}
                             {quote.confirmedAt && (
-                              <span className="cn-text-caption text-muted-foreground opacity-60 mt-0.5 block">
+                              <span className="text-xs text-muted-foreground mt-0.5 block">
                                 Confirme le {formatDate(quote.confirmedAt)}
                               </span>
                             )}

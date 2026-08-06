@@ -48,8 +48,8 @@ export const NavigationCardWidget: React.FC<NavigationCardWidgetProps> = ({ data
 
   return (
     <div
-      className="mt-1.5 mb-[9px] p-[9px] rounded-[12px] bg-[var(--accent-soft)] cursor-pointer transition-[background-color] duration-150 motion-reduce:transition-none hover:bg-[var(--nav-card-hover)] focus-visible:[outline:2px_solid_var(--accent)] focus-visible:outline-offset-2"
-      style={{ '--nav-card-hover': 'color-mix(in srgb, var(--accent-soft) 80%, var(--accent) 14%)' } as React.CSSProperties}
+      className="mt-1.5 mb-[9px] p-[9px] rounded-xl bg-primary-soft cursor-pointer transition-[background-color] duration-150 motion-reduce:transition-none hover:bg-[var(--nav-card-hover)] focus-visible:[outline:2px_solid_var(--color-primary)] focus-visible:outline-offset-2"
+      style={{ '--nav-card-hover': 'color-mix(in srgb, var(--color-primary-soft) 80%, var(--color-primary) 14%)' } as React.CSSProperties}
       onClick={handleClick}
       role="button"
       tabIndex={0}
@@ -63,17 +63,17 @@ export const NavigationCardWidget: React.FC<NavigationCardWidgetProps> = ({ data
     >
       <div className="flex items-center gap-2">
         {/* Icone semantique */}
-        <div className="w-[36px] h-[36px] rounded-[9px] bg-[var(--card)] text-[var(--accent)] flex items-center justify-center shrink-0">
+        <div className="w-[36px] h-[36px] rounded-lg bg-card text-primary flex items-center justify-center shrink-0">
           <Icon size={18} strokeWidth={1.75} />
         </div>
 
         {/* Contenu */}
         <div className="flex-1 min-w-0">
-          <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)] leading-[1.3]">
+          <p className="text-[13.5px] font-semibold text-foreground leading-[1.3]">
             {data.label}
           </p>
           {data.reason && (
-            <p className="cn-text-body1 block text-[11.5px] text-[var(--muted)] leading-[1.4] mt-0">
+            <p className="block text-xs text-muted-foreground leading-[1.4] mt-0">
               {data.reason}
             </p>
           )}
@@ -87,7 +87,7 @@ export const NavigationCardWidget: React.FC<NavigationCardWidgetProps> = ({ data
           variant="ghost"
           size="icon-sm"
           onClick={(e) => { e.stopPropagation(); handleClick(); }}
-          className="text-[var(--accent)] hover:bg-transparent hover:text-[var(--accent)]"
+          className="text-primary hover:bg-transparent hover:text-primary"
           aria-hidden="true"
         >
           <ArrowRightIcon size={18} strokeWidth={2} />

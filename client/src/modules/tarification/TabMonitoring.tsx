@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge } from '../../components/ui';
+import { Badge, Card, CardContent } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
   Field,
@@ -36,8 +36,8 @@ interface TabMonitoringProps {
 function FeatureItem({ text }: { text: string }) {
   return (
     <div className="flex items-center gap-1 py-0.5">
-      <span className="inline-flex text-[var(--bui-success-ink)]"><CheckCircleOutline size={16} strokeWidth={1.75} /></span>
-      <p className="cn-text-body2 text-[0.8125rem]">
+      <span className="inline-flex text-success"><CheckCircleOutline size={16} strokeWidth={1.75} /></span>
+      <p className="text-xs">
         {text}
       </p>
     </div>
@@ -56,7 +56,9 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
   const { t } = useTranslation();
   const { currency } = useCurrency();
 
-  // ─── Baitly total calculation ─────────────────────────────────────────────
+  // ─── Total de l'offre materiel Baitly ─────────────────────────────────────
+  // (les champs `monitoringClenzy*` restent nommes ainsi : ce sont des champs
+  //  d'API, le rebranding ne touche que le texte visible.)
   const clenzyTotalCents =
     (config.monitoringClenzyDevicePriceCents || 0) +
     (config.monitoringClenzyInstallationPriceCents || 0) +
@@ -68,11 +70,11 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
       {/* ─── Section title ─────────────────────────────────────────────── */}
       <div className="flex items-center gap-1.5 mb-0.5">
         <span className="inline-flex text-primary"><VolumeUp size={20} strokeWidth={1.75} /></span>
-        <h6 className="cn-text-subtitle1 font-semibold">
+        <h6 className="text-sm font-semibold">
           {t('tarification.monitoring.title')}
         </h6>
       </div>
-      <p className="cn-text-body2 text-muted-foreground mb-3.5">
+      <p className="text-xs text-muted-foreground mb-3.5">
         {t('tarification.monitoring.subtitle')}
       </p>
 
@@ -83,32 +85,33 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
         {/* MINUT — Abonnement mensuel                                     */}
         {/* ════════════════════════════════════════════════════════════════ */}
         <div className="col-span-12 min-[900px]:col-span-6">
-          <div
+          {/* L'offre retenue se dit par le FOND, pas par un liseré épais (§5). */}
+          <Card
             className={cn(
-              'h-full p-[15px] rounded-[16px] border-[1.5px] border-solid bg-[var(--card)]',
-              'transition-colors duration-200 motion-reduce:transition-none',
+              'h-full transition-colors duration-200 motion-reduce:transition-none',
               config.monitoringMinutEnabled
-                ? 'border-[var(--mui-primary)] opacity-100'
-                : 'border-[var(--line)] opacity-75',
+                ? 'bg-primary-soft/30 ring-primary/50'
+                : 'opacity-75',
             )}
           >
+            <CardContent>
             {/* Header */}
             <div className="flex items-center gap-1.5 mb-1.5">
-              <Handshake size={22} strokeWidth={1.75} color='var(--accent)' />
-              <h6 className="cn-text-subtitle1 font-bold text-[1rem]">
+              <span className="inline-flex text-primary"><Handshake size={22} strokeWidth={1.75} /></span>
+              <h6 className="text-base font-semibold tracking-tight text-balance">
                 {t('tarification.monitoring.minut.title')}
               </h6>
-              <Badge variant="default" className="text-[0.6875rem] h-[22px]">{t('tarification.monitoring.minut.badge')}</Badge>
+              <Badge variant="default" className="text-2xs h-[22px]">{t('tarification.monitoring.minut.badge')}</Badge>
             </div>
 
-            <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] mb-3 leading-[1.5]">
+            <p className="text-xs text-muted-foreground mb-3 leading-[1.5]">
               {t('tarification.monitoring.minut.description')}
             </p>
 
             <Separator className="my-[9px]" />
 
             {/* Pricing model */}
-            <span className="cn-text-overline text-[0.6875rem] font-bold text-muted-foreground tracking-[0.08em]">
+            <span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t('tarification.monitoring.minut.pricingModel')}
             </span>
 
@@ -133,11 +136,11 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
                   </InputGroup>
                 </Field>
               ) : (
-                <div className="p-[9px] rounded-[12px] bg-[var(--surface-2)] border border-dashed border-[var(--line)] text-center">
-                  <h6 className="cn-text-h6 font-bold text-muted-foreground text-[1.1rem]">
+                <div className="p-[9px] rounded-lg bg-muted border border-dashed border-border text-center">
+                  <h6 className="text-base font-semibold tracking-tight text-foreground">
                     {t('tarification.monitoring.minut.onQuote')}
                   </h6>
-                  <span className="cn-text-caption text-muted-foreground text-[0.6875rem]">
+                  <span className="text-2xs text-muted-foreground">
                     {t('tarification.monitoring.minut.onQuoteHint')}
                   </span>
                 </div>
@@ -158,8 +161,8 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
 
             {/* Enable switch */}
             <Field orientation="horizontal">
-              <span className={cn('inline-flex w-9 shrink-0', config.monitoringMinutEnabled ? 'text-[var(--mui-primary)]' : 'text-[var(--faint)]')}><VolumeUp size={20} strokeWidth={1.75} /></span>
-              <FieldLabel htmlFor="monitoring-minut-enabled" className="flex-1 text-[0.875rem] font-semibold">
+              <span className={cn('inline-flex w-9 shrink-0', config.monitoringMinutEnabled ? 'text-primary' : 'text-faint')}><VolumeUp size={20} strokeWidth={1.75} /></span>
+              <FieldLabel htmlFor="monitoring-minut-enabled" className="flex-1 text-sm font-semibold">
                 {t('tarification.monitoring.enable')}
               </FieldLabel>
               <Switch
@@ -169,39 +172,40 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
                 disabled={!canEdit}
               />
             </Field>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* ════════════════════════════════════════════════════════════════ */}
-        {/* CLENZY HARDWARE — Coût unique (Tuya OEM)                       */}
+        {/* MATERIEL BAITLY — Coût unique (Tuya OEM)                        */}
         {/* ════════════════════════════════════════════════════════════════ */}
         <div className="col-span-12 min-[900px]:col-span-6">
-          <div
+          <Card
             className={cn(
-              'h-full p-[15px] rounded-[16px] border-[1.5px] border-solid bg-[var(--card)]',
-              'transition-colors duration-200 motion-reduce:transition-none',
+              'h-full transition-colors duration-200 motion-reduce:transition-none',
               config.monitoringClenzyEnabled
-                ? 'border-[var(--ok)] opacity-100'
-                : 'border-[var(--line)] opacity-75',
+                ? 'bg-success-soft/30 ring-success/50'
+                : 'opacity-75',
             )}
           >
+            <CardContent>
             {/* Header */}
             <div className="flex items-center gap-1.5 mb-1.5">
-              <Memory size={22} strokeWidth={1.75} color='var(--ok)' />
-              <h6 className="cn-text-subtitle1 font-bold text-[1rem]">
+              <span className="inline-flex text-success"><Memory size={22} strokeWidth={1.75} /></span>
+              <h6 className="text-base font-semibold tracking-tight text-balance">
                 {t('tarification.monitoring.clenzy.title')}
               </h6>
-              <Badge variant="success" className="text-[0.6875rem] h-[22px]">{t('tarification.monitoring.clenzy.badge')}</Badge>
+              <Badge variant="success" className="text-2xs h-[22px]">{t('tarification.monitoring.clenzy.badge')}</Badge>
             </div>
 
-            <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] mb-3 leading-[1.5]">
+            <p className="text-xs text-muted-foreground mb-3 leading-[1.5]">
               {t('tarification.monitoring.clenzy.description')}
             </p>
 
             <Separator className="my-[9px]" />
 
             {/* Pricing model */}
-            <span className="cn-text-overline text-[0.6875rem] font-bold text-muted-foreground tracking-[0.08em]">
+            <span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t('tarification.monitoring.clenzy.pricingModel')}
             </span>
 
@@ -293,11 +297,11 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
             </div>
 
             {/* Total */}
-            <div className="flex items-center justify-between p-2 rounded-[12px] bg-[success.50] border border-[success.200] mb-2">
-              <h6 className="cn-text-subtitle2 font-bold text-[0.875rem]">
+            <div className="flex items-center justify-between p-2 rounded-lg bg-success-soft mb-2">
+              <h6 className="text-sm font-semibold text-success-ink">
                 {t('tarification.monitoring.clenzy.total')}
               </h6>
-              <h6 className="cn-text-h6 font-extrabold text-[var(--ok)] text-[1.25rem]">
+              <h6 className="text-base font-semibold text-success-ink tabular-nums">
                 {clenzyTotalCents > 0 ? <Money value={clenzyTotalCents / 100} decimals={0} /> : <>— <CurrencySymbol code={currency} /></>}
               </h6>
             </div>
@@ -316,8 +320,8 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
 
             {/* Enable switch */}
             <Field orientation="horizontal">
-              <span className={cn('inline-flex w-9 shrink-0', config.monitoringClenzyEnabled ? 'text-[#4A9B8E]' : 'text-[var(--faint)]')}><Memory size={20} strokeWidth={1.75} /></span>
-              <FieldLabel htmlFor="monitoring-clenzy-enabled" className="flex-1 text-[0.875rem] font-semibold">
+              <span className={cn('inline-flex w-9 shrink-0', config.monitoringClenzyEnabled ? 'text-success' : 'text-faint')}><Memory size={20} strokeWidth={1.75} /></span>
+              <FieldLabel htmlFor="monitoring-clenzy-enabled" className="flex-1 text-sm font-semibold">
                 {t('tarification.monitoring.enable')}
               </FieldLabel>
               <Switch
@@ -327,7 +331,8 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
                 disabled={!canEdit}
               />
             </Field>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

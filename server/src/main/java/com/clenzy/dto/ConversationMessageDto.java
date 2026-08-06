@@ -15,7 +15,9 @@ public record ConversationMessageDto(
     String externalMessageId,
     String deliveryStatus,
     LocalDateTime sentAt,
-    LocalDateTime readAt
+    LocalDateTime readAt,
+    /** true = note d'equipe, jamais transmise au voyageur (cf. ConversationMessage). */
+    boolean internalNote
 ) {
     public static ConversationMessageDto from(ConversationMessage m) {
         return new ConversationMessageDto(
@@ -30,7 +32,8 @@ public record ConversationMessageDto(
             m.getExternalMessageId(),
             m.getDeliveryStatus(),
             m.getSentAt(),
-            m.getReadAt()
+            m.getReadAt(),
+            m.isInternalNote()
         );
     }
 }

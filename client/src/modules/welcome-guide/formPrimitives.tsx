@@ -7,7 +7,7 @@ import { Switch } from '../../components/ui';
  * discrète, en-têtes cohérents, états vides compacts.
  */
 
-/** En-tête de section : overline « Signature » (10.5px fw700 uppercase --faint) + actions à droite. */
+/** En-tête de section : overline Baitly UI (text-2xs fw700 uppercase, ton `faint`) + actions à droite. */
 export const SectionHeading: React.FC<{ icon: React.ReactNode; title: string; actions?: React.ReactNode }> = ({
   icon,
   title,
@@ -15,8 +15,8 @@ export const SectionHeading: React.FC<{ icon: React.ReactNode; title: string; ac
 }) => (
   <div className="flex items-center justify-between gap-1.5 mb-2">
     <div className="flex items-center gap-1.5 min-w-0">
-      <div className="shrink-0 flex text-[var(--faint)]">{icon}</div>
-      <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
+      <div className="shrink-0 flex text-faint">{icon}</div>
+      <p className="text-2xs font-bold uppercase tracking-wide text-faint">
         {title}
       </p>
     </div>
@@ -26,9 +26,9 @@ export const SectionHeading: React.FC<{ icon: React.ReactNode; title: string; ac
 
 /** État vide compact d'une section : encart pointillé discret + icône + texte court. */
 export const EmptyHint: React.FC<{ icon: React.ReactNode; text: string }> = ({ icon, text }) => (
-  <div className="flex items-center gap-[7.5px] px-[10.5px] py-[9px] rounded-[10px] border border-dashed border-[var(--line-2)] bg-[var(--hover)]">
-    <div className="shrink-0 flex text-[var(--faint)]">{icon}</div>
-    <p className="cn-text-body1 text-[12.5px] leading-[1.5] text-[var(--muted)]">
+  <div className="flex items-center gap-[7.5px] px-[10.5px] py-[9px] rounded-lg border border-dashed border-border bg-muted">
+    <div className="shrink-0 flex text-faint">{icon}</div>
+    <p className="text-xs leading-[1.5] text-muted-foreground">
       {text}
     </p>
   </div>
@@ -45,10 +45,10 @@ export const ToggleRow: React.FC<{
   <div className="flex items-center gap-2 py-2">
     <div className="shrink-0 flex text-muted-foreground">{icon}</div>
     <div className="flex-1 min-w-0">
-      <p className="cn-text-body2 font-semibold leading-[1.3]">
+      <p className="text-xs font-semibold leading-[1.3]">
         {label}
       </p>
-      <span className="cn-text-caption text-muted-foreground block leading-[1.3]">
+      <span className="text-xs text-muted-foreground block leading-[1.3]">
         {description}
       </span>
     </div>

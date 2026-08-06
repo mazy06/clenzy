@@ -76,7 +76,7 @@ export default function SendWhatsAppTemplateDialog({
             <Spinner className="size-6" />
           </div>
         ) : !groups || groups.length === 0 ? (
-          <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Aucun template disponible.
           </p>
         ) : (
@@ -86,10 +86,10 @@ export default function SendWhatsAppTemplateDialog({
                 <RadioGroupItem value={g.templateKey} id={`wa-template-${g.templateKey}`} />
                 <FieldContent>
                   <FieldLabel htmlFor={`wa-template-${g.templateKey}`} className="flex items-center gap-1">
-                    <span className="cn-text-body1 text-[0.8125rem] font-semibold">{formatKey(g.templateKey)}</span>
-                    <Badge variant="secondary" className="h-[16px] text-[0.5625rem] font-semibold bg-[var(--hover)]">{g.category}</Badge>
+                    <span className="text-sm font-semibold">{formatKey(g.templateKey)}</span>
+                    <Badge variant="secondary" className="h-[16px] text-2xs font-semibold">{g.category}</Badge>
                   </FieldLabel>
-                  <FieldDescription className="cn-text-body1 text-[0.75rem] text-muted-foreground whitespace-pre-wrap mt-0.5">
+                  <FieldDescription className="text-xs text-muted-foreground whitespace-pre-wrap mt-0.5">
                     {(() => { const b = bodyOf(g); return b.length > 160 ? `${b.slice(0, 160)}…` : b; })()}
                   </FieldDescription>
                 </FieldContent>
@@ -97,12 +97,12 @@ export default function SendWhatsAppTemplateDialog({
             ))}
           </RadioGroup>
         )}
-        <p className="cn-text-body1 text-[0.7rem] text-muted-foreground mt-1.5 italic">
+        <p className="text-xs text-muted-foreground mt-1.5 italic">
           Les variables (ex. {'{guestFirstName}'}) seront remplacées par les infos de la réservation.
           En OpenWA, le template part comme texte rendu.
         </p>
         {error && (
-          <Alert variant="destructive" className="mt-1.5 text-[0.8125rem]">
+          <Alert variant="destructive" className="mt-1.5 text-sm">
             <TriangleAlert />
             <AlertDescription>Échec de l'envoi du template. Réessayez.</AlertDescription>
           </Alert>

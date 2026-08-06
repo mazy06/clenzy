@@ -16,6 +16,7 @@ import {
 } from '../../components/ui';
 import { LoadingStates } from '../../components/LoadingStates';
 import { ScreenChromeProvider } from '../../components/ScreenChrome';
+import { CommandCenter, CommandCenterProvider } from '../../components/command-center';
 import OfflineBanner from '../../components/OfflineBanner';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
 import OnboardingDockMount from '../../components/OnboardingDockMount';
@@ -23,13 +24,7 @@ import OnboardingDockMount from '../../components/OnboardingDockMount';
 // Assistant en lazy : son sous-arbre (react-markdown, dialog plein écran, useAgent)
 // est lourd et monté sur CHAQUE page — le sortir du chunk layout permet au premier
 // écran de s'afficher sans lui (la bulle apparaît dès que son chunk arrive).
-const AssistantWidget = lazy(() => import('../../components/AssistantWidget'));
 const AssistantDockTab = lazy(() => import('../../components/AssistantDockTab'));
-
-// Présentation de l'assistant — les deux coexistent le temps de trancher :
-//  - 'dock' : encoche « classeur » collée en bas à droite (phrases animées + chevron)
-//  - 'fab'  : logo flottant draggable + bulle Popper (présentation historique)
-const ASSISTANT_PRESENTATION: 'dock' | 'fab' = 'dock';
 
 interface MainLayoutFullProps {
   children: React.ReactNode;
@@ -126,6 +121,10 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
     // `overflow-hidden` conservent la règle historique — c'est le contenu qui
     // scrolle, jamais la page.
     <ScreenChromeProvider>
+    {/* Centre de commande (⌘K) : SOUS le chrome d'écran, car il propose de
+        rendre la main au filtre de l'écran courant. `onToggleNavigation` lui
+        donne la bascule de la sidebar comme commande d'affichage. */}
+    <CommandCenterProvider onToggleNavigation={toggleCollapsed}>
     <SidebarProvider
       open={!isCollapsed}
       onOpenChange={(open) => {
@@ -154,7 +153,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
             flex: 1 + overflow interne ; les pages classiques scrollent via ce container. */}
         <div
           className={cn(
-            'flex flex-col grow min-h-0 bg-[var(--bg)]',
+            'flex flex-col grow min-h-0 bg-background',
             fullBleed ? 'p-0 overflow-hidden' : 'p-[9px] min-[900px]:p-3 overflow-auto',
           )}
         >
@@ -175,12 +174,15 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
 
       {/* Assistant : accessible depuis toutes les pages, agrandissable en
           plein ecran. Unique point d'entree de l'assistant (la page dediee
-          /assistant a ete supprimee). Deux presentations disponibles, choisies
-          via ASSISTANT_PRESENTATION ci-dessus. */}
+          /assistant a ete supprimee). */}
       <Suspense fallback={null}>
-        {ASSISTANT_PRESENTATION === 'dock' ? <AssistantDockTab /> : <AssistantWidget />}
+        <AssistantDockTab />
       </Suspense>
+
+      {/* Palette ⌘K — rendue en portail, donc placée en dernier. */}
+      <CommandCenter />
     </SidebarProvider>
+    </CommandCenterProvider>
     </ScreenChromeProvider>
   );
 }

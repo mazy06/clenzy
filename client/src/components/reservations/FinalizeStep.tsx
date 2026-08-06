@@ -16,7 +16,7 @@ import { cn } from '../../utils/cn';
 import type { UseReservationFormResult } from './useReservationForm';
 
 /** Transcription de `SEC_SX` (reservationDialogStyles) — overline de section .rm-sec. */
-const SEC_CLASS = 'text-[10.5px] font-bold tracking-[0.08em] uppercase text-[var(--faint)]';
+const SEC_CLASS = 'text-2xs font-bold tracking-[0.08em] uppercase text-faint';
 
 interface Props {
   form: UseReservationFormResult;
@@ -30,12 +30,12 @@ interface Props {
 const segBtnClass = (on: boolean) =>
   cn(
     'inline-flex flex-1 items-center justify-center gap-[6px] border-0 rounded-[7px] p-[9px]',
-    '[font-family:inherit] text-[12px] font-semibold whitespace-nowrap cursor-pointer',
+    '[font-family:inherit] text-xs font-semibold whitespace-nowrap cursor-pointer',
     'transition-[background-color,color] duration-[140ms]',
-    'focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-1',
+    'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-1',
     on
-      ? 'bg-[var(--card)] text-[var(--accent)] shadow-[0_1px_3px_rgba(21,36,45,.12)]'
-      : 'bg-transparent text-[var(--muted)] shadow-none',
+      ? 'bg-card text-primary shadow-sm'
+      : 'bg-transparent text-muted-foreground shadow-none',
   );
 
 /** Étape 4 : intention de paiement + email du lien (si demande de paiement) + récapitulatif. */
@@ -54,7 +54,7 @@ const FinalizeStep: React.FC<Props> = ({ form }) => {
   return (
     <>
       {/* Intention : confirmer maintenant / demander le paiement (déplacé de l'entête) */}
-      <div className="inline-flex w-full gap-[2px] p-[3px] rounded-[10px] border border-solid border-[var(--field-line)] bg-[var(--field)]">
+      <div className="inline-flex w-full gap-[2px] p-[3px] rounded-lg border border-solid border-field-line bg-field">
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -100,25 +100,25 @@ const FinalizeStep: React.FC<Props> = ({ form }) => {
               placeholder={form.selectedGuest?.email || ''}
             />
           </InputGroup>
-          <FieldDescription className="text-[11px] text-[var(--accent)]">
+          <FieldDescription className="text-[11px] text-primary">
             {t('reservations.dialog.paymentEmailHelp')}
           </FieldDescription>
         </Field>
       )}
 
       {/* Récapitulatif lecture seule */}
-      <div className="flex flex-col gap-[10px] rounded-[12px] border border-solid border-[var(--line)] bg-[var(--surface-2)] px-[18px] py-4">
+      <div className="flex flex-col gap-[10px] rounded-[12px] border border-solid border-border bg-card px-[18px] py-4">
         <p className={SEC_CLASS}>{t('reservations.dialog.recapTitle')}</p>
         {recapRows.map((row) => (
           <div className="flex items-baseline justify-between gap-3" key={row.label}>
-            <p className="cn-text-body1 text-[12px] font-semibold text-[var(--muted)] shrink-0">{row.label}</p>
-            <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)] text-end tabular-nums">{row.value}</p>
+            <p className="text-xs font-semibold text-muted-foreground shrink-0">{row.label}</p>
+            <p className="text-[13px] font-semibold text-foreground text-end tabular-nums">{row.value}</p>
           </div>
         ))}
-        <div className="h-px my-[2px] bg-[var(--line)]" />
+        <div className="h-px my-[2px] bg-border" />
         <div className="flex items-baseline justify-between gap-3">
-          <p className="cn-text-body1 text-[12px] font-bold text-[var(--ink)]">{t('reservations.dialog.recapTotal')}</p>
-          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[18px] font-semibold text-[var(--accent-deep)] tabular-nums">
+          <p className="text-xs font-bold text-foreground">{t('reservations.dialog.recapTotal')}</p>
+          <p className="font-[family-name:var(--font-display)] text-[18px] font-semibold text-primary-deep tabular-nums">
             {form.totalPrice.toFixed(2)} €
           </p>
         </div>

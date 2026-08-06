@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Spinner } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Alert, AlertDescription, Button } from '../../components/ui';
+import { Alert, AlertDescription, Button, Card, CardContent } from '../../components/ui';
 import { MarkEmailRead, ErrorOutline, Send as SendIcon } from '../../icons';
 import { useGeoAuthLanguage } from '../../hooks/useGeoAuthLanguage';
 import BaitlyMarkLogo from '../../components/BaitlyMarkLogo';
@@ -59,8 +59,9 @@ export default function InscriptionSuccess() {
   return (
     // Montee hors du shell applicatif : elle porte son propre mode clair.
     <div data-theme="light" dir={isRtl ? 'rtl' : 'ltr'}>
-      <div className="min-h-[100vh] flex items-center justify-center p-3" style={{ background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)' }}>
-        <div className="p-[18px] min-[600px]:p-6 w-full max-w-[480px] rounded-[24px] bg-[rgba(255,255,255,0.95)] backdrop-blur-[10px] border border-solid border-[rgba(255,255,255,0.2)] shadow-[0_8px_24px_rgba(0,0,0,0.16)] text-center">
+      <div className="min-h-[100vh] flex items-center justify-center p-3 bg-background">
+        <Card className="w-full max-w-[480px] shadow-sm">
+          <CardContent className="p-[18px] min-[600px]:p-6 text-center">
           {/* Logo */}
           <div className="mb-3">
             <BaitlyMarkLogo scale={1.1} />
@@ -68,8 +69,8 @@ export default function InscriptionSuccess() {
 
           {status === 'loading' && (
             <div className="py-6">
-              <Spinner className="size-10 text-[var(--mui-primary)] mb-3" />
-              <p className="cn-text-body1 font-medium text-muted-foreground">
+              <Spinner className="size-10 text-primary mb-3" />
+              <p className="text-sm font-medium text-muted-foreground">
                 {t('auth.inscriptionSuccess.loading', 'Finalisation de votre paiement...')}
               </p>
             </div>
@@ -79,16 +80,16 @@ export default function InscriptionSuccess() {
             <div className="py-4">
               {/* Le rebond du keyframe maison n'a pas d'equivalent en classe :
                   l'entree zoom+fade du kit rend la meme intention. */}
-              <span className="inline-flex text-[var(--mui-primary)] mb-3 animate-in zoom-in-50 fade-in-0 duration-[400ms] ease-out">
+              <span className="inline-flex text-primary mb-3 animate-in zoom-in-50 fade-in-0 duration-[400ms] ease-out">
                 <MarkEmailRead size={72} strokeWidth={1.75} />
               </span>
-              <h5 className="cn-text-h5 font-bold mb-1.5 text-foreground">
+              <h5 className="text-base font-semibold tracking-tight text-balance text-foreground mb-1.5">
                 {t('auth.inscriptionSuccess.successTitle', 'Verifiez votre boite email')}
               </h5>
-              <p className="cn-text-body2 text-muted-foreground mb-1.5">
+              <p className="text-xs text-muted-foreground mb-1.5">
                 {t('auth.inscriptionSuccess.paymentConfirmed', 'Votre paiement a ete confirme avec succes.')}
               </p>
-              <p className="cn-text-body2 text-muted-foreground mb-4">
+              <p className="text-xs text-muted-foreground mb-4">
                 {t(
                   'auth.inscriptionSuccess.checkEmail',
                   `Un email de confirmation a ete envoye${inscriptionEmail ? ` a ${inscriptionEmail}` : ''}. Cliquez sur le lien dans l'email pour creer votre mot de passe et finaliser votre inscription.`,
@@ -118,7 +119,7 @@ export default function InscriptionSuccess() {
               </Button>
 
               <div className="mt-3">
-                <span className="cn-text-caption text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {t('auth.inscriptionSuccess.checkSpam', "Verifiez vos spams si vous ne trouvez pas l'email.")}
                 </span>
               </div>
@@ -128,10 +129,10 @@ export default function InscriptionSuccess() {
           {status === 'error' && (
             <div className="py-4">
               <span className="inline-flex text-destructive mb-3"><ErrorOutline size={64} strokeWidth={1.75} /></span>
-              <h6 className="cn-text-h6 font-semibold mb-1.5">
+              <h6 className="text-sm font-semibold mb-1.5">
                 {t('auth.inscriptionSuccess.errorTitle', 'Session introuvable')}
               </h6>
-              <p className="cn-text-body2 text-muted-foreground mb-4">
+              <p className="text-xs text-muted-foreground mb-4">
                 {t('auth.inscriptionSuccess.errorBody', "Aucune session de paiement n'a ete trouvee. Si vous avez deja paye, verifiez vos emails.")}
               </p>
               <Button
@@ -142,7 +143,8 @@ export default function InscriptionSuccess() {
               </Button>
             </div>
           )}
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

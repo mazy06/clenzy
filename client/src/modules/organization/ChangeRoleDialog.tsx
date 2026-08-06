@@ -64,7 +64,7 @@ export default function ChangeRoleDialog({ open, onClose, member, organizationId
         <DialogHeader>
           <DialogTitle>Changer le role</DialogTitle>
         </DialogHeader>
-        <p className="cn-text-body2 text-muted-foreground mb-3">
+        <p className="text-xs text-muted-foreground mb-3">
           Modifier le role de <strong>{memberName}</strong> dans l'organisation.
           Role actuel : <strong>{member ? getOrgRoleLabel(member.roleInOrg) : ''}</strong>
         </p>

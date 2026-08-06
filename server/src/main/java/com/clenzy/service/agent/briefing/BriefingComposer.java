@@ -27,6 +27,13 @@ import java.util.Locale;
  * <p>Le briefing est persiste comme une vraie conversation (titre
  * {@code "Briefing du JJ/MM/AAAA"}) — l'user peut y revenir depuis l'historique
  * pour relancer un dialogue contextuel.</p>
+ *
+ * <p><b>Source unique des prompts de briefing.</b> Une {@code BriefingTaskSection}
+ * dupliquait ces trois textes cote prompt systeme ; elle ne s'activait que sur un
+ * preset {@code BRIEFING_*} que le code de production n'assignait jamais (seul
+ * {@code DefaultPromptBuilder} pose un preset, et toujours {@code CHAT}). Elle a
+ * ete supprimee : modifier un prompt de briefing se fait ICI, et nulle part
+ * ailleurs.</p>
  */
 @Service
 public class BriefingComposer {

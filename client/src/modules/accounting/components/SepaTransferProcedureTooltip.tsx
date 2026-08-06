@@ -22,10 +22,9 @@ import {
  * portail bancaire et revenir cocher "Marquer comme paye".</p>
  *
  * <h2>Design</h2>
- * <p>Tooltip riche = pattern Menus/Popovers Signature (baseline §2) :
- * surface {@code var(--card)}, hairline {@code var(--line)}, r12,
- * {@code var(--shadow-pop)}. Pastilles d'etapes en accent
- * ({@code var(--accent)} / {@code var(--accent-soft)}).</p>
+ * <p>Tooltip riche = pattern Menus/Popovers Baitly UI : surface {@code bg-card},
+ * hairline {@code border-border}, r12, ombre discrete. Pastilles d'etapes en
+ * primaire ({@code bg-primary-soft} / {@code text-primary}).</p>
  */
 
 interface ProcedureStep {
@@ -79,17 +78,17 @@ export default function SepaTransferProcedureTooltip({
   return (
     <Tooltip delayDuration={300}>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
-      {/* Tooltip riche = pattern Menus/Popovers Signature : surface --card,
-          hairline --line, r12, --shadow-pop (tokens → dark auto). La fleche est
+      {/* Tooltip riche = pattern Menus/Popovers Baitly UI : surface carte,
+          hairline, r12, ombre discrete (tokens → dark auto). La fleche est
           l'enfant direct SVG du contenu : on la reteinte au meme jeton. */}
       <TooltipContent
         side={placement}
-        className="max-w-[380px] p-[9px] rounded-[12px] text-[0.75rem] bg-[var(--card)] text-[var(--body)] border border-solid border-[var(--line)] shadow-[var(--shadow-pop)] [&>svg]:bg-[var(--card)] [&>svg]:fill-[var(--card)]"
+        className="max-w-[380px] p-[9px] rounded-xl text-xs bg-card text-foreground border border-solid border-border shadow-md [&>svg]:bg-card [&>svg]:fill-card"
       >
         <div className="min-w-[280px] max-w-[360px]">
           {/* Header */}
           <div className="flex items-center gap-1 mb-1">
-            <span className="text-[0.78rem] font-bold text-[var(--ink)]">
+            <span className="text-[0.78rem] font-bold text-foreground">
               Virement SEPA — Procédure
             </span>
             <span className="text-[0.58rem] font-bold tracking-[0.02em] px-0.5 py-0 rounded-[24px] border border-[currentColor] opacity-70">
@@ -108,7 +107,7 @@ export default function SepaTransferProcedureTooltip({
             {STEPS.map((step) => (
               <div className="flex items-start gap-1" key={step.index}>
                 {/* Pastille numérotée */}
-                <div className="shrink-0 w-[18px] h-[18px] rounded-[50%] bg-[var(--accent-soft)] text-[var(--accent)] inline-flex items-center justify-center text-[0.62rem] font-bold leading-[1] mt-px" aria-hidden="true">
+                <div className="shrink-0 w-[18px] h-[18px] rounded-full bg-primary-soft text-primary inline-flex items-center justify-center text-[0.62rem] font-bold leading-[1] mt-px" aria-hidden="true">
                   {step.index}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -116,7 +115,7 @@ export default function SepaTransferProcedureTooltip({
                     <span className="inline-flex text-inherit opacity-70" aria-hidden="true">
                       {step.icon}
                     </span>
-                    <span className="text-[0.7rem] font-bold text-[var(--ink)]">
+                    <span className="text-[0.7rem] font-bold text-foreground">
                       {step.title}
                     </span>
                   </div>
@@ -129,7 +128,7 @@ export default function SepaTransferProcedureTooltip({
           </div>
 
           {/* Footer note */}
-          <div className="flex items-start gap-0.5 mt-2 pt-1.5 border-t border-[var(--line)] opacity-78">
+          <div className="flex items-start gap-0.5 mt-2 pt-1.5 border-t border-border opacity-78">
             <InfoIcon size={11} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
             <span className="text-[0.64rem] text-inherit leading-[1.4]">
               Tant que vous n'avez pas marqué comme payé, le propriétaire ne

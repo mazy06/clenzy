@@ -134,7 +134,8 @@ const ReservationPopover: React.FC<ReservationPopoverProps> = ({
         side="bottom"
         align="center"
         aria-label="Récapitulatif de la réservation"
-        className="w-[290px] gap-0 p-0 rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] shadow-[var(--shadow-pop)] ring-0 overflow-hidden motion-reduce:animate-none"
+        collisionPadding={8}
+        className="w-[290px] max-w-[calc(100vw-16px)] gap-0 p-0 rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] shadow-[var(--shadow-pop)] ring-0 overflow-hidden motion-reduce:animate-none"
       >
       {/* Entête : avatar 40 + nom + canal (logo + label) */}
       {/* `p-[12px 14px]` (espace = classe invalide, silencieusement ignoree)

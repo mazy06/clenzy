@@ -1,15 +1,18 @@
 // Constantes partagées par PropertiesList et ses vues (carte / grille / tableau).
-// Styles alignés sur DESIGN_BASELINE (tokens var(--…), rayons 9/14, hairlines).
+// Styles alignés sur Baitly UI : palette --bui-*, échelle de rayons shadcn.
 
 export const ICON_BUTTON_SX = {
   p: 0.5,
-  borderRadius: '9px',
-  border: '1px solid var(--line-2)',
-  bgcolor: 'var(--card)',
-  color: 'var(--muted)',
+  borderRadius: '10px', // rounded-lg de l'échelle shadcn
+  border: '1px solid var(--bui-border)',
+  bgcolor: 'var(--bui-card)',
+  color: 'var(--bui-muted-foreground)',
   transition: 'border-color .14s, color .14s, background-color .14s',
-  '&:hover': { bgcolor: 'var(--hover)', borderColor: 'var(--faint)', color: 'var(--ink)' },
-  '& .MuiSvgIcon-root': { fontSize: 18 },
+  '&:hover': {
+    bgcolor: 'var(--bui-muted)',
+    borderColor: 'var(--bui-faint)',
+    color: 'var(--bui-foreground)',
+  },
 } as const;
 
 export const ITEMS_PER_PAGE = 6;
@@ -17,43 +20,46 @@ export const LIST_ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
 export const LIST_DEFAULT_ROWS = 10;
 
 export const LIST_PAPER_SX = {
-  border: '1px solid var(--line)',
+  border: '1px solid var(--bui-border)',
   boxShadow: 'none',
-  borderRadius: '14px',
-  bgcolor: 'var(--card)',
+  borderRadius: '14px', // rounded-xl de l'échelle shadcn
+  bgcolor: 'var(--bui-card)',
 } as const;
 
-// ─── Chips statut propriété → tokens sémantiques (pattern « texte couleur + fond -soft ») ───
+// ─── Chips statut propriété → tokens sémantiques ────────────────────────────
+// Couple Baitly UI : encre `-ink` pour le TEXTE (la teinte vive plafonne à
+// ~2,2:1 en clair), fond pastel `-soft`.
 
 const PROPERTY_STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
-  ACTIVE: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  INACTIVE: { fg: 'var(--muted)', bg: 'var(--hover)' },
-  MAINTENANCE: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  UNDER_MAINTENANCE: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  RENTED: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-  SOLD: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  ARCHIVED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+  ACTIVE: { fg: 'var(--bui-success-ink)', bg: 'var(--bui-success-soft)' },
+  INACTIVE: { fg: 'var(--bui-muted-foreground)', bg: 'var(--bui-muted)' },
+  MAINTENANCE: { fg: 'var(--bui-warning-ink)', bg: 'var(--bui-warning-soft)' },
+  UNDER_MAINTENANCE: { fg: 'var(--bui-warning-ink)', bg: 'var(--bui-warning-soft)' },
+  RENTED: { fg: 'var(--bui-info-ink)', bg: 'var(--bui-info-soft)' },
+  SOLD: { fg: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' },
+  ARCHIVED: { fg: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' },
 };
 
 /** Tokens de statut d'un logement, pour la primitive StatusChip. */
 export function propertyStatusTokens(status: string) {
-  const tk = PROPERTY_STATUS_TOKEN[status?.toUpperCase()] ?? { fg: 'var(--muted)', bg: 'var(--hover)' };
+  const tk = PROPERTY_STATUS_TOKEN[status?.toUpperCase()]
+    ?? { fg: 'var(--bui-muted-foreground)', bg: 'var(--bui-muted)' };
   return { color: tk.fg, bg: tk.bg };
 }
 
 /**
- * Puce « champ » (.fr-chip) — equipements, services : encre de corps sur fond
- * de champ, cernee d'une hairline. Ce n'est pas un statut : la bordure vient
- * donc d'une classe, pas de la recette `-soft` de la primitive.
+ * Puce « champ » — equipements, services : encre de corps sur fond de champ,
+ * cernee d'une hairline. Ce n'est pas un statut : la bordure vient donc d'une
+ * classe, pas de la recette `-soft` de la primitive.
  */
-export const FIELD_TOKENS = { color: 'var(--body)', bg: 'var(--field)' } as const;
+export const FIELD_TOKENS = { color: 'var(--bui-foreground)', bg: 'var(--bui-field)' } as const;
 // `border-solid` est indispensable : le gabarit de la primitive pose
 // `border-none` (border-style), que tailwind-merge ne considere pas en
 // conflit avec `border` (border-width). Sans lui, la largeur est bien
 // appliquee mais le style reste `none` — bordure invisible.
-export const FIELD_CHIP_CLASS = 'border border-solid border-[var(--field-line)] [&>svg]:text-[var(--accent)]';
+export const FIELD_CHIP_CLASS = 'border border-solid border-field-line [&>svg]:text-primary';
 
-// ─── Vignette « Signature » : dégradé déterministe par logement ──────────────
+// ─── Vignette : dégradé déterministe par logement ───────────────────────────
 // La maquette propriétés (.pr-img / .pr-lthumb) utilise un dégradé 135° propre
 // à chaque logement (placeholder). On le dérive d'un hash stable de l'identité
 // du logement : teinte unique reproductible, palette terre/slate sourde (faible
@@ -98,7 +104,7 @@ export function propertyGradientHues(seed: string): [string, string] {
   return [hslToHex(baseHue, sat, lightA), hslToHex((baseHue + 18) % 360, sat + 4, lightB)];
 }
 
-/** CSS du dégradé de vignette « Signature » pour un logement (seed = id/nom). */
+/** CSS du dégradé de vignette d'un logement (seed = id/nom). */
 export function propertyGradientCss(seed: string): string {
   const [a, b] = propertyGradientHues(seed);
   return `linear-gradient(135deg, ${a}, ${b})`;

@@ -105,11 +105,11 @@ export function AddressAutocomplete({
                 <div className="flex items-start gap-1.5">
                   <span className="inline-flex text-muted-foreground mt-0.5"><LocationOnIcon size={18} strokeWidth={1.75} /></span>
                   <div>
-                    <p className="cn-text-body2 text-[0.85rem]">
+                    <p className="text-sm">
                       {option.housenumber ? `${option.housenumber} ` : ''}
                       {option.street || option.label}
                     </p>
-                    <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
+                    <span className="text-xs text-muted-foreground">
                       {option.postcode} {option.city}
                       {option.department ? ` (${option.department})` : ''}
                       {option.countryCode && option.countryCode !== 'FR' ? ` · ${option.countryCode}` : ''}

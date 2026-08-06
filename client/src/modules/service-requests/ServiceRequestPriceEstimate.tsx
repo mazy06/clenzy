@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
+import { Alert, AlertDescription, Card, Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
 import {
   AutoAwesome,
   Timer,
@@ -109,10 +109,10 @@ export function formatDuration(mins: number): string {
   return `${hours}h${String(remainder).padStart(2, '0')}`;
 }
 
-// ─── Classes stables (tokens DESIGN_BASELINE) ───────────────────────────────
+// ─── Classes stables (jetons Baitly UI) ─────────────────────────────────────
 
-const CONTAINER_CLASS =
-  'border border-solid border-[var(--line)] rounded-[14px] bg-[var(--card)] px-3 py-[9px]';
+/** Surface du panneau : le hairline vient de l'anneau du gabarit `Card`. */
+const CONTAINER_CLASS = 'gap-0 px-3 py-[9px]';
 
 const HEADER_CLASS = 'flex items-center justify-between mb-[9px]';
 
@@ -121,23 +121,23 @@ const TITLE_ROW_CLASS = 'flex items-center gap-[4.5px]';
 const CARDS_ROW_CLASS = 'grid grid-cols-[1fr_1fr_1fr] gap-[9px]';
 
 const PRICE_CARD_CLASS =
-  'relative flex flex-col items-center justify-center gap-[4.5px] py-[9px] px-[9px] rounded-[11px] border border-solid border-[var(--field-line)] bg-[var(--field)]';
+  'relative flex flex-col items-center justify-center gap-[4.5px] py-[9px] px-[9px] rounded-[11px] border border-solid border-field-line bg-field';
 
-const PRICE_CARD_PRIMARY_CLASS = 'border-[var(--accent)] bg-[var(--accent-soft)]';
+const PRICE_CARD_PRIMARY_CLASS = 'border-primary bg-primary-soft';
 
 /** Puce de palier tarifaire : le gabarit statut, avec une graisse plus marquee
  *  parce qu'elle sert d'etiquette a un montant. */
 const TIER_CHIP_CLASS = 'text-[10.5px] font-bold';
 
 const DURATION_BANNER_CLASS =
-  'flex items-center justify-center gap-[4.5px] py-1.5 px-[9px] mb-[9px] rounded-[11px] border border-solid border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[var(--accent-soft)]';
+  'flex items-center justify-center gap-[4.5px] py-1.5 px-[9px] mb-[9px] rounded-[11px] border border-solid border-[color-mix(in_srgb,var(--bui-primary)_30%,transparent)] bg-primary-soft';
 
-const NO_DATA_CLASS =
-  'flex items-center gap-1.5 py-[9px] px-3 rounded-[11px] bg-[var(--field)] border border-dashed border-[var(--line-2)]';
+/** Notice « données insuffisantes » : l'Alert du kit, à la densité du panneau. */
+const NOTICE_CLASS = 'py-1.5 text-[11.5px]';
 
-// Marqueur accent compact (même famille que le carré « aujourd'hui » du planning).
+// Marqueur compact au ton de marque (`-end-*` et non `-right-*` : le PMS est RTL).
 const RECOMMENDED_BADGE_CLASS =
-  'absolute -top-[10px] -right-[4px] flex items-center gap-[1.5px] px-[4.5px] py-[1.5px] rounded-[6px] bg-[var(--accent)] text-[var(--on-accent)] text-[9px] font-bold tracking-[0.03em]';
+  'absolute -top-[10px] -end-[4px] flex items-center gap-[1.5px] px-[4.5px] py-[1.5px] rounded-[6px] bg-primary text-primary-foreground text-[9px] font-bold tracking-[0.03em]';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -185,18 +185,18 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
     }, [property, forfaits]);
 
     return (
-      <div className={CONTAINER_CLASS}>
+      <Card className={CONTAINER_CLASS}>
         {/* Header */}
         <div className={HEADER_CLASS}>
           <div className={TITLE_ROW_CLASS}>
-            <span className="inline-flex text-[var(--accent)]"><AutoAwesome size={18} strokeWidth={1.75} /></span>
-            <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
+            <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
+            <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
               Estimation du prix
             </p>
           </div>
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="inline-flex text-[var(--faint)] cursor-help"><Info size={14} strokeWidth={1.75} /></span>
+              <span className="inline-flex text-faint cursor-help"><Info size={14} strokeWidth={1.75} /></span>
             </TooltipTrigger>
             <TooltipContent>
               Estimation indicative basée sur les caractéristiques du logement. Le tarif définitif est soumis à l'acceptation du prestataire.
@@ -206,39 +206,39 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
 
         {/* Aucune propriété sélectionnée */}
         {!property && (
-          <div className={NO_DATA_CLASS}>
-            <span className="inline-flex text-[var(--faint)]"><InfoOutlined size={16} strokeWidth={1.75} /></span>
-            <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] leading-[1.3]">
+          <Alert variant="info" className={NOTICE_CLASS}>
+            <InfoOutlined size={16} strokeWidth={1.75} />
+            <AlertDescription>
               Sélectionnez une propriété pour afficher l'estimation du prix et de la durée.
-            </p>
-          </div>
+            </AlertDescription>
+          </Alert>
         )}
 
         {/* Avertissement données minimales (propriété sélectionnée mais données incomplètes) */}
         {property && !hasRichData && (
-          <div className={NO_DATA_CLASS}>
-            <span className="inline-flex text-[var(--faint)]"><InfoOutlined size={16} strokeWidth={1.75} /></span>
-            <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] leading-[1.3]">
+          <Alert variant="info" className={NOTICE_CLASS}>
+            <InfoOutlined size={16} strokeWidth={1.75} />
+            <AlertDescription>
               {canEstimate
                 ? 'Estimation approximative — renseignez la surface et le tarif de base dans la fiche logement pour une estimation plus précise.'
                 : 'Renseignez les caractéristiques du logement (chambres, surface, tarif de base) pour afficher une estimation.'}
-            </p>
-          </div>
+            </AlertDescription>
+          </Alert>
         )}
 
         {/* Duration banner */}
         {property && (
           <div className={cn(DURATION_BANNER_CLASS, !hasRichData && 'mt-[9px]')}>
-            <span className="inline-flex text-[var(--accent)]"><Timer size={18} strokeWidth={1.75} /></span>
+            <span className="inline-flex text-primary"><Timer size={18} strokeWidth={1.75} /></span>
             <div className="flex items-baseline gap-0.5">
-              <p className="cn-text-body1 text-[16px] font-semibold text-[var(--accent)] leading-[1.2] font-[family-name:var(--font-display)] tabular-nums">
+              <p className="text-[16px] font-semibold text-primary leading-[1.2] font-[family-name:var(--font-display)] tabular-nums">
                 {formatDuration(estimatedDuration)}
               </p>
-              <p className="cn-text-body1 text-[10.5px] font-medium text-[var(--muted)]">
+              <p className="text-[10.5px] font-medium text-muted-foreground">
                 durée estimée
               </p>
             </div>
-            <p className="cn-text-body1 text-[10px] text-[var(--faint)] italic ms-auto">
+            <p className="text-2xs text-faint italic ms-auto">
               Calculée automatiquement
             </p>
           </div>
@@ -261,15 +261,15 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
                   )}
                   <StatusChip
                     tokens={isHighlighted
-                      ? { color: 'var(--accent)', bg: 'var(--card)' }
-                      : { color: 'var(--muted)', bg: 'var(--hover)' }}
+                      ? { color: 'var(--bui-primary)', bg: 'var(--bui-card)' }
+                      : { color: 'var(--bui-muted-foreground)', bg: 'var(--bui-muted)' }}
                     label={label}
-                    className={cn(TIER_CHIP_CLASS, isHighlighted && 'border border-solid border-[var(--accent)]')}
+                    className={cn(TIER_CHIP_CLASS, isHighlighted && 'border border-solid border-primary')}
                   />
-                  <p className={cn('cn-text-body1 font-semibold tabular-nums whitespace-nowrap leading-[1.2]', isHighlighted ? 'text-[18px]' : 'text-[16px]', isHighlighted ? 'text-[var(--accent)]' : 'text-[var(--ink)]')} style={{ fontFamily: 'var(--font-display)' }}>
+                  <p className={cn('font-semibold tabular-nums whitespace-nowrap leading-[1.2] font-[family-name:var(--font-display)]', isHighlighted ? 'text-[18px]' : 'text-[16px]', isHighlighted ? 'text-primary' : 'text-foreground')}>
                     {min === max ? <Money value={min} from="EUR" /> : `${convertAndFormat(min, 'EUR')} – ${convertAndFormat(max, 'EUR')}`}
                   </p>
-                  <p className="cn-text-body1 text-[10px] text-[var(--faint)] leading-[1]">
+                  <p className="text-2xs text-faint leading-[1]">
                     par intervention
                   </p>
                 </div>
@@ -290,10 +290,10 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
                     label={forfait.label}
                     className={TIER_CHIP_CLASS}
                   />
-                  <p className={cn('cn-text-body1 font-semibold text-[var(--faint)] whitespace-nowrap leading-[1.2]', isFirst ? 'text-[18px]' : 'text-[16px]')} style={{ fontFamily: 'var(--font-display)' }}>
+                  <p className={cn('font-semibold text-faint whitespace-nowrap leading-[1.2] font-[family-name:var(--font-display)]', isFirst ? 'text-[18px]' : 'text-[16px]')}>
                     —
                   </p>
-                  <p className="cn-text-body1 text-[10px] text-[var(--faint)] leading-[1]">
+                  <p className="text-2xs text-faint leading-[1]">
                     par intervention
                   </p>
                 </div>
@@ -304,12 +304,12 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
 
         {/* Base note */}
         <div className="flex items-center gap-0.5 mt-1.5">
-          <span className="inline-flex text-[var(--faint)]"><TrendingUp size={11} strokeWidth={1.75} /></span>
-          <p className="cn-text-body1 text-[10px] text-[var(--faint)] italic">
+          <span className="inline-flex text-faint"><TrendingUp size={11} strokeWidth={1.75} /></span>
+          <p className="text-2xs text-faint italic">
             Basé sur les caractéristiques du logement
           </p>
         </div>
-      </div>
+      </Card>
     );
   }
 );

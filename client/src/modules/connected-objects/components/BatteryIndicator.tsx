@@ -10,15 +10,20 @@ interface BatteryIndicatorProps {
 }
 
 /**
- * Jauge de batterie compacte : Progress du kit (piste `--field`, pilule)
- * + pourcentage display `tabular-nums`. La couleur de barre porte le sens
- * (--ok OK, --warn faible, --err critique). Rendu nul si le niveau est inconnu.
+ * Jauge de batterie compacte : Progress du kit (piste de champ, pilule)
+ * + pourcentage display `tabular-nums`. La couleur porte le sens (succès OK,
+ * avertissement faible, destructif critique). Rendu nul si le niveau est inconnu.
+ *
+ * <p>Deux jetons pour un même sens : la BARRE prend la teinte vive (un aplat
+ * n'est pas soumis au contraste de texte), le POURCENTAGE l'encre `-ink`, seule
+ * conforme AA sur une carte claire.</p>
  */
 export default function BatteryIndicator({ level }: BatteryIndicatorProps) {
   if (level == null) return null;
 
   const low = level <= LOW;
-  const color = level <= CRITICAL ? 'var(--err)' : low ? 'var(--warn)' : 'var(--ok)';
+  const barColor = level <= CRITICAL ? 'var(--bui-destructive)' : low ? 'var(--bui-warning)' : 'var(--bui-success)';
+  const inkColor = level <= CRITICAL ? 'var(--bui-destructive-ink)' : low ? 'var(--bui-warning-ink)' : 'var(--bui-success-ink)';
 
   return (
     <Tooltip>
@@ -30,12 +35,12 @@ export default function BatteryIndicator({ level }: BatteryIndicatorProps) {
             value={level}
             aria-label="Niveau de batterie"
             className="w-[34px] h-[5px] shrink-0 [&_[data-slot=progress-indicator]]:bg-(--battery-bar)"
-            style={{ '--battery-bar': color } as CSSProperties}
+            style={{ '--battery-bar': barColor } as CSSProperties}
           />
           {/* Couleur derivee du niveau a l'execution : style inline obligatoire */}
           <span
-            className="cn-text-caption font-[family-name:var(--font-display)] font-semibold leading-none tabular-nums"
-            style={{ color }}
+            className="text-xs font-[family-name:var(--font-display)] font-semibold leading-none tabular-nums"
+            style={{ color: inkColor }}
           >
             {level}%
           </span>

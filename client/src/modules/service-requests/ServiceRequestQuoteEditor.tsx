@@ -23,13 +23,16 @@ interface ServiceRequestQuoteEditorProps {
 /** Raccourcis de désignation les plus courants pour une intervention technique. */
 const PRESETS = ['Main d’œuvre', 'Pièces / matériel', 'Déplacement'];
 
+/** Ton de marque de la puce « ajouter une ligne » (encre + fond pastel). */
+const BRAND_TOKENS = { color: 'var(--bui-primary)', bg: 'var(--bui-primary-soft)' } as const;
+
 function lineTotal(line: QuoteLine): number {
   const q = Number.isFinite(line.quantity) ? line.quantity : 0;
   const pu = Number.isFinite(line.unitPrice) ? line.unitPrice : 0;
   return q * pu;
 }
 
-const TEXT_INPUT_CLASS = 'text-[12px] bg-[var(--card)]';
+const TEXT_INPUT_CLASS = 'text-[12px] bg-card';
 
 // Colonnes chiffrees : alignees a droite, chiffres de meme chasse, et sans les
 // fleches natives du champ number qui mangeraient la largeur de la colonne.
@@ -67,22 +70,22 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
     );
 
     return (
-      <div className="border border-[var(--line)] rounded-[11px] bg-[var(--field)] p-2">
+      <div className="border border-solid border-border rounded-[11px] bg-field p-2">
         {/* En-tête : titre + total */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1">
-            <span className="inline-flex text-[var(--accent)]">
+            <span className="inline-flex text-primary">
               <Receipt size={16} strokeWidth={1.75} />
             </span>
-            <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
+            <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
               Devis
             </p>
           </div>
           <div className="flex items-baseline gap-0.5">
-            <p className="cn-text-body1 text-[10px] font-semibold text-[var(--faint)] uppercase tracking-[.04em]">
+            <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
               Total estimé
             </p>
-            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[0.9375rem] font-bold text-[var(--ink)] tabular-nums">
+            <p className="font-[family-name:var(--font-display)] text-[0.9375rem] font-bold text-foreground tabular-nums">
               {convertAndFormat(total, 'EUR')}
             </p>
           </div>
@@ -94,7 +97,7 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
             {/* En-têtes de colonnes */}
             <div className="grid grid-cols-[1fr_56px_88px_84px_28px] gap-[4.5px] px-[1.5px]">
               {['Désignation', 'Qté', 'PU (€)', 'Total', ''].map((h, i) => (
-                <p className={cn('cn-text-body1 text-[9.5px] font-bold uppercase tracking-[.04em] text-[var(--faint)]', i === 0 ? 'text-start' : i === 4 ? 'text-center' : 'text-end')} key={h || 'actions'}>
+                <p className={cn('text-[9.5px] font-semibold uppercase tracking-wide text-muted-foreground', i === 0 ? 'text-start' : i === 4 ? 'text-center' : 'text-end')} key={h || 'actions'}>
                   {h}
                 </p>
               ))}
@@ -132,7 +135,7 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
                   disabled={disabled}
                   className={NUM_INPUT_CLASS}
                 />
-                <p className="cn-text-body1 text-[12px] font-semibold text-[var(--ink)] text-end tabular-nums pe-0.5">
+                <p className="text-[12px] font-semibold text-foreground text-end tabular-nums pe-0.5">
                   {convertAndFormat(lineTotal(line), 'EUR')}
                 </p>
                 <Button
@@ -143,7 +146,7 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
                   size="icon-xs"
                   onClick={() => removeLine(index)}
                   disabled={disabled}
-                  className="text-[var(--faint)] hover:text-[var(--err)]"
+                  className="text-faint hover:text-destructive"
                   aria-label={`Supprimer la ligne ${index + 1}`}
                 >
                   <Close size={14} strokeWidth={1.75} />
@@ -160,20 +163,20 @@ const ServiceRequestQuoteEditor: React.FC<ServiceRequestQuoteEditorProps> = Reac
                 `border-none` (border-STYLE), que `border` (border-WIDTH) ne
                 supplante pas — la bordure resterait invisible. */}
             <StatusChip
-              tone="accent"
+              tokens={BRAND_TOKENS}
               icon={<Add size={14} strokeWidth={1.75} />}
               label="Ligne"
               onClick={() => addLine()}
-              className="h-[26px] text-[11.5px] border border-solid border-[var(--accent)]"
+              className="h-[26px] text-[11.5px] border border-solid border-primary"
             />
             {PRESETS.map((preset) => (
-              <Badge variant="outline" className="h-[26px] text-[11.5px] font-medium text-[var(--muted)] border-[var(--line-2)] bg-[var(--card)] hover:border-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--hover)] cursor-pointer" key={preset} onClick={() => addLine(preset)}>{preset}</Badge>
+              <Badge variant="outline" className="h-[26px] text-[11.5px] font-medium text-muted-foreground border-border bg-card hover:border-primary hover:text-primary hover:bg-muted cursor-pointer" key={preset} onClick={() => addLine(preset)}>{preset}</Badge>
             ))}
           </div>
         )}
 
         {value.length === 0 && disabled && (
-          <p className="cn-text-body1 text-[11.5px] text-[var(--faint)] italic">
+          <p className="text-[11.5px] text-faint italic">
             Aucune ligne de devis
           </p>
         )}

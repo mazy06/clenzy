@@ -45,8 +45,8 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
 
   if (items.length === 0) {
     return (
-      <div className="mt-1.5 mb-2 px-3 py-3 rounded-[12px] border border-[var(--line)] bg-[var(--card)] text-center">
-        <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
+      <div className="mt-1.5 mb-2 px-3 py-3 rounded-xl border border-border bg-card text-center">
+        <p className="text-xs text-muted-foreground">
           Aucun resultat
           {data.from && data.to && ` sur la periode ${formatDate(data.from)} → ${formatDate(data.to)}`}.
         </p>
@@ -58,17 +58,17 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
     <div className="mt-1.5 mb-2">
       {/* Header avec range de dates si fournie */}
       {data.from && data.to && (
-        <p className="cn-text-body1 block mb-1 text-[11.5px] text-[var(--muted)] tabular-nums">
+        <p className="block mb-1 text-xs text-muted-foreground tabular-nums">
           Periode : {formatDate(data.from)} → {formatDate(data.to)}
         </p>
       )}
 
       {/* Table hairline */}
-      <div className="rounded-[12px] overflow-hidden border border-[var(--line)] bg-[var(--card)]">
+      <div className="rounded-xl overflow-hidden border border-border bg-card">
         {/* Header row */}
-        <div className="grid gap-1.5 px-[9px] py-[4.5px] bg-[var(--surface-2)]" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`, borderBottom: '1px solid var(--line)' }}>
+        <div className="grid gap-1.5 border-b border-border bg-muted px-2 py-1" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}>
           {columns.map((col) => (
-            <p className="cn-text-body1 text-[10.5px] font-bold tracking-[.05em] uppercase text-[var(--faint)] whitespace-nowrap overflow-hidden text-ellipsis" key={col.key}>
+            <p className="text-2xs font-bold tracking-[.05em] uppercase text-faint whitespace-nowrap overflow-hidden text-ellipsis" key={col.key}>
               {col.label}
             </p>
           ))}
@@ -82,15 +82,15 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
             key={String(item.id ?? idx)}
             style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
             className={cn(
-              'grid gap-1.5 px-[9px] py-1.5 transition-[background] duration-[120ms] motion-reduce:transition-none hover:bg-[var(--hover)]',
-              idx > 0 ? 'border-t border-solid border-[var(--line)]' : 'border-t-0',
+              'grid gap-1.5 px-[9px] py-1.5 transition-[background] duration-[120ms] motion-reduce:transition-none hover:bg-accent',
+              idx > 0 ? 'border-t border-solid border-border' : 'border-t-0',
             )}
           >
             {columns.map((col) => (
               <p
                 key={col.key}
                 className={cn(
-                  'cn-text-body1 text-[12.5px] text-[var(--body)] whitespace-nowrap overflow-hidden text-ellipsis',
+                  'text-xs text-foreground whitespace-nowrap overflow-hidden text-ellipsis',
                   col.numeric && 'tabular-nums font-medium',
                 )}
               >
@@ -103,7 +103,7 @@ export const DataTableWidget: React.FC<DataTableWidgetProps> = ({ data, toolName
 
       {/* Footer truncation */}
       {hiddenCount > 0 && (
-        <p className="cn-text-body1 block mt-1 text-[11.5px] text-[var(--muted)] italic">
+        <p className="block mt-1 text-xs text-muted-foreground italic">
           + {hiddenCount} de plus (demande "tous" pour la liste complete)
         </p>
       )}

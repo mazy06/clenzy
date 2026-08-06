@@ -1,5 +1,5 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
-import StatusChip from '../../components/StatusChip';
+import StatusChip, { STATUS_TONES, type StatusTone } from '../../components/StatusChip';
 import { Alert, AlertDescription, Button, Field, FieldLabel, Input } from '../../components/ui';
 import {
   Avatar,
@@ -55,7 +55,7 @@ import { useNotification } from '../../hooks/useNotification';
 import PageHeader from '../../components/PageHeader';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import ExportButton from '../../components/ExportButton';
-import StatTile from '../../components/StatTile';
+import StatTile from '../../components/baitly/StatTile';
 import EmptyState from '../../components/EmptyState';
 import { usersApi, type UserFormData } from '../../services/api/usersApi';
 import { userAvatarSrc } from '../../services/api/usersApi';
@@ -81,41 +81,47 @@ interface User {
   createdAt: string;
 }
 
-const userRoles: Array<{ value: string; label: string; Icon: LucideIcon; color: ChipColor; hex: string }> = [
-  { value: 'SUPER_ADMIN', label: 'Super Admin', Icon: AdminPanelSettings, color: 'error', hex: '#C97A7A' },
-  { value: 'SUPER_MANAGER', label: 'Super Manager', Icon: SupervisorAccount, color: 'secondary', hex: '#7B68A8' },
-  { value: 'SUPERVISOR', label: 'Superviseur', Icon: SupervisorAccount, color: 'info', hex: '#7BA3C2' },
-  { value: 'TECHNICIAN', label: 'Technicien', Icon: Build, color: 'primary', hex: '#6B8A9A' },
-  { value: 'HOUSEKEEPER', label: 'Agent de ménage', Icon: CleaningServices, color: 'default', hex: '#8A8378' },
-  { value: 'LAUNDRY', label: 'Blanchisserie', Icon: CleaningServices, color: 'default', hex: '#8A8378' },
-  { value: 'EXTERIOR_TECH', label: 'Tech. Extérieur', Icon: Build, color: 'primary', hex: '#6B8A9A' },
-  { value: 'HOST', label: 'Propriétaire', Icon: Home, color: 'success', hex: '#4A9B8E' },
+// `tone` alimente les pastilles ET la teinte de l'avatar, via le couple
+// `-ink` / `-soft` de la primitive StatusChip (seul couple conforme AA) ;
+// `iconClass` habille l'icone decorative de la liste deroulante, ou la teinte
+// vive est admise. Baitly UI n'expose pas de sixieme teinte : le violet et le
+// gris chaud de l'ancienne palette Clenzy retombent respectivement sur
+// `warning` et `neutral`, ce qui garde les roles distincts deux a deux.
+const userRoles: Array<{ value: string; label: string; Icon: LucideIcon; color: ChipColor; tone: StatusTone; iconClass: string }> = [
+  { value: 'SUPER_ADMIN', label: 'Super Admin', Icon: AdminPanelSettings, color: 'error', tone: 'err', iconClass: 'text-destructive' },
+  { value: 'SUPER_MANAGER', label: 'Super Manager', Icon: SupervisorAccount, color: 'secondary', tone: 'warn', iconClass: 'text-warning' },
+  { value: 'SUPERVISOR', label: 'Superviseur', Icon: SupervisorAccount, color: 'info', tone: 'info', iconClass: 'text-info' },
+  { value: 'TECHNICIAN', label: 'Technicien', Icon: Build, color: 'primary', tone: 'accent', iconClass: 'text-primary' },
+  { value: 'HOUSEKEEPER', label: 'Agent de ménage', Icon: CleaningServices, color: 'default', tone: 'neutral', iconClass: 'text-muted-foreground' },
+  { value: 'LAUNDRY', label: 'Blanchisserie', Icon: CleaningServices, color: 'default', tone: 'neutral', iconClass: 'text-muted-foreground' },
+  { value: 'EXTERIOR_TECH', label: 'Tech. Extérieur', Icon: Build, color: 'primary', tone: 'accent', iconClass: 'text-primary' },
+  { value: 'HOST', label: 'Propriétaire', Icon: Home, color: 'success', tone: 'ok', iconClass: 'text-success' },
 ];
 
 // Libellés/visuels des rôles d'ORGANISATION (OrgMemberRole), affichés dans
 // l'Annuaire pour les membres d'org. Distinct de userRoles (rôles plateforme) :
 // un Manager/Admin d'org a le rôle plateforme HOST, mais on veut afficher son rôle réel.
-const orgRoleDisplay: Record<string, { label: string; Icon: LucideIcon; color: ChipColor; hex: string }> = {
-  OWNER: { label: 'Propriétaire', Icon: Home, color: 'success', hex: '#4A9B8E' },
-  ADMIN: { label: 'Administrateur', Icon: AdminPanelSettings, color: 'error', hex: '#C97A7A' },
-  MANAGER: { label: 'Manager', Icon: SupervisorAccount, color: 'warning', hex: '#D4A574' },
-  SUPERVISOR: { label: 'Superviseur', Icon: SupervisorAccount, color: 'info', hex: '#7BA3C2' },
-  HOUSEKEEPER: { label: 'Agent de ménage', Icon: CleaningServices, color: 'default', hex: '#8A8378' },
-  TECHNICIAN: { label: 'Technicien', Icon: Build, color: 'primary', hex: '#6B8A9A' },
-  LAUNDRY: { label: 'Blanchisserie', Icon: CleaningServices, color: 'default', hex: '#8A8378' },
-  EXTERIOR_TECH: { label: 'Tech. Extérieur', Icon: Build, color: 'primary', hex: '#6B8A9A' },
-  HOST: { label: 'Hôte', Icon: Home, color: 'success', hex: '#4A9B8E' },
-  MEMBER: { label: 'Membre', Icon: Home, color: 'default', hex: '#8A8378' },
+const orgRoleDisplay: Record<string, { label: string; Icon: LucideIcon; color: ChipColor; tone: StatusTone }> = {
+  OWNER: { label: 'Propriétaire', Icon: Home, color: 'success', tone: 'ok' },
+  ADMIN: { label: 'Administrateur', Icon: AdminPanelSettings, color: 'error', tone: 'err' },
+  MANAGER: { label: 'Manager', Icon: SupervisorAccount, color: 'warning', tone: 'warn' },
+  SUPERVISOR: { label: 'Superviseur', Icon: SupervisorAccount, color: 'info', tone: 'info' },
+  HOUSEKEEPER: { label: 'Agent de ménage', Icon: CleaningServices, color: 'default', tone: 'neutral' },
+  TECHNICIAN: { label: 'Technicien', Icon: Build, color: 'primary', tone: 'accent' },
+  LAUNDRY: { label: 'Blanchisserie', Icon: CleaningServices, color: 'default', tone: 'neutral' },
+  EXTERIOR_TECH: { label: 'Tech. Extérieur', Icon: Build, color: 'primary', tone: 'accent' },
+  HOST: { label: 'Hôte', Icon: Home, color: 'success', tone: 'ok' },
+  MEMBER: { label: 'Membre', Icon: Home, color: 'default', tone: 'neutral' },
 };
 
-// Statuts utilisateur → tokens sémantiques (chips -soft : texte couleur + fond -soft)
-const USER_STATUS_TOKEN: Record<string, { fg: string; bg: string }> = {
-  ACTIVE: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  PENDING_VERIFICATION: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  SUSPENDED: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  INACTIVE: { fg: 'var(--muted)', bg: 'var(--hover)' },
-  BLOCKED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  DELETED: { fg: 'var(--err)', bg: 'var(--err-soft)' },
+// Statuts utilisateur → ton de la primitive StatusChip.
+const USER_STATUS_TONE: Record<string, StatusTone> = {
+  ACTIVE: 'ok',
+  PENDING_VERIFICATION: 'warn',
+  SUSPENDED: 'warn',
+  INACTIVE: 'neutral',
+  BLOCKED: 'err',
+  DELETED: 'err',
 };
 
 // Utilisation des enums partagés pour les statuts utilisateur
@@ -320,9 +326,11 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
       <div className="p-3">
         <Alert variant="info" className="p-3 py-1.5">
           <Info />
-          <AlertDescription><h6 className="cn-text-subtitle1 mb-1.5">
+          {/* `m-0` reprend ce que portait `cn-text-*` : sans preflight Tailwind,
+              un <h6>/<p> natif recupere sinon les marges du navigateur. */}
+          <AlertDescription><h6 className="m-0 mb-1.5 text-sm font-medium">
             Accès non autorisé
-          </h6><p className="cn-text-body2 text-[0.85rem]">
+          </h6><p className="m-0 text-sm">
             Vous n'avez pas les permissions nécessaires pour gérer les utilisateurs.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
@@ -337,7 +345,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
       <div className="grid grid-cols-12 gap-3">
         {Array.from({ length: 8 }).map((_, i) => (
           <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={i}>
-            <Skeleton className="h-[180px] w-full rounded-[14px]" />
+            <Skeleton className="h-[180px] w-full rounded-xl" />
           </div>
         ))}
       </div>
@@ -434,7 +442,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
               icon={<Person />}
               label="Total utilisateurs"
               value={users.length}
-              color="#6B8A9A"
+              iconClassName="text-primary"
             />
           </div>
           <div className="col-span-6 min-[900px]:col-span-3">
@@ -442,7 +450,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
               icon={<ManageAccounts />}
               label="Utilisateurs actifs"
               value={users.filter(u => u.status === 'ACTIVE').length}
-              color="#4A9B8E"
+              iconClassName="text-success"
             />
           </div>
           <div className="col-span-6 min-[900px]:col-span-3">
@@ -450,7 +458,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
               icon={<AdminPanelSettings />}
               label="Administrateurs"
               value={users.filter(u => ['SUPER_ADMIN'].includes(u.role)).length}
-              color="#C97A7A"
+              iconClassName="text-destructive"
             />
           </div>
           <div className="col-span-6 min-[900px]:col-span-3">
@@ -458,7 +466,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
               icon={<Build />}
               label="Personnel opérationnel"
               value={users.filter(u => ['TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH'].includes(u.role)).length}
-              color="#7BA3C2"
+              iconClassName="text-info"
             />
           </div>
         </div>
@@ -490,32 +498,36 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
             // Eviter le doublon si le role d'org a le meme libelle que le role plateforme.
             const showOrgRole = orgRole && orgRole.label !== platformRole.label;
             const s = getStatusInfo(user.status);
-            const roleColor = platformRole.hex;
-            const statusToken = USER_STATUS_TOKEN[user.status] ?? { fg: 'var(--muted)', bg: 'var(--hover)' };
+            // Couple `-soft` / `-ink` du ton du role : teinte calculee a
+            // l'execution, donc valeur CSS et non classe Tailwind.
+            const roleTokens = STATUS_TONES[platformRole.tone];
+            const statusTone = USER_STATUS_TONE[user.status] ?? 'neutral';
             const PlatformIcon = platformRole.Icon;
             const OrgIcon = orgRole?.Icon;
             return (
             <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={user.id}>
-              {/* Carte hairline r14 (kit) — hover lift + shadow-card (cliquable) */}
-              <Card className="h-full gap-2 [--card-spacing:10.5px] transition-[box-shadow,transform] duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-card)] hover:ring-[color:var(--line-2)] motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+              {/* Carte hairline (rayon du kit) — hover lift + ombre discrete */}
+              <Card className="h-full gap-2 [--card-spacing:10.5px] transition-[box-shadow,transform,--tw-ring-color] duration-150 ease-out-quart hover:-translate-y-px hover:shadow-sm hover:ring-primary/30 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                 <CardContent className="flex-1">
-                  {/* En-tête avec avatar (initiales display — pattern .mg-avt/.s-av) et menu */}
+                  {/* En-tête avec avatar (initiales display) et menu */}
                   <div className="flex justify-between items-start mb-2 gap-1.5">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <Avatar className="size-[38px] shrink-0 rounded-[10px] after:rounded-[10px]">
                         <AvatarImage src={userAvatarSrc(user)} alt="" className="rounded-[10px]" />
                         <AvatarFallback
                           className="rounded-[10px] font-[family-name:var(--font-display)] text-[0.8125rem] font-semibold tracking-[0.02em]"
-                          style={{ backgroundColor: `${roleColor}1F`, color: roleColor }}
+                          style={{ backgroundColor: roleTokens.bg, color: roleTokens.color }}
                         >
                           {user.firstName.charAt(0)}{user.lastName.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="cn-text-body1 font-semibold text-[0.9rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+                        {/* `m-0` : sans preflight Tailwind, un <p> natif reprend les
+                            marges UA que `cn-text-*` neutralisait. */}
+                        <p className="m-0 font-semibold text-[0.9rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                           {user.firstName} {user.lastName}
                         </p>
-                        <p className="cn-text-body1 text-muted-foreground text-[0.7rem] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap block">
+                        <p className="m-0 text-muted-foreground text-[0.7rem] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap block">
                           {user.email}
                         </p>
                       </div>
@@ -525,7 +537,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                         {/* Le span porte la ref exigee par Radix : Button du kit est
                             un composant fonction qui ne la transmet pas (React 18). */}
                         <span className="inline-flex ms-[1.5px]">
-                          <Button variant="ghost" size="icon-sm" aria-label="Options" className="text-[var(--muted)]">
+                          <Button variant="ghost" size="icon-sm" aria-label="Options" className="text-muted-foreground">
                             <MoreVert size={16} strokeWidth={1.75} />
                           </Button>
                         </span>
@@ -563,7 +575,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                         {/* TooltipTrigger pose une ref sur son enfant, que StatusChip ne transmet
                             pas (React 18, composant fonction) : sans ce span, rien ne s'ancre. */}
                         <span className="inline-flex">
-                          <StatusChip tokens={{ color: roleColor, bg: `${roleColor}18` }} label={platformRole.label} icon={<PlatformIcon size={11} strokeWidth={2} />} />
+                          <StatusChip tone={platformRole.tone} label={platformRole.label} icon={<PlatformIcon size={11} strokeWidth={2} />} />
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>Rôle sur la plateforme</TooltipContent>
@@ -574,20 +586,21 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                           {/* Meme raison que ci-dessus : le span porte la ref. */}
                           <span className="inline-flex">
                             {/* Liseré teinté : `border-solid` est indispensable, le
-                                gabarit de la primitive pose `border-none`. */}
+                                gabarit de la primitive pose `border-none`. Encre
+                                `-ink` du ton, filet tire de la meme encre. */}
                             <StatusChip
-                              tokens={{ color: orgRole.hex, bg: 'transparent' }}
+                              tokens={{ color: STATUS_TONES[orgRole.tone].color, bg: 'transparent' }}
                               label={orgRole.label}
                               icon={<OrgIcon size={11} strokeWidth={2} />}
                               className="border border-solid"
-                              sx={{ borderColor: `${orgRole.hex}55` }}
+                              sx={{ borderColor: `color-mix(in srgb, ${STATUS_TONES[orgRole.tone].color} 40%, transparent)` }}
                             />
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>Rôle dans l'organisation</TooltipContent>
                       </Tooltip>
                     )}
-                    <StatusChip tokens={{ color: statusToken.fg, bg: statusToken.bg }} label={s.label} />
+                    <StatusChip tone={statusTone} label={s.label} />
                   </div>
 
                   {/* Informations supplémentaires */}
@@ -597,7 +610,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                         <div className="inline-flex text-muted-foreground shrink-0">
                           <Phone size={13} strokeWidth={1.75} />
                         </div>
-                        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums overflow-hidden text-ellipsis whitespace-nowrap">
+                        <p className="m-0 text-[0.72rem] text-muted-foreground tabular-nums overflow-hidden text-ellipsis whitespace-nowrap">
                           {user.phoneNumber}
                         </p>
                       </div>
@@ -606,7 +619,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                       <div className="inline-flex text-muted-foreground shrink-0">
                         <Email size={13} strokeWidth={1.75} />
                       </div>
-                      <p className="cn-text-body1 text-[0.72rem] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+                      <p className="m-0 text-[0.72rem] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                         {user.email}
                       </p>
                     </div>
@@ -614,7 +627,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                       <div className="inline-flex text-muted-foreground shrink-0">
                         <Person size={13} strokeWidth={1.75} />
                       </div>
-                      <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums">
+                      <p className="m-0 text-[0.72rem] text-muted-foreground tabular-nums">
                         Créé le {formatDate(user.createdAt)}
                       </p>
                     </div>
@@ -723,7 +736,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
                       const RoleIcon = role.Icon;
                       return (
                         <SelectItem key={role.value} value={role.value}>
-                          <span className="inline-flex" style={{ color: role.hex }}>
+                          <span className={`inline-flex ${role.iconClass}`}>
                             <RoleIcon size={16} strokeWidth={1.75} />
                           </span>
                           {role.label}
@@ -771,7 +784,7 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
           <DialogHeader>
             <DialogTitle>Confirmer la suppression</DialogTitle>
           </DialogHeader>
-          <p className="cn-text-body2">
+          <p className="m-0 text-xs">
             Êtes-vous sûr de vouloir supprimer l'utilisateur "{selectedUser?.firstName} {selectedUser?.lastName}" ?
             Cette action est irréversible.
           </p>

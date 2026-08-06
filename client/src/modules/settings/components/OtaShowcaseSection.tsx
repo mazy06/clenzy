@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import StatusChip from '../../../components/StatusChip';
-import { Card } from '../../../components/ui';
+import { Badge, Card } from '../../../components/ui';
 import { Button } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import { useNavigate } from 'react-router-dom';
@@ -25,23 +24,13 @@ import { blockInteraction } from './disabledIntegration';
  * horizontal logo+texte+chip, minHeight 56px.</p>
  */
 
-// Transcription du COMING_SOON_CHIP_SX de disabledIntegration.ts, encore
-// utilise par les puces MUI restantes ailleurs — d'ou la copie plutot que
-// l'ajout d'un export cote constantes.
-const COMING_SOON_TOKENS = {
-  color: 'var(--muted)',
-  bg: 'color-mix(in srgb, var(--muted) 8%, transparent)',
-};
-const COMING_SOON_BORDER = 'color-mix(in srgb, var(--muted) 20%, transparent)';
-
-// Transcription du DISABLED_CARDS_SX (meme copie que ServiceCatalogSection) :
-// on ne touche pas au .ts, qui reste la source des sections encore en MUI.
-// `pointer-events: none` est volontairement absent — il tuerait le survol,
-// donc les tooltips d'info. theme.palette.divider -> var(--line).
+// Neutralise le survol et le focus des cartes grisees (meme copie que
+// ServiceCatalogSection). `pointer-events: none` est volontairement absent — il
+// tuerait le survol, donc les tooltips d'info.
 const DISABLED_GRID_CLASS =
   'opacity-[0.55] grayscale-[0.7] select-none '
   + '[&_[role=radio]]:cursor-not-allowed [&_[role=button]]:cursor-not-allowed '
-  + '[&_[role=radio]:hover]:border-[var(--line)]! [&_[role=button]:hover]:border-[var(--line)]! '
+  + '[&_[role=radio]:hover]:border-border! [&_[role=button]:hover]:border-border! '
   + '[&_[role=radio]:hover]:bg-transparent! [&_[role=button]:hover]:bg-transparent! '
   + '[&_[role=radio]:hover]:shadow-none! [&_[role=button]:hover]:shadow-none! '
   + '[&_[role=radio]:focus-visible]:shadow-none! [&_[role=button]:focus-visible]:shadow-none!';
@@ -87,20 +76,16 @@ export default function OtaShowcaseSection({ serviceFilter = null, disabled = fa
         <div className="flex items-start justify-between gap-3 mb-0.5">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 mb-0.5">
-              <p className="cn-text-body1 text-[0.82rem] font-semibold">
+              <p className="text-sm font-semibold tracking-tight">
                 Canaux de réservation (OTAs)
               </p>
               {disabled && (
-                <StatusChip
-                  size="sm"
-                  tokens={COMING_SOON_TOKENS}
-                  label="Bientôt disponible"
-                  className="rounded-[5px] border border-solid text-[0.62rem] tracking-[0.01em]"
-                  sx={{ borderColor: COMING_SOON_BORDER }}
-                />
+                <Badge variant="secondary" className="h-[18px] px-1.5 text-2xs">
+                  Bientôt disponible
+                </Badge>
               )}
             </div>
-            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Connectez vos OTAs ici ou depuis l'onglet <strong>Channels</strong> dédié. Les modifications sont synchronisées entre les deux vues.
             </p>
           </div>
@@ -137,11 +122,13 @@ export default function OtaShowcaseSection({ serviceFilter = null, disabled = fa
                 status={connected ? 'connected' : ota.available ? 'idle' : 'comingSoon'}
                 onClick={() => setOpenOta(ota)}
                 logo={
-                  <div className="w-[40px] h-[40px] rounded-[8px] inline-flex items-center justify-center overflow-hidden shrink-0" style={{ backgroundColor: ota.logo ? 'transparent' : ota.brandColor }} aria-hidden="true">
+                  <div className="size-10 rounded-md inline-flex items-center justify-center overflow-hidden shrink-0" style={{ backgroundColor: ota.logo ? 'transparent' : ota.brandColor }} aria-hidden="true">
                     {ota.logo ? (
-                      <img className="max-w-full max-h-[100%] object-contain" src={ota.logo} alt="" />
+                      <img className="max-w-full max-h-full object-contain" src={ota.logo} alt="" />
                     ) : (
-                      <p className="cn-text-body1 text-[0.85rem] font-bold text-[var(--on-accent)] tracking-[-0.02em]">
+                      // Encre posée sur une couleur de MARQUE, pas sur une surface
+                      // du thème : elle reste claire en clair comme en sombre.
+                      <p className="text-sm font-bold text-white tracking-tight">
                         {ota.name.slice(0, 2).toUpperCase()}
                       </p>
                     )}

@@ -12,9 +12,8 @@ interface AssistantMarkdownProps {
 
 /** Style commun des liens (internes + externes) — accent + soulignement doux. */
 const LINK_CLASS =
-  'text-[var(--accent)] font-semibold no-underline border-b border-solid ' +
-  'border-b-[color-mix(in_srgb,var(--accent)_35%,transparent)] ' +
-  'transition-[border-color] duration-150 hover:border-b-[var(--accent)] motion-reduce:transition-none';
+  'font-medium text-primary no-underline border-b border-solid border-primary/35 ' +
+  'transition-[border-color] duration-150 hover:border-primary motion-reduce:transition-none';
 
 /**
  * Renderer markdown pour le texte des messages assistant.
@@ -32,9 +31,9 @@ const LINK_CLASS =
 export const AssistantMarkdown: React.FC<AssistantMarkdownProps> = ({ text }) => {
   // Memo des renderers pour eviter de les recreer a chaque render
   const components: Components = React.useMemo(() => ({
-    // Paragraphes : corps 13px aligne avec la bulle assistant
+    // Paragraphes : la taille vient de la bulle (.cn-message = text-sm)
     p: ({ children }) => (
-      <p className="cn-text-body1 text-[13px] leading-[1.6] text-[var(--body)] mb-1.5 last:mb-0">
+      <p className="mb-1.5 leading-relaxed last:mb-0">
         {children}
       </p>
     ),
@@ -76,14 +75,14 @@ export const AssistantMarkdown: React.FC<AssistantMarkdownProps> = ({ text }) =>
       </ol>
     ),
     li: ({ children }) => (
-      <li className="text-[13px] leading-[1.55] text-[var(--body)]">
+      <li className="leading-relaxed">
         {children}
       </li>
     ),
 
     // Emphase
     strong: ({ children }) => (
-      <strong className="font-semibold text-[var(--ink)]">
+      <strong className="font-semibold text-foreground">
         {children}
       </strong>
     ),
@@ -91,27 +90,27 @@ export const AssistantMarkdown: React.FC<AssistantMarkdownProps> = ({ text }) =>
       <em className="italic">{children}</em>
     ),
 
-    // Code inline : fond champ dé-bleui
+    // Code inline
     code: ({ children }) => (
-      <code className="px-0.5 py-0 rounded-[5px] bg-[var(--field)] border border-[var(--line)] font-mono text-[0.85em]">
+      <code className="rounded border border-border bg-muted px-0.5 font-mono text-[0.85em]">
         {children}
       </code>
     ),
 
-    // Headings : display, poids et taille adaptes au flow inline
+    // Titres : adaptes au flux inline d'une bulle
     h1: ({ children }) => (
-      <h2 className="font-[family-name:var(--font-display)] text-[16px] font-semibold mt-2 mb-0.5 text-[var(--ink)]">{children}</h2>
+      <h2 className="mt-2 mb-0.5 text-base font-semibold text-foreground">{children}</h2>
     ),
     h2: ({ children }) => (
-      <h3 className="font-[family-name:var(--font-display)] text-[14.5px] font-semibold mt-2 mb-0.5 text-[var(--ink)]">{children}</h3>
+      <h3 className="mt-2 mb-0.5 text-sm font-semibold text-foreground">{children}</h3>
     ),
     h3: ({ children }) => (
-      <h4 className="text-[13.5px] font-semibold mt-2 mb-0.5 text-[var(--ink)]">{children}</h4>
+      <h4 className="mt-2 mb-0.5 text-sm font-semibold text-foreground">{children}</h4>
     ),
 
-    // Blockquote (citation)
+    // Citation
     blockquote: ({ children }) => (
-      <div className="my-1.5 ps-2 py-0.5 rounded-[6px] bg-[var(--hover)]">
+      <div className="my-1.5 rounded-md bg-muted px-2 py-1 italic">
         {children}
       </div>
     ),

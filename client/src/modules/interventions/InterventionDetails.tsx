@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { cn } from '../../utils/cn';
-import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
+import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton, Card, CardContent } from '../../components/ui';
 import { Info, TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import { useNotification } from '../../hooks/useNotification';
@@ -103,7 +102,7 @@ export default function InterventionDetailsPage() {
       <div className="p-3">
         <BuiAlert variant="info" className="py-1.5">
           <Info />
-          <AlertDescription><h6 className="cn-text-subtitle1 font-semibold mb-[0.35em]">{t('interventions.detail.unauthorized')}</h6><p className="cn-text-body2">
+          <AlertDescription><h6 className="text-sm font-semibold mb-[0.35em]">{t('interventions.detail.unauthorized')}</h6><p className="text-xs">
             {t('interventions.detail.unauthorizedMessage')}
             <br />{t('interventions.detail.unauthorizedContact')}
           </p></AlertDescription>
@@ -121,7 +120,9 @@ export default function InterventionDetailsPage() {
     if (intervention.startTime) {
       extraMetrics.push({
         icon: <PlayCircleOutlineIcon size={18} strokeWidth={1.75} />,
-        tone: 'var(--ok)',
+        // `tone` est peint en `color:` sur la valeur ET sur l'icone : c'est du
+        // TEXTE, donc l'encre `-ink` (la teinte vive plafonne a ~2,2:1).
+        tone: 'var(--bui-success-ink)',
         value: formatDateTime(intervention.startTime),
         label: t('interventions.detail.start'),
       });
@@ -129,7 +130,7 @@ export default function InterventionDetailsPage() {
     if (intervention.endTime) {
       extraMetrics.push({
         icon: <StopCircleIcon size={18} strokeWidth={1.75} />,
-        tone: 'var(--err)',
+        tone: 'var(--bui-destructive-ink)',
         value: formatDateTime(intervention.endTime),
         label: t('interventions.detail.end'),
       });
@@ -254,26 +255,28 @@ export default function InterventionDetailsPage() {
           }
           extraSection={
             <>
-              <div className="p-3 mb-[9px] rounded-[14px] bg-[var(--card)] shadow-none border border-solid border-[var(--line)]">
-                <p className={cn(WORKFLOW_TITLE_CLASS, 'cn-text-body1')}>
-                  {t('interventions.detail.workflowTitle', 'Suivi de l\'intervention')}
-                </p>
-                <InterventionProgressSteps
-                  intervention={intervention}
-                  photos={photosProps}
-                  rooms={roomsProps}
-                  steps={stepsProps}
-                  progress={progressProps}
-                  handleStartIntervention={handleStartIntervention}
-                  handleCompleteIntervention={handleCompleteIntervention}
-                  handleReopenIntervention={handleReopenIntervention}
-                  starting={starting}
-                  completing={completing}
-                  canStartIntervention={canStartIntervention}
-                  canStartOrUpdateIntervention={canStartOrUpdateIntervention}
-                  isBeforeScheduledDate={isBeforeScheduledDate}
-                />
-              </div>
+              <Card size="sm" className="mb-[9px] shadow-none">
+                <CardContent>
+                  <p className={WORKFLOW_TITLE_CLASS}>
+                    {t('interventions.detail.workflowTitle', 'Suivi de l\'intervention')}
+                  </p>
+                  <InterventionProgressSteps
+                    intervention={intervention}
+                    photos={photosProps}
+                    rooms={roomsProps}
+                    steps={stepsProps}
+                    progress={progressProps}
+                    handleStartIntervention={handleStartIntervention}
+                    handleCompleteIntervention={handleCompleteIntervention}
+                    handleReopenIntervention={handleReopenIntervention}
+                    starting={starting}
+                    completing={completing}
+                    canStartIntervention={canStartIntervention}
+                    canStartOrUpdateIntervention={canStartOrUpdateIntervention}
+                    isBeforeScheduledDate={isBeforeScheduledDate}
+                  />
+                </CardContent>
+              </Card>
               {/* Devis prestataires (M4) — l'approbation reporte le montant sur le
                   coût estimé : on invalide la query détail pour rafraîchir les KPI. */}
               <InterventionQuotesSection
@@ -317,5 +320,5 @@ export default function InterventionDetailsPage() {
   );
 }
 
-/** Surtitre de la section « suivi » : 10,5 px, capitales espacées, encre pâle. */
-const WORKFLOW_TITLE_CLASS = 'text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-[9px]';
+/** Surtitre de la section « suivi » : capitales espacées, encre pâle. */
+const WORKFLOW_TITLE_CLASS = 'text-2xs font-bold uppercase tracking-wider text-faint mb-[9px]';

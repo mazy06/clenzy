@@ -19,11 +19,11 @@ export default function Cgu() {
     <LegalLayout title="Conditions Générales d'Utilisation" lastUpdated="27 mai 2026">
       <Alert variant="info" className="mb-4">
         <Info />
-        <AlertDescription><p className="cn-text-body2">
+        <AlertDescription>
           Cette page est un brouillon. Les conditions générales définitives seront publiées
           prochainement. Pour toute question urgente, contactez{' '}
           <a href="mailto:support@clenzy.fr">support@clenzy.fr</a>.
-        </p></AlertDescription>
+        </AlertDescription>
       </Alert>
 
       <h2>1. Objet</h2>

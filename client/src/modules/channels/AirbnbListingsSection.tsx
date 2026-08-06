@@ -6,13 +6,15 @@ import {
   CollapsibleContent,
   Field,
   FieldLabel,
+  Input,
+  NativeSelect,
+  NativeSelectOption,
   Separator,
   Switch,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '../../components/ui';
-import { cn } from '../../utils/cn';
 import {
   LinkOff as LinkOffIcon,
   Link as LinkIcon,
@@ -25,10 +27,8 @@ import {
 import type { AirbnbListingMapping } from '../../services/api/airbnbApi';
 import type { Property } from '../../services/api/propertiesApi';
 
-// Equivalent classes de CARD_SX (hairline r14 sur --card) : la constante etait un
-// objet `sx`, elle n'a plus de porteur maintenant que le Paper est un <div>.
-const CARD_CLS =
-  'border border-solid border-[var(--line)] bg-[var(--card)] rounded-[14px] p-3 mb-[9px]';
+/** Gabarit de la carte de section : hairline sur surface de panneau. */
+const CARD_CLS = 'border border-border bg-card rounded-xl p-3 mb-[9px]';
 
 interface LinkFormState {
   airbnbListingId: string;
@@ -80,7 +80,7 @@ const AirbnbListingsSection: React.FC<AirbnbListingsSectionProps> = ({
 }) => (
   <div className={CARD_CLS}>
     <div className="flex items-center justify-between cursor-pointer" onClick={onToggleExpand}>
-      <p className="cn-text-body1 text-[0.875rem] font-bold">
+      <p className="text-sm font-semibold tracking-tight">
         {t('channels.listings.title')} ({listings.length})
       </p>
       <Button
@@ -102,7 +102,7 @@ const AirbnbListingsSection: React.FC<AirbnbListingsSectionProps> = ({
           <Spinner className="size-6" />
         </div>
       ) : listings.length === 0 ? (
-        <p className="cn-text-body1 text-[0.75rem] text-muted-foreground mt-1.5">
+        <p className="text-xs text-muted-foreground mt-1.5">
           {t('channels.listings.noListings')}
         </p>
       ) : (
@@ -175,9 +175,9 @@ function ListingCard({
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   return (
-    <div className="border border-[var(--line)] rounded-[8px] p-2 flex items-center justify-between flex-wrap gap-1.5">
+    <div className="border border-border rounded-md p-2 flex items-center justify-between flex-wrap gap-1.5">
       <div className="min-w-0 flex-1">
-        <p className="cn-text-body1 text-[0.8125rem] font-semibold flex items-center gap-0.5">
+        <p className="text-sm font-semibold flex items-center gap-0.5">
           {listing.airbnbListingTitle || `Listing ${listing.airbnbListingId}`}
           {listing.airbnbListingUrl && (
             <Tooltip>
@@ -200,7 +200,7 @@ function ListingCard({
             </Tooltip>
           )}
         </p>
-        <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           ID: {listing.airbnbListingId} · Propriété #{listing.propertyId}
         </p>
       </div>
@@ -253,7 +253,7 @@ function ListingCard({
                 size="icon-sm"
                 type="button"
                 aria-label={t('channels.listings.unlink')}
-                className="text-[var(--err)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
+                className="text-destructive hover:bg-destructive-soft hover:text-destructive"
                 onClick={() => onUnlink(listing.propertyId)}
               >
                 <LinkOffIcon size={'1rem'} strokeWidth={1.75} />
@@ -266,10 +266,6 @@ function ListingCard({
     </div>
   );
 }
-
-/** Champ du formulaire de liaison (select + inputs) — meme habillage pour les quatre. */
-const AIRBNB_FIELD_CLS =
-  'text-[0.8125rem] px-1.5 py-[4.5px] rounded-[11px] border border-solid border-[var(--field-line)] bg-[var(--field)] text-[var(--body)] focus:outline-none focus:border-[var(--accent)]';
 
 function LinkPropertyForm({
   properties,
@@ -294,37 +290,37 @@ function LinkPropertyForm({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <p className="cn-text-body1 text-[0.75rem] font-semibold">
+      <p className="text-xs font-semibold">
         {t('channels.listings.linkNewProperty')}
       </p>
       <div className="flex gap-1.5 flex-wrap items-end">
-        {/* px: 1 = 6px et py: 0.75 = 4.5px (theme.spacing vaut 6 dans ce projet). */}
-        <select
+        <NativeSelect
+          size="sm"
           value={selectedPropertyId}
           onChange={(e) => onPropertyChange(Number(e.target.value))}
-          className={cn(AIRBNB_FIELD_CLS, 'min-w-[160px]')}
+          className="min-w-[160px]"
         >
           {properties.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
+            <NativeSelectOption key={p.id} value={p.id}>{p.name}</NativeSelectOption>
           ))}
-        </select>
-        <input
+        </NativeSelect>
+        <Input
           placeholder="Airbnb Listing ID"
           value={form.airbnbListingId}
           onChange={(e) => onFormChange({ ...form, airbnbListingId: e.target.value })}
-          className={cn(AIRBNB_FIELD_CLS, 'min-w-[140px]')}
+          className="min-w-[140px] w-auto"
         />
-        <input
+        <Input
           placeholder={t('channels.listings.listingTitle')}
           value={form.airbnbListingTitle}
           onChange={(e) => onFormChange({ ...form, airbnbListingTitle: e.target.value })}
-          className={cn(AIRBNB_FIELD_CLS, 'min-w-[180px] flex-1')}
+          className="min-w-[180px] w-auto flex-1"
         />
-        <input
+        <Input
           placeholder="URL Airbnb"
           value={form.airbnbListingUrl}
           onChange={(e) => onFormChange({ ...form, airbnbListingUrl: e.target.value })}
-          className={cn(AIRBNB_FIELD_CLS, 'min-w-[200px] flex-1')}
+          className="min-w-[200px] w-auto flex-1"
         />
         <Button
           size="sm"

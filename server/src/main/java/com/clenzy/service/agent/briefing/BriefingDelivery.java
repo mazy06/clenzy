@@ -172,7 +172,7 @@ public class BriefingDelivery {
                 user.getEmail(),
                 null,
                 fullName(user),
-                "[Clenzy] " + result.shortTitle(),
+                "[Baitly] " + result.shortTitle(),
                 html,
                 body,
                 "fr"
@@ -207,10 +207,11 @@ public class BriefingDelivery {
         String rendered = emailTemplateLoader.renderBriefing(vars);
         if (rendered != null) return rendered;
 
-        // Fallback minimaliste si le template n'a pas pu etre charge
+        // Fallback minimaliste si le template n'a pas pu etre charge.
+        // Bleu nuit Baitly (#1B2A35) et non l'ancien bleu-gris Clenzy (#6B8A9A).
         return "<!doctype html><html><body style=\"font-family:Helvetica,Arial,sans-serif;"
                 + "max-width:640px;margin:0 auto;padding:24px;color:#1f2937;\">"
-                + "<h2 style=\"color:#6B8A9A;\">" + safeTitle + "</h2>"
+                + "<h2 style=\"color:#1B2A35;\">" + safeTitle + "</h2>"
                 + "<div style=\"line-height:1.55;font-size:14px;\">" + safeBody + "</div>"
                 + "</body></html>";
     }

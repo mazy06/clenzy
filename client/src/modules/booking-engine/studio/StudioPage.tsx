@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   LayoutTemplate,
@@ -13,7 +13,11 @@ import {
   Filter,
 } from 'lucide-react';
 import StudioShell, { type Breakpoint, type StudioSection } from './StudioShell';
-import StudioCommandPalette, { type StudioCommand } from './StudioCommandPalette';
+import {
+  useCommandCenter,
+  useScreenCommands,
+  type CommandDescriptor,
+} from '../../../components/command-center';
 // Hard cutover (G0) : l'éditeur de PAGE du Studio est GrapesJS. L'ancien builder de blocs maison a
 // été retiré ; seuls subsistent du dossier `builder/` les panneaux réutilisés (ThemeInspector, etc.).
 import GrapesStudio from './grapes/GrapesStudio';
@@ -32,8 +36,14 @@ import { sitesApi } from '../../../services/api/sitesApi';
 import type { BookingEngineConfig, DesignTokens } from '../../../services/api/bookingEngineApi';
 
 /**
- * Baitly Studio — page hôte : assemble StudioShell + palette ⌘K + les 5 sections.
+ * Baitly Studio — page hôte : assemble StudioShell + les sections.
  * Chaque section rend son panneau (Design builder, Contenu IA, Réservation, Croissance, Diffusion).
+ *
+ * <p>Le ⌘K du Studio n'est PLUS une palette à lui : l'éditeur publie ses
+ * sections et ses actions dans le centre de commande de l'application
+ * (`useScreenCommands`), qui les range en tête sous « Sur cet écran ». Une
+ * seule palette, un seul raccourci — deux écouteurs ⌘K concurrents ouvraient
+ * deux fenêtres l'une sur l'autre.</p>
  */
 
 const SECTIONS: StudioSection[] = [
@@ -56,8 +66,8 @@ export default function StudioPage() {
   const [activeSection, setActiveSection] = useState('design');
   const [breakpoint, setBreakpoint] = useState<Breakpoint>('desktop');
   const [previewCurrency, setPreviewCurrency] = useState('EUR');
-  const [paletteOpen, setPaletteOpen] = useState(false);
   const [designAnalysisOpen, setDesignAnalysisOpen] = useState(false);
+  const { openCenter } = useCommandCenter();
 
   // Mode d'édition : « Guidé » a été retiré → l'éditeur est TOUJOURS en avancé. Le bouton « Assistant »
   // (topbar) bascule vers le studio immersif (aperçu live + chat) au lieu d'un mode simplifié.
@@ -84,33 +94,32 @@ export default function StudioPage() {
     setDesignAnalysisOpen(false);
   };
 
-  // Raccourci ⌘K / Ctrl+K global.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setPaletteOpen((o) => !o);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
-
-  const commands = useMemo<StudioCommand[]>(() => {
-    const navCmds: StudioCommand[] = SECTIONS.map((s) => ({
-      id: `goto-${s.key}`,
+  // Sections et actions de l'éditeur, publiées dans le centre de commande. Les
+  // `setState` sont des identités stables : la liste n'a aucune dépendance.
+  const studioCommands = useMemo<CommandDescriptor[]>(() => {
+    const sections: CommandDescriptor[] = SECTIONS.map((s) => ({
+      id: `studio.section.${s.key}`,
+      section: 'screen',
       label: `Aller à ${s.label}`,
-      group: 'Sections',
       keywords: s.key,
-      icon: s.icon,
+      icon: <s.icon />,
       run: () => setActiveSection(s.key),
     }));
     // La publication est par page (badge + bouton Publier dans l'éditeur GrapesJS), pas une action globale.
-    const actions: StudioCommand[] = [
-      { id: 'design-analysis', label: 'Analyse du design', group: 'Actions', keywords: 'ia design site couleur typo url analyser', icon: Wand2, run: () => setDesignAnalysisOpen(true) },
+    return [
+      ...sections,
+      {
+        id: 'studio.design-analysis',
+        section: 'screen',
+        label: 'Analyse du design',
+        keywords: 'ia design site couleur typo url analyser',
+        icon: <Wand2 />,
+        run: () => setDesignAnalysisOpen(true),
+      },
     ];
-    return [...navCmds, ...actions];
   }, []);
+
+  useScreenCommands('Baitly Studio', studioCommands);
 
   const active = SECTIONS.find((s) => s.key === activeSection) ?? SECTIONS[0];
 
@@ -125,7 +134,7 @@ export default function StudioPage() {
         onPreviewCurrencyChange={setPreviewCurrency}
         breakpoint={breakpoint}
         onBreakpointChange={setBreakpoint}
-        onOpenCommand={() => setPaletteOpen(true)}
+        onOpenCommand={() => openCenter()}
         onAnalyzeDesign={() => setDesignAnalysisOpen(true)}
         onOpenAssistant={openAssistant}
         onBack={() => navigate('/booking-engine', { state: { tab: 2 } })}
@@ -150,8 +159,6 @@ export default function StudioPage() {
         {active.key === 'growth' && <GrowthSettingsPanel />}
         {active.key === 'funnel' && <FunnelAnalyticsPanel />}
       </StudioShell>
-
-      <StudioCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
 
       <DesignAnalysisModal
         open={designAnalysisOpen}

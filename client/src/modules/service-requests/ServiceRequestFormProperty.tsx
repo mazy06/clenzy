@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
-import StatusChip from '../../components/StatusChip';
+import StatusChip, { type ToneTokens } from '../../components/StatusChip';
 import { FORM_TAG_TOKENS, FORM_TAG_CLASS } from './serviceRequestsListConstants';
 import { Field, FieldError, FieldLabel, Input } from '../../components/ui';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui';
@@ -85,7 +85,18 @@ export interface ServiceRequestFormPropertyProps {
   currentUser?: CurrentUserInfo | null;
 }
 
-// Chip neutre « champ » (.fr-chip) : fond --field, icône accent (géométrie pilule du thème).
+/**
+ * Ton de la pastille de rôle du demandeur. Encre `-ink` sur fond `-soft` : la
+ * teinte vive en TEXTE plafonne à ~2,2:1 sur son propre pastel.
+ */
+const REQUESTOR_ROLE_TOKENS: Record<string, ToneTokens> = {
+  ADMIN: { color: 'var(--bui-destructive-ink)', bg: 'var(--bui-destructive-soft)' },
+  MANAGER: { color: 'var(--bui-warning-ink)', bg: 'var(--bui-warning-soft)' },
+};
+
+const REQUESTOR_ROLE_FALLBACK: ToneTokens = { color: 'var(--bui-primary)', bg: 'var(--bui-primary-soft)' };
+
+// Chip neutre « champ » : fond de champ, icône de marque (géométrie pilule du gabarit).
 const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = React.memo(
   ({ control, errors, properties, users, isAdminOrManager, selectedProperty, disabled = false, currentUser }) => {
     const { t } = useTranslation();
@@ -244,7 +255,7 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
         </div>
 
         {/* Propriete */}
-        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-2">
+        <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
           {t('serviceRequests.sections.property')}
         </p>
 
@@ -275,14 +286,14 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                         aria-invalid={!!fieldState.error}
                         onBlur={field.onBlur}
                       >
-                        <span className={cn('inline-flex shrink-0', selectedProp ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Home size={16} strokeWidth={1.75} /></span>
+                        <span className={cn('inline-flex shrink-0', selectedProp ? 'text-primary' : 'text-faint')}><Home size={16} strokeWidth={1.75} /></span>
                         <SelectValue placeholder={t('serviceRequests.fields.selectProperty')} />
                       </SelectTrigger>
                       <SelectContent>
                         {properties.map((property) => (
                           <SelectItem key={property.id} value={String(property.id)}>
-                            <span className="inline-flex text-[var(--accent)]"><Home size={16} strokeWidth={1.75} /></span>
-                            <span className="cn-text-body1 text-[12.5px] text-[var(--body)]">
+                            <span className="inline-flex text-primary"><Home size={16} strokeWidth={1.75} /></span>
+                            <span className="text-[12.5px] text-foreground">
                               {property.name} - {property.address}, {property.city}
                             </span>
                           </SelectItem>
@@ -300,16 +311,20 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
           <div className="flex-[5]">
             {currentUser ? (
               <div>
-                <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-0.5 ms-0.5">
+                <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-0.5 ms-0.5">
                   {t('serviceRequests.fields.requestor')}
                 </p>
-                <div className="flex items-center gap-1 px-2 py-1 rounded-[11px] bg-[var(--field)] border border-[var(--field-line)] min-h-[40px]">
-                  <span className="inline-flex text-[var(--accent)]"><Person size={16} strokeWidth={1.75} /></span>
-                  <p className="cn-text-body1 text-[12.5px] font-medium text-[var(--ink)] flex-1">
+                <div className="flex items-center gap-1 px-2 py-1 rounded-[11px] bg-field border border-solid border-field-line min-h-[40px]">
+                  <span className="inline-flex text-primary"><Person size={16} strokeWidth={1.75} /></span>
+                  <p className="text-[12.5px] font-medium text-foreground flex-1">
                     {currentUser.name}
                   </p>
                   {currentUser.roleLabel && (
-                    <StatusChip tokens={{ color: currentUser.role === 'ADMIN' ? 'var(--err)' : currentUser.role === 'MANAGER' ? 'var(--warn)' : 'var(--accent)', bg: currentUser.role === 'ADMIN' ? 'var(--err-soft)' : currentUser.role === 'MANAGER' ? 'var(--warn-soft)' : 'var(--accent-soft)' }} label={currentUser.roleLabel} className="h-[20px] text-[10px]" />
+                    <StatusChip
+                      tokens={REQUESTOR_ROLE_TOKENS[currentUser.role] ?? REQUESTOR_ROLE_FALLBACK}
+                      label={currentUser.roleLabel}
+                      className="h-[20px] text-[10px]"
+                    />
                   )}
                 </div>
               </div>
@@ -338,14 +353,14 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
                           aria-invalid={!!fieldState.error}
                           onBlur={field.onBlur}
                         >
-                          <span className={cn('inline-flex shrink-0', hasValue ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><Person size={16} strokeWidth={1.75} /></span>
+                          <span className={cn('inline-flex shrink-0', hasValue ? 'text-primary' : 'text-faint')}><Person size={16} strokeWidth={1.75} /></span>
                           <SelectValue placeholder={t('serviceRequests.fields.selectRequestor')} />
                         </SelectTrigger>
                         <SelectContent>
                           {users.map((u) => (
                             <SelectItem key={u.id} value={String(u.id)}>
-                              <span className="inline-flex text-[var(--accent)]"><Person size={16} strokeWidth={1.75} /></span>
-                              <span className="cn-text-body1 text-[12.5px] text-[var(--body)]">
+                              <span className="inline-flex text-primary"><Person size={16} strokeWidth={1.75} /></span>
+                              <span className="text-[12.5px] text-foreground">
                                 {u.firstName} {u.lastName}
                               </span>
                             </SelectItem>

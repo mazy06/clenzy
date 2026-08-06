@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 import { isWeekend, toDateStr } from './utils/dateUtils';
 import { WEEKEND_HEADER_BG } from './constants';
 import type { PlanningEvent } from './types';
@@ -51,6 +52,8 @@ interface PlanningOccupancyRowProps {
   propertyColWidth: number;
   /** Un pourcentage par jour, aligné sur `days` (cf. computeDayOccupancy). */
   occupancy: number[];
+  /** Colonne logements repliée en rail (mobile) : le libellé n'y tient plus. */
+  collapsed?: boolean;
 }
 
 const PlanningOccupancyRow: React.FC<PlanningOccupancyRowProps> = React.memo(({
@@ -59,17 +62,25 @@ const PlanningOccupancyRow: React.FC<PlanningOccupancyRowProps> = React.memo(({
   totalGridWidth,
   propertyColWidth,
   occupancy,
+  collapsed = false,
 }) => {
   return (
     <div className="flex bg-[var(--surface-2)]" style={{ borderTop: '1px solid var(--line)' }}>
       {/* Coin sticky aligné sur la colonne logements */}
       <div
-        className="sticky left-0 z-[11] flex shrink-0 items-center border-r border-solid border-[var(--line)] bg-[var(--surface-2)] px-4 py-1.5"
+        className={cn(
+          'sticky left-0 z-[11] flex shrink-0 items-center overflow-hidden border-r border-solid border-[var(--line)] bg-[var(--surface-2)] py-1.5',
+          collapsed ? 'px-0' : 'px-4',
+        )}
         style={{ width: propertyColWidth, minWidth: propertyColWidth }}
       >
-        <span className="font-bold text-[10.5px] text-[var(--faint)] uppercase tracking-[0.05em] whitespace-nowrap">
-          Occupation
-        </span>
+        {/* Repliée, la cellule fait 28 px : le libellé (nowrap, sans clipping)
+            débordait sur la grille et se superposait aux pourcentages. */}
+        {!collapsed && (
+          <span className="font-bold text-[10.5px] text-[var(--faint)] uppercase tracking-[0.05em] whitespace-nowrap">
+            Occupation
+          </span>
+        )}
       </div>
 
       <div className="flex" style={{ width: totalGridWidth }}>

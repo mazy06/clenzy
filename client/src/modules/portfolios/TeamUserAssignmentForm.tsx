@@ -16,7 +16,14 @@ import {
   SelectValue,
 } from '../../components/ui';
 import { Stepper, Step, StepLabel } from '../../components/ui';
-import { InputGroup, InputGroupAddon, InputGroupInput } from '../../components/ui';
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from '../../components/ui';
 import {
   People,
   Group,
@@ -27,9 +34,9 @@ import {
   Build,
   CleaningServices,
   SupervisorAccount,
-  Search,
 } from '../../icons';
 import PageHeader from '../../components/PageHeader';
+import HeaderSearchField from '../../components/HeaderSearchField';
 import { useTeamUserAssignment } from './useTeamUserAssignment';
 
 // `getRoleColor` du hook rend un nom de couleur MUI : on le transpose ici, le
@@ -109,10 +116,10 @@ const TeamUserAssignmentForm: React.FC = () => {
       case 0:
         return (
           <div>
-            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-0.5">
+            <h6 className="text-sm font-semibold tracking-tight mb-0.5">
               {t('portfolios.steps.selectManagerTitle')}
             </h6>
-            <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-3.5">
+            <p className="text-xs text-muted-foreground mb-3.5">
               {t('portfolios.steps.selectManagerDescription')}
             </p>
             <Field>
@@ -131,11 +138,11 @@ const TeamUserAssignmentForm: React.FC = () => {
                     <SelectItem key={manager.id} value={String(manager.id)}>
                       <div className="flex items-center gap-1.5">
                         <Avatar className="size-6 rounded-[8px] after:rounded-[8px]">
-                          <AvatarFallback className="rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)] text-[0.6rem] font-semibold font-[family-name:var(--font-display)]">
+                          <AvatarFallback className="rounded-md bg-primary text-primary-foreground text-[0.6rem] font-semibold font-[family-name:var(--font-display)]">
                             {manager.firstName.charAt(0)}{manager.lastName.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="cn-text-body1 text-[0.85rem]">
+                        <span className="text-[0.85rem]">
                           {manager.firstName} {manager.lastName} - {manager.email}
                         </span>
                       </div>
@@ -150,10 +157,10 @@ const TeamUserAssignmentForm: React.FC = () => {
       case 1:
         return (
           <div>
-            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-0.5">
+            <h6 className="text-sm font-semibold tracking-tight mb-0.5">
               {t('portfolios.fields.selectTeams')}
             </h6>
-            <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-3.5">
+            <p className="text-xs text-muted-foreground mb-3.5">
               {t('portfolios.fields.selectTeamsDescription')}{' '}
               <strong>{t('portfolios.fields.optionalStep')}</strong>
             </p>
@@ -164,10 +171,10 @@ const TeamUserAssignmentForm: React.FC = () => {
                     className={cn(
                       // `border-solid` obligatoire : le gabarit pose border-none,
                       // sans quoi la largeur existe mais le lisere reste invisible.
-                      'cursor-pointer rounded-[16px] border-solid ring-0 gap-0 py-[9px] transition-[border-color] duration-200 motion-reduce:transition-none hover:border-[var(--accent)]',
+                      'cursor-pointer rounded-2xl border border-solid ring-0 gap-0 py-[9px] transition-colors duration-200 motion-reduce:transition-none hover:border-primary',
                       selectedTeamsSet.has(team.id)
-                        ? 'border-2 border-[var(--accent)]'
-                        : 'border border-[var(--line)]',
+                        ? 'border-primary bg-primary-soft/50'
+                        : 'border-border',
                     )}
                     onClick={() => handleTeamToggle(team.id)}
                   >
@@ -178,13 +185,13 @@ const TeamUserAssignmentForm: React.FC = () => {
                           checked={selectedTeamsSet.has(team.id)}
                           onCheckedChange={() => handleTeamToggle(team.id)}
                         />
-                        <span className="inline-flex text-[var(--accent)] me-1"><Group size={18} strokeWidth={1.75} /></span>
-                        <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold">
+                        <span className="inline-flex text-primary me-1"><Group size={18} strokeWidth={1.75} /></span>
+                        <h6 className="text-xs font-semibold">
                           {team.name}
                         </h6>
                       </div>
                       {team.description && (
-                        <span className="cn-text-caption text-muted-foreground block ms-5 text-[0.72rem] mb-0.5">
+                        <span className="block ms-5 text-[0.72rem] text-muted-foreground mb-0.5">
                           {team.description}
                         </span>
                       )}
@@ -196,7 +203,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                             className="h-[20px] text-[0.6rem]"
                           />
                         )}
-                        <span className="cn-text-caption text-muted-foreground text-[0.65rem]">
+                        <span className="text-[0.65rem] text-muted-foreground">
                           {team.memberCount ?? 0} {t('portfolios.fields.members')}
                         </span>
                       </div>
@@ -211,10 +218,10 @@ const TeamUserAssignmentForm: React.FC = () => {
       case 2:
         return (
           <div>
-            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-0.5">
+            <h6 className="text-sm font-semibold tracking-tight mb-0.5">
               {t('portfolios.fields.selectUsers')}
             </h6>
-            <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-3">
+            <p className="text-xs text-muted-foreground mb-3">
               {t('portfolios.fields.selectUsersDescription')}
               {selectedTeams.length === 0 ? (
                 <strong> {t('portfolios.fields.mustSelectAtLeastOneUser')}</strong>
@@ -223,26 +230,19 @@ const TeamUserAssignmentForm: React.FC = () => {
               )}
             </p>
 
-            {/* Search bar */}
-            {/* Champ sans libelle visible (la section porte deja son titre) :
-                l'aria-label reste la seule etiquette. */}
-            <InputGroup className="mb-3">
-              <InputGroupAddon align="inline-start">
-                <span className="inline-flex text-muted-foreground"><Search size={18} strokeWidth={1.75} /></span>
-              </InputGroupAddon>
-              <InputGroupInput
-                id="team-user-search"
-                aria-label={t('portfolios.fields.searchUser')}
-                placeholder={t('portfolios.fields.searchUser')}
-                value={userSearchTerm}
-                onChange={(e) => setUserSearchTerm(e.target.value)}
-              />
-            </InputGroup>
+            {/* La recherche d'utilisateur vit dans le champ UNIQUE du header :
+                c'est le seul filtre de cet écran, il n'a pas besoin d'un second
+                champ à mi-hauteur du formulaire. */}
+            <HeaderSearchField
+              value={userSearchTerm}
+              onChange={setUserSearchTerm}
+              placeholder={t('portfolios.fields.searchUser')}
+            />
 
             {filteredUsers.length === 0 ? (
               <div className="text-center py-6">
                 <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><People size={40} strokeWidth={1.75} /></span>
-                <p className="cn-text-body2 text-muted-foreground text-[0.85rem]">
+                <p className="text-sm text-muted-foreground">
                   {userSearchTerm ? t('portfolios.fields.noUserFound') : t('portfolios.fields.noUserAvailable')}
                 </p>
               </div>
@@ -252,10 +252,10 @@ const TeamUserAssignmentForm: React.FC = () => {
                   <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4" key={userItem.id}>
                     <BuiCard
                       className={cn(
-                        'cursor-pointer rounded-[16px] border-solid ring-0 gap-0 py-[9px] transition-[border-color] duration-200 motion-reduce:transition-none hover:border-[var(--accent)]',
+                        'cursor-pointer rounded-2xl border border-solid ring-0 gap-0 py-[9px] transition-colors duration-200 motion-reduce:transition-none hover:border-primary',
                         selectedUsersSet.has(userItem.id)
-                          ? 'border-2 border-[var(--accent)]'
-                          : 'border border-[var(--line)]',
+                          ? 'border-primary bg-primary-soft/50'
+                          : 'border-border',
                       )}
                       onClick={() => handleUserToggle(userItem.id)}
                     >
@@ -267,15 +267,15 @@ const TeamUserAssignmentForm: React.FC = () => {
                             onCheckedChange={() => handleUserToggle(userItem.id)}
                           />
                           <Avatar className="size-6 rounded-[8px] after:rounded-[8px] me-[4.5px]">
-                            <AvatarFallback className="rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)] text-[0.55rem] font-semibold font-[family-name:var(--font-display)]">
+                            <AvatarFallback className="rounded-md bg-primary text-primary-foreground text-[0.55rem] font-semibold font-[family-name:var(--font-display)]">
                               {userItem.firstName.charAt(0)}{userItem.lastName.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
-                          <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold">
+                          <h6 className="text-xs font-semibold">
                             {userItem.firstName} {userItem.lastName}
                           </h6>
                         </div>
-                        <span className="cn-text-caption text-muted-foreground block ms-5 text-[0.7rem] mb-0.5">
+                        <span className="block ms-5 text-[0.7rem] text-muted-foreground mb-0.5">
                           {userItem.email}
                         </span>
                         <div className="ms-5">
@@ -305,27 +305,27 @@ const TeamUserAssignmentForm: React.FC = () => {
 
         return (
           <div>
-            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-3">
+            <h6 className="text-sm font-semibold tracking-tight mb-3">
               {t('portfolios.fields.confirmAssignments')}
             </h6>
 
             {/* Manager */}
             <BuiCard className="gap-0 py-0 p-3 mb-3">
-              <h6 className="cn-text-subtitle2 text-[0.82rem] mb-0.5 flex items-center gap-0.5">
+              <h6 className="text-xs font-medium mb-0.5 flex items-center gap-0.5">
                 <People size={16} strokeWidth={1.75} />
                 {t('portfolios.fields.selectedManager')}
               </h6>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <Avatar className="size-7 rounded-[8px] after:rounded-[8px]">
-                  <AvatarFallback className="rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)] text-[0.6rem] font-semibold font-[family-name:var(--font-display)]">
+                  <AvatarFallback className="rounded-md bg-primary text-primary-foreground text-[0.6rem] font-semibold font-[family-name:var(--font-display)]">
                     {selectedManagerData?.firstName?.charAt(0)}{selectedManagerData?.lastName?.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h6 className="cn-text-subtitle2 text-primary text-[0.85rem] font-semibold">
+                  <h6 className="text-primary text-[0.85rem] font-semibold">
                     {selectedManagerData?.firstName} {selectedManagerData?.lastName}
                   </h6>
-                  <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
+                  <span className="text-[0.7rem] text-muted-foreground">
                     {selectedManagerData?.email}
                   </span>
                 </div>
@@ -335,26 +335,28 @@ const TeamUserAssignmentForm: React.FC = () => {
             <div className="grid grid-cols-12 gap-3">
               <div className="col-span-12 min-[900px]:col-span-6">
                 <BuiCard className="gap-0 py-0 p-3">
-                  <h6 className="cn-text-subtitle2 text-[0.82rem] mb-1.5 flex items-center gap-0.5">
+                  <h6 className="text-xs font-medium mb-1.5 flex items-center gap-0.5">
                     <Group size={16} strokeWidth={1.75} />
                     {t('portfolios.fields.selectedTeams')} ({selectedTeamsData.length})
                   </h6>
                   {selectedTeamsData.length > 0 ? (
-                    <ul className="list-none m-0 p-0">
+                    <ItemGroup>
                       {selectedTeamsData.map((team) => (
-                        <li className="flex items-center py-[3px]" key={team.id}>
-                          <span className="inline-flex text-[var(--ok)] min-w-[28px]"><CheckCircle size={16} strokeWidth={1.75} /></span>
-                          <div className="min-w-0">
-                            <p className="cn-text-body1 text-[0.82rem]">{team.name}</p>
-                            <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
+                        <Item key={team.id} size="xs" className="px-0 py-[3px]">
+                          <ItemMedia variant="icon" className="min-w-[28px] text-success">
+                            <CheckCircle size={16} strokeWidth={1.75} />
+                          </ItemMedia>
+                          <ItemContent>
+                            <ItemTitle className="text-[0.82rem] font-normal">{team.name}</ItemTitle>
+                            <ItemDescription className="text-[0.7rem]">
                               {team.memberCount ?? 0} {t('portfolios.fields.members')} {team.interventionType ? `\u2022 ${team.interventionType}` : ''}
-                            </span>
-                          </div>
-                        </li>
+                            </ItemDescription>
+                          </ItemContent>
+                        </Item>
                       ))}
-                    </ul>
+                    </ItemGroup>
                   ) : (
-                    <span className="cn-text-caption text-muted-foreground italic text-[0.75rem]">
+                    <span className="italic text-[0.75rem] text-muted-foreground">
                       {t('portfolios.fields.noTeamSelected')}
                     </span>
                   )}
@@ -363,26 +365,28 @@ const TeamUserAssignmentForm: React.FC = () => {
 
               <div className="col-span-12 min-[900px]:col-span-6">
                 <BuiCard className="gap-0 py-0 p-3">
-                  <h6 className="cn-text-subtitle2 text-[0.82rem] mb-1.5 flex items-center gap-0.5">
+                  <h6 className="text-xs font-medium mb-1.5 flex items-center gap-0.5">
                     <People size={16} strokeWidth={1.75} />
                     {t('portfolios.fields.selectedUsers')} ({selectedUsersData.length})
                   </h6>
                   {selectedUsersData.length > 0 ? (
-                    <ul className="list-none m-0 p-0">
+                    <ItemGroup>
                       {selectedUsersData.map((userItem) => (
-                        <li className="flex items-center py-[3px]" key={userItem.id}>
-                          <span className="inline-flex text-[var(--ok)] min-w-[28px]"><CheckCircle size={16} strokeWidth={1.75} /></span>
-                          <div className="min-w-0">
-                            <p className="cn-text-body1 text-[0.82rem]">{userItem.firstName} {userItem.lastName}</p>
-                            <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
+                        <Item key={userItem.id} size="xs" className="px-0 py-[3px]">
+                          <ItemMedia variant="icon" className="min-w-[28px] text-success">
+                            <CheckCircle size={16} strokeWidth={1.75} />
+                          </ItemMedia>
+                          <ItemContent>
+                            <ItemTitle className="text-[0.82rem] font-normal">{userItem.firstName} {userItem.lastName}</ItemTitle>
+                            <ItemDescription className="text-[0.7rem]">
                               {userItem.email} {'\u2022'} {getRoleLabel(userItem.role)}
-                            </span>
-                          </div>
-                        </li>
+                            </ItemDescription>
+                          </ItemContent>
+                        </Item>
                       ))}
-                    </ul>
+                    </ItemGroup>
                   ) : (
-                    <span className="cn-text-caption text-muted-foreground italic text-[0.75rem]">
+                    <span className="italic text-[0.75rem] text-muted-foreground">
                       {t('portfolios.fields.noUserAvailable')}
                     </span>
                   )}

@@ -1,4 +1,4 @@
-import { Button } from '../../../components/ui';
+import { Button, Card } from '../../../components/ui';
 import { Smartphone, Refresh } from '../../../icons';
 import { BAITLY_APP } from '../baitlyApp';
 
@@ -23,23 +23,25 @@ const STEPS = [
   'Revenez ici et rafraîchissez la liste',
 ];
 
-const ACCENT = 'var(--accent)';
-
 export default function DevicePairingGuide({ onRefresh, refreshing }: DevicePairingGuideProps) {
   return (
-    <div className="mt-1.5 p-2 rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--card)]">
+    // Le panneau du kit plutot qu'un <div> borde a la main : meme surface que les
+    // cartes du hub (fond de carte, filet, rayon), sans le redefinir ici.
+    <Card className="mt-1.5 gap-0 py-0 p-2">
       <div className="flex items-center gap-1 mb-0.5">
-        <Smartphone size={16} color={ACCENT} />
-        <p className="cn-text-body1 text-[0.82rem] font-semibold">
+        <span className="text-primary inline-flex">
+          <Smartphone size={16} />
+        </span>
+        <p className="text-[0.82rem] font-semibold">
           Appairez votre appareil dans l'app {BAITLY_APP.name}
         </p>
       </div>
-      <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-1.5">
+      <p className="text-[0.72rem] text-muted-foreground mb-1.5">
         L'appairage d'un objet neuf se fait dans l'app mobile {BAITLY_APP.name} (au plus près de
         l'appareil). Il apparaîtra ensuite ici automatiquement, rattaché au compte de l'organisation.
       </p>
 
-      <ol className="m-0 mb-1.5 ps-[13.5px] [&_li]:mb-[1.5px] [&_li]:text-[0.74rem] [&_li]:text-[var(--muted)]">
+      <ol className="m-0 mb-1.5 ps-[13.5px] [&_li]:mb-[1.5px] [&_li]:text-[0.74rem] [&_li]:text-muted-foreground">
         {STEPS.map((s) => (
           <li key={s}>{s}</li>
         ))}
@@ -72,7 +74,7 @@ export default function DevicePairingGuide({ onRefresh, refreshing }: DevicePair
             )}
           </>
         ) : (
-          <p className="cn-text-body1 text-[0.72rem] text-[var(--warn)] font-semibold">
+          <p className="text-[0.72rem] text-warning-ink font-semibold">
             App {BAITLY_APP.name} bientôt disponible — en attendant, contactez le support pour l'appairage.
           </p>
         )}
@@ -90,6 +92,6 @@ export default function DevicePairingGuide({ onRefresh, refreshing }: DevicePair
           </Button>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

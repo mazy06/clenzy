@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { useNavigate } from 'react-router-dom';
 
 import { LayoutGrid, Plus } from 'lucide-react';
+import { Badge } from '../../../components/ui';
 import PageHeader from '../../../components/PageHeader';
 import { bookingEngineApi } from '../../../services/api/bookingEngineApi';
 import { GALLERY_TEMPLATES } from './grapes/import/galleryTemplates';
@@ -69,17 +70,13 @@ export default function TemplateGalleryPage() {
   }, [creating, navigate]);
 
   return (
-    <div className="be-home h-[100vh] flex flex-col bg-[var(--bg)] px-3 min-[900px]:px-6 py-3 min-[900px]:py-[18px]" data-accent="indigo">
+    <div className="be-home h-[100vh] flex flex-col bg-background px-3 min-[900px]:px-6 py-3 min-[900px]:py-[18px]" data-accent="indigo">
       <div className="shrink-0">
         <PageHeader
           title="Tous les templates"
           subtitle="Choisissez un modèle pour démarrer votre booking engine"
           iconBadge={<LayoutGrid />}
-          titleAdornment={
-            <span className="text-[12px] font-semibold text-[var(--muted)] bg-[var(--hover)] rounded-[7992px] px-1.5 py-0.5 tabular-nums whitespace-nowrap">
-              {total} modèles
-            </span>
-          }
+          titleAdornment={<Badge variant="secondary" className="tabular-nums whitespace-nowrap">{total} modèles</Badge>}
           onBack={() => navigate(-1)}
           backLabel="Retour"
         />
@@ -88,7 +85,7 @@ export default function TemplateGalleryPage() {
       <div className="flex-1 min-h-0 overflow-hidden" ref={areaRef}>
         <div className="tpl-grid tpl-grid--quad">
           {items.map((tpl) => {
-            const c1 = tpl.theme?.primaryColor || 'var(--accent)';
+            const c1 = tpl.theme?.primaryColor || 'var(--bui-primary)';
             return (
               <article
                 key={tpl.id} className="tpl-card" role="button" tabIndex={0}
@@ -100,7 +97,7 @@ export default function TemplateGalleryPage() {
                   {tpl.thumbnail ? (
                     <img src={tpl.thumbnail} alt="" loading="lazy" />
                   ) : (
-                    <div className="mini" style={{ ['--t1' as string]: c1, ['--t2' as string]: c1, ['--t3' as string]: 'var(--surface-2)' }}>
+                    <div className="mini" style={{ ['--t1' as string]: c1, ['--t2' as string]: c1, ['--t3' as string]: 'var(--bui-card)' }}>
                       <div className="mini__bar"><span className="mini__logo" /><span className="mini__nav" /><span className="mini__nav" /><span className="mini__nav sp" /></div>
                       <div className="mini__hero"><span className="mini__h1" /><span className="mini__h2" /><span className="mini__search" /></div>
                       <div className="mini__cards"><span /><span /><span /></div>

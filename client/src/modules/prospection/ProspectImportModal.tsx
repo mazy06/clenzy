@@ -92,8 +92,8 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
     <Dialog open={open} onOpenChange={(next) => !next && handleClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader className="flex-row items-center gap-1.5 border-b pb-2">
-          <CloudUpload className="text-[var(--mui-primary)]" />
-          <DialogTitle className="cn-text-h6">
+          <CloudUpload className="text-primary" />
+          <DialogTitle className="text-sm font-semibold">
             Importer des prospects
           </DialogTitle>
         </DialogHeader>
@@ -146,11 +146,11 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
           }}
           onDragLeave={() => setDragOver(false)}
           className={cn(
-            'border border-dashed rounded-[12px] p-6 text-center cursor-pointer',
-            'transition-[border-color,background-color] duration-200 motion-reduce:transition-none',
+            'border border-dashed rounded-xl p-6 text-center cursor-pointer',
+            'transition-[border-color,background-color] duration-200 ease-out-quart motion-reduce:transition-none',
             dragOver
-              ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
-              : 'border-[var(--line-2)] bg-[var(--field)]',
+              ? 'border-primary bg-primary-soft'
+              : 'border-border bg-field hover:border-primary/40',
           )}
           onClick={() => document.getElementById('csv-file-input')?.click()}
         >
@@ -159,25 +159,25 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
             type="file"
             accept=".csv"
             onChange={handleFileChange}
-            style={{ display: 'none' }}
+            className="hidden"
           />
           {selectedFile ? (
             <div className="flex items-center justify-center gap-1.5">
-              <InsertDriveFile className="text-[var(--mui-primary)]" />
-              <p className="cn-text-body1 text-foreground">
+              <InsertDriveFile className="text-primary" />
+              <p className="text-sm font-medium text-foreground">
                 {selectedFile.name}
               </p>
-              <p className="cn-text-body2 text-muted-foreground">
+              <p className="text-xs text-muted-foreground tabular-nums">
                 ({(selectedFile.size / 1024).toFixed(1)} Ko)
               </p>
             </div>
           ) : (
             <>
-              <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><CloudUpload size={48} strokeWidth={1.75} /></span>
-              <p className="cn-text-body1 text-muted-foreground">
+              <span className="inline-flex text-faint mb-1.5"><CloudUpload size={48} strokeWidth={1.75} /></span>
+              <p className="text-sm text-muted-foreground">
                 Deposez votre fichier CSV ici
               </p>
-              <p className="cn-text-body2 text-muted-foreground opacity-60">
+              <p className="text-xs text-faint">
                 ou cliquez pour parcourir
               </p>
             </>
@@ -191,9 +191,9 @@ const ProspectImportModal: React.FC<ProspectImportModalProps> = ({ open, onClose
           <div
             role="progressbar"
             aria-label="Import en cours"
-            className="mt-3 h-1 w-full overflow-hidden rounded-full bg-[var(--line)]"
+            className="mt-3 h-1 w-full overflow-hidden rounded-full bg-muted"
           >
-            <div className="h-full w-full bg-[var(--accent)] animate-pulse motion-reduce:animate-none" />
+            <div className="h-full w-full bg-primary animate-pulse motion-reduce:animate-none" />
           </div>
         )}
 

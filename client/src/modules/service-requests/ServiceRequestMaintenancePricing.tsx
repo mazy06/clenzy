@@ -3,7 +3,7 @@ import { Field, FieldLabel, Input } from '../../components/ui';
 import { Receipt, Search } from '../../icons';
 import type { QuoteLine } from '../../schemas/serviceRequestSchema';
 import ServiceRequestQuoteEditor from './ServiceRequestQuoteEditor';
-import StatusChip, { STATUS_TONES } from '../../components/StatusChip';
+import StatusChip from '../../components/StatusChip';
 
 // ─── Chiffrage maintenance ──────────────────────────────────────────────────
 //
@@ -43,6 +43,9 @@ const MODES: { value: PricingMode; label: string; icon: React.ReactElement }[] =
   { value: 'DIAGNOSTIC', label: 'Diagnostic d’abord', icon: <Search size={15} strokeWidth={1.75} /> },
 ];
 
+/** Ton de marque du sélecteur de mode (encre + fond pastel). */
+const BRAND_TOKENS = { color: 'var(--bui-primary)', bg: 'var(--bui-primary-soft)' } as const;
+
 const ServiceRequestMaintenancePricing: React.FC<ServiceRequestMaintenancePricingProps> = React.memo(
   ({ pricingMode, quoteLines, diagnosticFee, onChange, disabled = false }) => {
     const handleModeChange = useCallback(
@@ -74,7 +77,7 @@ const ServiceRequestMaintenancePricing: React.FC<ServiceRequestMaintenancePricin
 
     return (
       <div>
-        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-1.5">
+        <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
           Chiffrage
         </p>
 
@@ -88,7 +91,7 @@ const ServiceRequestMaintenancePricing: React.FC<ServiceRequestMaintenancePricin
                 outlined
                 selected={isActive}
                 pressed={isActive}
-                tokens={STATUS_TONES.accent}
+                tokens={BRAND_TOKENS}
                 icon={m.icon}
                 label={m.label}
                 onClick={disabled ? undefined : () => handleModeChange(m.value)}
@@ -101,18 +104,18 @@ const ServiceRequestMaintenancePricing: React.FC<ServiceRequestMaintenancePricin
 
         {/* Contenu selon le mode */}
         {pricingMode === 'DIAGNOSTIC' ? (
-          <div className="border border-[var(--line)] rounded-[11px] bg-[var(--field)] p-2">
+          <div className="border border-solid border-border rounded-[11px] bg-field p-2">
             <div className="flex items-center gap-2 flex-wrap">
               <Field className="w-[130px]">
                 <FieldLabel
                   htmlFor="maintenance-diagnostic-fee"
-                  className="cn-text-body1 text-[10px] font-bold text-[var(--faint)] uppercase tracking-[.04em] mb-0.5"
+                  className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-0.5"
                 >
                   Montant du diagnostic (€)
                 </FieldLabel>
                 <Input
                   id="maintenance-diagnostic-fee"
-                  className="w-full bg-[var(--card)] text-[13px] tabular-nums text-end [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  className="w-full bg-card text-[13px] tabular-nums text-end [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   value={Number.isFinite(diagnosticFee as number) && diagnosticFee !== undefined ? diagnosticFee : ''}
                   onChange={(e) => handleDiagnosticChange(e.target.value)}
                   type="number"
@@ -122,7 +125,7 @@ const ServiceRequestMaintenancePricing: React.FC<ServiceRequestMaintenancePricin
                   disabled={disabled}
                 />
               </Field>
-              <p className="cn-text-body1 flex-1 min-w-[180px] text-[11.5px] text-[var(--muted)] leading-[1.4]">
+              <p className="flex-1 min-w-[180px] text-[11.5px] text-muted-foreground leading-[1.4]">
                 L'artisan facture d'abord ce diagnostic pour évaluer sur place, puis
                 établit le devis après la visite. Optionnel — laisse vide pour chiffrer plus tard.
               </p>

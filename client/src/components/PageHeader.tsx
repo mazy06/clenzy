@@ -75,9 +75,17 @@ export default function PageHeader({
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { setTabsSlot } = useScreenChrome();
-  // `md` de Tailwind (768 px) : les actions se replient dans le menu ⋯ au meme
-  // seuil que le reste des bascules responsive de la barre.
-  const isCompact = useMediaQuery('(max-width: 767.98px)');
+  // `lg` de Tailwind (1024 px) — le MEME seuil que toutes les autres bascules de
+  // cette barre : fil d'Ariane (`hidden lg:block`), sous-titre, declencheur de
+  // sidebar (`lg:hidden`) et rangee d'onglets, qui vient justement se poser DANS
+  // la barre sous ce seuil (cf. PageTabs, `max-width: 1023.98px`).
+  //
+  // Il valait 767,98 px, ce que son commentaire decrivait deja — a tort — comme
+  // aligne sur le reste. Entre 768 et 1023 px la barre portait donc d'un coup le
+  // declencheur de sidebar, le titre, le MENU D'ONGLETS, la recherche, toutes les
+  // actions et le retour : c'est la largeur ou l'espace manque le plus, et la
+  // seule ou rien ne se repliait.
+  const isCompact = useMediaQuery('(max-width: 1023.98px)');
 
   const handleBack = () => {
     if (onBack) {

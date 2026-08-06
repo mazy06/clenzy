@@ -70,7 +70,7 @@ export default function ListSkeleton({
       {Array.from({ length: rows }).map((_, idx) => (
         <div
           key={idx}
-          className="flex items-center gap-[7.5px] px-[9px] rounded-lg border border-solid border-[var(--line)] bg-[var(--card)]"
+          className="flex items-center gap-[7.5px] px-[9px] rounded-lg border border-solid border-border bg-card"
           style={{ height: rowHeight }}
         >
           <Skeleton className="size-9" />

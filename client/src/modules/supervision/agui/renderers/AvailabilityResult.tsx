@@ -9,6 +9,7 @@
    ============================================================ */
 import React from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../../../components/ui';
+import { cn } from '../../../../utils/cn';
 import { SurfaceCard, Overline } from './shared';
 
 interface Day {
@@ -28,13 +29,21 @@ interface AvailabilityData {
 
 const MAX_CELLS = 62; // ~2 mois ; au-delà on tronque l'affichage de la grille.
 
-function dayColor(day: Day): { bg: string; fg: string } {
-  if (day.available) return { bg: 'var(--ok-soft)', fg: 'var(--ok)' };
+/** Couple fond pastel / encre foncée : la teinte vive en texte ne passe pas AA. */
+function dayClasses(day: Day): string {
+  if (day.available) return 'bg-success-soft text-success-ink';
   const status = (day.status ?? '').toUpperCase();
-  if (status === 'BOOKED') return { bg: 'var(--err-soft)', fg: 'var(--err)' };
+  if (status === 'BOOKED') return 'bg-destructive-soft text-destructive-ink';
   // BLOCKED / MAINTENANCE / autre indispo
-  return { bg: 'var(--warn-soft)', fg: 'var(--warn)' };
+  return 'bg-warning-soft text-warning-ink';
 }
+
+/** Légende : pastilles décoratives, donc teinte vive. */
+const LEGEND = [
+  { dot: 'bg-success', label: 'Libre' },
+  { dot: 'bg-destructive', label: 'Réservé' },
+  { dot: 'bg-warning', label: 'Bloqué' },
+] as const;
 
 function statusLabel(day: Day): string {
   if (day.available) return 'Libre';
@@ -61,24 +70,20 @@ export const AvailabilityResult: React.FC<{ data: AvailabilityData }> = ({ data 
   return (
     <SurfaceCard>
       {/* Bandeau résumé */}
-      <div className="flex items-center gap-3 mb-2 flex-wrap">
+      <div className="mb-2 flex flex-wrap items-center gap-3">
         <div>
           <Overline>Disponibilité</Overline>
-          <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
+          <p className="text-xs tabular-nums text-muted-foreground">
             {data.fullyAvailable
               ? 'Entièrement disponible'
               : `${available} nuit${available > 1 ? 's' : ''} libre${available > 1 ? 's' : ''} · ${unavailable} occupée${unavailable > 1 ? 's' : ''}`}
           </p>
         </div>
-        <div className="flex gap-2 ms-auto flex-wrap">
-          {[
-            { c: 'var(--ok)', l: 'Libre' },
-            { c: 'var(--err)', l: 'Réservé' },
-            { c: 'var(--warn)', l: 'Bloqué' },
-          ].map((legend) => (
-            <div className="inline-flex items-center gap-0.5" key={legend.l}>
-              <div className="w-[8px] h-[8px] rounded-[2px]" style={{ backgroundColor: legend.c }} />
-              <p className="cn-text-body1 text-[10.5px] text-[var(--faint)]">{legend.l}</p>
+        <div className="ms-auto flex flex-wrap gap-2">
+          {LEGEND.map((legend) => (
+            <div className="inline-flex items-center gap-1" key={legend.label}>
+              <span className={cn('size-2 rounded-[2px]', legend.dot)} />
+              <span className="text-2xs text-muted-foreground">{legend.label}</span>
             </div>
           ))}
         </div>
@@ -88,13 +93,17 @@ export const AvailabilityResult: React.FC<{ data: AvailabilityData }> = ({ data 
       {visible.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {visible.map((day) => {
-            const color = dayColor(day);
             const d = new Date(day.date);
             const dayNum = Number.isNaN(d.getTime()) ? '?' : d.getDate();
             return (
               <Tooltip key={day.date}>
                 <TooltipTrigger asChild>
-                  <div className="w-[26px] h-[26px] rounded-[6px] inline-flex items-center justify-center text-[11px] font-semibold tabular-nums" style={{ backgroundColor: color.bg, color: color.fg }}>
+                  <div
+                    className={cn(
+                      'inline-flex size-[26px] items-center justify-center rounded-md text-xs font-semibold tabular-nums',
+                      dayClasses(day),
+                    )}
+                  >
                     {dayNum}
                   </div>
                 </TooltipTrigger>
@@ -106,7 +115,7 @@ export const AvailabilityResult: React.FC<{ data: AvailabilityData }> = ({ data 
       )}
 
       {hidden > 0 && (
-        <p className="cn-text-body1 block mt-1 text-[11px] text-[var(--faint)] italic">
+        <p className="mt-1 block text-2xs italic text-muted-foreground">
           + {hidden} jour{hidden > 1 ? 's' : ''} non affiché{hidden > 1 ? 's' : ''}
         </p>
       )}

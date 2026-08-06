@@ -16,8 +16,8 @@ export default function ContentSection({ cfg }: { cfg: StudioConfigState }) {
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      <div className="flex items-center px-3 h-[48px] border-b border-[var(--line)] shrink-0">
-        <div className="inline-flex p-0.5 gap-0.5 bg-[var(--field)] rounded-[var(--radius-md)]">
+      <div className="flex items-center px-3 h-[48px] border-b border-border shrink-0">
+        <div className="inline-flex p-0.5 gap-0.5 bg-muted rounded-lg">
           {([{ value: 'properties', label: 'Propriétés affichées' }, { value: 'ai', label: 'Génération IA' }] as const).map((o) => {
             const active = o.value === tab;
             return (
@@ -27,13 +27,14 @@ export default function ContentSection({ cfg }: { cfg: StudioConfigState }) {
                 aria-pressed={active}
                 onClick={() => setTab(o.value)}
                 className={cn(
-                  'inline-flex h-7 items-center justify-center px-[10.5px] rounded-[var(--radius-sm)]',
-                  'text-[var(--text-sm)] cursor-pointer appearance-none border-none',
-                  'transition-[color] duration-[var(--duration-fast)] ease-[var(--ease-out)]',
-                  'hover:text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]',
+                  'inline-flex h-7 items-center justify-center px-[10.5px] rounded-md',
+                  'text-xs cursor-pointer appearance-none border-none',
+                  'transition-colors duration-200 ease-out',
+                  'hover:text-foreground',
+                  'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
                   active
-                    ? 'font-semibold text-[var(--ink)] bg-[var(--card)] shadow-[var(--shadow-card)]'
-                    : 'font-medium text-[var(--muted)] bg-transparent shadow-none',
+                    ? 'font-semibold text-foreground bg-card shadow-sm'
+                    : 'font-medium text-muted-foreground bg-transparent shadow-none',
                 )}
               >
                 {o.label}

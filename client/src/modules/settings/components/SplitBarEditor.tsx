@@ -145,7 +145,7 @@ export default function SplitBarEditor({
     <div>
       <div
         ref={barRef}
-        className="relative flex overflow-hidden rounded-[8px] border border-solid border-[var(--line)] select-none"
+        className="relative flex overflow-hidden rounded-md border border-solid border-border select-none"
         style={{ height: BAR_HEIGHT }}
       >
         {upstream && upstreamPct > 0 && (
@@ -158,7 +158,7 @@ export default function SplitBarEditor({
                   // Hachures : cette part sort du circuit avant tout partage,
                   // elle ne se lit pas comme les trois autres.
                   backgroundImage:
-                    'repeating-linear-gradient(45deg, var(--muted) 0 4px, color-mix(in srgb, var(--muted) 80%, black) 4px 8px)',
+                    'repeating-linear-gradient(45deg, var(--bui-muted-foreground) 0 4px, color-mix(in srgb, var(--bui-muted-foreground) 80%, var(--bui-foreground)) 4px 8px)',
                 }}
               >
                 {upstreamPct >= 8 ? formatPct(upstreamPct) : ''}
@@ -196,8 +196,8 @@ export default function SplitBarEditor({
                   onPointerDown={(e) => handlePointerDown(e, index)}
                   onKeyDown={(e) => handleKeyDown(e, index)}
                   className={cn(
-                    'w-[3px] shrink-0 bg-[var(--card)] transition-opacity duration-150 ease-[cubic-bezier(0.22,1,0.36,1)]',
-                    'focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]',
+                    'w-[3px] shrink-0 bg-card transition-opacity duration-150 ease-out-quart',
+                    'focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary',
                     adjustable
                       ? 'cursor-col-resize opacity-55 hover:opacity-100'
                       : 'cursor-not-allowed opacity-25',
@@ -214,11 +214,11 @@ export default function SplitBarEditor({
       <div className="flex flex-wrap gap-2 mt-2">
         {upstream && upstreamPct > 0 && (
           <div className="flex items-center gap-1">
-            <div className="w-[8px] h-[8px] rounded-[2px] bg-[var(--muted)]" />
-            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground font-medium">
+            <div className="size-2 rounded-[2px] bg-muted-foreground" />
+            <p className="text-xs text-muted-foreground font-medium">
               {upstream.label}
             </p>
-            <p className="cn-text-body1 text-[0.72rem] font-bold tabular-nums text-muted-foreground">
+            <p className="text-xs font-bold tabular-nums text-muted-foreground">
               {formatPct(upstreamPct)}
             </p>
           </div>
@@ -226,11 +226,11 @@ export default function SplitBarEditor({
 
         {segments.map((segment) => (
           <div className="flex items-center gap-1" key={segment.key}>
-            <div className="w-[8px] h-[8px] rounded-[2px]" style={{ backgroundColor: segment.color }} />
-            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground font-medium">
+            <div className="size-2 rounded-[2px]" style={{ backgroundColor: segment.color }} />
+            <p className="text-xs text-muted-foreground font-medium">
               {segment.label}
             </p>
-            <p className="cn-text-body1 text-[0.72rem] font-bold tabular-nums text-foreground">
+            <p className="text-xs font-bold tabular-nums text-foreground">
               {formatPct(segment.value)}
             </p>
             {onToggleLock && (
@@ -245,13 +245,13 @@ export default function SplitBarEditor({
                     segment.locked ? `Déverrouiller ${segment.label}` : `Verrouiller ${segment.label}`
                   }
                   className={cn(
-                    'inline-flex size-5 items-center justify-center rounded-[5px] border border-solid p-0',
-                    'transition-[color,background-color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)]',
-                    'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--accent)]',
+                    'inline-flex size-5 items-center justify-center rounded-sm border border-solid p-0',
+                    'transition-[color,background-color] duration-150 ease-out-quart motion-reduce:transition-none',
+                    'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary',
                     disabled ? 'cursor-not-allowed' : 'cursor-pointer',
                     // Verrouille : teinte et fond derives de la couleur du segment,
                     // connue seulement a l'execution — passes en style inline.
-                    !segment.locked && 'text-[var(--faint)] hover:text-[var(--muted)]',
+                    !segment.locked && 'text-faint hover:text-muted-foreground',
                   )}
                   style={{
                     borderColor: segment.locked
@@ -285,7 +285,7 @@ export default function SplitBarEditor({
             elles s'additionnent a plus de 100 % a la lecture, alors que les
             largeurs de la barre, elles, sont bien a l'echelle du total. */}
         {upstream && upstreamPct > 0 && (
-          <p className="cn-text-body1 text-[0.72rem] text-muted-foreground opacity-60 italic">
+          <p className="text-xs text-muted-foreground opacity-60 italic">
             (% du net)
           </p>
         )}

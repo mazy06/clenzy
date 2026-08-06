@@ -1,18 +1,11 @@
 import React, { useMemo } from 'react';
+import { NativeSelect } from '../../../components/ui';
+import { Search as SearchIcon, Close as CloseIcon } from '../../../icons';
+import { Badge, Button } from '../../../components/ui';
 import {
-  Combobox,
-  ComboboxCollection,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxGroup,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxLabel,
-  ComboboxList,
-  InputGroupAddon,
-  NativeSelect,
-} from '../../../components/ui';
-import { Search as SearchIcon } from '../../../icons';
+  useScreenCommands,
+  type CommandDescriptor,
+} from '../../../components/command-center';
 import {
   ALL_SERVICES,
   CATEGORIES,
@@ -21,16 +14,19 @@ import {
 } from '../../../services/integrations/allServicesIndex';
 
 /**
- * Header compact (recherche + filtre categorie) destine au slot {@code filters}
- * du PageHeader de la page Parametres. Aucune surface propre : juste 2 champs
- * inline qui s'integrent visuellement dans le bandeau de titre.
+ * Header compact de la tab Intégrations, destiné au slot {@code filters} du
+ * PageHeader des Paramètres.
  *
- * <h2>Tailles</h2>
- * <ul>
- *   <li>Combobox : largeur 200-260px responsive</li>
- *   <li>Select natif : largeur 160-180px</li>
- *   <li>Gap 6px entre les 2</li>
- * </ul>
+ * <h2>Où est passée la recherche de service ?</h2>
+ * <p>Dans le centre de commande. Les 71 services sont publiés comme commandes
+ * d'écran ({@code useScreenCommands}) : ⌘K puis « stripe », « airbnb »… mène au
+ * même filtre qu'avant. Ce header ne dessinait pas un filtre de plus mais un
+ * SECOND champ de recherche, collé au champ unique du bandeau de titre — deux
+ * loupes voisines pour deux moteurs différents.</p>
+ *
+ * <p>Reste ici ce qui n'est pas de la recherche : le filtre par catégorie
+ * (liste fermée de 20 entrées, un déroulant la montre mieux qu'une palette) et
+ * la pastille du service filtré, qui rend l'état visible et annulable.</p>
  */
 
 /** Valeur sentinelle du select : « pas de filtre categorie ». */
@@ -39,15 +35,11 @@ const ALL_CATEGORIES = '_all';
 interface IntegrationsHeaderProps {
   selectedCategoryId: string | null;
   onCategoryChange: (categoryId: string | null) => void;
-  /**
-   * Service actuellement filtre (affiche dans l'input de la combobox).
-   * {@code null} = aucun filtre service actif → l'input affiche son
-   * placeholder. Mode controle complet : le parent possede l'etat.
-   */
+  /** Service actuellement filtré, ou {@code null}. Mode contrôlé : le parent possède l'état. */
   selectedService?: ServiceIndexEntry | null;
   /**
-   * Callback declenche soit avec un service (selection dans la liste), soit
-   * avec {@code null} quand l'utilisateur vide le champ pour reset le filtre.
+   * Callback déclenché avec un service (sélection) ou {@code null} (reset du
+   * filtre depuis la pastille).
    */
   onSelectService?: (service: ServiceIndexEntry | null) => void;
 }
@@ -58,79 +50,64 @@ export default function IntegrationsHeader({
   selectedService = null,
   onSelectService,
 }: IntegrationsHeaderProps) {
-  // Les services sont regroupes par categorie : c'est le pendant du `groupBy`
-  // de l'ancien Autocomplete. La combobox reconnait un groupe a sa cle `items`.
-  const groupedServices = useMemo(() => {
-    const groups: { label: string; items: ServiceIndexEntry[] }[] = [];
-    const byLabel = new Map<string, ServiceIndexEntry[]>();
-    for (const service of ALL_SERVICES) {
-      let bucket = byLabel.get(service.categoryLabel);
-      if (!bucket) {
-        bucket = [];
-        byLabel.set(service.categoryLabel, bucket);
-        groups.push({ label: service.categoryLabel, items: bucket });
+  // Repli quand le parent ne pilote pas la sélection : on se contente de
+  // rejoindre la section du service (comportement historique).
+  const selectService = React.useCallback(
+    (service: ServiceIndexEntry | null) => {
+      if (onSelectService) {
+        onSelectService(service);
+        return;
       }
-      bucket.push(service);
-    }
-    return groups;
-  }, []);
-
-  // Mode controle : la valeur de la combobox vient du parent
-  // ({@code selectedService}). Quand un service est filtre, son nom apparait
-  // dans l'input — l'utilisateur voit ce qu'il a recherche au lieu d'un
-  // placeholder vide. Champ vide → onValueChange(null) → le parent reset.
-  const handleSelectService = (service: ServiceIndexEntry | null) => {
-    if (onSelectService) {
-      onSelectService(service);
-    } else if (service) {
+      if (!service) return;
       const domId = getDomIdForCategory(service.categoryId);
-      if (domId) {
-        document.getElementById(domId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      if (domId) document.getElementById(domId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
+    [onSelectService],
+  );
+
+  const commands = useMemo<CommandDescriptor[]>(() => {
+    const items: CommandDescriptor[] = ALL_SERVICES.map((service) => ({
+      id: `integrations.service.${service.id}`,
+      section: 'screen',
+      label: service.name,
+      // La catégorie sert de contexte affiché ET de terme de recherche : on
+      // trouve « Airbnb » aussi bien en tapant « OTA ».
+      hint: service.categoryLabel,
+      keywords: `${service.categoryLabel} intégration integration connecteur`,
+      icon: <SearchIcon />,
+      run: () => selectService(service),
+    }));
+    if (selectedService) {
+      items.unshift({
+        id: 'integrations.service.reset',
+        section: 'screen',
+        label: 'Afficher toutes les intégrations',
+        keywords: 'reset filtre tout effacer',
+        icon: <CloseIcon />,
+        run: () => selectService(null),
+      });
     }
-  };
+    return items;
+  }, [selectService, selectedService]);
+
+  useScreenCommands('Intégrations', commands);
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
-      <Combobox<ServiceIndexEntry>
-        items={groupedServices}
-        value={selectedService}
-        itemToStringLabel={(option) => option.name}
-        isItemEqualToValue={(option, other) => option.id === other.id}
-        onValueChange={(next) => handleSelectService(next)}
-      >
-        <ComboboxInput
-          placeholder="Rechercher…"
-          aria-label="Rechercher un service"
-          showClear
-          className="w-[200px] min-[600px]:w-[240px] min-[900px]:w-[260px] text-[0.78rem]"
-        >
-          <InputGroupAddon align="inline-start">
-            <span className="inline-flex text-[var(--muted)]">
-              <SearchIcon size={14} strokeWidth={2} />
-            </span>
-          </InputGroupAddon>
-        </ComboboxInput>
-        <ComboboxContent className="max-h-[340px] text-[0.78rem]">
-          <ComboboxEmpty>Aucun service trouvé</ComboboxEmpty>
-          <ComboboxList>
-            {(group: { label: string; items: ServiceIndexEntry[] }) => (
-              <ComboboxGroup key={group.label} items={group.items}>
-                <ComboboxLabel className="text-[0.6rem] font-bold tracking-[0.06em] uppercase">
-                  {group.label}
-                </ComboboxLabel>
-                <ComboboxCollection>
-                  {(service: ServiceIndexEntry) => (
-                    <ComboboxItem key={service.id} value={service} className="text-[0.78rem] font-medium">
-                      {service.name}
-                    </ComboboxItem>
-                  )}
-                </ComboboxCollection>
-              </ComboboxGroup>
-            )}
-          </ComboboxList>
-        </ComboboxContent>
-      </Combobox>
+      {selectedService && (
+        <Badge variant="secondary" className="gap-1 ps-2 pe-1">
+          <span className="truncate">{selectedService.name}</span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            aria-label={`Retirer le filtre ${selectedService.name}`}
+            onClick={() => selectService(null)}
+          >
+            <CloseIcon size={12} strokeWidth={2} />
+          </Button>
+        </Badge>
+      )}
 
       <NativeSelect
         size="sm"

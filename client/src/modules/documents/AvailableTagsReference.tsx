@@ -32,19 +32,21 @@ import {
   GppGood,
   Email,
 } from '../../icons';
-// ─── Tons sémantiques (tokens Signature — pattern TONES) ─────────────────────
-// Remplace l'ancienne palette hex Baitly : bleu doux → info, teal → ok,
-// warm → warn, rouge doux → err, primary/violet → accent, warm-gray → muted.
+// ─── Tons sémantiques (tokens Baitly UI — pattern TONES) ─────────────────────
+// L'encre est le jeton `-ink` : ces tons portent d'abord du TEXTE (puces de
+// type, icône de catégorie sur fond `-soft`). La couleur étant résolue à
+// l'exécution, elle reste une valeur CSS — une classe Tailwind construite
+// depuis une variable ne serait jamais émise à la compilation.
 
 interface Tone { c: string; bg: string }
 
 const TONES: Record<'ok' | 'accent' | 'warn' | 'err' | 'info' | 'muted', Tone> = {
-  ok:     { c: 'var(--ok)',     bg: 'var(--ok-soft)' },
-  accent: { c: 'var(--accent)', bg: 'var(--accent-soft)' },
-  warn:   { c: 'var(--warn)',   bg: 'var(--warn-soft)' },
-  err:    { c: 'var(--err)',    bg: 'var(--err-soft)' },
-  info:   { c: 'var(--info)',   bg: 'var(--info-soft)' },
-  muted:  { c: 'var(--muted)',  bg: 'var(--hover)' },
+  ok:     { c: 'var(--bui-success-ink)',      bg: 'var(--bui-success-soft)' },
+  accent: { c: 'var(--bui-primary)',          bg: 'var(--bui-primary-soft)' },
+  warn:   { c: 'var(--bui-warning-ink)',      bg: 'var(--bui-warning-soft)' },
+  err:    { c: 'var(--bui-destructive-ink)',  bg: 'var(--bui-destructive-soft)' },
+  info:   { c: 'var(--bui-info-ink)',         bg: 'var(--bui-info-soft)' },
+  muted:  { c: 'var(--bui-muted-foreground)', bg: 'var(--bui-muted)' },
 };
 
 // Le ton local nomme son encre `c` ; la primitive attend `color`.
@@ -309,8 +311,8 @@ interface AvailableTagsReferenceProps {
 // qu'avec `font-mono` : la classe Tailwind par defaut n'a pas la meme pile.
 const CODE_CHIP_CLASS =
   'inline-block whitespace-nowrap rounded-[4px] border border-solid ' +
-  'border-[color-mix(in_srgb,_var(--accent)_25%,_transparent)] bg-[var(--accent-soft)] ' +
-  'px-[3.75px] py-[2px] text-[0.7rem] leading-normal text-[var(--accent)] ' +
+  'border-primary/25 bg-primary-soft ' +
+  'px-[3.75px] py-[2px] text-[0.7rem] leading-normal text-primary ' +
   "[font-family:'SF_Mono',_Menlo,_Consolas,_monospace]";
 
 const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search }) => {
@@ -340,21 +342,21 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
 
   return (
     <div>
-      <p className="cn-text-body2 text-muted-foreground mb-3 text-[0.78rem]">
+      <p className="text-muted-foreground mb-3 text-[0.78rem] tabular-nums">
         {totalTags} tags disponibles dans {TAG_CATEGORIES.length} catégories
       </p>
 
       {/* Instructions — icone lucide ContentCopy inline (plus d'emoji) */}
       <Alert variant="info" className="mb-[18px]">
         <Info />
-        <AlertDescription className="cn-text-body2 text-[0.8125rem] leading-[1.6]">
+        <AlertDescription className="text-[0.8125rem] leading-[1.6]">
           <strong className="font-semibold">Comment utiliser les tags :</strong>{' '}
           Dans votre fichier .odt, insérez les tags sous la forme{' '}
           <code className={CODE_CHIP_CLASS}>{'${categorie.champ}'}</code>
           . Par exemple{' '}
           <code className={CODE_CHIP_CLASS}>{'${client.nom}'}</code>{' '}
           sera remplacé par le nom du client. Cliquez sur l&apos;icône{' '}
-          <span className="inline-flex align-[middle] text-[var(--info)] mx-[1.5px]">
+          <span className="inline-flex align-[middle] text-info-ink mx-[1.5px]">
             <ContentCopy size={13} strokeWidth={1.75} />
           </span>{' '}
           à droite de chaque ligne pour copier un tag prêt à coller.
@@ -372,12 +374,12 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
         <AccordionItem
           key={category.id}
           value={category.id}
-          className="mb-1.5 rounded-[8px] border border-solid border-[var(--line)] transition-[border-color] duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-[var(--faint)]"
+          className="mb-1.5 rounded-md border border-solid border-border transition-[border-color] duration-[180ms] ease-out-quart hover:border-faint"
         >
-          <AccordionTrigger className="cursor-pointer rounded-[8px] px-3 aria-expanded:rounded-b-none aria-expanded:border-b aria-expanded:border-solid aria-expanded:border-b-[var(--line)]">
+          <AccordionTrigger className="cursor-pointer rounded-md px-3 aria-expanded:rounded-b-none aria-expanded:border-b aria-expanded:border-solid aria-expanded:border-b-border">
             <div className="flex items-center gap-2 w-full min-w-0">
               {/* Badge icone Baitly (tile 26x26 tintee, icon 16px) */}
-              <div className="w-[26px] h-[26px] rounded-[8px] inline-flex items-center justify-center shrink-0" style={{ backgroundColor: category.tone.bg, color: category.tone.c }}>
+              <div className="w-[26px] h-[26px] rounded-md inline-flex items-center justify-center shrink-0" style={{ backgroundColor: category.tone.bg, color: category.tone.c }}>
                 {React.isValidElement(category.icon)
                   ? React.cloneElement(category.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
                       size: 16,
@@ -386,10 +388,10 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                   : category.icon}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="cn-text-body1 font-semibold text-[0.875rem] text-foreground">
+                <p className="font-semibold text-[0.875rem] text-foreground">
                   {category.label}
                 </p>
-                <span className="cn-text-caption text-muted-foreground text-[0.7rem] block leading-[1.4]">
+                <span className="text-muted-foreground text-[0.7rem] block leading-[1.4]">
                   {category.description}
                 </span>
               </div>
@@ -403,7 +405,7 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
             <div className="overflow-x-auto">
               <Table>
                 {/* Header de table tres subtil (au lieu d'un survol agressif) */}
-                <TableHeader className="bg-[var(--bg)] [&_th]:py-1.5 [&_th]:text-[0.7rem] [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-[0.02em] [&_th]:text-[var(--muted)] [&_th]:border-b [&_th]:border-solid [&_th]:border-b-[var(--line)]">
+                <TableHeader className="bg-background [&_th]:py-1.5 [&_th]:text-[0.7rem] [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-[0.02em] [&_th]:text-muted-foreground [&_th]:border-b [&_th]:border-solid [&_th]:border-b-border">
                   <TableRow>
                     <TableHead className="w-[30%]">Tag</TableHead>
                     <TableHead className="w-[30%]">Description</TableHead>
@@ -416,7 +418,7 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                   {category.tags.map((tagDef) => (
                     <TableRow
                       key={tagDef.tag}
-                      className="hover:bg-[var(--hover)] last:[&_td]:border-b-0"
+                      className="hover:bg-muted last:[&_td]:border-b-0"
                     >
                       <TableCell>
                         <code className={CODE_CHIP_CLASS}>
@@ -424,7 +426,7 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                         </code>
                       </TableCell>
                       <TableCell>
-                        <p className="cn-text-body2 text-[0.8125rem]">
+                        <p className="text-[0.8125rem]">
                           {tagDef.description}
                         </p>
                       </TableCell>
@@ -435,7 +437,7 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                         />
                       </TableCell>
                       <TableCell>
-                        <p className="cn-text-body2 text-muted-foreground italic text-[0.8125rem]">
+                        <p className="text-muted-foreground italic text-[0.8125rem]">
                           {tagDef.example}
                         </p>
                       </TableCell>
@@ -448,9 +450,9 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                               onClick={() => handleCopyTag(tagDef.tag)}
                               aria-label={`Copier le tag ${tagDef.tag}`}
                               className={cn(
-                                'transition-colors duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
-                                'hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]',
-                                copiedTag === tagDef.tag ? 'text-[var(--ok)]' : 'text-[var(--muted)]',
+                                'transition-colors duration-[180ms] ease-out-quart',
+                                'hover:text-primary hover:bg-primary-soft',
+                                copiedTag === tagDef.tag ? 'text-success-ink' : 'text-muted-foreground',
                               )}
                             >
                               <ContentCopy size={15} strokeWidth={1.75} />
@@ -473,7 +475,7 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
 
       {filteredCategories.length === 0 && (
         <div className="text-center py-6">
-          <p className="cn-text-body1 text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Aucun tag ne correspond à la recherche &quot;{search}&quot;
           </p>
         </div>

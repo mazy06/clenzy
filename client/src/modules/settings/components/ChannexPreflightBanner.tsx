@@ -60,32 +60,41 @@ interface ChannexPreflightBannerProps {
   defaultCollapsed?: boolean;
 }
 
+/** Icone decorative → teinte VIVE (jamais `-ink`, reserve au texte, §2.4). */
 function SeverityIcon({ severity }: { severity: ChannexPreflightCheck['severity'] }) {
   if (severity === 'OK') {
-    return <CheckCircle2 size={16} color="var(--ok)" strokeWidth={2.2} />;
+    return <CheckCircle2 size={16} strokeWidth={2.2} className="text-success" />;
   }
   if (severity === 'WARNING') {
-    return <AlertTriangle size={16} color="var(--warn)" strokeWidth={2.2} />;
+    return <AlertTriangle size={16} strokeWidth={2.2} className="text-warning" />;
   }
-  return <XCircle size={16} color="var(--err)" strokeWidth={2.2} />;
+  return <XCircle size={16} strokeWidth={2.2} className="text-destructive" />;
 }
 
 function CheckRow({ check }: { check: ChannexPreflightCheck }) {
   const isIssue = check.severity !== 'OK';
   return (
-    <div className={cn('flex gap-[7.5px] py-[3.9000000000000004px] px-1.5 rounded-[6px] items-start', isIssue ? (check.severity === 'BLOCKER' ? 'bg-[color-mix(in_srgb,var(--err)_5%,transparent)]' : 'bg-[color-mix(in_srgb,var(--warn)_5%,transparent)]') : 'bg-[transparent]')}>
+    <div
+      className={cn(
+        'flex gap-[7.5px] py-1 px-1.5 rounded-md items-start',
+        isIssue
+          ? (check.severity === 'BLOCKER' ? 'bg-destructive-soft/40' : 'bg-warning-soft/40')
+          : 'bg-transparent',
+      )}
+    >
       <div className="mt-0.5 shrink-0">
         <SeverityIcon severity={check.severity} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className={cn('cn-text-body2 leading-[1.3] text-[var(--ink)]', isIssue ? 'font-semibold' : 'font-medium')}>
+        <p className={cn('text-xs leading-[1.3] text-foreground', isIssue ? 'font-semibold' : 'font-medium')}>
           {check.label}
         </p>
-        <span className="cn-text-caption text-muted-foreground block leading-[1.45] mt-0">
+        <span className="text-xs text-muted-foreground block leading-[1.45]">
           {check.detail}
         </span>
+        {/* Remediation = TEXTE → encre `-ink`, la teinte vive ne passe pas AA. */}
         {check.remediation && (
-          <span className={cn('cn-text-caption block leading-[1.45] mt-[2.4000000000000004px] italic', check.severity === 'BLOCKER' ? 'text-[var(--err)]' : 'text-[var(--warn)]')}>
+          <span className={cn('block text-xs leading-[1.45] mt-0.5 italic', check.severity === 'BLOCKER' ? 'text-destructive-ink' : 'text-warning-ink')}>
             ↳ {check.remediation}
           </span>
         )}
@@ -134,49 +143,54 @@ export default function ChannexPreflightBanner({
   const warningCount = report?.checks.filter((c) => c.severity === 'WARNING').length ?? 0;
   const okCount = report?.checks.filter((c) => c.severity === 'OK').length ?? 0;
 
-  // Couleur principale du banner selon le verdict
+  // Teinte VIVE du verdict : elle peint la bordure, le fond et l'icone du
+  // bandeau, jamais du texte (§2.4). L'ancienne ecriture `${accent}33`
+  // concatenait un alpha sur un `var()` — declaration invalide, sans effet :
+  // les alphas passent desormais par `color-mix`.
   const accent = !report
-    ? 'var(--accent)'
+    ? 'var(--bui-primary)'
     : blockerCount > 0
-      ? 'var(--err)'
+      ? 'var(--bui-destructive)'
       : warningCount > 0
-        ? 'var(--warn)'
-        : 'var(--ok)';
+        ? 'var(--bui-warning)'
+        : 'var(--bui-success)';
 
   return (
-    <div className="rounded-[8px] overflow-hidden" style={{ border: `1px solid ${accent}33`, backgroundColor: `${accent}08` }}>
+    <div
+      className="rounded-lg overflow-hidden border border-solid border-[color-mix(in_srgb,var(--pf-accent)_20%,transparent)] bg-[color-mix(in_srgb,var(--pf-accent)_5%,transparent)]"
+      style={{ '--pf-accent': accent } as React.CSSProperties}
+    >
       {/* Header (toujours visible) */}
       {/* La teinte de survol depend du verdict (calcule au rendu) : on la passe par
           variable CSS, une classe Tailwind ne pouvant pas naitre d'une valeur d'execution. */}
       <div
-        className="flex items-center gap-[7.5px] px-[9px] py-[7.5px] cursor-pointer select-none transition-[background-color] duration-150 hover:bg-[var(--pf-hover)]"
-        style={{ '--pf-hover': `${accent}12` } as React.CSSProperties}
+        className="flex items-center gap-[7.5px] px-[9px] py-[7.5px] cursor-pointer select-none transition-[background-color] duration-150 motion-reduce:transition-none hover:bg-[color-mix(in_srgb,var(--pf-accent)_9%,transparent)]"
         onClick={() => setCollapsed((c) => !c)}
       >
-        <div className="w-[28px] h-[28px] rounded-[6px] flex items-center justify-center shrink-0" style={{ backgroundColor: `${accent}1A`, color: accent }}>
+        <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 bg-[color-mix(in_srgb,var(--pf-accent)_12%,transparent)] text-[var(--pf-accent)]">
           <Stethoscope size={16} strokeWidth={2.2} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="cn-text-body2 font-semibold leading-[1.3]">
+          <p className="text-xs font-semibold leading-[1.3] text-foreground">
             Diagnostic Channex
             {propertyId != null && (
-              <span className="cn-text-caption text-muted-foreground ms-1 font-normal">
+              <span className="text-xs text-muted-foreground ms-1 font-normal tabular-nums">
                 · propriete #{propertyId}
               </span>
             )}
           </p>
           {loading && (
-            <span className="cn-text-caption text-muted-foreground leading-[1.4]">
+            <span className="text-xs text-muted-foreground leading-[1.4]">
               Verification en cours…
             </span>
           )}
           {!loading && error && (
-            <span className="cn-text-caption text-destructive leading-[1.4]">
+            <span className="text-xs text-destructive-ink leading-[1.4]">
               {error}
             </span>
           )}
           {!loading && report && (
-            <span className="cn-text-caption text-muted-foreground leading-[1.4]">
+            <span className="text-xs text-muted-foreground leading-[1.4]">
               {report.canProceed ? 'Pret a connecter' : 'Action requise avant connexion'}
               {okCount > 0 && ` · ${okCount} OK`}
               {warningCount > 0 && ` · ${warningCount} attention`}
@@ -201,9 +215,9 @@ export default function ChannexPreflightBanner({
                 }}
               >
                 {loading ? (
-                  <Spinner className="size-[14px]" style={{ color: accent }} />
+                  <Spinner className="size-[14px] text-[var(--pf-accent)]" />
                 ) : (
-                  <RefreshCw size={14} color={accent} strokeWidth={2.2} />
+                  <RefreshCw size={14} strokeWidth={2.2} className="text-[var(--pf-accent)]" />
                 )}
               </Button>
             </span>
@@ -221,9 +235,9 @@ export default function ChannexPreflightBanner({
           }}
         >
           {collapsed ? (
-            <ChevronDown size={16} color={accent} strokeWidth={2.2} />
+            <ChevronDown size={16} strokeWidth={2.2} className="text-[var(--pf-accent)]" />
           ) : (
-            <ChevronUp size={16} color={accent} strokeWidth={2.2} />
+            <ChevronUp size={16} strokeWidth={2.2} className="text-[var(--pf-accent)]" />
           )}
         </Button>
       </div>
@@ -234,9 +248,9 @@ export default function ChannexPreflightBanner({
           <div className="px-2 pb-2 pt-0.5">
             {loading && !report && (
               <div className="flex flex-col gap-[3px]">
-                <Skeleton className="h-9 rounded-[8px]" />
-                <Skeleton className="h-9 rounded-[8px]" />
-                <Skeleton className="h-9 rounded-[8px]" />
+                <Skeleton className="h-9 rounded-lg" />
+                <Skeleton className="h-9 rounded-lg" />
+                <Skeleton className="h-9 rounded-lg" />
               </div>
             )}
             {error && !loading && (

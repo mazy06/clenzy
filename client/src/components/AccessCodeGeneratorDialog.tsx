@@ -41,12 +41,45 @@ const DEFAULT_SYMBOLS = ['#', '*'];
 
 const MIN_LEN = 4;
 const MAX_LEN = 16;
-const BRAND = '#6B8A9A';
 
-const TYPE_META: Record<CodeCharType, { abbr: string; color: string; labelKey: string; defaultLabel: string }> = {
-  digits: { abbr: '0-9', color: '#6B8A9A', labelKey: 'typeDigits', defaultLabel: 'Chiffres' },
-  letters: { abbr: 'A-Z', color: '#4A9B8E', labelKey: 'typeLetters', defaultLabel: 'Lettres' },
-  symbols: { abbr: '#', color: '#D4A574', labelKey: 'typeSymbols', defaultLabel: 'Symboles' },
+/**
+ * Palette des trois familles de caracteres. Les couleurs sont LUES A
+ * L'EXECUTION (fond, bordure et encre d'un emplacement dependent de son type) :
+ * Tailwind n'emettrait jamais une classe construite depuis une variable, d'ou
+ * des valeurs CSS pointant les variables Baitly UI plutot que des utilities.
+ *
+ * Chaque famille porte le triplet du §2.4 de la charte : `tint` pour les aplats,
+ * pastilles et bordures, `ink` pour le TEXTE (la teinte vive plafonne a ~2,2:1
+ * sur une carte claire), `soft` pour le fond pastel.
+ */
+const TYPE_META: Record<
+  CodeCharType,
+  { abbr: string; tint: string; ink: string; soft: string; labelKey: string; defaultLabel: string }
+> = {
+  digits: {
+    abbr: '0-9',
+    tint: 'var(--bui-primary)',
+    ink: 'var(--bui-primary)',
+    soft: 'var(--bui-primary-soft)',
+    labelKey: 'typeDigits',
+    defaultLabel: 'Chiffres',
+  },
+  letters: {
+    abbr: 'A-Z',
+    tint: 'var(--bui-success)',
+    ink: 'var(--bui-success-ink)',
+    soft: 'var(--bui-success-soft)',
+    labelKey: 'typeLetters',
+    defaultLabel: 'Lettres',
+  },
+  symbols: {
+    abbr: '#',
+    tint: 'var(--bui-warning)',
+    ink: 'var(--bui-warning-ink)',
+    soft: 'var(--bui-warning-soft)',
+    labelKey: 'typeSymbols',
+    defaultLabel: 'Symboles',
+  },
 };
 
 const TYPE_ORDER: CodeCharType[] = ['digits', 'letters', 'symbols'];
@@ -54,9 +87,11 @@ const NEXT_TYPE: Record<CodeCharType, CodeCharType> = { digits: 'letters', lette
 
 export const DEFAULT_CODE_FORMAT: CodeFormat = { pattern: Array(6).fill('digits') };
 
-/** Bascule de caractere : tokens pleins a l'etat presse, neutres au repos. */
-const toggleTokens = (on: boolean, color: string) =>
-  (on ? { color: '#fff', bg: color } : { color: 'var(--muted)', bg: 'var(--hover)' });
+/** Bascule de caractere : aplat plein a l'etat presse, neutre au repos. */
+const toggleTokens = (on: boolean, tint: string) =>
+  (on
+    ? { color: 'var(--bui-primary-foreground)', bg: tint }
+    : { color: 'var(--bui-muted-foreground)', bg: 'var(--bui-muted)' });
 
 // ─── Generation (crypto.getRandomValues, repli Math.random) ───────────────────
 
@@ -213,7 +248,7 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
           pour garder son libelle traduit (celui du kit est un « Close » fige). */}
       <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto" showCloseButton={false}>
         <DialogHeader className="flex-row items-center gap-1.5">
-          <div className="w-[32px] h-[32px] rounded-[12px] flex items-center justify-center shrink-0" style={{ backgroundColor: `${BRAND}1A`, color: BRAND }}>
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
             <KeyIcon size={17} strokeWidth={1.8} />
           </div>
           <DialogTitle className="flex-1 font-bold text-[1.05rem]">{t('channels.checkIn.generator.title', "Générer un code d'accès")}</DialogTitle>
@@ -226,7 +261,7 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
 
       <div>
         {/* Aperçu du code + régénération / copie */}
-        <div className="flex items-center justify-between gap-1.5 p-3 rounded-[16px] bg-[var(--hover)] border border-solid border-[var(--line)]">
+        <div className="flex items-center justify-between gap-1.5 p-3 rounded-2xl bg-muted border border-solid border-border">
           {/* Éditable : l'hôte peut saisir un code précis (boîte à clé existante, digicode imposé). */}
           <Input
             value={code}
@@ -245,7 +280,7 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
                   <Button
                     variant="ghost"
                     size="icon"
-                    style={{ color: BRAND }}
+                    className="text-primary"
                     onClick={regenerate}
                     aria-label={t('channels.checkIn.generator.regenerate', 'Régénérer le code')}
                   >
@@ -264,7 +299,7 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
                     onClick={copy}
                     aria-label={copied ? t('channels.checkIn.generator.copied', 'Copié !') : t('channels.checkIn.generator.copy', 'Copier')}
                   >
-                    {copied ? <CheckCircle size={19} strokeWidth={2} color="#10b981" /> : <ContentCopy size={17} strokeWidth={1.75} />}
+                    {copied ? <CheckCircle size={19} strokeWidth={2} className="text-success" /> : <ContentCopy size={17} strokeWidth={1.75} />}
                   </Button>
                 </span>
               </TooltipTrigger>
@@ -278,8 +313,8 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
         {/* Longueur */}
         <div className="mt-4">
           <div className="flex items-baseline justify-between mb-0.5">
-            <p className="cn-text-body2 font-semibold">{t('channels.checkIn.generator.length', 'Longueur')}</p>
-            <p className="cn-text-body2 font-bold tabular-nums" style={{ color: BRAND }}>
+            <p className="text-xs font-semibold">{t('channels.checkIn.generator.length', 'Longueur')}</p>
+            <p className="text-xs font-bold tabular-nums text-primary">
               {t('channels.checkIn.generator.chars', '{{n}} caractères', { n: pattern.length })}
             </p>
           </div>
@@ -295,20 +330,21 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
           />
           <div className="flex justify-between mt-1" aria-hidden>
             {[4, 8, 12, 16].map((mark) => (
-              <span key={mark} className="cn-text-caption text-muted-foreground tabular-nums">{mark}</span>
+              <span key={mark} className="text-xs text-muted-foreground tabular-nums">{mark}</span>
             ))}
           </div>
         </div>
 
         {/* Composition : type de chaque position (nombre + position de chaque type) */}
         <div className="mt-2">
-          <p className="cn-text-body2 font-semibold mb-1">{t('channels.checkIn.generator.composition', 'Composition')}</p>
+          <p className="text-xs font-semibold mb-1">{t('channels.checkIn.generator.composition', 'Composition')}</p>
           {/* Récap des quantités (sert aussi de légende couleur) */}
           <div className="flex gap-3 flex-wrap mb-2">
             {TYPE_ORDER.map((tp) => (
               <div className="flex items-center gap-0.5" key={tp}>
-                <div className="w-[9px] h-[9px] rounded-[50%]" style={{ backgroundColor: TYPE_META[tp].color }} />
-                <span className="cn-text-caption font-semibold tabular-nums">
+                {/* Pastille de 9 px : un aplat n'est pas du texte, il garde la teinte vive. */}
+                <div className="w-[9px] h-[9px] rounded-full" style={{ backgroundColor: TYPE_META[tp].tint }} />
+                <span className="text-xs font-semibold tabular-nums">
                   {counts[tp]} {t(`channels.checkIn.generator.${TYPE_META[tp].labelKey}`, TYPE_META[tp].defaultLabel)}
                 </span>
               </div>
@@ -326,15 +362,15 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
                   <TooltipTrigger asChild>
                     <div
                       onClick={() => cycleSlot(i)}
-                      className="w-[46px] py-[4.5px] rounded-[12px] cursor-pointer text-center border border-solid bg-[var(--slot-bg)] transition-all duration-150 ease-[ease] hover:bg-[var(--slot-bg-hover)]"
+                      className="w-[46px] py-[4.5px] rounded-xl cursor-pointer text-center border border-solid bg-[var(--slot-bg)] transition-colors duration-150 ease-out-quart motion-reduce:transition-none hover:bg-[var(--slot-bg-hover)]"
                       style={{
-                        borderColor: `${meta.color}66`,
-                        '--slot-bg': `${meta.color}14`,
-                        '--slot-bg-hover': `${meta.color}24`,
+                        borderColor: `color-mix(in srgb, ${meta.tint} 40%, transparent)`,
+                        '--slot-bg': meta.soft,
+                        '--slot-bg-hover': `color-mix(in srgb, ${meta.tint} 16%, transparent)`,
                       } as React.CSSProperties}
                     >
-                      <p className="cn-text-body1 text-[0.6rem] text-muted-foreground leading-[1] tabular-nums">{i + 1}</p>
-                      <p className="cn-text-body1 font-bold text-[0.78rem] mt-[1.5px]" style={{ fontFamily: 'monospace', color: meta.color }}>{meta.abbr}</p>
+                      <p className="text-[0.6rem] text-muted-foreground leading-[1] tabular-nums">{i + 1}</p>
+                      <p className="font-mono font-bold text-[0.78rem] mt-[1.5px]" style={{ color: meta.ink }}>{meta.abbr}</p>
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>{t('channels.checkIn.generator.slotCycle', 'Changer le type')}</TooltipContent>
@@ -342,11 +378,11 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
               );
             })}
           </div>
-          <span className="cn-text-caption text-muted-foreground mt-1 block">
+          <span className="mt-1 block text-xs text-muted-foreground">
             {t('channels.checkIn.generator.compositionHint', 'Cliquez sur une position pour changer le type de caractère.')}
           </span>
           {smartLockHint ? (
-            <span className="cn-text-caption text-[var(--bui-warning-ink)] mt-0.5 block">
+            <span className="mt-0.5 block text-xs text-warning-ink">
               {t('channels.checkIn.generator.smartLockDigitsHint', 'Serrure connectée : seuls les chiffres du format (et sa longueur) sont utilisés pour le PIN de la serrure.')}
             </span>
           ) : null}
@@ -355,14 +391,14 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
         {/* Sous-sélecteur : lettres autorisées (si au moins une position lettre) */}
         {hasLetters && (
           <div className="mt-3">
-            <p className="cn-text-body2 font-semibold mb-1.5">{t('channels.checkIn.generator.lettersAllowed', 'Lettres autorisées')}</p>
+            <p className="text-xs font-semibold mb-1.5">{t('channels.checkIn.generator.lettersAllowed', 'Lettres autorisées')}</p>
             <div className="flex flex-wrap gap-0.5">
               {LETTER_CHARS.map((ch) => {
                 const on = selectedLetters.includes(ch);
-                return <StatusChip key={ch} label={ch} pressed={on} onClick={() => toggleLetter(ch)} tokens={toggleTokens(on, TYPE_META.letters.color)} className="min-w-[34px] font-mono font-bold" />;
+                return <StatusChip key={ch} label={ch} pressed={on} onClick={() => toggleLetter(ch)} tokens={toggleTokens(on, TYPE_META.letters.tint)} className="min-w-[34px] font-mono font-bold" />;
               })}
             </div>
-            <span className="cn-text-caption text-muted-foreground mt-1 block">
+            <span className="mt-1 block text-xs text-muted-foreground">
               {t('channels.checkIn.generator.allLettersHint', 'Aucune sélection = toutes les lettres.')}
             </span>
           </div>
@@ -371,14 +407,14 @@ export default function AccessCodeGeneratorDialog({ open, initialCode, initialFo
         {/* Sous-sélecteur : symboles autorisés (souvent limités par la serrure) */}
         {hasSymbols && (
           <div className="mt-3">
-            <p className="cn-text-body2 font-semibold mb-1.5">{t('channels.checkIn.generator.symbolsAllowed', 'Symboles autorisés')}</p>
+            <p className="text-xs font-semibold mb-1.5">{t('channels.checkIn.generator.symbolsAllowed', 'Symboles autorisés')}</p>
             <div className="flex flex-wrap gap-0.5">
               {SYMBOL_CHARS.map((ch) => {
                 const on = selectedSymbols.includes(ch);
-                return <StatusChip key={ch} label={ch} pressed={on} onClick={() => toggleSymbol(ch)} tokens={toggleTokens(on, TYPE_META.symbols.color)} className="min-w-[34px] font-mono font-bold" />;
+                return <StatusChip key={ch} label={ch} pressed={on} onClick={() => toggleSymbol(ch)} tokens={toggleTokens(on, TYPE_META.symbols.tint)} className="min-w-[34px] font-mono font-bold" />;
               })}
             </div>
-            <span className="cn-text-caption text-muted-foreground mt-1 block">
+            <span className="mt-1 block text-xs text-muted-foreground">
               {t('channels.checkIn.generator.allSymbolsHint', 'Aucune sélection = tous les symboles.')}
             </span>
           </div>

@@ -158,13 +158,15 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
       >
         {paymentSuccess ? (
           <div className="flex flex-col items-center justify-center py-9 px-6 gap-3">
-            <span className="inline-flex text-[var(--ok)]">
+            {/* Icone decorative de 64 px : ce n'est pas du texte, elle garde la
+                teinte vive plutot que l'encre `-ink`. */}
+            <span className="inline-flex text-success">
               <CheckCircleIcon size={64} strokeWidth={1.5} />
             </span>
-            <DialogTitle className="font-[family-name:var(--font-display)] font-semibold text-[20px] tracking-[-.01em] text-[var(--ink)] text-center">
+            <DialogTitle className="font-[family-name:var(--font-display)] font-semibold text-[20px] tracking-[-.01em] text-foreground text-center">
               Paiement reussi !
             </DialogTitle>
-            <p className="cn-text-body2 text-[var(--muted)] text-[13px] text-center max-w-[360px]">
+            <p className="max-w-[360px] text-center text-[13px] text-muted-foreground">
               Le paiement de <Money value={amount} from="EUR" /> pour{' '}
               <strong>{interventionTitle || 'l\'intervention'}</strong> a ete traite avec succes.
             </p>
@@ -180,7 +182,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
             {/* ── Header ──────────────────────────────────────────── */}
             <DialogHeader className="flex-row items-center justify-between gap-[9px] px-6 pt-6 pb-3">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="inline-flex text-[var(--accent)] shrink-0">
+                <span className="inline-flex text-primary shrink-0">
                   <LockIcon size={18} strokeWidth={1.75} />
                 </span>
                 <div className="min-w-0">
@@ -188,23 +190,23 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
                     Paiement securise
                   </DialogTitle>
                   {interventionTitle && (
-                    <p className="cn-text-body2 font-[family-name:var(--font-sans)] text-[11.5px] font-normal text-[var(--muted)]">
+                    <p className="text-[11.5px] font-normal text-muted-foreground">
                       {interventionTitle}
                     </p>
                   )}
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <h6 className="cn-text-h6 font-[family-name:var(--font-display)] text-[1.125rem] font-semibold tabular-nums text-[var(--accent)]">
+                <h6 className="font-[family-name:var(--font-display)] text-[1.125rem] font-semibold tabular-nums text-primary">
                   <Money value={amount} from="EUR" />
                 </h6>
-                {/* ✕ — pattern .rm-x : 34px r10 hairline, hover --err */}
+                {/* ✕ : 34 px, filet de 1 px, encre destructive au survol. */}
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={onClose}
                   aria-label="Fermer"
-                  className="size-[34px] rounded-[10px] border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] hover:text-[var(--err)] hover:border-[var(--err)] hover:bg-[var(--card)]"
+                  className="size-[34px] rounded-lg border-border bg-card text-muted-foreground hover:text-destructive hover:border-destructive hover:bg-card"
                 >
                   <CloseIcon size={16} strokeWidth={1.75} />
                 </Button>
@@ -215,8 +217,8 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
             {/* Loading state */}
             {loading && (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
-                <Spinner className="size-8 text-[var(--accent)]" />
-                <p className="cn-text-body2 text-[var(--muted)] text-[12.5px]">
+                <Spinner className="size-8 text-primary" />
+                <p className="text-[12.5px] text-muted-foreground">
                   Chargement du formulaire de paiement...
                 </p>
               </div>
@@ -248,9 +250,9 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
 
             {/* Footer security note */}
             {!loading && !error && clientSecret && (
-              <div className="px-4 py-2 flex items-center justify-center gap-0.5 border-t border-[var(--line)] bg-[var(--surface-2)]">
-                <span className="inline-flex text-[var(--faint)]"><LockIcon size={12} strokeWidth={1.75} /></span>
-                <span className="cn-text-caption text-[var(--faint)] text-[11.5px]">
+              <div className="px-4 py-2 flex items-center justify-center gap-0.5 border-t border-border bg-muted">
+                <span className="inline-flex text-faint"><LockIcon size={12} strokeWidth={1.75} /></span>
+                <span className="text-[11.5px] text-faint">
                   Paiement securise par Stripe. Vos donnees sont chiffrees.
                 </span>
               </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent } from '../../../components/ui';
+import { Card, CardContent, Spinner } from '../../../components/ui';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -13,15 +13,14 @@ const AXIS_TICK = { fontSize: 10, fill: '#94A3B8' } as const;
 const TOOLTIP_STYLE = { fontSize: 11, borderRadius: 6, border: '1px solid #E2E8F0', boxShadow: 'none' } as const;
 const GRID_STROKE = '#F1F5F9';
 
-// Report en classes des anciens `sx` : p: 1.25 = 7,5 px (theme.spacing vaut 6).
-// `py-0` neutralise la gouttiere verticale du primitif, la carte porte son
-// propre padding de 7,5 px sur le contenu.
+// `py-0` neutralise la gouttiere verticale du primitif : c'est le contenu qui
+// pose son propre padding de 7,5 px.
 const CHART_CARD_CLS = 'w-full h-[220px] py-0';
 const CHART_CONTENT_CLS = 'p-[7.5px] h-full flex flex-col';
 
-// `mb: 0.5` avec theme.spacing = 6 vaut 3 px, pas un pas nomme de Tailwind.
+// L'ecart de 3 px sous l'etiquette n'est pas un pas nomme de Tailwind.
 const SECTION_LABEL_CLS =
-  'cn-text-body1 text-[0.6875rem] font-bold uppercase tracking-[0.04em] text-[var(--muted)] mb-[3px] shrink-0';
+  'text-[0.6875rem] font-bold uppercase tracking-[0.04em] text-muted-foreground mb-[3px] shrink-0';
 
 // Heatmap color scale
 function getHeatmapColor(rate: number): string {
@@ -47,7 +46,7 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
     >
       <div className="grid grid-cols-12 gap-[9px]">
         {/* Stacked bar: occupied vs vacant by month */}
-        <div className="col-span-12 min-[600px]:col-span-6">
+        <div className="col-span-12 @[600px]:col-span-6">
           <Card className={CHART_CARD_CLS}>
             <CardContent className={CHART_CONTENT_CLS}>
               <p className={SECTION_LABEL_CLS}>
@@ -55,7 +54,7 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
               </p>
               {loading || !data ? (
                 <div className="flex-1 flex items-center justify-center">
-                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                  <Spinner className="text-muted-foreground" />
                 </div>
               ) : (
                 <div className="flex-1 min-h-0">
@@ -76,7 +75,7 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
         </div>
 
         {/* By property horizontal bar */}
-        <div className="col-span-12 min-[600px]:col-span-6">
+        <div className="col-span-12 @[600px]:col-span-6">
           <Card className={CHART_CARD_CLS}>
             <CardContent className={CHART_CONTENT_CLS}>
               <p className={SECTION_LABEL_CLS}>
@@ -84,7 +83,7 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
               </p>
               {loading || !data ? (
                 <div className="flex-1 flex items-center justify-center">
-                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                  <Spinner className="text-muted-foreground" />
                 </div>
               ) : (
                 <div className="flex-1 min-h-0">
@@ -104,18 +103,18 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
         </div>
 
         {/* Gap nights card */}
-        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-3">
+        <div className="col-span-12 @[600px]:col-span-6 @[900px]:col-span-3">
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.vacantNights')}
             value={data ? `${data.gapNights}` : '-'}
             subtitle={t('dashboard.analytics.vacantNightsDesc')}
-            icon={<NightsStay color={data && data.gapNights > 20 ? 'error' : 'info'} />}
+            icon={<NightsStay className={data && data.gapNights > 20 ? 'text-destructive' : 'text-info'} />}
             loading={loading}
           />
         </div>
 
         {/* Heatmap calendar */}
-        <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-9">
+        <div className="col-span-12 @[600px]:col-span-6 @[900px]:col-span-9">
           <Card className="w-full py-0">
             <CardContent className="p-[7.5px]">
               <p className={SECTION_LABEL_CLS}>
@@ -123,16 +122,16 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
               </p>
               {loading || !data ? (
                 <div className="h-[100px] flex items-center justify-center">
-                  <span className="cn-text-caption text-muted-foreground opacity-60">...</span>
+                  <Spinner className="text-muted-foreground" />
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-0.5 mt-[3px]">
                   {data.heatmap.map((day) => (
                     <div
                       key={day.date}
-                      // transform explicite : `scale-*` de Tailwind v4 ecrit la propriete
-                      // `scale`, que la transition sur `transform` n'animerait pas.
-                      className="w-[14px] h-[14px] rounded-[2px] [transition:transform_0.1s] hover:[transform:scale(1.3)]"
+                      // Le survol se dit par l'opacite : un `scale()` sur une
+                      // case de 14 px empiete sur ses voisines (interdit §5).
+                      className="w-[14px] h-[14px] rounded-[2px] transition-opacity duration-150 ease-out motion-reduce:transition-none hover:opacity-70"
                       style={{ backgroundColor: getHeatmapColor(day.rate) }}
                       title={`${day.date}: ${Math.round(day.rate * 100)}%`}
                     />
@@ -150,7 +149,7 @@ const AnalyticsOccupancy: React.FC<Props> = React.memo(({ data, loading }) => {
                 ].map((item) => (
                   <div className="flex items-center gap-0.5" key={item.label}>
                     <div className="w-[8px] h-[8px] rounded-[2px]" style={{ backgroundColor: item.color }} />
-                    <p className="cn-text-body1 text-[0.5rem] text-muted-foreground opacity-60">{item.label}</p>
+                    <p className="text-[0.5rem] text-faint tabular-nums">{item.label}</p>
                   </div>
                 ))}
               </div>

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import StatusChip, { type ToneTokens } from '../../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert, Info } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
@@ -30,29 +30,30 @@ import {
   AutoFixHigh,
 } from '../../../icons';
 import { syncAdminApi, ReconciliationRun, ReconciliationStats } from '../../../services/api/syncAdminApi';
-import FilterChipRow from '../../../components/FilterChipRow';
-import StatTile from '../../../components/StatTile';
+import FilterChipRow from '../../../components/baitly/FilterChipRow';
+import StatTile from '../../../components/baitly/StatTile';
 import { useSyncAdminHeader } from '../SyncAdminPage';
 import PagePagination from '../../../components/PagePagination';
 
 type ReconciliationStatus = 'SUCCESS' | 'FAILED' | 'DIVERGENCE' | 'RUNNING';
 
+// Teinte vive de chaque option : FilterChipRow la passe dans un color-mix évalué
+// à l'exécution → valeur CSS `--bui-*`, une utility Tailwind ne serait pas générée.
 const STATUS_OPTIONS: { value: ReconciliationStatus; label: string; color: string }[] = [
-  { value: 'SUCCESS',    label: 'Success',    color: 'var(--ok)' },
-  { value: 'FAILED',     label: 'Failed',     color: 'var(--err)' },
-  { value: 'DIVERGENCE', label: 'Divergence', color: 'var(--warn)' },
-  { value: 'RUNNING',    label: 'Running',    color: 'var(--info)' },
+  { value: 'SUCCESS',    label: 'Success',    color: 'var(--bui-success)' },
+  { value: 'FAILED',     label: 'Failed',     color: 'var(--bui-destructive)' },
+  { value: 'DIVERGENCE', label: 'Divergence', color: 'var(--bui-warning)' },
+  { value: 'RUNNING',    label: 'Running',    color: 'var(--bui-info)' },
 ];
 
-// Statuts de run → tokens sémantiques (chips -soft : texte couleur + fond -soft)
-const STATUS_TOKEN: Record<string, ToneTokens> = {
-  SUCCESS: { color: 'var(--ok)', bg: 'var(--ok-soft)' },
-  FAILED: { color: 'var(--err)', bg: 'var(--err-soft)' },
-  DIVERGENCE: { color: 'var(--warn)', bg: 'var(--warn-soft)' },
-  RUNNING: { color: 'var(--info)', bg: 'var(--info-soft)' },
+// Statut de run → ton sémantique. Le couple encre/fond conforme AA est tenu par
+// StatusChip (STATUS_TONES) : ici on ne dit que le SENS, pas la couleur.
+const STATUS_TONE: Record<string, StatusTone> = {
+  SUCCESS: 'ok',
+  FAILED: 'err',
+  DIVERGENCE: 'warn',
+  RUNNING: 'info',
 };
-
-const NEUTRAL_TOKEN: ToneTokens = { color: 'var(--muted)', bg: 'var(--hover)' };
 
 const formatDuration = (startedAt: string | null, completedAt: string | null): string => {
   if (!startedAt || !completedAt) return '—';
@@ -191,22 +192,22 @@ const ReconciliationTab: React.FC = () => {
       {stats && (
         <div className="grid grid-cols-12 gap-3 mb-[18px]">
           <div className="col-span-6 min-[600px]:col-span-2">
-            <StatTile icon={<CompareArrows />} label="Total Runs" value={stats.totalRuns} color="#6B8A9A" />
+            <StatTile icon={<CompareArrows />} label="Total Runs" value={stats.totalRuns} iconClassName="text-primary" />
           </div>
           <div className="col-span-6 min-[600px]:col-span-2">
-            <StatTile icon={<CheckCircle />} label="Success" value={stats.successRuns} color="#4A9B8E" />
+            <StatTile icon={<CheckCircle />} label="Success" value={stats.successRuns} iconClassName="text-success" />
           </div>
           <div className="col-span-6 min-[600px]:col-span-2">
-            <StatTile icon={<ErrorOutline />} label="Failed" value={stats.failedRuns} color="#C97A7A" />
+            <StatTile icon={<ErrorOutline />} label="Failed" value={stats.failedRuns} iconClassName="text-destructive" />
           </div>
           <div className="col-span-6 min-[600px]:col-span-2">
-            <StatTile icon={<WarningAmber />} label="Divergence" value={stats.divergenceRuns} color="#D4A574" />
+            <StatTile icon={<WarningAmber />} label="Divergence" value={stats.divergenceRuns} iconClassName="text-warning" />
           </div>
           <div className="col-span-6 min-[600px]:col-span-2">
-            <StatTile icon={<Tune />} label="Discrepancies" value={stats.totalDiscrepancies} color="#7BA3C2" />
+            <StatTile icon={<Tune />} label="Discrepancies" value={stats.totalDiscrepancies} iconClassName="text-info" />
           </div>
           <div className="col-span-6 min-[600px]:col-span-2">
-            <StatTile icon={<AutoFixHigh />} label="Fixes" value={stats.totalFixes} color="#4A9B8E" />
+            <StatTile icon={<AutoFixHigh />} label="Fixes" value={stats.totalFixes} iconClassName="text-success" />
           </div>
         </div>
       )}
@@ -223,12 +224,12 @@ const ReconciliationTab: React.FC = () => {
       {loading ? (
         <div className="flex flex-col gap-1.5">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-[36px] w-full rounded-[9px]" />
+            <Skeleton key={i} className="h-9 w-full rounded-lg" />
           ))}
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+          <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -249,7 +250,7 @@ const ReconciliationTab: React.FC = () => {
               <TableBody>
                 {runs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={12} className="text-center text-[var(--muted)] py-[18px]">
+                    <TableCell colSpan={12} className="text-center text-muted-foreground py-[18px]">
                       Aucune reconciliation
                     </TableCell>
                   </TableRow>
@@ -258,24 +259,25 @@ const ReconciliationTab: React.FC = () => {
                     <TableRow key={run.id}>
                       <TableCell className="tabular-nums">{run.id}</TableCell>
                       <TableCell>
-                        <StatusChip tokens={NEUTRAL_TOKEN} label={run.channel} />
+                        <StatusChip tone="neutral" label={run.channel} />
                       </TableCell>
                       <TableCell className="tabular-nums">{run.propertyId}</TableCell>
                       <TableCell>
                         <StatusChip
-                          tokens={STATUS_TOKEN[run.status] ?? NEUTRAL_TOKEN}
+                          tone={STATUS_TONE[run.status] ?? 'neutral'}
                           label={run.status}
                         />
                       </TableCell>
                       <TableCell className="tabular-nums">{run.pmsDaysChecked}</TableCell>
                       <TableCell className="tabular-nums">{run.channelDaysChecked}</TableCell>
                       <TableCell>
-                        <p className={cn('cn-text-body2 tabular-nums', run.discrepanciesFound > 0 ? 'text-[var(--warn)]' : 'text-[var(--body)]', run.discrepanciesFound > 0 ? 'font-semibold' : 'font-normal')}>
+                        {/* Encre `-ink` : la teinte vive plafonne à ~2,2:1 sur une carte claire. */}
+                        <p className={cn('text-xs tabular-nums', run.discrepanciesFound > 0 ? 'text-warning-ink font-semibold' : 'text-foreground font-normal')}>
                           {run.discrepanciesFound}
                         </p>
                       </TableCell>
                       <TableCell>
-                        <p className={cn('cn-text-body2 tabular-nums', run.discrepanciesFixed > 0 ? 'text-[var(--ok)]' : 'text-[var(--body)]')}>
+                        <p className={cn('text-xs tabular-nums', run.discrepanciesFixed > 0 ? 'text-success-ink' : 'text-foreground')}>
                           {run.discrepanciesFixed}
                         </p>
                       </TableCell>
@@ -287,7 +289,7 @@ const ReconciliationTab: React.FC = () => {
                         {run.startedAt ? new Date(run.startedAt).toLocaleString() : '—'}
                       </TableCell>
                       <TableCell>
-                        <p className="cn-text-body2 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title={run.errorMessage || undefined}>
+                        <p className="text-xs max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" title={run.errorMessage || undefined}>
                           {run.errorMessage || '—'}
                         </p>
                       </TableCell>

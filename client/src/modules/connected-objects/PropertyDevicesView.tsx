@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Skeleton } from '../../components/ui';
 import { Inventory2, Add, MonitorHeart, WifiOff, BatteryAlert, GridView, ChevronLeft } from '../../icons';
 import PageHeader from '../../components/PageHeader';
-import StatTile from '../../components/StatTile';
+import StatTile from '../../components/baitly/StatTile';
 import EmptyState from '../../components/EmptyState';
 import { useConnectedObjects } from './useConnectedObjects';
 import DeviceCard from './components/DeviceCard';
@@ -63,15 +63,15 @@ export default function PropertyDevicesView() {
       />
 
       <div className="grid grid-cols-[repeat(auto-fit,_minmax(140px,_1fr))] gap-1.5 mb-[9px]">
-        <StatTile icon={<Inventory2 />} label="Objets" value={kpis.total} color="#6B8A9A" loading={loading} />
-        <StatTile icon={<MonitorHeart />} label="En ligne" value={kpis.online} color="#4A9B8E" loading={loading} />
-        <StatTile icon={<WifiOff />} label="Hors ligne" value={kpis.offline} color="#9CA3AF" loading={loading} />
-        <StatTile icon={<BatteryAlert />} label="Batterie faible" value={kpis.lowBattery} color="#D4A574" loading={loading} />
+        <StatTile icon={<Inventory2 />} label="Objets" value={kpis.total} iconClassName="text-primary" loading={loading} />
+        <StatTile icon={<MonitorHeart />} label="En ligne" value={kpis.online} iconClassName="text-success" loading={loading} />
+        <StatTile icon={<WifiOff />} label="Hors ligne" value={kpis.offline} iconClassName="text-muted-foreground" loading={loading} />
+        <StatTile icon={<BatteryAlert />} label="Batterie faible" value={kpis.lowBattery} iconClassName="text-warning" loading={loading} />
       </div>
 
       {loading ? (
         <div className={GRID}>
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[132px] w-full rounded-[var(--radius-lg)]" />)}
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[132px] w-full rounded-xl" />)}
         </div>
       ) : propertyDevices.length === 0 ? (
         <EmptyState
@@ -87,10 +87,10 @@ export default function PropertyDevicesView() {
               <span className="text-muted-foreground inline-flex">
                 <GridView size={15} strokeWidth={1.75} />
               </span>
-              <p className="cn-text-body1 font-semibold text-[0.9375rem] text-foreground">
+              <p className="text-[0.9375rem] font-semibold text-foreground">
                 {room === '__none__' ? 'Sans pièce attribuée' : room}
               </p>
-              <span className="cn-text-caption text-muted-foreground opacity-60">· {list.length}</span>
+              <span className="text-xs text-muted-foreground opacity-60 tabular-nums">· {list.length}</span>
             </div>
             <div className={GRID}>
               {list.map((d) => <DeviceCard key={d.uid} device={d} onAction={handleAction} acting={actingUid === d.uid} />)}
@@ -106,7 +106,7 @@ export default function PropertyDevicesView() {
         defaultPropertyId={propertyId}
       />
       {/* Lien retour secondaire pour les écrans étroits */}
-      <Button variant="ghost" size="sm" onClick={() => navigate('/connected-objects')} className="mt-1.5 text-[var(--muted)]">
+      <Button variant="ghost" size="sm" onClick={() => navigate('/connected-objects')} className="mt-1.5 text-muted-foreground">
         <ChevronLeft size={16} strokeWidth={1.75} />
         Tous les objets
       </Button>

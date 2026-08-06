@@ -8,16 +8,22 @@
  * `utils/`, plutôt que dans l'un des deux modules : aucun des deux n'a de
  * raison de dépendre de l'autre.
  *
- * Les tokens vivent dans `theme/signature/tokens.css` et suivent le thème
- * clair/sombre. Un canal inconnu retombe sur le gris neutre — c'est ce qui
- * permet d'élargir le vocabulaire sans rien casser à l'écran.
+ * Les teintes de canal sont des couleurs de MARQUE désaturées, pas de la
+ * sémantique : elles restent définies dans `theme/signature/tokens.css` et n'ont
+ * pas d'équivalent dans la palette Baitly UI. Seul le repli neutre suit la
+ * palette produit (`--bui-*`). Les deux suivent le thème clair/sombre.
+ * Un canal inconnu retombe sur ce gris neutre — c'est ce qui permet d'élargir
+ * le vocabulaire sans rien casser à l'écran.
  */
 export interface ChannelChipTokens {
   bg: string;
   color: string;
 }
 
-const NEUTRAL: ChannelChipTokens = { bg: 'var(--field)', color: 'var(--muted)' };
+const NEUTRAL: ChannelChipTokens = {
+  bg: 'var(--bui-field)',
+  color: 'var(--bui-muted-foreground)',
+};
 
 const TOKENS: Record<string, ChannelChipTokens> = {
   airbnb: { bg: 'var(--airbnb-soft)', color: 'var(--airbnb-ink)' },

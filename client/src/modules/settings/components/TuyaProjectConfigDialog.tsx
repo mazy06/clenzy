@@ -8,8 +8,10 @@ import {
   FieldLabel,
   Input,
   NativeSelect,
+  NativeSelectOption,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -114,25 +116,26 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
     <Dialog open={open} onOpenChange={(next) => { if (!next && !saving) onClose(); }}>
       <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-1.5 font-bold">
+          <DialogTitle className="flex items-center gap-1.5 font-semibold">
             <KeyRound size={18} />
             Configurer le projet Tuya Cloud
           </DialogTitle>
+          {/* Le texte d'explication devient la description du dialog : il en
+              porte deja le role, et Radix l'associe alors via aria-describedby. */}
+          <DialogDescription className="text-xs">
+            Renseignez l'<strong>Access ID</strong> et l'<strong>Access Secret</strong> du projet cloud
+            créé sur{' '}
+            <a
+              href="https://iot.tuya.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:text-primary-deep"
+            >
+              iot.tuya.com
+            </a>{' '}
+            (Cloud → Development → votre projet → Authorization Key). Ils sont stockés chiffrés en base.
+          </DialogDescription>
         </DialogHeader>
-
-        <p className="cn-text-body2 text-muted-foreground mb-3">
-          Renseignez l'<strong>Access ID</strong> et l'<strong>Access Secret</strong> du projet cloud
-          créé sur{' '}
-          <a
-            href="https://iot.tuya.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[var(--accent)] underline underline-offset-4 hover:text-[var(--accent-deep)]"
-          >
-            iot.tuya.com
-          </a>{' '}
-          (Cloud → Development → votre projet → Authorization Key). Ils sont stockés chiffrés en base.
-        </p>
 
         {error && (
           <Alert variant="destructive" className="mb-3">
@@ -177,9 +180,9 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
               disabled={saving}
             >
               {DATA_CENTERS.map((dc) => (
-                <option key={dc.value} value={dc.value}>
+                <NativeSelectOption key={dc.value} value={dc.value}>
                   {dc.label}
-                </option>
+                </NativeSelectOption>
               ))}
             </NativeSelect>
             <FieldDescription>
@@ -187,9 +190,9 @@ export default function TuyaProjectConfigDialog({ open, onClose, current, onSave
             </FieldDescription>
           </Field>
           <Separator className="mt-0.5" />
-          <span className="cn-text-caption text-muted-foreground font-bold">
+          <p className="text-2xs font-semibold text-muted-foreground">
             App SDK mobile (appairage — modèle C)
-          </span>
+          </p>
           <Field>
             <FieldLabel htmlFor="tuya-app-schema">App SDK schema (optionnel)</FieldLabel>
             <Input

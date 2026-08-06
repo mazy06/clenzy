@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Skeleton } from '../../../components/ui';
-import { PhotoCamera, Add, Home } from '../../../icons';
+import { Alert, AlertDescription, Button, Skeleton } from '../../../components/ui';
+import { PhotoCamera, Add, Home, Info } from '../../../icons';
 import PageHeader from '../../../components/PageHeader';
 import EmptyState from '../../../components/EmptyState';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -12,9 +12,6 @@ import ConfirmationModal from '../../../components/ConfirmationModal';
 
 // gap: 1.25 avec theme.spacing = 6 => 7,5 px (hors echelle Tailwind).
 const GRID_CLS = 'grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-[7.5px]';
-// L'argile Baitly #C97A7A (couleur du type « caméra ») s'ecrit desormais en clair
-// dans les classes du bandeau : Tailwind n'emet pas une classe batie sur une
-// constante.
 
 /**
  * Écran de gestion des caméras — CRUD branché sur le backend. La lecture vidéo
@@ -91,19 +88,20 @@ export default function CamerasScreen() {
         actions={addButton}
       />
 
-      {/* Bandeau d'aide : lecture à la demande. Le fond etait plus soutenu en
-          sombre (0.08 vs 0.04) — la variante `dark:` reprend cette regle, que
-          `theme.palette.mode` portait cote MUI. */}
-      <div className="mb-[9px] flex flex-wrap items-center gap-1.5 rounded-[var(--radius-lg)] border border-dashed border-[color-mix(in_srgb,#C97A7A_40%,transparent)] bg-[color-mix(in_srgb,#C97A7A_4%,transparent)] p-[7.5px] dark:bg-[color-mix(in_srgb,#C97A7A_8%,transparent)]">
-        <p className="cn-text-body2 text-muted-foreground flex-1 min-w-[220px]">
+      {/* Bandeau d'aide : lecture à la demande. Encart bricolé remplacé par la
+          primitive Alert (ton `info` — c'est une consigne d'usage, pas une
+          alerte), qui porte déjà le couple `-soft` / `-ink` conforme AA. */}
+      <Alert variant="info" className="mb-[9px]">
+        <Info size={16} strokeWidth={1.75} />
+        <AlertDescription className="text-xs">
           Cliquez sur une caméra pour lancer la <strong>lecture en direct</strong>. Une seule lecture à la fois
           (performances) : ouvrir une autre caméra arrête la précédente. <strong>RTSP recommandé</strong> pour une lecture fluide.
-        </p>
-      </div>
+        </AlertDescription>
+      </Alert>
 
       {isLoading ? (
         <div className={GRID_CLS}>
-          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-[200px] w-full rounded-[var(--radius-lg)]" />)}
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-[200px] w-full rounded-xl" />)}
         </div>
       ) : cameras.length === 0 ? (
         <EmptyState
@@ -117,8 +115,8 @@ export default function CamerasScreen() {
           <div className="mb-3" key={propertyName}>
             <div className="flex items-center gap-1 mb-1.5">
               <span className="text-muted-foreground inline-flex"><Home size={15} strokeWidth={1.75} /></span>
-              <p className="cn-text-body1 font-semibold text-[0.9375rem] text-foreground">{propertyName}</p>
-              <span className="cn-text-caption text-muted-foreground opacity-60">· {items.length} caméra{items.length > 1 ? 's' : ''}</span>
+              <p className="text-sm font-semibold tracking-tight text-foreground">{propertyName}</p>
+              <span className="text-xs text-muted-foreground opacity-60 tabular-nums">· {items.length} caméra{items.length > 1 ? 's' : ''}</span>
             </div>
             <div className={GRID_CLS}>
               {items.map((c) => (

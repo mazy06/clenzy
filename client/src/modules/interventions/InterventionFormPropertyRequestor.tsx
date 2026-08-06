@@ -46,7 +46,7 @@ const InterventionFormPropertyRequestor: React.FC<InterventionFormPropertyReques
     return (
       <Card className="mb-[9px]">
         <CardContent>
-          <h6 className="cn-text-subtitle1 font-semibold mb-2">
+          <h6 className="text-sm font-semibold tracking-tight mb-2">
             {t('interventions.sections.propertyRequestor')}
           </h6>
 

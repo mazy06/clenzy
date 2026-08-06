@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, AlertDescription } from '../../../components/ui';
+import { Alert, AlertDescription, Badge } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import {
   complianceConnectionApi,
@@ -19,29 +19,37 @@ interface Props {
   onStatusChange?: (connected: boolean) => void;
 }
 
-const NEUTRAL = 'var(--muted)';
-
 const ComplianceProviderCard: React.FC<Props> = ({ provider, onStatusChange }) => {
   const meta = COMPLIANCE_PROVIDER_META[provider];
+  // Drapeau national : aucune icone lucide n'en tient lieu, et il ne porte
+  // aucun sens a lui seul — le code pays le precede, le drapeau est masque
+  // aux lecteurs d'ecran.
   const countryFlag =
     meta.countryCode === 'FR' ? '🇫🇷' : meta.countryCode === 'MA' ? '🇲🇦' : '🇸🇦';
 
   const headerChip = (
-    <span className="text-[0.6rem] font-bold tracking-[0.02em] rounded-[4px] px-[3px] py-[0.75px] inline-flex items-center gap-[3px]" style={{ color: NEUTRAL, backgroundColor: `color-mix(in srgb, ${NEUTRAL} 8%, transparent)`, border: `1px solid color-mix(in srgb, ${NEUTRAL} 20%, transparent)` }}>
+    // `border-solid` : sans preflight Tailwind, une bordure sans style declare
+    // a bien une largeur mais reste invisible (cf. note dans StatusChip).
+    <Badge
+      variant="outline"
+      className="gap-[3px] border-solid px-1 py-0 text-2xs font-semibold text-muted-foreground"
+    >
       {meta.countryCode}
-      <span aria-hidden="true" style={{ fontSize: '0.85em' }}>{countryFlag}</span>
-    </span>
+      <span aria-hidden="true" className="text-[0.85em] leading-none">{countryFlag}</span>
+    </Badge>
   );
 
   // Le ton `warning` du kit est plein ; l'ancienne alerte etait « outlined » :
-  // fond transparent + liseré teinte, restitue ici en classes.
+  // fond transparent + liseré teinte, restitue ici en classes. `border-solid`
+  // est indispensable : le projet tourne sans preflight Tailwind, une bordure
+  // sans style declare reste invisible.
   const bodyAlert = (
     <Alert
       variant="warning"
-      className="rounded-[8px] py-[3px] bg-transparent border border-solid border-[color-mix(in_srgb,var(--bui-warning)_50%,transparent)]"
+      className="rounded-md py-[3px] bg-transparent border-solid border-warning/50"
     >
       <TriangleAlert />
-      <AlertDescription className="text-[0.74rem]">
+      <AlertDescription className="text-xs">
         <strong>Obligation légale :</strong> {meta.legalNote}
       </AlertDescription>
     </Alert>

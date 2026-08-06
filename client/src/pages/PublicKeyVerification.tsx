@@ -1,11 +1,22 @@
 import React, { useState, useCallback } from 'react';
 import StatusChip from '../components/StatusChip';
-import { Alert, AlertDescription } from '../components/ui';
 import { TriangleAlert, CircleCheck } from 'lucide-react';
-import { Spinner } from '../components/ui';
-import { Card } from '../components/ui';
-import { Field, FieldLabel, Input } from '../components/ui';
-import { Button } from '../components/ui';
+import {
+  Alert,
+  AlertDescription,
+  Button,
+  Card,
+  Field,
+  FieldLabel,
+  Input,
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+  Spinner,
+} from '../components/ui';
 import {
   VpnKey,
   CheckCircle,
@@ -94,8 +105,8 @@ const PublicKeyVerification: React.FC = () => {
 
   if (!token) {
     return (
-      <div className="flex justify-center items-center min-h-[100vh] bg-[#f5f5f5]">
-        <Alert variant="destructive">
+      <div className="flex justify-center items-center min-h-svh bg-background p-3">
+        <Alert variant="destructive" className="max-w-[420px]">
           <TriangleAlert />
           <AlertDescription>Lien de vérification invalide</AlertDescription>
         </Alert>
@@ -104,15 +115,15 @@ const PublicKeyVerification: React.FC = () => {
   }
 
   return (
-    <div className="flex justify-center items-center min-h-[100vh] bg-[#f5f5f5] p-3">
+    <div className="flex justify-center items-center min-h-svh bg-background p-3">
       <Card className="gap-0 py-0 max-w-[420px] w-full p-4">
         {/* Header */}
         <div className="text-center mb-4">
-          <span className="inline-flex mb-1.5"><VpnKey size={40} strokeWidth={1.75} color='#6B8A9A' /></span>
-          <h6 className="cn-text-h6 font-bold text-[1.1rem]">
+          <span className="inline-flex mb-1.5 text-primary"><VpnKey size={40} strokeWidth={1.75} /></span>
+          <h1 className="text-lg font-semibold tracking-tight text-balance">
             Vérification de code
-          </h6>
-          <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
+          </h1>
+          <p className="text-xs text-muted-foreground">
             Entrez le code présenté par le voyageur
           </p>
         </div>
@@ -122,26 +133,19 @@ const PublicKeyVerification: React.FC = () => {
           <div className="mb-3">
             <Field>
               <FieldLabel htmlFor="key-verification-code">Code à 6 chiffres</FieldLabel>
-              {/* Styles inline repris tels quels de inputProps.style ; la hauteur
-                  s'y ajoute car le champ compact du kit (h32) ne contient pas
+              {/* Saisie de code : corps genereux, chasse fixe et interlettrage
+                  large pour que les six chiffres se lisent un a un. La hauteur
+                  est explicite — le champ compact du kit (h32) ne contient pas
                   un corps de 1.5rem. */}
               <Input
                 id="key-verification-code"
-                className="w-full"
+                className="h-12 w-full text-center font-mono text-2xl tracking-[0.2em] tabular-nums"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 maxLength={10}
-                style={{
-                  textAlign: 'center',
-                  fontSize: '1.5rem',
-                  fontFamily: 'monospace',
-                  letterSpacing: '0.2em',
-                  height: '3rem',
-                }}
                 onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
               />
             </Field>
-            {/* mt: 1.5 = 9 px (le spacing MUI de ce projet vaut 6). */}
             <Button
               onClick={handleVerify}
               disabled={loading || code.trim().length < 4}
@@ -155,7 +159,7 @@ const PublicKeyVerification: React.FC = () => {
 
         {/* Error */}
         {error && (
-          <Alert variant="destructive" className="text-[0.8125rem] mb-3">
+          <Alert variant="destructive" className="mb-3">
             <TriangleAlert />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -166,36 +170,46 @@ const PublicKeyVerification: React.FC = () => {
           <div className="mt-3">
             {verifyResult.valid ? (
               <>
-                <Alert variant="success" className="text-[0.8125rem] mb-3">
+                <Alert variant="success" className="mb-3">
                   <CircleCheck />
                   <AlertDescription>Code valide</AlertDescription>
                 </Alert>
 
-                <div className="p-3 border border-[var(--line)] rounded-[12px] mb-3">
+                {/* Recapitulatif : des lignes `Item`, pas un panneau borde dans
+                    une carte — une carte dans une carte s'aplatit. */}
+                <ItemGroup className="mb-3">
                   {verifyResult.guestName && (
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <span className="inline-flex text-muted-foreground"><PersonOutline size={18} strokeWidth={1.75} /></span>
-                      <p className="cn-text-body1 text-[0.875rem]">
-                        <strong>Voyageur :</strong> {verifyResult.guestName}
-                      </p>
-                    </div>
+                    <Item variant="muted" size="xs">
+                      <ItemMedia variant="icon" className="text-muted-foreground">
+                        <PersonOutline strokeWidth={1.75} />
+                      </ItemMedia>
+                      <ItemContent>
+                        <ItemTitle>{verifyResult.guestName}</ItemTitle>
+                        <ItemDescription>Voyageur</ItemDescription>
+                      </ItemContent>
+                    </Item>
                   )}
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <span className="inline-flex text-muted-foreground"><StoreIcon size={18} strokeWidth={1.75} /></span>
-                    <p className="cn-text-body1 text-[0.875rem]">
-                      <strong>Point :</strong> {verifyResult.storeName}
+                  <Item variant="muted" size="xs">
+                    <ItemMedia variant="icon" className="text-muted-foreground">
+                      <StoreIcon strokeWidth={1.75} />
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle>{verifyResult.storeName}</ItemTitle>
+                      <ItemDescription>Point</ItemDescription>
+                    </ItemContent>
+                  </Item>
+                </ItemGroup>
+
+                <div className="mb-3 flex items-center gap-1.5">
+                  <StatusChip
+                    tone={verifyResult.codeType === 'COLLECTION' ? 'info' : 'ok'}
+                    label={verifyResult.codeType === 'COLLECTION' ? 'Collecte' : 'Dépôt'}
+                  />
+                  {verifyResult.validUntil && (
+                    <p className="text-xs tabular-nums text-muted-foreground">
+                      Valide jusqu'au {new Date(verifyResult.validUntil).toLocaleDateString('fr-FR')}
                     </p>
-                  </div>
-                  <div className="flex gap-1.5">
-                    {(() => { const c = verifyResult.codeType === 'COLLECTION' ? '#0288d1' : '#4A9B8E'; return (
-                      <StatusChip tokens={{ color: c, bg: `${c}18` }} label={verifyResult.codeType === 'COLLECTION' ? 'Collecte' : 'Dépôt'} />
-                    ); })()}
-                    {verifyResult.validUntil && (
-                      <p className="cn-text-body1 text-[0.75rem] text-muted-foreground self-center">
-                        Valide jusqu'au {new Date(verifyResult.validUntil).toLocaleDateString('fr-FR')}
-                      </p>
-                    )}
-                  </div>
+                  )}
                 </div>
 
                 {/* Action buttons */}
@@ -218,7 +232,7 @@ const PublicKeyVerification: React.FC = () => {
                 </div>
               </>
             ) : (
-              <Alert variant="warning" className="text-[0.8125rem]">
+              <Alert variant="warning">
                 <TriangleAlert />
                 <AlertDescription>Code invalide ou expiré. Statut : {verifyResult.status}</AlertDescription>
               </Alert>
@@ -229,11 +243,11 @@ const PublicKeyVerification: React.FC = () => {
         {/* Confirmation */}
         {confirmed && (
           <div className="text-center py-3">
-            <span className="inline-flex text-[var(--bui-success-ink)] mb-1.5"><CheckCircle size={48} strokeWidth={1.75} /></span>
-            <h6 className="cn-text-h6 font-bold text-[1rem] mb-1.5">
+            <span className="inline-flex text-success mb-1.5"><CheckCircle size={48} strokeWidth={1.75} /></span>
+            <p className="mb-1.5 text-base font-semibold tracking-tight text-balance">
               Mouvement confirmé
-            </h6>
-            <p className="cn-text-body2 text-muted-foreground text-[0.8125rem] mb-3">
+            </p>
+            <p className="mb-3 text-xs text-muted-foreground">
               Le mouvement de clé a été enregistré avec succès.
             </p>
             <Button
@@ -251,8 +265,8 @@ const PublicKeyVerification: React.FC = () => {
         )}
 
         {/* Footer */}
-        <div className="text-center mt-4 pt-3 border-t border-[var(--line)]">
-          <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground opacity-60">
+        <div className="text-center mt-4 pt-3 border-t border-border">
+          <p className="text-2xs text-faint">
             Propulsé par Baitly — Gestion immobilière
           </p>
         </div>

@@ -7,7 +7,7 @@ import { Spinner } from './ui';
 export default function RouteFallback() {
   return (
     <div className="flex items-center justify-center min-h-[60vh] w-full" role="status" aria-label="Chargement">
-      <Spinner className="size-8" style={{ color: 'var(--accent, #6B8A9A)' }} />
+      <Spinner className="size-8 text-primary" />
     </div>
   );
 }

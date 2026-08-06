@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Badge, Button } from '../../../components/ui';
+import { Alert, AlertDescription, Badge, Button } from '../../../components/ui';
 import { Spinner } from '../../../components/ui';
 import {
   Collapsible,
@@ -159,19 +159,20 @@ export default function DesignSystemCreatePage() {
   const primaryLabel = busy ? 'Création…' : isBlankFlow ? 'Créer & continuer' : 'Créer le système';
 
   return (
-    <div className="od-canvas min-h-[100vh] bg-[var(--bg)]">
-      {/* Barre supérieure — sticky frostée, grille 1fr auto 1fr avec marque centrée (modèle .ds-setup-topbar). */}
-      <div className="sticky top-0 z-[20] h-[64px] grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 min-[900px]:px-7 bg-[color-mix(in_srgb,_var(--bg)_88%,_transparent)]" style={{ borderBottom: '1px solid var(--line)', backdropFilter: 'saturate(1.4) blur(10px)' }}>
+    <div className="od-canvas min-h-[100vh] bg-background">
+      {/* Barre supérieure — sticky opaque, grille 1fr auto 1fr avec marque centrée (modèle .ds-setup-topbar).
+          Fond plein plutot que voile floute : le verre decoratif est proscrit par le contrat Baitly UI. */}
+      <div className="sticky top-0 z-[20] h-[64px] grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 min-[900px]:px-7 bg-background border-b border-border">
         <div className="justify-self-start">
           {/* Sortie de l'ecran : action tertiaire, aucun cadre au repos. */}
-          <Button variant="ghost" onClick={() => navigate(-1)} className="text-[var(--muted)]">
+          <Button variant="ghost" onClick={() => navigate(-1)} className="text-muted-foreground">
             <ArrowLeft size={16} strokeWidth={2} />
             Retour
           </Button>
         </div>
-        <div className="justify-self-center grid place-items-center w-8 h-8 text-[var(--accent)]"><LayoutGrid size={20} strokeWidth={2} /></div>
+        <div className="justify-self-center grid place-items-center w-8 h-8 text-primary"><LayoutGrid size={20} strokeWidth={2} /></div>
         <div className="justify-self-end">
-          <Button onClick={handleCreate} disabled={!canCreate} className={ACCENT_BTN_CLASS}>
+          <Button onClick={handleCreate} disabled={!canCreate}>
             {busy ? <Spinner className="size-[15px]" /> : <Sparkles size={16} strokeWidth={2} />}
             {primaryLabel}
             {!busy && <ArrowRight size={16} strokeWidth={2} />}
@@ -183,21 +184,21 @@ export default function DesignSystemCreatePage() {
       <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[minmax(320px,_420px)_minmax(0,_1fr)] gap-[18px] min-[900px]:gap-[48px] items-start px-3 min-[900px]:px-6 py-[18px] min-[900px]:py-[30px] max-w-[1320px] mx-auto">
         {/* ─── Colonne gauche : cadrage + aperçu — épinglée au scroll (position: sticky, comme open-design) ─── */}
         <div className="min-[900px]:sticky min-[900px]:top-[84px] self-start">
-          <div className="inline-flex items-center gap-[4.5px] mb-[15px] ps-[3px] pe-[9px] py-[3px] rounded-[var(--radius-pill,_999px)] bg-[color-mix(in_srgb,_var(--accent)_7%,_var(--surface))] border border-solid border-[color-mix(in_srgb,_var(--accent)_18%,_var(--line))]" style={{ boxShadow: '0 1px 2px color-mix(in srgb, var(--accent) 8%, transparent)' }}>
-            <div className="grid place-items-[center] w-[22px] h-[22px] rounded-[50%] bg-[var(--accent)] text-[var(--on-accent)] shrink-0" style={{ boxShadow: '0 1px 4px color-mix(in srgb, var(--accent) 40%, transparent)' }} aria-hidden>
+          <div className="inline-flex items-center gap-[4.5px] mb-[15px] ps-[3px] pe-[9px] py-[3px] rounded-full bg-primary-soft border border-primary/20">
+            <div className="grid place-items-center w-[22px] h-[22px] rounded-full bg-primary text-primary-foreground shrink-0" aria-hidden>
               <Sparkles size={12} strokeWidth={2.4} />
             </div>
-            <span className="text-[10.5px] font-bold tracking-[0.09em] uppercase text-[var(--accent)]">
+            <span className="text-2xs font-semibold uppercase tracking-[0.09em] text-primary">
               Système de design
             </span>
           </div>
-          <div className="[font-family:var(--font-display)] text-[30px] min-[900px]:text-[42px] font-bold leading-[1.08] text-[var(--ink)] tracking-[-0.02em] [text-wrap:balance]">
+          <div className="[font-family:var(--font-display)] text-[30px] min-[900px]:text-[42px] font-bold leading-[1.08] text-foreground tracking-[-0.02em] text-balance">
             Concevez un système, en minutes
           </div>
-          <div className="text-[var(--text-md)] text-[var(--muted)] leading-[1.6] mt-3 max-w-[460px]">
+          <div className="text-sm text-muted-foreground leading-[1.6] mt-3 max-w-[460px]">
             Un site, une marque ou un DESIGN.md — plus tout le contexte que vous avez — deviennent un système de design complet et on-brand, réutilisable partout.
           </div>
-          <div className="text-[var(--text-2xs)] text-[var(--muted)] mt-3 font-semibold tracking-[0.02em]">
+          <div className="text-2xs text-muted-foreground mt-3 font-semibold tracking-[0.02em] tabular-nums">
             3 étapes · ~3 min · DESIGN.md · tokens · aperçu
           </div>
           <div className="flex flex-col gap-2 mt-4">
@@ -207,17 +208,17 @@ export default function DesignSystemCreatePage() {
               { n: 3, t: 'Générez', d: 'Extraction rapide d’abord ; l’IA affine ensuite' },
             ].map((s) => (
               <div className="flex gap-2 items-center" key={s.n}>
-                <div className="grid place-items-[center] w-[26px] h-[26px] rounded-[50%] bg-[color-mix(in_srgb,_var(--accent)_12%,_var(--surface))] border border-solid border-[color-mix(in_srgb,_var(--accent)_22%,_var(--line))] text-[var(--accent)] text-[12.5px] font-bold shrink-0 tabular-nums">{s.n}</div>
+                <div className="grid place-items-center w-[26px] h-[26px] rounded-full bg-primary-soft border border-primary/25 text-primary text-xs font-semibold shrink-0 tabular-nums">{s.n}</div>
                 <div>
-                  <div className="text-[var(--text-sm)] font-bold text-[var(--ink)]">{s.t}</div>
-                  <div className="text-[var(--text-2xs)] text-[var(--muted)]">{s.d}</div>
+                  <div className="text-xs font-semibold text-foreground">{s.t}</div>
+                  <div className="text-2xs text-muted-foreground">{s.d}</div>
                 </div>
               </div>
             ))}
           </div>
 
           {/* Aperçu live du système — halo diffus derrière la carte (modèle open-design .showcaseGlow). */}
-          <div className="relative mt-6 rounded-[16px] border border-solid border-[var(--line)] p-[15px] bg-[var(--surface,_#fff)] shadow-[var(--shadow-card)]">
+          <div className="relative mt-6 rounded-2xl border border-border p-[15px] bg-card shadow-sm">
             {/* L'ancien ::before devient un vrai enfant : un pseudo-element ne peut
                 pas recevoir de degrade depuis `style`, et l'ecrire en valeur
                 arbitraire Tailwind rendrait la declaration illisible. */}
@@ -226,30 +227,32 @@ export default function DesignSystemCreatePage() {
               className="pointer-events-none absolute -z-10 rounded-[30px] blur-[22px] opacity-55"
               style={{
                 inset: '-14% -8% -22%',
-                background: 'radial-gradient(60% 60% at 30% 20%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%), radial-gradient(50% 50% at 85% 90%, color-mix(in srgb, #14b8a6 18%, transparent), transparent 70%)',
+                background: 'radial-gradient(60% 60% at 30% 20%, color-mix(in srgb, var(--color-primary) 22%, transparent), transparent 70%), radial-gradient(50% 50% at 85% 90%, color-mix(in srgb, var(--color-info) 18%, transparent), transparent 70%)',
               }}
             />
             <div className="flex items-center gap-1 mb-3">
-              <div className="flex gap-0.5">{['#ff5f57', '#febc2e', '#28c840'].map((c) => <div className="w-[9px] h-[9px] rounded-[50%]" style={{ backgroundColor: c }} key={c} />)}</div>
-              <div className="text-[var(--text-2xs)] font-semibold text-[var(--muted)] ms-0.5">Votre système de design</div>
+              <div className="flex gap-0.5">{['#ff5f57', '#febc2e', '#28c840'].map((c) => <div className="w-[9px] h-[9px] rounded-full" style={{ backgroundColor: c }} key={c} />)}</div>
+              <div className="text-2xs font-semibold text-muted-foreground ms-0.5">Votre système de design</div>
             </div>
             <Label>Palette</Label>
             <div className="flex gap-1.5 mb-3">
               {[preview.primary, preview.accent, '#2b2420', '#e8ddcb', '#faf6ef'].map((c, i) => (
-                <div className="flex-1 h-[40px] rounded-[8px] border border-solid border-[var(--line)]" style={{ backgroundColor: c }} key={i} />
+                <div className="flex-1 h-[40px] rounded-md border border-border" style={{ backgroundColor: c }} key={i} />
               ))}
             </div>
             <Label>Échelle typographique</Label>
-            <div className="flex items-baseline gap-[9px] mb-3 text-[var(--ink)]" style={{ fontFamily: preview.heading }}>
+            <div className="flex items-baseline gap-[9px] mb-3 text-foreground" style={{ fontFamily: preview.heading }}>
               <div className="text-[40px] font-bold leading-[1]">Aa</div>
               <div className="text-[26px] font-semibold leading-[1]">Aa</div>
-              <div className="text-[17px] text-[var(--muted)] leading-[1]">Aa</div>
+              <div className="text-[17px] text-muted-foreground leading-[1]">Aa</div>
             </div>
             <Label>Composants</Label>
             <div className="flex items-center gap-1.5">
-              <div className="px-[10.5px] py-[4.5px] rounded-[8px] text-[#fff] text-[13px] font-semibold" style={{ backgroundColor: preview.primary, fontFamily: preview.body }}>Primaire</div>
-              <div className="px-[10.5px] py-[4.5px] rounded-[8px] border border-solid border-[var(--line)] text-[var(--ink)] text-[13px] font-semibold" style={{ fontFamily: preview.body }}>Ghost</div>
-              <div className="flex-1 h-[8px] rounded-[999px] bg-[var(--hover)]" />
+              {/* Ces deux pastilles montrent la palette EXTRAITE (couleurs arbitraires du
+                  client) : l'encre blanche y est imposee par le fond, pas par la marque. */}
+              <div className="px-[10.5px] py-[4.5px] rounded-md text-white text-xs font-semibold" style={{ backgroundColor: preview.primary, fontFamily: preview.body }}>Primaire</div>
+              <div className="px-[10.5px] py-[4.5px] rounded-md border border-border text-foreground text-xs font-semibold" style={{ fontFamily: preview.body }}>Ghost</div>
+              <div className="flex-1 h-[8px] rounded-full bg-muted" />
             </div>
           </div>
         </div>
@@ -258,8 +261,8 @@ export default function DesignSystemCreatePage() {
         <div className="flex flex-col">
           {/* Flux « page vierge » : réutiliser une direction existante ou partir sans direction, sans rien créer. */}
           {isBlankFlow && (
-            <div className="border border-solid border-[var(--line)] rounded-[var(--radius-md)] p-3 mb-[18px] flex flex-col gap-[9px] bg-[var(--surface,_#fff)]">
-              <div className="text-[var(--text-sm)] font-bold text-[var(--ink)]">Réutiliser une direction existante</div>
+            <div className="border border-border rounded-lg p-3 mb-[18px] flex flex-col gap-[9px] bg-card">
+              <div className="text-xs font-semibold text-foreground">Réutiliser une direction existante</div>
               <div className="flex gap-1.5 flex-wrap items-center">
                 <NativeSelect
                   size="sm"
@@ -276,42 +279,42 @@ export default function DesignSystemCreatePage() {
                   </NativeSelectOption>
                   {systems.map((s) => <NativeSelectOption key={s.id} value={s.id}>{s.name}</NativeSelectOption>)}
                 </NativeSelect>
-                <Button disabled={reuseId == null || busy} onClick={() => continueWithDirection(reuseId)} className={ACCENT_BTN_CLASS}>
+                <Button disabled={reuseId == null || busy} onClick={() => continueWithDirection(reuseId)}>
                   Continuer
                   <ArrowRight size={16} strokeWidth={2} />
                 </Button>
                 {/* Echappatoire du bloc « reutiliser » : action tertiaire. */}
-                <Button variant="ghost" disabled={busy} onClick={() => continueWithDirection(null)} className="text-[var(--muted)]">
+                <Button variant="ghost" disabled={busy} onClick={() => continueWithDirection(null)} className="text-muted-foreground">
                   Sans direction
                 </Button>
               </div>
               <div className="flex items-center gap-2 mt-0.5">
-                <Separator className="flex-1 bg-[var(--line)]" />
-                <div className="text-[var(--text-2xs)] text-[var(--muted)] uppercase tracking-[0.08em] font-bold">ou créez-en une</div>
-                <Separator className="flex-1 bg-[var(--line)]" />
+                <Separator className="flex-1" />
+                <div className="text-2xs text-muted-foreground uppercase tracking-[0.08em] font-semibold">ou créez-en une</div>
+                <Separator className="flex-1" />
               </div>
             </div>
           )}
 
-          <div className="text-[var(--text-xl)] font-bold text-[var(--ink)]">Extraire depuis un site, un dépôt ou vos éléments sources</div>
-          <div className="text-[var(--text-sm)] text-[var(--muted)] mt-0.5 leading-[1.55]">
+          <div className="text-lg font-semibold tracking-tight text-foreground text-balance">Extraire depuis un site, un dépôt ou vos éléments sources</div>
+          <div className="text-xs text-muted-foreground mt-0.5 leading-[1.55]">
             Commencez avec un site, un DESIGN.md ou des éléments qui montrent votre style. Baitly crée d'abord un système utilisable, puis l'IA l'affine.
           </div>
 
           {/* Tableau de sources dans une carte — lignes « libellé (gauche) → description + champ (droite) »
               séparées par des filets doux (modèle open-design .ds-resource-card / .ds-resource-row). */}
-          <div className="mt-[9px] border border-solid border-[var(--line)] rounded-[var(--radius-lg)] bg-[var(--surface)] shadow-[var(--shadow-card)] overflow-hidden [&>.od-row+.od-row]:[border-top:1px_solid_var(--line-soft)]">
+          <div className="mt-[9px] border border-border rounded-xl bg-card shadow-sm overflow-hidden [&>.od-row+.od-row]:border-t [&>.od-row+.od-row]:border-border">
             <Row label="Nom du système" required>
-              <Input className={INPUT_CLASS} value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex. Riad Marrakech" aria-label="Nom du système" />
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex. Riad Marrakech" aria-label="Nom du système" />
             </Row>
 
             <Row label="Site web" description="Collez l'URL d'un site dont vous aimez le style — l'IA en extrait couleurs, typo et ambiance.">
               <div className="flex gap-1.5 flex-wrap">
-                <Input className={cn(INPUT_CLASS, 'flex-1 min-w-[220px]')} value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://votre-site.com" aria-label="Site web" />
+                <Input className="flex-1 min-w-[220px]" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://votre-site.com" aria-label="Site web" />
                 {/* Textarea du kit ne transmet pas de ref (composant fonction, React 18) :
                     le focus passe par l'id du champ plutot que par un inputRef. */}
                 <Button variant="outline" onClick={() => document.getElementById(BRAND_FIELD_ID)?.focus()}
-                  className="whitespace-nowrap text-[var(--body)] hover:border-[var(--accent)]">
+                  className="whitespace-nowrap hover:border-primary">
                   <Sparkles size={15} strokeWidth={2} />
                   Partir d'une marque
                 </Button>
@@ -322,12 +325,12 @@ export default function DesignSystemCreatePage() {
               {/* `field-sizing: content` du primitif neutralise `rows` : la hauteur
                   minimale de 3 lignes se pose en min-h. */}
               <Textarea id={BRAND_FIELD_ID} aria-label="Décrire la marque" value={brandDescription} onChange={(e) => setBrandDescription(e.target.value)}
-                className={cn(INPUT_CLASS, 'min-h-[3lh]')}
+                className="min-h-[3lh]"
                 placeholder="Ex. conciergerie de riads à Marrakech, feutré, terracotta et zelliges, voix chaleureuse et raffinée…" />
             </Row>
 
             <Row label="Coller un DESIGN.md" optional
-              description={<>Collez un DESIGN.md pour créer directement depuis tokens, rationale et guidage de composants. <a className="text-[var(--accent)] no-underline font-semibold" href="/DESIGN-BAITLY.md" target="_blank" rel="noreferrer">Référence ↗</a></>}>
+              description={<>Collez un DESIGN.md pour créer directement depuis tokens, rationale et guidage de composants. <a className="text-primary no-underline font-semibold" href="/DESIGN-BAITLY.md" target="_blank" rel="noreferrer">Référence ↗</a></>}>
               {systems.length > 0 && (
                 // Ce select ne porte pas d'etat : il declenche une copie puis revient
                 // sur son option-titre (d'ou `value=""` constant).
@@ -345,13 +348,13 @@ export default function DesignSystemCreatePage() {
               <Textarea value={designMarkdown} onChange={(e) => setDesignMarkdown(e.target.value)}
                 aria-label="Coller un DESIGN.md"
                 placeholder={'# Riad Lune d\'Argile\n> Catégorie : conciergerie\n\n## Palette & rôles\nTerracotta (#c96442) en accent…\n\n## Typographie\nSerif éditorial…\n\n## Voix & ton\nChaleureuse, raffinée…'}
-                className={cn(INPUT_CLASS, 'min-h-[5lh] [font-family:ui-monospace,Menlo,monospace] text-[length:var(--text-sm)]')} />
+                className="min-h-[5lh] [font-family:ui-monospace,Menlo,monospace] text-xs" />
             </Row>
 
             <Row label="Réglages manuels" optional description="Couleur et polices — priment sur les tokens dérivés par l'IA.">
               <div className="flex items-center gap-1.5">
                 <Switch id="ds-manual-toggle" size="sm" checked={manualOn} onCheckedChange={setManualOn} />
-                <label htmlFor="ds-manual-toggle" className="cursor-pointer text-[var(--text-sm)] text-[var(--body)]">
+                <label htmlFor="ds-manual-toggle" className="cursor-pointer text-xs text-foreground">
                   {manualOn ? 'Activés' : 'Définir manuellement couleur & typo'}
                 </label>
               </div>
@@ -373,34 +376,35 @@ export default function DesignSystemCreatePage() {
 
             {/* Sources à venir : présentes pour parité open-design, désactivées en attendant le backend. */}
             <Row label="Ajouter des fichiers" optional soon description="Images, logos, polices, PDF, HTML — jusqu'à 12 Mo chacun.">
-              <div className="border border-dashed border-[var(--line)] rounded-[var(--radius-md)] py-[18px] flex flex-col items-center gap-[3px] text-[var(--muted)] bg-[var(--field)]">
+              <div className="border border-dashed border-border rounded-lg py-[18px] flex flex-col items-center gap-[3px] text-muted-foreground bg-field">
                 <Upload size={20} strokeWidth={2} />
-                <div className="text-[var(--text-sm)] font-semibold">Glisser-déposer, coller ou parcourir</div>
-                <div className="text-[var(--text-2xs)]">Extraction en tokens & assets — bientôt</div>
+                <div className="text-xs font-semibold">Glisser-déposer, coller ou parcourir</div>
+                <div className="text-2xs">Extraction en tokens & assets — bientôt</div>
               </div>
             </Row>
 
             <Row label="Dépôt GitHub" optional soon description="Analyse d'un repo pour en extraire le système existant.">
-              <Input disabled aria-label="Dépôt GitHub" placeholder="https://github.com/org/repo" className={cn(INPUT_CLASS, 'opacity-70')} />
+              <Input disabled aria-label="Dépôt GitHub" placeholder="https://github.com/org/repo" />
             </Row>
 
             <Row label="Figma / .fig" optional soon description="Décodage en tokens, composants & assets réels.">
-              <Input disabled aria-label="Figma / .fig" placeholder="https://figma.com/file/… ou un fichier .fig" className={cn(INPUT_CLASS, 'opacity-70')} />
+              <Input disabled aria-label="Figma / .fig" placeholder="https://figma.com/file/… ou un fichier .fig" />
             </Row>
 
             <Row label="Code local" optional soon description="Un dossier ou des fichiers de votre machine.">
-              <Button disabled variant="outline" className="text-[var(--muted)]">Parcourir un dossier</Button>
+              <Button disabled variant="outline">Parcourir un dossier</Button>
             </Row>
           </div>
 
           {error && (
-            <div className="flex items-start gap-1.5 mt-3 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)] whitespace-pre-wrap">
-              <AlertTriangle size={16} strokeWidth={2} style={{ flexShrink: 0, marginTop: 2 }} /> {error}
-            </div>
+            <Alert variant="destructive" className="mt-3">
+              <AlertTriangle />
+              <AlertDescription className="whitespace-pre-wrap">{error}</AlertDescription>
+            </Alert>
           )}
 
           <div className="flex justify-end mt-4">
-            <Button onClick={handleCreate} disabled={!canCreate} className={ACCENT_BTN_CLASS}>
+            <Button onClick={handleCreate} disabled={!canCreate}>
               {busy ? <Spinner className="size-[15px]" /> : <Sparkles size={16} strokeWidth={2} />}
               {primaryLabel}
             </Button>
@@ -412,7 +416,7 @@ export default function DesignSystemCreatePage() {
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <div className="text-[10.5px] font-bold tracking-[0.08em] uppercase text-[var(--muted)] mb-1.5">{children}</div>;
+  return <div className="text-2xs font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1.5">{children}</div>;
 }
 
 /** Ligne du tableau de sources : libellé (+ « optionnel » / « bientôt ») à gauche, description + champ à droite. */
@@ -428,25 +432,27 @@ function Row({ label, required, optional, soon, description, children }: {
       )}
     >
       <div>
-        <div className="text-[13.5px] font-bold text-[var(--ink)] leading-[1.3]">
-          {label}{required && <span className="text-[var(--accent)] ms-0.5">*</span>}
+        <div className="text-sm font-semibold text-foreground leading-[1.3]">
+          {label}{required && <span className="text-primary ms-0.5">*</span>}
         </div>
-        {optional && <div className="text-[11.5px] font-medium text-[var(--muted)] mt-0.5">optionnel</div>}
-        {soon && <Badge variant="secondary" className="h-[18px] mt-0.5 text-[10px] font-semibold bg-[var(--hover)] text-[var(--muted)]">Bientôt</Badge>}
+        {optional && <div className="text-2xs font-medium text-muted-foreground mt-0.5">optionnel</div>}
+        {soon && <Badge variant="secondary" className="h-[18px] mt-0.5 text-2xs font-semibold">Bientôt</Badge>}
       </div>
       <div>
-        {description && <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.5] mb-2">{description}</div>}
+        {description && <div className="text-xs text-muted-foreground leading-[1.5] mb-2">{description}</div>}
         {children}
       </div>
     </div>
   );
 }
 
+const SUBFIELD_LABEL_CLASS = 'block mb-0.5 text-2xs font-medium text-muted-foreground';
+
 function TextField({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <div className="flex-1 min-w-[200px]">
-      <label className="block mb-0.5 text-[var(--text-2xs)] font-[family-name:var(--fw-medium)] text-[var(--muted)]">{label}</label>
-      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} aria-label={label} className={INPUT_CLASS} />
+      <label className={SUBFIELD_LABEL_CLASS}>{label}</label>
+      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} aria-label={label} />
     </div>
   );
 }
@@ -454,10 +460,10 @@ function TextField({ label, value, onChange, placeholder }: { label: string; val
 function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div className="flex-1 min-w-[200px]">
-      <label className="block mb-0.5 text-[var(--text-2xs)] font-[family-name:var(--fw-medium)] text-[var(--muted)]">{label}</label>
+      <label className={SUBFIELD_LABEL_CLASS}>{label}</label>
       <div className="flex items-center gap-1">
-        <input className="w-[40px] h-[40px] p-0 border border-[var(--line)] rounded-[var(--radius-md)] bg-[var(--field)] cursor-pointer shrink-0" type="color" value={HEX.test(value) ? value : '#6B8A9A'} onChange={(e) => onChange((e.target as HTMLInputElement).value)} aria-label={label} />
-        <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="#……" aria-label={`${label} (hexadécimal)`} className={cn(INPUT_CLASS, 'flex-1')} />
+        <input className="w-[40px] h-[40px] p-0 border border-field-line rounded-lg bg-field cursor-pointer shrink-0" type="color" value={HEX.test(value) ? value : '#6B8A9A'} onChange={(e) => onChange((e.target as HTMLInputElement).value)} aria-label={label} />
+        <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="#……" aria-label={`${label} (hexadécimal)`} className="flex-1" />
       </div>
     </div>
   );
@@ -466,17 +472,3 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
 // Id du champ « Décrire la marque » : le bouton « Partir d'une marque » y donne le
 // focus sans passer par une ref (les primitives du kit n'en transmettent pas).
 const BRAND_FIELD_ID = 'ds-brand-description';
-
-// Champ open-design : fond panneau quasi-blanc + bordure + ombre discrète + anneau de focus accent.
-const INPUT_CLASS = [
-  'w-full px-[9px] py-[6px] text-[length:var(--text-md)] text-[var(--ink)]',
-  'bg-[var(--surface)] border border-solid border-[var(--line)] rounded-[8px]',
-  'shadow-[0_1px_0_rgba(28,27,26,0.04)]',
-  'focus-visible:border-[color-mix(in_srgb,_var(--accent)_48%,_var(--line))]',
-  'focus-visible:shadow-[0_0_0_3px_color-mix(in_srgb,_var(--accent)_12%,_transparent)]',
-].join(' ');
-
-// Bouton primaire de cet ecran = terracotta : le gabarit vient du kit (variante
-// « default »), seule la teinte open-design est reposee par-dessus.
-const ACCENT_BTN_CLASS =
-  'bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-deep)]';

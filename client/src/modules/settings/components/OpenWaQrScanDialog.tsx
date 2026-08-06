@@ -188,7 +188,7 @@ export default function OpenWaQrScanDialog({
       return (
         <div className="flex flex-col items-center gap-3 py-6">
           <Spinner className="size-8" />
-          <p className="cn-text-body2 text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {t('settings.whatsapp.qr.creating', 'Création de la session sur l\'instance OpenWA…')}
           </p>
         </div>
@@ -213,16 +213,17 @@ export default function OpenWaQrScanDialog({
     if (status === 'connected') {
       return (
         <div className="flex flex-col items-center gap-3 py-6">
-          {/* alpha(success.main, 0.12) -> color-mix sur le jeton semantique. */}
-          <div className="w-[72px] h-[72px] rounded-[50%] flex items-center justify-center text-[var(--ok)] bg-[color-mix(in_srgb,var(--ok)_12%,transparent)]">
+          {/* Pastille illustrative : la teinte vive est ici a sa place (aplat +
+              icone decorative), le titre porte le sens. */}
+          <div className="size-[72px] rounded-full flex items-center justify-center text-success bg-success-soft">
             <CheckCircle size={40} />
           </div>
           <div className="text-center">
-            <h6 className="cn-text-h6 font-semibold mb-0.5">
+            <h6 className="text-sm font-semibold tracking-tight mb-0.5">
               {t('settings.whatsapp.qr.connected', 'WhatsApp connecté')}
             </h6>
             {phoneNumber && (
-              <p className="cn-text-body2 text-muted-foreground">
+              <p className="text-xs text-muted-foreground tabular-nums">
                 {phoneNumber}
               </p>
             )}
@@ -253,8 +254,11 @@ export default function OpenWaQrScanDialog({
     return (
       <div className="flex flex-col items-center gap-[15px]">
         {qrImage ? (
-          <div className="p-[15px] bg-[#fff] rounded-[16px] border border-solid border-[color-mix(in_srgb,var(--ink)_8%,transparent)]">
-            <img className="block w-[240px] h-[240px]" src={qrImage} alt="QR code WhatsApp" />
+          // Fond blanc franc, et non une surface teintee : la zone de silence
+          // d'un QR code doit rester du blanc pur pour rester lisible par les
+          // scanners, en clair comme en sombre.
+          <div className="p-[15px] bg-white rounded-2xl border border-solid border-border">
+            <img className="block size-[240px]" src={qrImage} alt="QR code WhatsApp" />
           </div>
         ) : (
           <div className="w-[240px] h-[240px] flex items-center justify-center">
@@ -262,20 +266,22 @@ export default function OpenWaQrScanDialog({
           </div>
         )}
         <div className="flex flex-col gap-0.5 text-center max-w-[360px]">
-          <h6 className="cn-text-subtitle2 font-semibold">
+          <h6 className="text-sm font-semibold tracking-tight">
             {t('settings.whatsapp.qr.title', 'Scannez avec WhatsApp')}
           </h6>
-          <span className="cn-text-caption text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {t('settings.whatsapp.qr.instructions',
               "Ouvrez WhatsApp sur votre téléphone → Paramètres → Appareils connectés → Connecter un appareil")}
           </span>
         </div>
+        {/* L'attente du scan est un etat transitoire : encre `-ink` (le libelle
+            est du texte), neutre tant que l'initialisation n'est pas finie. */}
         <div className={cn(
           'flex items-center gap-1.5',
-          status === 'qr_pending' ? 'text-[#D4A574]' : 'text-[var(--muted)]',
+          status === 'qr_pending' ? 'text-warning-ink' : 'text-muted-foreground',
         )}>
           <Spinner className="size-3" />
-          <span className="cn-text-caption">
+          <span className="text-xs">
             {status === 'qr_pending'
               ? t('settings.whatsapp.qr.waiting', 'En attente du scan…')
               : t('settings.whatsapp.qr.pending', 'Initialisation…')}

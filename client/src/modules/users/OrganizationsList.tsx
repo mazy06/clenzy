@@ -1,5 +1,5 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
-import StatusChip from '../../components/StatusChip';
+import StatusChip, { softBackground, type StatusTone } from '../../components/StatusChip';
 import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -40,7 +40,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useNotification } from '../../hooks/useNotification';
 import PageHeader from '../../components/PageHeader';
 import FilterSearchBar from '../../components/FilterSearchBar';
-import StatTile from '../../components/StatTile';
+import StatTile from '../../components/baitly/StatTile';
 import EmptyState from '../../components/EmptyState';
 import { organizationsApi } from '../../services/api/organizationsApi';
 import type { OrganizationDto } from '../../services/api';
@@ -51,14 +51,18 @@ import type { LucideIcon } from 'lucide-react';
 
 // ─── Types d'organisation ─────────────────────────────────────────────────────
 
-const orgTypes: Array<{ value: string; label: string; Icon: LucideIcon; color: ChipColor; hex: string }> = [
-  { value: 'INDIVIDUAL', label: 'Particulier', Icon: Person, color: 'info', hex: '#7BA3C2' },
-  { value: 'CONCIERGE', label: 'Conciergerie', Icon: Business, color: 'primary', hex: '#6B8A9A' },
-  { value: 'CLEANING_COMPANY', label: 'Societe de menage', Icon: CleaningServices, color: 'success', hex: '#4A9B8E' },
-  { value: 'SYSTEM', label: 'Systeme', Icon: Settings, color: 'error', hex: '#C97A7A' },
+// Trois formes de la meme teinte, chacune pour un contexte ou l'autre ne
+// s'exprime pas : `cssColor` pour les aplats calcules a l'execution (une classe
+// Tailwind ne peut pas naitre d'une variable), `iconClass` pour l'icone des
+// tuiles KPI, `tone` pour la pastille, qui porte deja le couple `-ink`/`-soft`.
+const orgTypes: Array<{ value: string; label: string; Icon: LucideIcon; color: ChipColor; cssColor: string; iconClass: string; tone: StatusTone }> = [
+  { value: 'INDIVIDUAL', label: 'Particulier', Icon: Person, color: 'info', cssColor: 'var(--bui-info)', iconClass: 'text-info', tone: 'info' },
+  { value: 'CONCIERGE', label: 'Conciergerie', Icon: Business, color: 'primary', cssColor: 'var(--bui-primary)', iconClass: 'text-primary', tone: 'accent' },
+  { value: 'CLEANING_COMPANY', label: 'Societe de menage', Icon: CleaningServices, color: 'success', cssColor: 'var(--bui-success)', iconClass: 'text-success', tone: 'ok' },
+  { value: 'SYSTEM', label: 'Systeme', Icon: Settings, color: 'error', cssColor: 'var(--bui-destructive)', iconClass: 'text-destructive', tone: 'err' },
 ];
 
-const MEMBER_CHIP_COLOR = '#7BA3C2';
+const MEMBER_CHIP_TONE: StatusTone = 'info';
 
 const getTypeInfo = (type: string) => {
   return orgTypes.find(t => t.value === type) || orgTypes[0];
@@ -217,7 +221,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
       <div className="grid grid-cols-12 gap-3">
         {Array.from({ length: 8 }).map((_, i) => (
           <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={i}>
-            <Skeleton className="h-[170px] rounded-[14px]" />
+            <Skeleton className="h-[170px] rounded-xl" />
           </div>
         ))}
       </div>
@@ -285,7 +289,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
               icon={<CorporateFare />}
               label="Total organisations"
               value={organizations.length}
-              color="#6B8A9A"
+              iconClassName="text-primary"
             />
           </div>
           {orgTypes.map((typeInfo) => {
@@ -296,7 +300,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                   icon={<TypeIcon />}
                   label={typeInfo.label}
                   value={organizations.filter(o => o.type === typeInfo.value).length}
-                  color={typeInfo.hex}
+                  iconClassName={typeInfo.iconClass}
                 />
               </div>
             );
@@ -326,26 +330,27 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
         ) : (
           filteredOrgs.map((org) => {
             const typeInfo = getTypeInfo(org.type);
-            const typeColor = typeInfo.hex;
+            const typeColor = typeInfo.cssColor;
             const TypeIcon = typeInfo.Icon;
             return (
               <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4 min-[1200px]:col-span-3" key={org.id}>
-                {/* Carte hairline r14 (thème global) — hover lift + shadow-card.
-                    Le filet de la carte du kit est un `ring`, d'ou hover:ring-… la
-                    ou le sx MUI teintait `borderColor`. */}
-                <Card className="h-full gap-0 py-0 transition-[box-shadow,transform,--tw-ring-color] duration-150 hover:ring-[var(--line-2)] hover:shadow-[var(--shadow-card)] hover:-translate-y-px motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+                {/* Carte hairline (rayon du kit) — hover lift + ombre discrete.
+                    Le filet de la carte du kit est un `ring`, d'ou hover:ring-…. */}
+                <Card className="h-full gap-0 py-0 transition-[box-shadow,transform,--tw-ring-color] duration-150 ease-out-quart hover:ring-primary/30 hover:shadow-sm hover:-translate-y-px motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                   <CardContent className="grow p-[10.5px] pb-[7.5px]">
-                    {/* Header — badge icône fond soft (pattern .mg-avt) */}
+                    {/* Header — badge icône fond soft */}
                     <div className="flex justify-between items-start mb-2 gap-1.5">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div className="w-[38px] h-[38px] rounded-[10px] inline-flex items-center justify-center shrink-0" style={{ backgroundColor: `${typeColor}1F`, color: typeColor }}>
+                        <div className="size-[38px] rounded-[10px] inline-flex items-center justify-center shrink-0" style={{ backgroundColor: softBackground(typeColor), color: typeColor }}>
                           <TypeIcon size={18} strokeWidth={1.75} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="cn-text-body1 font-semibold text-[0.9rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={org.name}>
+                          {/* `m-0` : sans preflight Tailwind, un <p> natif reprend les
+                              marges UA que `cn-text-*` neutralisait. */}
+                          <p className="m-0 font-semibold text-[0.9rem] leading-[1.25] text-foreground overflow-hidden text-ellipsis whitespace-nowrap" title={org.name}>
                             {org.name}
                           </p>
-                          <p className="cn-text-body1 text-muted-foreground text-[0.7rem] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap block tabular-nums">
+                          <p className="m-0 text-muted-foreground text-[0.7rem] leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap block tabular-nums">
                             {org.slug}
                           </p>
                         </div>
@@ -353,7 +358,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <span className="inline-flex ms-[1.5px]">
-                            <Button variant="ghost" size="icon-sm" aria-label="Options" className="text-[var(--muted)]">
+                            <Button variant="ghost" size="icon-sm" aria-label="Options" className="text-muted-foreground">
                               <MoreVert size={16} strokeWidth={1.75} />
                             </Button>
                           </span>
@@ -377,11 +382,11 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                       </DropdownMenu>
                     </div>
 
-                    {/* Type et membres — chips -soft (pilule/typo via thème global MuiChip) */}
+                    {/* Type et membres — pastilles `-soft` de la primitive StatusChip */}
                     <div className="flex gap-0.5 mb-2 flex-wrap">
-                      <StatusChip tokens={{ color: typeColor, bg: `${typeColor}18` }} label={typeInfo.label} icon={<TypeIcon size={11} strokeWidth={2} />} />
+                      <StatusChip tone={typeInfo.tone} label={typeInfo.label} icon={<TypeIcon size={11} strokeWidth={2} />} />
                       <StatusChip
-                        tokens={{ color: MEMBER_CHIP_COLOR, bg: `${MEMBER_CHIP_COLOR}18` }}
+                        tone={MEMBER_CHIP_TONE}
                         icon={<People size={11} strokeWidth={2} />}
                         label={`${org.memberCount} membre${org.memberCount !== 1 ? 's' : ''}`}
                         onClick={() => setMembersDialogOrg(org)}
@@ -394,7 +399,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                       <div className="inline-flex text-muted-foreground shrink-0">
                         <Person size={13} strokeWidth={1.75} />
                       </div>
-                      <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums">
+                      <p className="m-0 text-[0.72rem] text-muted-foreground tabular-nums">
                         Creee le {formatDate(org.createdAt)}
                       </p>
                     </div>
@@ -474,7 +479,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                       return (
                         <SelectItem key={t.value} value={t.value}>
                           <span className="flex items-center gap-1.5">
-                            <span className="inline-flex" style={{ color: t.hex }}>
+                            <span className="inline-flex" style={{ color: t.cssColor }}>
                               <TypeIcon size={16} strokeWidth={1.75} />
                             </span>
                             {t.label}
@@ -515,7 +520,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
           <DialogHeader>
             <DialogTitle>Confirmer la suppression</DialogTitle>
           </DialogHeader>
-          <p className="cn-text-body2">
+          <p className="m-0 text-xs">
             Etes-vous sur de vouloir supprimer l'organisation "{selectedOrg?.name}" ?
           </p>
           {selectedOrg && selectedOrg.memberCount > 0 && (
@@ -552,16 +557,16 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-1.5">
-                  <span className="inline-flex text-[var(--accent)]"><People size={20} strokeWidth={1.75} /></span>
+                  <span className="inline-flex text-primary"><People size={20} strokeWidth={1.75} /></span>
                   <span className="flex flex-col">
                     <span className="text-[1rem] font-semibold">
                       Membres de {membersDialogOrg.name}
                     </span>
                     <span className="flex gap-0.5 mt-0.5">
-                      {(() => { const ti = getTypeInfo(membersDialogOrg.type); const c = ti.hex; return (
-                        <StatusChip tokens={{ color: c, bg: `${c}18` }} label={ti.label} />
+                      {(() => { const ti = getTypeInfo(membersDialogOrg.type); return (
+                        <StatusChip tone={ti.tone} label={ti.label} />
                       ); })()}
-                      <StatusChip tokens={{ color: MEMBER_CHIP_COLOR, bg: `${MEMBER_CHIP_COLOR}18` }} label={`${membersDialogOrg.memberCount} membre${membersDialogOrg.memberCount !== 1 ? 's' : ''}`} className="tabular-nums" />
+                      <StatusChip tone={MEMBER_CHIP_TONE} label={`${membersDialogOrg.memberCount} membre${membersDialogOrg.memberCount !== 1 ? 's' : ''}`} className="tabular-nums" />
                     </span>
                   </span>
                 </DialogTitle>

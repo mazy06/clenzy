@@ -247,46 +247,11 @@ class SectionsRenderingTest {
         }
     }
 
-    @Nested
-    class BriefingTaskSectionTest {
-        @Test
-        void does_not_apply_to_chat() {
-            BriefingTaskSection s = new BriefingTaskSection();
-            assertThat(s.appliesTo(chatCtx())).isFalse();
-        }
-
-        @Test
-        void renders_daily_task_for_BRIEFING_DAILY() {
-            BriefingTaskSection s = new BriefingTaskSection();
-            String rendered = renderOr(s, briefingCtx(PromptPreset.BRIEFING_DAILY));
-            assertThat(rendered)
-                    .contains("<briefing_task>")
-                    .contains("briefing matinal")
-                    .contains("Hier")
-                    .contains("Aujourd'hui")
-                    .contains("Recommandations");
-        }
-
-        @Test
-        void renders_weekly_task_for_BRIEFING_WEEKLY() {
-            BriefingTaskSection s = new BriefingTaskSection();
-            String rendered = renderOr(s, briefingCtx(PromptPreset.BRIEFING_WEEKLY));
-            assertThat(rendered)
-                    .contains("weekly review")
-                    .contains("Performance")
-                    .contains("Top events")
-                    .contains("Priorites semaine prochaine");
-        }
-
-        @Test
-        void renders_alerts_task_for_BRIEFING_ALERTS() {
-            BriefingTaskSection s = new BriefingTaskSection();
-            String rendered = renderOr(s, briefingCtx(PromptPreset.BRIEFING_ALERTS));
-            assertThat(rendered)
-                    .contains("alertes critiques")
-                    .contains("Aucune alerte critique aujourd'hui.");
-        }
-    }
+    // BriefingTaskSection a ete supprimee : sa methode appliesTo() testait un
+    // preset BRIEFING_* que le code de production n'assignait JAMAIS (seul
+    // DefaultPromptBuilder pose un preset, et toujours CHAT). Les prompts de
+    // briefing vivent desormais uniquement dans BriefingComposer, qui les envoie
+    // comme message utilisateur — cf. BriefingComposerTest.
 
     @Nested
     class PromptInjectionGuardSectionTest {

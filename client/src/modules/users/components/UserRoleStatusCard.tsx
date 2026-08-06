@@ -1,7 +1,7 @@
 import React from 'react';
-import StatusChip from '../../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 import { Business, AdminPanelSettings } from '../../../icons';
-import { semanticToHex } from '../../../utils/statusUtils';
+import type { ChipColor } from '../../../types';
 import type { UserDetailsData, RoleInfo, StatusInfo } from './userDetailsTypes';
 import { getRoleInfo, getStatusInfo } from './userDetailsTypes';
 import DetailField from './DetailField';
@@ -24,6 +24,17 @@ const ROLE_DESCRIPTIONS: Record<string, string> = {
   EXTERIOR_TECH: 'Entretien des espaces exterieurs',
 };
 
+// Couleur semantique → ton de la primitive StatusChip, qui porte deja le couple
+// Baitly UI conforme AA (encre `-ink` sur fond `-soft`).
+const SEM_TONE: Partial<Record<ChipColor, StatusTone>> = {
+  success: 'ok',
+  warning: 'warn',
+  error: 'err',
+  info: 'info',
+  primary: 'accent',
+  secondary: 'accent',
+};
+
 const STATUS_DESCRIPTIONS: Record<string, string> = {
   ACTIVE: "L'utilisateur peut se connecter et utiliser la plateforme",
   INACTIVE: "L'utilisateur ne peut pas se connecter temporairement",
@@ -40,15 +51,15 @@ const STATUS_DESCRIPTIONS: Record<string, string> = {
 const UserRoleStatusCard: React.FC<UserRoleStatusCardProps> = ({ user, roles, statuses }) => {
   const roleInfo = getRoleInfo(user.role, roles);
   const statusInfo = getStatusInfo(user.status, statuses);
-  const roleHex = semanticToHex(roleInfo.color);
-  const statusHex = semanticToHex(statusInfo.color);
+  const roleTone = SEM_TONE[roleInfo.color] ?? 'neutral';
+  const statusTone = SEM_TONE[statusInfo.color] ?? 'neutral';
 
   return (
     <div className="flex flex-col gap-2">
       {/* Organisation — warm accent */}
       <DetailSection
         title="Organisation"
-        accentColor="#D4A574"
+        accentColor="var(--bui-warning)"
         icon={<Business size={14} strokeWidth={1.75} />}
       >
         <DetailField
@@ -57,35 +68,35 @@ const UserRoleStatusCard: React.FC<UserRoleStatusCardProps> = ({ user, roles, st
         />
       </DetailSection>
 
-      {/* Rôle et statut — secondary purple accent */}
+      {/* Rôle et statut — accent froid, pour ne pas répéter celui de la section au-dessus */}
       <DetailSection
         title="Rôle et statut"
-        accentColor="#7B68A8"
+        accentColor="var(--bui-info)"
         icon={<AdminPanelSettings size={14} strokeWidth={1.75} />}
       >
         {/* Role chip + description */}
         <div className="min-w-0">
-          <span className="cn-text-caption text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-muted-foreground block mb-0.5">
+          <span className="text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-muted-foreground block mb-0.5">
             Rôle
           </span>
-          <StatusChip tokens={{ color: roleHex, bg: `${roleHex}18` }} label={roleInfo.label} icon={<span className="inline-flex">
+          <StatusChip tone={roleTone} label={roleInfo.label} icon={<span className="inline-flex">
                 {React.cloneElement(roleInfo.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
                   size: 14,
                   strokeWidth: 1.75,
                 })}
               </span>} className="mb-1" />
-          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground leading-[1.5]">
+          <p className="m-0 text-xs text-muted-foreground leading-[1.5]">
             {ROLE_DESCRIPTIONS[user.role] || ''}
           </p>
         </div>
 
         {/* Status chip + description */}
         <div className="min-w-0">
-          <span className="cn-text-caption text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-muted-foreground block mb-0.5">
+          <span className="text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-muted-foreground block mb-0.5">
             Statut
           </span>
-          <StatusChip tokens={{ color: statusHex, bg: `${statusHex}18` }} label={statusInfo.label} className="mb-1" />
-          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground leading-[1.5]">
+          <StatusChip tone={statusTone} label={statusInfo.label} className="mb-1" />
+          <p className="m-0 text-xs text-muted-foreground leading-[1.5]">
             {STATUS_DESCRIPTIONS[user.status] || ''}
           </p>
         </div>

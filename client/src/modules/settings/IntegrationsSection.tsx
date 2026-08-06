@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import StatusChip from '../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Alert as UiAlert, AlertAction, AlertDescription } from '../../components/ui';
 import { Info, TriangleAlert, CircleCheck, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -85,22 +85,22 @@ import ServiceGridCard from './components/ServiceGridCard';
 import BrevoConfigCard from './components/BrevoConfigCard';
 import { useMarketingIntegration } from '../../hooks/useMarketingIntegration';
 
-// ─── Style helpers (Baitly palette) ─────────────────────────────────────────
+// ─── Tons des puces de statut (resolus par la primitive StatusChip) ─────────
 
-const ACCENT = 'var(--ok)';
-const NEUTRAL = 'var(--muted)';
-const WARM = 'var(--warn)';
+const TONE_OK: StatusTone = 'ok';
+const TONE_NEUTRAL: StatusTone = 'neutral';
+const TONE_WARM: StatusTone = 'warn';
 
-// Grille des cards « Bientot disponible » — report de DISABLED_CARDS_SX (le jeton
-// MUI `divider` vaut var(--line)). Le `!important` d'origine n'est pas repris : les
-// selecteurs generes ici (classe + attribut + pseudo-classe) l'emportent deja sur
-// les utilitaires `hover:` portes par la card elle-meme. On evite toujours
-// `pointer-events: none`, qui tuerait aussi le hover et donc les tooltips.
+/** Grille des cards « Bientot disponible » : le survol y est neutralise.
+ *  Le `!important` d'origine n'est pas repris : les selecteurs generes ici
+ *  (classe + attribut + pseudo-classe) l'emportent deja sur les utilitaires
+ *  `hover:` portes par la card elle-meme. On evite toujours
+ *  `pointer-events: none`, qui tuerait aussi le hover et donc les tooltips. */
 const DISABLED_GRID_CLASS = cn(
   'grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5',
   'opacity-[0.55] grayscale-[0.7] select-none',
   '[&_[role=radio]]:cursor-not-allowed [&_[role=button]]:cursor-not-allowed',
-  '[&_[role=radio]:hover]:border-[var(--line)] [&_[role=button]:hover]:border-[var(--line)]',
+  '[&_[role=radio]:hover]:border-border [&_[role=button]:hover]:border-border',
   '[&_[role=radio]:hover]:bg-transparent [&_[role=button]:hover]:bg-transparent',
   '[&_[role=radio]:hover]:shadow-none [&_[role=button]:hover]:shadow-none',
   '[&_[role=radio]:focus-visible]:shadow-none [&_[role=button]:focus-visible]:shadow-none',
@@ -473,11 +473,11 @@ export default function IntegrationsSection({
 
   const isConnected = !!status?.connected;
   const statusChip = notConfigured ? (
-    <StatusChip color={NEUTRAL} label={t('settings.integrations.pennylane.notConfigured', 'Non configuré')} icon={<ErrorOutline size={11} strokeWidth={2} />} />
+    <StatusChip tone={TONE_NEUTRAL} label={t('settings.integrations.pennylane.notConfigured', 'Non configuré')} icon={<ErrorOutline size={11} strokeWidth={2} />} />
   ) : isConnected ? (
-    <StatusChip color={ACCENT} label={t('settings.integrations.pennylane.connected')} icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
+    <StatusChip tone={TONE_OK} label={t('settings.integrations.pennylane.connected')} icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
   ) : (
-    <StatusChip color={NEUTRAL} label={t('settings.integrations.pennylane.notConnected')} icon={<ErrorOutline size={11} strokeWidth={2} />} />
+    <StatusChip tone={TONE_NEUTRAL} label={t('settings.integrations.pennylane.notConnected')} icon={<ErrorOutline size={11} strokeWidth={2} />} />
   );
 
   return (
@@ -486,10 +486,10 @@ export default function IntegrationsSection({
       {showSection('marketing') && (
       <Card className="gap-0 py-0 border-border mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-marketing">
         <div className="flex items-center gap-1.5 mb-0.5">
-          <p className="cn-text-body1 text-[0.82rem] font-semibold">Marketing &amp; Newsletter</p>
-          <StatusChip color={ACCENT} label="Disponible" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
+          <p className="text-sm font-semibold tracking-tight">Marketing &amp; Newsletter</p>
+          <StatusChip tone={TONE_OK} label="Disponible" icon={<CheckCircleIcon size={11} strokeWidth={2} />} />
         </div>
-        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
+        <p className="text-xs text-muted-foreground mb-0.5">
           Synchronisez vos contacts (waitlist, newsletter, leads devis) vers votre plateforme d&apos;emailing pour vos campagnes.
         </p>
         <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
@@ -501,7 +501,7 @@ export default function IntegrationsSection({
             status={marketingConfigured ? 'connected' : 'idle'}
             onClick={() => setOpenMarketing(true)}
             logo={
-              <div className="w-[40px] h-[40px] rounded-[8px] inline-flex items-center justify-center bg-[#0B996E] text-[#fff] font-bold text-[1rem] shrink-0" aria-hidden="true">
+              <div className="size-10 rounded-md inline-flex items-center justify-center bg-[#0B996E] text-white font-bold text-base shrink-0" aria-hidden="true">
                 B
               </div>
             }
@@ -517,15 +517,15 @@ export default function IntegrationsSection({
       {showSection('signature') && (
       <Card className="gap-0 py-0 border-border mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-signature">
         <div className="flex items-center gap-1.5 mb-0.5">
-          <p className="cn-text-body1 text-[0.82rem] font-semibold">
+          <p className="text-sm font-semibold tracking-tight">
             {t('settings.integrations.signatureProvider.title', 'Signature electronique')}
           </p>
-          <StatusChip size="sm" tokens={{ color: 'var(--warn)', bg: 'var(--warn-soft)' }} label="Opérationnel — à brancher" className="text-[0.6rem]" />
+          <StatusChip size="sm" tone={TONE_WARM} label="Opérationnel — à brancher" />
         </div>
-        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
+        <p className="text-xs text-muted-foreground mb-0.5">
           {t(
             'settings.integrations.signatureProvider.description',
-            'Deux intégrations prêtes côté code : Yousign (QTSP certifié ANSSI) et DocuSeal (open source self-hosted). Les mandats sont signés via le workflow interne Clenzy tant qu’aucune n’est branchée.',
+            'Deux intégrations prêtes côté code : Yousign (QTSP certifié ANSSI) et DocuSeal (open source self-hosted). Les mandats sont signés via le workflow interne Baitly tant qu’aucune n’est branchée.',
           )}
         </p>
         <SignatureProviderCards
@@ -536,7 +536,7 @@ export default function IntegrationsSection({
         />
         <UiAlert variant="info" className="mt-2 text-[0.75rem] py-0.5">
           <Info />
-          <AlertDescription>{`Ces intégrations sont implémentées et fonctionnelles, mais pas branchées : pour en activer une, renseignez sa connexion (clé API Yousign ou instance DocuSeal) puis basculez la variable serveur SIGNATURE_PROVIDER. Provider actuellement actif : ${activeSignatureProvider === 'CLENZY_CUSTOM' ? 'workflow interne Clenzy (SES)' : activeSignatureProvider}.`}</AlertDescription>
+          <AlertDescription>{`Ces intégrations sont implémentées et fonctionnelles, mais pas branchées : pour en activer une, renseignez sa connexion (clé API Yousign ou instance DocuSeal) puis basculez la variable serveur SIGNATURE_PROVIDER. Provider actuellement actif : ${activeSignatureProvider === 'CLENZY_CUSTOM' ? 'workflow interne Baitly (SES)' : activeSignatureProvider}.`}</AlertDescription>
         </UiAlert>
         {providerMessage && (
           <UiAlert
@@ -561,19 +561,19 @@ export default function IntegrationsSection({
         <div
           className={cn(
             'px-3 py-[10.5px] flex items-start gap-[9px]',
-            isConnected && 'border-b border-solid border-[var(--line)]',
+            isConnected && 'border-b border-solid border-border',
           )}
         >
           {/* Brand tile */}
-          <div className="w-[40px] h-[40px] rounded-[10px] inline-flex items-center justify-center text-[#fff] font-bold text-[0.85rem] tracking-[0.04em] shrink-0" style={{ backgroundColor: PENNYLANE_BRAND }} aria-hidden="true">
+          <div className="size-10 rounded-lg inline-flex items-center justify-center text-white font-bold text-sm tracking-[0.04em] shrink-0" style={{ backgroundColor: PENNYLANE_BRAND }} aria-hidden="true">
             {PENNYLANE_INITIALS}
           </div>
           {/* Info */}
           <div className="flex-1 min-w-0">
-            <p className="cn-text-body1 font-semibold text-[0.95rem] leading-[1.25] text-foreground tracking-[-0.005em]">
+            <p className="text-base font-semibold tracking-tight text-balance leading-[1.25] text-foreground">
               {t('settings.integrations.pennylane.title')}
             </p>
-            <p className="cn-text-body1 text-[0.78rem] text-muted-foreground leading-[1.4] mt-0.5">
+            <p className="text-xs text-muted-foreground leading-[1.4] mt-0.5">
               {t('settings.integrations.pennylane.description')}
             </p>
           </div>
@@ -589,7 +589,7 @@ export default function IntegrationsSection({
               {(status?.connectedAt || status?.lastSyncAt) && (
                 <div className="flex gap-3 mb-2 flex-wrap">
                   {status.connectedAt && (
-                    <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums">
+                    <p className="text-xs text-muted-foreground tabular-nums">
                       <span className="font-semibold text-foreground text-[0.72rem]">
                         {t('settings.integrations.pennylane.connectedAt')} :
                       </span>{' '}
@@ -597,7 +597,7 @@ export default function IntegrationsSection({
                     </p>
                   )}
                   {status.lastSyncAt && (
-                    <p className="cn-text-body1 text-[0.72rem] text-muted-foreground tabular-nums">
+                    <p className="text-xs text-muted-foreground tabular-nums">
                       <span className="font-semibold text-foreground text-[0.72rem]">
                         {t('settings.integrations.pennylane.lastSync')} :
                       </span>{' '}
@@ -610,8 +610,8 @@ export default function IntegrationsSection({
               {/* Sync stats */}
               {syncStatus && (
                 <div className="flex gap-1 mb-2 flex-wrap">
-                  <StatusChip color={syncStatus.pendingInvoices > 0 ? WARM : NEUTRAL} label={`${syncStatus.pendingInvoices} ${t('settings.integrations.pennylane.pendingInvoices')}`} icon={<ReceiptIcon size={11} strokeWidth={2} />} />
-                  <StatusChip color={syncStatus.pendingExpenses > 0 ? WARM : NEUTRAL} label={`${syncStatus.pendingExpenses} ${t('settings.integrations.pennylane.pendingExpenses')}`} icon={<ShoppingCartIcon size={11} strokeWidth={2} />} />
+                  <StatusChip tone={syncStatus.pendingInvoices > 0 ? TONE_WARM : TONE_NEUTRAL} label={`${syncStatus.pendingInvoices} ${t('settings.integrations.pennylane.pendingInvoices')}`} icon={<ReceiptIcon size={11} strokeWidth={2} />} />
+                  <StatusChip tone={syncStatus.pendingExpenses > 0 ? TONE_WARM : TONE_NEUTRAL} label={`${syncStatus.pendingExpenses} ${t('settings.integrations.pennylane.pendingExpenses')}`} icon={<ShoppingCartIcon size={11} strokeWidth={2} />} />
                 </div>
               )}
 
@@ -739,19 +739,12 @@ export default function IntegrationsSection({
       {showSection('accounting') && (
       <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-accounting">
         <div className="flex items-center gap-1.5 mb-0.5">
-          <p className="cn-text-body1 text-[0.82rem] font-semibold">
+          <p className="text-sm font-semibold tracking-tight">
             Comptabilité
           </p>
-          {/* Bordure en style inline : sa teinte est un color-mix calcule, que
-              Tailwind ne pourrait pas emettre depuis une classe. */}
-          <StatusChip
-            size="sm"
-            color={NEUTRAL}
-            label="Bientôt disponible"
-            sx={{ border: `1px solid color-mix(in srgb, ${NEUTRAL} 20%, transparent)` }}
-          />
+          <StatusChip size="sm" tone={TONE_NEUTRAL} label="Bientôt disponible" />
         </div>
-        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
+        <p className="text-xs text-muted-foreground mb-0.5">
           Synchronisez factures et dépenses vers votre logiciel comptable.
         </p>
         {/* Pennylane : connexion OAuth réelle (sync factures) — carte interactive,
@@ -832,11 +825,11 @@ export default function IntegrationsSection({
       {showSection('compliance') && (
       <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-compliance">
         <div className="flex items-center gap-1.5 mb-0.5">
-          <p className="cn-text-body1 text-[0.82rem] font-semibold">
+          <p className="text-sm font-semibold tracking-tight">
             Conformité légale
           </p>
         </div>
-        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
+        <p className="text-xs text-muted-foreground mb-0.5">
           Automatisez la déclaration légale des voyageurs auprès des autorités locales (fiche police France, DGSN Maroc, Absher Arabie Saoudite). Évite les amendes et les contrôles surprises.
         </p>
         {/* Chekin : API publique (clé API → JWT) — connexion + soumission réelles,
@@ -898,11 +891,11 @@ export default function IntegrationsSection({
       {showSection('kyc') && (
       <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-kyc">
         <div className="flex items-center gap-1.5 mb-0.5">
-          <p className="cn-text-body1 text-[0.82rem] font-semibold">
+          <p className="text-sm font-semibold tracking-tight">
             Vérification d'identité (KYC)
           </p>
         </div>
-        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
+        <p className="text-xs text-muted-foreground mb-0.5">
           Vérification automatique des pièces d'identité des voyageurs (lutte contre la fraude, conformité LCB-FT). Indispensable pour les paiements sur compte et les réservations à forte valeur.
         </p>
         {/* Les 3 providers ont une API publique : la connexion valide les credentials
@@ -942,10 +935,10 @@ export default function IntegrationsSection({
       {/* ─── Section : Channel Manager (middleware OTAs) ──────────────── */}
       {showSection('channel_manager') && (
       <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5 scroll-mt-[80px]" id="section-channel-manager">
-        <p className="cn-text-body1 text-[0.82rem] font-semibold mb-0.5">
+        <p className="text-sm font-semibold tracking-tight mb-0.5">
           Channel Manager (middleware)
         </p>
-        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
+        <p className="text-xs text-muted-foreground mb-0.5">
           Connectez un middleware qui agrège plusieurs OTAs en une seule API — utile pour les marchés niches ou régionaux sans intégration directe. Les OTAs eux-mêmes (Airbnb, Booking, Vrbo) restent dans la tab <strong>Channels</strong>.
         </p>
         <div className="grid grid-cols-[repeat(auto-fill,_minmax(320px,_1fr))] gap-[9px] mt-1.5">
@@ -1024,11 +1017,11 @@ export default function IntegrationsSection({
               au prochain cycle d'ingestion (roadmap market data). */}
           <Card className="gap-0 py-0 border-border mt-4 mb-3 px-3 py-2.5">
             <div className="flex items-center gap-1.5 mb-0.5">
-              <p className="cn-text-body1 text-[0.82rem] font-semibold">
+              <p className="text-sm font-semibold tracking-tight">
                 Intelligence de marché — sources de données
               </p>
             </div>
-            <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mb-0.5">
+            <p className="text-xs text-muted-foreground mb-0.5">
               Benchmarks ADR / occupation / RevPAR par zone pour le revenue management.
               Sans clé, le RMS fonctionne déjà avec les données réseau (first-party) et
               l'open data ; une clé active l'ingestion quotidienne du fournisseur.

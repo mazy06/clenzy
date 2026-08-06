@@ -120,7 +120,7 @@ class BriefingDeliveryTest {
         MessageDeliveryRequest req = reqCap.getValue();
         assertEquals("alice@example.com", req.recipientEmail());
         assertEquals("Alice Doe", req.recipientName());
-        assertTrue(req.subject().startsWith("[Clenzy]"));
+        assertTrue(req.subject().startsWith("[Baitly]"));
         assertTrue(req.htmlBody().contains("Briefing matinal"));
     }
 

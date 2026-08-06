@@ -29,9 +29,6 @@ interface AmenityIconPickerProps {
   onReset: () => void;
 }
 
-const ACCENT = 'var(--accent)';
-const NEUTRAL = 'var(--muted)';
-
 /**
  * Dialog de selection d'icone pour une commodite.
  *
@@ -149,12 +146,12 @@ export default function AmenityIconPicker({
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
       {/* Le bouton Fermer en haut a droite est celui du primitif DialogContent. */}
-      <DialogContent className="max-w-[900px] shadow-[var(--shadow-pop)]">
+      <DialogContent className="max-w-[900px] shadow-lg">
         <DialogHeader>
           <div className="flex flex-row items-center gap-[9px] pe-8">
             {/* Preview de l'icone courante */}
             {CurrentIcon && (
-              <div className="w-[36px] h-[36px] rounded-[8px] inline-flex items-center justify-center bg-[var(--accent-soft)] shrink-0" style={{ color: ACCENT }}>
+              <div className="size-9 rounded-md inline-flex items-center justify-center bg-primary-soft text-primary shrink-0">
                 <CurrentIcon size={20} strokeWidth={1.75} />
               </div>
             )}
@@ -164,9 +161,7 @@ export default function AmenityIconPicker({
               </DialogTitle>
               <DialogDescription className="text-[0.72rem]">
                 {amenityLabel} ·{' '}
-                <span style={{ fontFamily: '"SF Mono", Menlo, Consolas, monospace' }}>
-                  {amenityCode}
-                </span>
+                <span className="font-mono">{amenityCode}</span>
               </DialogDescription>
             </div>
           </div>
@@ -177,7 +172,7 @@ export default function AmenityIconPicker({
             l'aria-label reste la seule etiquette. */}
         <InputGroup className="mb-3">
           <InputGroupAddon align="inline-start">
-            <Search size={16} color={NEUTRAL} />
+            <Search size={16} className="text-muted-foreground" />
           </InputGroupAddon>
           <InputGroupInput
             id="amenity-icon-search"
@@ -202,7 +197,7 @@ export default function AmenityIconPicker({
         {/* Grouped icon grid */}
         {filteredGroups.length === 0 ? (
           <div className="py-6 text-center">
-            <p className="cn-text-body2 text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {t('settings.amenities.iconPicker.noMatch', 'Aucune icône ne correspond à « {{query}} ».', { query })}
             </p>
           </div>
@@ -218,7 +213,7 @@ export default function AmenityIconPicker({
                 const offset = filteredGroups.slice(0, groupIdx).reduce((sum, g) => sum + g.icons.length, 0);
                 return (
                   <div key={group.id}>
-                    <p className="cn-text-body1 text-[0.7rem] font-semibold text-muted-foreground uppercase tracking-[0.04em] mb-1">
+                    <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
                       {group.label}
                     </p>
                     <div className="grid grid-cols-[repeat(auto-fill,_minmax(48px,_1fr))] gap-[4.5px]">
@@ -243,13 +238,13 @@ export default function AmenityIconPicker({
                                 onFocus={() => setFocusedIndex(globalIdx)}
                                 aria-label={t('settings.amenities.iconPicker.pickIcon', 'Choisir {{name}}', { name: iconName })}
                                 className={cn(
-                                  'inline-flex items-center justify-center size-11 rounded-[8px] border border-solid cursor-pointer',
-                                  '[transition:all_180ms_cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
-                                  'hover:border-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_4%,transparent)] hover:text-[var(--accent)]',
-                                  'focus-visible:outline-none focus-visible:border-[var(--accent)] focus-visible:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_20%,transparent)]',
+                                  'inline-flex items-center justify-center size-11 rounded-md border border-solid cursor-pointer',
+                                  'transition-colors duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
+                                  'hover:border-primary hover:bg-primary-soft hover:text-primary',
+                                  'focus-visible:outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
                                   isSelected
-                                    ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'
-                                    : 'border-[var(--line)] bg-[var(--card)] text-[var(--muted)]',
+                                    ? 'border-primary bg-primary-soft text-primary'
+                                    : 'border-border bg-card text-muted-foreground',
                                 )}
                               >
                                 <Icon size={18} strokeWidth={1.75} />
@@ -267,7 +262,7 @@ export default function AmenityIconPicker({
           </div>
         )}
 
-        <DialogFooter className="border-t border-solid border-[var(--line)] pt-[9px] sm:justify-between">
+        <DialogFooter className="border-t border-solid border-border pt-[9px] sm:justify-between">
           <div className="flex items-center gap-1.5">
             {isOverridden && (
               <Button

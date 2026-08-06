@@ -41,17 +41,17 @@ export default function StatTile({
         className
       )}
     >
-      <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <span className={cn('inline-flex [&>svg]:size-3.5', iconClassName ?? 'text-primary')}>
+      <span className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <span className={cn('inline-flex shrink-0 [&>svg]:size-3.5', iconClassName ?? 'text-primary')}>
           {icon}
         </span>
-        {label}
+        <span className="truncate">{label}</span>
       </span>
       {loading ? (
         <Skeleton className="h-7 w-24" />
       ) : (
         <span className="flex items-baseline gap-1">
-          <span className="cn-font-heading text-2xl font-semibold text-foreground tabular-nums">
+          <span className="cn-font-heading text-[1.375rem] min-[900px]:text-[1.6875rem] font-semibold text-foreground tabular-nums">
             {value}
           </span>
           {unit && <span className="text-sm text-muted-foreground">{unit}</span>}

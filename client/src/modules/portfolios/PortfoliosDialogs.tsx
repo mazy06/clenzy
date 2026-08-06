@@ -4,6 +4,11 @@ import {
   Avatar,
   AvatarFallback,
   Dialog,
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -59,11 +64,11 @@ export const ReassignmentDialog: React.FC<ReassignmentDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
-      <DialogContent className="sm:max-w-[600px] rounded-[18px]" showCloseButton={false}>
-        <DialogHeader className="border-b border-solid border-[var(--line)] pb-1.5">
+      <DialogContent className="sm:max-w-[600px] rounded-2xl" showCloseButton={false}>
+        <DialogHeader className="border-b border-solid border-border pb-1.5">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
-              <span className="inline-flex text-[var(--mui-primary)]">
+              <span className="inline-flex text-primary">
                 <SwapHorizIcon size={22} strokeWidth={1.75} />
               </span>
               <DialogTitle className="text-[1rem] font-semibold">
@@ -78,21 +83,23 @@ export const ReassignmentDialog: React.FC<ReassignmentDialogProps> = ({
 
         <div className="pt-3 pb-2">
           {client && (
-            <div className="flex items-center gap-2 mb-3.5 p-2 bg-[var(--field)] rounded-[16px]">
-              <Avatar className="size-8 rounded-[10px]">
-                <AvatarFallback className="rounded-[10px] bg-[var(--accent)] text-[var(--on-accent)] font-[family-name:var(--font-display)] font-semibold text-[0.78rem]">
-                  {client.firstName?.[0]}{client.lastName?.[0]}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h6 className="cn-text-subtitle2 text-[0.85rem] font-semibold">
+            <Item variant="muted" size="sm" className="mb-3.5">
+              <ItemMedia>
+                <Avatar className="size-8 rounded-[10px]">
+                  <AvatarFallback className="rounded-[10px] bg-primary text-primary-foreground font-[family-name:var(--font-display)] font-semibold text-[0.78rem]">
+                    {client.firstName?.[0]}{client.lastName?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+              </ItemMedia>
+              <ItemContent>
+                <ItemTitle className="text-[0.85rem] font-semibold">
                   {client.firstName} {client.lastName}
-                </h6>
-                <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
+                </ItemTitle>
+                <ItemDescription className="text-[0.72rem]">
                   {client.email}
-                </span>
-              </div>
-            </div>
+                </ItemDescription>
+              </ItemContent>
+            </Item>
           )}
 
           {/* Liste riche (icone + nom + email) : le Select du kit, pas le select

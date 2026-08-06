@@ -157,19 +157,19 @@ export default function MyPayoutSettings() {
     <div>
       {/* Header */}
       <div className="flex items-center gap-1.5 mb-0.5">
-        <AccountBalance size={20} strokeWidth={1.75} color='var(--info)' />
-        <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
+        <span className="inline-flex text-info"><AccountBalance size={20} strokeWidth={1.75} /></span>
+        <h6 className="text-[0.95rem] font-semibold tracking-tight">
           {t('settings.myPayout.title', 'Mes coordonnees de reversement')}
         </h6>
       </div>
-      <p className="cn-text-body2 text-muted-foreground mb-3">
+      <p className="text-xs text-muted-foreground mb-3">
         {t('settings.myPayout.subtitle', 'Renseignez vos coordonnees bancaires pour recevoir vos reversements.')}
       </p>
 
       {/* Status */}
       {config && config.id && (
         <div className="mb-3.5 flex items-center gap-2">
-          <p className="cn-text-body2 font-semibold text-[0.8125rem]">
+          <p className="text-[0.8125rem] font-semibold">
             {t('settings.myPayout.statusLabel', 'Statut')} :
           </p>
           {config.verified ? (
@@ -206,17 +206,12 @@ export default function MyPayoutSettings() {
       />
 
       {/* ── Bannière Méthodes avancées (Wise, Open Banking) ── */}
-      {/* `color-mix()` reste en style inline : la syntaxe arbitraire de Tailwind
-          n'accepte pas les espaces, et l'echapper la rendrait illisible. */}
-      <Card
-        className="mb-4 flex flex-row flex-wrap items-center justify-between gap-3 bg-[var(--accent-soft)] p-3"
-        style={{ borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)' }}
-      >
+      <Card className="mb-4 flex flex-row flex-wrap items-center justify-between gap-3 border-primary/30 bg-primary-soft p-3">
         <div className="flex-1 min-w-[200px]">
-          <p className="cn-text-body1 text-[0.85rem] font-bold text-[var(--accent)] mb-0.5">
+          <p className="text-[0.85rem] font-bold text-primary mb-0.5">
             {t('settings.myPayout.advancedTitle', 'Méthodes avancées disponibles')}
           </p>
-          <p className="cn-text-body1 text-[0.78rem] text-muted-foreground leading-[1.45]">
+          <p className="text-[0.78rem] text-muted-foreground leading-[1.45]">
             {t(
               'settings.myPayout.advancedSubtitle',
               'Wise Business pour les virements internationaux (Maroc, Arabie Saoudite, 80+ pays) ou Open Banking PIS pour des virements SEPA automatiques sans upload manuel.',
@@ -226,7 +221,7 @@ export default function MyPayoutSettings() {
         <BuiButton
           variant="outline"
           size="sm"
-          className="text-[var(--accent)] border-[var(--accent)] hover:bg-[var(--accent-soft)]"
+          className="border-primary text-primary hover:bg-primary-soft"
           onClick={() => setMethodDialogOpen(true)}
         >
           <SettingsIcon size={14} strokeWidth={1.75} />
@@ -237,8 +232,8 @@ export default function MyPayoutSettings() {
       {/* ── Section SEPA ── */}
       <Card className="gap-0 py-0 p-3.5 mb-3.5">
         <div className="flex items-center gap-1.5 mb-2">
-          <AccountBalance size={18} strokeWidth={1.75} color='var(--info)' />
-          <h6 className="cn-text-subtitle2 font-bold text-[0.875rem]">
+          <span className="inline-flex text-info"><AccountBalance size={18} strokeWidth={1.75} /></span>
+          <h6 className="text-[0.875rem] font-bold">
             {t('settings.myPayout.sepaSection', 'Virement bancaire (SEPA)')}
           </h6>
         </div>
@@ -308,7 +303,7 @@ export default function MyPayoutSettings() {
               {updateSepaMutation.isPending ? <Spinner className="size-3.5" /> : <Save />}
               {t('settings.myPayout.saveSepa', 'Enregistrer')}
             </BuiButton>
-            <span className="cn-text-caption text-muted-foreground text-[0.6875rem]">
+            <span className="text-[0.6875rem] text-muted-foreground">
               {t('settings.myPayout.verificationNote', 'Apres modification, vos coordonnees seront verifiees par Baitly avant activation.')}
             </span>
           </div>
@@ -318,13 +313,15 @@ export default function MyPayoutSettings() {
       {/* ── Section Stripe Connect ── */}
       <Card className="gap-0 py-0 p-3.5">
         <div className="flex items-center gap-1.5 mb-2">
+          {/* Violet Stripe : couleur de marque du fournisseur, hors palette
+              semantique — conservee telle quelle. */}
           <CreditCard size={18} strokeWidth={1.75} color='#635bff' />
-          <h6 className="cn-text-subtitle2 font-bold text-[0.875rem]">
+          <h6 className="text-[0.875rem] font-bold">
             {t('settings.myPayout.stripeSection', 'Stripe Connect')}
           </h6>
         </div>
 
-        <p className="cn-text-body2 text-muted-foreground mb-3 text-[0.8125rem]">
+        <p className="mb-3 text-[0.8125rem] text-muted-foreground">
           {t('settings.myPayout.stripeDescription', 'Connectez votre compte Stripe pour recevoir vos reversements automatiquement.')}
         </p>
 

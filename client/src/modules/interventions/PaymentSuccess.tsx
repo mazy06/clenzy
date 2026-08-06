@@ -79,13 +79,13 @@ const PaymentSuccess: React.FC = () => {
           <CardContent className="text-center">
             {/* `motion-safe:` porte l'animation entiere plutot que `motion-reduce:animate-none` :
                 pas de course d'ordre entre l'utilitaire et la surcharge de duree. */}
-            <span className="inline-flex text-[var(--accent)] mb-3 motion-safe:animate-spin motion-safe:[animation-duration:2s]">
+            <span className="inline-flex text-primary mb-3 motion-safe:animate-spin motion-safe:[animation-duration:2s]">
               <HourglassTop size={56} strokeWidth={1.75} />
             </span>
-            <h5 className="cn-text-h5 font-semibold mb-1.5">
+            <h5 className="text-sm font-semibold tracking-tight mb-1.5">
               Verification du paiement...
             </h5>
-            <p className="cn-text-body2 text-muted-foreground mb-4">
+            <p className="text-xs text-muted-foreground mb-4 tabular-nums">
               Confirmation en cours aupres de Stripe ({attempt}/{MAX_ATTEMPTS})
             </p>
             <Progress
@@ -104,7 +104,7 @@ const PaymentSuccess: React.FC = () => {
         <CardContent className="text-center">
           {error ? (
             <>
-              <span className="inline-flex text-[var(--err)] mb-3"><ErrorOutline size={64} strokeWidth={1.5} /></span>
+              <span className="inline-flex text-destructive mb-3"><ErrorOutline size={64} strokeWidth={1.5} /></span>
               <Alert variant="destructive" className="mb-4">
                 <TriangleAlert />
                 <AlertDescription>{error}</AlertDescription>
@@ -116,11 +116,11 @@ const PaymentSuccess: React.FC = () => {
             </>
           ) : paymentConfirmed ? (
             <>
-              <span className="inline-flex text-[var(--ok)] mb-3"><CheckCircle size={80} strokeWidth={1.5} /></span>
-              <h4 className="cn-text-h4 mb-[0.35em] font-bold">
+              <span className="inline-flex text-success mb-3"><CheckCircle size={80} strokeWidth={1.5} /></span>
+              <h4 className="text-base font-bold tracking-tight text-balance mb-[0.35em]">
                 Paiement reussi !
               </h4>
-              <p className="cn-text-body1 text-muted-foreground mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Votre paiement a ete traite avec succes. Le statut sera mis a jour automatiquement.
               </p>
               <Button onClick={() => navigate('/billing')}>
@@ -129,14 +129,14 @@ const PaymentSuccess: React.FC = () => {
             </>
           ) : (
             <>
-              <span className="inline-flex text-[var(--warn)] mb-3"><CheckCircle size={80} strokeWidth={1.5} /></span>
-              <h5 className="cn-text-h5 mb-[0.35em] font-bold">
+              <span className="inline-flex text-warning mb-3"><CheckCircle size={80} strokeWidth={1.5} /></span>
+              <h5 className="text-sm font-bold tracking-tight mb-[0.35em]">
                 Paiement en cours de traitement
               </h5>
-              <p className="cn-text-body1 text-muted-foreground mb-1.5">
+              <p className="text-sm text-muted-foreground mb-1.5">
                 Votre paiement a bien ete envoye a Stripe. La confirmation peut prendre quelques instants.
               </p>
-              <p className="cn-text-body2 text-muted-foreground mb-4">
+              <p className="text-xs text-muted-foreground mb-4">
                 Le statut sera mis a jour automatiquement.
               </p>
               <Button onClick={() => navigate('/billing')}>

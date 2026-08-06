@@ -7,6 +7,8 @@ import {
   AccordionItem,
   AccordionTrigger,
   Button,
+  Card,
+  CardContent,
   Field,
   FieldError,
   FieldLabel,
@@ -14,6 +16,10 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
+  Item,
+  ItemActions,
+  ItemGroup,
+  ItemTitle,
   NativeSelect,
   NativeSelectOption,
   Skeleton,
@@ -136,7 +142,7 @@ const numOrUndef = (value: string): number | undefined => {
 const NUM_FIELD_CLASS = 'tabular-nums';
 
 /** Gabarit d'un panneau d'accordeon (l'ancien MuiAccordion portait sa propre surface). */
-const PANEL_CLASS = 'rounded-[var(--radius-md)] border border-solid border-[var(--line)] bg-[var(--card)] px-3';
+const PANEL_CLASS = "rounded-md border border-solid border-border bg-card px-3";
 
 interface TabMenageProps {
   config: PricingConfig;
@@ -302,7 +308,7 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
 
   return (
     <div>
-      <UiAlert variant="info" className="mb-3 text-[12.5px]">
+      <UiAlert variant="info" className="mb-3 text-xs">
         <AlertDescription>{t('tarification.cleaning.intro')}</AlertDescription>
       </UiAlert>
 
@@ -320,12 +326,12 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
       <AccordionItem value="workTime" className={PANEL_CLASS}>
         <AccordionTrigger>
           <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-[var(--accent)]"><Timer size={18} strokeWidth={1.75} /></span>
-            <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.workTime')}</p>
+            <span className="inline-flex text-primary"><Timer size={18} strokeWidth={1.75} /></span>
+            <p className="text-sm font-semibold">{t('tarification.cleaning.workTime')}</p>
           </div>
         </AccordionTrigger>
         <AccordionContent>
-          <p className="cn-text-body1 text-[12px] text-[var(--muted)] mb-2">
+          <p className="text-xs text-muted-foreground mb-2">
             {t('tarification.cleaning.baseByBedrooms')}
           </p>
           <div className="grid grid-cols-12 gap-[9px] mb-[15px]">
@@ -375,8 +381,8 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
       <AccordionItem value="rates" className={PANEL_CLASS}>
         <AccordionTrigger>
           <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-[var(--accent)]"><Euro size={18} strokeWidth={1.75} /></span>
-            <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.ratesAndRounding')}</p>
+            <span className="inline-flex text-primary"><Euro size={18} strokeWidth={1.75} /></span>
+            <p className="text-sm font-semibold">{t('tarification.cleaning.ratesAndRounding')}</p>
           </div>
         </AccordionTrigger>
         <AccordionContent>
@@ -401,8 +407,8 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
       <AccordionItem value="types" className={PANEL_CLASS}>
         <AccordionTrigger>
           <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-[var(--accent)]"><CleaningServices size={18} strokeWidth={1.75} /></span>
-            <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.cleaningTypes')}</p>
+            <span className="inline-flex text-primary"><CleaningServices size={18} strokeWidth={1.75} /></span>
+            <p className="text-sm font-semibold">{t('tarification.cleaning.cleaningTypes')}</p>
           </div>
         </AccordionTrigger>
         <AccordionContent>
@@ -428,12 +434,12 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
       <AccordionItem value="seasonal" className={PANEL_CLASS}>
         <AccordionTrigger>
           <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-[var(--accent)]"><CalendarMonth size={18} strokeWidth={1.75} /></span>
-            <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.seasonal.title')}</p>
+            <span className="inline-flex text-primary"><CalendarMonth size={18} strokeWidth={1.75} /></span>
+            <p className="text-sm font-semibold">{t('tarification.cleaning.seasonal.title')}</p>
           </div>
         </AccordionTrigger>
         <AccordionContent>
-          <p className="cn-text-body1 text-[12px] text-[var(--muted)] mb-2">
+          <p className="text-xs text-muted-foreground mb-2">
             {t('tarification.cleaning.seasonal.hint')}
           </p>
           {seasonalModifiers.map((mod, index) => {
@@ -520,7 +526,7 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
             );
           })}
           {seasonalModifiers.length === 0 && (
-            <p className="cn-text-body1 text-[12.5px] text-[var(--faint)] mb-2">
+            <p className="text-xs text-faint mb-2">
               {t('tarification.cleaning.seasonal.empty')}
             </p>
           )}
@@ -531,7 +537,7 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
             </Button>
           )}
           {seasonalModifiers.length > 1 && (
-            <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mt-1.5">
+            <p className="text-xs text-muted-foreground mt-1.5">
               {t('tarification.cleaning.seasonal.firstMatchHint')}
             </p>
           )}
@@ -542,8 +548,8 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
       <AccordionItem value="assignment" className={PANEL_CLASS}>
         <AccordionTrigger>
           <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-[var(--accent)]"><AutoAwesome size={18} strokeWidth={1.75} /></span>
-            <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.assignment.title')}</p>
+            <span className="inline-flex text-primary"><AutoAwesome size={18} strokeWidth={1.75} /></span>
+            <p className="text-sm font-semibold">{t('tarification.cleaning.assignment.title')}</p>
           </div>
         </AccordionTrigger>
         <AccordionContent>
@@ -556,8 +562,8 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
               disabled={!canEdit}
             />
             <FieldLabel htmlFor="menage-auto-assign-best-pro" className="flex-col items-start gap-0 font-normal">
-              <span className="text-[13.5px] font-semibold">{t('tarification.cleaning.assignment.autoBestPro')}</span>
-              <span className="text-[12px] text-[var(--muted)]">{t('tarification.cleaning.assignment.autoBestProHint')}</span>
+              <span className="text-sm font-semibold">{t('tarification.cleaning.assignment.autoBestPro')}</span>
+              <span className="text-xs text-muted-foreground">{t('tarification.cleaning.assignment.autoBestProHint')}</span>
             </FieldLabel>
           </Field>
         </AccordionContent>
@@ -567,13 +573,13 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
       <AccordionItem value="simulator" className={PANEL_CLASS}>
         <AccordionTrigger>
           <div className="flex items-center gap-1.5">
-            <span className="inline-flex text-[var(--accent)]"><Speed size={18} strokeWidth={1.75} /></span>
-            <p className="cn-text-body1 font-semibold text-[14px]">{t('tarification.cleaning.simulator')}</p>
+            <span className="inline-flex text-primary"><Speed size={18} strokeWidth={1.75} /></span>
+            <p className="text-sm font-semibold">{t('tarification.cleaning.simulator')}</p>
           </div>
         </AccordionTrigger>
         <AccordionContent>
           {/* La preview backend calcule avec la config SAUVEGARDÉE — pas la grille en cours d'édition. */}
-          <UiAlert variant="warning" className="mb-3 text-[12px]">
+          <UiAlert variant="warning" className="mb-3 text-xs">
             <AlertDescription>{t('tarification.cleaning.simulatorSavedConfigHint')}</AlertDescription>
           </UiAlert>
 
@@ -611,31 +617,31 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
           </div>
 
           {typeof simPropertyId === 'number' && (estimateQuery.isPending || previewQuery.isPending) && (
-            <Skeleton className="h-[140px] w-full rounded-[11px]" />
+            <Skeleton className="h-[140px] w-full rounded-lg" />
           )}
 
           {(estimateQuery.isError || previewQuery.isError) && (
-            <UiAlert variant="destructive" className="mb-2 text-[12.5px]">
+            <UiAlert variant="destructive" className="mb-2 text-xs">
               <TriangleAlert />
               <AlertDescription>{t('tarification.cleaning.simulatorError')}</AlertDescription>
             </UiAlert>
           )}
 
           {simProperty && !simProperty.bedroomCount && !simProperty.squareMeters && (
-            <UiAlert variant="info" className="mb-[9px] text-[12.5px]">
+            <UiAlert variant="info" className="mb-[9px] text-xs">
               <AlertDescription>{t('tarification.cleaning.simulatorInsufficientData')}</AlertDescription>
             </UiAlert>
           )}
 
           {estimateQuery.data && (
             <div className="flex items-baseline gap-2 mb-2 flex-wrap">
-              <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[22px] font-semibold text-[var(--accent)] tabular-nums">
+              <p className="font-[family-name:var(--font-display)] text-[22px] font-semibold text-primary tabular-nums">
                 {estimateQuery.data.estimate} {currencySymbol}
               </p>
-              <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
+              <p className="text-xs text-muted-foreground tabular-nums">
                 {estimateQuery.data.min}–{estimateQuery.data.max} {currencySymbol} · {estimateQuery.data.durationMinutes} min
               </p>
-              <p className="cn-text-body1 text-[11px] font-semibold text-[var(--muted)] uppercase tracking-[.04em]">
+              <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {estimateQuery.data.source === 'PROPERTY_OVERRIDE'
                   ? t('tarification.cleaning.sourceOverride')
                   : estimateQuery.data.source === 'HOUSEKEEPER_RATE'
@@ -653,42 +659,49 @@ export default function TabMenage({ config, canEdit, onUpdate, currencySymbol }:
                   const q = previewQuery.data.quotes?.[type];
                   if (!q) return null;
                   return (
-                    <div className="border border-[var(--line)] rounded-[11px] px-2.5 py-2" key={type}>
-                      <p className="cn-text-body1 text-[11px] font-bold text-[var(--faint)] uppercase tracking-[.05em] mb-0.5">
-                        {t(`properties.priceEstimation.cleaningTypes.${type}`)}
-                      </p>
-                      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[18px] font-semibold text-[var(--ink)] tabular-nums">
-                        {q.recommended} {currencySymbol}
-                      </p>
-                      <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums">
-                        {q.min}–{q.max} {currencySymbol} · {q.durationMinutes} min
-                      </p>
-                    </div>
+                    <Card size="sm" key={type}>
+                      <CardContent>
+                        <p className="text-2xs font-semibold uppercase tracking-wide text-faint mb-0.5">
+                          {t(`properties.priceEstimation.cleaningTypes.${type}`)}
+                        </p>
+                        <p className="font-[family-name:var(--font-display)] text-[18px] font-semibold text-foreground tabular-nums">
+                          {q.recommended} {currencySymbol}
+                        </p>
+                        <p className="text-xs text-muted-foreground tabular-nums">
+                          {q.min}–{q.max} {currencySymbol} · {q.durationMinutes} min
+                        </p>
+                      </CardContent>
+                    </Card>
                   );
                 })}
               </div>
 
               {/* Décomposition minutes */}
-              <div className="border border-[var(--line)] rounded-[11px] overflow-hidden max-w-[420px]">
-                <div className="px-2.5 py-1 bg-[var(--surface-2)]">
-                  <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
+              <div className="max-w-[420px] overflow-hidden rounded-lg border border-border">
+                {/* Hors du `role="list"` : un surtitre n'est pas un element de liste. */}
+                <div className="bg-muted px-2.5 py-1">
+                  <p className="text-2xs font-semibold uppercase tracking-wide text-faint">
                     {t('properties.cleaningEstimator.breakdownTitle')}
                   </p>
                 </div>
+                <ItemGroup>
                 {BREAKDOWN_KEYS.flatMap((key) => {
                   const minutes = previewQuery.data.minutesBreakdown?.[key] ?? 0;
                   if (!(key === 'base' || minutes > 0)) return [];
                   return [
-                    <div className="flex justify-between px-2.5 py-1 border-t border-[var(--line)]" key={key}>
-                      <p className="cn-text-body1 text-[12.5px] text-[var(--body)]">
+                    // `border-t-border` seul : le filet du kit est deja pose sur
+                    // les 4 cotes en transparent, on n'en colore que le haut.
+                    <Item size="xs" className="justify-between rounded-none border-t-border" key={key}>
+                      <ItemTitle className="font-normal text-foreground">
                         {t(`properties.cleaningEstimator.breakdown.${key}`)}
-                      </p>
-                      <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] tabular-nums">
+                      </ItemTitle>
+                      <ItemActions className="text-sm font-semibold text-foreground tabular-nums">
                         {minutes} min
-                      </p>
-                    </div>,
+                      </ItemActions>
+                    </Item>,
                   ];
                 })}
+                </ItemGroup>
               </div>
             </>
           )}

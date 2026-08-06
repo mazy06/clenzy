@@ -15,6 +15,7 @@
  * Ref Channex : docs.channex.io/api-v.1-documentation/channel-iframe
  */
 import React, { useEffect, useRef, useState } from 'react';
+import { cn } from '../../../utils/cn';
 import { Alert, AlertDescription } from '../../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
@@ -187,20 +188,28 @@ export default function ChannexEmbedDialog({
     <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); }}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-[1200px] h-[min(90vh,900px)] flex flex-col gap-0 p-0 overflow-hidden bg-[var(--bg)]"
+        className="sm:max-w-[1200px] h-[min(90vh,900px)] flex flex-col gap-0 p-0 overflow-hidden bg-background"
       >
-        <DialogHeader className="flex-row items-center justify-between gap-3 border-b border-solid border-[var(--line)] px-6 py-[9px] bg-[var(--card)]">
+        <DialogHeader className="flex-row items-center justify-between gap-3 border-b border-solid border-border px-6 py-[9px] bg-card">
           <div className="flex flex-row items-center gap-[9px] min-w-0 flex-1">
-            <div className="w-[32px] h-[32px] rounded-[8px] flex items-center justify-center shrink-0 font-bold text-[0.85rem]" style={{ backgroundColor: selectedOta ? selectedOta.brandColor : 'rgba(15, 118, 110, 0.1)', color: selectedOta ? selectedOta.brandColorFg : '#0F766E' }}>
+            {/* Sans OTA choisi, la pastille retombe sur la marque Baitly (l'ancien
+                teal `#0F766E` etait hors palette). */}
+            <div
+              className={cn(
+                'size-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm',
+                !selectedOta && 'bg-primary-soft text-primary',
+              )}
+              style={selectedOta ? { backgroundColor: selectedOta.brandColor, color: selectedOta.brandColorFg } : undefined}
+            >
               {selectedOta ? selectedOta.initials : <Link2 size={18} />}
             </div>
             <div className="min-w-0">
-              <DialogTitle className="cn-text-subtitle1 font-semibold truncate leading-[1.2]">
+              <DialogTitle className="text-sm font-semibold truncate leading-[1.2]">
                 {selectedOta
                   ? `Connecter ${selectedOta.name} — ${propertyName}`
                   : `Connecter les OTAs — ${propertyName}`}
               </DialogTitle>
-              <DialogDescription className="cn-text-caption text-muted-foreground block leading-[1.2]">
+              <DialogDescription className="text-xs text-muted-foreground block leading-[1.2]">
                 {selectedOta
                   ? `${selectedOta.description} · via le hub de distribution`
                   : 'Airbnb · Booking.com · Vrbo · Expedia — via le hub'}
@@ -234,8 +243,8 @@ export default function ChannexEmbedDialog({
             liste s'affiche au lieu du wizard. Channex ne supporte pas toujours
             un deep-link direct vers le formulaire de creation. */}
         {embedUrl && !error && (
-          <div className="flex items-start gap-2 px-3 py-2 border-b border-[var(--line)] bg-[var(--accent-soft)]">
-            <div className="text-[var(--accent)] flex items-center shrink-0 mt-0.5">
+          <div className="flex items-start gap-2 px-3 py-2 border-b border-solid border-border bg-primary-soft/60">
+            <div className="text-primary flex items-center shrink-0 mt-0.5">
               <Info size={14} />
             </div>
             {bannerHint === 'remap_listings' && selectedOta ? (
@@ -245,7 +254,7 @@ export default function ChannexEmbedDialog({
               // immediate (clic titre != clic Actions, onglet Listing pas
               // visible avant d'entrer dans le detail, etc.)
               <div className="flex-1 min-w-0">
-                <span className="cn-text-caption block leading-[1.5] text-foreground font-semibold mb-0.5">
+                <span className="text-xs block leading-[1.5] text-foreground font-semibold mb-0.5">
                   OAuth{' '}
                   <span className="font-bold" style={{ color: selectedOta.brandColor }}>
                     {selectedOta.name}
@@ -259,11 +268,11 @@ export default function ChannexEmbedDialog({
                       content: (
                         <>
                           Ouvrez le detail du channel{' '}
-                          <span className="inline-flex items-center px-[3.75px] py-[0.75px] rounded-[4px] font-semibold text-[0.7rem]" style={{ backgroundColor: `${selectedOta.brandColor}1A`, color: selectedOta.brandColor }}>
+                          <span className="inline-flex items-center px-[3.75px] py-[0.75px] rounded-sm font-semibold text-2xs" style={{ backgroundColor: `${selectedOta.brandColor}1A`, color: selectedOta.brandColor }}>
                             New {selectedOta.name} Channel
                           </span>
                           {' '}— cliquez sur le <strong>titre</strong>, ou sur{' '}
-                          <span className="inline-flex items-center px-1 py-0 rounded-[4px] bg-[var(--field)] text-muted-foreground font-semibold text-[0.7rem]">
+                          <span className="inline-flex items-center px-1 py-0 rounded-sm bg-field text-muted-foreground font-semibold text-2xs">
                             Actions &rsaquo; Edit
                           </span>
                           .
@@ -275,13 +284,13 @@ export default function ChannexEmbedDialog({
                       content: (
                         <>
                           Dans le detail, ouvrez l'onglet{' '}
-                          <span className="inline-flex items-center px-1 py-0 rounded-[4px] bg-[var(--ok-soft)] text-[var(--ok)] font-semibold text-[0.7rem]">
+                          <span className="inline-flex items-center px-1 py-0 rounded-sm bg-success-soft text-success-ink font-semibold text-2xs">
                             Mapping
                           </span>
                           {' '}— vos listings {selectedOta.name} s'affichent avec le
                           statut{' '}
-                          {/* px .625 = 3.75px, py .125 = .75px (spacing 6) ; radius .5 = 4px (shape 8) */}
-                          <span className="inline-flex items-center px-[3.75px] py-[0.75px] rounded-[4px] bg-[var(--err-soft)] text-[var(--err)] font-semibold text-[0.7rem] underline decoration-dashed">
+                          {/* px .625 = 3.75px, py .125 = .75px (spacing 6) */}
+                          <span className="inline-flex items-center px-[3.75px] py-[0.75px] rounded-sm bg-destructive-soft text-destructive-ink font-semibold text-2xs underline decoration-dashed">
                             Not mapped
                           </span>
                           .
@@ -293,13 +302,13 @@ export default function ChannexEmbedDialog({
                       content: (
                         <>
                           Cliquez sur{' '}
-                          <span className="inline-flex items-center px-1 py-0 rounded-[4px] bg-[var(--err-soft)] text-[var(--err)] font-semibold text-[0.7rem]">
+                          <span className="inline-flex items-center px-1 py-0 rounded-sm bg-destructive-soft text-destructive-ink font-semibold text-2xs">
                             Not mapped
                           </span>
                           {' '}→ un dropdown s'ouvre. Selectionnez une room + un rate
                           plan (le pivot Baitly si vous n'avez encore rien d'autre),
                           puis{' '}
-                          <span className="inline-flex items-center px-1 py-0 rounded-[4px] bg-[var(--ok-soft)] text-[var(--ok)] font-semibold text-[0.7rem]">
+                          <span className="inline-flex items-center px-1 py-0 rounded-sm bg-success-soft text-success-ink font-semibold text-2xs">
                             Save
                           </span>
                           . Fermez le wizard et cliquez{' '}
@@ -310,10 +319,10 @@ export default function ChannexEmbedDialog({
                     },
                   ].map(({ step, content }) => (
                     <div key={step} className="flex flex-row items-start gap-[5.25px]">
-                      <div className="w-[16px] h-[16px] rounded-[50%] bg-[var(--accent)] text-[var(--on-accent)] flex items-center justify-center text-[0.65rem] font-bold shrink-0 mt-0.5">
+                      <div className="size-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xs font-bold tabular-nums shrink-0 mt-0.5">
                         {step}
                       </div>
-                      <span className="cn-text-caption text-muted-foreground leading-[1.55] flex-1">
+                      <span className="text-xs text-muted-foreground leading-[1.55] flex-1">
                         {content}
                       </span>
                     </div>
@@ -321,16 +330,16 @@ export default function ChannexEmbedDialog({
                 </div>
               </div>
             ) : (
-              <span className="cn-text-caption text-muted-foreground leading-[1.5]">
+              <span className="text-xs text-muted-foreground leading-[1.5]">
                 {prefetchedEmbedUrl && selectedOta ? (
                 <>
                   Channel <strong>{selectedOta.name}</strong> deja cree dans le hub (title, devise, mapping pre-remplis).
                   Cliquez sur la ligne{' '}
-                  <span className="inline-flex items-center gap-[3px] px-[4.5px] py-[0.75px] rounded-[4px] font-semibold text-[0.7rem]" style={{ backgroundColor: `${selectedOta.brandColor}1A`, color: selectedOta.brandColor }}>
+                  <span className="inline-flex items-center gap-[3px] px-[4.5px] py-[0.75px] rounded-sm font-semibold text-2xs" style={{ backgroundColor: `${selectedOta.brandColor}1A`, color: selectedOta.brandColor }}>
                     {selectedOta.name} - {propertyName}
                   </span>{' '}
                   dans la liste ci-dessous, puis sur le bouton{' '}
-                  <span className="inline-flex items-center gap-[3px] px-[4.5px] py-[0.75px] rounded-[4px] font-semibold text-[0.7rem]" style={{ backgroundColor: `${selectedOta.brandColor}1A`, color: selectedOta.brandColor }}>
+                  <span className="inline-flex items-center gap-[3px] px-[4.5px] py-[0.75px] rounded-sm font-semibold text-2xs" style={{ backgroundColor: `${selectedOta.brandColor}1A`, color: selectedOta.brandColor }}>
                     Connect with {selectedOta.name}
                   </span>{' '}
                   pour finaliser l'{selectedOta.code === 'ABB' ? 'OAuth' : 'authentification'} — autorisez les popups.
@@ -338,11 +347,11 @@ export default function ChannexEmbedDialog({
               ) : selectedOta ? (
                 <>
                   Cliquez sur{' '}
-                  <span className="inline-flex items-center gap-0.5 px-1 py-0 rounded-[4px] bg-[var(--info-soft)] text-[var(--info)] font-semibold text-[0.7rem]">
+                  <span className="inline-flex items-center gap-0.5 px-1 py-0 rounded-sm bg-info-soft text-info-ink font-semibold text-2xs">
                     + Create
                   </span>{' '}
                   en haut a droite, puis selectionnez{' '}
-                  <span className="inline-flex items-center gap-[3px] px-[4.5px] py-[0.75px] rounded-[4px] font-semibold text-[0.7rem]" style={{ backgroundColor: `${selectedOta.brandColor}1A`, color: selectedOta.brandColor }}>
+                  <span className="inline-flex items-center gap-[3px] px-[4.5px] py-[0.75px] rounded-sm font-semibold text-2xs" style={{ backgroundColor: `${selectedOta.brandColor}1A`, color: selectedOta.brandColor }}>
                     {selectedOta.name}
                   </span>
                   . La connexion ouvre une fenetre {selectedOta.code === 'ABB' ? 'OAuth' : 'de credentials'} — autorisez les popups.
@@ -350,7 +359,7 @@ export default function ChannexEmbedDialog({
               ) : (
                 <>
                   Si la liste de channels s'affiche vide, cliquez sur{' '}
-                  <span className="inline-flex items-center gap-0.5 px-1 py-0 rounded-[4px] bg-[var(--info-soft)] text-[var(--info)] font-semibold text-[0.7rem]">
+                  <span className="inline-flex items-center gap-0.5 px-1 py-0 rounded-sm bg-info-soft text-info-ink font-semibold text-2xs">
                     + Create
                   </span>{' '}
                   en haut a droite pour choisir un OTA (Airbnb, Booking.com, Vrbo, Expedia).
@@ -374,7 +383,7 @@ export default function ChannexEmbedDialog({
         {loading && (
           <div className="flex flex-row items-center justify-center gap-3 flex-1 p-6">
             <Spinner className="size-6" />
-            <p className="cn-text-body2 text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Generation de la session de connexion...
             </p>
           </div>

@@ -36,15 +36,13 @@ import PagePagination from '../../components/PagePagination';
 import { useScreenSearch } from '../../components/ScreenChrome';
 import StatusChip from '../../components/StatusChip';
 
-// Teinte d'une puce de filtre choisie — identique pour toutes les catégories,
-// seule la bordure au repos distingue la catégorie.
-const FILTER_SELECTED_TOKENS = { color: 'var(--accent)', bg: 'var(--accent-soft)' };
-
-// Catégories de filtrage pour la liste des équipes
+// Catégories de filtrage pour la liste des équipes. La puce choisie prend le ton
+// `accent` de la primitive (identique pour toutes) ; au repos, seule la bordure
+// distingue la catégorie — une BORDURE, donc la teinte vive et non l'encre (§2.4).
 const TEAM_FILTER_CATEGORIES = [
-  { value: 'CLEANING', label: 'Nettoyage', icon: <AutoAwesome size={16} strokeWidth={1.75} />, borderColor: 'var(--ok)' },
-  { value: 'MAINTENANCE', label: 'Maintenance', icon: <Build size={16} strokeWidth={1.75} />, borderColor: 'var(--warn)' },
-  { value: 'OTHER', label: 'Autre', icon: <Category size={16} strokeWidth={1.75} />, borderColor: 'var(--info)' },
+  { value: 'CLEANING', label: 'Nettoyage', icon: <AutoAwesome size={16} strokeWidth={1.75} />, borderColor: 'var(--bui-success)' },
+  { value: 'MAINTENANCE', label: 'Maintenance', icon: <Build size={16} strokeWidth={1.75} />, borderColor: 'var(--bui-warning)' },
+  { value: 'OTHER', label: 'Autre', icon: <Category size={16} strokeWidth={1.75} />, borderColor: 'var(--bui-info)' },
 ];
 
 interface TeamsListProps {
@@ -161,7 +159,7 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
             selected={selectedType === 'all'}
             pressed={selectedType === 'all'}
             onClick={() => setSelectedType('all')}
-            tokens={FILTER_SELECTED_TOKENS}
+            tone="accent"
             className="h-[26px] border-solid text-[0.72rem] font-semibold"
           />
           {TEAM_FILTER_CATEGORIES.map((cat) => {
@@ -175,7 +173,7 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
                 selected={actif}
                 pressed={actif}
                 onClick={() => setSelectedType(cat.value)}
-                tokens={FILTER_SELECTED_TOKENS}
+                tone="accent"
                 // Au repos la bordure porte l'identite de la categorie : couleur
                 // connue a l'execution seulement, donc style inline.
                 sx={actif ? undefined : { borderColor: cat.borderColor }}
@@ -188,7 +186,7 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
         {/* Compteur d'équipes */}
         <div className="flex items-center gap-2">
           <Separator className="flex-1" />
-          <span className="cn-text-caption text-muted-foreground text-[0.75rem]">
+          <span className="text-xs text-muted-foreground">
             {filteredTeams.length} {filteredTeams.length > 1 ? t('teams.teams') : t('teams.team')} {t('teams.available')}
           </span>
         </div>
@@ -291,7 +289,7 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
           <DialogHeader>
             <DialogTitle>{t('teams.confirmDelete')}</DialogTitle>
           </DialogHeader>
-          <p className="cn-text-body2">
+          <p className="text-xs text-muted-foreground">
             {t('teams.confirmDeleteMessage', { name: selectedTeam?.name })}
           </p>
           <DialogFooter>

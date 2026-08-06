@@ -77,10 +77,10 @@ const PricingEditDialog: React.FC<PricingEditDialogProps> = ({
           <DialogTitle>{t('dynamicPricing.calendar.editPrice')}</DialogTitle>
         </DialogHeader>
         <div className="pt-1.5 flex flex-col gap-3">
-          <p className="cn-text-body2 text-muted-foreground">
+          <p className="text-xs text-muted-foreground tabular-nums">
             {formatDateRange(selectedDates)}
             {selectedDates.length > 1 && (
-              <span className="cn-text-body2 text-muted-foreground ms-1.5">
+              <span className="text-xs text-muted-foreground ms-1.5">
                 ({selectedDates.length} {t('common.date')}s)
               </span>
             )}

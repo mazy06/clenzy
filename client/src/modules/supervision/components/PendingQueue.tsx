@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { CheckCircle } from '../../../icons';
 import { cn } from '../../../utils/cn';
 import { useTranslation } from '../../../hooks/useTranslation';
+import EmptyState from '../../../components/baitly/EmptyState';
 import ReviewReplyDialog from '../../../components/baitly/ReviewReplyDialog';
 import { PendingActionCard } from './PendingActionCard';
 import type { OpenReviewPayload } from './ConstellationQueue';
@@ -35,11 +36,13 @@ export function PendingQueue({ actions, onValidate, onEdit, onAdjustPrice, varia
 
   if (actions.length === 0) {
     return (
-      <div className="flex items-center gap-[9px] p-[14px 8px] text-[var(--muted)]" data-pending-empty>
-        <CheckCircle size={28} style={{ color: 'var(--ok)', flexShrink: 0 }} />
-        <div>
-          <div className="text-[13.5px] font-extrabold text-[var(--ink,_#1b2240)]">{t('supervision.hitl.empty')}</div>
-        </div>
+      <div data-pending-empty>
+        {/* Le conteneur (carte du portefeuille) porte déjà sa bordure → variante transparente. */}
+        <EmptyState
+          variant="transparent"
+          icon={<CheckCircle className="text-success" />}
+          title={t('supervision.hitl.empty')}
+        />
       </div>
     );
   }

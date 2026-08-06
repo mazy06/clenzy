@@ -171,7 +171,7 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
         </DialogHeader>
 
         {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
-        <div className="border-y border-solid border-[var(--line)] py-3">
+        <div className="border-y border-solid border-border py-3">
         {isLoading && (
           <div className="flex justify-center p-6">
             <Spinner className="size-10" />
@@ -284,7 +284,7 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
 
               {/* ── Preview : SEULE difference visuelle vs SystemTemplate — bulle WhatsApp ── */}
               <div className="mt-4">
-                <h6 className="cn-text-subtitle2 text-muted-foreground mb-[0.35em]">
+                <h6 className="text-xs font-medium text-muted-foreground mb-[0.35em]">
                   {t('whatsappTemplates.dialog.preview')}
                 </h6>
                 <WhatsAppBubblePreview body={body} rtl={language === 'ar_AR'} />
@@ -293,11 +293,11 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
 
             {/* ── Sidebar variables (droite 5/12) ── */}
             <div className="col-span-12 min-[900px]:col-span-5">
-              <div className="sticky top-4 p-3 rounded-xl border border-solid border-[var(--line)] bg-[var(--card)]">
-                <h6 className="cn-text-subtitle2 font-semibold mb-[0.35em]">
+              <div className="sticky top-4 p-3 rounded-xl border border-solid border-border bg-card">
+                <h6 className="text-xs font-semibold mb-[0.35em]">
                   {t('messaging.templates.editor.variables')}
                 </h6>
-                <span className="cn-text-caption text-muted-foreground block mb-2">
+                <span className="text-xs text-muted-foreground block mb-2">
                   {t('messaging.templates.editor.variablesDesc')}
                 </span>
                 <VariablePicker
@@ -316,7 +316,7 @@ const WhatsAppTemplateEditorDialog: React.FC<Props> = ({ templateKey, open, onCl
           {isOverride && (
             <Button
               variant="outline"
-              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              className="text-warning-ink border-warning hover:bg-warning-soft"
               onClick={handleResetToSystem}
               disabled={saving}
             >

@@ -32,8 +32,8 @@ interface EventsWidgetProps {
  * d'evenements locaux retournes par {@code get_local_events}.
  *
  * <p>Chaque event = ligne compacte : date + chip type + titre + description.
- * Pattern « Signature » : tokens var(--…), date en display tabular-nums,
- * chips statut texte couleur + fond {@code -soft}.</p>
+ * Habillage Baitly UI : date en {@code tabular-nums}, pastilles de statut en
+ * texte coloré sur fond {@code -soft}.</p>
  */
 export const EventsWidget: React.FC<EventsWidgetProps> = ({ data }) => {
   const items = data.items ?? [];
@@ -41,8 +41,8 @@ export const EventsWidget: React.FC<EventsWidgetProps> = ({ data }) => {
   if (items.length === 0) {
     return (
       <div className="mt-1.5 mb-2">
-        <div className="p-3 rounded-[12px] bg-[var(--field)] text-center">
-          <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
+        <div className="p-3 rounded-xl bg-muted text-center">
+          <p className="text-xs text-muted-foreground">
             Aucun evenement detecte sur cette periode{data.city ? ` a ${data.city}` : ''}.
           </p>
         </div>
@@ -53,7 +53,7 @@ export const EventsWidget: React.FC<EventsWidgetProps> = ({ data }) => {
   return (
     <div className="mt-1.5 mb-2">
       {data.title && (
-        <p className="cn-text-body1 block mb-1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
+        <p className="block mb-1 text-2xs font-bold uppercase tracking-[.05em] text-faint">
           {data.title}
         </p>
       )}
@@ -65,7 +65,7 @@ export const EventsWidget: React.FC<EventsWidgetProps> = ({ data }) => {
       </div>
 
       {data.truncated && (
-        <p className="cn-text-body1 block mt-1 text-[11.5px] text-[var(--faint)] text-end tabular-nums">
+        <p className="block mt-1 text-xs text-faint text-end tabular-nums">
           {items.length}/{data.totalElements} affiches — affine les dates pour voir le reste
         </p>
       )}
@@ -77,32 +77,32 @@ const EventRow: React.FC<{ item: EventItem }> = ({ item }) => {
   const [typeColor, typeSoft] = typeToColors(item.type);
 
   return (
-    <div className="px-2 py-1.5 rounded-[10px] bg-[var(--card)] border border-[var(--line)] flex gap-1.5 items-start">
+    <div className="px-2 py-1.5 rounded-lg bg-card border border-border flex gap-1.5 items-start">
       <div className="min-w-[64px] flex flex-col items-center pt-0.5">
-        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1rem] font-semibold leading-[1.1] text-[var(--ink)] tabular-nums">
+        <p className="text-[1rem] font-semibold leading-[1.1] text-foreground tabular-nums">
           {formatDay(item.date)}
         </p>
-        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
+        <p className="text-2xs font-bold uppercase tracking-[.05em] text-faint">
           {formatMonth(item.date)}
         </p>
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1 mb-0.5 flex-wrap">
-          <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)]">
+          <p className="text-[13.5px] font-semibold text-foreground">
             {item.title}
           </p>
           {item.type && (
-            <StatusChip size="sm" tokens={{ color: typeColor, bg: typeSoft }} label={typeLabel(item.type)} className="text-[10.5px] tracking-[.04em] uppercase" />
+            <StatusChip size="sm" tokens={{ color: typeColor, bg: typeSoft }} label={typeLabel(item.type)} className="text-2xs tracking-[.04em] uppercase" />
           )}
           {item.city && item.city !== '*' && (
-            <p className="cn-text-body1 text-[11.5px] text-[var(--faint)]">
+            <p className="text-xs text-faint">
               {item.city}
             </p>
           )}
         </div>
         {item.description && (
-          <p className="cn-text-body1 block text-[11.5px] text-[var(--muted)] leading-[1.4]">
+          <p className="block text-xs text-muted-foreground leading-[1.4]">
             {item.description}
           </p>
         )}
@@ -120,11 +120,11 @@ const EventRow: React.FC<{ item: EventItem }> = ({ item }) => {
  */
 function typeToColors(type: string | undefined): [string, string] {
   switch (type?.toUpperCase()) {
-    case 'PUBLIC_HOLIDAY': return ['var(--err)', 'var(--err-soft)'];
-    case 'FESTIVAL':       return ['var(--warn)', 'var(--warn-soft)'];
-    case 'SPORT':          return ['var(--ok)', 'var(--ok-soft)'];
-    case 'FAIR':           return ['var(--info)', 'var(--info-soft)'];
-    default:               return ['var(--muted)', 'var(--hover)'];
+    case 'PUBLIC_HOLIDAY': return ['var(--color-destructive-ink)', 'var(--color-destructive-soft)'];
+    case 'FESTIVAL':       return ['var(--color-warning-ink)', 'var(--color-warning-soft)'];
+    case 'SPORT':          return ['var(--color-success-ink)', 'var(--color-success-soft)'];
+    case 'FAIR':           return ['var(--color-info-ink)', 'var(--color-info-soft)'];
+    default:               return ['var(--color-muted-foreground)', 'var(--color-accent)'];
   }
 }
 

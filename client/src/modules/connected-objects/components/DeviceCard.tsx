@@ -87,37 +87,37 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
   };
 
   return (
-    <Card className="gap-0 py-0 p-2 border-[var(--line)] flex flex-col gap-1.5 transition-colors duration-200 hover:border-[var(--line-2)]">
+    <Card className="gap-0 py-0 p-2 border-border flex flex-col gap-1.5">
       {/* En-tête : badge type + nom (+ pièce) | indicateur en ligne */}
       <div className="flex items-start gap-1.5 min-w-0">
         {device.kind === 'camera' ? (
           // Caméra : aperçu (snapshot) du flux. Repli sur l'icône (placée derrière) si hors
           // ligne, pas de snapshot, ou image en erreur (onError masque l'img → l'icône réapparaît).
-          <div className="relative w-[40px] h-[30px] rounded-[8px] shrink-0 overflow-hidden flex items-center justify-center" style={{ color: meta.color, backgroundColor: iconVeil }}>
+          <div className="relative w-[40px] h-[30px] rounded-md shrink-0 overflow-hidden flex items-center justify-center" style={{ color: meta.color, backgroundColor: iconVeil }}>
             {meta.icon(iconSize)}
             {device.online && device.previewUrl && (
               <img className="absolute inset-[0px] w-full h-full object-cover" src={device.previewUrl} alt="" loading="lazy" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
             )}
           </div>
         ) : (
-          <div className="w-[30px] h-[30px] rounded-[8px] shrink-0 flex items-center justify-center" style={{ color: meta.color, backgroundColor: iconVeil }}>
+          <div className="w-[30px] h-[30px] rounded-md shrink-0 flex items-center justify-center" style={{ color: meta.color, backgroundColor: iconVeil }}>
             {meta.icon(iconSize)}
           </div>
         )}
         <div className="min-w-0 flex-1">
           <p
             onClick={() => onAction?.(device.uid, 'view')}
-            className="cn-text-body1 text-[0.875rem] font-semibold leading-[1.25] text-[var(--ink)] truncate cursor-pointer hover:text-[var(--accent)]"
+            className="text-sm font-semibold leading-[1.25] text-foreground truncate cursor-pointer transition-colors duration-150 hover:text-primary"
           >
             {device.name}
           </p>
-          <span className="cn-text-caption text-muted-foreground block overflow-hidden text-ellipsis whitespace-nowrap">
+          <span className="text-xs text-muted-foreground block overflow-hidden text-ellipsis whitespace-nowrap">
             {device.roomName ? `${device.roomName} · ` : ''}{meta.singular}
           </span>
         </div>
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className={cn('inline-flex shrink-0 mt-[1.5px]', device.online ? 'text-[#4A9B8E]' : 'text-[var(--faint)]')}>
+            <span className={cn('inline-flex shrink-0 mt-[1.5px]', device.online ? 'text-success' : 'text-faint')}>
               {device.online ? <Wifi size={14} strokeWidth={1.75} /> : <WifiOff size={14} strokeWidth={1.75} />}
             </span>
           </TooltipTrigger>
@@ -133,7 +133,7 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
         ) : (
           <>
             {device.primaryMetric && (
-              <span className="cn-text-caption text-muted-foreground tabular-nums">
+              <span className="text-xs text-muted-foreground tabular-nums">
                 {device.primaryMetric.label} : <strong>{device.primaryMetric.value}</strong>
               </span>
             )}
@@ -163,7 +163,7 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
             size="sm"
             variant="ghost"
             onClick={() => onAction?.(device.uid, 'view')}
-            className="flex-1 justify-between text-[var(--muted)]"
+            className="flex-1 justify-between text-muted-foreground"
           >
             Gérer
             <ChevronRight strokeWidth={1.75} />
@@ -182,7 +182,7 @@ export default function DeviceCard({ device, onAction, acting = false }: DeviceC
                   disabled={removing}
                   className={cn(
                     buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
-                    'shrink-0 text-[var(--muted)] cursor-pointer',
+                    'shrink-0 text-muted-foreground cursor-pointer',
                   )}
                 >
                   {removing ? <Spinner className="size-4" /> : <MoreVert size={16} strokeWidth={1.75} />}

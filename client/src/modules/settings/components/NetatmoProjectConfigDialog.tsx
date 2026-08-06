@@ -5,6 +5,7 @@ import {
   Button,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -86,24 +87,26 @@ export default function NetatmoProjectConfigDialog({ open, onClose, current, onS
     <Dialog open={open} onOpenChange={(next) => { if (!next && !saving) onClose(); }}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-[6px] font-bold">
+          <DialogTitle className="flex items-center gap-1.5 font-semibold">
             <KeyRound size={18} />
             Configurer l'app Netatmo
           </DialogTitle>
+          {/* Le texte d'explication devient la description du dialog : il en
+              porte deja le role, et Radix l'associe alors via aria-describedby. */}
+          <DialogDescription className="text-xs">
+            Renseignez le <strong>Client ID</strong> et le <strong>Client Secret</strong> de l'app créée sur{' '}
+            <a
+              href="https://dev.netatmo.com/apps/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary"
+            >
+              dev.netatmo.com
+            </a>
+            . La <strong>Redirect URI</strong> doit être <u>identique</u> à celle déclarée dans l'app Netatmo.
+            Les identifiants sont stockés chiffrés en base.
+          </DialogDescription>
         </DialogHeader>
-        <p className="cn-text-body2 text-muted-foreground mb-3">
-          Renseignez le <strong>Client ID</strong> et le <strong>Client Secret</strong> de l'app créée sur{' '}
-          <a
-            href="https://dev.netatmo.com/apps/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[var(--mui-primary)] underline underline-offset-2"
-          >
-            dev.netatmo.com
-          </a>
-          . La <strong>Redirect URI</strong> doit être <u>identique</u> à celle déclarée dans l'app Netatmo.
-          Les identifiants sont stockés chiffrés en base.
-        </p>
 
         {error && <Alert variant="destructive" className="mb-3">
           <TriangleAlert />

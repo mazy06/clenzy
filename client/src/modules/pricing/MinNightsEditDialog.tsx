@@ -63,10 +63,10 @@ const MinNightsEditDialog: React.FC<MinNightsEditDialogProps> = ({
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3">
-          <p className="cn-text-body2 text-muted-foreground">
+          <p className="text-xs text-muted-foreground tabular-nums">
             {formatDateRange(selectedDates)}
             {selectedDates.length > 1 && (
-              <span className="cn-text-body2 text-muted-foreground ms-1.5">
+              <span className="text-xs text-muted-foreground ms-1.5">
                 ({selectedDates.length} dates)
               </span>
             )}
@@ -92,7 +92,7 @@ const MinNightsEditDialog: React.FC<MinNightsEditDialogProps> = ({
             )}
           </Field>
 
-          <span className="cn-text-caption text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             Les réservations dont la date d'arrivée tombe sur l'une de ces dates devront
             respecter ce minimum. Le défaut de la propriété est remplacé uniquement sur
             les dates sélectionnées.

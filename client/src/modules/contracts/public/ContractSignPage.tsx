@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, AlertDescription } from '../../../components/ui';
+import { Alert, AlertDescription, AlertTitle } from '../../../components/ui';
 import { Info, TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../../components/ui';
 import { Card } from '../../../components/ui';
@@ -40,14 +40,13 @@ interface SignView {
 
 type PageState = 'loading' | 'ready' | 'notfound' | 'error';
 
-// Page publique : on consomme les tokens Signature (tokens.css importé global).
-// Défaut visiteur = thème clair, accent émeraude.
-const BRAND = 'var(--accent)';
+// Page publique : palette Baitly UI (baitly-ui.css importé global).
+// Défaut visiteur = thème clair.
 
-// Report du `<Paper variant="outlined">` : surface carte, hairline --line, r14.
+// Report du `<Paper variant="outlined">` : surface carte, filet, rayon lg.
 // Padding MUI p={{ xs: 2, md: 3 }} = 12 px / 18 px, md MUI = 900 px.
 const PANEL_CLASS =
-  'rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)] p-3 min-[900px]:p-[18px]';
+  'rounded-lg border border-solid border-border bg-card p-3 min-[900px]:p-[18px]';
 
 async function fetchView(token: string): Promise<SignView | null> {
   const response = await fetch(`${API_BASE}/public/contract-signature/${token}`, {
@@ -154,28 +153,28 @@ const ContractSignPage: React.FC = () => {
     // md MUI = 900px ; py 3/6 = 18px/36px et px 2 = 12px (theme.spacing vaut 6).
     <div
       dir={lang === 'ar' ? 'rtl' : 'ltr'}
-      className="min-h-screen flex justify-center bg-[var(--bg)] px-3 py-[18px] min-[900px]:py-9"
+      className="min-h-screen flex justify-center bg-background px-3 py-[18px] min-[900px]:py-9"
     >
       <div className="w-full max-w-[760px] flex flex-col gap-4">
         {/* ── En-tête marque ── */}
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center justify-center w-[36px] h-[36px] rounded-[10px] text-[var(--on-accent)] shrink-0" style={{ backgroundColor: BRAND }}>
+          <span className="inline-flex items-center justify-center size-9 rounded-lg bg-primary text-primary-foreground shrink-0">
             <Handshake size={20} strokeWidth={1.75} />
           </span>
           <div>
-            <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1rem] font-semibold leading-[1.2] text-[var(--ink)]">
+            <p className="font-[family-name:var(--font-display)] text-base font-semibold leading-[1.2] text-foreground">
               Baitly
             </p>
-            <p className="cn-text-body1 text-[0.75rem] text-[var(--muted)]">
+            <p className="text-xs text-muted-foreground">
               {L.brandTagline}
             </p>
           </div>
         </div>
 
         {state === 'loading' && (
-          <Card className="gap-0 py-0 border-[var(--line)] p-9 text-center">
-            <Spinner className="size-7 mx-auto text-[var(--accent)]" />
-            <p className="cn-text-body1 mt-3 text-[0.875rem] text-[var(--muted)]">
+          <Card className="gap-0 py-0 border-border p-9 text-center">
+            <Spinner className="size-7 mx-auto text-primary" />
+            <p className="mt-3 text-sm text-muted-foreground">
               {L.loadingText}
             </p>
           </Card>
@@ -183,9 +182,8 @@ const ContractSignPage: React.FC = () => {
 
         {(state === 'notfound' || state === 'error') && (
           <StatusCard
-            icon={<Warning size={28} strokeWidth={1.75} />}
-            iconColor="var(--warn)"
-            iconSoft="var(--warn-soft)"
+            icon={<Warning className="size-5" strokeWidth={1.75} />}
+            variant="warning"
             title={state === 'notfound' ? L.notFoundTitle : L.errorTitle}
             text={state === 'notfound' ? L.notFoundText : L.errorText}
           />
@@ -195,18 +193,17 @@ const ContractSignPage: React.FC = () => {
           <>
             {/* ── Bandeau d'état (expiré / annulé / signé / succès) ── */}
             {view.status === 'EXPIRED' && (
-              <StatusCard icon={<Warning size={28} strokeWidth={1.75} />} iconColor="var(--warn)" iconSoft="var(--warn-soft)"
+              <StatusCard icon={<Warning className="size-5" strokeWidth={1.75} />} variant="warning"
                 title={L.expiredTitle} text={L.expiredText} />
             )}
             {view.status === 'CANCELLED' && (
-              <StatusCard icon={<Warning size={28} strokeWidth={1.75} />} iconColor="var(--err)" iconSoft="var(--err-soft)"
+              <StatusCard icon={<Warning className="size-5" strokeWidth={1.75} />} variant="destructive"
                 title={L.cancelledTitle} text={L.cancelledText} />
             )}
             {view.status === 'SIGNED' && (
               <StatusCard
-                icon={<CheckCircle size={28} strokeWidth={1.75} />}
-                iconColor="var(--ok)"
-                iconSoft="var(--ok-soft)"
+                icon={<CheckCircle className="size-5" strokeWidth={1.75} />}
+                variant="success"
                 title={justSigned ? L.successTitle : L.signedTitle}
                 text={justSigned
                   ? L.successText
@@ -218,11 +215,11 @@ const ContractSignPage: React.FC = () => {
 
             {/* ── Titre + récapitulatif (toujours visibles si contrat lisible) ── */}
             <div>
-              <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.375rem] font-semibold text-[var(--ink)] text-balance">
-                {L.title} <span className="text-[1.05rem]" style={{ fontFamily: 'monospace', color: BRAND }}>{view.contractNumber}</span>
+              <p className="font-[family-name:var(--font-display)] text-[1.375rem] font-semibold text-foreground text-balance">
+                {L.title} <span className="text-[1.05rem] font-mono text-primary">{view.contractNumber}</span>
               </p>
               {view.status === 'PENDING' && (
-                <p className="cn-text-body1 mt-0.5 text-[0.875rem] text-[var(--muted)]">
+                <p className="mt-0.5 text-sm text-muted-foreground">
                   {L.subtitle}
                 </p>
               )}
@@ -295,10 +292,10 @@ const ContractSignPage: React.FC = () => {
                   )}
                 </div>
                 {pdfUrl ? (
-                  <iframe className="w-full h-[380px] min-[900px]:h-[520px] border border-solid border-[var(--line-2)] rounded-[12px] bg-[var(--card)]" src={pdfUrl} title={`${L.title} ${view.contractNumber}`} />
+                  <iframe className="w-full h-[380px] min-[900px]:h-[520px] border border-solid border-border rounded-xl bg-card" src={pdfUrl} title={`${L.title} ${view.contractNumber}`} />
                 ) : view.documentAvailable ? (
                   <div className="py-6 text-center">
-                    <Spinner className="size-[22px] mx-auto text-[var(--accent)]" />
+                    <Spinner className="size-[22px] mx-auto text-primary" />
                   </div>
                 ) : (
                   <Alert variant="info" className="text-[0.8125rem]">
@@ -307,7 +304,7 @@ const ContractSignPage: React.FC = () => {
                   </Alert>
                 )}
                 {view.status === 'PENDING' && (
-                  <p className="cn-text-body1 mt-1.5 text-[0.75rem] text-[var(--faint)]">
+                  <p className="mt-1.5 text-xs text-faint">
                     {L.documentHint}
                   </p>
                 )}
@@ -316,7 +313,7 @@ const ContractSignPage: React.FC = () => {
 
             {/* ── Bloc signature ── */}
             {view.status === 'PENDING' && (
-              <div className={cn(PANEL_CLASS, 'border-[var(--accent)]')}>
+              <div className={cn(PANEL_CLASS, 'border-primary')}>
                 <SectionLabel>{L.signTitle}</SectionLabel>
                 <div className="flex flex-col gap-3">
                   <Field>
@@ -339,7 +336,7 @@ const ContractSignPage: React.FC = () => {
                     />
                     <FieldLabel
                       htmlFor="contract-consent"
-                      className="text-[0.78rem] font-normal text-[var(--muted)] leading-[1.55]"
+                      className="text-xs font-normal text-muted-foreground leading-[1.55]"
                     >
                       {view.consentText}
                     </FieldLabel>
@@ -371,7 +368,7 @@ const ContractSignPage: React.FC = () => {
         )}
 
         {/* ── Pied de page légal ── */}
-        <p className="cn-text-body1 text-[0.6875rem] text-[var(--faint)] text-center pb-3">
+        <p className="text-2xs text-faint text-center pb-3">
           {L.footer}
         </p>
       </div>
@@ -384,34 +381,39 @@ const ContractSignPage: React.FC = () => {
 // L'ancien surcharge par `sx` devient une surcharge par `className` : le seul
 // appelant passait `mb: 0`, que tailwind-merge resout contre le mb-[9px] de base.
 const SectionLabel: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
-  <p className={cn('cn-text-body1 text-[10.5px] font-bold uppercase tracking-[0.06em] text-[var(--faint)] mb-[9px]', className)}>
+  <p className={cn('text-2xs font-bold uppercase tracking-[0.06em] text-faint mb-[9px]', className)}>
     {children}
   </p>
 );
 
 const SummaryRow: React.FC<{ label: string; value: string; tabular?: boolean }> = ({ label, value, tabular }) => (
-  <div className="flex justify-between gap-3 py-1.5 border-b border-[var(--line)]">
-    <p className="cn-text-body1 text-[0.8125rem] text-[var(--muted)] shrink-0">{label}</p>
-    <p className={cn('cn-text-body1 text-[0.8125rem] font-semibold text-[var(--ink)] text-end', tabular && 'tabular-nums')}>
+  <div className="flex justify-between gap-3 py-1.5 border-b border-border">
+    <p className="text-[0.8125rem] text-muted-foreground shrink-0">{label}</p>
+    <p className={cn('text-[0.8125rem] font-semibold text-foreground text-end', tabular && 'tabular-nums')}>
       {value}
     </p>
   </div>
 );
 
-const StatusCard: React.FC<{ icon: React.ReactNode; iconColor: string; iconSoft: string; title: string; text: string }> = ({
-  icon, iconColor, iconSoft, title, text,
-}) => (
-  // p={{ xs: 2.5, md: 3 }} = 15 px / 18 px : padding propre a cette carte, donc
-  // pas PANEL_CLASS.
-  <div className="rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)] p-[15px] min-[900px]:p-[18px] flex gap-3 items-start">
-    <span className="inline-flex items-center justify-center w-[44px] h-[44px] rounded-[12px] shrink-0" style={{ backgroundColor: iconSoft, color: iconColor }}>
-      {icon}
-    </span>
-    <div>
-      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1rem] font-semibold text-[var(--ink)] text-balance">{title}</p>
-      <p className="cn-text-body1 mt-0.5 text-[0.85rem] text-[var(--muted)] leading-[1.55]">{text}</p>
-    </div>
-  </div>
+/**
+ * Bandeau d'état du lien de signature (introuvable, expiré, annulé, signé).
+ * C'est exactement la forme d'une `Alert` du kit : le couple fond `-soft` /
+ * encre `-ink` de chaque variante y est déjà conforme AA, ce que la carte
+ * écrite à la main ne garantissait pas.
+ */
+const StatusCard: React.FC<{
+  icon: React.ReactNode;
+  variant: 'warning' | 'destructive' | 'success';
+  title: string;
+  text: string;
+}> = ({ icon, variant, title, text }) => (
+  <Alert variant={variant} className="px-4 py-3.5 gap-x-3">
+    {icon}
+    <AlertTitle className="font-[family-name:var(--font-display)] text-base font-semibold text-balance">
+      {title}
+    </AlertTitle>
+    <AlertDescription className="mt-0.5 text-[0.85rem] leading-[1.55]">{text}</AlertDescription>
+  </Alert>
 );
 
 export default ContractSignPage;

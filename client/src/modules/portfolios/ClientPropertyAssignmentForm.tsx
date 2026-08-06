@@ -91,10 +91,10 @@ const ClientPropertyAssignmentForm: React.FC = () => {
       case 0:
         return (
           <div>
-            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-0.5">
+            <h6 className="text-sm font-semibold tracking-tight mb-0.5">
               {t('portfolios.steps.selectManagerTitle')}
             </h6>
-            <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-3.5">
+            <p className="text-xs text-muted-foreground mb-3.5">
               {t('portfolios.steps.selectManagerDescription')}
             </p>
             <Field>
@@ -111,11 +111,11 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                     <SelectItem key={manager.id} value={String(manager.id)}>
                       <div className="flex items-center gap-1.5">
                         <Avatar className="size-6 rounded-[8px] after:rounded-[8px]">
-                          <AvatarFallback className="rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)] text-[0.6rem] font-semibold font-[family-name:var(--font-display)]">
+                          <AvatarFallback className="rounded-md bg-primary text-primary-foreground text-[0.6rem] font-semibold font-[family-name:var(--font-display)]">
                             {manager.firstName.charAt(0)}{manager.lastName.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
-                        <p className="cn-text-body1 text-[0.85rem]">
+                        <p className="text-[0.85rem]">
                           {manager.firstName} {manager.lastName} - {manager.email}
                         </p>
                       </div>
@@ -130,10 +130,10 @@ const ClientPropertyAssignmentForm: React.FC = () => {
       case 1:
         return (
           <div>
-            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-0.5">
+            <h6 className="text-sm font-semibold tracking-tight mb-0.5">
               {t('portfolios.fields.selectClientsToAssign')}
             </h6>
-            <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-3.5">
+            <p className="text-xs text-muted-foreground mb-3.5">
               {t('portfolios.fields.selectClientsDescription')}
             </p>
 
@@ -150,7 +150,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                   <button
                     id="assign-clients"
                     type="button"
-                    className="flex h-8 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-solid border-[var(--line)] bg-transparent px-2.5 py-1 text-start text-[0.85rem] transition-colors hover:border-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="flex h-8 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-solid border-border bg-transparent px-2.5 py-1 text-start text-[0.85rem] transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <span className={cn('truncate', selectedClients.length === 0 && 'text-muted-foreground')}>
                       {selectedClients.length === 0
@@ -175,17 +175,17 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                       // parent, donc pas de role="option" ici).
                       aria-pressed={selectedClientsSet.has(client.id)}
                       onClick={() => handleClientToggle(client.id)}
-                      className="flex w-full cursor-pointer items-center gap-1.5 rounded-[8px] px-1.5 py-1 text-start hover:bg-[var(--hover)]"
+                      className="flex w-full cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 text-start hover:bg-muted"
                     >
                       {/* Purement indicatif : c'est le clic sur la ligne qui
                           pilote la selection, comme avec la case MUI. */}
                       <Checkbox checked={selectedClientsSet.has(client.id)} tabIndex={-1} className="pointer-events-none" />
                       <Avatar className="size-6 rounded-[8px] after:rounded-[8px]">
-                        <AvatarFallback className="rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)] text-[0.6rem] font-semibold font-[family-name:var(--font-display)]">
+                        <AvatarFallback className="rounded-md bg-primary text-primary-foreground text-[0.6rem] font-semibold font-[family-name:var(--font-display)]">
                           {client.firstName.charAt(0)}{client.lastName.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      <p className="cn-text-body1 truncate text-[0.85rem]">
+                      <p className="truncate text-[0.85rem]">
                         {client.firstName} {client.lastName} - {client.email}
                       </p>
                     </button>
@@ -196,7 +196,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
 
             {selectedClients.length > 0 && (
               <div className="mt-3">
-                <h6 className="cn-text-subtitle2 text-[0.82rem] mb-1.5">
+                <h6 className="text-xs font-medium mb-1.5">
                   {t('portfolios.fields.clientsSelected')} ({selectedClients.length}) :
                 </h6>
                 <div className="flex flex-wrap gap-1">
@@ -222,10 +222,10 @@ const ClientPropertyAssignmentForm: React.FC = () => {
       case 2:
         return (
           <div>
-            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-0.5">
+            <h6 className="text-sm font-semibold tracking-tight mb-0.5">
               {t('portfolios.fields.selectProperties')}
             </h6>
-            <p className="cn-text-body2 text-muted-foreground text-[0.82rem] mb-3.5">
+            <p className="text-xs text-muted-foreground mb-3.5">
               {t('portfolios.fields.propertiesDescription')}
             </p>
 
@@ -239,10 +239,10 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                   <div className="col-span-12 min-[600px]:col-span-6 min-[900px]:col-span-4" key={property.id}>
                     <BuiCard
                       className={cn(
-                        'gap-0 px-3 py-[9px] cursor-pointer rounded-[16px] border-solid transition-[border-color] duration-200 motion-reduce:transition-none hover:border-[var(--accent)]',
+                        'gap-0 px-3 py-[9px] cursor-pointer rounded-2xl border border-solid transition-colors duration-200 motion-reduce:transition-none hover:border-primary',
                         selectedPropertiesSet.has(property.id)
-                          ? 'border-2 border-[var(--accent)]'
-                          : 'border border-[var(--line)]',
+                          ? 'border-primary bg-primary-soft/50'
+                          : 'border-border',
                       )}
                       onClick={() => handlePropertyToggle(property.id)}
                     >
@@ -252,14 +252,14 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                           onCheckedChange={() => handlePropertyToggle(property.id)}
                           className="me-1"
                         />
-                        <span className="inline-flex text-[var(--info)] me-1"><Home size={18} strokeWidth={1.75} /></span>
-                        <h6 className="cn-text-subtitle2 text-[0.82rem] font-semibold truncate">
+                        <span className="inline-flex text-info me-1"><Home size={18} strokeWidth={1.75} /></span>
+                        <h6 className="text-xs font-semibold truncate">
                           {property.name}
                         </h6>
                       </div>
                       <div className="flex items-center ms-5">
                         <span className="inline-flex text-muted-foreground me-0.5"><LocationOn size={13} strokeWidth={1.75} /></span>
-                        <span className="cn-text-caption text-muted-foreground text-[0.7rem] truncate">
+                        <span className="text-[0.7rem] text-muted-foreground truncate">
                           {property.address}, {property.city}
                         </span>
                       </div>
@@ -280,7 +280,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
             )}
 
             {properties.length === 0 && selectedClients.length > 0 && !loading && (
-              <p className="cn-text-body2 text-muted-foreground text-center py-6 text-[0.82rem]">
+              <p className="text-xs text-muted-foreground text-center py-6">
                 {t('portfolios.fields.noClientAssociated')}
               </p>
             )}
@@ -294,33 +294,33 @@ const ClientPropertyAssignmentForm: React.FC = () => {
 
         return (
           <div>
-            <h6 className="cn-text-subtitle1 font-semibold text-[0.9rem] mb-3">
+            <h6 className="text-sm font-semibold tracking-tight mb-3">
               {t('portfolios.fields.confirmAssignments')}
             </h6>
 
             <BuiCard className="gap-0 py-0 p-3 mb-3">
-              <h6 className="cn-text-subtitle2 text-[0.82rem] mb-0.5 flex items-center gap-0.5">
+              <h6 className="text-xs font-medium mb-0.5 flex items-center gap-0.5">
                 <People size={16} strokeWidth={1.75} />
                 {t('portfolios.fields.selectedManager')}
               </h6>
               {selectedManagerData ? (
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <Avatar className="size-7 rounded-[8px] after:rounded-[8px]">
-                    <AvatarFallback className="rounded-[8px] bg-[var(--accent)] text-[var(--on-accent)] text-[0.6rem] font-semibold font-[family-name:var(--font-display)]">
+                    <AvatarFallback className="rounded-md bg-primary text-primary-foreground text-[0.6rem] font-semibold font-[family-name:var(--font-display)]">
                       {selectedManagerData.firstName.charAt(0)}{selectedManagerData.lastName.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h6 className="cn-text-subtitle2 text-primary text-[0.85rem] font-semibold">
+                    <h6 className="text-primary text-[0.85rem] font-semibold">
                       {selectedManagerData.firstName} {selectedManagerData.lastName}
                     </h6>
-                    <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
+                    <span className="text-[0.7rem] text-muted-foreground">
                       {selectedManagerData.email}
                     </span>
                   </div>
                 </div>
               ) : (
-                <p className="cn-text-body2 text-destructive text-[0.82rem]">
+                <p className="text-xs text-destructive">
                   {t('portfolios.confirmations.noManagerFound')}
                 </p>
               )}
@@ -329,14 +329,14 @@ const ClientPropertyAssignmentForm: React.FC = () => {
             <div className="grid grid-cols-12 gap-3">
               <div className="col-span-12 min-[900px]:col-span-6">
                 <BuiCard className="gap-0 py-0 p-3">
-                  <h6 className="cn-text-subtitle2 text-[0.82rem] mb-1.5 flex items-center gap-0.5">
+                  <h6 className="text-xs font-medium mb-1.5 flex items-center gap-0.5">
                     <People size={16} strokeWidth={1.75} />
                     {t('portfolios.fields.selectedClients')} ({selectedClientsData.length})
                   </h6>
                   <ItemGroup>
                     {selectedClientsData.map((client) => (
                       <Item key={client.id} size="xs" className="px-0 py-[3px]">
-                        <ItemMedia variant="icon" className="min-w-[28px] text-[var(--ok)]">
+                        <ItemMedia variant="icon" className="min-w-[28px] text-success">
                           <CheckCircle size={16} strokeWidth={1.75} />
                         </ItemMedia>
                         <ItemContent>
@@ -351,14 +351,14 @@ const ClientPropertyAssignmentForm: React.FC = () => {
 
               <div className="col-span-12 min-[900px]:col-span-6">
                 <BuiCard className="gap-0 py-0 p-3">
-                  <h6 className="cn-text-subtitle2 text-[0.82rem] mb-1.5 flex items-center gap-0.5">
+                  <h6 className="text-xs font-medium mb-1.5 flex items-center gap-0.5">
                     <Assignment size={16} strokeWidth={1.75} />
                     {t('portfolios.fields.selectedProperties')} ({selectedPropertiesData.length})
                   </h6>
                   <ItemGroup>
                     {selectedPropertiesData.map((property) => (
                       <Item key={property.id} size="xs" className="px-0 py-[3px]">
-                        <ItemMedia variant="icon" className="min-w-[28px] text-[var(--ok)]">
+                        <ItemMedia variant="icon" className="min-w-[28px] text-success">
                           <CheckCircle size={16} strokeWidth={1.75} />
                         </ItemMedia>
                         <ItemContent>

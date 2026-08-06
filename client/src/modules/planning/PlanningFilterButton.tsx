@@ -56,6 +56,12 @@ interface PlanningFilterButtonProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   anchorEl?: HTMLElement | null;
+  /**
+   * Rendu EN LIGNE, comme une section du menu ⋯ du PageHeader, au lieu d'un
+   * popover. Sous `lg` les actions vivent deja dans ce menu : y ouvrir une
+   * couche de plus pour regler un filtre en ferait deux pour une seule intention.
+   */
+  inline?: boolean;
 }
 
 // Variantes d'animation d'urgence des briques (galerie Signature 09b).
@@ -139,6 +145,7 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
   open,
   onOpenChange,
   anchorEl,
+  inline = false,
 }) => {
   // Le popover du kit s'ancre sur son trigger : un booleen suffit, l'element
   // anchor n'a plus a etre porte par l'etat. En mode contrôlé (menu regroupé),
@@ -168,50 +175,11 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
 
   const isCompactDensity = density === 'compact';
 
-  return (
-    <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-      {anchorEl ? (
-        // Mode contrôlé : le popover s'ancre sur le bouton du menu regroupé,
-        // aucun trigger propre.
-        <PopoverAnchor virtualRef={{ current: anchorEl }} />
-      ) : (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <PopoverTrigger asChild>
-              {/* Le kit ne transmet pas de ref (React 18) : le span porte celle
-                  que Radix pose pour l'ancrage et le declencheur d'infobulle. */}
-              <span className="inline-flex">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Filtres"
-                  className={cn(
-                    'relative',
-                    (filterOpen || activeFilterCount > 0) && 'text-[var(--accent)]',
-                  )}
-                >
-                  <FilterListIcon size={18} strokeWidth={1.85} />
-                  {activeFilterCount > 0 && (
-                    <span className="absolute top-1 end-1 inline-flex items-center justify-center min-w-3 h-3 px-[3px] rounded-full bg-[var(--accent)] text-[var(--on-accent)] text-[0.5rem] font-semibold leading-none tabular-nums">
-                      {activeFilterCount}
-                    </span>
-                  )}
-                </Button>
-              </span>
-            </PopoverTrigger>
-          </TooltipTrigger>
-          <TooltipContent>Filtres</TooltipContent>
-        </Tooltip>
-      )}
-
-      {/* Filter popover */}
-      <PopoverContent
-        align="end"
-        sideOffset={6}
-        className="w-auto min-w-[300px] max-w-[360px] p-3 rounded-[var(--radius-lg)] border border-solid border-[var(--line-2)] bg-[var(--card)] shadow-[var(--shadow-pop)]"
-      >
-        {/* Un seul enfant : le `gap` en colonne du primitif ne s'applique alors
-            a rien, et les marges d'origine des sections restent la reference. */}
+  // Corps du panneau — un seul balisage pour les DEUX rendus : dans un
+  // popover quand la barre a la place de son propre bouton, en section du
+  // menu ⋯ du header quand elle est repliee. Le dupliquer aurait garanti
+  // que les deux versions divergent.
+  const panelBody = (
         <div>
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
@@ -327,6 +295,61 @@ const PlanningFilterButton: React.FC<PlanningFilterButtonProps> = ({
           </div>
         )}
         </div>
+  );
+
+  // Rendu DANS le menu ⋯ : le panneau s'affiche en ligne. Il y ouvrait
+  // auparavant un popover PAR-DESSUS le menu — deux couches empilees pour un
+  // seul reglage. `data-inline-panel` dit au menu de ne pas se fermer quand
+  // on manipule ces controles.
+  if (inline) {
+    return <div data-inline-panel className="w-full">{panelBody}</div>;
+  }
+
+  return (
+    <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+      {anchorEl ? (
+        // Mode contrôlé : le popover s'ancre sur le bouton du menu regroupé,
+        // aucun trigger propre.
+        <PopoverAnchor virtualRef={{ current: anchorEl }} />
+      ) : (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              {/* Le kit ne transmet pas de ref (React 18) : le span porte celle
+                  que Radix pose pour l'ancrage et le declencheur d'infobulle. */}
+              <span className="inline-flex">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Filtres"
+                  className={cn(
+                    'relative',
+                    (filterOpen || activeFilterCount > 0) && 'text-[var(--accent)]',
+                  )}
+                >
+                  <FilterListIcon size={18} strokeWidth={1.85} />
+                  {activeFilterCount > 0 && (
+                    <span className="absolute top-1 end-1 inline-flex items-center justify-center min-w-3 h-3 px-[3px] rounded-full bg-[var(--accent)] text-[var(--on-accent)] text-[0.5rem] font-semibold leading-none tabular-nums">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </Button>
+              </span>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent>Filtres</TooltipContent>
+        </Tooltip>
+      )}
+
+      {/* Filter popover */}
+      <PopoverContent
+        align="end"
+        sideOffset={6}
+        className="w-auto min-w-[300px] max-w-[360px] p-3 rounded-[var(--radius-lg)] border border-solid border-[var(--line-2)] bg-[var(--card)] shadow-[var(--shadow-pop)]"
+      >
+        {/* Un seul enfant : le `gap` en colonne du primitif ne s'applique alors
+            a rien, et les marges d'origine des sections restent la reference. */}
+        {panelBody}
       </PopoverContent>
     </Popover>
   );

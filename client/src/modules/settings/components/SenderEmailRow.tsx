@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Button, Field, FieldLabel, Input } from '../../../components/ui';
+import { Alert, AlertDescription, Button, Field, FieldLabel, Input } from '../../../components/ui';
 import { Info, Send } from 'lucide-react';
 
 const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -35,14 +35,14 @@ const SenderEmailRow: React.FC<Props> = ({ email, name, onSave, saving }) => {
   return (
     <div className="py-2">
       <div className="flex items-start gap-2 mb-1">
-        <span className="text-[var(--muted)] inline-flex shrink-0 mt-px">
+        <span className="text-muted-foreground inline-flex shrink-0 mt-px">
           <Send size={18} />
         </span>
         <div className="min-w-0">
-          <p className="cn-text-body1 text-[0.8125rem] font-medium text-foreground">
+          <p className="text-[0.8125rem] font-medium text-foreground">
             Adresse d'expédition
           </p>
-          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Le « From » de tous les emails de la plateforme. Le nom d'affichage précède l'adresse
             (ex. Baitly &lt;info@clenzy.fr&gt;).
           </p>
@@ -83,16 +83,13 @@ const SenderEmailRow: React.FC<Props> = ({ email, name, onSave, saving }) => {
       </div>
 
       {foreignDomain && (
-        <div className="flex items-start gap-[4.5px] mt-[4.5px] min-[600px]:ms-[30px]">
-          {/* `warning.main` du theme MUI = #D4A574 (palette accents Baitly). */}
-          <span className="text-[#D4A574] inline-flex mt-px shrink-0">
-            <Info size={14} />
-          </span>
-          <p className="cn-text-body1 text-[0.72rem] text-[var(--bui-warning-ink)]">
+        <Alert variant="warning" className="mt-[4.5px] min-[600px]:ms-[30px]">
+          <Info />
+          <AlertDescription className="text-[0.72rem]">
             Domaine «&nbsp;{domain}&nbsp;» : authentifiez-le d'abord dans Brevo (SPF&nbsp;+&nbsp;DKIM)
             avant de l'utiliser, sinon les emails partiront en spam / soft bounce.
-          </p>
-        </div>
+          </AlertDescription>
+        </Alert>
       )}
     </div>
   );

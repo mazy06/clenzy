@@ -194,12 +194,14 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
           <AlertDescription>{t('fiscal.profile.loadError')}</AlertDescription>
           <AlertAction>
             {/* `color="inherit"` n'a pas d'equivalent au kit : on pose
-                explicitement la teinte --warn de l'alerte qui l'heberge. */}
+                explicitement la teinte d'avertissement de l'alerte qui
+                l'heberge — encre `-ink` pour le texte, teinte vive pour le
+                filet, pastel pour le survol (contrat Baitly UI §2.4). */}
             <Button
               variant="outline"
               size="sm"
               onClick={() => refetch()}
-              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              className="text-warning-ink border-warning hover:bg-warning-soft"
             >
               Réessayer
             </Button>
@@ -215,14 +217,14 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
       {isFirstSetup && (
         <BuiAlert variant="info" className="mb-3">
           <InfoIcon />
-          <AlertTitle className="cn-text-subtitle2 font-semibold mb-0.5">
+          <AlertTitle className="text-xs font-semibold mb-0.5">
             {t('fiscal.profile.setupTitle')}
           </AlertTitle>
           <AlertDescription>
-            <p className="cn-text-body2 text-[0.8rem]">
+            <p className="text-[0.8rem]">
               {t('fiscal.profile.setupDescription')}
             </p>
-            <span className="cn-text-caption text-muted-foreground block mt-0.5 text-[0.7rem]">
+            <span className="block mt-0.5 text-[0.7rem] text-muted-foreground">
               {t('fiscal.profile.setupNotice')}
             </span>
           </AlertDescription>
@@ -235,11 +237,11 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
           <Card className="gap-0 py-0 p-3 h-full">
             <div className="flex items-center gap-1.5 mb-3">
               <span className="inline-flex text-primary"><AccountBalance size={20} strokeWidth={1.75} /></span>
-              <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
+              <h6 className="text-[0.95rem] font-semibold tracking-tight">
                 {t('fiscal.profile.sectionFiscalInfo')}
               </h6>
               {!isFirstSetup && profile?.vatRegistered && (
-                <StatusChip tokens={{ color: 'var(--ok)', bg: 'var(--ok-soft)' }} label="TVA" icon={<Verified size={11} strokeWidth={2} />} className="ms-auto tracking-[0.04em] px-0.5" />
+                <StatusChip tone="ok" label="TVA" icon={<Verified size={11} strokeWidth={2} />} className="ms-auto tracking-[0.04em] px-0.5" />
               )}
             </div>
 
@@ -370,7 +372,7 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
                     checked={form.vatRegistered}
                     onCheckedChange={(checked) => handleChange('vatRegistered', checked)}
                   />
-                  <FieldLabel htmlFor="fiscal-vat-registered" className="cn-text-body2 font-normal">
+                  <FieldLabel htmlFor="fiscal-vat-registered" className="text-xs font-normal">
                     {t('fiscal.profile.vatRegistered')}
                   </FieldLabel>
                 </Field>
@@ -383,8 +385,8 @@ const FiscalProfileSection = forwardRef<FiscalProfileHandle, FiscalProfileSectio
         <div className="col-span-12 min-[900px]:col-span-6">
           <Card className="gap-0 py-0 p-3 h-full">
             <div className="flex items-center gap-1.5 mb-3">
-              <span className="inline-flex text-[var(--mui-secondary)]"><AccountBalance size={20} strokeWidth={1.75} /></span>
-              <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
+              <span className="inline-flex text-info"><AccountBalance size={20} strokeWidth={1.75} /></span>
+              <h6 className="text-[0.95rem] font-semibold tracking-tight">
                 {t('fiscal.profile.sectionLegalInfo')}
               </h6>
             </div>

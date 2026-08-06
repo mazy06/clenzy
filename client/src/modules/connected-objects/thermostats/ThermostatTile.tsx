@@ -1,16 +1,18 @@
 import { cn } from '../../../utils/cn';
-import StatusChip from '../../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 import { Button, Spinner, Tooltip, TooltipContent, TooltipTrigger } from '../../../components/ui';
 import { Thermostat, AcUnit, Wifi, WifiOff, Add, Remove, Delete } from '../../../icons';
 import type { ThermostatDto } from '../../../services/api/thermostatsApi';
 
-const ACCENT = '#6B8A9A'; // primary Baitly (type « thermostat »)
-
-const MODE_META: Record<string, { label: string; color: string }> = {
-  heat: { label: 'Chauffage', color: '#D4A574' },
-  cool: { label: 'Climatisation', color: '#7BA3C2' },
-  eco: { label: 'Éco', color: '#4A9B8E' },
-  off: { label: 'Éteint', color: '#9CA3AF' },
+// Modes de consigne → tons sémantiques Baitly UI : chauffer réchauffe (warn),
+// climatiser refroidit (info), éco est un état sain (ok), éteint est neutre.
+// Passer par les tons donne l'encre `-ink` : les hex bruts d'origine
+// plafonnaient à ~2,2:1 sur leur propre fond doux.
+const MODE_META: Record<string, { label: string; tone: StatusTone }> = {
+  heat: { label: 'Chauffage', tone: 'warn' },
+  cool: { label: 'Climatisation', tone: 'info' },
+  eco: { label: 'Éco', tone: 'ok' },
+  off: { label: 'Éteint', tone: 'neutral' },
 };
 
 const fmt = (n: number | null) => (n == null ? '—' : n.toFixed(1).replace('.', ','));
@@ -40,24 +42,21 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
   };
 
   return (
-    <div className={cn('rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)] p-[7.5px] flex flex-col gap-1.5 hover:border-[var(--line-2)]', online ? 'opacity-100' : 'opacity-62')} style={{ transition: 'border-color 200ms' }}>
+    <div className={cn('rounded-xl border border-solid border-border bg-card p-[7.5px] flex flex-col gap-1.5 transition-[border-color] duration-200 ease-out-quart motion-reduce:transition-none hover:border-input', online ? 'opacity-100' : 'opacity-62')}>
       {/* En-tête : badge + nom + état réseau + supprimer */}
       <div className="flex items-start gap-1.5">
-        {/* Le fond doux etait un alpha() dependant du mode : deux valeurs
-            litterales, sinon Tailwind n'emettrait pas la classe. */}
-        <div
-          className="w-[30px] h-[30px] rounded-[8px] shrink-0 flex items-center justify-center bg-[color-mix(in_srgb,#6B8A9A_12%,transparent)] dark:bg-[color-mix(in_srgb,#6B8A9A_20%,transparent)]"
-          style={{ color: ACCENT }}
-        >
+        {/* Pastille d'icône du type : accent de marque sur son fond doux — le
+            jeton `primary-soft` porte déjà la nuance clair/sombre. */}
+        <div className="w-[30px] h-[30px] rounded-md shrink-0 flex items-center justify-center bg-primary-soft text-primary">
           <Thermostat size={17} strokeWidth={1.75} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="cn-text-body1 font-semibold text-[0.875rem] leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">{name}</p>
-          <span className="cn-text-caption text-muted-foreground">{roomName ? `${roomName} · ` : ''}{brand || 'Thermostat'}</span>
+          <p className="text-sm font-semibold leading-[1.25] overflow-hidden text-ellipsis whitespace-nowrap">{name}</p>
+          <span className="text-xs text-muted-foreground">{roomName ? `${roomName} · ` : ''}{brand || 'Thermostat'}</span>
         </div>
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className={cn('inline-flex shrink-0 mt-[1.5px]', online ? 'text-[#4A9B8E]' : 'text-[var(--faint)]')}>
+            <span className={cn('inline-flex shrink-0 mt-[1.5px]', online ? 'text-success' : 'text-faint')}>
               {online ? <Wifi size={14} strokeWidth={1.75} /> : <WifiOff size={14} strokeWidth={1.75} />}
             </span>
           </TooltipTrigger>
@@ -75,7 +74,7 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
                   aria-label="Supprimer le thermostat"
                   disabled={acting}
                   onClick={() => onDelete(id)}
-                  className="text-[var(--faint)] hover:text-[var(--err)]"
+                  className="text-faint hover:text-destructive"
                 >
                   <Delete size={14} strokeWidth={1.75} />
                 </Button>
@@ -88,16 +87,16 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
 
       {/* Températures : mesurée → consigne — chiffres en display (Space Grotesk) */}
       <div className="flex items-baseline gap-1">
-        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.75rem] font-semibold leading-[1] text-[var(--ink)] tabular-nums">{fmt(currentTempC)}°</p>
-        <p className="cn-text-body1 text-[0.95rem] text-muted-foreground opacity-60">→</p>
-        <p className="cn-text-body1 text-[1.05rem] font-semibold tabular-nums" style={{ fontFamily: 'var(--font-display)', color: ACCENT }}>{fmt(targetTempC)}°</p>
+        <p className="font-[family-name:var(--font-display)] text-[1.75rem] font-semibold leading-[1] text-foreground tabular-nums">{fmt(currentTempC)}°</p>
+        <p className="text-sm text-muted-foreground opacity-60">→</p>
+        <p className="font-[family-name:var(--font-display)] text-base font-semibold text-primary tabular-nums">{fmt(targetTempC)}°</p>
       </div>
 
       {/* Mode + humidité */}
       <div className="flex items-center gap-1 flex-wrap">
-        <StatusChip tokens={{ color: m.color, bg: `color-mix(in srgb, ${m.color} 14%, transparent)` }} label={m.label} icon={mode === 'cool' ? <AcUnit size={12} /> : undefined} className="text-[0.65rem]" />
+        <StatusChip tone={m.tone} label={m.label} icon={mode === 'cool' ? <AcUnit size={12} /> : undefined} className="text-2xs" />
         {humidity != null && (
-          <span className="cn-text-caption text-muted-foreground tabular-nums">Humidité {humidity}%</span>
+          <span className="text-xs text-muted-foreground tabular-nums">Humidité {humidity}%</span>
         )}
       </div>
 
@@ -106,20 +105,20 @@ export default function ThermostatTile({ thermostat, onSetTarget, onDelete, acti
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="inline-flex">
-              <Button variant="ghost" size="icon-sm" aria-label="Baisser la consigne" disabled={!canControl} onClick={() => adjust(-0.5)} className="border border-solid border-[var(--line)]">
+              <Button variant="ghost" size="icon-sm" aria-label="Baisser la consigne" disabled={!canControl} onClick={() => adjust(-0.5)} className="border border-solid border-border">
                 <Remove size={15} />
               </Button>
             </span>
           </TooltipTrigger>
           <TooltipContent>Baisser la consigne</TooltipContent>
         </Tooltip>
-        <span className="cn-text-caption flex-1 text-center text-muted-foreground font-semibold">
+        <span className="text-xs flex-1 text-center text-muted-foreground font-semibold">
           {acting ? <Spinner className="size-[13px]" /> : (preset || 'Consigne')}
         </span>
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="inline-flex">
-              <Button variant="ghost" size="icon-sm" aria-label="Monter la consigne" disabled={!canControl} onClick={() => adjust(0.5)} className="border border-solid border-[var(--line)]">
+              <Button variant="ghost" size="icon-sm" aria-label="Monter la consigne" disabled={!canControl} onClick={() => adjust(0.5)} className="border border-solid border-border">
                 <Add size={15} />
               </Button>
             </span>

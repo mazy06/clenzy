@@ -56,10 +56,11 @@ export default function RemoveMemberDialog({ open, onClose, member, organization
         </DialogHeader>
 
         <div>
-          <p className="cn-text-body2 text-muted-foreground mb-1.5">
+          <p className="text-xs text-muted-foreground mb-1.5">
             Etes-vous sur de vouloir retirer <strong>{memberName}</strong> de l'organisation ?
           </p>
-          <p className="cn-text-body2 text-[var(--err)]">
+          {/* Avertissement : du TEXTE → encre `-ink` (la teinte vive plafonne à 2,2:1). */}
+          <p className="text-xs text-destructive-ink">
             Cette action retirera son acces a toutes les ressources de l'organisation.
           </p>
 

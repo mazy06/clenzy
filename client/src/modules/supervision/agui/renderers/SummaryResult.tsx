@@ -55,41 +55,39 @@ export const SummaryResult: React.FC<{ data: Summary }> = ({ data }) => {
   );
 
   return (
-    <SurfaceCard sx={{ borderColor: 'var(--ok)' }}>
-      <div className="flex items-start gap-1.5">
-        <div className="shrink-0 mt-px w-[22px] h-[22px] rounded-[50%] bg-[var(--ok-soft)] text-[var(--ok)] inline-flex items-center justify-center">
+    <SurfaceCard className="border-success">
+      <div className="flex items-start gap-2">
+        <span className="mt-px inline-flex size-[22px] shrink-0 items-center justify-center rounded-full bg-success-soft text-success-ink">
           <Check size={14} strokeWidth={2.5} />
-        </div>
+        </span>
         <div className="min-w-0 flex-1">
-          <p className="cn-text-body1 text-[13px] font-semibold text-[var(--ink)] leading-[1.4]">
+          <p className="text-sm font-semibold leading-snug text-balance text-foreground">
             {message ?? 'Action effectuée'}
           </p>
           {data.id != null && (
-            <p className="cn-text-body1 text-[11px] text-[var(--faint)] mt-0.5">
+            <p className="mt-0.5 text-2xs tabular-nums text-muted-foreground">
               Réf. #{String(data.id)}
             </p>
           )}
         </div>
         {hasTotal && (
-          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[16px] font-semibold text-[var(--ink)] tabular-nums whitespace-nowrap">
+          <p className="whitespace-nowrap text-base font-semibold tabular-nums text-foreground font-[family-name:var(--font-display)]">
             {formatMoney(data.total, typeof data.currency === 'string' ? data.currency : undefined)}
           </p>
         )}
       </div>
 
       {details.length > 0 && (
-        <div className="mt-[7.5px] pt-1.5 grid grid-cols-[1fr] min-[600px]:grid-cols-[repeat(2,_1fr)] gap-[4.5px]" style={{ borderTop: '1px solid var(--line)' }}>
+        <dl className="m-0 mt-2 grid grid-cols-1 gap-1 border-t border-border pt-1.5 min-[600px]:grid-cols-2">
           {details.map(([key, value]) => (
-            <div className="flex gap-1 items-baseline min-w-0" key={key}>
-              <p className="cn-text-body1 text-[var(--muted)] text-[11px] shrink-0">
-                {humanizeKey(key)}
-              </p>
-              <p className="cn-text-body1 text-[12px] text-[var(--body)] font-medium tabular-nums overflow-hidden text-ellipsis whitespace-nowrap">
+            <div className="flex min-w-0 items-baseline gap-1" key={key}>
+              <dt className="shrink-0 text-2xs text-muted-foreground">{humanizeKey(key)}</dt>
+              <dd className="m-0 overflow-hidden text-ellipsis whitespace-nowrap text-xs font-medium tabular-nums text-foreground">
                 {detailValue(key, value, data.currency)}
-              </p>
+              </dd>
             </div>
           ))}
-        </div>
+        </dl>
       )}
     </SurfaceCard>
   );

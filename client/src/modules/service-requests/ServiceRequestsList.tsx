@@ -24,6 +24,7 @@ import {
 } from '../../icons';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import StatTile from '../../components/baitly/StatTile';
+import StatTileRow from '../../components/baitly/StatTileRow';
 import FilterChipRow from '../../components/baitly/FilterChipRow';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
@@ -53,12 +54,12 @@ interface ServiceRequestsListProps {
   filtersContainer?: HTMLElement | null;
 }
 
-// Icon-button d'action principale : contour accent + fond accent-soft au survol
-// (pattern boutons baseline — jamais d'aplat plein).
+// Icon-button d'action principale : contour de marque + fond `primary-soft` au
+// survol (pattern boutons Baitly UI — jamais d'aplat plein).
 const CREATE_BUTTON_CLASS =
-  'rounded-[9px] border border-solid border-[var(--accent)] bg-transparent text-[var(--accent)] '
+  'rounded-[9px] border border-solid border-primary bg-transparent text-primary '
   + 'transition-[background-color,border-color,color] duration-[140ms] '
-  + 'hover:bg-[var(--accent-soft)] hover:border-[var(--accent-deep)] hover:text-[var(--accent-deep)]';
+  + 'hover:bg-primary-soft hover:border-primary-deep hover:text-primary-deep';
 
 export default function ServiceRequestsList({ embedded = false, actionsContainer, filtersContainer }: ServiceRequestsListProps) {
   const {
@@ -426,8 +427,13 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
         </div>
       )}
 
-      {/* ─── Les trois tuiles de la projection ── */}
-      <div className="grid grid-cols-1 gap-3 mb-3 shrink-0 sm:grid-cols-3">
+      {/* ─── Les trois tuiles de la projection ──
+          Sous `sm`, une rangee qui DEFILE horizontalement plutot qu'une colonne :
+          empilees, les trois tuiles mangeaient 302 px des 812 px de l'ecran avant
+          meme la carte, et `shrink-0` les rendait incompressibles. Le plancher de
+          largeur evite qu'elles se tassent, `snap` cale le defilement sur chaque
+          tuile. A partir de `sm` on retrouve la grille a trois colonnes. */}
+      <StatTileRow columns={3} className="mb-3 shrink-0">
         <StatTile
           icon={<WarningIcon />}
           label={t('serviceRequests.kpi.late', 'En retard')}
@@ -454,7 +460,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
             : undefined}
           loading={loading}
         />
-      </div>
+      </StatTileRow>
 
       {/* ─── Chips par famille (le select de type fin reste dans la barre) ── */}
       <FilterChipRow
@@ -557,9 +563,9 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
           {/* Action d'assignation - visible pour managers et admins si la demande n'est pas assignee */}
           {(isAdmin() || isManager()) && selectedServiceRequest?.status === 'PENDING' && !selectedServiceRequest.assignedToId && (
             <DropdownMenuItem onSelect={() => handleAssignServiceRequest(selectedServiceRequest)}>
-              {/* `fontSize`/`color="primary"` etaient des props d'icone MUI passees a
-                  une icone lucide : sans effet. Aligne sur les entrees voisines. */}
-              <Assignment size={20} strokeWidth={1.75} color="var(--mui-primary)" />
+              {/* Icone teintee : l'assignation est l'action mise en avant de ce
+                  menu. La teinte vient du jeton de marque, pas d'une prop MUI. */}
+              <Assignment size={20} strokeWidth={1.75} className="text-primary" />
               {t('serviceRequests.assign')}
             </DropdownMenuItem>
           )}
@@ -589,11 +595,11 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
                 setStatusChangeDialogOpen(true);
               }}
             >
-              <Cancel size={20} strokeWidth={1.75} color="var(--warn)" />
-              {/* Deux lignes : reprend le couple primary / secondary du ListItemText. */}
+              <Cancel size={20} strokeWidth={1.75} className="text-warning" />
+              {/* Deux lignes : libelle d'action + delai restant en appui. */}
               <span className="flex flex-col">
                 <span>{t('serviceRequests.cancel')}</span>
-                <span className="cn-text-caption text-muted-foreground">
+                <span className="text-xs text-muted-foreground tabular-nums">
                   {`Temps restant: ${Math.round(getRemainingCancellationTime(selectedServiceRequest.createdAt))}h`}
                 </span>
               </span>

@@ -40,6 +40,18 @@ export const reviewsApi = {
   },
 
   /**
+   * Avis de l'organisation, tous logements confondus ou filtrés sur l'un d'eux.
+   * {@code propertyId} est optionnel côté serveur (ReviewController) : c'est ce
+   * qui permet à l'écran global et à l'onglet d'un logement de partager la même
+   * source, et donc d'afficher les mêmes avis.
+   */
+  list(params: { propertyId?: number; size?: number } = {}): Promise<Page<GuestReview>> {
+    const search = new URLSearchParams({ size: String(params.size ?? 50) });
+    if (params.propertyId != null) search.set('propertyId', String(params.propertyId));
+    return apiClient.get<Page<GuestReview>>(`/reviews?${search.toString()}`);
+  },
+
+  /**
    * Avis complet — le tableau de bord ne transporte qu'un extrait de 140
    * caractères ; répondre suppose de lire le texte entier et le brouillon IA.
    */

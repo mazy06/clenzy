@@ -772,6 +772,180 @@
     "reload": "Recharger maintenant",
     "later": "Plus tard"
   },
+  "assistant": {
+    "tagline": "Que veux-tu savoir ?",
+    "close": "Fermer",
+    "newConversation": "Nouvelle conversation",
+    "openDock": "Déplier l'assistant",
+    "closeDock": "Replier l'assistant",
+    "dockLabel": "Assistant Baitly",
+    "empty": {
+      "title": "Pose ta question",
+      "body": "J'utilise tes données Baitly en temps réel.",
+      "bodyLong": "Pose-moi une question sur tes logements, réservations, ménages ou indicateurs. J'utilise tes données Baitly en temps réel."
+    },
+    "suggestions": {
+      "reservations": "Analyse tes réservations",
+      "occupancy": "Quel est mon taux d'occupation ?",
+      "arrivals": "Prépare les arrivées de la semaine",
+      "guestMessage": "Rédige un message voyageur",
+      "compare": "Compare tes performances"
+    },
+    "composer": {
+      "placeholder": "Demande une analyse, une action, un chiffre…",
+      "hint": "L'assistant agit sur tes données après confirmation.",
+      "send": "Envoyer",
+      "stop": "Arrêter"
+    },
+    "thread": {
+      "thinking": "Réfléchit…",
+      "attachedImage": "image jointe",
+      "viewFullSize": "Voir {{name}} en grand"
+    },
+    "tool": {
+      "failed": "échec",
+      "calendar": {
+        "read": "Calendrier consulté",
+        "write": "Calendrier mis à jour"
+      },
+      "pricing": {
+        "read": "Tarifs consultés",
+        "write": "Tarifs mis à jour"
+      },
+      "messaging": {
+        "read": "Voyageurs consultés",
+        "write": "Message envoyé"
+      },
+      "operations": {
+        "read": "Interventions consultées",
+        "write": "Intervention mise à jour"
+      },
+      "finance": {
+        "read": "Finances consultées",
+        "write": "Écriture financière"
+      },
+      "reviews": {
+        "read": "Avis consultés",
+        "write": "Réponse à un avis"
+      },
+      "properties": {
+        "read": "Logements consultés",
+        "write": "Logement mis à jour"
+      },
+      "channels": {
+        "read": "Canaux consultés",
+        "write": "Canaux synchronisés"
+      },
+      "knowledge": {
+        "read": "Documentation consultée",
+        "write": "Mémoire mise à jour"
+      },
+      "data": {
+        "read": "Données consultées",
+        "write": "Donnée mise à jour"
+      }
+    },
+    "decision": {
+      "pending": "En attente",
+      "applied": "Validé",
+      "refused": "Refusé",
+      "expired": "Expiré",
+      "autoApplied": "Exécuté puis notifié",
+      "apply": "Appliquer",
+      "adjust": "Ajuster",
+      "refuse": "Refuser",
+      "why": "Pourquoi ?",
+      "technicalDetail": "Détail technique",
+      "appliedNotice": "Proposition appliquée",
+      "refusedNotice": "Proposition écartée",
+      "expiredNotice": "Proposition expirée",
+      "autoAppliedNotice": "Action exécutée automatiquement — règle de confiance active.",
+      "expiresIn": "Expire dans {{time}}",
+      "fallbackTitle": "Action proposée"
+    },
+    "context": {
+      "pending_one": "{{count}} proposition à valider",
+      "pending_other": "{{count}} propositions à valider"
+    },
+    "expand": "Agrandir",
+    "minimize": "Réduire",
+    "subtitle": "Analyse, actions et réponses sur tes données",
+    "history": {
+      "title": "Conversations récentes",
+      "empty": "Aucune conversation.",
+      "emptyHint": "Lance ta première question.",
+      "untitled": "Sans titre",
+      "archive": "Archiver « {{title}} »",
+      "today": "Aujourd'hui",
+      "yesterday": "Hier",
+      "thisWeek": "Cette semaine",
+      "thisMonth": "Ce mois",
+      "older": "Plus ancien"
+    }
+  },
+  "commandCenter": {
+    "title": "Centre de commande",
+    "description": "Cherchez un écran, une action ou un outil.",
+    "placeholder": "Rechercher un écran, une action, un outil…",
+    "trigger": "Rechercher ou commander",
+    "empty": "Aucune commande ne correspond.",
+    "emptyHint": "Essayez un mot du métier : ménage, OTA, facture…",
+    "filterScreen": "Filtrer cet écran avec",
+    "askScreen": "Demander",
+    "clearFilter": "Effacer le filtre",
+    "more": "et {{count}} de plus — tapez pour chercher",
+    "then": "puis",
+    "sections": {
+      "suggestions": "Reprendre",
+      "screen": "Sur cet écran",
+      "navigation": "Aller à",
+      "actions": "Créer",
+      "views": "Affichage",
+      "account": "Compte",
+      "tools": "Outils"
+    },
+    "actions": {
+      "propertyCreate": "Ajouter un logement",
+      "interventionCreate": "Planifier une intervention",
+      "serviceRequestCreate": "Signaler une demande",
+      "messageCreate": "Écrire un message",
+      "teamCreate": "Créer une équipe",
+      "userInvite": "Inviter un utilisateur"
+    },
+    "views": {
+      "themeDark": "Passer en thème sombre",
+      "themeLight": "Passer en thème clair",
+      "themeAuto": "Suivre le thème du système",
+      "navigationToggle": "Replier ou déployer la navigation",
+      "language": {
+        "fr": "Basculer en français",
+        "en": "Switch to English",
+        "ar": "التبديل إلى العربية"
+      }
+    },
+    "account": {
+      "profile": "Mon profil",
+      "notifications": "Mes notifications",
+      "preferences": "Préférences de notification",
+      "payouts": "Mes reversements",
+      "rates": "Mes tarifs",
+      "billing": "Ma facturation"
+    },
+    "tools": {
+      "assistant": "Ouvrir l'assistant",
+      "studio": "Baitly Studio",
+      "siteGenerate": "Générer un site",
+      "documentTemplates": "Modèles de documents",
+      "designSystem": "Bibliothèque UI",
+      "tokenMonitoring": "Consommation IA"
+    },
+    "hints": {
+      "navigate": "↑ ↓ parcourir",
+      "run": "↵ exécuter",
+      "close": "échap fermer",
+      "chord": "les touches à droite s’enchaînent, sans ⌘"
+    }
+  },
   "common": {
     "help": "Aide",
     "save": "Enregistrer",
@@ -2023,7 +2197,8 @@
       "interventions": "Interventions",
       "maintenance": "Maintenance",
       "cleaning": "Nettoyage",
-      "photos": "Photos"
+      "photos": "Photos",
+      "reviews": "Avis"
     },
     "photos": {
       "title": "Photos de la propriété",
@@ -4581,17 +4756,21 @@
       "subtitle": "Consultez et répondez aux avis de vos voyageurs",
       "avgRating": "Note moyenne",
       "totalReviews": "Total avis",
-      "excellent": "Excellent",
-      "good": "Bien",
-      "average": "Moyen",
-      "poor": "Insuffisant",
       "filterByProperty": "Filtrer par propriété",
-      "noReviews": "Aucun avis pour le moment",
       "yourReply": "Votre réponse",
       "reply": "Répondre",
       "replyPlaceholder": "Écrivez votre réponse...",
       "sendReply": "Envoyer",
-      "errorLoading": "Impossible de charger les avis"
+      "errorLoading": "Impossible de charger les avis",
+      "pending": "Sans réponse",
+      "awaitingReply": "Sans réponse",
+      "anonymous": "Voyageur",
+      "emptyTitle": "Aucun avis",
+      "emptyHint": "Les avis remontent automatiquement depuis les canaux connectés.",
+      "draft": "Proposer une réponse",
+      "useDraft": "Reprendre le brouillon",
+      "draftError": "Impossible de générer un brouillon.",
+      "respondError": "Impossible de publier la réponse."
     },
     "guest": {
       "title": "Profil voyageur",
@@ -7064,6 +7243,19 @@
     "goToScreen": "Aller à un écran…"
   },
   "messagingHub": {
-    "viewReservation": "Voir la réservation"
+    "viewReservation": "Voir la réservation",
+    "loading": "Chargement…",
+    "conversationCount_one": "{{count}} conversation",
+    "conversationCount_other": "{{count}} conversations",
+    "unreadCount_one": "{{count}} non lue",
+    "unreadCount_other": "{{count}} non lues",
+    "back": "Retour",
+    "moreActions": "Plus d'actions",
+    "send": "Envoyer",
+    "attachment": "Pièce jointe",
+    "noMessages": "Aucun message dans cette conversation",
+    "internalNote": "Note interne (invisible pour le voyageur)",
+    "internalNotePlaceholder": "Note pour l'équipe…",
+    "internalNoteBadge": "Note interne"
   }
 }

@@ -66,7 +66,7 @@ function resolveOtaOption(otaName: string): ChannexOtaOption | null {
 export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false }: OtaSyncBadgesProps) {
   if (!otas || otas.length === 0) {
     return showEmptyLabel
-      ? <span className="cn-text-caption text-muted-foreground opacity-60 italic">Aucun OTA</span>
+      ? <span className="text-xs text-muted-foreground opacity-60 italic">Aucun OTA</span>
       : null;
   }
 
@@ -95,27 +95,31 @@ export default function OtaSyncBadges({ otas, size = 24, showEmptyLabel = false 
             {/* `size` et `opacity` sont des valeurs runtime : style inline. */}
             <TooltipTrigger asChild>
               <div className="relative inline-flex shrink-0" style={{ width: size, height: size, opacity }}>
-              {/* Logo officiel OTA (SVG/PNG) ou fallback initiales */}
-              {logoSrc ? (
-                <img className="w-full h-full rounded-[6px] object-contain bg-[var(--card)] border border-[var(--line)] p-0.5" src={logoSrc} alt={displayName} />
-              ) : (
-                <div className="w-full h-full rounded-[6px] flex items-center justify-center font-bold tracking-[-0.02em] border border-solid border-[var(--line)]" style={{ backgroundColor: option?.brandColor ?? 'var(--faint)', color: option?.brandColorFg ?? '#FFFFFF', fontSize: size * 0.42 }}>
-                  {initials}
-                </div>
-              )}
+                {/* Logo officiel OTA (SVG/PNG) ou fallback initiales */}
+                {logoSrc ? (
+                  <img className="w-full h-full rounded-sm object-contain bg-card border border-border p-0.5" src={logoSrc} alt={displayName} />
+                ) : (
+                  // Fond et encre viennent de la MARQUE de l'OTA (valeurs runtime) :
+                  // ils restent en style inline. Le repli d'un OTA inconnu forme un
+                  // couple neutre lisible, la ou l'ancien blanc sur teinte faible
+                  // plafonnait sous le seuil AA.
+                  <div className="w-full h-full rounded-sm flex items-center justify-center font-bold tracking-tight border border-solid border-border" style={{ backgroundColor: option?.brandColor ?? 'var(--bui-muted)', color: option?.brandColorFg ?? 'var(--bui-muted-foreground)', fontSize: size * 0.42 }}>
+                    {initials}
+                  </div>
+                )}
 
-              {/* Check vert en exposant (badge superpose en haut a droite) */}
-              {ota.isActive && (
-                <div className="absolute rounded-[50%] bg-[var(--ok)] text-[var(--on-accent)] flex items-center justify-center border-[2px] border-solid border-[var(--card)]" style={{ top: -3, right: -3, width: size * 0.5, height: size * 0.5 }}>
-                  <Check size={size * 0.32} strokeWidth={3} />
-                </div>
-              )}
+                {/* Pastille de validation en exposant (aplat plein → teinte vive) */}
+                {ota.isActive && (
+                  <div className="absolute rounded-full bg-success text-white flex items-center justify-center border-2 border-solid border-card" style={{ top: -3, insetInlineEnd: -3, width: size * 0.5, height: size * 0.5 }}>
+                    <Check size={size * 0.32} strokeWidth={3} />
+                  </div>
+                )}
 
-              {/* Badge orange si OAuth en attente */}
-              {!ota.isActive && ota.hasOauthToken && (
-                <div className="absolute rounded-[50%] bg-[var(--warn)] border-[2px] border-solid border-[var(--card)]" style={{ top: -3, right: -3, width: size * 0.4, height: size * 0.4 }} />
-              )}
-            </div>
+                {/* Pastille d'attente si OAuth fait mais mapping non finalise */}
+                {!ota.isActive && ota.hasOauthToken && (
+                  <div className="absolute rounded-full bg-warning border-2 border-solid border-card" style={{ top: -3, insetInlineEnd: -3, width: size * 0.4, height: size * 0.4 }} />
+                )}
+              </div>
             </TooltipTrigger>
             <TooltipContent>{tooltipLabel}</TooltipContent>
           </Tooltip>

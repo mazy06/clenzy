@@ -45,8 +45,6 @@ import { CurrencySymbol } from './Money';
 import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from '../hooks/useTranslation';
 import { useThemeMode, type ThemeMode } from '../hooks/useThemeMode';
-import { ACCENT_OPTIONS, type AccentName } from '../theme/signature/accent';
-import { useAccent } from '../hooks/useAccent';
 import { useCurrency, type CurrencyCode } from '../hooks/useCurrency';
 import { CURRENCY_OPTIONS } from '../utils/currencyUtils';
 import { authApi } from '../services/api/authApi';
@@ -84,8 +82,14 @@ const GROUP_ORDER: NavGroup[] = ['main', 'management', 'admin'];
  * Pastille « non lus » de la cloche, isolée pour que le tick du poll ne re-rende
  * que ce composant. React Query met le `refetchInterval` en pause quand l'onglet
  * est caché, et le poll s'arrête si le backend signale l'endpoint indisponible.
+ *
+ * Rend la MÊME pastille que la navigation repliée ({@link NavCornerCountBadge}) :
+ * la cloche est un bouton icône, donc c'est la variante « coin d'icône » qui
+ * s'applique, pas la pilule pleine largeur des lignes de menu. Elle affiche le
+ * NOMBRE de non-lus, comme le compteur de Planning — un simple point perdrait
+ * l'information alors que le backend la fournit déjà.
  */
-function UnreadNotificationsDot() {
+function UnreadNotificationsBadge() {
   const { data } = useQuery({
     queryKey: ['notifications', 'unread-count'],
     queryFn: () => notificationsApi.getUnreadCount(),
@@ -94,11 +98,7 @@ function UnreadNotificationsDot() {
     refetchOnWindowFocus: false,
   });
 
-  if (!data || data.count === 0) return null;
-
-  return (
-    <span className="pointer-events-none absolute -top-0.5 -end-0.5 size-[7px] rounded-full bg-destructive ring-2 ring-sidebar" />
-  );
+  return <NavCornerCountBadge count={data?.count} tone="error" />;
 }
 
 function NavBadge({ item }: { item: MenuItem }) {
@@ -263,7 +263,6 @@ export default function AppSidebar({
   const { t, changeLanguage, currentLanguage, isArabic } = useTranslation();
   const { currency, setCurrency, rateDate, ratesLoading } = useCurrency();
   const { mode: themeMode, setMode: setThemeMode } = useThemeMode();
-  const { accent, setAccent } = useAccent();
   const { isMobile, setOpenMobile } = useSidebar();
   const [prefsOpen, setPrefsOpen] = useState(false);
 
@@ -406,7 +405,11 @@ export default function AppSidebar({
               <span className="grid min-w-0 flex-1 text-start leading-tight">
                 <span className="truncate text-[13px] font-semibold">{displayName}</span>
                 {user?.roles && user.roles.length > 0 && (
-                  <span className="truncate text-[10.5px] text-sidebar-foreground/60">
+                  // `/70` et non `/60` : a 60 % l'encre de la sidebar tombait a
+                  // 4,03:1 sur son fond clair, sous le seuil AA — mesure au
+                  // navigateur. A 70 % elle vaut 5,47:1 et reste nettement
+                  // secondaire face au nom. Le mode sombre passait deja (5,61).
+                  <span className="truncate text-[10.5px] text-sidebar-foreground/70">
                     {t(`navigation.roles.${user.roles[0]}`) || user.roles[0]}
                   </span>
                 )}
@@ -439,30 +442,10 @@ export default function AppSidebar({
               <PreferenceSectionLabel>
                 {t('navigation.appearance', 'Apparence')}
               </PreferenceSectionLabel>
-              {/* Teinte d'accent : `data-accent` sur <html> reteinte toute l'UI. */}
-              <div className="flex flex-wrap gap-1.5 px-2 py-1.5">
-                {ACCENT_OPTIONS.map((opt) => (
-                  <Tooltip key={opt.value}>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        aria-label={opt.label}
-                        aria-pressed={accent === opt.value}
-                        onClick={() => setAccent(opt.value as AccentName)}
-                        style={{ backgroundColor: opt.swatch }}
-                        className={cn(
-                          'size-[18px] shrink-0 cursor-pointer rounded-full border-2 outline-none',
-                          'transition-transform duration-150 hover:scale-110',
-                          'focus-visible:ring-[3px] focus-visible:ring-ring/50',
-                          'motion-reduce:transition-none motion-reduce:hover:scale-100',
-                          accent === opt.value ? 'border-foreground' : 'border-transparent'
-                        )}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent side="top">{opt.label}</TooltipContent>
-                  </Tooltip>
-                ))}
-              </div>
+              {/* Le sélecteur de teinte d'accent a été retiré : l'identité Baitly
+                  est MONOCHROME (bleu nuit du wordmark). Aucune surface ne lit
+                  plus `--accent`, un sélecteur n'aurait donc plus rien reteint.
+                  Reste le mode clair/sombre. */}
               {(
                 [
                   { value: 'light', label: t('navigation.themeLight', 'Clair') },
@@ -527,7 +510,7 @@ export default function AppSidebar({
               >
                 <span className="relative inline-flex">
                   <Notifications size={16} strokeWidth={1.75} />
-                  <UnreadNotificationsDot />
+                  <UnreadNotificationsBadge />
                 </span>
               </button>
             </TooltipTrigger>

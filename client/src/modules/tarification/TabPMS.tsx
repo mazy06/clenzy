@@ -31,12 +31,12 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
     <div className="pt-3">
       {/* ─── Abonnement PMS ─────────────────────────────────────────── */}
       <div className="flex items-center gap-1.5 mb-1.5">
-        <span className="inline-flex text-[var(--mui-info)]"><Devices size={20} strokeWidth={1.75} /></span>
-        <h6 className="cn-text-subtitle1 font-semibold">
+        <span className="inline-flex text-info"><Devices size={20} strokeWidth={1.75} /></span>
+        <h6 className="text-sm font-semibold">
           {t('tarification.pms.title')}
         </h6>
       </div>
-      <p className="cn-text-body2 text-muted-foreground mb-3">
+      <p className="text-xs text-muted-foreground mb-3">
         {t('tarification.pms.subtitle')}
       </p>
 
@@ -91,12 +91,12 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
 
       {/* ─── Supplément IA par forfait (campagne X5) ─────────────────── */}
       <div className="flex items-center gap-1.5 mb-1.5">
-        <span className="inline-flex text-[var(--mui-secondary)]"><AutoAwesome size={20} strokeWidth={1.75} /></span>
-        <h6 className="cn-text-subtitle1 font-semibold">
+        <span className="inline-flex text-primary"><AutoAwesome size={20} strokeWidth={1.75} /></span>
+        <h6 className="text-sm font-semibold">
           {t('tarification.pms.aiTitle')}
         </h6>
       </div>
-      <p className="cn-text-body2 text-muted-foreground mb-3">
+      <p className="text-xs text-muted-foreground mb-3">
         {t('tarification.pms.aiSubtitle')}
       </p>
 
@@ -173,12 +173,12 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
 
       {/* ─── Tarification par utilisateur ────────────────────────────── */}
       <div className="flex items-center gap-1.5 mb-1.5">
-        <span className="inline-flex text-[var(--bui-success-ink)]"><People size={20} strokeWidth={1.75} /></span>
-        <h6 className="cn-text-subtitle1 font-semibold">
+        <span className="inline-flex text-success"><People size={20} strokeWidth={1.75} /></span>
+        <h6 className="text-sm font-semibold">
           {t('tarification.pms.perSeatTitle')}
         </h6>
       </div>
-      <p className="cn-text-body2 text-muted-foreground mb-3">
+      <p className="text-xs text-muted-foreground mb-3">
         {t('tarification.pms.perSeatSubtitle')}
       </p>
 
@@ -228,12 +228,12 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
 
       {/* ─── Surcharges automatisation ──────────────────────────────── */}
       <div className="flex items-center gap-1.5 mb-1.5">
-        <span className="inline-flex text-[var(--bui-warning-ink)]"><Computer size={20} strokeWidth={1.75} /></span>
-        <h6 className="cn-text-subtitle1 font-semibold">
+        <span className="inline-flex text-warning"><Computer size={20} strokeWidth={1.75} /></span>
+        <h6 className="text-sm font-semibold">
           {t('tarification.automation.title')}
         </h6>
       </div>
-      <p className="cn-text-body2 text-muted-foreground mb-3">
+      <p className="text-xs text-muted-foreground mb-3">
         {t('tarification.automation.subtitle')}
       </p>
 

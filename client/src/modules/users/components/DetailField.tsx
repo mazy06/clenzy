@@ -59,19 +59,19 @@ const DetailField: React.FC<DetailFieldProps> = ({
   // Couleur portee par une CLASSE et non par `style` : le lien a un hover, et un
   // style inline battrait la regle de survol.
   const valueColorClass = isEmpty
-    ? 'text-[var(--faint)]'
+    ? 'text-faint'
     : tone === 'muted'
-      ? 'text-[var(--muted)]'
-      : 'text-[var(--ink)]';
+      ? 'text-muted-foreground'
+      : 'text-foreground';
 
   const isLink = !!href && !isEmpty;
 
   const valueClass = cn(
-    'cn-text-body1 min-w-0 truncate text-[0.875rem] font-medium',
+    'min-w-0 truncate text-sm font-medium',
     '[transition:color_150ms_ease] motion-reduce:transition-none',
     valueColorClass,
     monospace && 'tabular-nums',
-    isLink && 'no-underline hover:text-[var(--accent)] hover:underline',
+    isLink && 'no-underline hover:text-primary hover:underline',
   );
 
   return (
@@ -82,7 +82,7 @@ const DetailField: React.FC<DetailFieldProps> = ({
             {icon}
           </span>
         )}
-        <span className="cn-text-caption text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-muted-foreground">
+        <span className="text-[0.6875rem] font-semibold tracking-[0.04em] uppercase text-muted-foreground">
           {label}
         </span>
       </div>
@@ -102,7 +102,7 @@ const DetailField: React.FC<DetailFieldProps> = ({
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  className={cn('size-5', copied ? 'text-[var(--ok)]' : 'text-[var(--faint)]')}
+                  className={cn('size-5', copied ? 'text-success' : 'text-faint')}
                   onClick={handleCopy}
                   aria-label={copied ? 'Copié' : `Copier ${label}`}
                 >

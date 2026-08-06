@@ -13,9 +13,14 @@ import HeaderSearchField from './HeaderSearchField';
 import { cn } from '../../utils/cn';
 
 /**
- * Baitly — remaster de components/FilterSearchBar.tsx (MUI).
- * Barre recherche + selects de filtres + compteur + bascule de vue,
- * construite sur les composants du kit (InputGroup, Select, ToggleGroup).
+ * Barre de filtres d'une liste — FIXTURE DE GALERIE UNIQUEMENT.
+ *
+ * <p>La version utilisée par les écrans est `components/FilterSearchBar.tsx` :
+ * même barre, mais sa recherche est déléguée au champ unique du header
+ * (`useScreenSearch`) au lieu d'être dessinée dans la page.</p>
+ *
+ * <p>Ce composant ne subsiste que pour montrer le gabarit dans la bibliothèque
+ * UI. Ne pas l'importer dans un écran.</p>
  */
 export interface FilterOption {
   value: string;

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import StatusChip from '../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Badge } from '../../components/ui';
 import { Spinner } from '../../components/ui';
 import { Button } from '../../components/ui';
@@ -21,24 +21,26 @@ import {
 import { documentsApi } from '../../services/api/documentsApi';
 import apiClient from '../../services/apiClient';
 import PageHeader from '../../components/PageHeader';
-import FilterChipRow from '../../components/FilterChipRow';
+import FilterChipRow from '../../components/baitly/FilterChipRow';
 import EmptyState from '../../components/EmptyState';
 import { CONTRACT_TYPE_LABELS, type PropertyOption } from './ManagementContractForm';
 import ManagementContractFormModal from './ManagementContractFormModal';
 
-// ─── Status palette (tokens Signature : chips -soft sémantiques) ────────────
+// ─── Palette de statut ──────────────────────────────────────────────────────
+// Le RENDU de la puce passe par le ton sémantique de StatusChip (couple
+// `-soft` / `-ink` conforme AA). `color` reste une valeur CSS : le chip de
+// filtre la mélange à l'exécution (color-mix), donc aucune classe Tailwind ne
+// pourrait être émise à la compilation — c'est la teinte vive qui convient.
 
-interface StatusMeta { label: string; color: string; soft: string }
+interface StatusMeta { label: string; tone: StatusTone; color: string }
 
 const STATUS_META: Record<ContractStatus, StatusMeta> = {
-  ACTIVE:     { label: 'Actif',     color: 'var(--ok)',    soft: 'var(--ok-soft)' },
-  DRAFT:      { label: 'Brouillon', color: 'var(--muted)', soft: 'var(--hover)' },
-  SUSPENDED:  { label: 'Suspendu',  color: 'var(--warn)',  soft: 'var(--warn-soft)' },
-  TERMINATED: { label: 'Résilié',   color: 'var(--err)',   soft: 'var(--err-soft)' },
-  EXPIRED:    { label: 'Expiré',    color: 'var(--err)',   soft: 'var(--err-soft)' },
+  ACTIVE:     { label: 'Actif',     tone: 'ok',      color: 'var(--bui-success)' },
+  DRAFT:      { label: 'Brouillon', tone: 'neutral', color: 'var(--bui-muted-foreground)' },
+  SUSPENDED:  { label: 'Suspendu',  tone: 'warn',    color: 'var(--bui-warning)' },
+  TERMINATED: { label: 'Résilié',   tone: 'err',     color: 'var(--bui-destructive)' },
+  EXPIRED:    { label: 'Expiré',    tone: 'err',     color: 'var(--bui-destructive)' },
 };
-
-const FILTER_ALL_COLOR = 'var(--accent)';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -245,7 +247,6 @@ const ManagementContractsPage: React.FC = () => {
             onChange={(v) => setStatusFilter(v as ContractStatus | '')}
             allLabel={t('contracts.allStatuses')}
             allCount={contracts.length}
-            allColor={FILTER_ALL_COLOR}
             size="compact"
           />
         )}
@@ -258,7 +259,7 @@ const ManagementContractsPage: React.FC = () => {
                 <Button
                   variant="outline"
                   size="icon-sm"
-                  className="rounded-[9px] border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
+                  className="rounded-lg border-primary text-primary hover:bg-primary-soft hover:text-primary"
                   onClick={openCreateModal}
                   aria-label={t('contracts.create', 'Nouveau contrat')}
                 >
@@ -298,8 +299,8 @@ const ManagementContractsPage: React.FC = () => {
           {activeContracts.length > 0 && (
             <ContractsTableSection
               title="Contrats en vigueur"
-              accentColor="var(--ok)"
-              accentSoft="var(--ok-soft)"
+              accentColor="var(--bui-success-ink)"
+              accentSoft="var(--bui-success-soft)"
               contracts={activeContracts}
               terminatingId={terminatingId}
               terminateReason={terminateReason}
@@ -319,8 +320,8 @@ const ManagementContractsPage: React.FC = () => {
           {inactiveContracts.length > 0 && (
             <ContractsTableSection
               title="Contrats archivés"
-              accentColor="var(--muted)"
-              accentSoft="var(--hover)"
+              accentColor="var(--bui-muted-foreground)"
+              accentSoft="var(--bui-muted)"
               contracts={inactiveContracts}
               terminatingId={terminatingId}
               terminateReason={terminateReason}
@@ -389,17 +390,17 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
   return (
     <div>
       <div className="flex items-center gap-1.5 mb-1.5">
-        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
+        <p className="text-2xs font-bold uppercase tracking-[.06em] text-faint">
           {title}
         </p>
-        <span className="text-[10.5px] font-bold px-[4.5px] py-px rounded-[999px] tabular-nums" style={{ backgroundColor: accentSoft, color: accentColor }}>
+        <span className="text-2xs font-bold px-[4.5px] py-px rounded-full tabular-nums" style={{ backgroundColor: accentSoft, color: accentColor }}>
           {contracts.length}
         </span>
       </div>
-      <div className={cn('overflow-x-auto rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]', muted && 'opacity-85')}>
+      <div className={cn('overflow-x-auto rounded-lg border border-solid border-border bg-card', muted && 'opacity-85')}>
         <Table>
           <TableHeader>
-            <TableRow className="bg-[var(--surface-2)]">
+            <TableRow className="bg-muted">
               <TableHead>{t('contracts.contractNumber')}</TableHead>
               <TableHead>{t('contracts.property')}</TableHead>
               <TableHead>{t('contracts.owner')}</TableHead>
@@ -412,7 +413,8 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
           </TableHeader>
           <TableBody>
             {contracts.map(c => {
-              const meta = STATUS_META[c.status] ?? { label: c.status, color: 'var(--muted)', soft: 'var(--hover)' };
+              const meta: StatusMeta = STATUS_META[c.status]
+                ?? { label: c.status, tone: 'neutral', color: 'var(--bui-muted-foreground)' };
               const isTerminating = terminatingId === c.id;
 
               if (isTerminating) {
@@ -420,15 +422,15 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                   <TableRow key={c.id}>
                     {/* whitespace-normal : le primitif est nowrap par defaut, or cette
                         cellule porte un panneau de texte qui doit se replier. */}
-                    <TableCell colSpan={8} className="p-3 bg-[var(--err-soft)] whitespace-normal">
+                    <TableCell colSpan={8} className="p-3 bg-destructive-soft whitespace-normal">
                       <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-1.5 text-[var(--err)]">
+                        <div className="flex items-center gap-1.5 text-destructive">
                           <Cancel size={18} strokeWidth={2} />
-                          <h6 className="cn-text-subtitle2 font-bold text-[var(--err)]">
+                          <h6 className="text-xs font-bold text-destructive-ink">
                             Résilier le contrat {c.contractNumber} ?
                           </h6>
                         </div>
-                        <p className="cn-text-body2 text-[0.8125rem] text-[var(--body)]">
+                        <p className="text-[0.8125rem] text-foreground">
                           {t('contracts.terminateWarning')}
                         </p>
                         <Field>
@@ -437,7 +439,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                           </FieldLabel>
                           <Textarea
                             id={`terminate-reason-${c.id}`}
-                            className="w-full bg-[var(--card)]"
+                            className="w-full bg-card"
                             rows={2}
                             value={terminateReason}
                             onChange={e => setTerminateReason(e.target.value)}
@@ -469,47 +471,47 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
               return (
                 <TableRow key={c.id}>
                   <TableCell>
-                    <p className="cn-text-body2 font-semibold font-mono text-[0.8125rem] text-[var(--ink)]">
+                    <p className="font-semibold font-mono text-[0.8125rem] text-foreground">
                       {c.contractNumber}
                     </p>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <span className="inline-flex text-[var(--faint)]">
+                      <span className="inline-flex text-faint">
                         <Home size={14} strokeWidth={1.75} />
                       </span>
-                      <p className="cn-text-body2 text-[0.8125rem]">{getPropertyName(c.propertyId)}</p>
+                      <p className="text-[0.8125rem]">{getPropertyName(c.propertyId)}</p>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <span className="inline-flex text-[var(--faint)]">
+                      <span className="inline-flex text-faint">
                         <Person size={14} strokeWidth={1.75} />
                       </span>
-                      <p className="cn-text-body2 text-[0.8125rem]">{getOwnerName(c.ownerId)}</p>
+                      <p className="text-[0.8125rem]">{getOwnerName(c.ownerId)}</p>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <p className="cn-text-body2 text-[0.8125rem]">{CONTRACT_TYPE_LABELS[c.contractType]}</p>
+                    <p className="text-[0.8125rem]">{CONTRACT_TYPE_LABELS[c.contractType]}</p>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant="secondary" className="bg-[var(--accent-soft)] text-[var(--accent)] tabular-nums">{`${(c.commissionRate * 100).toFixed(0)}%`}</Badge>
+                    <Badge variant="secondary" className="bg-primary-soft text-primary tabular-nums">{`${(c.commissionRate * 100).toFixed(0)}%`}</Badge>
                   </TableCell>
                   <TableCell>
-                    <p className="cn-text-body2 text-[0.75rem] text-[var(--muted)] tabular-nums">
+                    <p className="text-xs text-muted-foreground tabular-nums">
                       {c.startDate}{c.endDate ? ` → ${c.endDate}` : ' → ∞'}
                     </p>
                   </TableCell>
                   <TableCell className="text-center">
                     <div className="flex flex-col items-center gap-0.5">
-                      <StatusChip tokens={{ color: meta.color, bg: meta.soft }} label={meta.label} />
+                      <StatusChip tone={meta.tone} label={meta.label} />
                       {c.status === 'DRAFT' && c.signatureStatus === 'PENDING' && (
-                        <p className="cn-text-body1 text-[0.625rem] font-semibold text-[var(--warn)]">
+                        <p className="text-2xs font-semibold text-warning-ink">
                           {t('contracts.signature.pending', 'En attente de signature')}
                         </p>
                       )}
                       {c.status === 'DRAFT' && c.signatureStatus === 'EXPIRED' && (
-                        <p className="cn-text-body1 text-[0.625rem] font-semibold text-[var(--err)]">
+                        <p className="text-2xs font-semibold text-destructive-ink">
                           {t('contracts.signature.expired', 'Lien de signature expiré')}
                         </p>
                       )}
@@ -525,7 +527,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                             <Button
                               variant="ghost"
                               size="icon-sm"
-                              className="text-[var(--mui-primary)]"
+                              className="text-primary"
                               aria-label="Voir le mandat de gestion"
                               onClick={() => onViewMandate(c.id)}
                             >
@@ -542,7 +544,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                className="text-[var(--warn)] hover:text-[var(--warn)] hover:bg-[var(--warn-soft)]"
+                                className="text-warning hover:text-warning hover:bg-warning-soft"
                                 aria-label={t('contracts.signature.resend', 'Renvoyer le lien de signature')}
                                 onClick={() => onResendSignature(c.id)}
                               >
@@ -560,7 +562,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                className="text-[var(--ok)]"
+                                className="text-success"
                                 aria-label={t('contracts.activate')}
                                 onClick={() => onActivate(c.id)}
                               >
@@ -578,7 +580,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                className="text-[var(--warn)]"
+                                className="text-warning"
                                 aria-label={t('contracts.suspend')}
                                 onClick={() => onSuspend(c.id)}
                               >
@@ -596,7 +598,7 @@ const ContractsTableSection: React.FC<ContractsTableSectionProps> = ({
                               <Button
                                 variant="ghost"
                                 size="icon-sm"
-                                className="text-[var(--err)]"
+                                className="text-destructive"
                                 aria-label={t('contracts.terminate')}
                                 onClick={() => onTerminateStart(c.id)}
                               >

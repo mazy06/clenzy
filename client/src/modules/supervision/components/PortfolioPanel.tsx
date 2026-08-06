@@ -12,6 +12,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { cn } from '../../../utils/cn';
 
+import { Badge, Card, CardContent, CardHeader, CardTitle } from '../../../components/ui';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useSupervision } from '../core/useSupervision';
 import { useResolutionToasts } from '../core/useResolutionToasts';
@@ -33,11 +34,6 @@ export interface PortfolioPanelProps {
   deps: unknown[];
   onEditAction?: (actionId: string) => void;
 }
-
-// Litteral complet (pas de concatenation) : Tailwind scanne les sources et
-// n'emet une classe que si elle y apparait telle quelle.
-const CARD_CLASS =
-  'border border-solid border-[var(--line,_#e6e8ef)] rounded-[14px] bg-[var(--card,_#fff)] overflow-hidden';
 
 export function PortfolioPanel({ createProvider, deps, onEditAction }: PortfolioPanelProps) {
   const { t } = useTranslation();
@@ -99,59 +95,70 @@ export function PortfolioPanel({ createProvider, deps, onEditAction }: Portfolio
           <SupervisionReportStrip />
 
           {(portfolio.orgAlerts?.length ?? 0) > 0 && (
-            <div className={CARD_CLASS}>
-              <p className="cn-text-body1 p-[14px 16px 8px] font-extrabold text-[13.5px] text-[var(--ink,_#1b2240)]">
-                {t('supervision.orgAlerts.title', 'Alertes portefeuille')}
-              </p>
-              <div className="px-2 pb-2 flex flex-col gap-2">
+            <Card size="sm">
+              <CardHeader>
+                <CardTitle>{t('supervision.orgAlerts.title', 'Alertes portefeuille')}</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2">
                 {portfolio.orgAlerts!.map((a, i) => (
                   <div className="flex gap-1.5 items-start" key={i}>
-                    <div className={cn('w-[8px] h-[8px] rounded-[50%] mt-[5px] shrink-0', a.severity === 'critical' ? 'bg-[var(--err,_#c0392b)]' : a.severity === 'warning' ? 'bg-[var(--warn,_#d4a017)]' : 'bg-[var(--info,_#4a90a4)]')} />
+                    <div
+                      className={cn(
+                        'size-2 rounded-full mt-1 shrink-0',
+                        a.severity === 'critical'
+                          ? 'bg-destructive'
+                          : a.severity === 'warning'
+                            ? 'bg-warning'
+                            : 'bg-info',
+                      )}
+                    />
                     <div className="min-w-0">
-                      <p className="cn-text-body1 text-[12.5px] font-bold text-[var(--ink,_#1b2240)] leading-[1.3]">
+                      <p className="m-0 text-xs font-medium leading-snug text-foreground">
                         {a.title}
                       </p>
-                      <p className="cn-text-body1 text-[11.5px] text-[var(--muted,_#6b7280)] leading-[1.35]">
+                      <p className="m-0 text-2xs leading-snug text-muted-foreground">
                         {a.description}
                       </p>
                     </div>
                   </div>
                 ))}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           )}
 
-          <div className={CARD_CLASS}>
-            <div className="flex items-center gap-1.5 p-[14px 16px 12px] font-extrabold text-[13.5px] text-[var(--ink,_#1b2240)]">
-              {t('supervision.queue.title')}
-              <span className="ms-auto min-w-[24px] h-[24px] px-[4.5px] rounded-[8px] bg-[var(--warn-soft)] text-[var(--warn)] flex items-center justify-center text-[12px] font-extrabold">
-                {portfolio.pending.length}
-              </span>
-            </div>
+          <Card size="sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-1.5">
+                {t('supervision.queue.title')}
+                <Badge variant="warning" className="ms-auto tabular-nums">
+                  {portfolio.pending.length}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
             {/* data-tethers-viewport : une carte défilée hors de ce cadre perd
                 son attache (son rect survit au rognage overflow). */}
-            <div className="p-2 max-h-[320px] overflow-y-auto" data-tethers-viewport>
+            <CardContent className="max-h-[320px] overflow-y-auto" data-tethers-viewport>
               <PendingQueue actions={portfolio.pending} onValidate={handleValidate} onEdit={handleEdit} onAdjustPrice={handleAdjustPrice} variant="panel" />
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className={CARD_CLASS}>
-            <p className="cn-text-body1 p-[14px 16px 8px] font-extrabold text-[13.5px] text-[var(--ink,_#1b2240)]">
-              {t('supervision.feed.title')}
-            </p>
-            <div className="px-1.5 pb-1.5 max-h-[220px] overflow-y-auto">
+          <Card size="sm">
+            <CardHeader>
+              <CardTitle>{t('supervision.feed.title')}</CardTitle>
+            </CardHeader>
+            <CardContent className="max-h-[220px] overflow-y-auto">
               {portfolio.feed.length > 0 ? (
                 <ActivityFeed entries={portfolio.feed} pending={portfolio.pending} />
               ) : (
-                <div className="px-2 py-3 text-center text-[12px] text-[var(--muted)] leading-[1.5]">
+                <p className="m-0 py-1 text-center text-xs leading-relaxed text-muted-foreground">
                   {t(
                     'supervision.feed.emptyOnboarding',
                     'Les agents observent vos logements. Leurs actions et suggestions à valider apparaîtront ici — rien n’est exécuté sans votre accord.',
                   )}
-                </div>
+                </p>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 

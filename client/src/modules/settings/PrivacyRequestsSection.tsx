@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, NativeSelect, NativeSelectOption, Spinner, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui';
+import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, FieldLabel, Input, NativeSelect, NativeSelectOption, Spinner, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui';
 import { Add, GppGood } from '../../icons';
 import StatusChip from '../../components/StatusChip';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -127,7 +127,7 @@ export default function PrivacyRequestsSection() {
           <Spinner className="size-6" />
         </div>
       ) : requests.length === 0 ? (
-        <p className="m-0 py-2 text-[12.5px] text-[var(--muted)]">
+        <p className="m-0 py-2 text-xs text-muted-foreground">
           {t('settings.privacy.empty',
             "Aucune demande enregistrée. Une demande d'effacement saisie ici lève la carte « Effacer » de l'agent Conformité avec son échéance légale.")}
         </p>
@@ -148,7 +148,7 @@ export default function PrivacyRequestsSection() {
                 <TableCell>
                   <span className="font-medium">{request.requesterEmail}</span>
                   {request.guestId == null && request.status === 'RECEIVED' && (
-                    <span className="block text-[11.5px] text-[var(--muted)]">
+                    <span className="block text-2xs text-muted-foreground">
                       {t('settings.privacy.noGuest', 'Aucune fiche voyageur liée')}
                     </span>
                   )}
@@ -159,7 +159,7 @@ export default function PrivacyRequestsSection() {
                   <StatusChip tone={STATUS_TONE[request.status]}
                     label={STATUS_LABELS[request.status]} size="sm" />
                 </TableCell>
-                <TableCell className="text-right whitespace-nowrap">
+                <TableCell className="text-end whitespace-nowrap">
                   {request.status === 'RECEIVED' && (
                     <>
                       {request.type === 'ERASURE' && request.guestId != null && (
@@ -195,17 +195,23 @@ export default function PrivacyRequestsSection() {
             </DialogHeader>
             <div className="grid gap-3 py-1">
               <div className="grid grid-cols-2 gap-3">
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('settings.privacy.requesterEmail', 'Email du demandeur')}
+                <Field>
+                  <FieldLabel htmlFor="privacy-requester-email">
+                    {t('settings.privacy.requesterEmail', 'Email du demandeur')}
+                  </FieldLabel>
                   <Input
+                    id="privacy-requester-email"
                     type="email"
                     value={form.requesterEmail}
                     onChange={(e) => setForm({ ...form, requesterEmail: e.target.value })}
                   />
-                </label>
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('settings.privacy.type', 'Type')}
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="privacy-request-type">
+                    {t('settings.privacy.type', 'Type')}
+                  </FieldLabel>
                   <NativeSelect
+                    id="privacy-request-type"
                     value={form.type}
                     onChange={(e) => setForm({ ...form, type: e.target.value as PrivacyRequest['type'] })}
                   >
@@ -213,38 +219,44 @@ export default function PrivacyRequestsSection() {
                       <NativeSelectOption key={value} value={value}>{label}</NativeSelectOption>
                     ))}
                   </NativeSelect>
-                </label>
+                </Field>
               </div>
-              <label className="grid gap-1 text-[12px] font-medium">
-                {t('settings.privacy.guestSearch', 'Fiche voyageur (recherche nom/email)')}
+              <Field>
+                <FieldLabel htmlFor="privacy-guest-search">
+                  {t('settings.privacy.guestSearch', 'Fiche voyageur (recherche nom/email)')}
+                </FieldLabel>
                 <Input
+                  id="privacy-guest-search"
                   value={form.guest ? `${form.guest.fullName}` : form.guestQuery}
                   onChange={(e) => searchGuests(e.target.value)}
                   placeholder={t('settings.privacy.guestHint', 'Requis pour exécuter un effacement')}
                 />
-              </label>
+              </Field>
               {form.guest == null && form.guestResults.length > 0 && (
                 <div className="grid gap-1">
                   {form.guestResults.map((guest) => (
                     <button
                       key={guest.id}
                       type="button"
-                      className="text-left px-2 py-1.5 rounded-md text-[12.5px] cursor-pointer border border-solid border-[var(--line)] bg-[var(--field)] hover:border-[var(--accent)]"
+                      className="cursor-pointer rounded-md border border-solid border-border bg-field px-2 py-1.5 text-start text-xs transition-colors duration-150 hover:border-primary hover:bg-muted"
                       onClick={() => setForm({ ...form, guest, guestResults: [] })}
                     >
                       <span className="font-medium">{guest.fullName}</span>
-                      {guest.email && <span className="text-[var(--muted)]"> — {guest.email}</span>}
+                      {guest.email && <span className="text-muted-foreground"> — {guest.email}</span>}
                     </button>
                   ))}
                 </div>
               )}
-              <label className="grid gap-1 text-[12px] font-medium">
-                {t('settings.privacy.notes', 'Notes')}
+              <Field>
+                <FieldLabel htmlFor="privacy-notes">
+                  {t('settings.privacy.notes', 'Notes')}
+                </FieldLabel>
                 <Input
+                  id="privacy-notes"
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 />
-              </label>
+              </Field>
             </div>
             <DialogFooter>
               <Button variant="outline" disabled={saving} onClick={() => setForm(null)}>
@@ -265,7 +277,7 @@ export default function PrivacyRequestsSection() {
             <DialogHeader>
               <DialogTitle>{t('settings.privacy.confirmTitle', 'Effacement irréversible')}</DialogTitle>
             </DialogHeader>
-            <p className="m-0 text-[12.5px]">
+            <p className="m-0 text-xs text-foreground">
               {t('settings.privacy.confirmBody',
                 "Identité, coordonnées et contenu des messages du voyageur seront définitivement effacés. Les factures et fiches police sont conservées (obligations légales) — un rapport est tracé sur la demande.")}
             </p>

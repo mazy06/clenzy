@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import StatusChip from '../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../components/StatusChip';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { Info, TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
@@ -43,20 +43,18 @@ import { organizationsApi, OrganizationDto } from '../../services/api/organizati
 import PageHeader from '../../components/PageHeader';
 import type { ChipColor } from '../../types';
 
-// Couleur semantique → tokens (chips -soft : texte couleur + fond -soft)
-const SEM_TOKEN: Partial<Record<ChipColor, { fg: string; bg: string }>> = {
-  success: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  warning: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  error: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  info: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-  primary: { fg: 'var(--accent)', bg: 'var(--accent-soft)' },
+// Couleur semantique → ton de la primitive StatusChip, qui porte deja le couple
+// Baitly UI conforme AA (encre `-ink` sur fond `-soft`).
+const SEM_TONE: Partial<Record<ChipColor, StatusTone>> = {
+  success: 'ok',
+  warning: 'warn',
+  error: 'err',
+  info: 'info',
+  primary: 'accent',
+  secondary: 'accent',
 };
-const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
-/** Tokens de la primitive pour une couleur semantique. */
-const semTokens = (color: ChipColor) => {
-  const tk = SEM_TOKEN[color] ?? NEUTRAL_TOKEN;
-  return { color: tk.fg, bg: tk.bg };
-};
+/** Ton de la primitive pour une couleur semantique. */
+const semTone = (color: ChipColor): StatusTone => SEM_TONE[color] ?? 'neutral';
 import DetailSection from './components/DetailSection';
 import AvatarUploader from './components/AvatarUploader';
 import { USER_ROLES, getRoleEntry, RoleIconBadge } from './components/userRoleCatalog';
@@ -172,9 +170,11 @@ const UserEdit: React.FC = () => {
       <div className="p-3">
         <BuiAlert variant="info" className="p-3 py-1.5">
           <Info />
-          <AlertDescription><h6 className="cn-text-subtitle1 mb-1.5">
+          {/* `m-0` reprend ce que portait `cn-text-*` : sans preflight Tailwind,
+              un <h6>/<p> natif recupere sinon les marges du navigateur. */}
+          <AlertDescription><h6 className="m-0 mb-1.5 text-sm font-medium">
             Acces non autorise
-          </h6><p className="cn-text-body2 text-[0.85rem]">
+          </h6><p className="m-0 text-sm">
             Vous n'avez pas les permissions necessaires pour modifier des utilisateurs.
           </p></AlertDescription>
         </BuiAlert>
@@ -346,7 +346,7 @@ const UserEdit: React.FC = () => {
           {user && (
             <DetailSection
               title="Photo de profil"
-              accentColor="#7BA3C2"
+              accentColor="var(--bui-info)"
               icon={<Person size={14} strokeWidth={1.75} />}
               disableGrid
             >
@@ -357,10 +357,10 @@ const UserEdit: React.FC = () => {
             </DetailSection>
           )}
 
-          {/* Personnel — accent slate */}
+          {/* Personnel — accent primaire */}
           <DetailSection
             title="Informations personnelles"
-            accentColor="#6B8A9A"
+            accentColor="var(--bui-primary)"
             icon={<Person size={14} strokeWidth={1.75} />}
           >
             <Field>
@@ -385,10 +385,10 @@ const UserEdit: React.FC = () => {
             </Field>
           </DetailSection>
 
-          {/* Contact — accent teal */}
+          {/* Contact — accent succès */}
           <DetailSection
             title="Informations de contact"
-            accentColor="#4A9B8E"
+            accentColor="var(--bui-success)"
             icon={<Email size={14} strokeWidth={1.75} />}
           >
             <Field>
@@ -427,10 +427,10 @@ const UserEdit: React.FC = () => {
             </Field>
           </DetailSection>
 
-          {/* Rôle et statut — accent purple */}
+          {/* Rôle et statut — accent froid */}
           <DetailSection
             title="Rôle et statut"
-            accentColor="#7B68A8"
+            accentColor="var(--bui-info)"
             icon={<AdminPanelSettings size={14} strokeWidth={1.75} />}
             disableGrid
           >
@@ -450,7 +450,7 @@ const UserEdit: React.FC = () => {
                       {selectedRoleInfo && (
                         <div className="flex items-center gap-1.5 min-w-0">
                           <RoleIconBadge role={selectedRoleInfo.value} size={22} />
-                          <p className="cn-text-body2 font-medium">{selectedRoleInfo.label}</p>
+                          <p className="m-0 text-xs font-medium">{selectedRoleInfo.label}</p>
                         </div>
                       )}
                     </SelectValue>
@@ -461,10 +461,10 @@ const UserEdit: React.FC = () => {
                         <div className="flex items-center gap-2 min-w-0">
                           <RoleIconBadge role={role.value} size={26} />
                           <div className="min-w-0">
-                            <p className="cn-text-body2 font-medium leading-[1.2]">
+                            <p className="m-0 text-xs font-medium leading-[1.2]">
                               {role.label}
                             </p>
-                            <p className="cn-text-body1 text-[0.6875rem] text-muted-foreground leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap max-w-[320px]">
+                            <p className="m-0 text-[0.6875rem] text-muted-foreground leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap max-w-[320px]">
                               {role.description}
                             </p>
                           </div>
@@ -487,14 +487,14 @@ const UserEdit: React.FC = () => {
                   <SelectTrigger id="user-status" className="w-full h-auto min-h-9">
                     <SelectValue placeholder="Sélectionner un statut">
                       {selectedStatusInfo && (
-                        <StatusChip tokens={semTokens(selectedStatusInfo.color)} label={selectedStatusInfo.label} />
+                        <StatusChip tone={semTone(selectedStatusInfo.color)} label={selectedStatusInfo.label} />
                       )}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {userStatuses.map((status) => (
                       <SelectItem key={status.value} value={status.value} textValue={status.label}>
-                        <StatusChip tokens={semTokens(status.color)} label={status.label} />
+                        <StatusChip tone={semTone(status.color)} label={status.label} />
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -507,13 +507,13 @@ const UserEdit: React.FC = () => {
 
             {/* Aperçu inline du rôle sélectionné — utilise le même badge que la liste */}
             {selectedRoleInfo && (
-              <div className="mt-3 p-[9px] rounded-[12px] bg-[var(--accent-soft)] border border-solid border-[color-mix(in_srgb,_var(--accent)_30%,_transparent)] flex items-center gap-[7.5px]">
+              <div className="mt-3 p-[9px] rounded-lg bg-primary-soft border border-solid border-primary/30 flex items-center gap-[7.5px]">
                 <RoleIconBadge role={selectedRoleInfo.value} size={32} />
                 <div className="min-w-0">
-                  <p className="cn-text-body1 text-[0.75rem] font-bold text-foreground mb-0">
+                  <p className="m-0 text-xs font-bold text-foreground">
                     Rôle sélectionné : {selectedRoleInfo.label}
                   </p>
-                  <p className="cn-text-body1 text-[0.75rem] text-muted-foreground leading-[1.4]">
+                  <p className="m-0 text-xs text-muted-foreground leading-[1.4]">
                     {selectedRoleInfo.description}
                   </p>
                 </div>
@@ -521,10 +521,10 @@ const UserEdit: React.FC = () => {
             )}
           </DetailSection>
 
-          {/* Organisation — accent warm */}
+          {/* Organisation — accent chaud */}
           <DetailSection
             title="Organisation"
-            accentColor="#D4A574"
+            accentColor="var(--bui-warning)"
             icon={<Business size={14} strokeWidth={1.75} />}
             disableGrid
           >
@@ -560,8 +560,8 @@ const UserEdit: React.FC = () => {
                             <span className="inline-flex text-muted-foreground opacity-60">
                               <Business size={16} strokeWidth={1.75} />
                             </span>
-                            <span className="cn-text-body2 flex-1">{option.name}</span>
-                            <span className="cn-text-caption text-muted-foreground">
+                            <span className="flex-1 text-xs">{option.name}</span>
+                            <span className="text-2xs text-muted-foreground tabular-nums">
                               {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
                             </span>
                           </span>
@@ -577,21 +577,21 @@ const UserEdit: React.FC = () => {
             </div>
           </DetailSection>
 
-          {/* Changement de mot de passe — accent muted red (security cue) */}
+          {/* Changement de mot de passe — accent rouge désaturé (repère sécurité) */}
           <DetailSection
             title="Changement de mot de passe"
-            accentColor="#C97A7A"
+            accentColor="var(--bui-destructive)"
             icon={<Lock size={14} strokeWidth={1.75} />}
             disableGrid
             action={
               passwordsMatch ? (
-                <StatusChip tokens={semTokens('success')} label="Les mots de passe correspondent" />
+                <StatusChip tone={semTone('success')} label="Les mots de passe correspondent" />
               ) : passwordsMismatch ? (
-                <StatusChip tokens={semTokens('error')} label="Les mots de passe ne correspondent pas" />
+                <StatusChip tone={semTone('error')} label="Les mots de passe ne correspondent pas" />
               ) : undefined
             }
           >
-            <p className="cn-text-body2 text-muted-foreground mb-3 text-[0.75rem]">
+            <p className="m-0 mb-3 text-xs text-muted-foreground">
               Laissez ces champs vides si vous ne souhaitez pas changer le mot de passe.
             </p>
             <div className="grid grid-cols-[1fr] min-[900px]:grid-cols-[repeat(2,_minmax(0,_1fr))] gap-3">

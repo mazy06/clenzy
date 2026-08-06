@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import StatusChip from '../../components/StatusChip';
-import { Alert, AlertDescription } from '../../components/ui';
+import { Alert, AlertDescription, Badge, Card, CardContent } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner, Button } from '../../components/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -45,18 +44,18 @@ const getForfaitShortLabel = (t: TFunction, key: string): string => {
   return t(`auth.inscriptionConfirm.forfaits.${key}`, fallbacks[key] || key);
 };
 
-const FORFAIT_COLORS: Record<string, string> = {
-  essentiel: '#6B8A9A',
-  confort: '#A6C0CE',
-  premium: '#5A7684',
+/** Variante de `Badge` par forfait — la hierarchie se dit par le jeton, pas par un hex. */
+const FORFAIT_BADGE_VARIANTS: Record<string, 'default' | 'secondary' | 'info'> = {
+  essentiel: 'secondary',
+  confort: 'info',
+  premium: 'default',
 };
 
 export default function InscriptionConfirm() {
   const { t } = useTranslation();
   // Geo-detected language (pas les prefs user) : pays arabes -> ar / Maghreb-France -> fr / autres -> en.
-  // Le hook change la langue i18n ; le ThemeProvider + CssBaseline + DirectionProvider
-  // montes dans main.tsx suivent cette langue (direction RTL + Tajawal), le doublon
-  // local n'apportait donc rien de plus que la dependance MUI.
+  // Le hook change la langue i18n ; le shell monte dans main.tsx suit cette langue
+  // (direction RTL + Tajawal), un doublon local n'apporterait rien de plus.
   useGeoAuthLanguage();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -153,11 +152,9 @@ export default function InscriptionConfirm() {
   };
 
   return (
-      <div className="min-h-[100vh] flex items-center justify-center p-3" style={{ background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)' }}>
-        {/* Report de `elevation={8}` : l'ombre exacte de theme.shadows[8]. */}
-        <div
-          className="w-full max-w-[480px] rounded-[24px] border border-solid border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.95)] p-[18px] text-center backdrop-blur-[10px] min-[600px]:p-6 shadow-[0_5px_5px_-3px_rgba(0,0,0,0.2),0_8px_10px_1px_rgba(0,0,0,0.14),0_3px_14px_2px_rgba(0,0,0,0.12)]"
-        >
+      <div className="min-h-[100vh] flex items-center justify-center p-3 bg-background">
+        <Card className="w-full max-w-[480px] shadow-sm">
+          <CardContent className="p-[18px] text-center min-[600px]:p-6">
           {/* Logo */}
           <div className="mb-3">
             <BaitlyMarkLogo scale={1.1} />
@@ -166,8 +163,8 @@ export default function InscriptionConfirm() {
           {/* Loading */}
           {status === 'loading' && (
             <div className="py-6">
-              <Spinner className="size-10 text-[var(--mui-primary)] mb-3" />
-              <p className="cn-text-body1 font-medium text-muted-foreground">
+              <Spinner className="size-10 text-primary mb-3" />
+              <p className="text-sm font-medium text-muted-foreground">
                 {t('auth.inscriptionConfirm.loadingLink', 'Verification du lien...')}
               </p>
             </div>
@@ -176,25 +173,30 @@ export default function InscriptionConfirm() {
           {/* Formulaire de creation de mot de passe */}
           {(status === 'ready' || status === 'submitting') && info && (
             <div className="py-3 text-start">
-              <h5 className="cn-text-h5 font-bold mb-1.5 text-center text-foreground">
+              <h5 className="text-base font-semibold tracking-tight text-balance text-center text-foreground mb-1.5">
                 {t('auth.inscriptionConfirm.createPasswordTitle', 'Creez votre mot de passe')}
               </h5>
-              <p className="cn-text-body2 text-muted-foreground mb-4 text-center">
+              <p className="text-xs text-muted-foreground mb-4 text-center">
                 {t('auth.inscriptionConfirm.createPasswordSubtitle', 'Derniere etape pour finaliser votre inscription.')}
               </p>
 
               {/* Banner avec infos utilisateur */}
-              <div className="p-3 rounded-[16px] bg-[rgba(166,192,206,0.1)] border border-[rgba(166,192,206,0.3)] mb-4">
-                <p className="cn-text-body2 font-semibold">
+              <div className="mb-4 rounded-lg border border-border bg-muted p-3">
+                <p className="text-xs font-semibold">
                   {info.fullName}
                 </p>
-                <p className="cn-text-body2 text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {info.email}
                 </p>
                 {info.forfait && (
-                  <StatusChip tokens={{ color: '#fff', bg: FORFAIT_COLORS[info.forfait] || '#6B8A9A' }} label={t('auth.inscriptionConfirm.forfaitChip', `Forfait ${getForfaitShortLabel(t, info.forfait)}`, {
+                  <Badge
+                    variant={FORFAIT_BADGE_VARIANTS[info.forfait] ?? 'secondary'}
+                    className="mt-1.5"
+                  >
+                    {t('auth.inscriptionConfirm.forfaitChip', `Forfait ${getForfaitShortLabel(t, info.forfait)}`, {
                       forfait: getForfaitShortLabel(t, info.forfait),
-                    })} className="mt-1.5 text-[0.75rem]" />
+                    })}
+                  </Badge>
                 )}
               </div>
 
@@ -266,16 +268,16 @@ export default function InscriptionConfirm() {
             <div className="py-4">
               {/* L'entree n'etait qu'un scale + fade : les utilitaires
                   d'animation du kit la rendent sans @keyframes ad hoc. */}
-              <span className="inline-flex mb-3 text-[var(--ok)] animate-in zoom-in-50 fade-in-0 duration-500 ease-out motion-reduce:animate-none">
+              <span className="inline-flex mb-3 text-success animate-in zoom-in-50 fade-in-0 duration-500 ease-out motion-reduce:animate-none">
                 <CheckCircleIcon size={72} strokeWidth={1.75} />
               </span>
-              <h5 className="cn-text-h5 font-bold mb-1.5 text-foreground">
+              <h5 className="text-base font-semibold tracking-tight text-balance text-foreground mb-1.5">
                 {t('auth.inscriptionConfirm.successTitle', 'Inscription finalisee !')}
               </h5>
-              <p className="cn-text-body2 text-muted-foreground mb-3">
+              <p className="text-xs text-muted-foreground mb-3">
                 {t('auth.inscriptionConfirm.successBody', 'Votre compte a ete cree avec succes. Redirection vers votre tableau de bord...')}
               </p>
-              <Spinner className="size-6 text-[var(--mui-primary)]" />
+              <Spinner className="size-6 text-primary" />
             </div>
           )}
 
@@ -283,10 +285,10 @@ export default function InscriptionConfirm() {
           {status === 'already_completed' && (
             <div className="py-4">
               <span className="inline-flex mb-3 text-primary"><CheckCircleIcon size={64} strokeWidth={1.75} color='currentColor' /></span>
-              <h6 className="cn-text-h6 font-semibold mb-1.5">
+              <h6 className="text-sm font-semibold mb-1.5">
                 {t('auth.inscriptionConfirm.alreadyCompletedTitle', 'Inscription deja finalisee')}
               </h6>
-              <p className="cn-text-body2 text-muted-foreground mb-4">
+              <p className="text-xs text-muted-foreground mb-4">
                 {t('auth.inscriptionConfirm.alreadyCompletedBody', 'Votre compte a deja ete cree. Vous pouvez vous connecter avec vos identifiants.')}
               </p>
               <Button className="px-6" onClick={() => navigate('/login')}>
@@ -299,11 +301,11 @@ export default function InscriptionConfirm() {
           {/* Token expire */}
           {status === 'expired' && (
             <div className="py-4">
-              <span className="inline-flex text-[var(--bui-warning-ink)] mb-3"><ErrorOutline size={64} strokeWidth={1.75} /></span>
-              <h6 className="cn-text-h6 font-semibold mb-1.5">
+              <span className="inline-flex text-warning-ink mb-3"><ErrorOutline size={64} strokeWidth={1.75} /></span>
+              <h6 className="text-sm font-semibold mb-1.5">
                 {t('auth.inscriptionConfirm.expiredTitle', 'Lien expire')}
               </h6>
-              <p className="cn-text-body2 text-muted-foreground mb-4">
+              <p className="text-xs text-muted-foreground mb-4">
                 {t('auth.inscriptionConfirm.expiredBody', 'Le lien de confirmation a expire. Veuillez contacter le support pour obtenir un nouveau lien.')}
               </p>
               <Button variant="outline" onClick={() => navigate('/login')}>
@@ -316,10 +318,10 @@ export default function InscriptionConfirm() {
           {status === 'error' && (
             <div className="py-4">
               <span className="inline-flex text-destructive mb-3"><ErrorOutline size={64} strokeWidth={1.75} /></span>
-              <h6 className="cn-text-h6 font-semibold mb-1.5">
+              <h6 className="text-sm font-semibold mb-1.5">
                 {t('auth.inscriptionConfirm.errorTitle', 'Lien invalide')}
               </h6>
-              <p className="cn-text-body2 text-muted-foreground mb-4">
+              <p className="text-xs text-muted-foreground mb-4">
                 {error || t('auth.inscriptionConfirm.errorBody', 'Le lien de confirmation est invalide. Veuillez contacter le support.')}
               </p>
               <Button variant="outline" onClick={() => navigate('/login')}>
@@ -327,7 +329,8 @@ export default function InscriptionConfirm() {
               </Button>
             </div>
           )}
-        </div>
+          </CardContent>
+        </Card>
       </div>
   );
 }

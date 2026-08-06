@@ -1,4 +1,4 @@
-import { Skeleton } from '../../../../components/ui';
+import { Alert, AlertDescription, Skeleton } from '../../../../components/ui';
 import { AlertTriangle } from 'lucide-react';
 import type { BookingEngineConfig } from '../../../../services/api/bookingEngineApi';
 import {
@@ -51,10 +51,16 @@ export default function BookingSettingsPanel({ config, loading, error, saving, d
     );
   }
 
+  // Bandeau d'erreur ecrit a la main -> primitive Alert : elle porte deja le
+  // couple fond pastel / encre `-ink` conforme AA. Le texte tenait la teinte
+  // VIVE `--err`, sous le seuil.
   if (!config) {
     return (
-      <div className="flex items-center gap-1.5 m-6 p-3 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
-        <AlertTriangle size={18} strokeWidth={2} /> {error ?? 'Config introuvable.'}
+      <div className="m-6">
+        <Alert variant="destructive">
+          <AlertTriangle />
+          <AlertDescription>{error ?? 'Config introuvable.'}</AlertDescription>
+        </Alert>
       </div>
     );
   }

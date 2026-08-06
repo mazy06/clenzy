@@ -290,10 +290,10 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                                 <div className="flex items-center gap-1.5">
                                   <span className="inline-flex text-muted-foreground"><PersonIcon size={16} strokeWidth={1.75} /></span>
                                   <div>
-                                    <p className="cn-text-body2">
+                                    <p className="text-sm font-medium">
                                       {option.firstName} {option.lastName}
                                     </p>
-                                    <span className="cn-text-caption text-muted-foreground">
+                                    <span className="text-xs text-muted-foreground">
                                       {option.email} - {option.role}
                                     </span>
                                   </div>
@@ -433,12 +433,12 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
               {/* Pieces jointes */}
               <div className="col-span-12">
                 <BuiCard className="gap-0 py-0 p-3">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <h6 className="cn-text-subtitle2">
-                      <span className="inline-flex me-1.5 align-[middle]"><AttachFileIcon  /></span>
+                  <div className="flex items-center justify-between gap-3 mb-1.5">
+                    <h6 className="flex items-center gap-1.5 text-xs font-medium">
+                      <span className="inline-flex text-muted-foreground [&>svg]:size-3.5"><AttachFileIcon /></span>
                       {t('contact.attachments')}
                     </h6>
-                    <span className="cn-text-caption text-muted-foreground">
+                    <span className="text-xs text-muted-foreground tabular-nums">
                       Max {MAX_FILE_SIZE_MB} MB / {t('contact.attachmentCount')}
                     </span>
                   </div>
@@ -447,7 +447,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                     type="file"
                     multiple
                     onChange={handleFileChange}
-                    style={{ display: 'none' }}
+                    className="hidden"
                     id="file-input"
                   />
                   <label htmlFor="file-input">
@@ -463,7 +463,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
 
                   {attachments.length > 0 && (
                     <div className="mt-3">
-                      <p className="cn-text-body2 text-muted-foreground mb-[0.35em]">
+                      <p className="text-xs text-muted-foreground mb-1">
                         {t('contact.selectedFiles')}
                       </p>
                       {attachments.map((file, index) => (

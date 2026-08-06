@@ -103,13 +103,21 @@ export const DEVICE_KIND_ORDER: DeviceKind[] = [
 
 /**
  * Tokens des niveaux d'état (le seul endroit où la couleur porte un sens).
- * Sémantique Signature : texte couleur + fond `-soft` assorti — en ligne = --ok,
- * attention = --warn, alerte = --err, hors ligne / inconnu = neutre --muted/--hover.
+ *
+ * <p>Sémantique Baitly UI : le niveau se résout à l'EXÉCUTION, une classe
+ * Tailwind ne peut donc pas en naître — on garde des valeurs CSS pointant les
+ * variables `--bui-*`. Le triplet respecte la règle du couple accessible :
+ * `color` est le jeton `-ink` (≥ 4,5:1, réservé au TEXTE), `soft` le fond
+ * pastel, `dot` la teinte vive réservée aux aplats décoratifs (pastille, jauge)
+ * qui ne sont pas soumis au contraste de texte.</p>
+ *
+ * <p>Niveaux : en ligne = succès, attention = avertissement, alerte =
+ * destructif, hors ligne / inconnu = neutre.</p>
  */
-export const STATUS_TOKENS: Record<DeviceStatusLevel, { color: string; soft: string }> = {
-  ok: { color: 'var(--ok)', soft: 'var(--ok-soft)' },
-  warning: { color: 'var(--warn)', soft: 'var(--warn-soft)' },
-  critical: { color: 'var(--err)', soft: 'var(--err-soft)' },
-  offline: { color: 'var(--muted)', soft: 'var(--hover)' },
-  unknown: { color: 'var(--muted)', soft: 'var(--hover)' },
+export const STATUS_TOKENS: Record<DeviceStatusLevel, { color: string; soft: string; dot: string }> = {
+  ok: { color: 'var(--bui-success-ink)', soft: 'var(--bui-success-soft)', dot: 'var(--bui-success)' },
+  warning: { color: 'var(--bui-warning-ink)', soft: 'var(--bui-warning-soft)', dot: 'var(--bui-warning)' },
+  critical: { color: 'var(--bui-destructive-ink)', soft: 'var(--bui-destructive-soft)', dot: 'var(--bui-destructive)' },
+  offline: { color: 'var(--bui-muted-foreground)', soft: 'var(--bui-muted)', dot: 'var(--bui-muted-foreground)' },
+  unknown: { color: 'var(--bui-muted-foreground)', soft: 'var(--bui-muted)', dot: 'var(--bui-muted-foreground)' },
 };

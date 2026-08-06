@@ -36,7 +36,7 @@ export interface ToolCallExecuted {
   toolError: boolean;
   displayHint?: string;
   /**
-   * Contenu JSON serialise renvoye par le tool. Le composant {@code MessageBubble}
+   * Contenu JSON serialise renvoye par le tool. Le composant {@code AssistantMessage}
    * le parse et rend un widget contextualise via {@code ToolResultWidget}.
    * Null si le tool a echoue (toolError=true).
    */
@@ -150,7 +150,7 @@ export function useAgent(options: UseAgentOptions = {}): UseAgentResult {
               attachments: parseAttachmentsJsonSafe(m.attachments),
               // Hydrate les toolCalls depuis le JSONB backend. Sans ca, les
               // widgets riches (KPI, charts, tables) disparaissent au reload
-              // d'une conversation : MessageBubble skip leur rendu car
+              // d'une conversation : AssistantMessage skip leur rendu car
               // message.toolCalls === undefined.
               toolCalls: parseToolCallsJsonSafe(m.toolCalls),
               toolCallId: m.toolCallId,

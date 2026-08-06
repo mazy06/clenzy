@@ -164,10 +164,10 @@ export default function Login() {
       <div className="mb-6">
         {/* md = 900 px cote MUI (breakpoints non configures), pas les 768 px de
             Tailwind : d'ou la variante exacte `min-[900px]:`. */}
-        <h4 className="cn-text-h4 font-semibold text-[var(--ink)] mb-1.5 text-[1.75rem] min-[900px]:text-[2rem] text-balance">
+        <h4 className="font-semibold tracking-tight text-balance text-foreground mb-1.5 text-[1.75rem] min-[900px]:text-[2rem]">
           {t('auth.login.title', 'Connexion')}
         </h4>
-        <p className="cn-text-body1 text-muted-foreground text-[0.95rem] leading-[1.5]">
+        <p className="text-muted-foreground text-[0.95rem] leading-[1.5]">
           {t('auth.login.subtitle', 'Connecte-toi pour accéder à ton tableau de bord.')}
         </p>
       </div>
@@ -176,7 +176,7 @@ export default function Login() {
       {inscriptionSuccess && (
         <UiAlert variant="success" className="mb-4">
           <CircleCheck />
-          <AlertDescription><p className="cn-text-body2 text-[0.875rem] font-medium">
+          <AlertDescription><p className="text-sm font-medium">
             {t('auth.login.inscriptionSuccess', 'Votre compte a été créé avec succès. Connectez-vous pour accéder à votre espace.')}
           </p></AlertDescription>
         </UiAlert>
@@ -188,7 +188,7 @@ export default function Login() {
             defaut MUI. */}
         <div className="flex flex-col gap-[15px]">
           <Field>
-            <FieldLabel className="cn-text-body2 font-semibold mb-1 block text-[0.8125rem]" htmlFor="login-email">
+            <FieldLabel className="font-semibold mb-1 block text-[0.8125rem]" htmlFor="login-email">
               {t('auth.login.emailLabel', "Email ou nom d'utilisateur")}
             </FieldLabel>
             <Input
@@ -207,12 +207,12 @@ export default function Login() {
 
           <Field>
             <div className="flex justify-between items-baseline mb-1">
-              <FieldLabel className="cn-text-body2 font-semibold text-[0.8125rem]" htmlFor="login-password">
+              <FieldLabel className="font-semibold text-[0.8125rem]" htmlFor="login-password">
                 {t('auth.login.passwordLabel', 'Mot de passe')}
               </FieldLabel>
               <RouterLink
                 to="/forgot-password"
-                className="text-[0.75rem] font-medium no-underline text-[var(--mui-primary)] hover:underline"
+                className="text-xs font-medium no-underline text-primary hover:underline"
               >
                 {t('auth.login.forgotPassword', 'Mot de passe oublié ?')}
               </RouterLink>
@@ -238,7 +238,7 @@ export default function Login() {
                   }
                   onClick={() => setShowPassword(!showPassword)}
                   onMouseDown={(e) => e.preventDefault()}
-                  className="text-[var(--muted)]"
+                  className="text-muted-foreground"
                 >
                   {showPassword
                     ? <VisibilityOff size={16} strokeWidth={1.75} />
@@ -251,7 +251,7 @@ export default function Login() {
           {error && (
             <UiAlert variant={isLocked ? 'warning' : captchaRequired ? 'info' : 'destructive'}>
               <AlertDescription>
-                <p className="cn-text-body2 text-[0.875rem]">{error}</p>
+                <p className="text-sm">{error}</p>
               </AlertDescription>
             </UiAlert>
           )}
@@ -280,21 +280,21 @@ export default function Login() {
       </form>
 
       {/* ── Footer : signup + support ── */}
-      <div className="mt-6 pt-4 border-t border-[var(--line)]">
-        <p className="cn-text-body2 text-muted-foreground text-[0.875rem] text-center mb-2">
+      <div className="mt-6 pt-4 border-t border-border">
+        <p className="text-sm text-muted-foreground text-center mb-2">
           {t('auth.login.noAccount', 'Pas encore de compte ?')}{' '}
           <RouterLink
             to="/inscription"
-            className="font-semibold no-underline text-[var(--mui-primary)] hover:underline"
+            className="font-semibold no-underline text-primary hover:underline"
           >
             {t('auth.login.createAccount', 'Crée le tien')}
           </RouterLink>
         </p>
-        <span className="cn-text-caption text-muted-foreground block text-center text-[0.75rem]">
+        <span className="text-xs text-muted-foreground block text-center">
           {t('auth.login.needHelp', "Besoin d'aide ?")}{' '}
           <RouterLink
             to="/support"
-            className="font-medium underline text-[var(--muted)] hover:text-[var(--mui-primary)]"
+            className="font-medium underline text-muted-foreground hover:text-primary"
           >
             {t('auth.login.contactSupport', 'Contactez le support')}
           </RouterLink>

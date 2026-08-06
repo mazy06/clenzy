@@ -22,7 +22,8 @@ import {
   TooltipTrigger,
 } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
-import { Pencil, Plus, Save, Trash2 } from 'lucide-react';
+import EmptyState from '../../components/EmptyState';
+import { History, Pencil, Plus, Save, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   yieldRulesApi,
@@ -252,7 +253,7 @@ const YieldRulesPanel: React.FC = () => {
             <ToggleGroupItem value="SUGGEST">{t('yieldRules.mode.suggest', 'Suggestion')}</ToggleGroupItem>
             <ToggleGroupItem value="AUTO">{t('yieldRules.mode.auto', 'Automatique')}</ToggleGroupItem>
           </ToggleGroup>
-          <p className="cn-text-body2 text-[var(--muted)]">
+          <p className="text-xs text-muted-foreground">
             {modeHelp[(config?.mode ?? 'SIMULATION') as YieldMode]}
           </p>
         </div>
@@ -260,10 +261,10 @@ const YieldRulesPanel: React.FC = () => {
 
       {/* ── Automatisations déterministes (R2) ── */}
       <Card className="gap-0 py-0 p-3">
-        <h6 className="cn-text-subtitle1 font-bold mb-0.5">
+        <h6 className="text-sm font-semibold tracking-tight mb-0.5">
           {t('yieldRules.automations.title', 'Automatisations')}
         </h6>
-        <p className="cn-text-body2 text-[var(--muted)] mb-2">
+        <p className="text-xs text-muted-foreground mb-2">
           {t('yieldRules.automations.subtitle',
             'Ajustements déterministes appliqués chaque nuit, réversibles automatiquement.')}
         </p>
@@ -314,7 +315,7 @@ const YieldRulesPanel: React.FC = () => {
             </>
           )}
         </div>
-        <span className="cn-text-caption text-[var(--muted)] block mt-0.5 mb-2">
+        <span className="text-xs text-muted-foreground block mt-0.5 mb-2">
           {t('yieldRules.automations.orphanGap.help',
             'Remise + séjour minimum abaissé sur les courts trous entre deux réservations (jamais sous le prix plancher).')}
         </span>
@@ -365,7 +366,7 @@ const YieldRulesPanel: React.FC = () => {
             </>
           )}
         </div>
-        <span className="cn-text-caption text-[var(--muted)] block mt-0.5">
+        <span className="text-xs text-muted-foreground block mt-0.5">
           {t('yieldRules.automations.minStay.help',
             'Abaisse le séjour minimum des nuits encore libres à l’approche de la date (last-minute).')}
         </span>
@@ -374,7 +375,7 @@ const YieldRulesPanel: React.FC = () => {
       {/* ── Règles ── */}
       <Card className="gap-0 py-0 p-3">
         <div className="flex items-center justify-between mb-1.5">
-          <h6 className="cn-text-subtitle1 font-bold">
+          <h6 className="text-sm font-semibold tracking-tight">
             {t('yieldRules.rulesTitle', 'Règles d’occupation')}
           </h6>
           <BuiButton size="sm" variant="outline" onClick={openCreate}>
@@ -383,12 +384,14 @@ const YieldRulesPanel: React.FC = () => {
           </BuiButton>
         </div>
         {rules.length === 0 ? (
-          <p className="cn-text-body2 text-[var(--muted)] py-3">
-            {t(
+          <EmptyState
+            icon={<SlidersHorizontal />}
+            title={t(
               'yieldRules.noRules',
               'Aucune règle. Exemple : « si occupation < 40 % à 30 jours, baisser de 5 % ».',
             )}
-          </p>
+            variant="transparent"
+          />
         ) : (
           <Table>
             <TableHeader>
@@ -462,10 +465,10 @@ const YieldRulesPanel: React.FC = () => {
 
       {/* ── Bornes par bien ── */}
       <Card className="gap-0 py-0 p-3">
-        <h6 className="cn-text-subtitle1 font-bold mb-0.5">
+        <h6 className="text-sm font-semibold tracking-tight mb-0.5">
           {t('yieldRules.boundsTitle', 'Garde-fous par bien')}
         </h6>
-        <p className="cn-text-body2 text-[var(--muted)] mb-1.5">
+        <p className="text-xs text-muted-foreground mb-1.5">
           {t(
             'yieldRules.boundsSubtitle',
             'Plancher et plafond obligatoires : sans les deux, le yield ignore le bien (journalisé NO_BOUNDS).',
@@ -552,13 +555,15 @@ const YieldRulesPanel: React.FC = () => {
 
       {/* ── Journal ── */}
       <Card className="gap-0 py-0 p-3">
-        <h6 className="cn-text-subtitle1 font-bold mb-1.5">
+        <h6 className="text-sm font-semibold tracking-tight mb-1.5">
           {t('yieldRules.journalTitle', 'Journal des ajustements')}
         </h6>
         {!journal || journal.content.length === 0 ? (
-          <p className="cn-text-body2 text-[var(--muted)] py-3">
-            {t('yieldRules.journalEmpty', 'Aucun ajustement journalisé pour le moment.')}
-          </p>
+          <EmptyState
+            icon={<History />}
+            title={t('yieldRules.journalEmpty', 'Aucun ajustement journalisé pour le moment.')}
+            variant="transparent"
+          />
         ) : (
           <>
             <div className="overflow-x-auto">
@@ -600,7 +605,7 @@ const YieldRulesPanel: React.FC = () => {
                         {entry.occupancyPct != null ? `${entry.occupancyPct} %` : '—'}
                       </TableCell>
                       <TableCell className="max-w-[320px]">
-                        <p className="cn-text-body2 truncate" title={entry.reason ?? ''}>
+                        <p className="text-xs truncate" title={entry.reason ?? ''}>
                           {entry.reason ?? '—'}
                         </p>
                       </TableCell>

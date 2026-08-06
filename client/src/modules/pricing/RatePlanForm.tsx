@@ -3,6 +3,7 @@ import { Spinner } from '../../components/ui';
 import { cn } from '../../utils/cn';
 import {
   Button,
+  Card,
   Field,
   FieldLabel,
   Input,
@@ -22,8 +23,8 @@ import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPr
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
-const CARD_CLS =
-  'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] p-[9px]';
+/** Densité de la carte : la surface vient de `Card`, le rythme d'ici. */
+const PANEL_CLASS = 'gap-0 py-0 p-[9px]';
 
 const PLAN_TYPES = ['BASE', 'SEASONAL', 'PROMOTIONAL', 'LAST_MINUTE'] as const;
 
@@ -110,10 +111,10 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
   const isValid = name.trim() !== '' && nightlyPrice !== '' && !isNaN(parseFloat(nightlyPrice));
 
   return (
-    <div className={CARD_CLS}>
+    <Card className={PANEL_CLASS}>
       {/* Header */}
       <div className="flex justify-between items-center mb-2">
-        <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em]">
+        <p className="text-2xs font-semibold uppercase tracking-wide text-faint">
           {editingPlan ? t('dynamicPricing.ratePlan.edit') : t('dynamicPricing.ratePlan.create')}
         </p>
         {editingPlan && (
@@ -177,7 +178,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
             <FieldLabel htmlFor="rate-plan-currency">{t('common.currency', 'Devise')}</FieldLabel>
             <InputGroup>
               <InputGroupAddon align="inline-start">
-                <span className="cn-text-body2 font-semibold text-muted-foreground">
+                <span className="text-xs font-semibold text-muted-foreground">
                   <CurrencySymbol code={activeCurrency} />
                 </span>
               </InputGroupAddon>
@@ -202,7 +203,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
 
         {/* Date range — shared mini calendar */}
         <div>
-          <span className="cn-text-caption text-muted-foreground text-[0.625rem] mb-0.5 block">
+          <span className="text-2xs text-muted-foreground mb-0.5 block">
             {t('dynamicPricing.ratePlan.dateRange')}
           </span>
           <MiniDateRangePicker
@@ -216,9 +217,11 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
 
         {/* Days of week */}
         <div>
-          <span className="cn-text-caption text-muted-foreground text-[0.625rem] mb-0.5 block">
+          <span className="text-2xs text-muted-foreground mb-0.5 block">
             {t('dynamicPricing.ratePlan.daysOfWeek')}
           </span>
+          {/* Bascules : de vrais `button`, donc atteignables au clavier et
+              annonces comme pressees — l'ancien `div` ne l'etait pas. */}
           <div className="flex gap-[3px]">
             {(() => {
               const daysOfWeekSet = new Set(daysOfWeek);
@@ -226,21 +229,24 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
               const dayValue = idx + 1;
               const selected = daysOfWeekSet.has(dayValue);
               return (
-                <div
+                <button
                   key={label}
+                  type="button"
                   onClick={() => toggleDay(dayValue)}
                   aria-pressed={selected}
                   className={cn(
-                    'flex-1 text-center py-[3px] rounded-[8px] cursor-pointer border border-solid transition-[border-color,background-color] duration-150',
+                    'flex-1 text-center py-[3px] rounded-md cursor-pointer border border-solid',
+                    'transition-[border-color,background-color] duration-150 ease-out-quart motion-reduce:transition-none',
+                    'outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
                     selected
-                      ? 'border-[var(--accent)] bg-[var(--accent-soft)] hover:border-[var(--accent)]'
-                      : 'border-[var(--field-line)] bg-[var(--field)] hover:border-[var(--faint)]',
+                      ? 'border-primary bg-primary-soft'
+                      : 'border-field-line bg-field hover:border-faint',
                   )}
                 >
-                  <span className={cn('cn-text-caption text-[0.5625rem]', selected ? 'font-bold' : 'font-medium', selected ? 'text-[var(--accent)]' : 'text-[var(--muted)]')}>
+                  <span className={cn('text-[0.5625rem]', selected ? 'font-semibold text-primary' : 'font-medium text-muted-foreground')}>
                     {label}
                   </span>
-                </div>
+                </button>
               );
               });
             })()}
@@ -255,7 +261,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
             checked={isActive}
             onCheckedChange={setIsActive}
           />
-          <FieldLabel htmlFor="rate-plan-active" className="cn-text-caption text-[0.75rem] font-normal">
+          <FieldLabel htmlFor="rate-plan-active" className="text-xs font-normal">
             {isActive ? t('dynamicPricing.ratePlan.active') : t('dynamicPricing.ratePlan.inactive')}
           </FieldLabel>
         </Field>
@@ -268,7 +274,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
               size="sm"
               onClick={onCancel}
               disabled={loading}
-              className="text-[0.75rem]"
+              className="text-xs"
             >
               {t('common.cancel')}
             </Button>
@@ -277,14 +283,14 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
             size="sm"
             onClick={handleSave}
             disabled={loading || !isValid}
-            className="text-[0.75rem]"
+            className="text-xs"
           >
             {loading && <Spinner className="size-3.5" />}
             {editingPlan ? t('common.save') : t('dynamicPricing.ratePlan.create')}
           </Button>
         </div>
       </div>
-    </div>
+    </Card>
   );
 };
 

@@ -31,12 +31,12 @@ const CHANNEL_BADGES: Record<string, ChannelBadge> = {
   SMS: { color: '#C28A52', Icon: MessageIcon, label: 'SMS' },
   AIRBNB: { color: 'var(--airbnb)', Icon: AirbnbIcon, label: 'Airbnb' },
   BOOKING: { color: 'var(--booking)', Icon: BookingIcon, label: 'Booking.com' },
-  INTERNAL: { color: 'var(--accent)', Icon: GroupsIcon, label: 'Interne' },
-  FORM: { color: 'var(--accent)', Icon: FormIcon, label: 'Formulaire' },
+  INTERNAL: { color: 'var(--bui-primary)', Icon: GroupsIcon, label: 'Interne' },
+  FORM: { color: 'var(--bui-primary)', Icon: FormIcon, label: 'Formulaire' },
 };
 
 export function getChannelBadge(channel: string): ChannelBadge {
-  return CHANNEL_BADGES[channel] ?? { color: 'var(--faint)', Icon: ChatIcon, label: channel };
+  return CHANNEL_BADGES[channel] ?? { color: 'var(--bui-faint)', Icon: ChatIcon, label: channel };
 }
 
 // ─── Avatars (initiales + couleur déterministe, palette référence) ───────────
@@ -276,4 +276,6 @@ export interface ThreadMessage {
   sender?: string | null;
   /** Noms de fichiers joints (messagerie interne). */
   attachments?: string[];
+  /** true = note d'équipe, consignée dans le fil sans avoir été transmise. */
+  internalNote?: boolean;
 }

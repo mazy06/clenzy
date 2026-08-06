@@ -11,7 +11,7 @@ import { useWhatsAppTemplatesList } from '../../hooks/useWhatsAppTemplates';
 import type { WhatsAppTemplateGroup } from '../../services/api/whatsappTemplatesApi';
 import WhatsAppTemplateEditorDialog from './WhatsAppTemplateEditorDialog';
 
-// ─── Tons sémantiques (tokens Signature, alignés sur MessageTemplatesSection) ─
+// ─── Tons sémantiques (tokens StatusChip, alignés sur MessageTemplatesSection) ─
 
 const TONE = {
   ok: STATUS_TONES.ok,
@@ -118,9 +118,9 @@ const WhatsAppTemplatesSection = forwardRef<WhatsAppTemplatesSectionRef>((_, ref
           <AlertDescription>{t('whatsappTemplates.empty')}</AlertDescription>
         </Alert>
       ) : (
-        // Rayon 11px + fond --card : report du Paper par defaut du theme
-        // (shape.borderRadius = 11, elevation 0, background.paper).
-        <div className="overflow-x-auto rounded-[11px] bg-[var(--card)]">
+        // Surface de tableau : fond `card` de Baitly UI, sans filet (le tableau
+        // porte deja ses propres separateurs de ligne).
+        <div className="overflow-x-auto rounded-xl bg-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -190,7 +190,7 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
     <TableRow>
       <TableCell>
         <div className="inline-flex items-center gap-1.5">
-          <p className="cn-text-body2 font-semibold text-[var(--ink)]">
+          <p className="text-xs font-semibold text-foreground">
             {friendlyName}
           </p>
           <StatusChip tokens={categoryTone} label={group.category} />
@@ -209,10 +209,10 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
             texte arabe s'affiche en LTR et est cassé visuellement. */}
         <p
           className={cn(
-            'cn-text-body2 max-w-[280px] truncate text-[0.8125rem]',
+            'max-w-[280px] truncate text-[0.8125rem]',
             previewLangCode === 'ar_AR'
-              ? '[direction:rtl] text-right'
-              : '[direction:ltr] text-left',
+              ? '[direction:rtl] text-start'
+              : '[direction:ltr] text-start',
           )}
         >
           {previewExcerpt}
@@ -229,10 +229,10 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
         <StatusChip tokens={TONE.ok} label={t('messaging.templates.active')} />
       </TableCell>
       <TableCell className="text-center">
-        <span className="cn-text-caption font-mono text-muted-foreground">v1</span>
+        <span className="text-xs font-mono text-muted-foreground">v1</span>
       </TableCell>
       <TableCell>
-        <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
+        <p className="text-muted-foreground text-[0.8125rem]">
           {group.isCustomized ? '—' : t('messaging.templates.systemAuthor')}
         </p>
       </TableCell>
@@ -247,7 +247,7 @@ const WhatsAppRow: React.FC<RowProps> = ({ group, onEdit }) => {
                 size="icon-sm"
                 onClick={onEdit}
                 aria-label={t('common.edit')}
-                className="cursor-pointer hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
+                className="cursor-pointer hover:text-primary hover:bg-primary-soft"
               >
                 <Edit size={16} strokeWidth={1.75} />
               </Button>

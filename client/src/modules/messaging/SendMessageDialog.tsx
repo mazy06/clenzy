@@ -101,7 +101,7 @@ export default function SendMessageDialog({
       </DialogHeader>
       <div>
         {guestName && (
-          <p className="cn-text-body2 text-muted-foreground mb-3">
+          <p className="mb-3 text-xs text-muted-foreground">
             {t('messaging.send.sendTo')}: <strong>{guestName}</strong>
           </p>
         )}
@@ -184,15 +184,15 @@ export default function SendMessageDialog({
             </Field>
 
             {selectedTemplate && (
-              <Card className="gap-0 py-0 p-3 bg-[var(--hover)]">
-                <span className="cn-text-caption text-muted-foreground">
+              <Card className="gap-0 border-border bg-muted p-3 shadow-none">
+                <span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {t('messaging.send.preview')}
                 </span>
-                <h6 className="cn-text-subtitle2 mb-[0.35em]">
+                <h6 className="mt-1 text-xs font-medium text-foreground">
                   {selectedTemplate.subject}
                 </h6>
                 <Separator className="my-1.5" />
-                <p className="cn-text-body2 whitespace-pre-wrap">
+                <p className="whitespace-pre-wrap text-xs text-muted-foreground">
                   {selectedTemplate.body.length > 300
                     ? selectedTemplate.body.substring(0, 300) + '...'
                     : selectedTemplate.body}

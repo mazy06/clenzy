@@ -21,6 +21,11 @@ import {
   FieldDescription,
   FieldLabel,
   Input,
+  Item,
+  ItemContent,
+  ItemGroup,
+  ItemHeader,
+  ItemTitle,
   NativeSelect,
   NativeSelectOption,
   Select,
@@ -65,7 +70,6 @@ import {
   Zap,
   LayoutGrid,
   Download,
-  Search,
   List as ListIcon,
   Home as HomeIcon,
   ChevronDown,
@@ -77,6 +81,8 @@ import '../booking-engine/studio/studioHome.css';
 import { StructureArt } from './structureArt';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import EmptyState from '../../components/EmptyState';
+import { useScreenSearch } from '../../components/ScreenChrome';
+import StatTile from '../../components/baitly/StatTile';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -266,6 +272,9 @@ const WelcomeGuideAdmin: React.FC = () => {
   // Accueil « studio » : saisie du champ IA + recherche dans la liste des livrets.
   const [livretPrompt, setLivretPrompt] = useState('');
   const [livretQuery, setLivretQuery] = useState('');
+  // La recherche dans « Mes livrets » vit dans le champ UNIQUE du header
+  // (`PageHeader` de « Réservation & accueil »), plus dans la barre de section.
+  useScreenSearch(livretQuery, setLivretQuery, "Rechercher un livret d'accueil…");
 
   // Form state
   const [propertyId, setPropertyId] = useState<string>('');
@@ -887,10 +896,6 @@ const WelcomeGuideAdmin: React.FC = () => {
               <h2>Mes livrets d'accueil</h2>
               <span className="count">{guides.length}</span>
               <div className="sp" />
-              <label className="search">
-                <Search size={15} strokeWidth={2} />
-                <input placeholder="Rechercher…" value={livretQuery} onChange={(e) => setLivretQuery(e.target.value)} />
-              </label>
             </div>
 
             {isLoading ? (
@@ -1094,11 +1099,11 @@ const WelcomeGuideAdmin: React.FC = () => {
   const renderStepper = () => (
     <div>
       <div className="flex items-baseline justify-between gap-1.5 mb-1.5">
-        <h6 className="cn-text-subtitle2 font-bold truncate">
+        <h6 className="text-xs font-bold truncate">
           {WIZARD_STEPS[step]}
         </h6>
         {step < LAST_STEP ? (
-          <span className="cn-text-caption text-muted-foreground shrink-0 tabular-nums">
+          <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
             {t('welcomeGuide.wizard.stepCounter', 'Étape {{current}} / {{total}}', {
               current: step + 1,
               total: LAST_STEP,
@@ -1133,12 +1138,12 @@ const WelcomeGuideAdmin: React.FC = () => {
                   className={cn(
                     'w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[13px] font-semibold tabular-nums select-none cursor-pointer border border-solid',
                     'transition-[background-color,color,border-color] duration-[180ms] ease-[ease] motion-reduce:transition-none',
-                    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
-                    active && 'bg-[var(--accent)] text-[var(--on-accent)] border-[var(--accent)]',
+                    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2',
+                    active && 'bg-primary text-primary-foreground border-primary',
                     // Le hover n'existait que hors etape active (sx `!active ? … : undefined`).
-                    !active && 'hover:border-[var(--accent)] hover:text-[var(--accent)]',
-                    !active && done && 'bg-[var(--accent-soft)] text-[var(--accent)] border-[color-mix(in_srgb,_var(--accent)_35%,_transparent)]',
-                    !active && !done && 'bg-[var(--hover)] text-[var(--muted)] border-[var(--line)]',
+                    !active && 'hover:border-primary hover:text-primary',
+                    !active && done && 'bg-primary-soft text-primary border-primary/35',
+                    !active && !done && 'bg-muted text-muted-foreground border-border',
                   )}
                 >
                   {done ? <Check size={15} strokeWidth={2.5} /> : i + 1}
@@ -1219,18 +1224,18 @@ const WelcomeGuideAdmin: React.FC = () => {
             title={t('welcomeGuide.wizard.recapTitle', 'Vérifiez votre livret')}
           />
           {/* theme.spacing = 6 : mt -0.5 -> -3px, mb 1.5 -> 9px */}
-          <p className="cn-text-body2 text-[var(--muted)] mt-[-3px] mb-[9px]">
+          <p className="text-xs text-muted-foreground mt-[-3px] mb-[9px]">
             {t('welcomeGuide.wizard.recapSubtitle', "Un dernier coup d'œil avant d'enregistrer.")}
           </p>
           {/* `divider` du Stack MUI : filet entre lignes, rendu ici par une
               bordure haute sur chaque ligne sauf la premiere. */}
-          <div className="flex flex-col [&>*+*]:border-t [&>*+*]:border-solid [&>*+*]:border-[var(--line)]">
+          <div className="flex flex-col [&>*+*]:border-t [&>*+*]:border-solid [&>*+*]:border-border">
             {rows.map((r) => (
               <div className="flex items-baseline justify-between gap-3 py-1.5" key={r.label}>
-                <p className="cn-text-body2 text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {r.label}
                 </p>
-                <p className={cn('cn-text-body2 font-semibold text-right min-w-0', r.num && 'tabular-nums')}>
+                <p className={cn('text-xs font-semibold text-end min-w-0', r.num && 'tabular-nums')}>
                   {r.value}
                 </p>
               </div>
@@ -1255,7 +1260,7 @@ const WelcomeGuideAdmin: React.FC = () => {
     return (
       <div>
         <div className="flex items-center gap-1.5 mb-1.5">
-          <h6 className="cn-text-subtitle2 font-semibold">
+          <h6 className="text-xs font-semibold">
             {t('welcomeGuide.reservationLink.title', 'Réservation en cours / à venir')}
           </h6>
           <StatusChip color={semanticToHex(linked ? 'success' : 'default')} label={linked
@@ -1266,13 +1271,13 @@ const WelcomeGuideAdmin: React.FC = () => {
           <Card className="py-[7.5px]">
             <CardContent>
               <div className="flex items-center gap-1.5">
-                <CalendarDays size={18} strokeWidth={1.75} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                <CalendarDays size={18} strokeWidth={1.75} className="text-primary shrink-0" />
                 <div className="min-w-0">
-                  <p className="cn-text-body2 font-semibold truncate">
+                  <p className="text-xs font-semibold truncate">
                     {linkedReservation.guestName || t('welcomeGuide.reservationLink.guestUnknown', 'Voyageur')}
                   </p>
                   {dates ? (
-                    <span className="cn-text-caption text-muted-foreground tabular-nums">
+                    <span className="text-xs text-muted-foreground tabular-nums">
                       {dates}
                     </span>
                   ) : null}
@@ -1286,14 +1291,14 @@ const WelcomeGuideAdmin: React.FC = () => {
         {/* Garde-fous de création (étape Logement uniquement) */}
         {isCreate && !isStaff ? (
           <div className="flex items-center gap-1 mt-1.5 text-muted-foreground">
-            <Lock size={14} strokeWidth={1.75} style={{ flexShrink: 0 }} />
-            <span className="cn-text-caption">
-              {t('welcomeGuide.reservationLink.staffOnly', 'La création d’un livret est réservée au staff Clenzy.')}
+            <Lock size={14} strokeWidth={1.75} className="shrink-0" />
+            <span className="text-xs">
+              {t('welcomeGuide.reservationLink.staffOnly', 'La création d’un livret est réservée au staff Baitly.')}
             </span>
           </div>
         ) : null}
         {isCreate && isStaff && propertyId && !linked ? (
-          <span className="cn-text-caption text-[var(--bui-warning-ink)] block mt-1.5">
+          <span className="text-xs text-warning-ink block mt-1.5">
             {t(
               'welcomeGuide.reservationLink.noReservation',
               'Aucune réservation en cours ou à venir pour ce logement : livret non créable.',
@@ -1395,7 +1400,7 @@ const WelcomeGuideAdmin: React.FC = () => {
           icon={<Quote size={17} strokeWidth={1.75} />}
           title={t('welcomeGuide.welcomeNote.title', "Message d'accueil")}
         />
-        <span className="cn-text-caption text-muted-foreground block mb-2">
+        <span className="text-xs text-muted-foreground block mb-2">
           {t(
             'welcomeGuide.welcomeNote.guestHint',
             "Le prénom du voyageur s'affiche automatiquement en haut de l'accueil, chargé depuis la réservation.",
@@ -1424,16 +1429,16 @@ const WelcomeGuideAdmin: React.FC = () => {
           {/* Nom du voyageur chargé depuis la réservation (lecture seule), insérable dans le
               message via un tag. Remplace l'ancienne signature d'hôte (champ libre). */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="cn-text-caption text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {t('welcomeGuide.welcomeNote.guestLabel', 'Voyageur (chargé depuis la réservation)')} :
             </span>
-            <Badge variant="secondary" className="h-[24px] px-1.5 text-[12.5px] font-semibold">{loadedGuestName || t('welcomeGuide.welcomeNote.guestPending', 'chargé à l’arrivée')}</Badge>
+            <Badge variant="secondary" className="h-[24px] px-1.5 text-xs font-semibold">{loadedGuestName || t('welcomeGuide.welcomeNote.guestPending', 'chargé à l’arrivée')}</Badge>
             <Button variant="ghost" size="sm" onClick={insertGuestFirstNameTag}>
               <Tag size={14} strokeWidth={1.9} />
               {t('welcomeGuide.welcomeNote.insertFirstName', 'Insérer le prénom dans le message')}
             </Button>
           </div>
-          <span className="cn-text-caption text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {t('welcomeGuide.welcomeNote.tagHint', 'Le tag {prénom} sera remplacé par le prénom du voyageur.')}
           </span>
           <Field className="max-w-[320px]">
@@ -1458,7 +1463,7 @@ const WelcomeGuideAdmin: React.FC = () => {
       {/* Thème du livret : carrés de couleur seuls, nom + description en tooltip.
           Taille fixe → le retour à la ligne s'adapte à la largeur (flex-wrap). */}
       <div>
-        <h6 className="cn-text-subtitle2 font-semibold mb-2">
+        <h6 className="text-xs font-semibold mb-2">
           {t('welcomeGuide.themes.sectionTitle', 'Thème du livret')}
         </h6>
         <div className="flex flex-wrap gap-2">
@@ -1476,8 +1481,8 @@ const WelcomeGuideAdmin: React.FC = () => {
                     'relative shrink-0 w-[52px] h-[52px] rounded-[12px] overflow-hidden cursor-pointer flex flex-col',
                     'transition-shadow duration-150',
                     on
-                      ? 'shadow-[0_0_0_2px_var(--accent),0_0_0_4px_var(--accent-soft)]'
-                      : 'shadow-[inset_0_0_0_1px_var(--line-2)] hover:shadow-[inset_0_0_0_1px_var(--faint)]',
+                      ? 'shadow-[0_0_0_2px_var(--bui-primary),0_0_0_4px_var(--bui-primary-soft)]'
+                      : 'shadow-[inset_0_0_0_1px_var(--bui-border)] hover:shadow-[inset_0_0_0_1px_var(--bui-faint)]',
                   )}
                 >
                   <div className="flex-1" style={{ backgroundColor: th.swatch.bg }} />
@@ -1485,8 +1490,8 @@ const WelcomeGuideAdmin: React.FC = () => {
                   <div className="h-[16px]" style={{ backgroundColor: th.swatch.accent }} />
                   {on ? (
                     <div className="absolute inset-[0px] flex items-center justify-center">
-                      <div className="w-[22px] h-[22px] rounded-[50%] bg-[rgba(255,255,255,0.92)] flex items-center justify-center" style={{ boxShadow: '0 1px 3px rgba(21,36,45,.3)' }}>
-                        <Check size={14} strokeWidth={2.75} style={{ color: 'var(--accent)' }} />
+                      <div className="w-[22px] h-[22px] rounded-full bg-card/95 flex items-center justify-center" style={{ boxShadow: '0 1px 3px rgba(21,36,45,.3)' }}>
+                        <Check size={14} strokeWidth={2.75} className="text-primary" />
                       </div>
                     </div>
                   ) : null}
@@ -1494,10 +1499,10 @@ const WelcomeGuideAdmin: React.FC = () => {
                 </TooltipTrigger>
                 <TooltipContent>
                   <div className="text-center py-0.5">
-                    <span className="cn-text-caption font-bold block">
+                    <span className="text-xs font-bold block">
                       {t(`welcomeGuide.themes.${th.id}.name`, th.name)}
                     </span>
-                    <span className="cn-text-caption opacity-85">
+                    <span className="text-xs opacity-85">
                       {t(`welcomeGuide.themes.${th.id}.desc`, th.desc)}
                     </span>
                   </div>
@@ -1547,7 +1552,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             {propertyPhotos.map((ph) => {
               const on = heroPhotoIds.includes(ph.id);
               return (
-                <div className={cn('relative aspect-[4_/_3] rounded-[12px] overflow-hidden cursor-pointer border-[2px] border-solid', on ? 'border-[var(--accent)]' : 'border-[var(--line-2)]')} style={{ transition: 'border-color .15s' }} key={ph.id} onClick={() => {
+                <div className={cn('relative aspect-[4_/_3] rounded-lg overflow-hidden cursor-pointer border-[2px] border-solid', on ? 'border-primary' : 'border-border')} style={{ transition: 'border-color .15s' }} key={ph.id} onClick={() => {
                     setHeroTouched(true);
                     setHeroPhotoIds((prev) =>
                       prev.includes(ph.id) ? prev.filter((id) => id !== ph.id) : [...prev, ph.id],
@@ -1555,7 +1560,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                   }}>
                   <img className="w-full h-full object-cover block" src={propertyPhotosApi.getPhotoUrl(Number(propertyId), ph.id)} alt={ph.caption || ''} loading="lazy" />
                   {on ? (
-                    <div className="absolute top-[4px] end-[4px] bg-[var(--accent)] text-[var(--on-accent)] rounded-[50%] w-[22px] h-[22px] flex items-center justify-center">
+                    <div className="absolute top-[4px] end-[4px] bg-primary text-primary-foreground rounded-full w-[22px] h-[22px] flex items-center justify-center">
                       <Check size={14} strokeWidth={2.5} />
                     </div>
                   ) : null}
@@ -1624,7 +1629,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                       size="icon-sm"
                       aria-label={t('welcomeGuide.actions.delete', 'Supprimer')}
                       onClick={() => removeSection(idx)}
-                      className="mt-[3px] text-[var(--err)]"
+                      className="mt-[3px] text-destructive"
                     >
                       <Delete size={16} strokeWidth={1.75} />
                     </Button>
@@ -1654,7 +1659,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                   ) : (
                     <div>
                       {s.items.map((item, iIdx) => (
-                        <div className="flex gap-1.5 items-start mb-1.5 p-1.5 rounded-[12px] bg-[var(--hover)]" key={item.id}>
+                        <div className="flex gap-1.5 items-start mb-1.5 p-1.5 rounded-lg bg-muted" key={item.id}>
                           <IconSelect value={item.icon} onChange={(v) => updateSectionItem(idx, iIdx, { icon: v })} />
                           <div className="flex-1 min-w-0">
                             <Field>
@@ -1698,7 +1703,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                             size="icon-sm"
                             aria-label={t('welcomeGuide.actions.delete', 'Supprimer')}
                             onClick={() => removeSectionItem(idx, iIdx)}
-                            className="text-[var(--err)]"
+                            className="text-destructive"
                           >
                             <Delete size={15} strokeWidth={1.75} />
                           </Button>
@@ -1841,7 +1846,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                         </Field>
                       </div>
                       {p.lat != null && p.lng != null ? (
-                        <span className="cn-text-caption text-[var(--bui-success-ink)] inline-flex items-center gap-0.5 mt-1">
+                        <span className="text-xs text-success-ink inline-flex items-center gap-0.5 mt-1">
                           <MapPin size={12} strokeWidth={2} /> {t('welcomeGuide.pois.located', 'Position trouvée')}
                         </span>
                       ) : null}
@@ -1851,7 +1856,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                       size="icon-sm"
                       aria-label={t('welcomeGuide.actions.delete', 'Supprimer')}
                       onClick={() => removePoi(idx)}
-                      className="mt-[3px] text-[var(--err)]"
+                      className="mt-[3px] text-destructive"
                     >
                       <Delete size={16} strokeWidth={1.75} />
                     </Button>
@@ -1880,7 +1885,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             </Button>
           }
         />
-        <span className="cn-text-caption text-muted-foreground block mb-2">
+        <span className="text-xs text-muted-foreground block mb-2">
           {t(
             'welcomeGuide.curation.affiliateHint',
             "Collez un lien Klook, GetYourGuide ou Viator : si le fournisseur est connecté (onglet Intégrations), votre identifiant d'affiliation est ajouté automatiquement au lien pour toucher votre commission.",
@@ -1897,7 +1902,7 @@ const WelcomeGuideAdmin: React.FC = () => {
             {curatedActivities.map((a, idx) => (
               // La carte du kit dessine son contour avec un `ring` : la mise en
               // avant se marque donc sur le ring, pas sur une bordure.
-              <Card key={a.id} className={cn(a.featured && 'ring-[var(--warn)]')}>
+              <Card key={a.id} className={cn(a.featured && 'ring-warning')}>
                 <CardContent>
                   <div className="flex gap-1.5 items-start">
                     <div className="flex-1">
@@ -1974,7 +1979,7 @@ const WelcomeGuideAdmin: React.FC = () => {
                       size="icon-sm"
                       aria-label={t('welcomeGuide.actions.delete', 'Supprimer')}
                       onClick={() => removeActivity(idx)}
-                      className="mt-[3px] text-[var(--err)]"
+                      className="mt-[3px] text-destructive"
                     >
                       <Delete size={16} strokeWidth={1.75} />
                     </Button>
@@ -2025,7 +2030,7 @@ const WelcomeGuideAdmin: React.FC = () => {
               />
             ) : (
               <>
-                <span className="cn-text-caption text-muted-foreground block mb-1.5">
+                <span className="text-xs text-muted-foreground block mb-1.5">
                   {t(
                     'welcomeGuide.fields.upsellSelectionHint',
                     'Décochez un service pour le masquer sur ce livret uniquement.',
@@ -2041,8 +2046,8 @@ const WelcomeGuideAdmin: React.FC = () => {
                       />
                       <FieldLabel htmlFor={`guide-upsell-${o.id}`}>
                         <span className="flex items-baseline gap-1.5">
-                          <span className="cn-text-body2">{o.title}</span>
-                          <span className="cn-text-caption text-muted-foreground tabular-nums">
+                          <span className="text-xs">{o.title}</span>
+                          <span className="text-xs text-muted-foreground tabular-nums">
                             {o.price.toFixed(0)} {o.currency}
                           </span>
                         </span>
@@ -2085,14 +2090,14 @@ const WelcomeGuideAdmin: React.FC = () => {
       {/* Publication déplacée sur la liste des livrets (toggle par carte) : ici on informe seulement. */}
       <Card className="py-[9px]">
         <CardContent className="flex items-center gap-[9px]">
-          <div className="shrink-0 w-[34px] h-[34px] rounded-[10px] flex items-center justify-center bg-[var(--hover)] text-muted-foreground">
+          <div className="shrink-0 w-[34px] h-[34px] rounded-lg flex items-center justify-center bg-muted text-muted-foreground">
             <Globe size={18} strokeWidth={1.75} />
           </div>
           <div className="flex-1 min-w-0">
-            <h6 className="cn-text-subtitle2 font-semibold">
+            <h6 className="text-xs font-semibold">
               {t('welcomeGuide.fields.publishTitle', 'Publier le livret')}
             </h6>
-            <span className="cn-text-caption text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {t(
                 'welcomeGuide.actions.publishFromListHint',
                 'La publication se fait depuis la liste des livrets, via le bouton sur chaque carte.',
@@ -2138,7 +2143,7 @@ const WelcomeGuideAdmin: React.FC = () => {
           <DialogHeader>
             <DialogTitle>{t('welcomeGuide.link.dialogTitle', "Lien du livret d'accueil")}</DialogTitle>
           </DialogHeader>
-          <p className="cn-text-body2 text-muted-foreground mb-3">
+          <p className="text-xs text-muted-foreground mb-3">
             {t(
               'welcomeGuide.link.note',
               'Lien de partage manuel (aperçu). La diffusion automatique d’un lien propre à chaque réservation — valable uniquement le temps du séjour — arrive prochainement.',
@@ -2226,44 +2231,50 @@ const WelcomeGuideAdmin: React.FC = () => {
             </DialogTitle>
           </DialogHeader>
           {/* `dividers` du Dialog MUI : filets haut/bas + corps defilant. */}
-          <div className="max-h-[60vh] overflow-y-auto border-y border-solid border-[var(--line)] py-3">
+          <div className="max-h-[60vh] overflow-y-auto border-y border-solid border-border py-3">
           {guestbook.loading ? (
             <div className="flex justify-center py-4">
               <Spinner className="size-10" />
             </div>
           ) : guestbook.entries.length === 0 ? (
-            <p className="cn-text-body2 text-muted-foreground">
-              {t('welcomeGuide.guestbook.empty', 'Aucun message pour le moment.')}
-            </p>
+            <EmptyState
+              variant="transparent"
+              icon={<MessageSquare />}
+              title={t('welcomeGuide.guestbook.empty', 'Aucun message pour le moment.')}
+            />
           ) : (
-            <div className="flex flex-col gap-[9px]">
+            <ItemGroup className="gap-1.5">
               {guestbook.entries.map((e) => (
-                <div className="border-b border-[var(--line)] pb-2" key={e.id}>
-                  <div className="flex justify-between items-center">
-                    <h6 className="cn-text-subtitle2 font-semibold">
-                      {e.authorName || '—'}
-                    </h6>
-                    {e.rating ? (
-                      <div className="flex gap-0.5">
-                        {Array.from({ length: e.rating }).map((_, i) => (
-                          <Star key={i} size={14} strokeWidth={1.75} fill="currentColor" style={{ color: 'var(--warn)' }} />
-                        ))}
-                      </div>
+                <Item key={e.id} variant="outline" size="xs">
+                  <ItemContent>
+                    <ItemHeader>
+                      <ItemTitle className="text-xs font-semibold">
+                        {e.authorName || '—'}
+                      </ItemTitle>
+                      {e.rating ? (
+                        // Etoiles = ICONE : teinte vive `warning`, pas le jeton `-ink` (reserve au texte).
+                        <div className="flex gap-0.5 text-warning">
+                          {Array.from({ length: e.rating }).map((_, i) => (
+                            <Star key={i} size={14} strokeWidth={1.75} fill="currentColor" />
+                          ))}
+                        </div>
+                      ) : null}
+                    </ItemHeader>
+                    {/* Message integral : pas d'`ItemDescription` (son `line-clamp-2` masquerait un avis long). */}
+                    {e.message ? (
+                      <p className="text-xs whitespace-pre-line">
+                        {e.message}
+                      </p>
                     ) : null}
-                  </div>
-                  {e.message ? (
-                    <p className="cn-text-body2 whitespace-pre-line mt-0.5">
-                      {e.message}
-                    </p>
-                  ) : null}
-                  {e.createdAt ? (
-                    <span className="cn-text-caption text-muted-foreground">
-                      {new Date(e.createdAt).toLocaleDateString()}
-                    </span>
-                  ) : null}
-                </div>
+                    {e.createdAt ? (
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {new Date(e.createdAt).toLocaleDateString()}
+                      </span>
+                    ) : null}
+                  </ItemContent>
+                </Item>
               ))}
-            </div>
+            </ItemGroup>
           )}
           </div>
           <DialogFooter>
@@ -2284,15 +2295,17 @@ const WelcomeGuideAdmin: React.FC = () => {
               {t('welcomeGuide.stats.title', 'Statistiques')} — {stats.title}
             </DialogTitle>
           </DialogHeader>
-          <div className="max-h-[60vh] overflow-y-auto border-y border-solid border-[var(--line)] py-3">
+          <div className="max-h-[60vh] overflow-y-auto border-y border-solid border-border py-3">
           {stats.loading ? (
             <div className="flex justify-center py-4">
               <Spinner className="size-10" />
             </div>
           ) : !stats.data ? (
-            <p className="cn-text-body2 text-muted-foreground">
-              {t('welcomeGuide.stats.empty', 'Aucune donnée pour le moment.')}
-            </p>
+            <EmptyState
+              variant="transparent"
+              icon={<BarChart3 />}
+              title={t('welcomeGuide.stats.empty', 'Aucune donnée pour le moment.')}
+            />
           ) : (
             <div className="flex flex-col gap-[15px]">
               <div className="grid grid-cols-[repeat(2,_1fr)] min-[600px]:grid-cols-[repeat(3,_1fr)] gap-1.5">
@@ -2303,24 +2316,17 @@ const WelcomeGuideAdmin: React.FC = () => {
                   { key: 'activities', icon: <MapPin size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.activities', 'Clics activités'), value: stats.data.activityClicks },
                   { key: 'checkin', icon: <DoorOpen size={14} strokeWidth={1.75} />, label: t('welcomeGuide.stats.checkin', 'Clics check-in'), value: stats.data.checkinClicks },
                 ].map((tile) => (
-                  <div className="border border-[var(--line)] rounded-[16px] p-2" key={tile.key}>
-                    <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
-                      {tile.icon}
-                      <span className="cn-text-caption">{tile.label}</span>
-                    </div>
-                    <h6 className="cn-text-h6 font-bold tabular-nums">
-                      {tile.value}
-                    </h6>
-                  </div>
+                  // Bloc « libelle + valeur » : primitive partagee plutot qu'une carte redessinee ici.
+                  <StatTile key={tile.key} icon={tile.icon} label={tile.label} value={tile.value} iconClassName="text-primary" />
                 ))}
               </div>
 
               <div>
-                <h6 className="cn-text-subtitle2 font-semibold mb-1.5">
+                <h6 className="text-xs font-semibold mb-1.5">
                   {t('welcomeGuide.stats.trend', 'Ouvertures (30 derniers jours)')}
                 </h6>
                 {stats.data.dailyOpens.length === 0 ? (
-                  <p className="cn-text-body2 text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {t('welcomeGuide.stats.noTrend', 'Pas encore d’ouvertures.')}
                   </p>
                 ) : (
@@ -2340,13 +2346,13 @@ const WelcomeGuideAdmin: React.FC = () => {
 
               {stats.data.topActivities.length > 0 ? (
                 <div>
-                  <h6 className="cn-text-subtitle2 font-semibold mb-1.5">
+                  <h6 className="text-xs font-semibold mb-1.5">
                     {t('welcomeGuide.stats.topActivities', 'Activités les plus cliquées')}
                   </h6>
                   <div className="flex flex-col gap-[4.5px]">
                     {stats.data.topActivities.map((a) => (
                       <div className="flex justify-between items-center gap-1.5" key={a.label}>
-                        <p className="cn-text-body2 truncate">
+                        <p className="text-xs truncate">
                           {a.label}
                         </p>
                         <StatusChip color={DEFAULT_COLOR} label={a.count} />
@@ -2375,15 +2381,17 @@ const WelcomeGuideAdmin: React.FC = () => {
           <DialogHeader>
             <DialogTitle>{t('welcomeGuide.pois.suggestTitle', 'Suggestions autour du logement')}</DialogTitle>
           </DialogHeader>
-          <div className="max-h-[60vh] overflow-y-auto border-y border-solid border-[var(--line)] py-3">
+          <div className="max-h-[60vh] overflow-y-auto border-y border-solid border-border py-3">
           {suggest.loading ? (
             <div className="flex justify-center py-4">
               <Spinner className="size-10" />
             </div>
           ) : suggest.items.length === 0 ? (
-            <p className="cn-text-body2 text-muted-foreground">
-              {t('welcomeGuide.pois.suggestEmpty', 'Aucune suggestion trouvée autour du logement.')}
-            </p>
+            <EmptyState
+              variant="transparent"
+              icon={<MapPin />}
+              title={t('welcomeGuide.pois.suggestEmpty', 'Aucune suggestion trouvée autour du logement.')}
+            />
           ) : (
             <div className="flex flex-col gap-[1.5px]">
               {suggest.items.map((sug, i) => {
@@ -2400,11 +2408,11 @@ const WelcomeGuideAdmin: React.FC = () => {
                       <span className="flex items-center gap-1 mt-0.5">
                         <CatIcon size={14} strokeWidth={1.9} style={{ color: cat.color, flexShrink: 0 }} />
                         <span className="flex flex-col">
-                          <span className="cn-text-body2 font-semibold">
+                          <span className="text-xs font-semibold">
                             {sug.name}
                           </span>
                           {sug.address ? (
-                            <span className="cn-text-caption text-muted-foreground">
+                            <span className="text-xs text-muted-foreground">
                               {sug.address}
                             </span>
                           ) : null}

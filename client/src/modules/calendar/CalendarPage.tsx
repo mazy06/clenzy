@@ -41,13 +41,13 @@ const getStatusColorHex = (status: string): string => {
     case 'COMPLETED':
       return '#3E9C80';
     case 'CANCELLED':
-      return 'var(--faint)';
+      return 'var(--bui-faint)';
     case 'AWAITING_VALIDATION':
       return '#9A7FA3';
     case 'AWAITING_PAYMENT':
       return '#C28A52';
     default:
-      return 'var(--muted)';
+      return 'var(--bui-muted-foreground)';
   }
 };
 
@@ -191,7 +191,7 @@ export default function CalendarPage() {
   // Loading / error states
   // -----------------------------------------------------------------------
   if (!user) {
-    return <Skeleton className="h-[420px] rounded-[var(--radius-lg)]" />;
+    return <Skeleton className="h-[420px] rounded-lg" />;
   }
 
   // Filtres : portés par le slot `filters` du PageHeader (pattern des écrans
@@ -251,7 +251,7 @@ export default function CalendarPage() {
       )}
 
       <div className="ms-auto">
-        <p className="cn-text-body2 text-[var(--muted)] text-[0.8125rem] tabular-nums">
+        <p className="text-xs text-muted-foreground tabular-nums">
           {events.length} intervention{events.length > 1 ? 's' : ''}
         </p>
       </div>
@@ -278,7 +278,7 @@ export default function CalendarPage() {
 
       {/* Calendar */}
       {loading ? (
-        <Skeleton className="h-[calc(100vh-320px)] min-h-[400px] rounded-[var(--radius-lg)]" />
+        <Skeleton className="h-[calc(100vh-320px)] min-h-[400px] rounded-lg" />
       ) : !error && interventions.length === 0 ? (
         <EmptyState
           icon={<CalendarMonth />}

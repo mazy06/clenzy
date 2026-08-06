@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { cn } from '../../../../utils/cn';
-import { Input, Tooltip, TooltipContent, TooltipTrigger } from '../../../../components/ui';
+import { Button, Input, Tooltip, TooltipContent, TooltipTrigger } from '../../../../components/ui';
 import { Plus, Pencil, X, House, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import type { SitePage } from '../../../../services/api/sitesApi';
 
 /**
  * Barre d'onglets des pages du site (multi-page 2.2). Sélection, ajout, renommage (double-clic ou
  * crayon) et suppression (sauf page d'accueil). N'apparaît qu'en mode Éditer quand le multi-page
- * est disponible. Style aligné sur les segments du Studio (tokens var(--*)).
+ * est disponible. Style aligné sur les segments du Studio (Baitly UI).
  */
 
 export interface PagesBarProps {
@@ -38,7 +38,7 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
   };
 
   return (
-    <div className="flex items-center gap-0.5 px-1.5 h-[38px] shrink-0 border-b border-[var(--line)] bg-[var(--bg)] overflow-x-auto">
+    <div className="flex items-center gap-0.5 px-1.5 h-[38px] shrink-0 border-b border-border bg-background overflow-x-auto">
       {pages.map((p, index) => {
         const active = p.id === selectedId;
         const isHome = p.type === 'HOME';
@@ -46,8 +46,8 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
         const canLeft = index >= 2; // garde la page d'accueil (index 0) en tête
         const canRight = index >= 1 && index < pages.length - 1;
         return (
-          <div className={cn('inline-flex items-center gap-[1.5px] h-[28px] ps-1.5 pe-[3px] shrink-0 rounded-[var(--radius-md)]', active ? 'bg-[var(--card)]' : 'bg-[transparent]', active ? 'border border-solid border-[var(--line)]' : 'border border-solid border-[transparent]')} style={{ boxShadow: active ? 'var(--shadow-card)' : 'none' }} key={p.id}>
-            {isHome && <House size={13} strokeWidth={2} style={{ color: 'var(--muted)', marginRight: 2 }} />}
+          <div className={cn('inline-flex items-center gap-[1.5px] h-[28px] ps-1.5 pe-[3px] shrink-0 rounded-lg border', active ? 'bg-card border-border shadow-sm' : 'bg-transparent border-transparent shadow-none')} key={p.id}>
+            {isHome && <House size={13} strokeWidth={2} className="me-0.5 shrink-0 text-muted-foreground" />}
             {editing ? (
               // Champ de renommage inline : le gabarit du primitif (bordure, hauteur,
               // fond) est neutralise, l'onglet lui-meme porte deja le cadre.
@@ -58,7 +58,7 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
                 onChange={(e) => setDraft(e.target.value)}
                 onBlur={commitRename}
                 onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditingId(null); }}
-                className="h-[22px] w-[120px] rounded-none border-0 bg-transparent px-0 py-0 shadow-none text-[length:var(--text-sm)] text-[color:var(--ink)] focus-visible:ring-0"
+                className="h-[22px] w-[120px] rounded-none border-0 bg-transparent px-0 py-0 shadow-none text-xs text-foreground focus-visible:ring-0"
               />
             ) : (
               <button
@@ -67,10 +67,9 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
                 onDoubleClick={() => startRename(p)}
                 className={cn(
                   'max-w-[160px] cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap bg-transparent border-0 p-0',
-                  'text-[length:var(--text-sm)] hover:text-[color:var(--ink)]',
-                  active
-                    ? '[font-weight:var(--fw-semibold)] text-[color:var(--ink)]'
-                    : '[font-weight:var(--fw-medium)] text-[color:var(--muted)]',
+                  'text-xs transition-colors hover:text-foreground',
+                  'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 rounded-sm',
+                  active ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground',
                 )}
               >
                 {p.title || p.path}
@@ -141,37 +140,43 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
       </Tooltip>
 
       {onReset && (
-        <div className="inline-flex items-center gap-0.5 shrink-0 ms-0.5 ps-0.5 border-s border-[var(--line)]">
+        <div className="inline-flex items-center gap-0.5 shrink-0 ms-0.5 ps-0.5 border-s border-border">
           {confirmReset ? (
             <>
-              <div className="text-[var(--text-2xs)] text-[var(--muted)] whitespace-nowrap">Tout effacer ?</div>
-              <button
+              <div className="text-2xs text-muted-foreground whitespace-nowrap">Tout effacer ?</div>
+              <Button
                 type="button"
+                variant="destructive"
+                size="xs"
                 onClick={() => { setConfirmReset(false); onReset(); }}
-                className="h-[24px] px-1.5 border-0 rounded-[var(--radius-sm)] text-[length:var(--text-2xs)] [font-weight:var(--fw-semibold)] text-[color:var(--on-accent)] bg-[var(--err,#C97A7A)] cursor-pointer whitespace-nowrap"
+                className="h-[24px] cursor-pointer whitespace-nowrap text-2xs"
               >
                 Oui, effacer
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="outline"
+                size="xs"
                 onClick={() => setConfirmReset(false)}
-                className="h-[24px] px-1.5 rounded-[var(--radius-sm)] text-[length:var(--text-2xs)] text-[color:var(--body)] border border-solid border-[var(--line)] bg-transparent cursor-pointer hover:bg-[var(--hover)]"
+                className="h-[24px] cursor-pointer text-2xs"
               >
                 Annuler
-              </button>
+              </Button>
             </>
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="inline-flex shrink-0">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="xs"
                     onClick={() => setConfirmReset(true)}
                     disabled={busy}
-                    className="inline-flex items-center gap-1 h-[24px] px-1.5 shrink-0 border-0 bg-transparent rounded-[var(--radius-sm)] text-[length:var(--text-2xs)] [font-weight:var(--fw-medium)] text-[color:var(--muted)] cursor-pointer whitespace-nowrap hover:text-[color:var(--err,#C97A7A)] hover:bg-[var(--hover)] disabled:opacity-40"
+                    className="h-[24px] shrink-0 cursor-pointer whitespace-nowrap text-2xs font-medium text-muted-foreground hover:text-destructive-ink"
                   >
                     <RotateCcw size={12} strokeWidth={2} /> Repartir de zéro
-                  </button>
+                  </Button>
                 </span>
               </TooltipTrigger>
               <TooltipContent>Supprimer toutes les pages et repartir d&apos;une page d&apos;accueil vierge</TooltipContent>
@@ -185,6 +190,6 @@ export default function PagesBar({ pages, selectedId, onSelect, onAdd, onRename,
 
 const TAB_ICON_CLASS =
   'w-[22px] h-[22px] shrink-0 inline-flex items-center justify-center border-0 bg-transparent p-0 ' +
-  'rounded-[var(--radius-sm)] text-[color:var(--muted)] cursor-pointer ' +
-  'hover:bg-[var(--hover)] hover:text-[color:var(--ink)] ' +
-  'focus-visible:[outline:2px_solid_var(--accent)] focus-visible:outline-offset-1';
+  'rounded-md text-muted-foreground cursor-pointer transition-colors ' +
+  'hover:bg-muted hover:text-foreground ' +
+  'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50';

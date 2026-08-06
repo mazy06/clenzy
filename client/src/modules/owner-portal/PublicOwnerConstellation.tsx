@@ -4,6 +4,13 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Separator } from '../../components/ui';
 import { useTranslation } from 'react-i18next';
+import StatTile from '../../components/baitly/StatTile';
+import {
+  TrendingUp as RevenueIcon,
+  Percent as CommissionIcon,
+  Payments as PayoutIcon,
+  Hotel as OccupancyIcon,
+} from '../../icons';
 import { API_CONFIG } from '../../config/api';
 
 /**
@@ -56,17 +63,15 @@ async function fetchView(token: string): Promise<OwnerConstellationView | null> 
   return response.json();
 }
 
-function KpiValue({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-[140px]">
-      <span className="cn-text-overline text-muted-foreground leading-[1.4]">
-        {label}
-      </span>
-      <h6 className="cn-text-h6 tabular-nums">
-        {value}
-      </h6>
-    </div>
-  );
+/**
+ * Tuile KPI du rapport propriétaire : `StatTile` porte déjà exactement cette
+ * forme (libellé + icône, valeur en chiffres alignés).
+ * L'icône reste en encre neutre : la page est white-label, aucune teinte de
+ * plateforme n'y apparaît — seul le filet d'activité porte la couleur de la
+ * conciergerie.
+ */
+function KpiValue({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return <StatTile icon={icon} label={label} value={value} iconClassName="text-muted-foreground" />;
 }
 
 export default function PublicOwnerConstellation() {
@@ -117,10 +122,10 @@ export default function PublicOwnerConstellation() {
       // Report du Container MUI maxWidth="sm" : largeur bornee 600px, centree,
       // gouttiere 16px puis 24px au-dela de 600px (breakpoints MUI).
       <div className="mx-auto w-full max-w-[600px] px-4 min-[600px]:px-6 py-[60px] text-center">
-        <h6 className="cn-text-h6 mb-[0.35em]">
+        <h6 className="mb-1 text-base font-semibold tracking-tight text-balance">
           {t('ownerConstellation.invalidTitle', 'Lien invalide ou expiré')}
         </h6>
-        <p className="cn-text-body2 text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {t(
             'ownerConstellation.invalidBody',
             'Ce lien de suivi n’est plus actif. Contactez votre conciergerie pour en obtenir un nouveau.'
@@ -143,15 +148,15 @@ export default function PublicOwnerConstellation() {
           {brandingLogoUrl && (
             <img className="max-h-[44px] max-w-[220px] block mb-1.5" src={brandingLogoUrl} alt={conciergerieName} />
           )}
-          <h5 className="cn-text-h5 text-balance">
+          <h5 className="text-base font-semibold tracking-tight text-balance">
             {conciergerieName}
           </h5>
-          <p className="cn-text-body2 text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {t('ownerConstellation.subtitle', 'Espace propriétaire')}
             {ownerDisplayName ? ` — ${ownerDisplayName}` : ''}
           </p>
         </div>
-        <span className="cn-text-caption text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           {t('ownerConstellation.readOnly', 'Consultation seule')}
         </span>
       </div>
@@ -159,11 +164,12 @@ export default function PublicOwnerConstellation() {
       <Separator className="my-[18px]" />
 
       {/* KPIs de l'année (tableau de bord propriétaire) */}
-      <div className="flex flex-row flex-wrap gap-6">
-        <KpiValue label={t('ownerConstellation.grossRevenue', 'Revenus bruts')} value={euros(dashboard.totalRevenue)} />
-        <KpiValue label={t('ownerConstellation.commissions', 'Commissions')} value={euros(dashboard.totalCommissions)} />
-        <KpiValue label={t('ownerConstellation.netRevenue', 'Net propriétaire')} value={euros(dashboard.netRevenue)} />
+      <div className="grid grid-cols-2 gap-3 min-[600px]:grid-cols-4">
+        <KpiValue icon={<RevenueIcon />} label={t('ownerConstellation.grossRevenue', 'Revenus bruts')} value={euros(dashboard.totalRevenue)} />
+        <KpiValue icon={<CommissionIcon />} label={t('ownerConstellation.commissions', 'Commissions')} value={euros(dashboard.totalCommissions)} />
+        <KpiValue icon={<PayoutIcon />} label={t('ownerConstellation.netRevenue', 'Net propriétaire')} value={euros(dashboard.netRevenue)} />
         <KpiValue
+          icon={<OccupancyIcon />}
           label={t('ownerConstellation.occupancy', 'Occupation')}
           value={`${Math.round((dashboard.averageOccupancy ?? 0) * 100) / 100} %`}
         />
@@ -172,12 +178,12 @@ export default function PublicOwnerConstellation() {
       <Separator className="my-[18px]" />
 
       {/* Activité des agents, par bien */}
-      <h6 className="cn-text-subtitle1 font-semibold mb-[0.35em]">
+      <h6 className="mb-1 text-sm font-semibold tracking-tight text-balance">
         {t('ownerConstellation.agentActivityTitle', 'Ce que nos agents ont fait pour vos biens (30 derniers jours)')}
       </h6>
 
       {agentActivity.length === 0 && (
-        <p className="cn-text-body2 text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {t('ownerConstellation.noActivity', 'Aucune activité récente à afficher.')}
         </p>
       )}
@@ -185,9 +191,9 @@ export default function PublicOwnerConstellation() {
       <div className="flex flex-col gap-[18px] mt-1.5">
         {agentActivity.map((property) => (
           <div key={property.propertyId}>
-            <div className="flex flex-row justify-between items-baseline">
-              <h6 className="cn-text-subtitle2">{property.propertyName}</h6>
-              <span className="cn-text-caption text-muted-foreground tabular-nums">
+            <div className="flex flex-row justify-between items-baseline gap-3">
+              <h6 className="text-sm font-medium">{property.propertyName}</h6>
+              <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
                 {t('ownerConstellation.counters', '{{actions}} actions · {{suggestions}} suggestions', {
                   actions: property.actionsLast30Days,
                   suggestions: property.suggestionsLast30Days,
@@ -195,22 +201,23 @@ export default function PublicOwnerConstellation() {
               </span>
             </div>
             {/* La teinte du filet vient du branding white-label (valeur runtime) :
-                style inline, une classe Tailwind ne peut pas en naitre. */}
+                style inline, une classe Tailwind ne peut pas en naitre.
+                Proprietes LOGIQUES (border-s / ps) : le rapport se lit aussi en RTL. */}
             <div
-              className="flex flex-col gap-[4.5px] mt-1.5 pl-[9px] border-l border-solid"
-              style={{ borderLeftColor: accent }}
+              className="flex flex-col gap-[4.5px] mt-1.5 ps-[9px] border-s border-solid"
+              style={{ borderInlineStartColor: accent }}
             >
               {property.recent.length === 0 && (
-                <p className="cn-text-body2 text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   {t('ownerConstellation.noPropertyActivity', 'Rien à signaler sur ce bien.')}
                 </p>
               )}
               {property.recent.map((line, index) => (
                 <div key={index} className="flex flex-row gap-[9px] items-baseline">
-                  <span className="cn-text-caption text-muted-foreground whitespace-nowrap tabular-nums">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
                     {dateLabel(line.createdAt)}
                   </span>
-                  <p className="cn-text-body2">{line.summary || line.moduleKey}</p>
+                  <p className="text-sm">{line.summary || line.moduleKey}</p>
                 </div>
               ))}
             </div>
@@ -220,7 +227,7 @@ export default function PublicOwnerConstellation() {
 
       <Separator className="my-6" />
 
-      <span className="cn-text-caption text-muted-foreground">
+      <span className="text-xs text-muted-foreground">
         {t('ownerConstellation.footer', 'Rapport préparé par {{name}}.', { name: conciergerieName })}
       </span>
     </div>

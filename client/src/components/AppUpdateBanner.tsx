@@ -102,11 +102,11 @@ export default function AppUpdateBanner() {
           et la banniere flotte au-dessus du contenu de la page. Le liseré et
           l'ombre pop vivent sur cette coque pour ne pas se battre avec le
           `border-transparent` de la variante. */}
-      <div className="min-w-[320px] overflow-hidden rounded-[12px] border border-solid border-[color-mix(in_srgb,var(--info)_30%,transparent)] bg-[var(--card)] shadow-[var(--shadow-pop)]">
+      <div className="min-w-[320px] overflow-hidden rounded-xl border border-solid border-info/30 bg-card shadow-lg">
         <Alert variant="info" className="items-center">
           <Info />
           <AlertDescription>
-            <p className="cn-text-body2 text-[12.5px] font-semibold text-[var(--ink)]">
+            <p className="text-xs font-semibold text-foreground">
               {t('appUpdate.message', 'Une nouvelle version est disponible.')}
             </p>
           </AlertDescription>

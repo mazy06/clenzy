@@ -45,7 +45,7 @@ const MappingsTab: React.FC = () => {
     return (
       <div className="flex flex-col gap-1.5">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-[36px] w-full rounded-[9px]" />
+          <Skeleton key={i} className="h-9 w-full rounded-lg" />
         ))}
       </div>
     );
@@ -60,7 +60,7 @@ const MappingsTab: React.FC = () => {
 
   return (
     <div>
-      <div className="overflow-x-auto rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)]">
+      <div className="overflow-x-auto rounded-xl border border-solid border-border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -77,7 +77,7 @@ const MappingsTab: React.FC = () => {
           <TableBody>
             {mappings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-[var(--muted)] py-[18px]">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-[18px]">
                   Aucun mapping
                 </TableCell>
               </TableRow>

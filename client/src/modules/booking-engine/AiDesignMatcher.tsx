@@ -125,8 +125,8 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
           information (analyse en cours, duree inconnue). */}
       {isLoading && (
         <div className="mt-3 flex items-center gap-1.5">
-          <Spinner className="size-4 text-[var(--muted)]" />
-          <p className="cn-text-body2 text-muted-foreground">
+          <Spinner className="size-4 text-muted-foreground" />
+          <p className="text-xs text-muted-foreground">
             {t('bookingEngine.ai.analyzing')}
           </p>
         </div>
@@ -136,13 +136,13 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
       {success && !isLoading && (
         <Alert variant="success" className="mt-3">
           <CheckCircleOutlineRounded />
-          <AlertTitle className={cn('cn-text-body2 font-semibold', extractedColors.length > 0 ? 'mb-1.5' : 'mb-0')}>
+          <AlertTitle className={cn('text-xs font-semibold', extractedColors.length > 0 ? 'mb-1.5' : 'mb-0')}>
             {t('bookingEngine.ai.analyzeSuccess')}
           </AlertTitle>
           {extractedColors.length > 0 && (
             <AlertDescription className="flex flex-row flex-wrap gap-0.5">
               {extractedColors.map((color, idx) => (
-                <StatusChip tokens={{ color: isLightColor(color) ? '#000' : '#fff', bg: color }} label={color} className="font-mono text-[0.75rem]" key={idx} />
+                <StatusChip tokens={{ color: isLightColor(color) ? SWATCH_INK_DARK : SWATCH_INK_LIGHT, bg: color }} label={color} className="font-mono text-xs" key={idx} />
               ))}
             </AlertDescription>
           )}
@@ -153,17 +153,17 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
       {aiNotConfigured && !isLoading && (
         <Alert variant="warning" className="mt-3">
           <SettingsRounded />
-          <AlertTitle className="cn-text-body2 font-semibold">
+          <AlertTitle className="text-xs font-semibold">
             {t('bookingEngine.ai.aiNotConfiguredTitle')}
           </AlertTitle>
-          <AlertDescription className="cn-text-body2">
+          <AlertDescription className="text-xs">
             {t('bookingEngine.ai.aiNotConfiguredMessage', { provider: aiNotConfigured })}
           </AlertDescription>
           <AlertAction>
             <Button
               variant="outline"
               size="sm"
-              className="whitespace-nowrap text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              className="whitespace-nowrap text-warning-ink border-warning hover:bg-warning-soft"
               onClick={() => navigate('/settings?tab=ai')}
             >
               {t('bookingEngine.ai.goToSettings')}
@@ -176,17 +176,17 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
       {budgetExceeded && !isLoading && (
         <Alert variant="warning" className="mt-3">
           <SettingsRounded />
-          <AlertTitle className="cn-text-body2 font-semibold">
+          <AlertTitle className="text-xs font-semibold">
             {t('bookingEngine.ai.budgetExceededTitle')}
           </AlertTitle>
-          <AlertDescription className="cn-text-body2">
+          <AlertDescription className="text-xs">
             {t('bookingEngine.ai.budgetExceededMessage')}
           </AlertDescription>
           <AlertAction>
             <Button
               variant="outline"
               size="sm"
-              className="whitespace-nowrap text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              className="whitespace-nowrap text-warning-ink border-warning hover:bg-warning-soft"
               onClick={() => navigate('/settings?tab=ai')}
             >
               {t('bookingEngine.ai.goToSettings')}
@@ -205,6 +205,12 @@ export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWe
     </div>
   );
 }
+
+// Encre des pastilles de couleur extraite : la teinte de fond vient du site
+// analyse, donc arbitraire — seule l'encre est a nous. Ni #000 ni #fff purs :
+// les deux neutres sont tires vers le bleu nuit de la marque Baitly.
+const SWATCH_INK_DARK = '#101A22';
+const SWATCH_INK_LIGHT = '#FAFCFD';
 
 /**
  * Simple heuristic to determine if a hex color is light (for text contrast).

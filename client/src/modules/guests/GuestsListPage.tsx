@@ -25,8 +25,8 @@ import PagePagination from '../../components/PagePagination';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-// Carte hairline plate (pattern .pd-card — tokens, r14, aucune ombre au repos).
-const CARD_CLS = 'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px]';
+// Carte hairline plate : filet Baitly UI, surface de panneau, aucune ombre au repos.
+const CARD_CLS = 'rounded-xl border border-solid border-border bg-card shadow-none';
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
 
@@ -41,14 +41,17 @@ const CHANNEL_LABELS: Record<string, string> = {
   OTHER: 'Autre',
 };
 
-// Canaux → tokens (--airbnb/--booking/--direct) ; repli sémantique pour les autres.
+// Canaux → couleurs de MARQUE (--airbnb/--booking/--direct : hors palette
+// sémantique, conservées telles quelles). Les canaux sans couleur de marque
+// retombent sur l'encre Baitly UI correspondante — variante `-ink`, la seule
+// lisible sur son fond doux.
 const CHANNEL_TOKEN: Record<string, { fg: string; bg: string }> = {
   DIRECT: { fg: 'var(--direct-ink)', bg: 'var(--direct-soft)' },
   AIRBNB: { fg: 'var(--airbnb-ink)', bg: 'var(--airbnb-soft)' },
   BOOKING: { fg: 'var(--booking-ink)', bg: 'var(--booking-soft)' },
-  VRBO: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-  ICAL: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  OTHER: { fg: 'var(--muted)', bg: 'var(--hover)' },
+  VRBO: { fg: 'var(--bui-info-ink)', bg: 'var(--bui-info-soft)' },
+  ICAL: { fg: 'var(--bui-warning-ink)', bg: 'var(--bui-warning-soft)' },
+  OTHER: { fg: 'var(--bui-muted-foreground)', bg: 'var(--bui-muted)' },
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -162,7 +165,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
         options={CHANNEL_OPTIONS.filter(Boolean).map((ch) => ({
           value: ch,
           label: CHANNEL_LABELS[ch] || ch,
-          color: CHANNEL_TOKEN[ch]?.fg ?? 'var(--muted)',
+          color: CHANNEL_TOKEN[ch]?.fg ?? 'var(--bui-muted-foreground)',
         }))}
       />
 
@@ -253,7 +256,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                       </span>
                     </TableCell>
                     <TableCell>
-                      <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] tabular-nums">
+                      <p className="text-[12.5px] tabular-nums text-muted-foreground">
                         {guest.phone || '-'}
                       </p>
                     </TableCell>
@@ -268,7 +271,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                           );
                         })()
                       ) : (
-                        <p className="cn-text-body1 text-[12.5px] text-[var(--faint)]">
+                        <p className="text-[12.5px] text-faint">
                           -
                         </p>
                       )}
@@ -277,18 +280,18 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                       {guest.totalStays ?? 0}
                     </TableCell>
                     <TableCell className="text-end">
-                      <p className="cn-text-body1 text-[12.5px] font-medium text-[var(--ink)] tabular-nums">
+                      <p className="text-[12.5px] font-medium tabular-nums text-foreground">
                         {guest.totalSpent ? <Money value={guest.totalSpent} from="EUR" /> : '-'}
                       </p>
                     </TableCell>
                     <TableCell>
-                      <p className="cn-text-body1 text-[12px] text-[var(--muted)] tabular-nums">
+                      <p className="text-xs tabular-nums text-muted-foreground">
                         {formatDate(guest.createdAt)}
                       </p>
                     </TableCell>
                     {isSuperAdmin && (
                       <TableCell>
-                        <p className="cn-text-body1 text-[12px] text-[var(--muted)]">
+                        <p className="text-xs text-muted-foreground">
                           {guest.organizationName || '-'}
                         </p>
                       </TableCell>

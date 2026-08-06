@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Alert,
+  AlertDescription,
   Button,
   Dialog,
   DialogContent,
@@ -35,6 +37,8 @@ import { GALLERY_TEMPLATES, type GalleryTemplate } from './grapes/import/gallery
 import { DESIGN_PRESETS } from '../constants';
 import { useAuth } from '../../../hooks/useAuth';
 import { useAiFeatureToggles } from '../../../hooks/useAi';
+import EmptyState from '../../../components/EmptyState';
+import { useScreenSearch } from '../../../components/ScreenChrome';
 import './studioHome.css';
 
 /**
@@ -91,8 +95,8 @@ const templateFunnel = (id: string): string => TEMPLATE_FUNNEL[id] ?? 'catalogue
 const fanTip = (i: number, n: number): number => (n <= 1 ? 0 : +(((n - 1) / 2 - i) * 3).toFixed(2));
 const fanLift = (i: number, n: number): number => (n <= 1 ? 0 : +(Math.abs(i - (n - 1) / 2) * 6).toFixed(1));
 
-/** Mini-aperçu « screenshot » d'un site, teinté à une couleur de marque. Styles INLINE (marche aussi dans les
- *  popovers MUI / portail hors `.be-home`), remplit son conteneur (position:absolute) et s'adapte à toute taille. */
+/** Mini-aperçu « screenshot » d'un site, teinté à une couleur de marque. Styles INLINE (marche aussi dans un
+ *  popover rendu en portail, hors `.be-home`), remplit son conteneur (position:absolute) et s'adapte à toute taille. */
 function MiniPreview({ color }: { color: string }) {
   const c = color || '#5453d6';
   return (
@@ -284,6 +288,10 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
 
   // Liste
   const [query, setQuery] = useState('');
+  // Recherche déléguée au champ UNIQUE du header quand un PageHeader nous
+  // surplombe (onglet « Réservation & accueil »). En page autonome il n'y en a
+  // pas : l'enregistrement est alors inerte et le champ local prend le relais.
+  useScreenSearch(query, setQuery, 'Rechercher un booking engine…');
   const [view, setView] = useState<'list' | 'grid'>('list');
   // Suppression d'un booking engine (depuis « Mes booking engines ») : confirmation puis DELETE org-scopé.
   const [confirmDelete, setConfirmDelete] = useState<BookingEngineConfig | null>(null);
@@ -451,7 +459,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           <DropdownMenuRadioGroup value={funnelId ?? ''} onValueChange={applyFunnel}>
             {BUILTIN_FUNNEL_PRESETS.map((f) => (
               <DropdownMenuRadioItem key={f.id} value={f.id} className="text-[13px] gap-2">
-                <span className="w-[46px] h-[32px] shrink-0 rounded-[5px] bg-[var(--surface-2,_rgba(255,255,255,0.06))] border border-solid border-[var(--line,_rgba(255,255,255,0.12))] text-[var(--accent,_#5453d6)] grid place-items-center overflow-hidden p-[4px] [&_svg]:w-full [&_svg]:h-full [&_svg]:block">
+                <span className="w-[46px] h-[32px] shrink-0 rounded-md bg-muted border border-solid border-border text-primary grid place-items-center overflow-hidden p-[4px] [&_svg]:w-full [&_svg]:h-full [&_svg]:block">
                   <FunnelArt id={f.id} />
                 </span>
                 {f.label}
@@ -464,7 +472,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           <DropdownMenuRadioGroup value={templateId ?? ''} onValueChange={applyTemplate}>
             {visibleTemplates.map((tpl) => (
               <DropdownMenuRadioItem key={tpl.id} value={tpl.id} className="text-[13px] gap-2">
-                <span className="w-[46px] h-[32px] shrink-0 rounded-[5px] relative overflow-hidden bg-[var(--surface-2,_rgba(255,255,255,0.06))] border border-solid border-[var(--line,_rgba(255,255,255,0.12))]">
+                <span className="w-[46px] h-[32px] shrink-0 rounded-md relative overflow-hidden bg-muted border border-solid border-border">
                   <TemplateThumb tpl={tpl} />
                 </span>
                 {tpl.name}
@@ -683,9 +691,10 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
     <div className="be-home" data-accent="indigo">
       <div className="canvas" style={{ maxWidth: 1180 }}>
         {error && (
-          <div className="flex items-center gap-1.5 mb-3 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[13px]">
-            <AlertTriangle size={16} strokeWidth={2} /> {error}
-          </div>
+          <Alert variant="destructive" className="mb-3">
+            <AlertTriangle />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
         {/* Studio à 2 colonnes : création (gauche) + rail templates vertical (droite). */}
@@ -700,14 +709,14 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
 
         {/* Les directions réutilisables se gèrent ici ; la SÉLECTION se fait à l'étape 1 de la génération. */}
         <div className="mb-2">
-          <button className="inline-flex items-center gap-[3px] bg-[transparent] cursor-pointer text-[var(--accent)] text-[13px] font-medium" style={{ border: 0 }} type="button" onClick={() => navigate('/booking-engine/design-systems')}>
+          <Button variant="link" size="sm" className="px-0" onClick={() => navigate('/booking-engine/design-systems')}>
             <Sparkles size={14} strokeWidth={2} /> Gérer les systèmes de design
-          </button>
+          </Button>
         </div>
 
         {/* 2 · Champ IA */}
         {creating ? (
-          <Skeleton className="h-[170px] rounded-[20px] bg-[var(--hover)]" />
+          <Skeleton className="h-[170px] rounded-[20px]" />
         ) : (
           <div className="field">
             <textarea
@@ -791,12 +800,12 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
                             className="text-[13px]"
                           />
                           <div className="flex justify-between items-center">
-                            <button className="inline-flex items-center gap-[3px] bg-[transparent] cursor-pointer text-[12.5px] text-[var(--err,_#c0392b)]" style={{ border: 0 }} type="button" onClick={() => { setLocationOpen(false); removeOption('location'); }}>
+                            <Button variant="ghost" size="xs" className="text-destructive-ink" onClick={() => { setLocationOpen(false); removeOption('location'); }}>
                               <X size={14} strokeWidth={2} /> Retirer
-                            </button>
-                            <button className="bg-[transparent] cursor-pointer text-[12.5px] font-semibold text-[var(--accent)]" style={{ border: 0 }} type="button" onClick={() => { setLocationOpen(false); commitLocation(); }}>
+                            </Button>
+                            <Button variant="ghost" size="xs" onClick={() => { setLocationOpen(false); commitLocation(); }}>
                               OK
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       </PopoverContent>
@@ -910,8 +919,10 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
           >
             Partir d'une page vierge <ArrowRight size={16} strokeWidth={2} />
           </button>
+          {/* `.be-home .fan-locked` gagne sur une utility simple : la couleur d'alerte
+              reste en style inline, mais sur le jeton Baitly UI (-ink = texte, AA). */}
           {blankError && (
-            <p id="blank-funnel-hint" role="alert" className="fan-locked" style={{ color: 'var(--warn, #C28A52)' }}>
+            <p id="blank-funnel-hint" role="alert" className="fan-locked" style={{ color: 'var(--bui-warning-ink)' }}>
               {blankError}
             </p>
           )}
@@ -927,22 +938,35 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
             <h2>Mes booking engines</h2>
             <span className="count">{configs?.length ?? 0}</span>
             <div className="sp" />
-            <label className="search">
-              <Search size={15} strokeWidth={2} />
-              <input placeholder="Rechercher…" value={query} onChange={(e) => setQuery(e.target.value)} />
-            </label>
+            {/* Champ local UNIQUEMENT en page autonome (/booking-engine/studio) :
+                cette route n'a pas de PageHeader, donc pas de champ unique où se
+                brancher. Sous l'onglet « Réservation & accueil », la recherche
+                est déjà rendue par le header (cf. `useScreenSearch` ci-dessus). */}
+            {!embedded && (
+              <label className="search">
+                <Search size={15} strokeWidth={2} />
+                <input
+                  placeholder="Rechercher un booking engine…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </label>
+            )}
             <div className="view">
               <button className={view === 'list' ? 'on' : ''} aria-label="Liste" type="button" onClick={() => setView('list')}><ListIcon size={16} strokeWidth={2} /></button>
               <button className={view === 'grid' ? 'on' : ''} aria-label="Grille" type="button" onClick={() => setView('grid')}><LayoutGrid size={16} strokeWidth={2} /></button>
             </div>
           </div>
 
-          {configs === null && !error && <Skeleton className="h-[132px] rounded-[14px] bg-[var(--hover)]" />}
+          {configs === null && !error && <Skeleton className="h-[132px] rounded-[14px]" />}
 
           {configs && configs.length === 0 && (
-            <div className="text-center py-9 text-[var(--muted)] text-[14px]">
-              Aucun booking engine pour l'instant — partez d'un funnel, d'un template, ou décrivez votre activité ci-dessus.
-            </div>
+            <EmptyState
+              variant="dashed"
+              icon={<LayoutGrid />}
+              title="Aucun booking engine pour l'instant"
+              description="Partez d'un funnel, d'un template, ou décrivez votre activité dans le champ ci-dessus."
+            />
           )}
 
           {configs && configs.length > 0 && view === 'list' && (
@@ -976,15 +1000,15 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
                 <div key={c.id} className="gcard-wrap">
                   <button className="gcard" type="button" onClick={() => navigate(`/booking-engine/studio/${c.id}`)}>
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="relative w-[52px] h-[36px] rounded-[6px] shrink-0 overflow-hidden bg-[var(--surface-2)] border border-[var(--line)]">
+                      <div className="relative w-[52px] h-[36px] rounded-md shrink-0 overflow-hidden bg-muted border border-border">
                         <MiniPreview color={c.primaryColor || '#5453d6'} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-[14px] font-semibold whitespace-nowrap overflow-hidden text-ellipsis text-[var(--ink)]">{c.name}</div>
+                        <div className="text-sm font-semibold whitespace-nowrap overflow-hidden text-ellipsis text-foreground">{c.name}</div>
                         <span className={`status ${c.enabled ? 'active' : 'off'}`} style={{ fontSize: 12 }}><span className="led" /> {c.enabled ? 'Actif' : 'Désactivé'}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-0.5 mt-auto text-[var(--accent)] text-[13px] font-medium">
+                    <div className="flex items-center gap-0.5 mt-auto text-sm font-medium text-primary">
                       Ouvrir <ArrowRight size={14} strokeWidth={2} />
                     </div>
                   </button>
@@ -1024,7 +1048,7 @@ export default function StudioHome({ embedded = false }: { embedded?: boolean })
       {embedded ? (
         <div className="px-3 min-[900px]:px-[18px] py-3 min-[900px]:py-[18px]">{content}</div>
       ) : (
-        <div className="min-h-[100vh] bg-[var(--bg)]">
+        <div className="min-h-[100vh] bg-background">
           <div className="px-3 min-[900px]:px-6 py-[18px] min-[900px]:py-[30px]">{content}</div>
         </div>
       )}

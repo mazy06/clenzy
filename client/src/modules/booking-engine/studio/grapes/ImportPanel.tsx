@@ -55,9 +55,9 @@ export default function ImportPanel({ open, onClose, editor, onImportTemplate }:
   const renderSlot = (): ReactNode => {
     if (!editor) {
       return (
-        <div className="py-9 text-center text-[var(--faint)] text-[var(--text-sm)]">
+        <p className="py-9 text-center text-sm text-faint">
           Éditeur non disponible.
-        </div>
+        </p>
       );
     }
     switch (tab) {
@@ -74,35 +74,26 @@ export default function ImportPanel({ open, onClose, editor, onImportTemplate }:
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent
         showCloseButton={false}
-        className="w-[min(680px,94vw)] sm:max-w-[680px] max-h-[88vh] flex flex-col gap-0 p-0 overflow-hidden bg-[var(--card)] text-[var(--ink)] border border-solid border-[var(--line)] rounded-[var(--radius-lg)] shadow-[var(--shadow-pop)]"
+        className="w-[min(680px,94vw)] sm:max-w-[680px] max-h-[88vh] flex flex-col gap-0 p-0 overflow-hidden rounded-xl border border-border bg-card text-foreground shadow-lg"
       >
         {/* En-tête */}
-        <DialogHeader className="flex-row items-center gap-0 px-3.5 h-[64px] shrink-0 border-b border-solid border-[var(--line)]">
+        <DialogHeader className="h-[64px] shrink-0 flex-row items-center gap-0 border-b border-border px-3.5">
           <div>
-            <DialogTitle
-              className="font-[family-name:var(--font-display)]"
-              style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--fw-semibold)' }}
-            >
+            <DialogTitle className="text-base font-semibold tracking-tight text-balance">
               Importer un design
             </DialogTitle>
-            <DialogDescription className="text-[var(--muted)]" style={{ fontSize: 'var(--text-sm)' }}>
+            <DialogDescription className="text-sm text-muted-foreground">
               Charge un contenu HTML+CSS dans l'éditeur. Le canevas actuel sera remplacé.
             </DialogDescription>
           </div>
           <div className="flex-1" />
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={onClose}
-            aria-label="Fermer"
-            className="size-[34px] rounded-[var(--radius-md)] text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]"
-          >
+          <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Fermer">
             <X size={20} strokeWidth={2} />
           </Button>
         </DialogHeader>
 
         {/* Onglets */}
-        <div className="flex gap-0.5 px-3.5 pt-2 shrink-0 border-b border-solid border-[var(--line)]">
+        <div className="flex shrink-0 gap-0.5 border-b border-border px-3.5 pt-2">
           {TABS.map((t) => {
             const active = t.id === tab;
             return (
@@ -111,13 +102,12 @@ export default function ImportPanel({ open, onClose, editor, onImportTemplate }:
                 type="button"
                 onClick={() => setTab(t.id)}
                 className={cn(
-                  'inline-flex items-center gap-[4.5px] px-[9px] h-[38px] cursor-pointer',
-                  'rounded-t-[var(--radius-md)] rounded-b-none border-b-2 border-solid',
-                  'transition-[color,border-color] duration-[var(--duration-fast)] ease-[var(--ease-out)]',
-                  'hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
-                  active ? 'text-[var(--ink)] border-b-[var(--accent)]' : 'text-[var(--muted)] border-b-transparent',
+                  'inline-flex h-[38px] cursor-pointer items-center gap-1 px-2.5 text-sm font-medium',
+                  'rounded-t-lg rounded-b-none border-b-2',
+                  'transition-[color,border-color] duration-150 ease-out-quart motion-reduce:transition-none',
+                  'hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                  active ? 'border-b-primary text-foreground' : 'border-b-transparent text-muted-foreground',
                 )}
-                style={{ fontWeight: 'var(--fw-medium)', fontSize: 'var(--text-sm)' }}
               >
                 {t.icon}{t.label}
               </button>

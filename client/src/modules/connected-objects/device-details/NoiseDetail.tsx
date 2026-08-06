@@ -11,19 +11,19 @@ import NoiseAlertConfigPanel, {
 } from '../../dashboard/NoiseAlertConfigPanel';
 import NoiseAlertHistory from '../../dashboard/NoiseAlertHistory';
 import EmptyState from '../../../components/EmptyState';
-import StatTile from '../../../components/StatTile';
+import StatTile from '../../../components/baitly/StatTile';
 import { useNoiseDeviceDetail } from '../useNoiseDeviceDetail';
 import { NOISE_THRESHOLDS } from '../../../hooks/noiseMonitoring';
 import type { ConnectedDevice } from '../types';
 import PageTabs from '../../../components/PageTabs';
 
-const NEUTRAL = '#9CA3AF';
+const NEUTRAL = 'text-muted-foreground';
 
-/** Accent d'un niveau sonore selon les seuils Clenzy (vert calme → ambre → corail). */
+/** Accent d'un niveau sonore selon les seuils Baitly (vert calme → ambre → corail). */
 function levelAccent(level: number): string {
-  if (level <= NOISE_THRESHOLDS.normal) return '#4A9B8E';
-  if (level <= NOISE_THRESHOLDS.warning) return '#D4A574';
-  return '#C97A7A';
+  if (level <= NOISE_THRESHOLDS.normal) return 'text-success';
+  if (level <= NOISE_THRESHOLDS.warning) return 'text-warning';
+  return 'text-destructive';
 }
 
 /**
@@ -65,25 +65,25 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
           icon={device.online ? <Wifi /> : <WifiOff />}
           label="Connexion"
           value={connectionLabel}
-          color={device.online ? '#4A9B8E' : NEUTRAL}
+          iconClassName={device.online ? 'text-success' : NEUTRAL}
         />
         <StatTile
           icon={<VolumeUp />}
           label="Niveau actuel"
           value={reading(sensor?.currentLevel ?? 0)}
-          color={hasData ? levelAccent(sensor?.currentLevel ?? 0) : NEUTRAL}
+          iconClassName={hasData ? levelAccent(sensor?.currentLevel ?? 0) : NEUTRAL}
         />
         <StatTile
           icon={<TrendingUp />}
           label="Moyenne 24 h"
           value={reading(sensor?.averageLevel ?? 0)}
-          color="#6B8A9A"
+          iconClassName="text-primary"
         />
         <StatTile
           icon={<ArrowUpward />}
           label="Pic 24 h"
           value={reading(sensor?.maxLevel ?? 0)}
-          color={hasData ? levelAccent(sensor?.maxLevel ?? 0) : NEUTRAL}
+          iconClassName={hasData ? levelAccent(sensor?.maxLevel ?? 0) : NEUTRAL}
         />
       </div>
 
@@ -100,7 +100,7 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
 
       {/* 3. Configuration | Historique */}
       <div>
-        <div className="flex items-center justify-between border-b border-solid border-[var(--line)]">
+        <div className="flex items-center justify-between border-b border-solid border-border">
           <PageTabs
             options={[
               { label: 'Configuration', icon: <Settings /> },
@@ -122,7 +122,7 @@ export default function NoiseDetail({ device }: { device: ConnectedDevice }) {
                 </Alert>
               )}
               {configStatus.isSaved && (
-                <Badge variant="secondary" className="text-[0.6875rem] h-[22px] font-semibold bg-[var(--ok-soft)] text-[var(--ok)] rounded-[var(--radius-pill)]">Sauvegardé</Badge>
+                <Badge variant="success" className="text-[0.6875rem] h-[22px] font-semibold rounded-full">Sauvegardé</Badge>
               )}
               <Button
                 size="sm"

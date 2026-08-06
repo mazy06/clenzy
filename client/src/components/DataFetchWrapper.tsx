@@ -70,9 +70,9 @@ const CenteredSpinner: React.FC<{ size: number; message?: string; minHeight: str
   // minHeight vient des props (runtime) : style inline, pas de classe Tailwind.
   <div className="flex flex-col justify-center items-center gap-[9px]" style={{ minHeight }}>
     {/* La taille vient des props (runtime) : style inline, pas de classe Tailwind. */}
-    <Spinner className="text-[var(--accent)]" style={{ width: size, height: size }} />
+    <Spinner className="text-primary" style={{ width: size, height: size }} />
     {message && (
-      <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
+      <p className="m-0 text-xs text-muted-foreground">
         {message}
       </p>
     )}
@@ -85,16 +85,16 @@ const ErrorDisplay: React.FC<{
   onRetry?: () => void;
   onClearError?: () => void;
 }> = ({ error, onRetry, onClearError }) => (
-  // Alerte -soft hairline (pattern .rm-conflict). Le contenu est pose dans une
-  // rangee flex plutot que dans AlertAction : le libelle « Reessayer » depasse
-  // la gouttiere de 72px que le primitif reserve a une action absolue.
+  // Alerte -soft hairline. Le contenu est pose dans une rangee flex plutot que
+  // dans AlertAction : le libelle « Reessayer » depasse la gouttiere de 72px que
+  // le primitif reserve a une action absolue.
   <Alert
     variant="destructive"
-    className="mb-3 py-1.5 bg-[var(--err-soft)] border border-solid border-[color-mix(in_srgb,var(--err)_30%,transparent)] rounded-[12px]"
+    className="mb-3 py-1.5 bg-destructive-soft border border-solid border-destructive/30 rounded-[12px]"
   >
     <div className="flex items-center gap-2 w-full">
-      <ErrorOutline size={16} strokeWidth={1.75} className="text-[var(--err)] shrink-0" />
-      <span className="flex-1 text-[12.5px] text-[var(--body)]">{error}</span>
+      <ErrorOutline size={16} strokeWidth={1.75} className="text-destructive shrink-0" />
+      <span className="flex-1 text-xs text-foreground">{error}</span>
       {onRetry && (
         // Action d'appoint dans une alerte : ghost, pas de cadre au repos.
         <Button variant="ghost" size="sm" onClick={onRetry}>
@@ -142,7 +142,7 @@ const DataFetchWrapper: React.FC<DataFetchWrapperProps> = ({
           <div className="flex items-center gap-1.5 py-1.5">
             <Spinner className="size-5" />
             {loadingMessage && (
-              <p className="cn-text-body2 text-muted-foreground">
+              <p className="m-0 text-xs text-muted-foreground">
                 {loadingMessage}
               </p>
             )}

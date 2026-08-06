@@ -1,5 +1,5 @@
 import React from 'react';
-import PeriodSegmented from '../../components/PeriodSegmented';
+import PeriodSegmented from '../../components/baitly/PeriodSegmented';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

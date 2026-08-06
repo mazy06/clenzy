@@ -40,17 +40,17 @@ export const CONTRACT_TYPE_LABELS: Record<ContractType, string> = {
 // ─── Taxonomie OTA : qui encaisse le paiement guest ─────────────────────────
 
 export const PAYMENT_MODEL_LABELS: Record<PaymentModel, string> = {
-  DIRECT:             'Direct — Clenzy encaisse (Stripe)',
+  DIRECT:             'Direct — Baitly encaisse (Stripe)',
   OWNER_COLLECTS:     'OTA — Le propriétaire encaisse',
   CONCIERGE_COLLECTS: 'OTA — La conciergerie encaisse',
   OTA_COHOST_SPLIT:   'OTA — Co-hosting (split à la source)',
 };
 
 export const PAYMENT_MODEL_HELP: Record<PaymentModel, string> = {
-  DIRECT:             'Le guest paie via Clenzy (Stripe). La répartition est appliquée automatiquement à l\'encaissement.',
+  DIRECT:             'Le guest paie via Baitly (Stripe). La répartition est appliquée automatiquement à l\'encaissement.',
   OWNER_COLLECTS:     'L\'OTA verse au propriétaire. La conciergerie facture sa commission au propriétaire (créance).',
   CONCIERGE_COLLECTS: 'L\'OTA verse à la conciergerie. Elle reverse la part nette au propriétaire (reversement).',
-  OTA_COHOST_SPLIT:   'L\'OTA répartit directement entre les co-hosts. Clenzy réconcilie, sans flux d\'argent.',
+  OTA_COHOST_SPLIT:   'L\'OTA répartit directement entre les co-hosts. Baitly réconcilie, sans flux d\'argent.',
 };
 
 export const COMMISSION_BASE_LABELS: Record<CommissionBase, string> = {
@@ -108,7 +108,7 @@ export const CONTRACT_PRESETS: ContractPreset[] = [
   {
     id: 'cohost',
     label: 'Co-hosting Airbnb (split à la source)',
-    description: 'Airbnb répartit directement entre co-hosts. Aucun flux ne transite par Clenzy.',
+    description: 'Airbnb répartit directement entre co-hosts. Aucun flux ne transite par Baitly.',
     values: {
       contractType: 'BOOKING_ONLY', paymentModel: 'OTA_COHOST_SPLIT',
       commissionRate: 0.15, commissionBase: 'GROSS',
@@ -116,7 +116,7 @@ export const CONTRACT_PRESETS: ContractPreset[] = [
   },
   {
     id: 'direct',
-    label: 'Paiement direct (Clenzy encaisse)',
+    label: 'Paiement direct (Baitly encaisse)',
     description: 'Le guest paie via Stripe. La répartition est automatique à l\'encaissement.',
     values: {
       contractType: 'FULL_MANAGEMENT', paymentModel: 'DIRECT',
@@ -175,11 +175,11 @@ interface FormSectionProps {
 const FormSection: React.FC<FormSectionProps> = ({ label, hint, children }) => (
   <div className="flex flex-col gap-2">
     <div>
-      <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[0.06em] text-[var(--faint)]">
+      <p className="text-2xs font-bold uppercase tracking-[0.06em] text-faint">
         {label}
       </p>
       {hint && (
-        <p className="cn-text-body1 text-[0.75rem] text-[var(--muted)] mt-0.5">
+        <p className="text-xs text-muted-foreground mt-0.5">
           {hint}
         </p>
       )}
@@ -240,24 +240,24 @@ export const ManagementContractFormFields: React.FC<ManagementContractFormFields
                 onClick={() => applyPreset(preset)}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyPreset(preset); } }}
                 className={cn(
-                  'relative cursor-pointer px-[9px] py-[7.5px] rounded-[12px] border border-solid',
-                  'transition-[background-color,border-color] duration-[180ms] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none',
-                  'hover:border-[var(--accent)]',
-                  'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2',
+                  'relative cursor-pointer px-[9px] py-[7.5px] rounded-xl border border-solid',
+                  'transition-[background-color,border-color] duration-[180ms] ease-out-quart motion-reduce:transition-none',
+                  'hover:border-primary',
+                  'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2',
                   active
-                    ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
-                    : 'border-[var(--line)] bg-transparent hover:bg-[var(--hover)]',
+                    ? 'border-primary bg-primary-soft'
+                    : 'border-border bg-transparent hover:bg-muted',
                 )}
               >
                 {active && (
-                  <span className="absolute top-[8px] end-[8px] inline-flex items-center justify-center w-[16px] h-[16px] rounded-[50%] bg-[var(--accent)] text-[var(--on-accent)]">
+                  <span className="absolute top-[8px] end-[8px] inline-flex items-center justify-center size-4 rounded-full bg-primary text-primary-foreground">
                     <Check size={10} strokeWidth={2.5} />
                   </span>
                 )}
-                <p className={cn('cn-text-body1 text-[0.8125rem] font-semibold leading-[1.3] text-[var(--ink)]', active ? 'pe-[15px]' : 'pe-0')}>
+                <p className={cn('text-[0.8125rem] font-semibold leading-[1.3] text-foreground', active ? 'pe-[15px]' : 'pe-0')}>
                   {preset.label}
                 </p>
-                <p className="cn-text-body1 text-[0.75rem] text-[var(--muted)] leading-[1.45] mt-0.5">
+                <p className="text-xs text-muted-foreground leading-[1.45] mt-0.5">
                   {preset.description}
                 </p>
               </div>
@@ -597,8 +597,8 @@ const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, split
   if (!hasCommission) {
     return (
       <div className="flex flex-col gap-0.5">
-        <div className="h-[8px] rounded-[6px] border border-dashed border-[var(--line-2)] bg-[transparent]" aria-label="Aucune commission définie" />
-        <p className="cn-text-body1 text-[0.6875rem] text-[var(--faint)] italic">
+        <div className="h-[8px] rounded-md border border-dashed border-border bg-transparent" aria-label="Aucune commission définie" />
+        <p className="text-2xs text-faint italic">
           Saisissez un taux de commission pour voir la répartition appliquée à ce contrat.
         </p>
       </div>
@@ -614,9 +614,11 @@ const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, split
   const platformPct = commissionPct * platformRatio;
   const conciergePct = commissionPct * conciergeRatio;
 
-  const OWNER_COLOR = 'var(--accent)';
-  const PLATFORM_COLOR = 'var(--warn)';
-  const CONCIERGE_COLOR = 'var(--ok)';
+  // Aplats de barre : la teinte vive du jeton, jamais la variante `-ink`
+  // (réservée au texte) ni `-soft` (réservée aux fonds pastel).
+  const OWNER_COLOR = 'var(--bui-primary)';
+  const PLATFORM_COLOR = 'var(--bui-warning)';
+  const CONCIERGE_COLOR = 'var(--bui-success)';
 
   const segments = [
     { label: 'Propriétaire', pct: ownerPct, color: OWNER_COLOR },
@@ -627,7 +629,7 @@ const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, split
   return (
     <div className="flex flex-col gap-1">
       {/* Barre segmentée */}
-      <div className="flex h-[8px] rounded-[6px] overflow-hidden border border-[var(--line)] bg-[var(--field)]" role="img" aria-label={`Répartition : propriétaire ${ownerPct.toFixed(0)}%, plateforme ${platformPct.toFixed(1)}%, conciergerie ${conciergePct.toFixed(1)}%`}>
+      <div className="flex h-[8px] rounded-md overflow-hidden border border-border bg-field" role="img" aria-label={`Répartition : propriétaire ${ownerPct.toFixed(0)}%, plateforme ${platformPct.toFixed(1)}%, conciergerie ${conciergePct.toFixed(1)}%`}>
         {segments.map((seg) => (
           <Tooltip key={seg.label}>
             <TooltipTrigger asChild>
@@ -641,11 +643,11 @@ const SplitPreviewBar: React.FC<SplitPreviewBarProps> = ({ commissionRate, split
       <div className="flex gap-2 flex-wrap">
         {segments.map((seg) => (
           <div className="flex items-center gap-0.5" key={seg.label}>
-            <div className="w-[6px] h-[6px] rounded-[50%]" style={{ backgroundColor: seg.color }} />
-            <p className="cn-text-body1 text-[0.6875rem] text-[var(--muted)] font-medium">
+            <div className="size-1.5 rounded-full" style={{ backgroundColor: seg.color }} />
+            <p className="text-2xs text-muted-foreground font-medium">
               {seg.label}
             </p>
-            <p className="cn-text-body1 text-[0.6875rem] text-[var(--ink)] font-semibold tabular-nums">
+            <p className="text-2xs text-foreground font-semibold tabular-nums">
               {seg.pct.toFixed(seg.pct >= 10 ? 0 : 1)} %
             </p>
           </div>

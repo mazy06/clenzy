@@ -213,7 +213,7 @@ const ProductHero: React.FC<ProductHeroProps> = ({ product, height = 168 }) => {
         <>
           <SvgBackdrop shape={palette.shape} accent={palette.bgAccent} />
           <div
-            className="relative w-16 h-16 rounded-[14px] inline-flex items-center justify-center bg-[var(--card)] border border-solid"
+            className="relative w-16 h-16 rounded-xl inline-flex items-center justify-center bg-card border border-solid"
             style={{
               color: palette.icon,
               borderColor: `${palette.bgAccent}40`,

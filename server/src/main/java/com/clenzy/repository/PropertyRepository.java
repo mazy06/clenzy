@@ -22,6 +22,26 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
     List<Property> findByOrganizationId(Long organizationId);
 
     /**
+     * Destinataires eligibles au briefing par defaut : les proprietaires d'au
+     * moins un logement ACTIF, toutes organisations confondues.
+     *
+     * <p>Appelee par le scheduler, donc HORS contexte HTTP : le filtre Hibernate
+     * multi-tenant est inerte et la requete voit bien tous les tenants — c'est
+     * exactement ce qu'on veut ici, un scheduler global qui traite chaque
+     * organisation. Le couple (keycloakId, organizationId) suffit a composer un
+     * briefing ; on ne charge pas les entites User.</p>
+     *
+     * <p>Lignes {@code [String keycloakId, Long organizationId]}, dedoublonnees :
+     * un proprietaire de six logements n'apparait qu'une fois par organisation.</p>
+     */
+    @Query("SELECT DISTINCT p.owner.keycloakId, p.organizationId "
+        + "FROM Property p "
+        + "WHERE p.status = com.clenzy.model.PropertyStatus.ACTIVE "
+        + "AND p.owner.keycloakId IS NOT NULL "
+        + "AND p.organizationId IS NOT NULL")
+    List<Object[]> findBriefingRecipients();
+
+    /**
      * Top logements par volume d'interventions + coût cumulé (Rapports Baitly).
      * LEFT JOIN : les logements sans intervention apparaissent avec 0 (parité
      * avec l'ancien calcul client). Coût = réel, repli devis. La limite (top N)

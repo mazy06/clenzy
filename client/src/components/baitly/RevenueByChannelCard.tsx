@@ -34,7 +34,12 @@ export default function RevenueByChannelCard({
   className,
 }: RevenueByChannelCardProps) {
   return (
-    <Card className={cn('gap-0 overflow-hidden py-0', className)}>
+    // `@container` et non un media query : cette carte est posee dans un
+    // panneau REDIMENSIONNABLE du tableau de bord. Sa largeur ne suit donc pas
+    // celle de l'ecran — elle peut etre etroite sur un grand ecran (panneau
+    // reduit) comme large sur mobile (widgets empiles). Seule sa propre largeur
+    // dit si la ligne tient en un seul rang.
+    <Card className={cn('@container gap-0 overflow-hidden py-0', className)}>
       <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-2">
         <h3 className="cn-font-heading m-0 text-[15px] font-semibold tracking-tight text-foreground">
           {title}
@@ -59,17 +64,26 @@ export default function RevenueByChannelCard({
           return (
             <div
               key={channel.name}
-              className="flex items-center gap-3 border-t border-border py-2.5 first:border-t-0"
+              // Sous 20rem de large, la ligne se plie : le nom passe seul au
+              // dessus, la barre et le montant se partagent le rang suivant.
+              // En un seul rang, le nom, la barre et le montant retiendraient
+              // 164 px fixes et la barre tomberait a zero.
+              className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border py-2.5 first:border-t-0 @[20rem]:flex-nowrap"
             >
               <span
                 className={cn(
-                  'w-[74px] shrink-0 text-xs font-semibold',
+                  // `truncate` : le nom vient du catalogue de canaux et n'a
+                  // aucune longueur garantie. Sans lui, un libelle plus long
+                  // que la colonne debordait sur la barre.
+                  'w-full truncate text-xs font-semibold @[20rem]:w-[74px] @[20rem]:shrink-0',
                   idle ? 'text-muted-foreground' : 'text-foreground'
                 )}
               >
                 {channel.name}
               </span>
-              <div className="h-2 flex-1 overflow-hidden rounded-[5px] bg-field">
+              {/* `min-w-0` : sans lui la base automatique du flex empeche la
+                  barre de descendre sous sa largeur de contenu. */}
+              <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-[5px] bg-field">
                 <div
                   className="h-full rounded-[5px] transition-[width] duration-300 motion-reduce:transition-none"
                   style={{ width: `${channel.pct}%`, backgroundColor: channel.color }}
@@ -95,7 +109,7 @@ export default function RevenueByChannelCard({
                       <span
                         className={cn(
                           'text-2xs font-bold tabular-nums',
-                          delta > 0 ? 'text-success-ink' : 'text-destructive'
+                          delta > 0 ? 'text-success-ink' : 'text-destructive-ink'
                         )}
                       >
                         {delta > 0 ? '▲' : '▼'}

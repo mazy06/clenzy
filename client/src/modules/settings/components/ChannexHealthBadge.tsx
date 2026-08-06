@@ -40,11 +40,15 @@ interface StatusMeta {
   Icon: typeof CheckCircle2;
 }
 
+/**
+ * Teintes VIVES et non `-ink` : ici la couleur peint une pastille et une icone,
+ * jamais du texte (cf. contrat Baitly UI §2.4).
+ */
 const STATUS_META: Record<ChannexSyncStatus, StatusMeta> = {
-  ACTIVE: { color: 'var(--ok)', label: 'Sync Channex active', Icon: CheckCircle2 },
-  PENDING: { color: 'var(--warn)', label: 'Connexion Channex en cours', Icon: Clock },
-  ERROR: { color: 'var(--err)', label: 'Erreur de sync Channex', Icon: AlertCircle },
-  DISABLED: { color: 'var(--muted)', label: 'Sync Channex mise en pause', Icon: Pause },
+  ACTIVE: { color: 'var(--bui-success)', label: 'Sync Channex active', Icon: CheckCircle2 },
+  PENDING: { color: 'var(--bui-warning)', label: 'Connexion Channex en cours', Icon: Clock },
+  ERROR: { color: 'var(--bui-destructive)', label: 'Erreur de sync Channex', Icon: AlertCircle },
+  DISABLED: { color: 'var(--bui-muted-foreground)', label: 'Sync Channex mise en pause', Icon: Pause },
 };
 
 function formatLastSync(iso: string | null): string {
@@ -77,20 +81,22 @@ export default function ChannexHealthBadge({
 
   const tooltipContent = (
     <div className="max-w-[260px]">
-      <p className="cn-text-body2 font-semibold text-[0.75rem] leading-[1.3] mb-0.5">
+      <p className="text-xs font-semibold leading-[1.3] mb-0.5">
         {meta.label}
       </p>
-      <span className="cn-text-caption block leading-[1.45] opacity-85">
+      <span className="text-xs block leading-[1.45] opacity-85">
         Derniere sync : {lastSyncStr}
       </span>
       {mapping.lastSyncError && mapping.syncStatus === 'ERROR' && (
-        <span className="cn-text-caption block mt-[3px] pt-[3px] opacity-90 italic" style={{ borderTop: '1px solid color-mix(in srgb, var(--bg) 20%, transparent)' }}>
+        // Filet dans une infobulle : la couleur du texte courant a 20 %, seule
+        // teinte qui reste lisible sur le fond inverse du tooltip.
+        <span className="text-xs block mt-[3px] pt-[3px] border-t border-solid border-current/20 opacity-90 italic">
           {mapping.lastSyncError.slice(0, 200)}
           {mapping.lastSyncError.length > 200 && '…'}
         </span>
       )}
       {onClick && (
-        <span className="cn-text-caption block mt-0.5 text-[0.65rem] opacity-70">
+        <span className="text-2xs block mt-0.5 opacity-70">
           Cliquer pour ouvrir les details
         </span>
       )}
@@ -103,8 +109,10 @@ export default function ChannexHealthBadge({
   const badgeStyle: React.CSSProperties = { color: meta.color, outlineColor: meta.color };
   const badgeClass = cn(
     'inline-flex items-center gap-[3px] p-0 border-none bg-transparent leading-[0]',
+    // Pas de `scale()` au survol (interdit : decalage de mise en page) — la
+    // reponse au survol passe par l'opacite.
     onClick
-      ? 'cursor-pointer transition-transform duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-[1.12] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:rounded-[50%]'
+      ? 'cursor-pointer transition-opacity duration-150 ease-out-quart motion-reduce:transition-none hover:opacity-75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:rounded-full'
       : 'cursor-default',
   );
 
@@ -115,17 +123,17 @@ export default function ChannexHealthBadge({
   const badgeContent = (
     <>
       {variant === 'icon' ? (
-          <span className="relative rounded-[50%] inline-flex items-center justify-center" style={{ width: size + 8, height: size + 8, backgroundColor: `color-mix(in srgb, ${meta.color} 10%, transparent)` }}>
+          <span className="relative rounded-full inline-flex items-center justify-center" style={{ width: size + 8, height: size + 8, backgroundColor: `color-mix(in srgb, ${meta.color} 10%, transparent)` }}>
             <Cable size={size} strokeWidth={2.2} />
-            {/* Dot exposant en bas a droite */}
+            {/* Dot exposant en bas a la fin de ligne (logique : RTL) */}
             <span
-              className={cn('absolute -bottom-px -right-px rounded-[50%] border-[1.5px] border-solid border-white', pulseClass)}
+              className={cn('absolute -bottom-px -end-px rounded-full border-[1.5px] border-solid border-card', pulseClass)}
               style={{ width: size * 0.5, height: size * 0.5, backgroundColor: meta.color }}
             />
           </span>
         ) : (
           <span
-            className={cn('inline-block shrink-0 rounded-[50%]', pulseClass)}
+            className={cn('inline-block shrink-0 rounded-full', pulseClass)}
             style={{
               width: size,
               height: size,

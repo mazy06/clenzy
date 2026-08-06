@@ -9,12 +9,6 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useVoucherAnalytics } from '../../hooks/useBookingVouchers';
 import type { VoucherStats } from '../../services/api/bookingVouchersApi';
 
-// Tokens Signature : l'accent des KPI passe par la couleur de valeur, pas par un liseré.
-const TOKEN_OK = 'var(--ok)';
-const TOKEN_WARN = 'var(--warn)';
-const TOKEN_INFO = 'var(--info)';
-const TOKEN_MUTED = 'var(--muted)';
-
 /**
  * Panneau analytics affiche en haut de VouchersPage.
  *
@@ -69,8 +63,8 @@ export default function VoucherAnalyticsPanel() {
   // Si pas d'usages historiques, on simplifie : juste le compteur d'actifs.
   if (data.totalUsages === 0) {
     return (
-      <Card className="gap-0 py-0 p-3 mb-4 border-[var(--line)] bg-[var(--card)]">
-        <p className="cn-text-body2 text-muted-foreground">
+      <Card className="gap-0 py-0 p-3 mb-4">
+        <p className="text-xs text-muted-foreground">
           {t('vouchers.analytics.noUsageYet', { active: data.activeVouchersCount })}
         </p>
       </Card>
@@ -85,10 +79,10 @@ export default function VoucherAnalyticsPanel() {
     <div className="mb-4">
       {/* mb: 1 = 6 px (theme.spacing vaut 6). */}
       <div className="flex flex-row items-baseline justify-between mb-[6px]">
-        <span className="cn-text-overline tracking-[0.06em] text-[10.5px] font-bold text-[var(--faint)]">
+        <span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
           {t('vouchers.analytics.title')}
         </span>
-        <span className="cn-text-caption text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           {periodLabel}
         </span>
       </div>
@@ -98,30 +92,26 @@ export default function VoucherAnalyticsPanel() {
         <KpiCard
           label={t('vouchers.analytics.totalUsages')}
           value={data.totalUsages.toString()}
-          color={TOKEN_OK}
         />
         <KpiCard
           label={t('vouchers.analytics.totalGross')}
           value={fmt(data.totalGross)}
-          color={TOKEN_INFO}
         />
         <KpiCard
           label={t('vouchers.analytics.totalDiscount')}
           value={`−${fmt(data.totalDiscount)}`}
-          color={TOKEN_WARN}
         />
         <KpiCard
           label={t('vouchers.analytics.totalNet')}
           value={fmt(data.totalNet)}
-          color={TOKEN_OK}
           emphasis
         />
       </div>
 
       {/* Top vouchers */}
       {data.topVouchers.length > 0 && (
-        <Card className="gap-0 py-0 p-2 border-[var(--line)] bg-[var(--card)]">
-          <span className="cn-text-overline text-[10.5px] tracking-[0.06em] font-bold text-[var(--faint)]">
+        <Card className="gap-0 py-0 p-2">
+          <span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
             {t('vouchers.analytics.topVouchersTitle')}
           </span>
           <Table className="mt-[3px]">
@@ -140,17 +130,17 @@ export default function VoucherAnalyticsPanel() {
               {data.topVouchers.map((v: VoucherStats) => (
                 <TableRow key={v.voucherId}>
                   <TableCell>
-                    <p className="cn-text-body2 font-semibold text-[0.8125rem]">
+                    <p className="text-[0.8125rem] font-semibold">
                       {v.voucherName}
                     </p>
                   </TableCell>
                   <TableCell>
                     {v.voucherCode ? (
-                      <span className="cn-text-body2 inline-block text-[11.5px] tracking-[0.04em] tabular-nums text-[var(--body)] bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[6px] px-2 py-[3px]" style={{ fontFamily: 'var(--font-display)' }}>
+                      <span className="inline-block rounded-md border border-solid border-field-line bg-field px-2 py-[3px] text-[11.5px] tracking-[0.04em] tabular-nums text-foreground" style={{ fontFamily: 'var(--font-display)' }}>
                         {v.voucherCode}
                       </span>
                     ) : (
-                      <span className="cn-text-caption text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {t('vouchers.autoCampaign')}
                       </span>
                     )}
@@ -161,15 +151,14 @@ export default function VoucherAnalyticsPanel() {
                   <TableCell className="text-end tabular-nums">
                     {fmt(v.totalGross)}
                   </TableCell>
-                  {/* Couleur portee par une constante : une classe Tailwind ne peut
-                      pas naitre d'une variable, elle passe donc par style. */}
-                  <TableCell className="text-end tabular-nums" style={{ color: TOKEN_WARN }}>
+                  {/* Remise = du TEXTE : encre `-ink`, pas la teinte vive (§2.4). */}
+                  <TableCell className="text-end tabular-nums text-warning-ink">
                     −{fmt(v.totalDiscount)}
                   </TableCell>
                   <TableCell className="text-end tabular-nums font-medium">
                     {fmt(v.totalNet)}
                   </TableCell>
-                  <TableCell className="text-end tabular-nums" style={{ color: TOKEN_MUTED }}>
+                  <TableCell className="text-end tabular-nums text-muted-foreground">
                     {v.avgDiscountPct}%
                   </TableCell>
                 </TableRow>
@@ -185,19 +174,20 @@ export default function VoucherAnalyticsPanel() {
 interface KpiCardProps {
   label: string;
   value: string;
-  color: string;
+  /** Met la valeur en teinte de réussite (le net encaissé). */
   emphasis?: boolean;
 }
 
-const KpiCard: React.FC<KpiCardProps> = ({ label, value, color, emphasis }) => (
+const KpiCard: React.FC<KpiCardProps> = ({ label, value, emphasis }) => (
   <div className="col-span-6 min-[900px]:col-span-3">
-    <Card className="gap-0 py-0 p-2 border-[var(--line)] bg-[var(--card)] transition-colors duration-200 hover:border-[var(--line-2)]">
-      <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em] leading-[1.2] block">
+    <Card className="gap-0 py-0 p-2">
+      <p className="block text-2xs font-semibold uppercase leading-[1.2] tracking-wide text-muted-foreground">
         {label}
       </p>
-      <h6 className="cn-text-h6 tabular-nums font-semibold mt-[3px]" style={{ fontFamily: 'var(--font-display)', color: emphasis ? color : 'var(--ink)' }}>
+      {/* `-ink` et non la teinte vive : une valeur est du TEXTE (§2.4). */}
+      <p className={cn('mt-[3px] text-sm font-semibold tabular-nums', emphasis ? 'text-success-ink' : 'text-foreground')} style={{ fontFamily: 'var(--font-display)' }}>
         {value}
-      </h6>
+      </p>
     </Card>
   </div>
 );

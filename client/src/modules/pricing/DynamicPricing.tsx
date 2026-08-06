@@ -30,9 +30,6 @@ import YieldRulesPanel from './YieldRulesPanel';
 import { useIsAiFeatureEnabled } from '../../hooks/useAi';
 import PageTabs from '../../components/PageTabs';
 
-// ─── Style Constants ────────────────────────────────────────────────────────
-
-// Sous-onglets niveau 2 — pattern Signature .s-subtab : pilules, actif accent-soft/accent.
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface Owner {
@@ -217,7 +214,7 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
         ))}
       </NativeSelect>
       {isPlatformStaff && selectedOwnerId !== null && (
-        <span className="cn-text-caption text-muted-foreground text-[0.6875rem] whitespace-nowrap">
+        <span className="text-2xs text-muted-foreground whitespace-nowrap tabular-nums">
           {filteredProperties.length} {t('dynamicPricing.propertiesCount')}
         </span>
       )}
@@ -234,11 +231,13 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
             size="sm"
             onClick={handlePushPricing}
             disabled={pushLoading}
-            // Le succes du push se signale par la teinte --ok ; les deux branches
-            // sont ecrites en litteral, une classe ne peut pas naitre d'une variable.
+            // Le succes du push se signale par la famille `success` : l'encre AA
+            // pour le libelle, la teinte vive pour le filet, le pastel au survol.
+            // Les deux branches sont ecrites en litteral, une classe ne peut pas
+            // naitre d'une variable.
             className={
               pushResult?.includes('succes') || pushResult?.includes('success')
-                ? 'text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]'
+                ? 'text-success-ink border-success hover:bg-success-soft'
                 : ''
             }
           >
@@ -266,16 +265,16 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
           backPath="/dashboard"
           showBackButton={false}
           actions={actionButtons}
+          // Les selecteurs vont dans le slot `filters` du header, et non dans
+          // une rangee posee entre le titre et les onglets : c'est la place
+          // prevue pour eux, et cela retire une bande horizontale a l'ecran.
+          filters={filterSelectors}
         />
       )}
 
-      {/* ── Filter selectors — portaled into tab bar when embedded ── */}
+      {/* Embarque dans la fiche d'un logement : le header appartient au parent,
+          les selecteurs sont portales dans sa rangee d'onglets. */}
       {embedded && tabInlineContainer && createPortal(filterSelectors, tabInlineContainer)}
-      {!embedded && (
-        <div className="flex items-center gap-2 mb-2">
-          {filterSelectors}
-        </div>
-      )}
 
       {/* Tabs */}
       <PageTabs

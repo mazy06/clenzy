@@ -206,7 +206,7 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
         </DialogHeader>
 
         {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
-        <div className="border-y border-solid border-[var(--line)] py-3">
+        <div className="border-y border-solid border-border py-3">
         {isLoading && (
           <div className="flex justify-center p-6">
             <Spinner className="size-10" />
@@ -319,24 +319,24 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
 
               {/* ── Preview (apercu plain text avec variables remplacees) ── */}
               <div className="mt-4">
-                <h6 className="cn-text-subtitle2 text-muted-foreground mb-[0.35em]">
+                <h6 className="text-xs font-medium text-muted-foreground mb-[0.35em]">
                   {t('messaging.templates.editor.preview')}
                 </h6>
-                <Card className="gap-0 py-0 p-3 bg-[var(--surface-2)] border-[var(--line)]">
-                  <h6 className="cn-text-subtitle2 mb-[0.35em]">
+                <Card className="gap-0 py-0 p-3">
+                  <h6 className="text-xs font-medium mb-[0.35em]">
                     {t('messaging.templates.editor.previewSubject')}: {getPreviewText(subject) || '—'}
                   </h6>
                   <Separator className="my-1.5" />
                   <p
                     className={cn(
-                      'cn-text-body2 whitespace-pre-wrap font-[inherit]',
+                      'text-xs whitespace-pre-wrap font-[inherit]',
                       language === 'ar' ? '[direction:rtl]' : '[direction:ltr]',
                     )}
                   >
                     {getPreviewText(body) || '—'}
                   </p>
                 </Card>
-                <span className="cn-text-caption text-muted-foreground opacity-60 block mt-0.5">
+                <span className="text-xs text-muted-foreground opacity-60 block mt-0.5">
                   {t('systemEmailTemplates.dialog.previewNote')}
                 </span>
               </div>
@@ -344,11 +344,11 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
 
             {/* ── Sidebar variables (droite, 5/12) ── */}
             <div className="col-span-12 min-[900px]:col-span-5">
-              <div className="sticky top-4 rounded-[11px] border border-solid border-[var(--line)] bg-[var(--card)] p-3">
-                <h6 className="cn-text-subtitle2 font-semibold mb-[0.35em]">
+              <div className="sticky top-4 rounded-xl border border-solid border-border bg-card p-3">
+                <h6 className="text-xs font-semibold mb-[0.35em]">
                   {t('messaging.templates.editor.variables')}
                 </h6>
-                <span className="cn-text-caption text-muted-foreground block mb-2">
+                <span className="text-xs text-muted-foreground block mb-2">
                   {t('messaging.templates.editor.variablesDesc')}
                 </span>
                 <VariablePicker
@@ -368,7 +368,7 @@ const SystemTemplateEditDialog: React.FC<Props> = ({ templateKey, open, onClose 
         {isOverride && (
           <Button
             variant="outline"
-            className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+            className="text-warning-ink border-warning hover:bg-warning-soft"
             onClick={handleResetToSystem}
             disabled={saving}
           >

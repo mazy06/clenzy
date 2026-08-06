@@ -236,7 +236,6 @@ export type {
   AirbnbListingMapping,
   LinkListingRequest,
   AirbnbMessage,
-  AirbnbReview,
   GuestProfile,
   GuestReservationSummary,
   CheckInInstructions,

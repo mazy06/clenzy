@@ -2,17 +2,18 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Alert as UiAlert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card, Switch } from '../../components/ui';
 import { Mail } from '../../icons';
 import { useNotification } from '../../hooks/useNotification';
 import { usersApi } from '../../services/api/usersApi';
+import SettingsSection from './components/SettingsSection';
+import SettingsToggleRow from './components/SettingsToggleRow';
 
 /**
- * Card de gestion des preferences marketing — actuellement uniquement l'opt-in
- * newsletter Baitly.
+ * Section de gestion des preferences marketing — actuellement uniquement
+ * l'opt-in newsletter Baitly.
  *
  * <p><b>Conformite RGPD article 7-3</b> : le retrait du consentement doit etre
- * aussi simple que son octroi. Cette card permet a l'utilisateur de retirer
+ * aussi simple que son octroi. Cette section permet a l'utilisateur de retirer
  * son consentement newsletter en un clic, sans contact support, sans email
  * de confirmation requis.</p>
  *
@@ -64,22 +65,13 @@ export default function MarketingPreferencesCard() {
   };
 
   return (
-    <Card className="gap-0 py-0 p-3">
-      {/* Header */}
-      <div className="flex items-center gap-1.5 mb-3">
-        <span className="inline-flex text-[var(--mui-secondary)]">
-          <Mail size={20} strokeWidth={1.75} />
-        </span>
-        <h6 className="cn-text-subtitle1 font-semibold text-[0.95rem]">
-          Préférences marketing
-        </h6>
-      </div>
-
-      <p className="cn-text-body2 text-muted-foreground mb-3 text-[0.8rem]">
-        Gérez les communications marketing que vous recevez de Baitly. Vous pouvez retirer
-        votre consentement à tout moment, conformément à l'article 7-3 du RGPD.
-      </p>
-
+    <SettingsSection
+      title="Préférences marketing"
+      icon={Mail}
+      accent="info"
+      description="Communications marketing que vous recevez de Baitly"
+      help="Vous pouvez retirer votre consentement à tout moment, conformément à l'article 7-3 du RGPD."
+    >
       {loadError && (
         <UiAlert variant="warning" className="mb-3">
           <TriangleAlert />
@@ -92,24 +84,15 @@ export default function MarketingPreferencesCard() {
           <Spinner className="size-5" />
         </div>
       ) : (
-        <div className="flex items-center justify-between py-1.5 px-2 border border-[var(--line)] rounded-[12px]">
-          <div className="flex-1 min-w-0 pe-3">
-            <p className="cn-text-body2 font-semibold text-[0.875rem]">
-              Newsletter Baitly
-            </p>
-            <span className="cn-text-caption text-muted-foreground block text-[0.75rem]">
-              Nouveautés produit, conseils gestion locative, témoignages clients.
-              Environ 1 email par mois.
-            </span>
-          </div>
-          <Switch
-            checked={!!newsletterOptIn}
-            onCheckedChange={(checked) => handleToggle(checked)}
-            disabled={saving}
-            aria-label="Activer ou désactiver la newsletter Baitly"
-          />
-        </div>
+        <SettingsToggleRow
+          title="Newsletter Baitly"
+          description="Nouveautés produit, conseils gestion locative, témoignages clients. Environ 1 email par mois."
+          checked={!!newsletterOptIn}
+          onChange={(checked) => handleToggle(checked)}
+          disabled={saving}
+          divider={false}
+        />
       )}
-    </Card>
+    </SettingsSection>
   );
 }

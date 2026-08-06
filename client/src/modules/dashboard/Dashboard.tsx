@@ -172,7 +172,7 @@ const Dashboard: React.FC = () => {
             iconBadge={<DashboardIcon />}
             titleAdornment={
               activeTabKey === 'overview' && actionItemsCount > 0 ? (
-                <Badge variant="secondary" className="h-[22px] text-[0.6875rem] font-semibold bg-[var(--warn-soft)] text-[var(--warn-ink)]">{`${actionItemsCount} ${t('dashboard.toHandle', 'à traiter')}`}</Badge>
+                <Badge variant="warning" className="h-[22px] text-2xs font-semibold tabular-nums">{`${actionItemsCount} ${t('dashboard.toHandle', 'à traiter')}`}</Badge>
               ) : undefined
             }
             backPath="/"
@@ -196,7 +196,7 @@ const Dashboard: React.FC = () => {
 
         {/* ─── Tabs (dynamic per role) ──────────────────────────────────── */}
         {visibleTabs.length > 1 && (
-          <div className="shrink-0 bg-[var(--card)] border-b border-solid border-[var(--line)]">
+          <div className="shrink-0 border-b border-solid border-border bg-card">
             <PageTabs
               options={visibleTabs.map((tab) => ({
                 key: tab.key,

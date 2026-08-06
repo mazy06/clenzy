@@ -159,16 +159,16 @@ export default function AddDeviceWizard({ open, onClose, onAdded, defaultPropert
                   onClick={() => { setKind(k); setProvider(''); }}
                   style={{ '--kind-color': meta.color } as CSSProperties}
                   className={cn(
-                    'p-[9px] rounded-[var(--radius-md)] cursor-pointer text-center',
+                    'p-[9px] rounded-lg cursor-pointer text-center',
                     'flex flex-col items-center gap-[4.5px] border border-solid',
                     'transition-[border-color,background-color] duration-150 hover:border-[var(--kind-color)]',
                     selected
                       ? 'border-[var(--kind-color)] bg-[color-mix(in_srgb,var(--kind-color)_8%,transparent)]'
-                      : 'border-[var(--line)] bg-transparent',
+                      : 'border-border bg-transparent',
                   )}
                 >
                   <span className="inline-flex text-[var(--kind-color)]">{meta.icon(22)}</span>
-                  <span className="cn-text-body2 font-semibold">{meta.label}</span>
+                  <span className="text-xs font-semibold">{meta.label}</span>
                 </button>
               );
             })}

@@ -47,6 +47,7 @@ import { usersApi } from '../../services/api/usersApi';
 import type { TeamFormData as ApiTeamFormData } from '../../services/api/teamsApi';
 import { extractApiList } from '../../types';
 import PageHeader from '../../components/PageHeader';
+import EmptyState from '../../components/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import { teamSchema, type TeamFormValues, type TeamFormInput } from '../../schemas/teamSchema';
 import { teamsKeys } from './useTeamsList';
@@ -326,7 +327,7 @@ const TeamForm: React.FC = () => {
           <div className="col-span-12 min-[900px]:col-span-8">
             <Card className="[--card-spacing:12px]">
               <CardContent>
-                <h6 className="cn-text-subtitle1 font-semibold mb-2">
+                <h6 className="text-sm font-semibold mb-2">
                   {t('teams.sections.teamInfo')}
                 </h6>
 
@@ -419,15 +420,18 @@ const TeamForm: React.FC = () => {
               <CardContent>
                 {/* Bandeau catégorie : panneau plat -soft (badge icône + libellés) */}
                 {selectedCategory && (
-                  <div className="flex items-center gap-[7.5px] px-[9px] py-[7.5px]" style={{ backgroundColor: `${selectedCategory.color}18`, borderBottom: '1px solid var(--line)' }}>
-                    <div className="w-[36px] h-[36px] rounded-[10px] inline-flex items-center justify-center bg-[var(--card)] shrink-0" style={{ color: selectedCategory.color }}>
+                  <div
+                    className="flex items-center gap-[7.5px] border-b border-solid border-border px-[9px] py-[7.5px]"
+                    style={{ backgroundColor: `${selectedCategory.color}18` }}
+                  >
+                    <div className="w-[36px] h-[36px] rounded-[10px] inline-flex items-center justify-center bg-card shrink-0" style={{ color: selectedCategory.color }}>
                       {getCategoryIcon(selectedCategory.value, 20)}
                     </div>
                     <div className="min-w-0">
-                      <span className="cn-text-caption text-[var(--ink)] font-bold text-[0.75rem] tracking-[0.5px] uppercase block">
+                      <span className="block text-xs font-semibold uppercase tracking-wide text-foreground">
                         {selectedCategory.label}
                       </span>
-                      <span className="cn-text-caption text-[var(--muted)] text-[0.65rem] block mt-0.5">
+                      <span className="block mt-0.5 text-2xs text-muted-foreground">
                         {selectedCategory.description}
                       </span>
                     </div>
@@ -436,7 +440,7 @@ const TeamForm: React.FC = () => {
 
                 <div className="p-2">
                   {/* Rôles autorisés */}
-                  <span className="cn-text-caption text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] mb-1.5 block">
+                  <span className="block mb-1.5 text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {t('teams.fields.authorizedRoles')}
                   </span>
                   <div className="flex gap-0.5 flex-wrap mb-2">
@@ -449,13 +453,13 @@ const TeamForm: React.FC = () => {
 
                   {/* Compteur utilisateurs */}
                   <div className="flex items-center gap-1">
-                    <span className={cn('inline-flex', filteredUsers.length > 0 ? 'text-[var(--accent)]' : 'text-[var(--faint)]')}><GroupIcon size={16} strokeWidth={1.75} /></span>
-                    <span className={cn('cn-text-caption text-[0.72rem] font-medium', filteredUsers.length > 0 ? 'text-[var(--ink)]' : 'text-[var(--faint)]')}>
+                    <span className={cn('inline-flex', filteredUsers.length > 0 ? 'text-primary' : 'text-faint')}><GroupIcon size={16} strokeWidth={1.75} /></span>
+                    <span className={cn('text-xs font-medium tabular-nums', filteredUsers.length > 0 ? 'text-foreground' : 'text-faint')}>
                       {filteredUsers.length} {t('teams.fields.usersAvailable')}
                     </span>
                   </div>
                   {filteredUsers.length === 0 && (
-                    <span className="cn-text-caption text-destructive block mt-0.5 text-[0.65rem]">
+                    <span className="block mt-0.5 text-2xs text-destructive-ink">
                       {t('teams.fields.noUserWithRoles')}
                     </span>
                   )}
@@ -469,11 +473,11 @@ const TeamForm: React.FC = () => {
             <Card className="[--card-spacing:12px]">
               <CardContent>
                 <div className="flex items-center justify-between mb-2">
-                  <h6 className="cn-text-subtitle1 font-semibold flex items-center gap-1">
-                    <span className="inline-flex text-[var(--accent)]"><MapIcon size={18} strokeWidth={1.75} /></span>
+                  <h6 className="text-sm font-semibold flex items-center gap-1">
+                    <span className="inline-flex text-primary"><MapIcon size={18} strokeWidth={1.75} /></span>
                     {t('teams.coverageZones')}
                     {zoneFields.length > 0 && (
-                      <Badge variant="secondary" className="ms-0.5 h-[20px] text-[0.65rem] font-bold text-[var(--accent)] bg-[var(--accent-soft)] tabular-nums px-1">{zoneFields.length}</Badge>
+                      <Badge variant="secondary" className="ms-0.5 h-[20px] text-2xs font-semibold text-primary bg-primary-soft tabular-nums px-1">{zoneFields.length}</Badge>
                     )}
                   </h6>
                   <Button
@@ -487,12 +491,7 @@ const TeamForm: React.FC = () => {
                 </div>
 
                 {zoneFields.length === 0 ? (
-                  <div className="text-center py-[18px] border border-dashed border-[var(--line-2)] rounded-[12px] bg-[var(--field)]">
-                    <span className="inline-flex text-muted-foreground opacity-60 mb-0.5"><MapIcon size={32} strokeWidth={1.75} /></span>
-                    <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
-                      {t('teams.noCoverageZones')}
-                    </p>
-                  </div>
+                  <EmptyState icon={<MapIcon />} title={t('teams.noCoverageZones')} />
                 ) : (
                   <div className="flex flex-col gap-1.5">
                     {zoneFields.map((zoneField, index) => {
@@ -508,7 +507,7 @@ const TeamForm: React.FC = () => {
                       return (
                         <div
                           key={zoneField.id}
-                          className="flex items-center gap-[9px] p-[7.5px] border border-solid border-[var(--line)] rounded-[12px] transition-[border-color,background-color] duration-200 ease-[ease] motion-reduce:transition-none hover:border-[var(--line-2)] hover:bg-[var(--hover)]"
+                          className="flex items-center gap-[9px] p-[7.5px] border border-solid border-border rounded-xl transition-colors duration-200 ease-out motion-reduce:transition-none hover:bg-muted"
                         >
                           <div className="flex-[0_0_180px] min-w-0">
                             <Controller
@@ -678,7 +677,7 @@ const TeamForm: React.FC = () => {
                             size="icon-sm"
                             aria-label={t('teams.removeCoverageZone', { defaultValue: 'Supprimer la zone' })}
                             onClick={() => removeZone(index)}
-                            className="shrink-0 text-[var(--faint)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
+                            className="shrink-0 text-faint hover:bg-destructive-soft hover:text-destructive-ink"
                           >
                             <DeleteOutlined size={18} strokeWidth={1.75} />
                           </Button>
@@ -696,10 +695,10 @@ const TeamForm: React.FC = () => {
             <Card className="[--card-spacing:12px]">
               <CardContent>
                 <div className="flex items-center justify-between mb-2">
-                  <h6 className="cn-text-subtitle1 font-semibold">
+                  <h6 className="text-sm font-semibold">
                     {t('teams.sections.teamMembers')}
                     {fields.length > 0 && (
-                      <Badge variant="secondary" className="ms-1.5 h-[20px] text-[0.65rem] font-bold text-[var(--accent)] bg-[var(--accent-soft)] tabular-nums px-1">{fields.length}</Badge>
+                      <Badge variant="secondary" className="ms-1.5 h-[20px] text-2xs font-semibold text-primary bg-primary-soft tabular-nums px-1">{fields.length}</Badge>
                     )}
                   </h6>
                   {filteredUsers.length > fields.length && (
@@ -715,39 +714,39 @@ const TeamForm: React.FC = () => {
                 </div>
 
                 {fields.length === 0 ? (
-                  <div className="text-center py-6 border border-dashed border-[var(--line-2)] rounded-[12px] bg-[var(--field)]">
-                    <span className="inline-flex text-muted-foreground opacity-60 mb-1.5"><GroupIcon size={36} strokeWidth={1.75} /></span>
-                    <p className="cn-text-body2 text-muted-foreground mb-2 text-[0.8125rem]">
-                      {t('teams.fields.noMemberAdded')}
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAddMember}
-                      disabled={filteredUsers.length === 0}
-                    >
-                      <Add size={16} strokeWidth={1.75} />
-                      {filteredUsers.length === 0 ? t('teams.fields.noUserAvailable') : t('teams.fields.addFirstMember')}
-                    </Button>
-                  </div>
+                  <EmptyState
+                    icon={<GroupIcon />}
+                    title={t('teams.fields.noMemberAdded')}
+                    action={
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAddMember}
+                        disabled={filteredUsers.length === 0}
+                      >
+                        <Add size={16} strokeWidth={1.75} />
+                        {filteredUsers.length === 0 ? t('teams.fields.noUserAvailable') : t('teams.fields.addFirstMember')}
+                      </Button>
+                    }
+                  />
                 ) : (
                   <div>
                     {fields.map((field, index) => (
                       <div
                         key={field.id}
                         className={cn(
-                          'flex items-center gap-[9px] p-[7.5px] mb-1.5 border border-solid rounded-[12px]',
-                          'transition-[border-color,background-color] duration-200 ease-[ease] motion-reduce:transition-none',
-                          'hover:border-[var(--line-2)] hover:bg-[var(--hover)]',
-                          field.userId ? 'border-[var(--line)] bg-transparent' : 'border-[var(--warn)] bg-[var(--warn-soft)]',
+                          'flex items-center gap-[9px] p-[7.5px] mb-1.5 border border-solid rounded-xl',
+                          'transition-colors duration-200 ease-out motion-reduce:transition-none',
+                          'hover:bg-muted',
+                          field.userId ? 'border-border bg-transparent' : 'border-warning bg-warning-soft',
                         )}
                       >
                         {/* Avatar */}
                         <Avatar className="size-8 shrink-0 rounded-[10px] after:rounded-[10px]">
                           <AvatarFallback
                             className={cn(
-                              'rounded-[10px] font-[family-name:var(--font-display)] text-[0.7rem] font-semibold text-[var(--on-accent)]',
-                              field.userId ? 'bg-[var(--accent)]' : 'bg-[var(--faint)]',
+                              'rounded-[10px] font-[family-name:var(--font-display)] text-[0.7rem] font-semibold text-primary-foreground',
+                              field.userId ? 'bg-primary' : 'bg-faint',
                             )}
                           >
                             {field.firstName && field.lastName
@@ -784,14 +783,14 @@ const TeamForm: React.FC = () => {
                                       {(user: User) => (
                                         <ComboboxItem key={user.id} value={user}>
                                           <div className="flex items-center gap-1">
-                                            <Avatar className="size-6 shrink-0 rounded-[8px] after:rounded-[8px]">
-                                              <AvatarFallback className="rounded-[8px] bg-[var(--accent)] font-[family-name:var(--font-display)] text-[0.6rem] font-semibold text-[var(--on-accent)]">
+                                            <Avatar className="size-6 shrink-0 rounded-lg after:rounded-lg">
+                                              <AvatarFallback className="rounded-lg bg-primary font-[family-name:var(--font-display)] text-[0.6rem] font-semibold text-primary-foreground">
                                                 {user.firstName.charAt(0)}{user.lastName.charAt(0)}
                                               </AvatarFallback>
                                             </Avatar>
                                             <div>
-                                              <p className="cn-text-body2 text-[0.8125rem]">{user.firstName} {user.lastName}</p>
-                                              <span className="cn-text-caption text-muted-foreground text-[0.65rem]">{user.email}</span>
+                                              <p className="text-sm">{user.firstName} {user.lastName}</p>
+                                              <span className="block text-2xs text-muted-foreground">{user.email}</span>
                                             </div>
                                           </div>
                                         </ComboboxItem>
@@ -839,7 +838,7 @@ const TeamForm: React.FC = () => {
                           size="icon-sm"
                           aria-label={t('teams.fields.removeMember', { defaultValue: 'Retirer le membre' })}
                           onClick={() => remove(index)}
-                          className="shrink-0 text-[var(--faint)] hover:bg-[var(--err-soft)] hover:text-[var(--err)]"
+                          className="shrink-0 text-faint hover:bg-destructive-soft hover:text-destructive-ink"
                         >
                           <Delete size={18} strokeWidth={1.75} />
                         </Button>

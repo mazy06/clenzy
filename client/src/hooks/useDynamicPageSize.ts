@@ -44,9 +44,26 @@ export function useDynamicPageSize(options: UseDynamicPageSizeOptions = {}) {
     const el = containerRef.current;
     if (!el) return;
 
+    // Hauteurs MESURÉES quand la table est déjà rendue ; les options ne servent
+    // qu'au premier calcul, avant que la table existe. Une constante finit
+    // toujours par mentir : les lignes des réservations font 73 px (cellule à
+    // deux niveaux) contre les 49 annoncés. Le compte était donc trop
+    // optimiste, et comme le cadre clippe sans défiler, les dernières lignes
+    // devenaient inatteignables — la pagination annonçait « 1-13 sur 25 » avec
+    // 9 lignes visibles. Le défaut ne venait pas de l'étroitesse : il touchait
+    // aussi le grand écran.
+    const bodyRow = el.querySelector('tbody tr');
+    const headRow = el.querySelector('thead tr');
+    const measuredRow = bodyRow instanceof HTMLElement && bodyRow.offsetHeight > 0
+      ? bodyRow.offsetHeight
+      : rowHeight;
+    const measuredHead = headRow instanceof HTMLElement && headRow.offsetHeight > 0
+      ? headRow.offsetHeight
+      : headerHeight;
+
     const rect = el.getBoundingClientRect();
     const available = window.innerHeight - rect.top - bottomChrome;
-    const rows = Math.floor((available - headerHeight) / rowHeight);
+    const rows = Math.floor((available - measuredHead) / measuredRow);
     const clamped = Math.max(min, Math.min(max, rows));
 
     setPageSize((prev) => (prev !== clamped ? clamped : prev));
@@ -62,8 +79,24 @@ export function useDynamicPageSize(options: UseDynamicPageSizeOptions = {}) {
     };
 
     window.addEventListener('resize', handleResize);
+
+    // Les données arrivent souvent APRÈS ce premier calcul : sans ce guet, la
+    // mesure porterait sur une table encore vide et retomberait sur la
+    // constante. Le recalcul converge en un tour (même hauteur de ligne → même
+    // valeur → `setPageSize` sans effet).
+    let raf = 0;
+    const observer = new MutationObserver(() => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(compute);
+    });
+    if (containerRef.current) {
+      observer.observe(containerRef.current, { childList: true, subtree: true });
+    }
+
     return () => {
       clearTimeout(timer);
+      cancelAnimationFrame(raf);
+      observer.disconnect();
       window.removeEventListener('resize', handleResize);
     };
   }, [compute]);

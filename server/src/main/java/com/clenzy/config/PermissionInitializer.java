@@ -217,10 +217,19 @@ public class PermissionInitializer {
                 List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
 
         // --- AI ---
-        anyCreated |= ensurePermission("ai:view", "Voir les parametres IA", "ai",
-                List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
-        anyCreated |= ensurePermission("ai:edit", "Configurer sa propre cle IA (BYOK)", "ai",
-                List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
+        // Reserve a l'equipe PLATEFORME : les reglages IA (fournisseurs, modeles,
+        // consommation, superviseur, briefings, documentation) ne sont pas exposes
+        // aux utilisateurs d'une organisation. HOST est donc retire de ai:view et
+        // ai:edit — l'etape 3 de ensurePermission revoque l'assignation par defaut
+        // correspondante au prochain demarrage.
+        //
+        // Ce retrait ne coupe PAS l'assistant : ai:view ne gouverne que l'onglet IA
+        // de /settings (cf. Settings.tsx), et le briefing hebdomadaire fonctionne
+        // desormais sans configuration utilisateur (cf. BriefingDefaultPolicy).
+        anyCreated |= ensurePermission("ai:view", "Voir les parametres IA (plateforme)", "ai",
+                List.of("SUPER_ADMIN", "SUPER_MANAGER"));
+        anyCreated |= ensurePermission("ai:edit", "Configurer les cles IA (plateforme)", "ai",
+                List.of("SUPER_ADMIN", "SUPER_MANAGER"));
         anyCreated |= ensurePermission("ai:manage", "Gerer la configuration IA plateforme", "ai",
                 List.of("SUPER_ADMIN"));
 

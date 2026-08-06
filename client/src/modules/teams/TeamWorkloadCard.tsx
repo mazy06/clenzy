@@ -2,6 +2,7 @@ import React from 'react';
 import { cn } from '../../utils/cn';
 import { Spinner } from '../../components/ui';
 import { Card, CardContent, Progress } from '../../components/ui';
+import StatusChip from '../../components/StatusChip';
 import {
   Assignment,
   CheckCircle,
@@ -79,24 +80,15 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
   const capacityPercent = total > 0 ? Math.round((completedTotal / total) * 100) : 0;
 
   const activeRatio = total > 0 ? (activeInterventions.length / total) * 100 : 0;
-  const getWorkloadColor = () => {
-    if (activeRatio > 80) return 'var(--err)';
-    if (activeRatio > 50) return 'var(--warn)';
-    return 'var(--ok)';
-  };
 
-  // Equivalents hex de la palette validee (concat -soft `${hex}18`)
-  const getWorkloadHex = () => {
-    if (activeRatio > 80) return '#C97A7A';
-    if (activeRatio > 50) return '#D4A574';
-    return '#4A9B8E';
-  };
-
-  const getWorkloadLabel = () => {
-    if (activeRatio > 80) return t('teams.workload.overloaded');
-    if (activeRatio > 50) return t('teams.workload.busy');
-    return t('teams.workload.available');
-  };
+  // Charge de travail : un seul palier décidé ici, deux teintes en sortent.
+  // Le POURCENTAGE est du texte → encre `-ink` (AA) ; la JAUGE est un aplat →
+  // teinte vive. Confondre les deux, c'est du texte à 2,2:1 (cf. contrat §2.4).
+  const workload = activeRatio > 80
+    ? { tone: 'err' as const, ink: 'var(--bui-destructive-ink)', solid: 'var(--bui-destructive)', label: t('teams.workload.overloaded') }
+    : activeRatio > 50
+      ? { tone: 'warn' as const, ink: 'var(--bui-warning-ink)', solid: 'var(--bui-warning)', label: t('teams.workload.busy') }
+      : { tone: 'ok' as const, ink: 'var(--bui-success-ink)', solid: 'var(--bui-success)', label: t('teams.workload.available') };
 
   // Chart data
   const statusCounts: Record<string, number> = {};
@@ -119,24 +111,29 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
     color: statusColors[status] || '#8A8378',
   }));
 
+  // Icône = teinte vive, valeur = encre `-ink`. Les deux sont des classes
+  // écrites en clair : Tailwind émet ses utilitaires en scannant les sources.
   const metrics = [
     {
       label: t('teams.workload.active'),
       value: activeInterventions.length,
-      icon: <span className="inline-flex text-[var(--accent)]"><Assignment size={24} strokeWidth={1.75} /></span>,
-      color: 'var(--accent)',
+      icon: <Assignment size={24} strokeWidth={1.75} />,
+      iconClassName: 'text-primary',
+      valueClassName: 'text-foreground',
     },
     {
       label: t('teams.workload.completedThisMonth'),
       value: completedThisMonth.length,
-      icon: <span className="inline-flex text-[var(--ok)]"><CheckCircle size={24} strokeWidth={1.75} /></span>,
-      color: 'var(--ok)',
+      icon: <CheckCircle size={24} strokeWidth={1.75} />,
+      iconClassName: 'text-success',
+      valueClassName: 'text-success-ink',
     },
     {
       label: t('teams.workload.pending'),
       value: pendingInterventions.length,
-      icon: <span className="inline-flex text-[var(--warn)]"><HourglassEmpty size={24} strokeWidth={1.75} /></span>,
-      color: 'var(--warn)',
+      icon: <HourglassEmpty size={24} strokeWidth={1.75} />,
+      iconClassName: 'text-warning',
+      valueClassName: 'text-warning-ink',
     },
   ];
 
@@ -144,25 +141,21 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
     <Card className="h-full">
       <CardContent className="p-[18px]">
         <div className="flex justify-between items-center mb-3">
-          <h6 className="cn-text-h6 text-[var(--ink)] font-semibold">
+          <h6 className="text-sm font-semibold text-foreground">
             {t('teams.workload.title')}
           </h6>
-          {(() => { const c = getWorkloadHex(); return (
-            <div className="px-[9px] py-[3px] rounded-[999px]" style={{ backgroundColor: `${c}18`, color: c }}>
-              <span className="cn-text-caption font-semibold">{getWorkloadLabel()}</span>
-            </div>
-          ); })()}
+          <StatusChip tone={workload.tone} label={workload.label} pill />
         </div>
 
         <div className="grid grid-cols-12 gap-3 mb-[18px]">
           {metrics.map((metric) => (
             <div className="col-span-4" key={metric.label}>
-              <div className="text-center p-2 rounded-[12px] bg-[var(--field)] border border-[var(--field-line)]">
-                {metric.icon}
-                <h5 className="cn-text-h5 mt-[3px] font-semibold tabular-nums" style={{ color: metric.color, fontFamily: 'var(--font-display)' }}>
+              <div className="text-center p-2 rounded-xl bg-field border border-field-line">
+                <span className={cn('inline-flex', metric.iconClassName)}>{metric.icon}</span>
+                <h5 className={cn('font-[family-name:var(--font-display)] text-sm mt-[3px] font-semibold tabular-nums', metric.valueClassName)}>
                   {metric.value}
                 </h5>
-                <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
+                <span className="block text-2xs text-muted-foreground">
                   {metric.label}
                 </span>
               </div>
@@ -172,16 +165,16 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
 
         <div className="mb-4">
           <div className="flex justify-between items-center mb-0.5">
-            <p className="cn-text-body2 font-medium">{t('teams.workload.capacity')}</p>
-            <p className="cn-text-body2 font-semibold tabular-nums" style={{ color: getWorkloadColor() }}>{capacityPercent}%</p>
+            <p className="text-xs font-medium">{t('teams.workload.capacity')}</p>
+            <p className="text-xs font-semibold tabular-nums" style={{ color: workload.ink }}>{capacityPercent}%</p>
           </div>
           {/* La teinte de la jauge se decide a l'execution : elle transite par
               une variable CSS, une classe Tailwind ne peut pas naitre d'une
               valeur runtime. */}
           <Progress
             value={capacityPercent}
-            className="h-2 rounded-[4px] bg-[var(--hover)] [&_[data-slot=progress-indicator]]:bg-[var(--workload-color)] [&_[data-slot=progress-indicator]]:rounded-[4px]"
-            style={{ '--workload-color': getWorkloadColor() } as React.CSSProperties}
+            className="h-2 rounded-[4px] bg-muted [&_[data-slot=progress-indicator]]:bg-[var(--workload-color)] [&_[data-slot=progress-indicator]]:rounded-[4px]"
+            style={{ '--workload-color': workload.solid } as React.CSSProperties}
           />
         </div>
 
@@ -203,7 +196,7 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
           </div>
         ) : (
           <div className="text-center py-6">
-            <p className="cn-text-body2 text-muted-foreground">{t('dashboard.noData')}</p>
+            <p className="text-xs text-muted-foreground">{t('dashboard.noData')}</p>
           </div>
         )}
       </CardContent>

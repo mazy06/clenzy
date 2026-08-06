@@ -288,13 +288,13 @@ const TemplateDetails: React.FC = () => {
         actions={
           <div className="flex gap-1.5 items-center">
             {/* « Activer » etait un contained success : pas de variante dediee au
-                succes dans le kit, on pose la teinte --ok sur un outline. Cela
+                succes dans le kit, on pose la teinte `success` sur un outline. Cela
                 laisse aussi l'unique `default` de la zone a « Sauvegarder ». */}
             {!template.active && (
               <BuiButton
                 variant="outline"
                 size="sm"
-                className="text-[var(--ok)] border-[var(--ok)] hover:bg-[var(--ok-soft)]"
+                className="text-success-ink border-success hover:bg-success-soft"
                 onClick={handleActivate}
               >
                 <CheckCircle size={14} strokeWidth={1.75} />
@@ -328,7 +328,7 @@ const TemplateDetails: React.FC = () => {
                     aria-label="Plus d'actions"
                     className={cn(
                       buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
-                      'size-[30px] cursor-pointer rounded-[9px] border border-solid border-[var(--line-2)] hover:border-[var(--faint)] hover:bg-[var(--hover)]',
+                      'size-[30px] cursor-pointer rounded-[9px] border border-solid border-border hover:border-faint hover:bg-muted',
                     )}
                   >
                     <MoreVert size={16} strokeWidth={1.75} />
@@ -399,8 +399,8 @@ const TemplateDetails: React.FC = () => {
         <div className="col-span-12 min-[900px]:col-span-6">
           <div className="flex flex-col gap-4">
             {/* Informations */}
-            <Card className="gap-0 py-0 p-3 border-[var(--line)]">
-              <p className="cn-text-body1 mb-3 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
+            <Card className="gap-0 py-0 p-3">
+              <p className="mb-3 text-2xs font-bold uppercase tracking-[.06em] text-faint">
                 Informations
               </p>
 
@@ -442,13 +442,13 @@ const TemplateDetails: React.FC = () => {
             </Card>
 
             {/* Apercu PDF — affiche systematiquement sous les Informations */}
-            <Card className="gap-0 py-0 p-3 border-[var(--line)]">
+            <Card className="gap-0 py-0 p-3">
               <div className="flex justify-between items-center mb-3 flex-wrap gap-1.5">
                 <div>
-                  <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.06em] text-[var(--faint)]">
+                  <p className="text-2xs font-bold uppercase tracking-[.06em] text-faint">
                     Aperçu
                   </p>
-                  <span className="cn-text-caption text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     Prévisualisation générée avec des données factices.
                   </span>
                 </div>
@@ -503,11 +503,11 @@ const TemplateDetails: React.FC = () => {
               {/* Hauteur calee sur le ratio A4 portrait : la largeur du panneau
                   est ~50vw sur desktop md+, donc 1.4x cette largeur donne un
                   rendu equilibre. Min/max evitent les extremes. */}
-              <div className="relative w-full h-[520px] min-[600px]:h-[640px] min-[900px]:h-[780px] min-[1200px]:h-[880px] bg-[var(--field)] border border-solid border-[var(--line)] rounded-[12px] overflow-hidden">
+              <div className="relative w-full h-[520px] min-[600px]:h-[640px] min-[900px]:h-[780px] min-[1200px]:h-[880px] bg-field border border-solid border-border rounded-xl overflow-hidden">
                 {previewLoading && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-[9px] bg-[color-mix(in_srgb,_var(--card)_60%,_transparent)] z-[1]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-[9px] bg-card/60 z-[1]">
                     <Spinner className="size-7" />
-                    <span className="cn-text-caption text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       Génération de l'aperçu en cours...
                     </span>
                   </div>
@@ -520,8 +520,8 @@ const TemplateDetails: React.FC = () => {
                     style={{ width: '100%', height: '100%', border: 0 }}
                   />
                 ) : !previewLoading && (
-                  <div className="absolute inset-[0px] flex items-center justify-center">
-                    <p className="cn-text-body2 text-muted-foreground">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <p className="text-xs text-muted-foreground">
                       Aperçu non disponible.
                     </p>
                   </div>
@@ -580,8 +580,8 @@ const TemplateDetails: React.FC = () => {
 
 const InfoRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="flex justify-between">
-    <p className="cn-text-body2 text-muted-foreground">{label}</p>
-    <p className="cn-text-body2 font-medium">{value}</p>
+    <p className="text-xs text-muted-foreground">{label}</p>
+    <p className="text-xs font-medium">{value}</p>
   </div>
 );
 

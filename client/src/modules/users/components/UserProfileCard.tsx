@@ -1,21 +1,20 @@
 import React from 'react';
-import StatusChip from '../../../components/StatusChip';
+import StatusChip, { type StatusTone } from '../../../components/StatusChip';
 import { Avatar, AvatarFallback, AvatarImage, Card, CardContent } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
 import { Mail as MailIcon, Phone as PhoneIcon, Business } from '../../../icons';
-import { semanticToHex } from '../../../utils/statusUtils';
 import type { ChipColor } from '../../../types';
 
-// Couleur semantique → tokens (chips -soft : texte couleur + fond -soft)
-const SEM_TOKEN: Partial<Record<ChipColor, { fg: string; bg: string }>> = {
-  success: { fg: 'var(--ok)', bg: 'var(--ok-soft)' },
-  warning: { fg: 'var(--warn)', bg: 'var(--warn-soft)' },
-  error: { fg: 'var(--err)', bg: 'var(--err-soft)' },
-  info: { fg: 'var(--info)', bg: 'var(--info-soft)' },
-  primary: { fg: 'var(--accent)', bg: 'var(--accent-soft)' },
+// Couleur semantique → ton de la primitive StatusChip, qui porte deja le couple
+// Baitly UI conforme AA (encre `-ink` sur fond `-soft`).
+const SEM_TONE: Partial<Record<ChipColor, StatusTone>> = {
+  success: 'ok',
+  warning: 'warn',
+  error: 'err',
+  info: 'info',
+  primary: 'accent',
+  secondary: 'accent',
 };
-
-const NEUTRAL_TOKEN = { fg: 'var(--muted)', bg: 'var(--hover)' };
 import { usersApi } from '../../../services/api/usersApi';
 import type { UserDetailsData, RoleInfo, StatusInfo } from './userDetailsTypes';
 import { getRoleInfo, getStatusInfo } from './userDetailsTypes';
@@ -31,7 +30,7 @@ interface UserProfileCardProps {
  *
  * <h4>Design</h4>
  * <ul>
- *   <li>Avatar uses a brand gradient instead of a flat fill (no glassmorphism, no neon).</li>
+ *   <li>Avatar sur l'aplat de marque (no glassmorphism, no neon).</li>
  *   <li>Asymmetric layout: identity on the left, chips on the right. No 3-up KPI tile
  *       template (an Impeccable absolute ban).</li>
  *   <li>Meta row underneath is a thin inline list (email / phone / org) — communicates the
@@ -49,7 +48,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
 
   return (
     // mb: 2 = 12 px ; p: 2 / 2.75 = 12 / 16,5 px (theme.spacing vaut 6).
-    <Card className="relative mb-3 overflow-hidden rounded-[var(--radius-lg)] border border-solid border-[var(--line)] bg-[var(--card)]">
+    <Card className="relative mb-3 overflow-hidden rounded-lg border border-solid border-border bg-card">
       <CardContent className="p-3 min-[900px]:p-[16.5px]">
         <div className="flex items-start min-[900px]:items-center justify-between gap-3 flex-wrap">
           {/* Identity */}
@@ -57,23 +56,25 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
             <div className="relative shrink-0">
               <Avatar className="size-[60px] rounded-full">
                 {photoUrl && <AvatarImage src={photoUrl} alt={`${user.firstName} ${user.lastName}`} />}
-                <AvatarFallback className="bg-[var(--accent)] text-[var(--on-accent)] text-[1.25rem] font-semibold tracking-[0.04em] font-[family-name:var(--font-display)]">
+                <AvatarFallback className="bg-primary text-primary-foreground text-[1.25rem] font-semibold tracking-[0.04em] font-[family-name:var(--font-display)]">
                   {`${user.firstName.charAt(0)}${user.lastName.charAt(0)}`}
                 </AvatarFallback>
               </Avatar>
-              {/* Tiny active dot — green pulse if status === ACTIVE. */}
+              {/* Tiny active dot — aplat de 12 px, donc la teinte vive et non `-ink`. */}
               {isActive && (
                 <span
                   aria-hidden
-                  className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-[var(--ok)] border-2 border-solid border-[var(--card)]"
+                  className="absolute bottom-0.5 end-0.5 size-3 rounded-full bg-success border-2 border-solid border-card"
                 />
               )}
             </div>
             <div className="min-w-0">
-              <h5 className="cn-text-h5 text-[1.125rem] min-[900px]:text-[1.375rem] font-bold tracking-[-0.01em] text-[var(--ink)] text-balance leading-[1.2]">
+              {/* `m-0` : sans preflight Tailwind, un <h5>/<p> natif reprend les
+                  marges UA que neutralisait `cn-text-*`. */}
+              <h5 className="m-0 text-[1.125rem] min-[900px]:text-[1.375rem] font-bold tracking-[-0.01em] text-foreground text-balance leading-[1.2]">
                 {user.firstName} {user.lastName}
               </h5>
-              <p className="cn-text-body1 text-[0.8125rem] text-muted-foreground mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap">
+              <p className="m-0 mt-0.5 text-[0.8125rem] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                 {user.email}
               </p>
             </div>
@@ -81,18 +82,18 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, roles, statuses
 
           {/* Chips */}
           <div className="flex gap-1 flex-wrap shrink-0">
-            <StatusChip tokens={{ color: semanticToHex(roleInfo.color), bg: `${semanticToHex(roleInfo.color)}18` }} label={roleInfo.label} icon={<span className="inline-flex">
+            <StatusChip tone={SEM_TONE[roleInfo.color] ?? 'neutral'} label={roleInfo.label} icon={<span className="inline-flex">
                   {React.cloneElement(roleInfo.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
                     size: 14,
                     strokeWidth: 1.75,
                   })}
                 </span>} />
-            <StatusChip tokens={{ color: (SEM_TOKEN[statusInfo.color] ?? NEUTRAL_TOKEN).fg, bg: (SEM_TOKEN[statusInfo.color] ?? NEUTRAL_TOKEN).bg }} label={statusInfo.label} />
+            <StatusChip tone={SEM_TONE[statusInfo.color] ?? 'neutral'} label={statusInfo.label} />
           </div>
         </div>
 
         {/* Meta row — replaces the 3-up centered KPI tiles. */}
-        <div className="mt-3 pt-[9px] border-t border-solid border-[var(--line)] flex items-center gap-[9px] min-[600px]:gap-[18px] flex-wrap">
+        <div className="mt-3 pt-[9px] border-t border-solid border-border flex items-center gap-[9px] min-[600px]:gap-[18px] flex-wrap">
           <MetaItem
             icon={<MailIcon size={14} strokeWidth={1.75} />}
             value={user.email}
@@ -125,9 +126,9 @@ const MetaItem: React.FC<{
   const content = (
     <span
       className={cn(
-        'inline-flex items-center gap-[3.75px] text-[0.75rem] text-[var(--muted)] min-w-0',
-        'transition-colors duration-150 ease-[ease] motion-reduce:transition-none',
-        href && 'hover:text-[var(--accent)]',
+        'inline-flex items-center gap-[3.75px] text-xs text-muted-foreground min-w-0',
+        'transition-colors duration-150 ease-out-quart motion-reduce:transition-none',
+        href && 'hover:text-primary',
       )}
     >
       <span className="inline-flex text-muted-foreground opacity-60">

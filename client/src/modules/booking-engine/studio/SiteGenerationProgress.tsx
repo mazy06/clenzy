@@ -53,11 +53,11 @@ export default function SiteGenerationProgress({ brandLabel }: { brandLabel?: st
       <PageAssemblyMotif reduce={reduce} />
 
       <div>
-        <div className="font-[family-name:var(--font-display)] text-[var(--text-lg)] font-[family-name:var(--fw-bold)] text-[var(--ink)]">
+        <div className="font-[family-name:var(--font-display)] text-base font-bold text-balance text-foreground">
           {k('title', 'Construction de votre site…')}
         </div>
         {brandLabel ? (
-          <div className="text-[var(--text-sm)] text-[var(--muted)] mt-[1.5px] max-w-[360px] leading-[1.45] text-balance">
+          <div className="text-xs text-muted-foreground mt-[1.5px] max-w-[360px] leading-[1.45] text-balance">
             {brandLabel}
           </div>
         ) : null}
@@ -71,8 +71,8 @@ export default function SiteGenerationProgress({ brandLabel }: { brandLabel?: st
           const active = i === step;
           const Icon = s.icon;
           return (
-            <div className={cn('flex items-center gap-[7.5px]', done || active ? 'opacity-100' : 'opacity-40')} style={{ transition: 'opacity .3s var(--ease-out)' }} key={s.label}>
-              <div className={cn('w-[26px] h-[26px] rounded-[50%] grid place-items-[center] shrink-0', done || active ? 'bg-[var(--accent-soft)]' : 'bg-[var(--line)]', done || active ? 'text-[var(--accent)]' : 'text-[var(--muted)]')} style={{ transition: 'background .3s var(--ease-out), color .3s var(--ease-out)' }}>
+            <div className={cn('flex items-center gap-[7.5px] transition-opacity duration-300 ease-out-quart motion-reduce:transition-none', done || active ? 'opacity-100' : 'opacity-40')} key={s.label}>
+              <div className={cn('w-[26px] h-[26px] rounded-full grid place-items-center shrink-0 transition-colors duration-300 ease-out-quart motion-reduce:transition-none', done || active ? 'bg-primary-soft text-primary' : 'bg-muted text-muted-foreground')}>
                 {done ? (
                   <Check size={14} strokeWidth={2.6} />
                 ) : active && !reduce ? (
@@ -87,7 +87,7 @@ export default function SiteGenerationProgress({ brandLabel }: { brandLabel?: st
                   <Icon size={14} strokeWidth={2} />
                 )}
               </div>
-              <div className={cn('text-[var(--text-sm)]', active ? 'text-[var(--ink)]' : 'text-[var(--body)]')} style={{ fontWeight: active ? 'var(--fw-semibold)' : undefined }}>
+              <div className={cn('text-xs', active ? 'font-semibold text-foreground' : 'text-muted-foreground')}>
                 {s.label}
               </div>
             </div>
@@ -103,14 +103,14 @@ export default function SiteGenerationProgress({ brandLabel }: { brandLabel?: st
             animate={{ opacity: 1, y: 0 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6 }}
             transition={{ duration: 0.4, ease: 'easeOut' }}
-            style={{ fontSize: 'var(--text-2xs)', color: 'var(--muted)', maxWidth: 360, lineHeight: 1.5 }}
+            className="text-2xs text-muted-foreground max-w-[360px] leading-[1.5]"
           >
             {tips[tip]}
           </motion.div>
         </AnimatePresence>
       </div>
 
-      <div className="text-[var(--text-2xs)] text-[var(--muted)] opacity-70">
+      <div className="text-2xs text-muted-foreground opacity-70">
         {k('doNotClose', 'Ne fermez pas cette fenêtre.')}
       </div>
     </div>
@@ -127,15 +127,15 @@ function PageAssemblyMotif({ reduce }: { reduce: boolean }) {
     />
   );
   return (
-    <div className="w-[132px] p-[7.5px] rounded-[var(--radius-lg)] bg-[var(--card)] border border-solid border-[var(--line)] flex flex-col gap-[4.5px]" style={{ boxShadow: '0 12px 32px -20px rgba(0,0,0,0.3)' }}>
-      {block(0, { height: 8, width: '45%', background: 'var(--muted)' })}
-      {block(0.2, { height: 30, width: '100%', background: 'var(--accent)' })}
-      {block(0.4, { height: 6, width: '80%', background: 'var(--line)' })}
-      {block(0.5, { height: 6, width: '60%', background: 'var(--line)' })}
+    <div className="w-[132px] p-[7.5px] rounded-xl bg-card border border-solid border-border shadow-lg flex flex-col gap-[4.5px]">
+      {block(0, { height: 8, width: '45%', background: 'var(--bui-muted-foreground)' })}
+      {block(0.2, { height: 30, width: '100%', background: 'var(--bui-primary)' })}
+      {block(0.4, { height: 6, width: '80%', background: 'var(--bui-border)' })}
+      {block(0.5, { height: 6, width: '60%', background: 'var(--bui-border)' })}
       <div className="flex gap-0.5 mt-0.5">
         {[0, 1, 2].map((i) => (
           <div className="flex-1 flex" key={i}>
-            {block(0.6 + i * 0.12, { height: 22, width: '100%', background: 'var(--field)', border: '1px solid var(--line)' })}
+            {block(0.6 + i * 0.12, { height: 22, width: '100%', background: 'var(--bui-field)', border: '1px solid var(--bui-border)' })}
           </div>
         ))}
       </div>
@@ -146,14 +146,14 @@ function PageAssemblyMotif({ reduce }: { reduce: boolean }) {
 /** Barre de progression INDÉTERMINÉE : un balayage en boucle (pas de pourcentage faux). */
 function IndeterminateBar({ reduce }: { reduce: boolean }) {
   return (
-    <div className="w-full max-w-[300px] h-[5px] rounded-[999px] bg-[var(--line)] overflow-hidden relative">
+    <div className="w-full max-w-[300px] h-[5px] rounded-full bg-muted overflow-hidden relative">
       {reduce ? (
-        <div className="absolute inset-y-0 left-0 w-[45%] rounded-[999px] bg-[var(--accent)] opacity-60" />
+        <div className="absolute inset-y-0 start-0 w-[45%] rounded-full bg-primary opacity-60" />
       ) : (
         <motion.div
           animate={{ x: ['-45%', '260%'] }}
           transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ position: 'absolute', top: 0, bottom: 0, width: '40%', borderRadius: 999, background: 'var(--accent)' }}
+          className="absolute inset-y-0 w-[40%] rounded-full bg-primary"
         />
       )}
     </div>

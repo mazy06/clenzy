@@ -3,6 +3,8 @@ import { Alert, AlertDescription, Button } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Skeleton } from '../../components/ui';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui';
+import { Article as ArticleIcon } from '../../icons';
+import EmptyState from '../../components/EmptyState';
 import { useTranslation } from 'react-i18next';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -60,10 +62,10 @@ function parseCsv(content: string, separator: string): { headers: string[]; rows
 // `sticky top-0` + fond OPAQUE : sans le fond, les lignes defileraient par
 // transparence sous l'entete fige.
 const HEADER_CELL_CLASS =
-  'sticky top-0 z-10 bg-[var(--card)] px-2 py-[6px] text-[10.5px] font-bold uppercase tracking-[0.05em] text-[var(--faint)] whitespace-nowrap border-b border-solid border-[var(--line)]';
+  'sticky top-0 z-10 bg-card px-2 py-[6px] text-2xs font-semibold uppercase tracking-wide text-faint whitespace-nowrap border-b border-solid border-border';
 
 const BODY_CELL_CLASS =
-  'px-2 py-[4px] text-[12px] tabular-nums whitespace-nowrap max-w-[300px] overflow-hidden text-ellipsis';
+  'px-2 py-[4px] text-xs tabular-nums whitespace-nowrap max-w-[300px] overflow-hidden text-ellipsis';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -104,7 +106,7 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
         {loading && (
           <div className="p-3 flex flex-col gap-1.5">
             {[0, 1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-[28px] w-full rounded-[var(--radius-sm)]" />
+              <Skeleton key={i} className="h-[28px] w-full rounded-md" />
             ))}
           </div>
         )}
@@ -120,8 +122,8 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
 
         {!loading && !error && parsed?.type === 'table' && (
           <>
-            <div className="px-3 py-1 border-b border-[var(--line)] bg-[var(--surface-2)]">
-              <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] tabular-nums">
+            <div className="px-3 py-1 border-b border-border bg-card">
+              <p className="text-xs text-muted-foreground tabular-nums">
                 {parsed.rows.length} {t('common.lines')} · {parsed.headers.length} {t('common.columns')}
               </p>
             </div>
@@ -140,7 +142,7 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
                 </TableHeader>
                 <TableBody>
                   {parsed.rows.map((row, ri) => (
-                    <TableRow key={ri} className="even:bg-[var(--hover)]">
+                    <TableRow key={ri} className="even:bg-muted">
                       {row.map((cell, ci) => (
                         <TableCell key={ci} className={BODY_CELL_CLASS} title={cell}>{cell}</TableCell>
                       ))}
@@ -154,7 +156,7 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
 
         {!loading && !error && parsed?.type === 'xml' && (
           <div className="flex-1 overflow-auto p-3">
-            <pre style={{ margin: 0, fontSize: '12px', fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: 'var(--body)' }}>
+            <pre className="m-0 font-mono text-xs whitespace-pre-wrap break-words text-foreground">
               {parsed.text}
             </pre>
           </div>
@@ -162,9 +164,11 @@ const ExportPreviewDialog: React.FC<ExportPreviewDialogProps> = ({
 
         {!loading && !error && !parsed && (
           <div className="flex justify-center items-center flex-1">
-            <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
-              {t('common.noData')}
-            </p>
+            <EmptyState
+              icon={<ArticleIcon />}
+              title={t('common.noData')}
+              variant="transparent"
+            />
           </div>
         )}
         </div>

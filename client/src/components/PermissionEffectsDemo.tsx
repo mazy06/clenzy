@@ -12,7 +12,9 @@ import {
   Person as PersonIcon,
   Settings as SettingsIcon,
   Assessment as AssessmentIcon,
-  Info as InfoIcon
+  Info as InfoIcon,
+  CheckCircle as CheckCircleIcon,
+  Warning as WarningIcon
 } from '../icons';
 
 interface PermissionEffectsDemoProps {
@@ -133,26 +135,26 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
           return (
             <div className="col-span-12 min-[1200px]:col-span-6" key={menu.name}>
               {/* Le liseré remplace l'anneau du primitif (`ring-0`) : c'est lui qui
-                  porte l'etat accessible / inaccessible. `grey.300` n'ayant pas
-                  d'equivalent direct, il devient la hairline forte --line-2. */}
+                  porte l'etat accessible / inaccessible — teinte vive pour une
+                  bordure, jamais l'encre `-ink`. */}
               <Card
                 className={cn(
-                  'h-full py-0 ring-0 border border-solid bg-[var(--card)]',
-                  'transition-all duration-200 ease-out hover:-translate-y-[2px] hover:border-[var(--mui-primary)]',
-                  status.accessible ? 'border-[var(--ok)]' : 'border-[var(--line-2)]',
+                  'h-full py-0 ring-0 border border-solid bg-card',
+                  'transition-all duration-200 ease-out hover:-translate-y-[2px] hover:border-primary',
+                  status.accessible ? 'border-success' : 'border-border',
                 )}
               >
                 <CardContent className="p-[15px]">
                   {/* En-tête avec icône et statut */}
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="p-1.5 bg-[var(--hover)] rounded-[8px] flex items-center justify-center text-muted-foreground">
+                    <div className="p-1.5 bg-muted rounded-md flex items-center justify-center text-muted-foreground">
                       {getModuleIcon(menu.name)}
                     </div>
                     <div className="flex-1">
-                      <h6 className="cn-text-h6 font-semibold text-foreground mb-0.5">
+                      <h6 className="text-sm font-semibold mt-0 mb-0.5 text-foreground">
                         {menu.name}
                       </h6>
-                      <p className="cn-text-body2 text-muted-foreground leading-[1.4]">
+                      <p className="text-xs m-0 text-muted-foreground leading-[1.4]">
                         {menu.description}
                       </p>
                     </div>
@@ -164,11 +166,11 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
                   </div>
                   
                   {/* Permissions requises */}
-                  <div className="p-2 bg-[var(--surface-2)] rounded-[8px] mb-3 border border-[var(--line)]">
-                    <span className="cn-text-caption text-muted-foreground font-medium block mb-0.5">
+                  <div className="p-2 bg-card rounded-md mb-3 border border-solid border-border">
+                    <span className="text-xs text-muted-foreground font-medium block mb-0.5">
                       Permissions requises
                     </span>
-                    <p className="cn-text-body2 text-foreground font-medium font-mono">
+                    <p className="text-xs m-0 text-foreground font-medium font-mono">
                       {menu.permissions.join(', ')}
                     </p>
                   </div>
@@ -178,18 +180,16 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
                       remplace les nuances `.50` / `.200` / `.dark` de MUI. */}
                   <div
                     className={cn(
-                      'p-[9px] rounded-[8px] border border-solid',
+                      'p-[9px] rounded-md border border-solid',
                       status.accessible
-                        ? 'bg-[var(--bui-success-soft)] border-[color-mix(in_srgb,var(--bui-success)_30%,transparent)]'
-                        : 'bg-[var(--bui-destructive-soft)] border-[color-mix(in_srgb,var(--bui-destructive)_30%,transparent)]',
+                        ? 'bg-success-soft border-success/30'
+                        : 'bg-destructive-soft border-destructive/30',
                     )}
                   >
                     <span
                       className={cn(
-                        'cn-text-caption font-medium',
-                        status.accessible
-                          ? 'text-[var(--bui-success-ink)]'
-                          : 'text-[var(--bui-destructive-ink)]',
+                        'text-xs font-medium',
+                        status.accessible ? 'text-success-ink' : 'text-destructive-ink',
                       )}
                     >
                       {status.reason}
@@ -206,32 +206,38 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
       <div className="mt-6">
         <div className="grid grid-cols-12 gap-3">
           <div className="col-span-12 min-[900px]:col-span-6">
-            <Card className="p-[15px] text-center ring-0 border-[1.5px] border-solid border-[var(--ok)] bg-[var(--card)]">
-              <h4 className="cn-text-h4 text-[var(--bui-success-ink)] font-bold mb-1.5">
+            <Card className="p-[15px] text-center ring-0 border-[1.5px] border-solid border-success bg-card">
+              <h4 className="text-base font-bold tracking-tight mt-0 mb-1.5 text-success-ink tabular-nums">
                 {rolePermissions.permissions.length}
               </h4>
-              <p className="cn-text-body2 text-muted-foreground font-medium">
+              <p className="text-xs m-0 text-muted-foreground font-medium">
                 Permissions actives
               </p>
             </Card>
           </div>
-          
+
           <div className="col-span-12 min-[900px]:col-span-6">
             <Card
               className={cn(
-                'p-[15px] text-center ring-0 border-[1.5px] border-solid bg-[var(--card)]',
-                rolePermissions.isDefault ? 'border-[var(--ok)]' : 'border-[var(--warn)]',
+                'p-[15px] text-center ring-0 border-[1.5px] border-solid bg-card',
+                rolePermissions.isDefault ? 'border-success' : 'border-warning',
               )}
             >
-              <h4
+              {/* Une icone lucide, jamais un emoji (interdit produit) : la teinte
+                  vive est celle des icones, l'encre `-ink` restant au texte. */}
+              <div
                 className={cn(
-                  'cn-text-h4 font-bold mb-1.5',
-                  rolePermissions.isDefault ? 'text-[var(--ok)]' : 'text-[var(--warn)]',
+                  'flex justify-center mb-1.5',
+                  rolePermissions.isDefault ? 'text-success' : 'text-warning',
                 )}
               >
-                {rolePermissions.isDefault ? '✅' : '⚠️'}
-              </h4>
-              <p className="cn-text-body2 text-muted-foreground font-medium">
+                {rolePermissions.isDefault ? (
+                  <CheckCircleIcon size={24} strokeWidth={1.75} aria-hidden />
+                ) : (
+                  <WarningIcon size={24} strokeWidth={1.75} aria-hidden />
+                )}
+              </div>
+              <p className="text-xs m-0 text-muted-foreground font-medium">
                 {rolePermissions.isDefault ? 'Par défaut' : 'Modifié'}
               </p>
             </Card>

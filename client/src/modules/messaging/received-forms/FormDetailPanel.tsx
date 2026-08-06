@@ -1,6 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { cn } from '../../../utils/cn';
-import { Button, Spinner } from '../../../components/ui';
+import {
+  Badge,
+  Button,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+  Spinner,
+} from '../../../components/ui';
+import GuestAvatar from '../../../components/baitly/GuestAvatar';
 import { Field, FieldLabel, FieldDescription, Input, Textarea } from '../../../components/ui';
 import {
   Dialog,
@@ -36,7 +47,7 @@ import { useTemplates, useGenerateDocument, useGenerationsByReference } from '..
 import { documentsApi } from '../../../services/api/documentsApi';
 import { useNotification } from '../../../hooks/useNotification';
 import FormPayloadSections from './FormDetailSections';
-import { EMAIL_RE, STATUS_PILL, formatFormDate, initialsOf } from './formatters';
+import { EMAIL_RE, STATUS_PILL, formatFormDate } from './formatters';
 
 /** Map type de formulaire → documentType serveur (parité ReceivedFormsTab). */
 const FORM_TO_DOC_TYPE: Record<string, string> = {
@@ -192,70 +203,78 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
   const pill = STATUS_PILL[form.status] ?? STATUS_PILL.NEW;
 
   return (
-    <div className="flex-1 min-w-0 overflow-y-auto p-[26px 30px] bg-[var(--bg)]">
-      {/* Retour mobile vers la liste */}
-      {showBack && (
-        <button className="flex items-center justify-center w-[32px] h-[32px] mb-3.5 rounded-[8px] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] cursor-pointer p-0 hover:text-[var(--accent)] hover:border-[var(--accent)]" style={{ transition: 'color .14s, border-color .14s' }} onClick={onBack} aria-label="Retour">
-          <ArrowBackIcon size={16} strokeWidth={1.75} />
-        </button>
-      )}
+    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto rounded-xl border border-border bg-card p-4 min-[900px]:p-5">
+      {/* ── Entête : identité, contact, statut ─────────────────────────────
+          Le statut et la date remontent SUR la ligne du nom plutôt que dans une
+          colonne à droite : sur un volet étroit, cette colonne poussait le nom
+          et l'objet à se tronquer alors qu'ils portent l'essentiel. */}
+      <header className="flex flex-col gap-3 border-b border-border pb-4">
+        <div className="flex items-start gap-3">
+          {showBack && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={onBack}
+              aria-label="Retour"
+              className="cursor-pointer"
+            >
+              <ArrowBackIcon size={16} strokeWidth={1.75} />
+            </Button>
+          )}
+          <GuestAvatar name={form.fullName || 'Anonyme'} size={44} />
 
-      {/* .fr-dhead : entête identité + statut */}
-      <div className="flex items-start gap-3.5 pb-[18px]" style={{ borderBottom: '1px solid var(--line)' }}>
-        <div className="w-[60px] h-[60px] rounded-[50%] shrink-0 flex items-center justify-center font-[family-name:var(--font-display)] font-semibold text-[20px] text-[var(--on-accent)] bg-[var(--accent)]">
-          {initialsOf(form.fullName)}
-        </div>
-        <div className="min-w-0">
-          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[20px] font-semibold text-[var(--ink)] tracking-[-.01em]">
-            {form.fullName || 'Anonyme'}
-          </p>
-          <p className="cn-text-body1 text-[13px] text-[var(--muted)] mt-0.5">
-            {form.subject || `Formulaire #${form.id}`}
-          </p>
-          {/* .fr-dcontact : email / tél / adresse avec icônes accent */}
-          <div className="flex flex-wrap items-center gap-y-[7px] gap-x-4 mt-[11px] text-[13px] text-[var(--body)] [&_svg]:text-[var(--accent)] [&_svg]:shrink-0">
-            {form.email && (
-              <a className="inline-flex items-center gap-[7px] text-[inherit] decoration-[none] hover:text-[var(--ink)]" href={`mailto:${form.email}`}>
-                <MailIcon size={15} strokeWidth={1.75} />
-                {form.email}
-              </a>
-            )}
-            {form.phone && (
-              <a className="inline-flex items-center gap-[7px] text-[inherit] decoration-[none] hover:text-[var(--ink)]" href={`tel:${form.phone.replace(/\s/g, '')}`}>
-                <PhoneIcon size={15} strokeWidth={1.75} />
-                {form.phone}
-              </a>
-            )}
-            {(form.city || form.postalCode) && (
-              <span className="inline-flex items-center gap-[7px]">
-                <MapPinIcon size={15} strokeWidth={1.75} />
-                {[form.city, form.postalCode].filter(Boolean).join(' ')}
-              </span>
-            )}
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="cn-font-heading truncate text-lg font-semibold text-foreground">
+                {form.fullName || 'Anonyme'}
+              </h2>
+              <Badge variant={pill.variant}>{pill.label}</Badge>
+            </div>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {form.subject || `Formulaire #${form.id}`}
+            </p>
+            <p className="mt-0.5 text-xs text-faint tabular-nums">
+              {formatFormDate(form.createdAt)}
+              {form.ipAddress && ` · IP ${form.ipAddress}`}
+            </p>
           </div>
         </div>
-        {/* .fr-dright : pilule statut + date + IP */}
-        <div className="ms-auto text-end shrink-0">
-          <span className="inline-flex items-center gap-[7px] text-[11px] font-bold p-[5px 12px] rounded-[20px]" style={{ backgroundColor: pill.bg, color: pill.fg }}>
-            <span className="w-[7px] h-[7px] rounded-[50%] bg-[currentColor]" />
-            {pill.label}
-          </span>
-          <p className="cn-text-body1 text-[13px] text-[var(--muted)] mt-2">
-            {formatFormDate(form.createdAt)}
-          </p>
-          {form.ipAddress && (
-            <span className="cn-text-body1 inline-block text-[11px] text-[var(--faint)] bg-[var(--field)] rounded-[6px] p-[3px 8px] mt-2 tabular-nums" style={{ fontFamily: 'var(--font-display)' }}>
-              IP : {form.ipAddress}
+
+        {/* Contact : les coordonnées sont ACTIONNABLES (mailto / tel), pas du
+            texte décoratif — c'est le premier geste après lecture. */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
+          {form.email && (
+            <a
+              className="inline-flex items-center gap-1.5 text-foreground no-underline transition-colors duration-150 hover:text-primary motion-reduce:transition-none"
+              href={`mailto:${form.email}`}
+            >
+              <MailIcon size={14} strokeWidth={1.75} className="shrink-0 text-primary" />
+              {form.email}
+            </a>
+          )}
+          {form.phone && (
+            <a
+              className="inline-flex items-center gap-1.5 text-foreground no-underline transition-colors duration-150 hover:text-primary motion-reduce:transition-none"
+              href={`tel:${form.phone.replace(/\s/g, '')}`}
+            >
+              <PhoneIcon size={14} strokeWidth={1.75} className="shrink-0 text-primary" />
+              {form.phone}
+            </a>
+          )}
+          {(form.city || form.postalCode) && (
+            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+              <MapPinIcon size={14} strokeWidth={1.75} className="shrink-0 text-primary" />
+              {[form.city, form.postalCode].filter(Boolean).join(' ')}
             </span>
           )}
         </div>
-      </div>
+      </header>
 
       {/* Sections payload (aperçu du bien / services / planning) */}
       <FormPayloadSections form={form} />
 
-      {/* .fr-actions : filet top + boutons */}
-      <div className="flex items-center gap-2.5 flex-wrap m-[26px 0 0] pt-5" style={{ borderTop: '1px solid var(--line)' }}>
+      {/* ── Actions ───────────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
         {/* Un bouton desactive n'emet pas d'evenement de survol : l'enveloppe
             porte le declencheur du Tooltip a sa place. */}
         {tpl && (
@@ -308,7 +327,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
         {form.status !== 'ARCHIVED' ? (
           <Button
             variant="ghost"
-            className="text-[var(--muted)] hover:text-[var(--err)]"
+            className="cursor-pointer text-muted-foreground hover:text-destructive-ink"
             onClick={() => handleUpdateStatus('ARCHIVED')}
             disabled={updateStatusMutation.isPending}
           >
@@ -326,63 +345,72 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
           </Button>
         )}
         {!tpl && form.formType === 'DEVIS' && (
-          <p className="cn-text-body1 text-[11px] text-[var(--faint)] italic flex-1 min-w-[200px]">
-            Aucun template DEVIS actif — ajoute-en un dans Documents & Communications pour activer la génération PDF.
+          <p className="min-w-[200px] flex-1 text-xs italic text-faint">
+            Aucun template DEVIS actif — ajoute-en un dans Documents &amp; Communications pour activer la génération PDF.
           </p>
         )}
       </div>
 
-      {/* .fr-docs : documents générés */}
+      {/* ── Documents générés ─────────────────────────────────────────────── */}
       {priorGenerations && priorGenerations.length > 0 && (
-        <div className="mt-6">
-          <div className="flex items-center gap-2 mb-3 text-[13px] font-bold text-[var(--ink)] [&_svg]:text-[var(--muted)]">
-            <HistoryIcon size={15} strokeWidth={1.75} />
+        <section className="flex flex-col gap-2.5">
+          <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <HistoryIcon size={14} strokeWidth={1.75} />
             Documents générés ({priorGenerations.length})
-          </div>
+          </h3>
           <div className="flex flex-col gap-2">
             {priorGenerations.slice(0, 5).map((gen) => {
               const isFailed = gen.status === 'FAILED';
               return (
-                <div
+                <Item
                   key={gen.id}
-                  onClick={isFailed
-                    ? () => setErrorDetail({ message: gen.errorMessage || 'Cause inconnue', date: gen.createdAt })
-                    : () => openPreview(gen)}
+                  asChild
+                  variant="outline"
+                  size="sm"
                   className={cn(
-                    'flex items-center gap-3 py-[13px] px-[15px] border border-solid rounded-[12px] cursor-pointer',
-                    'transition-[border-color,box-shadow] duration-[140ms]',
+                    'cursor-pointer transition-colors duration-150 motion-reduce:transition-none',
                     isFailed
-                      ? 'border-[var(--err)] bg-[var(--err-soft)] hover:shadow-[0_8px_22px_-16px_var(--err)]'
-                      : 'border-[var(--line)] bg-transparent hover:border-[var(--accent)] hover:shadow-[0_8px_22px_-16px_var(--accent)]',
+                      ? 'border-destructive/40 bg-destructive-soft/40 hover:border-destructive/60'
+                      : 'hover:border-primary/40 hover:bg-accent',
                   )}
                 >
-                  <div className="w-[34px] h-[34px] rounded-[9px] bg-[var(--err)] text-[var(--on-accent)] flex items-center justify-center shrink-0 text-[9px] font-extrabold">
-                    {isFailed ? <AlertTriangleIcon size={15} strokeWidth={1.75} /> : 'PDF'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={cn(
-                      'cn-text-body1 text-[13px] font-semibold truncate',
-                      isFailed ? 'text-[var(--err)]' : 'text-[var(--ink)]',
-                    )}>
-                      {isFailed ? 'Échec de génération' : (gen.fileName || `document-${gen.id}.pdf`)}
-                    </p>
-                    {/* Erreur : 1re ligne uniquement (tronquée) — détail complet dans la modale au clic. */}
-                    <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mt-[1px] truncate">
-                      {isFailed
-                        ? `${gen.errorMessage || 'Cause inconnue'}${gen.createdAt ? ` · ${formatFormDate(gen.createdAt)}` : ''}`
-                        : [gen.legalNumber, gen.createdAt ? formatFormDate(gen.createdAt) : '']
-                            .filter(Boolean).join(' · ')}
-                    </p>
-                  </div>
-                  <span className={cn('ms-auto inline-flex items-center gap-1 text-[12.5px] font-semibold whitespace-nowrap shrink-0', isFailed ? 'text-[var(--err)]' : 'text-[var(--accent)]')}>
-                    {isFailed ? 'Détail' : 'Aperçu'}
-                    <ArrowRightIcon size={14} strokeWidth={1.75} />
-                  </span>
-                </div>
+                  <button
+                    type="button"
+                    className="text-start"
+                    onClick={isFailed
+                      ? () => setErrorDetail({ message: gen.errorMessage || 'Cause inconnue', date: gen.createdAt })
+                      : () => openPreview(gen)}
+                  >
+                    <ItemMedia variant="icon" className={cn(isFailed && 'bg-destructive-soft text-destructive-ink')}>
+                      {isFailed ? <AlertTriangleIcon size={16} strokeWidth={1.75} /> : <FileTextIcon size={16} strokeWidth={1.75} />}
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle className={cn(isFailed && 'text-destructive-ink')}>
+                        {isFailed ? 'Échec de génération' : (gen.fileName || `document-${gen.id}.pdf`)}
+                      </ItemTitle>
+                      {/* Erreur : 1re ligne uniquement (tronquée) — détail complet dans la modale au clic. */}
+                      <ItemDescription>
+                        {isFailed
+                          ? `${gen.errorMessage || 'Cause inconnue'}${gen.createdAt ? ` · ${formatFormDate(gen.createdAt)}` : ''}`
+                          : [gen.legalNumber, gen.createdAt ? formatFormDate(gen.createdAt) : '']
+                              .filter(Boolean).join(' · ')}
+                      </ItemDescription>
+                    </ItemContent>
+                    <ItemActions>
+                      <span className={cn(
+                        'inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-medium',
+                        isFailed ? 'text-destructive-ink' : 'text-primary',
+                      )}>
+                        {isFailed ? 'Détail' : 'Aperçu'}
+                        <ArrowRightIcon size={14} strokeWidth={1.75} />
+                      </span>
+                    </ItemActions>
+                  </button>
+                </Item>
               );
             })}
           </div>
-        </div>
+        </section>
       )}
 
       {/* ── Aperçu PDF inline ── */}
@@ -392,16 +420,16 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
           showCloseButton={false}
           className="sm:max-w-5xl h-[92vh] flex flex-col gap-0 p-0 overflow-hidden"
         >
-          <DialogHeader className="flex-row items-center gap-1.5 py-[7.5px] px-3 border-b border-solid border-b-[var(--line)] bg-[var(--surface-2)]">
-            <span className="inline-flex text-[var(--err)]">
+          <DialogHeader className="flex-row items-center gap-1.5 border-b border-border bg-muted px-3 py-2">
+            <span className="inline-flex text-destructive-ink">
               <FileTextIcon size={18} strokeWidth={1.75} />
             </span>
             <div className="flex-1 min-w-0">
-              <DialogTitle className="text-[13px] font-bold text-[var(--ink)] overflow-hidden text-ellipsis whitespace-nowrap">
+              <DialogTitle className="truncate text-sm font-semibold text-foreground">
                 {previewMeta?.filename || 'Aperçu du document'}
               </DialogTitle>
               {previewMeta?.createdAt && (
-                <DialogDescription className="text-[11px] text-[var(--muted)]">
+                <DialogDescription className="text-xs text-muted-foreground">
                   Généré le {formatFormDate(previewMeta.createdAt)}
                 </DialogDescription>
               )}
@@ -473,7 +501,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
             Renvoyer le devis
           </DialogTitle>
           {form.email ? (
-            <DialogDescription className="cn-text-body2 text-[var(--muted)]">
+            <DialogDescription className="text-sm text-muted-foreground">
               À {form.email} — info@clenzy.fr en copie
             </DialogDescription>
           ) : null}
@@ -481,7 +509,7 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
         <div className="flex flex-col gap-3">
           {resend.loading ? (
             <div className="flex justify-center py-6">
-              <Spinner className="size-[22px] text-[var(--accent)]" />
+              <Spinner className="size-5 text-primary" />
             </div>
           ) : (
             <>
@@ -541,20 +569,20 @@ export default function FormDetailPanel({ form, showBack = false, onBack }: Form
         {/* La croix de fermeture est fournie par DialogContent : `pe-14` reserve sa place. */}
         <DialogContent className="sm:max-w-lg">
           <DialogHeader className="flex-row items-center gap-1.5 pe-14">
-            <span className="inline-flex text-[var(--err)]">
+            <span className="inline-flex text-destructive-ink">
               <AlertTriangleIcon size={18} strokeWidth={1.75} />
             </span>
-            <DialogTitle className="font-bold text-[1rem] text-[var(--err)]">
+            <DialogTitle className="text-base font-semibold text-destructive-ink">
               Échec de génération
             </DialogTitle>
           </DialogHeader>
           <div>
             {errorDetail?.date && (
-              <p className="cn-text-body1 text-[12px] text-[var(--muted)] mb-1.5">
+              <p className="mb-1.5 text-xs text-muted-foreground">
                 {formatFormDate(errorDetail.date)}
               </p>
             )}
-            <div className="text-[12.5px] leading-[1.6] text-[var(--ink)] whitespace-pre-wrap break-words bg-[var(--err-soft)] border border-solid border-[var(--err)] rounded-[10px] p-[9px] max-h-[55vh] overflow-y-auto select-text" style={{ fontFamily: 'monospace' }}>
+            <div className="max-h-[55vh] select-text overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-destructive/40 bg-destructive-soft/40 p-2.5 font-mono text-xs leading-relaxed text-foreground">
               {errorDetail?.message}
             </div>
           </div>

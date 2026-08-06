@@ -41,9 +41,10 @@ class DashboardErrorBoundary extends Component<Props, State> {
         <Card className="h-full flex items-center justify-center">
           <CardContent className="text-center py-3">
             {/* `color="error"` etait un jeton MUI passe a une icone lucide : invalide
-                en CSS, donc sans effet. Remplace par le jeton de couleur du kit. */}
-            <span className="inline-flex mb-0.5 opacity-60"><ErrorOutline color="var(--err)" size={28} strokeWidth={1.75} /></span>
-            <p className="cn-text-body2 text-muted-foreground text-[0.75rem] mb-1.5">
+                en CSS, donc sans effet. L'icone prend desormais la teinte vive du
+                registre destructif — elle est decorative, pas du texte. */}
+            <span className="mb-0.5 inline-flex text-destructive"><ErrorOutline size={28} strokeWidth={1.75} /></span>
+            <p className="mb-1.5 text-xs text-muted-foreground">
               {this.props.widgetName
                 ? `Erreur lors du chargement de "${this.props.widgetName}"`
                 : 'Erreur lors du chargement du widget'}

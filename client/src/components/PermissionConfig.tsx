@@ -298,7 +298,7 @@ const PermissionConfig: React.FC = () => {
               <Button
                 variant="outline"
                 size="sm"
-                className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+                className="text-warning-ink border-warning hover:bg-warning-soft"
                 onClick={async () => {
                   await resetRolePermissions(selectedRole);
                   triggerGlobalRefresh();
@@ -369,15 +369,15 @@ const PermissionConfig: React.FC = () => {
 
       {/* Résumé du rôle sélectionné */}
       {selectedRole && (
-        <Card className="mb-3 ring-0 border border-solid border-[var(--line)] bg-[var(--card)] [--card-spacing:9px]">
+        <Card className="mb-3 ring-0 border border-solid border-border bg-card [--card-spacing:9px]">
           <CardContent>
             <div className="flex items-center gap-3 flex-wrap">
-              <p className="cn-text-body2 text-muted-foreground">
+              <p className="text-xs m-0 text-muted-foreground">
                 Rôle sélectionné : <strong>{selectedRole}</strong>
               </p>
               {rolePermissions && (
                 <>
-                  <p className="cn-text-body2 text-muted-foreground">
+                  <p className="text-xs m-0 text-muted-foreground tabular-nums">
                     • {rolePermissions.permissions.length} permissions actives
                   </p>
                   <StatusChip
@@ -393,44 +393,44 @@ const PermissionConfig: React.FC = () => {
 
       {/* Résumé des permissions (chiffres clés) */}
       {selectedRole && rolePermissions && (
-        <Card className="mb-[18px] ring-0 border border-solid border-[var(--line)] bg-[var(--card)] [--card-spacing:18px]">
+        <Card className="mb-[18px] ring-0 border border-solid border-border bg-card [--card-spacing:18px]">
           <CardContent>
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
-                <h6 className="cn-text-subtitle2 text-muted-foreground font-medium">
+                <h6 className="text-xs font-medium m-0 text-muted-foreground">
                   Résumé des permissions
                 </h6>
               </div>
-              
+
               <div className="grid grid-cols-12 gap-1.5">
                 <div className="col-span-3">
                   <div className="text-center p-1.5">
-                    <h6 className="cn-text-h6 text-[var(--info)] font-semibold mb-[3px]">
+                    <h6 className="text-sm font-semibold mt-0 mb-[3px] text-info-ink tabular-nums">
                       {allPermissions.length}
                     </h6>
-                    <span className="cn-text-caption text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       Total
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="col-span-3">
                   <div className="text-center p-1.5">
-                    <h6 className="cn-text-h6 text-[var(--bui-success-ink)] font-semibold mb-0.5">
+                    <h6 className="text-sm font-semibold mt-0 mb-0.5 text-success-ink tabular-nums">
                       {rolePermissions.permissions.length}
                     </h6>
-                    <span className="cn-text-caption text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       Actives
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="col-span-3">
                   <div className="text-center p-1.5">
-                    <h6 className="cn-text-h6 text-destructive font-semibold mb-0.5">
+                    <h6 className="text-sm font-semibold mt-0 mb-0.5 text-destructive-ink tabular-nums">
                       {allPermissions.filter(p => !rolePermissionSet.has(p)).length}
                     </h6>
-                    <span className="cn-text-caption text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       Inactives
                     </span>
                   </div>
@@ -438,13 +438,13 @@ const PermissionConfig: React.FC = () => {
 
                 <div className="col-span-3">
                   <div className="text-center p-1.5">
-                    <h6 className="cn-text-h6 text-[var(--bui-warning-ink)] font-semibold mb-0.5">
+                    <h6 className="text-sm font-semibold mt-0 mb-0.5 text-warning-ink tabular-nums">
                       {Object.keys(permissionsByModule).filter(module => {
                         const modulePermissions = permissionsByModule[module as keyof typeof permissionsByModule];
                         return modulePermissions.some(permission => rolePermissionSet.has(permission));
                       }).length} / {Object.keys(permissionsByModule).length}
                     </h6>
-                    <span className="cn-text-caption text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       Menus accessibles
                     </span>
                   </div>
@@ -477,7 +477,7 @@ const PermissionConfig: React.FC = () => {
             <div role="tabpanel" id="tabpanel-0" aria-labelledby="tab-0">
               {/* Configuration des permissions par module */}
               <div className="mb-6">
-                <h5 className="cn-text-h5 mb-[0.35em] font-semibold mb-4 text-foreground">
+                <h5 className="text-sm font-semibold tracking-tight mt-0 mb-[0.35em] mb-4 text-foreground">
                   Permissions par Module
                 </h5>
                 
@@ -512,14 +512,14 @@ const PermissionConfig: React.FC = () => {
                       <Accordion key={moduleName} type="single" collapsible>
                         <AccordionItem
                           value={moduleName}
-                          className="border border-solid border-[var(--line)] rounded-[8px] overflow-hidden data-[state=open]:border-[var(--mui-primary)]"
+                          className="border border-solid border-border rounded-md overflow-hidden data-[state=open]:border-primary"
                         >
                           <AccordionTrigger className="min-h-[48px] items-center px-3 hover:no-underline">
                             <span className="flex flex-1 items-center gap-[9px] text-start">
-                              <span className="p-0.5 bg-[var(--hover)] rounded-[4px] flex items-center justify-center">
+                              <span className="p-0.5 bg-muted rounded-[4px] flex items-center justify-center">
                                 {getModuleIcon(moduleName)}
                               </span>
-                              <span className="cn-text-subtitle2 font-semibold flex-1">
+                              <span className="text-xs font-semibold flex-1">
                                 {moduleName}
                               </span>
                               <StatusChip
@@ -534,16 +534,15 @@ const PermissionConfig: React.FC = () => {
                               {permissions.map((permission) => {
                                 const isActive = rolePermissionSet.has(permission);
                                 return (
-                                  // `success.light` n'existe pas dans la palette : le fond
-                                  // teinte de succes du projet est --ok-soft (meme usage dans
-                                  // les chips de statut), et le liseré reprend --ok.
+                                  // Etat actif : le fond pastel `-soft` porte l'etat, le
+                                  // liseré reprend la teinte vive — le couple du §2.4.
                                   <div
                                     key={permission}
                                     className={cn(
-                                      'flex items-center gap-[9px] p-[7.5px] rounded-[8px] border border-solid',
+                                      'flex items-center gap-[9px] p-[7.5px] rounded-md border border-solid',
                                       isActive
-                                        ? 'bg-[var(--ok-soft)] border-[var(--ok)]'
-                                        : 'bg-[var(--surface-2)] border-[var(--line)]',
+                                        ? 'bg-success-soft border-success'
+                                        : 'bg-card border-border',
                                     )}
                                   >
                                     {/* Le survol jouait un `scale(1.05)` : la puce
@@ -564,8 +563,8 @@ const PermissionConfig: React.FC = () => {
                                       )}
                                       <span
                                         className={cn(
-                                          'cn-text-caption font-medium text-[0.7rem]',
-                                          isActive ? 'text-[var(--ok)]' : 'text-[var(--muted)]',
+                                          'text-[0.7rem] font-medium',
+                                          isActive ? 'text-success-ink' : 'text-muted-foreground',
                                         )}
                                       >
                                         {isActive ? 'Actif' : 'Inactif'}
@@ -600,7 +599,7 @@ const PermissionConfig: React.FC = () => {
           {/* Message si aucun rôle n'est sélectionné */}
           {!selectedRole && (
             <div className="p-4 text-center">
-              <p className="cn-text-body1 text-muted-foreground">
+              <p className="text-sm m-0 text-muted-foreground">
                 Veuillez sélectionner un rôle pour commencer la configuration des permissions
               </p>
             </div>

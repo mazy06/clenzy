@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { cn } from '../../../utils/cn';
 import {
+  Alert,
+  AlertDescription,
   Combobox,
   ComboboxChip,
   ComboboxChips,
@@ -81,14 +83,14 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
   return (
     <div className="py-2">
       <div className="flex items-start gap-2 mb-1">
-        <span className="mt-px inline-flex shrink-0 text-[var(--muted)]">
+        <span className="mt-px inline-flex shrink-0 text-muted-foreground">
           <BellRing size={18} />
         </span>
         <div className="min-w-0">
-          <p className="cn-text-body1 text-[0.8125rem] font-medium text-foreground">
+          <p className="text-[0.8125rem] font-medium text-foreground">
             Destinataires des notifications internes
           </p>
-          <p className="cn-text-body1 text-[0.75rem] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Reçoivent les nouvelles demandes de devis, les copies de devis envoyés, la liste
             d'attente et les demandes de maintenance. L'expéditeur reste toujours info@clenzy.fr.
           </p>
@@ -114,7 +116,7 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
                       key={email}
                       className={cn(
                         email.trim().toLowerCase() === SENDER
-                          && 'border-[var(--warn)] text-[var(--warn)] bg-[var(--warn-soft)]',
+                          && 'border-warning bg-warning-soft text-warning-ink',
                       )}
                     >
                       {email}
@@ -144,21 +146,19 @@ const InternalNotificationEmailsRow: React.FC<Props> = ({ value, onSave, saving 
       </Field>
 
       {hasSelfSend && (
-        <div className="flex items-start gap-[4.5px] mt-[4.5px] min-[600px]:ms-[30px]">
-          <span className="mt-px inline-flex shrink-0 text-[#D4A574]">
-            <AlertTriangle size={14} />
-          </span>
-          <p className="cn-text-body1 text-[0.72rem] text-[var(--bui-warning-ink)]">
+        <Alert variant="warning" className="mt-[4.5px] min-[600px]:ms-[30px]">
+          <AlertTriangle />
+          <AlertDescription className="text-[0.72rem]">
             info@clenzy.fr est l'expéditeur : se l'envoyer à soi-même provoque des soft bounces
             intermittents. Préférez une autre adresse (ex. votre boîte perso).
-          </p>
-        </div>
+          </AlertDescription>
+        </Alert>
       )}
 
       {saving && (
         <div className="inline-flex items-center gap-[3px] mt-[3px] min-[600px]:ms-[30px]">
           <Spinner className="size-[11px]" />
-          <p className="cn-text-body1 text-[0.7rem] text-muted-foreground">Enregistrement…</p>
+          <p className="text-[0.7rem] text-muted-foreground">Enregistrement…</p>
         </div>
       )}
     </div>

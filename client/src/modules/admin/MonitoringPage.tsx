@@ -105,7 +105,7 @@ const MonitoringPage: React.FC = () => {
   const headerActionsSlot = (
     <div className="flex items-center gap-1.5">
       {headerLastUpdate && (
-        <span className="cn-text-caption text-muted-foreground whitespace-nowrap">
+        <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
           {t('tabHeaders.monitoring.lastUpdate', 'Dernière mise à jour')}: {headerLastUpdate.toLocaleTimeString()}
         </span>
       )}

@@ -50,10 +50,10 @@ export default function ForgotPassword() {
     <AuthLayout>
       {/* ── Header form ── */}
       <div className="mb-6">
-        <h4 className="cn-text-h4 font-semibold text-[var(--ink)] mb-1.5 text-[1.75rem] min-[900px]:text-[2rem] text-balance">
+        <h4 className="font-semibold tracking-tight text-balance text-foreground mb-1.5 text-[1.75rem] min-[900px]:text-[2rem]">
           {t('auth.forgotPassword.title', 'Mot de passe oublié ?')}
         </h4>
-        <p className="cn-text-body1 text-muted-foreground text-[0.95rem] leading-[1.5]">
+        <p className="text-muted-foreground text-[0.95rem] leading-[1.5]">
           {t(
             'auth.forgotPassword.subtitle',
             'Indique ton adresse email : nous t\'enverrons un lien pour choisir un nouveau mot de passe.',
@@ -65,7 +65,7 @@ export default function ForgotPassword() {
         <div className="flex flex-col gap-[15px]">
           <Alert variant="success">
             <CircleCheck />
-            <AlertDescription><p className="cn-text-body2 text-[0.875rem] font-medium">
+            <AlertDescription><p className="text-sm font-medium">
               {t(
                 'auth.forgotPassword.successMessage',
                 'Si un compte existe avec cet email, un lien de réinitialisation vient d\'être envoyé. Pensez à vérifier vos spams.',
@@ -83,7 +83,7 @@ export default function ForgotPassword() {
           <div className="flex flex-col gap-[15px]">
             <Field>
               <FieldLabel
-                className="cn-text-body2 font-semibold mb-1 block text-[0.8125rem]"
+                className="font-semibold mb-1 block text-[0.8125rem]"
                 htmlFor="forgot-password-email"
               >
                 {t('auth.forgotPassword.emailLabel', 'Adresse email')}
@@ -105,7 +105,7 @@ export default function ForgotPassword() {
             {error && (
               <Alert variant="destructive">
                 <TriangleAlert />
-                <AlertDescription><p className="cn-text-body2 text-[0.875rem]">{error}</p></AlertDescription>
+                <AlertDescription><p className="text-sm">{error}</p></AlertDescription>
               </Alert>
             )}
 
@@ -124,21 +124,21 @@ export default function ForgotPassword() {
       )}
 
       {/* ── Footer : retour login + support ── */}
-      <div className="mt-6 pt-4 border-t border-[var(--line)]">
-        <p className="cn-text-body2 text-muted-foreground text-[0.875rem] text-center mb-2">
+      <div className="mt-6 pt-4 border-t border-border">
+        <p className="text-sm text-muted-foreground text-center mb-2">
           {t('auth.forgotPassword.rememberedPassword', 'Tu te souviens de ton mot de passe ?')}{' '}
           <RouterLink
             to="/login"
-            className="font-semibold text-[var(--mui-primary)] no-underline hover:underline"
+            className="font-semibold text-primary no-underline hover:underline"
           >
             {t('auth.forgotPassword.loginLink', 'Se connecter')}
           </RouterLink>
         </p>
-        <span className="cn-text-caption text-muted-foreground block text-center text-[0.75rem]">
+        <span className="text-xs text-muted-foreground block text-center">
           {t('auth.login.needHelp', "Besoin d'aide ?")}{' '}
           <RouterLink
             to="/support"
-            className="font-medium text-[var(--muted)] underline hover:text-[var(--mui-primary)]"
+            className="font-medium text-muted-foreground underline hover:text-primary"
           >
             {t('auth.login.contactSupport', 'Contactez le support')}
           </RouterLink>

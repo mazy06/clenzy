@@ -1,32 +1,42 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import {
+  Attachment,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentMedia,
+  AttachmentTitle,
+  Badge,
+  Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupTextarea,
+  Message,
+  MessageAvatar,
+  MessageContent,
+  MessageFooter,
+  MessageGroup,
   Spinner,
+  Switch,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '../../../components/ui';
+import GuestAvatar from '../../../components/baitly/GuestAvatar';
 import { cn } from '../../../utils/cn';
 import {
   ArrowBack as ArrowBackIcon,
   MoreHoriz as MoreHorizIcon,
   Send as SendIcon,
-  AttachFile as AttachFileIcon,
+  Description as FileIcon,
+  Note as NoteIcon,
 } from '../../../icons';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { type ThreadMessage, dayLabel, formatMsgTime } from './unified';
-
-// ─── Styles partagés (référence .mg-ico / .mg-ctool / .mg-send) ──────────────
-
-// Les anciennes constantes `mgIcoSx` / `composeToolSx` sont supprimees : leurs
-// deux consommateurs (ChannelThread, InternalThread) sont deja passes aux
-// classes equivalentes, plus personne ne les importait.
-
-/** Boutons d'icone de l'entete (reference .mg-ico). */
-const MG_ICO_CLS =
-  'flex items-center justify-center shrink-0 p-0 rounded-[11px] border border-solid border-[var(--line-2)] bg-[var(--card)] text-[var(--muted)] cursor-pointer [transition:color_.14s,border-color_.14s] hover:text-[var(--accent)] hover:border-[var(--accent)] disabled:opacity-[.45] disabled:cursor-default';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -49,7 +59,11 @@ interface ThreadViewProps {
   title: string;
   /** Sous-titre entête : « canal · logement » (icône canal colorée incluse par l'appelant). */
   subtitle: React.ReactNode;
-  /** Actions .mg-ico de l'entête (Rattacher, Template…). */
+  /** Pastille de statut à droite du nom (ex. « Confirmée » pour une réservation). */
+  statusBadge?: React.ReactNode;
+  /** Lien contextuel de l'entête (ex. « Voir la réservation »). */
+  contextAction?: { label: string; onClick: () => void };
+  /** Actions d'icône de l'entête (Rattacher, Template…). */
   actions?: ThreadAction[];
   /** Entrées du menu « ⋯ » (Archiver…). */
   menuItems?: ThreadMenuItem[];
@@ -66,22 +80,41 @@ interface ThreadViewProps {
   composeNotice?: React.ReactNode;
   /** Chips fichiers joints au-dessus du champ. */
   composeExtra?: React.ReactNode;
-  /** Boutons .mg-ctool dans la boîte (trombone, étincelles IA). */
+  /** Boutons dans la boîte de composition (trombone, étincelles IA). */
   composeTools?: React.ReactNode;
+  /**
+   * Bascule « note interne ». Fournie uniquement par les fils où le serveur sait
+   * consigner une note sans la transmettre (conversations voyageur) : la boîte
+   * s'ambre et le message part en note d'équipe.
+   */
+  internalNote?: boolean;
+  onInternalNoteChange?: (value: boolean) => void;
   /** Retour mobile (master-detail). */
   showBack?: boolean;
   onBack?: () => void;
 }
 
 /**
- * Fil de conversation « Signature » (référence .mg-thread) : entête 62px,
- * messages avec séparateurs de jour, bulles in/out, boîte de composition.
- * Purement présentational — les données viennent des containers
- * (ChannelThread / InternalThread).
+ * Fil de conversation — reprise de la projection « Messagerie » de la galerie
+ * design-system ({@code BMessagingSectionDemo}).
+ *
+ * <p>Carte bordée unique : entête contextuelle (avatar, nom, statut, réservation),
+ * fil bâti sur les primitives {@code Message*}, réponses suggérées, puis boîte de
+ * composition {@code InputGroup}.</p>
+ *
+ * <p><b>Fil sans bulles</b>, comme la projection : l'émetteur se lit à l'avatar
+ * (présent en réception, absent en émission) et à l'alignement. Sur un fil
+ * professionnel qui mélange email, SMS et WhatsApp, l'empilement de bulles
+ * colorées écrasait la lisibilité de messages souvent longs.</p>
+ *
+ * <p>Purement présentationnel — les données viennent des containers
+ * (ChannelThread / InternalThread).</p>
  */
 export default function ThreadView({
   title,
   subtitle,
+  statusBadge,
+  contextAction,
   actions = [],
   menuItems = [],
   messages,
@@ -95,9 +128,12 @@ export default function ThreadView({
   composeNotice,
   composeExtra,
   composeTools,
+  internalNote = false,
+  onInternalNoteChange,
   showBack = false,
   onBack,
 }: ThreadViewProps) {
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll en bas à l'arrivée de messages.
@@ -126,58 +162,81 @@ export default function ThreadView({
   };
 
   return (
-    <div className="flex-1 min-w-0 flex flex-col min-h-0 bg-[var(--bg)]">
-      {/* ── Entête 62px ─────────────────────────────────────────────────── */}
-      <div className="h-[62px] shrink-0 flex items-center gap-2 px-3.5 bg-[var(--card)] border-b border-[var(--line)]">
-        {showBack && (
-          <button onClick={onBack} aria-label="Retour" className={cn(MG_ICO_CLS, 'w-8 h-8')}>
-            <ArrowBackIcon size={16} strokeWidth={1.75} />
-          </button>
-        )}
-        <div className="min-w-0">
-          <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[16px] font-semibold text-[var(--ink)] leading-[1.25] whitespace-nowrap overflow-hidden text-ellipsis">
-            {title}
-          </p>
-          <div className="text-[11.5px] text-[var(--muted)] flex items-center gap-1">
-            {subtitle}
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card p-3 min-[900px]:p-4">
+      {/* ── Entête contextuelle ─────────────────────────────────────────── */}
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border pb-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          {showBack && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={onBack}
+              aria-label={t('messagingHub.back', 'Retour')}
+              className="cursor-pointer"
+            >
+              <ArrowBackIcon size={16} strokeWidth={1.75} />
+            </Button>
+          )}
+          <GuestAvatar name={title} size={32} />
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="truncate text-sm font-semibold text-foreground">{title}</span>
+              {statusBadge}
+            </div>
+            <div className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+              {subtitle}
+            </div>
           </div>
         </div>
-        <div className="ms-auto flex gap-1.5 items-center">
+
+        <div className="flex shrink-0 items-center gap-0.5">
+          {contextAction && (
+            <Button size="xs" variant="ghost" className="cursor-pointer" onClick={contextAction.onClick}>
+              {contextAction.label}
+            </Button>
+          )}
           {actions.map((action) => (
             <Tooltip key={action.key}>
               <TooltipTrigger asChild>
-                <button type="button" onClick={action.onClick} aria-label={action.title} className={cn(MG_ICO_CLS, 'w-9 h-9')}>
-                  {action.icon}
-                </button>
+                <span className="inline-flex">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={action.onClick}
+                    aria-label={action.title}
+                    className="cursor-pointer"
+                  >
+                    {action.icon}
+                  </Button>
+                </span>
               </TooltipTrigger>
               <TooltipContent>{action.title}</TooltipContent>
             </Tooltip>
           ))}
           {menuItems.length > 0 && (
-            // Le menu flottant devient un DropdownMenu : il s'ancre lui-meme sur
-            // son declencheur, l'etat `menuAnchor` n'a plus lieu d'etre.
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="Plus d'actions"
-                  className={cn(MG_ICO_CLS, 'w-9 h-9')}
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t('messagingHub.moreActions', "Plus d'actions")}
+                  className="cursor-pointer"
                 >
                   <MoreHorizIcon size={16} strokeWidth={1.75} />
-                </button>
+                </Button>
               </DropdownMenuTrigger>
               {/* `w-auto` : le gabarit cale sinon la largeur du menu sur celle du
-                  declencheur, ici un bouton de 36 px. */}
+                  declencheur, ici un bouton d'icone. */}
               <DropdownMenuContent align="end" className="w-auto min-w-[180px]">
                 {menuItems.map((item) => (
                   <DropdownMenuItem
                     key={item.key}
                     disabled={item.disabled}
                     onSelect={() => item.onClick()}
-                    className="text-[12.5px] font-semibold gap-1.5"
+                    className="gap-1.5 text-xs"
                   >
                     {item.icon && (
-                      <span className="inline-flex min-w-[28px] items-center text-[var(--muted)]">{item.icon}</span>
+                      <span className="inline-flex min-w-[24px] items-center text-muted-foreground">{item.icon}</span>
                     )}
                     {item.label}
                   </DropdownMenuItem>
@@ -189,89 +248,155 @@ export default function ThreadView({
       </div>
 
       {/* ── Messages ────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-2 min-h-0" ref={scrollRef}>
+      <div className="min-h-0 flex-1 overflow-y-auto" ref={scrollRef}>
         {loading ? (
           <div className="flex justify-center py-6">
             <Spinner className="size-5" />
           </div>
         ) : grouped.length === 0 ? (
-          <p className="cn-text-body1 text-[12.5px] text-[var(--muted)] text-center py-6">
-            Aucun message dans cette conversation
+          <p className="py-6 text-center text-xs text-muted-foreground">
+            {t('messagingHub.noMessages', 'Aucun message dans cette conversation')}
           </p>
         ) : (
-          grouped.map((group) => (
-            <React.Fragment key={group.day}>
-              <div className="self-center text-[10.5px] font-semibold text-[var(--faint)] bg-[var(--card)] border border-solid border-[var(--line)] p-[4px 13px] rounded-[20px]">
-                {group.day}
-              </div>
-              {group.msgs.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={cn(
-                    'max-w-[74%] px-[14px] py-[11px] rounded-[15px] text-[13px] leading-[1.5] whitespace-pre-wrap break-words',
-                    msg.out
-                      ? 'self-end bg-[var(--accent)] text-[#fff] rounded-br-[5px]'
-                      : 'self-start bg-[var(--card)] border border-solid border-[var(--line)] text-[var(--body)] rounded-bl-[5px]',
-                  )}
-                >
-                  {msg.text}
-                  {msg.attachments && msg.attachments.length > 0 && (
-                    <div className="mt-1 flex flex-col gap-0.5">
-                      {msg.attachments.map((name) => (
-                        <div className="flex items-center gap-0.5 text-[11px] opacity-85" key={name}>
-                          <AttachFileIcon size={11} strokeWidth={1.75} />
-                          {name}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {/* mt: 0.5 = 3px (theme.spacing vaut 6 dans ce projet, pas 8). */}
-                  <div className={cn('text-[9.5px] mt-[3px] opacity-70 tabular-nums', msg.out && 'text-right')}>
-                    {formatMsgTime(msg.at)}
-                  </div>
+          <MessageGroup>
+            {grouped.map((group) => (
+              <React.Fragment key={group.day}>
+                <div className="my-1 flex justify-center">
+                  <Badge variant="secondary" className="text-2xs">{group.day}</Badge>
                 </div>
-              ))}
-            </React.Fragment>
-          ))
+                {group.msgs.map((msg) => (
+                  <Message key={msg.id} align={msg.out ? 'end' : 'start'}>
+                    {/* L'avatar marque la RECEPTION : son absence, cote emission,
+                        suffit a distinguer les deux sens sans colorer de bulle. */}
+                    {!msg.out && (
+                      <MessageAvatar>
+                        <GuestAvatar name={msg.sender || title} size={28} />
+                      </MessageAvatar>
+                    )}
+                    <MessageContent>
+                      {/* Une note interne DOIT se distinguer d'un message envoyé :
+                          l'opérateur qui relit le fil doit voir d'un coup d'œil ce
+                          que le voyageur a reçu et ce qu'il n'a pas reçu. */}
+                      {msg.internalNote && (
+                        <Badge variant="warning" className="w-fit">
+                          <NoteIcon size={11} strokeWidth={2} />
+                          {t('messagingHub.internalNoteBadge', 'Note interne')}
+                        </Badge>
+                      )}
+
+                      {msg.text && (
+                        <span
+                          className={cn(
+                            'whitespace-pre-wrap break-words',
+                            msg.internalNote &&
+                              'rounded-lg border border-warning/40 bg-warning-soft/30 px-2.5 py-1.5',
+                          )}
+                        >
+                          {msg.text}
+                        </span>
+                      )}
+
+                      {msg.attachments && msg.attachments.length > 0 && (
+                        <span className="flex flex-col gap-1.5">
+                          {msg.attachments.map((name) => (
+                            <Attachment key={name} className="max-w-64">
+                              <AttachmentMedia>
+                                <FileIcon size={16} strokeWidth={1.75} />
+                              </AttachmentMedia>
+                              <AttachmentContent>
+                                <AttachmentTitle>{name}</AttachmentTitle>
+                                <AttachmentDescription>
+                                  {t('messagingHub.attachment', 'Pièce jointe')}
+                                </AttachmentDescription>
+                              </AttachmentContent>
+                            </Attachment>
+                          ))}
+                        </span>
+                      )}
+
+                      <MessageFooter className="text-2xs tabular-nums text-faint">
+                        {formatMsgTime(msg.at)}
+                      </MessageFooter>
+                    </MessageContent>
+                  </Message>
+                ))}
+              </React.Fragment>
+            ))}
+          </MessageGroup>
         )}
       </div>
 
       {/* ── Compose ─────────────────────────────────────────────────────── */}
-      <div className="shrink-0 bg-[var(--card)] border-t border-[var(--line)]">
+      <div className="shrink-0">
         {composeNotice}
-        <div className="p-[14px 20px]">
-          {composeExtra}
-          <div className="flex items-end gap-[7.5px] bg-[var(--field)] border border-solid border-[var(--field-line)] rounded-[13px] p-[8px 8px 8px 14px]">
-            {/* `textarea` nu plutot que le primitif Textarea : la boite .mg-cbox
-                porte deja le cadre, le fond et le padding 8/8/8/14 — le gabarit
-                du primitif les doublerait. InputBase etait deja l'input MUI SANS
-                habillage, la transposition est donc a l'identique.
-                `field-sizing-content` + `max-h` reproduisent `maxRows={4}`. */}
-            <textarea
-              rows={1}
-              placeholder={composePlaceholder}
-              value={draft}
-              disabled={composeDisabled}
-              onChange={(e) => onDraftChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              className="flex-1 min-w-0 p-0 border-none bg-transparent outline-none resize-none field-sizing-content max-h-[80px] text-[12.5px] leading-[1.5] text-[var(--body)] placeholder:text-[var(--faint)] disabled:opacity-50"
+        {composeExtra}
+
+        {onInternalNoteChange && (
+          <div className="mb-1.5 flex items-center gap-2">
+            <Switch
+              id="msg-internal-note"
+              checked={internalNote}
+              onCheckedChange={onInternalNoteChange}
+              className="cursor-pointer"
             />
+            <label
+              htmlFor="msg-internal-note"
+              className={cn(
+                'flex cursor-pointer items-center gap-1 text-xs',
+                internalNote ? 'text-warning-ink' : 'text-muted-foreground',
+              )}
+            >
+              <NoteIcon size={13} strokeWidth={1.75} />
+              {t('messagingHub.internalNote', 'Note interne (invisible pour le voyageur)')}
+            </label>
+          </div>
+        )}
+
+        {/* La teinte ambre est le SEUL rappel que le message ne partira pas au
+            voyageur : sans elle, rien ne distingue une note d'une reponse. */}
+        <InputGroup className={cn(internalNote && 'border-warning/50 bg-warning-soft/30')}>
+          <InputGroupTextarea
+            rows={2}
+            placeholder={
+              internalNote
+                ? t('messagingHub.internalNotePlaceholder', "Note pour l'équipe…")
+                : composePlaceholder
+            }
+            value={draft}
+            disabled={composeDisabled}
+            onChange={(e) => onDraftChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            className="max-h-[6lh]"
+          />
+          <InputGroupAddon align="block-end">
             {composeTools}
-            <button
+            <InputGroupButton
+              size="icon-xs"
               onClick={handleSend}
               disabled={!canSend}
-              aria-label="Envoyer"
-              className="flex items-center justify-center shrink-0 w-9 h-9 rounded-[11px] border-0 bg-[var(--accent)] text-[#fff] cursor-pointer [transition:transform_.12s,background_.14s] hover:bg-[var(--accent-deep)] active:scale-[.97] disabled:opacity-[.45] disabled:cursor-default"
+              aria-label={t('messagingHub.send', 'Envoyer')}
+              className={cn(
+                'ms-auto rounded-full',
+                canSend && 'bg-primary text-primary-foreground hover:bg-primary/90',
+              )}
             >
-              {sending ? <Spinner className="size-[15px] text-[#fff]" /> : <SendIcon size={15} strokeWidth={1.75} />}
-            </button>
-          </div>
-        </div>
+              {sending ? (
+                <Spinner className="size-3.5" />
+              ) : (
+                <SendIcon
+                  size={14}
+                  strokeWidth={1.75}
+                  className="translate-x-[0.5px] -translate-y-[0.5px] rtl:-translate-x-[0.5px]"
+                />
+              )}
+            </InputGroupButton>
+          </InputGroupAddon>
+        </InputGroup>
       </div>
     </div>
   );

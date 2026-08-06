@@ -45,7 +45,7 @@ import PagePagination from '../../components/PagePagination';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
-const CARD_CLASS = 'border border-solid border-[var(--line)] shadow-none rounded-[var(--radius-lg)] bg-[var(--card)]';
+const CARD_CLASS = 'border border-solid border-border shadow-none rounded-lg bg-card';
 
 const STATUS_OPTIONS: ReservationStatus[] = [
   'pending',
@@ -298,37 +298,37 @@ const ReservationsList: React.FC = () => {
                     data-highlight-id={String(r.id)}
                   >
                     <TableCell>
-                      <p className="cn-text-body2 font-medium text-[0.82rem]">
+                      <p className="text-xs font-medium text-foreground">
                         {r.propertyName}
                       </p>
                     </TableCell>
                     <TableCell>
-                      <p className="cn-text-body2 text-[0.82rem] cursor-pointer hover:text-[var(--accent)] hover:decoration-[underline]" onClick={() => {
+                      <p className="text-xs text-foreground cursor-pointer hover:text-primary hover:underline" onClick={() => {
                           setSelectedGuestId(r.id);
                           setGuestDialogOpen(true);
                         }}>
                         {r.guestName}
                       </p>
-                      <span className="cn-text-caption text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {r.guestCount} {r.guestCount > 1 ? 'voyageurs' : 'voyageur'}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <p className="cn-text-body2 text-[0.82rem] tabular-nums">
+                      <p className="text-xs text-foreground tabular-nums">
                         {formatDate(r.checkIn)}
                       </p>
                       {r.checkInTime && (
-                        <span className="cn-text-caption text-muted-foreground tabular-nums">
+                        <span className="text-xs text-muted-foreground tabular-nums">
                           {r.checkInTime}
                         </span>
                       )}
                     </TableCell>
                     <TableCell>
-                      <p className="cn-text-body2 text-[0.82rem] tabular-nums">
+                      <p className="text-xs text-foreground tabular-nums">
                         {formatDate(r.checkOut)}
                       </p>
                       {r.checkOutTime && (
-                        <span className="cn-text-caption text-muted-foreground tabular-nums">
+                        <span className="text-xs text-muted-foreground tabular-nums">
                           {r.checkOutTime}
                         </span>
                       )}
@@ -341,7 +341,7 @@ const ReservationsList: React.FC = () => {
                     </TableCell>
                     <TableCell className="text-end">
                       {/* Montant : display (Space Grotesk) + tabular-nums (baseline §1 typo) */}
-                      <p className="cn-text-body2 text-[0.82rem] font-semibold font-[family-name:var(--font-display)] tabular-nums text-[var(--ink)]">
+                      <p className="text-xs font-semibold font-[family-name:var(--font-display)] tabular-nums text-foreground">
                         {formatPrice(r.totalPrice)}
                       </p>
                     </TableCell>
@@ -367,7 +367,7 @@ const ReservationsList: React.FC = () => {
                                 size="icon-sm"
                                 aria-label={t('reservations.cancel')}
                                 onClick={() => handleCancelClick(r)}
-                                className="text-[var(--err)] hover:text-[var(--err)]"
+                                className="text-destructive hover:text-destructive"
                               >
                                 <CancelIcon size={18} strokeWidth={1.75} />
                               </Button>
@@ -419,11 +419,11 @@ const ReservationsList: React.FC = () => {
           <DialogTitle>{t('reservations.cancel')}</DialogTitle>
         </DialogHeader>
         <div>
-          <p className="cn-text-body2">
+          <p className="text-xs text-muted-foreground">
             {t('reservations.cancelConfirm')}
           </p>
           {cancelTarget && (
-            <p className="cn-text-body2 mt-1.5 font-semibold">
+            <p className="mt-1.5 text-xs font-semibold text-foreground">
               {cancelTarget.guestName} · {cancelTarget.propertyName}
             </p>
           )}

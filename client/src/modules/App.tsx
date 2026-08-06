@@ -89,6 +89,22 @@ function HardRedirectToLogin(): null {
   return null;
 }
 
+/**
+ * Ecran d'attente plein cadre du chemin d'authentification.
+ *
+ * <p>Meme forme aux trois moments ou l'app n'a pas encore de quoi rendre une
+ * page (init Keycloak, chargement du profil, profil absent) : la triplication
+ * du meme bloc garantissait qu'ils divergent au premier retouche.</p>
+ */
+function AuthLoadingScreen({ label }: { label: string }) {
+  return (
+    <div className="flex h-svh flex-col items-center justify-center gap-3">
+      <Spinner className="size-[60px]" />
+      <p className="text-sm font-semibold text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
 // Routes publiques accessibles sans authentification
 const PUBLIC_ROUTES = ['/login', '/inscription', '/inscription/success', '/inscription/confirm', '/forgot-password', '/support', '/accept-invitation', '/supervision-demo'];
 
@@ -288,14 +304,7 @@ const App: React.FC = () => {
   // Affichage du composant de chargement (uniquement pour les routes protégées)
   // Les routes publiques (/login, /inscription) ne doivent pas être bloquées par le loading
   if ((!initialized || authLoading) && !isPublicRoute) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[100vh] gap-3">
-        <Spinner className="size-[60px]" />
-        <h6 className="cn-text-h6 text-muted-foreground">
-          Chargement de l'authentification...
-        </h6>
-      </div>
-    );
+    return <AuthLoadingScreen label="Chargement de l'authentification..." />;
   }
 
   // Rendu de l'application avec routage
@@ -394,24 +403,14 @@ const App: React.FC = () => {
             ) : (
               // Si authentifié, afficher soit le chargement soit l'app
               authLoading ? (
-                <div className="flex flex-col items-center justify-center h-[100vh] gap-3">
-                  <Spinner className="size-[60px]" />
-                  <h6 className="cn-text-h6 text-muted-foreground">
-                    Chargement de l'utilisateur...
-                  </h6>
-                </div>
+                <AuthLoadingScreen label="Chargement de l'utilisateur..." />
               ) : user ? (
                 <MainLayoutFull>
                   <AuthenticatedApp />
                 </MainLayoutFull>
               ) : (
                 // Si pas d'utilisateur mais authentifié, afficher un chargement temporaire
-                <div className="flex flex-col items-center justify-center h-[100vh] gap-3">
-                  <Spinner className="size-[60px]" />
-                  <h6 className="cn-text-h6 text-muted-foreground">
-                    Chargement des données utilisateur...
-                  </h6>
-                </div>
+                <AuthLoadingScreen label="Chargement des données utilisateur..." />
               )
             )
           } 

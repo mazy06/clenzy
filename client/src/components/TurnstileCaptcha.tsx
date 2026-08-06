@@ -85,7 +85,7 @@ export default function TurnstileCaptcha({ onVerified, onError }: TurnstileCaptc
 
   if (!SITE_KEY) {
     return (
-      <p className="cn-text-body2 text-muted-foreground text-[0.8rem] text-center py-1.5">
+      <p className="py-1.5 text-center text-xs text-muted-foreground">
         Vérification CAPTCHA non configurée.
       </p>
     );
@@ -96,8 +96,8 @@ export default function TurnstileCaptcha({ onVerified, onError }: TurnstileCaptc
       <div ref={containerRef} />
       {!widgetIdRef.current && (
         <div className="flex items-center gap-1.5">
-          <Spinner className="size-5 text-[var(--mui-secondary)]" />
-          <p className="cn-text-body2 text-muted-foreground text-[0.8rem]">
+          <Spinner className="size-5 text-muted-foreground" />
+          <p className="text-xs text-muted-foreground">
             Chargement...
           </p>
         </div>

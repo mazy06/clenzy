@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Spinner } from '../../../components/ui';
-import StatusChip from '../../../components/StatusChip';
 import {
   Alert,
   AlertDescription,
+  Badge,
   Button,
   Input,
   Tooltip,
@@ -29,9 +29,11 @@ import type {
 } from "../../../services/api/activitiesApi";
 import { useTranslation } from "../../../hooks/useTranslation";
 
-const SHARE_OWNER = "var(--ok)";
-const SHARE_PLATFORM = "var(--accent)";
-const SHARE_CONCIERGE = "var(--warn)";
+// Teintes de la barre de repartition : aplats pleins, donc teinte vive.
+// Memes jetons que PaymentSettings, pour que les deux ecrans se lisent pareil.
+const SHARE_OWNER = "var(--bui-success)";
+const SHARE_PLATFORM = "var(--bui-primary)";
+const SHARE_CONCIERGE = "var(--bui-warning)";
 
 /**
  * Sources listees en dur, et non deduites des configs : une marketplace absente
@@ -49,27 +51,25 @@ const PROVIDER_LABELS: Record<string, string> = {
 
 type ProviderStatus = "ACTIVE" | "INACTIVE" | "UNCONFIGURED";
 
+/** Statut d'un programme d'affiliation → variante de puce du kit. */
 const STATUS_META: Record<
   ProviderStatus,
-  { key: string; fallback: string; color: string; soft: string }
+  { key: string; fallback: string; variant: 'success' | 'warning' | 'secondary' }
 > = {
   ACTIVE: {
     key: "settings.services.active",
     fallback: "Actif",
-    color: "var(--ok)",
-    soft: "var(--ok-soft)",
+    variant: "success",
   },
   INACTIVE: {
     key: "settings.services.inactive",
     fallback: "Inactif",
-    color: "var(--warn)",
-    soft: "var(--warn-soft)",
+    variant: "warning",
   },
   UNCONFIGURED: {
     key: "settings.services.unconfigured",
     fallback: "Non configuré",
-    color: "var(--muted)",
-    soft: "color-mix(in srgb, var(--muted) 8%, transparent)",
+    variant: "secondary",
   },
 };
 
@@ -213,7 +213,7 @@ export default function ServicesActivitiesPanel({
 
   return (
     <>
-      <p className="cn-text-body1 text-[0.75rem] font-semibold text-muted-foreground mb-1.5">
+      <p className="text-xs font-semibold text-muted-foreground mb-1.5">
         {t("settings.services.upsellTitle", "Upsells — services vendus au voyageur")}
       </p>
 
@@ -253,11 +253,11 @@ export default function ServicesActivitiesPanel({
         </AlertDescription>
       </Alert>
 
-      <div className="border-t border-[var(--line)] pt-2">
-        <p className="cn-text-body1 text-[0.75rem] font-semibold text-muted-foreground">
+      <div className="border-t border-border pt-2">
+        <p className="text-xs font-semibold text-muted-foreground">
           {t("settings.services.activitiesTitle", "Activités — programmes d’affiliation")}
         </p>
-        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-0.5 mb-2 leading-[1.5]">
+        <p className="text-xs text-muted-foreground mt-0.5 mb-2 leading-normal">
           {t(
             "settings.services.affiliationHint",
             "Le voyageur réserve chez le prestataire via un lien affilié. La commission est versée sur le compte affilié Baitly, qui en retient sa part et vous reverse le solde.",
@@ -295,19 +295,14 @@ export default function ServicesActivitiesPanel({
                 return (
                   <TableRow key={provider}>
                     <TableCell>
-                      <p className="cn-text-body1 text-[0.8125rem] font-semibold whitespace-nowrap">
+                      <p className="text-sm font-semibold whitespace-nowrap">
                         {PROVIDER_LABELS[provider]}
                       </p>
                     </TableCell>
                     <TableCell>
-                      <StatusChip
-                        tokens={{ color: meta.color, bg: meta.soft }}
-                        label={t(meta.key, meta.fallback)}
-                        className="h-5 border border-solid text-[0.65rem]"
-                        sx={{
-                          borderColor: `color-mix(in srgb, ${meta.color} 20%, transparent)`,
-                        }}
-                      />
+                      <Badge variant={meta.variant}>
+                        {t(meta.key, meta.fallback)}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="relative inline-block w-[108px]">
@@ -322,17 +317,17 @@ export default function ServicesActivitiesPanel({
                           max={100}
                           step={0.5}
                           aria-label={`${t("settings.services.baitlyRate", "Part Baitly")} — ${PROVIDER_LABELS[provider]}`}
-                          className="text-center text-[0.8125rem] font-semibold tabular-nums pe-6"
+                          className="text-center text-sm font-semibold tabular-nums pe-6"
                         />
                         {/* Le « % » ne doit pas intercepter le clic : sinon il
                             volerait le focus du champ qu'il annote. */}
-                        <span className="pointer-events-none absolute inset-y-0 end-2.5 flex items-center text-[0.8125rem] text-[var(--muted)]">
+                        <span className="pointer-events-none absolute inset-y-0 end-2.5 flex items-center text-sm text-muted-foreground">
                           %
                         </span>
                       </div>
                     </TableCell>
                     <TableCell className="text-end">
-                      <p className="cn-text-body1 text-[0.78rem] font-bold tabular-nums text-foreground">
+                      <p className="text-sm font-bold tabular-nums text-foreground">
                         {formatMoney(100 - platformRate(provider))}
                       </p>
                     </TableCell>
@@ -345,7 +340,7 @@ export default function ServicesActivitiesPanel({
                             size="icon"
                             onClick={() => setImportProvider(provider as ActivityProvider)}
                             aria-label={`${t("settings.services.importTitle", "Importer un rapport")} — ${PROVIDER_LABELS[provider]}`}
-                            className="h-[28px] w-[28px] rounded-[7px] border border-solid border-[var(--line)] text-[var(--muted)] transition-[border-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[var(--accent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)]"
+                            className="size-7 rounded-md border border-solid border-border text-muted-foreground transition-[border-color,color] duration-150 ease-out-quart hover:text-primary hover:border-primary/40"
                           >
                             <Upload size={13} strokeWidth={1.75} />
                           </Button>
@@ -369,7 +364,7 @@ export default function ServicesActivitiesPanel({
                               onClick={() => saveRate(provider)}
                               disabled={savingProvider === provider}
                               aria-label={t("common.save", "Enregistrer")}
-                              className="h-[28px] w-[28px] rounded-[7px] border border-solid border-[var(--line)] text-[var(--muted)] transition-[border-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-[var(--accent)] hover:border-[color-mix(in_srgb,var(--accent)_40%,transparent)]"
+                              className="size-7 rounded-md border border-solid border-border text-muted-foreground transition-[border-color,color] duration-150 ease-out-quart hover:text-primary hover:border-primary/40"
                             >
                               {savingProvider === provider ? (
                                 <Spinner className="size-[13px]" />
@@ -390,7 +385,7 @@ export default function ServicesActivitiesPanel({
           </Table>
         </div>
 
-        <p className="cn-text-body1 text-[0.72rem] text-muted-foreground mt-1.5 leading-[1.5]">
+        <p className="text-xs text-muted-foreground mt-1.5 leading-normal">
           {t(
             "settings.services.affiliationProjection",
             "Projection sur 100 € de commission d’affiliation perçue par Baitly, qui en retient sa part et vous reverse le solde. Un taux vide signifie qu’aucune part n’est retenue.",

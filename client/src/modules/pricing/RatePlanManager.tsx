@@ -3,6 +3,7 @@ import { cn } from '../../utils/cn';
 import {
   Spinner,
   Button,
+  Card,
   Switch,
   Separator,
   Dialog,
@@ -13,18 +14,19 @@ import {
   DialogFooter,
 } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
+import EmptyState from '../../components/EmptyState';
 import { Add as AddIcon } from '../../icons';
 import { Edit as EditIcon } from '../../icons';
 import { Delete as DeleteIcon } from '../../icons';
+import { LocalOffer as TagIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { Money } from '../../components/Money';
 import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPricingApi';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
-/** Report en classes de l'ancienne surface `Paper` (p: 1.5 = 9px). */
-const CARD_CLASS =
-  'border border-solid border-[var(--line)] bg-[var(--card)] shadow-none rounded-[14px] p-[9px]';
+/** Densité de la carte : la surface vient de `Card`, le rythme d'ici. */
+const PANEL_CLASS = 'gap-0 py-0 p-[9px]';
 
 const TYPE_COLORS: Record<string, string> = {
   BASE: '#5CB8AA',
@@ -79,9 +81,9 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
   };
 
   return (
-    <div className={CARD_CLASS}>
+    <Card className={PANEL_CLASS}>
       {/* Header — overline de section (pattern pcard) */}
-      <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[0.06em] mb-1.5">
+      <p className="text-2xs font-semibold uppercase tracking-wide text-faint mb-1.5">
         {t('dynamicPricing.ratePlan.title')}
       </p>
 
@@ -94,16 +96,22 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
 
       {/* Empty state */}
       {!loading && ratePlans.length === 0 && (
-        <p className="cn-text-body2 text-muted-foreground text-[0.75rem] py-3 text-center">
-          {t('dynamicPricing.ratePlan.empty')}
-        </p>
+        <EmptyState
+          icon={<TagIcon />}
+          title={t('dynamicPricing.ratePlan.empty')}
+          variant="transparent"
+        />
       )}
 
       {/* Plan list */}
       {!loading && ratePlans.map((plan, idx) => (
         <React.Fragment key={plan.id}>
           {idx > 0 && <Separator className="my-[4.5px]" />}
-          <div className={cn('flex items-center gap-1.5 py-[4.5px]', plan.isActive ? 'opacity-100' : 'opacity-50')} style={{ transition: 'opacity 0.15s' }}>
+          <div className={cn(
+            'flex items-center gap-1.5 py-[4.5px]',
+            'transition-opacity duration-150 ease-out-quart motion-reduce:transition-none',
+            plan.isActive ? 'opacity-100' : 'opacity-50',
+          )}>
             {/* Type badge */}
             {(() => { const c = TYPE_COLORS[plan.type] ?? '#8BA0B3'; return (
             <StatusChip
@@ -116,18 +124,18 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
 
             {/* Name + date range */}
             <div className="flex-1 min-w-0">
-              <p className="cn-text-body2 font-semibold truncate text-[0.8125rem]">
+              <p className="text-sm font-semibold truncate">
                 {plan.name}
               </p>
               {formatDateRange(plan) && (
-                <span className="cn-text-caption text-muted-foreground text-[0.625rem]">
+                <span className="text-2xs text-muted-foreground tabular-nums">
                   {formatDateRange(plan)}
                 </span>
               )}
             </div>
 
             {/* Price — display tabular-nums */}
-            <p className="cn-text-body2 font-semibold min-w-[60px] text-end text-[0.8125rem] font-[family-name:var(--font-display)] tabular-nums text-[var(--ink)]">
+            <p className="text-sm font-semibold min-w-[60px] text-end font-[family-name:var(--font-display)] tabular-nums text-foreground">
               <Money value={plan.nightlyPrice} from={plan.currency || 'EUR'} />
             </p>
 
@@ -154,7 +162,7 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
               size="icon-sm"
               aria-label={t('common.delete')}
               onClick={() => setDeleteConfirmId(plan.id)}
-              className="text-[var(--err)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+              className="text-destructive-ink hover:text-destructive-ink hover:bg-destructive-soft"
             >
               <DeleteIcon size={16} strokeWidth={1.75} />
             </Button>
@@ -169,8 +177,8 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-[0.9375rem]">{t('dynamicPricing.ratePlan.delete')}</DialogTitle>
-            <DialogDescription className="text-[0.8125rem]">{t('dynamicPricing.ratePlan.deleteConfirm')}</DialogDescription>
+            <DialogTitle className="text-base">{t('dynamicPricing.ratePlan.delete')}</DialogTitle>
+            <DialogDescription className="text-sm">{t('dynamicPricing.ratePlan.deleteConfirm')}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(null)} disabled={deleteLoading}>
@@ -188,7 +196,7 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Card>
   );
 };
 

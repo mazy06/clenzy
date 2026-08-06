@@ -65,7 +65,7 @@ export default function ExportButton({
               onClick={handleExportCSV}
               disabled={isDisabled}
               aria-label={iconLabel}
-              className="rounded-[9px] border border-solid border-[var(--line-2)] text-[var(--muted)] hover:bg-[var(--hover)] hover:border-[var(--faint)] hover:text-[var(--ink)] disabled:opacity-45"
+              className="rounded-md border border-solid border-border text-muted-foreground hover:bg-muted hover:border-faint hover:text-foreground disabled:opacity-45"
             >
               <DownloadIcon size={16} strokeWidth={1.75} />
             </Button>

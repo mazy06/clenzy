@@ -79,21 +79,21 @@ export default function PWAInstallBanner() {
     // `invisible` sort le panneau du flux de tabulation quand il est masque.
     <div
       className={cn(
-        'fixed bottom-4 left-4 right-4 z-[1300] mx-auto max-w-[600px] p-3 flex items-center gap-3',
-        // Panneau flottant : hairline + ombre pop (jamais d'aplat accent)
-        'rounded-[14px] border border-solid border-[var(--line)] bg-[var(--card)] shadow-[var(--shadow-pop)]',
+        'fixed bottom-4 inset-x-4 z-[1300] mx-auto max-w-[600px] p-3 flex items-center gap-3',
+        // Panneau flottant : hairline + ombre portee (jamais d'aplat de marque)
+        'rounded-xl border border-solid border-border bg-card shadow-lg',
         'transition-[transform,opacity,visibility] duration-300 ease-out motion-reduce:transition-none',
         visible ? 'translate-y-0 opacity-100 visible' : 'translate-y-[150%] opacity-0 invisible pointer-events-none',
       )}
     >
-      <span className="inline-flex shrink-0 text-[var(--accent)]">
+      <span className="inline-flex shrink-0 text-primary">
         <GetAppIcon size={26} strokeWidth={1.75} />
       </span>
       <div className="flex-1 min-w-0">
-        <p className="cn-text-body1 truncate font-[family-name:var(--font-display)] text-[13.5px] font-semibold text-[var(--ink)]">
+        <p className="truncate font-[family-name:var(--font-display)] text-sm font-semibold text-foreground">
           Installer Baitly PMS
         </p>
-        <p className="cn-text-body1 text-[12px] text-[var(--muted)]">
+        <p className="text-xs text-muted-foreground">
           Installez l'application sur votre appareil pour un acc&egrave;s rapide.
         </p>
       </div>

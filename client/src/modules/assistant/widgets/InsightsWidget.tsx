@@ -51,8 +51,8 @@ export const InsightsWidget: React.FC<InsightsWidgetProps> = ({ data }) => {
   if (items.length === 0) {
     return (
       <div className="mt-1.5 mb-2">
-        <div className="p-4 rounded-[12px] bg-[var(--ok-soft)] text-center">
-          <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ok)]">
+        <div className="p-4 rounded-xl bg-success-soft text-center">
+          <p className="text-xs font-semibold text-success-ink">
             Aucun insight detecte — tout va bien sur cette propriete.
           </p>
         </div>
@@ -63,7 +63,7 @@ export const InsightsWidget: React.FC<InsightsWidgetProps> = ({ data }) => {
   return (
     <div className="mt-1.5 mb-2 flex flex-col gap-1.5">
       {data.title && (
-        <p className="cn-text-body1 block mb-0.5 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
+        <p className="block mb-0.5 text-2xs font-bold uppercase tracking-[.05em] text-faint">
           {data.title}
         </p>
       )}
@@ -82,20 +82,20 @@ const InsightCard: React.FC<{ item: InsightItem }> = ({ item }) => {
   const TypeIcon = typeIcon(item.type);
 
   return (
-    <div className="p-2 rounded-[12px] border border-[var(--line)] bg-[var(--card)]">
+    <div className="p-2 rounded-xl border border-border bg-card">
       <div className="flex gap-1.5 items-start mb-1">
-        <div className="w-[28px] h-[28px] rounded-[9px] flex items-center justify-center shrink-0 mt-[0.75px]" style={{ backgroundColor: sevSoft, color: sevColor }}>
+        <div className="w-[28px] h-[28px] rounded-lg flex items-center justify-center shrink-0 mt-[0.75px]" style={{ backgroundColor: sevSoft, color: sevColor }}>
           <TypeIcon size={16} strokeWidth={2} />
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1 mb-0.5 flex-wrap">
-            <p className="cn-text-body1 text-[13.5px] font-semibold text-[var(--ink)] leading-[1.3]">
+            <p className="text-[13.5px] font-semibold text-foreground leading-[1.3]">
               {item.title}
             </p>
-            <StatusChip size="sm" tokens={{ color: sevColor, bg: sevSoft }} label={humanizeSeverity(item.severity)} className="text-[10.5px] tracking-[.04em] uppercase" />
+            <StatusChip size="sm" tokens={{ color: sevColor, bg: sevSoft }} label={humanizeSeverity(item.severity)} className="text-2xs tracking-[.04em] uppercase" />
           </div>
-          <p className="cn-text-body1 text-[12.5px] leading-[1.5] text-[var(--muted)]">
+          <p className="text-xs leading-[1.5] text-muted-foreground">
             {item.description}
           </p>
         </div>
@@ -103,11 +103,11 @@ const InsightCard: React.FC<{ item: InsightItem }> = ({ item }) => {
 
       {/* Recommandation actionnable */}
       {item.recommendation && (
-        <div className="ms-7 mt-1 px-2 py-1 rounded-[9px] bg-[var(--field)]">
-          <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-0.5">
+        <div className="ms-7 mt-1 px-2 py-1 rounded-lg bg-muted">
+          <p className="block text-2xs font-bold uppercase tracking-[.05em] text-faint mb-0.5">
             Action recommandee
           </p>
-          <p className="cn-text-body1 text-[12.5px] leading-[1.45] text-[var(--body)]">
+          <p className="text-xs leading-[1.45] text-foreground">
             {item.recommendation}
           </p>
         </div>
@@ -135,12 +135,12 @@ function typeIcon(type: string): LucideIconComponent {
 
 function severityColors(severity: string): [string, string] {
   switch (severity?.toUpperCase()) {
-    case 'CRITICAL': return ['var(--err)', 'var(--err-soft)'];
-    case 'HIGH': return ['var(--err)', 'var(--err-soft)'];
-    case 'MEDIUM': return ['var(--warn)', 'var(--warn-soft)'];
+    case 'CRITICAL': return ['var(--color-destructive-ink)', 'var(--color-destructive-soft)'];
+    case 'HIGH': return ['var(--color-destructive-ink)', 'var(--color-destructive-soft)'];
+    case 'MEDIUM': return ['var(--color-warning-ink)', 'var(--color-warning-soft)'];
     case 'LOW':
     default:
-      return ['var(--info)', 'var(--info-soft)'];
+      return ['var(--color-info-ink)', 'var(--color-info-soft)'];
   }
 }
 

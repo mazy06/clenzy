@@ -199,7 +199,7 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
     <div>
       {/* Label */}
       {label && (
-        <h6 className="cn-text-subtitle2 font-semibold mb-1.5">
+        <h6 className="text-xs font-semibold mb-1.5">
           {label}
         </h6>
       )}
@@ -212,21 +212,21 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         className={cn(
-          'border-2 border-dashed rounded-[16px] p-[18px] text-center transition-all duration-200 ease-[ease]',
-          error ? 'border-[#C97A7A]' : isDragOver ? 'border-[var(--mui-primary)]' : 'border-[var(--line)]',
-          isDragOver ? 'bg-[var(--hover)]' : 'bg-[var(--card)]',
+          'border-2 border-dashed rounded-xl p-[18px] text-center transition-colors duration-200 ease-out',
+          error ? 'border-destructive' : isDragOver ? 'border-primary' : 'border-border',
+          isDragOver ? 'bg-muted' : 'bg-card',
           disabled
             ? 'cursor-default opacity-50'
-            : 'cursor-pointer opacity-100 hover:border-[var(--mui-primary)] hover:bg-[var(--hover)]',
+            : 'cursor-pointer opacity-100 hover:border-primary hover:bg-muted',
         )}
       >
-        <span className={cn('inline-flex mb-1.5', isDragOver ? 'text-[var(--mui-primary)]' : 'text-[var(--muted)]')}>
+        <span className={cn('inline-flex mb-1.5', isDragOver ? 'text-primary' : 'text-muted-foreground')}>
           <CloudUploadIcon size={40} strokeWidth={1.5} />
         </span>
-        <p className="cn-text-body2 text-muted-foreground">
+        <p className="text-xs font-medium text-muted-foreground">
           Glissez-déposez vos photos ici
         </p>
-        <span className="cn-text-caption text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           ou cliquez pour parcourir
         </span>
       </div>
@@ -244,7 +244,7 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
       {/* Texte d'aide */}
       {helperText && (
-        <span className="cn-text-caption text-muted-foreground mt-0.5 block">
+        <span className="text-xs text-muted-foreground mt-0.5 block">
           {helperText}
         </span>
       )}
@@ -252,8 +252,8 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
       {/* Compteur — `mt: 0.5` avec theme.spacing = 6 vaut 3 px. */}
       <span
         className={cn(
-          'cn-text-caption mt-[3px] block',
-          totalCount >= maxFiles ? 'text-[var(--err)]' : 'text-[var(--muted)]',
+          'mt-[3px] block text-xs tabular-nums',
+          totalCount >= maxFiles ? 'text-destructive-ink' : 'text-muted-foreground',
         )}
       >
         {totalCount}/{maxFiles} photos
@@ -263,7 +263,7 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
       {(validationError || error) && (
         <Alert variant="destructive" className="mt-1.5 py-0.5">
           <TriangleAlert />
-          <AlertDescription><span className="cn-text-caption text-[0.75rem]">
+          <AlertDescription><span className="text-xs">
             {error || validationError}
           </span></AlertDescription>
         </Alert>
@@ -272,7 +272,7 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
       {/* Prévisualisation des photos existantes (URLs) */}
       {existingPhotos.length > 0 && (
         <div className="mt-3">
-          <span className="cn-text-caption text-muted-foreground mb-1.5 block">
+          <span className="text-xs text-muted-foreground mb-1.5 block">
             Photos existantes
           </span>
           {/* Le nombre de colonnes vient des props : valeur d'execution, donc un
@@ -284,15 +284,15 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                   src={url}
                   alt={`Apercu existant ${index + 1}`}
                   loading="lazy"
-                  className="h-[120px] w-full rounded-[4px] object-cover"
+                  className="h-[120px] w-full rounded-sm object-cover"
                 />
                 {onExistingPhotoRemove && (
-                  <div className="absolute inset-x-0 top-0 flex justify-end rounded-t-[4px] p-1 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.7)_0%,rgba(0,0,0,0)_100%)]">
+                  <div className="absolute inset-x-0 top-0 flex justify-end rounded-t-sm bg-gradient-to-b from-black/70 to-transparent p-1">
                     <Button
                       variant="ghost"
                       size="icon-sm"
                       aria-label={`Retirer la photo existante ${index + 1}`}
-                      className="text-[#FFFFFF] hover:bg-[rgba(255,255,255,0.15)]"
+                      className="text-white hover:bg-white/15 hover:text-white"
                       onClick={(e) => {
                         e.stopPropagation();
                         onExistingPhotoRemove(url);
@@ -312,7 +312,7 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
       {/* Prévisualisation des nouveaux fichiers */}
       {photos.length > 0 && (
         <div className="mt-3">
-          <span className="cn-text-caption text-muted-foreground mb-1.5 block">
+          <span className="text-xs text-muted-foreground mb-1.5 block">
             Nouvelles photos
           </span>
           <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
@@ -323,14 +323,14 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                     src={previewUrls[index] || ''}
                     alt={`Apercu ${index + 1}`}
                     loading="lazy"
-                    className="h-[120px] w-full rounded-[4px] object-cover"
+                    className="h-[120px] w-full rounded-sm object-cover"
                   />
-                  <div className="absolute inset-x-0 top-0 flex justify-end rounded-t-[4px] p-1 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.7)_0%,rgba(0,0,0,0)_100%)]">
+                  <div className="absolute inset-x-0 top-0 flex justify-end rounded-t-sm bg-gradient-to-b from-black/70 to-transparent p-1">
                     <Button
                       variant="ghost"
                       size="icon-sm"
                       aria-label={`Retirer ${file.name}`}
-                      className="text-[#FFFFFF] hover:bg-[rgba(255,255,255,0.15)]"
+                      className="text-white hover:bg-white/15 hover:text-white"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleRemoveFile(index);
@@ -341,10 +341,10 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                     </Button>
                   </div>
                 </div>
-                <span className="cn-text-caption mt-1 block truncate text-[0.7rem]">
+                <span className="mt-1 block truncate text-2xs font-medium text-muted-foreground">
                   {file.name}
                 </span>
-                <span className="cn-text-caption block text-muted-foreground text-[0.65rem]">
+                <span className="block text-2xs tabular-nums text-faint">
                   {formatFileSize(file.size)}
                 </span>
               </div>

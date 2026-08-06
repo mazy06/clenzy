@@ -1,5 +1,6 @@
 
-import StatusChip from '../../../components/StatusChip';
+import { Badge } from '../../../components/ui';
+import { cn } from '../../../utils/cn';
 import type { CatalogService } from '../../../services/integrations/servicesCatalog';
 import ServiceGridCard from './ServiceGridCard';
 
@@ -33,37 +34,38 @@ export default function ServiceCatalogCard({ service, onClick }: ServiceCatalogC
       role="button"
       onClick={() => onClick(service)}
       logo={
-        <div className="w-[40px] h-[40px] rounded-[8px] inline-flex items-center justify-center shrink-0 text-[0.85rem] font-bold tracking-[-0.02em]" style={{ backgroundColor: service.brandColor, color: service.brandTextColor }} aria-hidden="true">
+        <div className="size-10 rounded-md inline-flex items-center justify-center shrink-0 text-sm font-bold tracking-tight" style={{ backgroundColor: service.brandColor, color: service.brandTextColor }} aria-hidden="true">
           {getInitials(service.name)}
         </div>
       }
       badge={
-        <StatusChip
-          tokens={{ color: chip.color, bg: `color-mix(in srgb, ${chip.color} 8%, transparent)` }}
-          label={chip.label}
-          className="border border-solid tracking-[0.01em]"
-          sx={{ borderColor: `color-mix(in srgb, ${chip.color} 20%, transparent)` }}
-        />
+        <Badge variant={chip.variant} className={cn('shrink-0', chip.className)}>
+          {chip.label}
+        </Badge>
       }
     />
   );
 }
 
-/** Resout le chip a afficher : prioritise le tag commercial sur le status. */
-function getChipMeta(service: { tag?: 'proprietary' | 'free' | 'partner' | 'external'; available: boolean }): { label: string; color: string } {
-  const ACCENT_LOCAL = 'var(--ok)';
-  const NEUTRAL_LOCAL = 'var(--muted)';
-  const WARM_LOCAL = 'var(--warn)';
-  const INFO_LOCAL = 'var(--info)';
-  const PRIMARY_LOCAL = 'var(--accent)';
+/** Ton de puce du kit pour chaque tag commercial. */
+type ChipMeta = {
+  label: string;
+  variant: 'secondary' | 'success' | 'warning' | 'info';
+  /** La marque n'a pas de variante de puce dédiée : fond doux + encre primaire. */
+  className?: string;
+};
 
-  if (service.tag === 'proprietary') return { label: 'Propriétaire', color: PRIMARY_LOCAL };
-  if (service.tag === 'free') return { label: 'Gratuit', color: ACCENT_LOCAL };
-  if (service.tag === 'partner') return { label: 'Partenaire', color: INFO_LOCAL };
-  if (service.tag === 'external') return { label: 'Externe', color: WARM_LOCAL };
+/** Resout le chip a afficher : prioritise le tag commercial sur le status. */
+function getChipMeta(service: { tag?: 'proprietary' | 'free' | 'partner' | 'external'; available: boolean }): ChipMeta {
+  if (service.tag === 'proprietary') {
+    return { label: 'Propriétaire', variant: 'secondary', className: 'bg-primary-soft text-primary' };
+  }
+  if (service.tag === 'free') return { label: 'Gratuit', variant: 'success' };
+  if (service.tag === 'partner') return { label: 'Partenaire', variant: 'info' };
+  if (service.tag === 'external') return { label: 'Externe', variant: 'warning' };
   return service.available
-    ? { label: 'Configurable', color: ACCENT_LOCAL }
-    : { label: 'Bientôt', color: NEUTRAL_LOCAL };
+    ? { label: 'Configurable', variant: 'success' }
+    : { label: 'Bientôt', variant: 'secondary' };
 }
 
 /** Extrait les 2 premieres lettres significatives du nom (skip parentheses). */

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Card, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, NativeSelect, NativeSelectOption, Spinner, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui';
+import { Button, Card, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, FieldLabel, Input, NativeSelect, NativeSelectOption, Spinner, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui';
 import { Add, DeleteOutline, Edit, GppGood } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -84,8 +84,8 @@ export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
     <Card className="p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <GppGood size={18} strokeWidth={1.75} className="text-[var(--muted)]" />
-          <h3 className="m-0 text-[13.5px] font-semibold">
+          <GppGood size={18} strokeWidth={1.75} className="text-muted-foreground" />
+          <h3 className="m-0 text-sm font-semibold tracking-tight text-foreground">
             {t('properties.compliance.title', 'Licences & autorisations')}
           </h3>
         </div>
@@ -98,7 +98,7 @@ export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
       </div>
 
       {licenses.length === 0 ? (
-        <p className="m-0 py-4 text-[12.5px] text-[var(--muted)]">
+        <p className="m-0 py-4 text-xs text-muted-foreground">
           {t('properties.compliance.empty',
             "Aucune licence enregistrée. L'échéance saisie ici alimente l'alerte de renouvellement de l'agent Conformité.")}
         </p>
@@ -168,10 +168,13 @@ export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
                   : t('properties.compliance.editTitle', 'Modifier la licence')}
               </DialogTitle>
             </DialogHeader>
+            {/* Les libellés sont associés par `htmlFor` : la boîte n'est montée
+                qu'une fois à la fois, les identifiants sont donc uniques. */}
             <div className="grid gap-3 py-1">
-              <label className="grid gap-1 text-[12px] font-medium">
-                {t('properties.compliance.type', 'Type')}
+              <Field>
+                <FieldLabel htmlFor="license-type">{t('properties.compliance.type', 'Type')}</FieldLabel>
                 <NativeSelect
+                  id="license-type"
                   value={editing.form.licenseType}
                   onChange={(e) => setField('licenseType', e.target.value as PropertyLicense['licenseType'])}
                 >
@@ -179,55 +182,63 @@ export default function PropertyComplianceTab({ propertyId, canEdit }: Props) {
                     <NativeSelectOption key={value} value={value}>{label}</NativeSelectOption>
                   ))}
                 </NativeSelect>
-              </label>
-              <label className="grid gap-1 text-[12px] font-medium">
-                {t('properties.compliance.number', 'Numéro')}
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="license-number">{t('properties.compliance.number', 'Numéro')}</FieldLabel>
                 <Input
+                  id="license-number"
                   value={editing.form.licenseNumber ?? ''}
                   onChange={(e) => setField('licenseNumber', e.target.value || null)}
                 />
-              </label>
-              <label className="grid gap-1 text-[12px] font-medium">
-                {t('properties.compliance.issuedBy', 'Émise par')}
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="license-issued-by">{t('properties.compliance.issuedBy', 'Émise par')}</FieldLabel>
                 <Input
+                  id="license-issued-by"
                   value={editing.form.issuedBy ?? ''}
                   onChange={(e) => setField('issuedBy', e.target.value || null)}
                   placeholder={t('properties.compliance.issuedByHint', 'Commune, préfecture, DGSN…')}
                 />
-              </label>
+              </Field>
               <div className="grid grid-cols-2 gap-3">
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('properties.compliance.issuedAt', 'Délivrée le')}
+                <Field>
+                  <FieldLabel htmlFor="license-issued-at">{t('properties.compliance.issuedAt', 'Délivrée le')}</FieldLabel>
                   <Input
+                    id="license-issued-at"
                     type="date"
                     value={editing.form.issuedAt ?? ''}
                     onChange={(e) => setField('issuedAt', e.target.value || null)}
                   />
-                </label>
-                <label className="grid gap-1 text-[12px] font-medium">
-                  {t('properties.compliance.expiresAt', 'Échéance')}
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="license-expires-at">{t('properties.compliance.expiresAt', 'Échéance')}</FieldLabel>
                   <Input
+                    id="license-expires-at"
                     type="date"
                     value={editing.form.expiresAt ?? ''}
                     onChange={(e) => setField('expiresAt', e.target.value || null)}
                   />
-                </label>
+                </Field>
               </div>
-              <label className="grid gap-1 text-[12px] font-medium">
-                {t('properties.compliance.leadLong', "Alerte de renouvellement (jours avant l'échéance)")}
+              <Field>
+                <FieldLabel htmlFor="license-lead">
+                  {t('properties.compliance.leadLong', "Alerte de renouvellement (jours avant l'échéance)")}
+                </FieldLabel>
                 <Input
+                  id="license-lead"
                   type="number" min={0} max={365}
                   value={editing.form.renewalLeadDays}
                   onChange={(e) => setField('renewalLeadDays', Number(e.target.value) || 0)}
                 />
-              </label>
-              <label className="grid gap-1 text-[12px] font-medium">
-                {t('properties.compliance.notes', 'Notes')}
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="license-notes">{t('properties.compliance.notes', 'Notes')}</FieldLabel>
                 <Input
+                  id="license-notes"
                   value={editing.form.notes ?? ''}
                   onChange={(e) => setField('notes', e.target.value || null)}
                 />
-              </label>
+              </Field>
             </div>
             <DialogFooter>
               <Button variant="outline" disabled={saving} onClick={() => setEditing(null)}>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Badge } from '../../components/ui';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
-import { TriangleAlert, X, CircleCheck } from 'lucide-react';
+import { Check, Minus, TriangleAlert, X, CircleCheck } from 'lucide-react';
 import { Spinner } from '../../components/ui';
 import {
   Field,
@@ -194,10 +194,10 @@ export default function WhatsAppProviderConfigSection() {
       {/* Header section */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h6 className="cn-text-h6 font-semibold mb-0.5">
+          <h6 className="text-sm font-semibold mb-0.5">
             {t('settings.whatsapp.title', 'Provider WhatsApp')}
           </h6>
-          <p className="cn-text-body2 text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {t('settings.whatsapp.subtitle',
               "Choisissez comment Baitly envoie vos messages WhatsApp à vos voyageurs.")}
           </p>
@@ -247,7 +247,7 @@ export default function WhatsAppProviderConfigSection() {
           />
         </div>
         {enabled && (
-          <span className="cn-text-caption text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {t('settings.whatsapp.providerLockHint',
               'Un seul provider actif à la fois. Désactivez « Activer les envois » ci-dessous pour changer de provider.')}
           </span>
@@ -259,13 +259,13 @@ export default function WhatsAppProviderConfigSection() {
         <BuiAlert variant="warning">
           <ErrorOutline size={18} />
           <AlertDescription className="flex items-center gap-[4.5px]">
-            <span className="cn-text-body2 font-medium">
+            <span className="text-xs font-medium">
               {t('settings.whatsapp.openwaDisclaimer.short',
                 'OpenWA est hors conditions Meta — risque de ban du compte.')}
             </span>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="inline-flex cursor-help text-[#D4A574]">
+                <span className="inline-flex cursor-help text-warning">
                   <InfoOutlined size={15} strokeWidth={1.75} />
                 </span>
               </TooltipTrigger>
@@ -299,13 +299,13 @@ export default function WhatsAppProviderConfigSection() {
 
           <div className="flex items-center gap-3 my-1.5">
             <Separator className="flex-1" />
-            <span className="cn-text-caption text-muted-foreground whitespace-nowrap">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
               {t('settings.whatsapp.meta.orManual', 'OU configuration manuelle')}
             </span>
             <Separator className="flex-1" />
           </div>
 
-          <h6 className="cn-text-subtitle2 font-semibold">
+          <h6 className="text-xs font-semibold">
             {t('settings.whatsapp.meta.formTitle', 'Identifiants Meta Cloud API')}
           </h6>
           <Field>
@@ -379,7 +379,7 @@ export default function WhatsAppProviderConfigSection() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          <h6 className="cn-text-subtitle2 font-semibold">
+          <h6 className="text-xs font-semibold">
             {t('settings.whatsapp.openwa.formTitle', 'Connexion à votre instance OpenWA')}
           </h6>
           <Field>
@@ -427,7 +427,7 @@ export default function WhatsAppProviderConfigSection() {
                 ? t('settings.whatsapp.openwa.rescan', 'Re-scanner le QR code')
                 : t('settings.whatsapp.openwa.scan', 'Scanner le QR code')}
             </BuiButton>
-            <span className="cn-text-caption text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {config?.hasOpenwaApiKey
                 ? t('settings.whatsapp.openwa.scanHint', 'Crée la session et affiche le QR à scanner avec votre téléphone.')
                 : t('settings.whatsapp.openwa.scanHintNoKey', 'Saisissez la master key et enregistrez avant de scanner.')}
@@ -455,10 +455,10 @@ export default function WhatsAppProviderConfigSection() {
       {/* Toggle enable */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h6 className="cn-text-subtitle2 font-semibold">
+          <h6 className="text-xs font-semibold">
             {t('settings.whatsapp.enable', 'Activer les envois WhatsApp')}
           </h6>
-          <span className="cn-text-caption text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {enabled
               ? t('settings.whatsapp.enableOn', "Baitly enverra les messages WhatsApp via le provider sélectionné.")
               : t('settings.whatsapp.enableOff', "Aucun message WhatsApp ne sera envoyé.")}
@@ -528,7 +528,7 @@ function FieldInfo({ text }: { text: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="inline-flex items-center cursor-help text-[var(--faint)] [transition:color_150ms_ease-out] hover:text-[var(--muted)]">
+        <span className="inline-flex items-center cursor-help text-faint transition-colors duration-150 ease-out-quart motion-reduce:transition-none hover:text-muted-foreground">
           <InfoOutlined size={15} strokeWidth={1.75} />
         </span>
       </TooltipTrigger>
@@ -548,9 +548,9 @@ function ProviderOptionCard({
   cons,
 }: ProviderOptionCardProps) {
   return (
-    // Carte-radio sur mesure : <button> nu + classes. Les etats selectionne / desactive
-    // sont ecrits en branches litterales, une classe Tailwind ne pouvant pas naitre
-    // d'une variable ; les jetons MUI sont traduits en variables CSS.
+    // Carte-radio sur mesure : <button> nu + classes. Les etats selectionne /
+    // desactive sont ecrits en branches litterales, une classe Tailwind ne
+    // pouvant pas naitre d'une variable.
     <button
       type="button"
       onClick={disabled ? undefined : onClick}
@@ -558,42 +558,41 @@ function ProviderOptionCard({
       aria-disabled={disabled || undefined}
       tabIndex={disabled ? -1 : 0}
       className={cn(
-        'flex items-center gap-[7.5px] text-start p-[9px] rounded-[16px] border-[1.5px] border-solid [font-family:inherit]',
-        'transition-[border-color,background-color,opacity] duration-[180ms] ease-out',
-        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_srgb,var(--mui-primary)_50%,transparent)]',
+        'flex items-center gap-[7.5px] text-start p-[9px] rounded-xl border-[1.5px] border-solid [font-family:inherit]',
+        'transition-[border-color,background-color,opacity] duration-[180ms] ease-out-quart motion-reduce:transition-none',
+        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/50',
         disabled ? 'cursor-not-allowed opacity-45' : 'cursor-pointer opacity-100',
         selected
-          ? 'bg-[color-mix(in_srgb,var(--mui-primary)_6%,transparent)] border-[var(--mui-primary)]'
-          : 'bg-[var(--card)] border-[color-mix(in_srgb,var(--ink)_12%,transparent)]',
-        !disabled && !selected && 'hover:border-[color-mix(in_srgb,var(--mui-primary)_50%,transparent)]',
-        !disabled && selected && 'hover:border-[var(--mui-primary)]',
+          ? 'bg-primary-soft border-primary'
+          : 'bg-card border-border',
+        !disabled && !selected && 'hover:border-primary/50',
+        !disabled && selected && 'hover:border-primary',
       )}
     >
       {/* Indicateur radio */}
       <div
         className={cn(
-          'w-[18px] h-[18px] rounded-full shrink-0 border-[2px] border-solid inline-flex items-center justify-center',
-          '[transition:border-color_150ms_ease-out]',
-          selected ? 'border-[var(--mui-primary)]' : 'border-[color-mix(in_srgb,var(--ink)_30%,transparent)]',
+          'size-[18px] rounded-full shrink-0 border-2 border-solid inline-flex items-center justify-center',
+          'transition-colors duration-150 ease-out-quart motion-reduce:transition-none',
+          selected ? 'border-primary' : 'border-input',
         )}
       >
         {selected && (
-          <div className="w-[9px] h-[9px] rounded-full bg-[var(--mui-primary)]" />
+          <div className="size-[9px] rounded-full bg-primary" />
         )}
       </div>
 
       {/* Titre + badge + sous-titre */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1 flex-wrap">
-          <h6 className="cn-text-subtitle2 font-semibold">{title}</h6>
+          <h6 className="text-xs font-semibold">{title}</h6>
           <StatusChip
             size="sm"
             tone={BADGE_TONES[badge.color]}
             label={badge.label}
-            className="text-[0.6875rem]"
           />
         </div>
-        <span className="cn-text-caption text-muted-foreground block mt-0.5">
+        <span className="text-xs text-muted-foreground block mt-0.5">
           {subtitle}
         </span>
       </div>
@@ -601,21 +600,21 @@ function ProviderOptionCard({
       {/* Avantages / limites — en tooltip pour ne pas alourdir la card */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="inline-flex shrink-0 cursor-help text-[var(--muted)] [transition:color_150ms_ease-out] hover:text-[var(--ink)]">
+          <span className="inline-flex shrink-0 cursor-help text-muted-foreground transition-colors duration-150 ease-out-quart motion-reduce:transition-none hover:text-foreground">
             <InfoOutlined size={16} strokeWidth={1.75} />
           </span>
         </TooltipTrigger>
         <TooltipContent>
           <div className="flex flex-col gap-[3px] py-[3px]">
             {pros.map((p) => (
-              <div className="flex items-start gap-1 text-[0.72rem]" key={p}>
-                <span className="text-[var(--mui-success-l)] font-bold leading-[1.4]">✓</span>
+              <div className="flex items-start gap-1 text-2xs" key={p}>
+                <Check className="size-3 shrink-0 mt-px text-success" aria-hidden />
                 <span>{p}</span>
               </div>
             ))}
             {cons.map((c) => (
-              <div className="flex items-start gap-1 text-[0.72rem] opacity-85" key={c}>
-                <span className="font-bold leading-[1.4]">−</span>
+              <div className="flex items-start gap-1 text-2xs opacity-85" key={c}>
+                <Minus className="size-3 shrink-0 mt-px" aria-hidden />
                 <span>{c}</span>
               </div>
             ))}

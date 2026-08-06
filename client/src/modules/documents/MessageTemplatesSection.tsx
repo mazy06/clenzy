@@ -22,7 +22,7 @@ import EmptyState from '../../components/EmptyState';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-/** Tons sémantiques (tokens Signature) pour les chips -soft. */
+/** Tons sémantiques (tokens StatusChip) pour les chips -soft. */
 const TONE = {
   ok: STATUS_TONES.ok,
   warn: STATUS_TONES.warn,
@@ -195,9 +195,9 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
           )}
         />
       ) : (
-        // Rayon 10px + fond --card : report de la surface MUI par defaut
-        // (elevation 0, sans bordure) que portait l'ancien conteneur.
-        <div className="overflow-x-auto rounded-[10px] bg-[var(--card)]">
+        // Surface de tableau : fond `card` de Baitly UI, sans filet (le tableau
+        // porte deja ses propres separateurs de ligne).
+        <div className="overflow-x-auto rounded-lg bg-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -269,7 +269,7 @@ const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
     <TableRow>
       <TableCell>
         <Stack0Spaced>
-          <p className="cn-text-body2 font-semibold text-[var(--ink)]">{template.name}</p>
+          <p className="text-xs font-semibold text-foreground">{template.name}</p>
           <StatusChip
             label={TYPE_LABELS[template.type] || template.type} tokens={TYPE_TONE[template.type] ?? TONE.muted}
           />
@@ -281,7 +281,7 @@ const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
         />
       </TableCell>
       <TableCell>
-        <p className="cn-text-body2 truncate max-w-[280px] text-[0.8125rem]">
+        <p className="truncate max-w-[280px] text-[0.8125rem]">
           {template.subject}
         </p>
       </TableCell>
@@ -294,12 +294,12 @@ const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
         />
       </TableCell>
       <TableCell className="text-center">
-        <span className="cn-text-caption font-mono text-muted-foreground">v1</span>
+        <span className="text-xs font-mono text-muted-foreground">v1</span>
       </TableCell>
       <TableCell>
         {/* Pas de createdBy dans le DTO actuel pour les user templates.
             Affiche un dash pour ne pas mentir et garder la colonne alignee. */}
-        <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">—</p>
+        <p className="text-muted-foreground text-[0.8125rem]">—</p>
       </TableCell>
       <TableCell className="text-end">
         <div className="inline-flex items-center gap-0.5">
@@ -311,7 +311,7 @@ const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
                   size="icon-sm"
                   onClick={() => onEdit(template)}
                   aria-label={t('common.edit')}
-                  className="hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
+                  className="hover:text-primary hover:bg-primary-soft"
                 >
                   <Edit size={16} strokeWidth={1.75} />
                 </BuiButton>
@@ -327,7 +327,7 @@ const UserRow: React.FC<UserRowProps> = ({ template, onEdit, onDelete }) => {
                   size="icon-sm"
                   onClick={() => onDelete(template.id)}
                   aria-label={t('common.delete')}
-                  className="text-[var(--muted)] hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+                  className="text-muted-foreground hover:text-destructive-ink hover:bg-destructive-soft"
                 >
                   <Delete size={16} strokeWidth={1.75} />
                 </BuiButton>
@@ -358,7 +358,7 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
     <TableRow>
       <TableCell>
         <Stack0Spaced>
-          <p className="cn-text-body2 font-semibold text-[var(--ink)]">
+          <p className="text-xs font-semibold text-foreground">
             {t(`systemEmailTemplates.keys.${group.templateKey}`)}
           </p>
           <StatusChip
@@ -374,7 +374,7 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
         />
       </TableCell>
       <TableCell>
-        <p className="cn-text-body2 truncate max-w-[280px] text-[0.8125rem]">
+        <p className="truncate max-w-[280px] text-[0.8125rem]">
           {firstLang?.subject ?? '—'}
         </p>
       </TableCell>
@@ -392,10 +392,10 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
         />
       </TableCell>
       <TableCell className="text-center">
-        <span className="cn-text-caption font-mono text-muted-foreground">v1</span>
+        <span className="text-xs font-mono text-muted-foreground">v1</span>
       </TableCell>
       <TableCell>
-        <p className="cn-text-body2 text-muted-foreground text-[0.8125rem]">
+        <p className="text-muted-foreground text-[0.8125rem]">
           {t('messaging.templates.systemAuthor')}
         </p>
       </TableCell>
@@ -408,7 +408,7 @@ const SystemRow: React.FC<SystemRowProps> = ({ group, onEdit }) => {
                 size="icon-sm"
                 onClick={() => onEdit(group.templateKey)}
                 aria-label={t('common.edit')}
-                className="hover:text-[var(--accent)] hover:bg-[var(--accent-soft)]"
+                className="hover:text-primary hover:bg-primary-soft"
               >
                 <Edit size={16} strokeWidth={1.75} />
               </BuiButton>

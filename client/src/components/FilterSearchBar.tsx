@@ -22,6 +22,7 @@ import {
 } from './ui';
 import NavCountBadge from './NavCountBadge';
 import { useScreenSearch } from './ScreenChrome';
+import { useIsMobile } from '../hooks/use-mobile';
 import { cn } from '../utils/cn';
 
 const VIEW_ICON: Record<'grid' | 'list' | 'map', React.ReactNode> = {
@@ -119,6 +120,20 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
 
+  // Sous `lg`, le PageHeader replie filtres et actions dans son menu ⋯ : le
+  // panneau s'affiche alors EN LIGNE, comme une section du menu, au lieu
+  // d'ouvrir une seconde couche par-dessus la première.
+  //
+  // Le seuil est répliqué ici, et non lu dans un contexte, parce qu'un contexte
+  // ne peut PAS fonctionner : les écrans embarqués `createPortal` leur barre de
+  // filtres dans le slot du header. Le nœud DOM atterrit bien dans le menu, mais
+  // le contexte React suit l'arbre REACT — il resterait donc celui de l'écran.
+  // Mesuré : `data-in-overflow` valait `false` sur un nœud pourtant à
+  // l'intérieur de `[role="menu"]`.
+  //
+  // Si le seuil de `PageHeader` change, celui-ci doit suivre (cf. `isCompact`).
+  const inOverflow = useIsMobile(1024);
+
   // La recherche de l'écran est déléguée au champ UNIQUE du PageHeader : la
   // barre ne dessine plus de champ, elle publie juste son état (cf. ScreenChrome).
   useScreenSearch(searchTerm, onSearchChange, searchPlaceholder);
@@ -150,6 +165,129 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
   const definedFilters = Object.entries(filters).filter(([, f]) => Boolean(f)) as [string, FilterConfig][];
   const modes = viewToggle?.modes ?? ['grid', 'list', 'map'];
 
+  /**
+   * Corps du panneau — un seul balisage pour les DEUX rendus : dans un popover
+   * quand la barre est large, en section du menu ⋯ quand elle est repliée. Le
+   * dupliquer aurait garanti que les deux versions divergent.
+   */
+  const panelBody = (
+    <>
+      <div className={cn('flex min-w-0 flex-col gap-3', inOverflow ? 'px-1 pb-1' : 'p-3')}>
+        {viewToggle && (
+          <Field>
+            <FieldLabel htmlFor="filterbar-view">Vue</FieldLabel>
+            {/* Le libellé revient : trois icônes nues obligeaient à les
+                survoler une par une pour deviner ce qu'elles font. */}
+            <ToggleGroup
+              id="filterbar-view"
+              type="single"
+              variant="outline"
+              size="sm"
+              spacing={0}
+              value={viewToggle.mode}
+              onValueChange={(next) => {
+                if (next) viewToggle.onChange(next as ViewToggleConfig['mode']);
+              }}
+              className="w-full [&>*]:flex-1"
+            >
+              {modes.map((mode) => (
+                <ToggleGroupItem key={mode} value={mode} className="gap-1.5 text-xs">
+                  {VIEW_ICON[mode]}
+                  {VIEW_LABEL[mode]}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </Field>
+        )}
+
+        {definedFilters.map(([key, filter]) => (
+          <Field key={key}>
+            <FieldLabel htmlFor={`filterbar-${key}`}>{filter.label || key}</FieldLabel>
+            <NativeSelect
+              id={`filterbar-${key}`}
+              className="w-full"
+              value={filter.value}
+              onChange={(e) => filter.onChange(e.target.value)}
+            >
+              {filter.options.map((option) => (
+                <NativeSelectOption key={option.value} value={option.value}>
+                  {option.label}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
+        ))}
+
+        {extraActions && (
+          <>
+            <Separator />
+            <div className="flex flex-wrap items-center gap-2">{extraActions}</div>
+          </>
+        )}
+      </div>
+
+      {activeFilters.length > 0 && (
+        <>
+          <Separator />
+          <div className={cn('flex items-center justify-between py-2', inOverflow ? 'px-1' : 'px-3')}>
+            <span className="text-[11px] tabular-nums text-muted-foreground">{counterText}</span>
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-[12px] font-semibold"
+              onClick={() => Object.values(filters).forEach((f) => f?.onChange(''))}
+            >
+              Tout effacer
+            </Button>
+          </div>
+        </>
+      )}
+    </>
+  );
+
+  /** Puces des filtres actifs — même balisage dans la barre et dans le menu. */
+  const activeChips = activeFilters.length > 0 && (
+    <div className="flex min-w-0 flex-nowrap items-center gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+      {activeFilters.map((af) => (
+        <span
+          key={af.key}
+          className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary"
+        >
+          {af.label} : {af.displayValue}
+          <button
+            type="button"
+            onClick={af.onClear}
+            aria-label={`Retirer le filtre ${af.label}`}
+            className="cursor-pointer rounded-full text-primary transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <CloseIcon size={12} strokeWidth={2} />
+          </button>
+        </span>
+      ))}
+    </div>
+  );
+
+  // ── Rendu DANS le menu ⋯ : une colonne, pas une barre ──────────────────────
+  //
+  // La barre horizontale ne se laisse pas simplement « retourner » de l'extérieur :
+  // son compteur et son panneau sont deux colonnes d'une même ligne, et le
+  // conteneur de portail du header impose ses propres styles EN INLINE. Résultat
+  // constaté : le compteur restait collé à gauche, verticalement centré, et le
+  // panneau, comprimé, débordait à droite (« Car… » pour « Carte »).
+  // D'où une mise en page propre à ce contexte, plutôt que des règles CSS
+  // acrobatiques posées par le menu.
+  if (inOverflow) {
+    return (
+      <div data-inline-panel className="flex w-full min-w-0 flex-col gap-2">
+        <span className="px-1 text-2xs font-bold uppercase tracking-[0.06em] text-muted-foreground tabular-nums">
+          {counterText}
+        </span>
+        {activeChips && <div className="px-1">{activeChips}</div>}
+        {panelBody}
+      </div>
+    );
+  }
+
   const content = (
     <>
       {/* Puces des filtres actifs : conditionnelles, donc sans coût quand la
@@ -159,14 +297,14 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
           {activeFilters.map((af) => (
             <span
               key={af.key}
-              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--accent)]"
+              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary"
             >
               {af.label} : {af.displayValue}
               <button
                 type="button"
                 onClick={af.onClear}
                 aria-label={`Retirer le filtre ${af.label}`}
-                className="cursor-pointer rounded-full text-[var(--accent)] transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="cursor-pointer rounded-full text-primary transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <CloseIcon size={12} strokeWidth={2} />
               </button>
@@ -180,111 +318,41 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
           {counterText}
         </span>
 
-        <Popover open={open} onOpenChange={setOpen}>
-          {/* Le trigger enveloppe un <span> : Radix y pose sa ref d'ancrage, que
-              le Button du kit (composant fonction) ne peut pas recevoir. Sans
-              cet hote, le panneau s'ouvrait hors ecran, ancre a l'origine. */}
-          <PopoverTrigger asChild>
-            <span className="relative inline-flex">
-              <Button variant="outline" size="icon" aria-label="Affichage et filtres">
-                <FilterListIcon size={16} strokeWidth={1.75} />
-              </Button>
-              <NavCountBadge
-                count={activeFilters.length}
-                tone="primary"
-                className="pointer-events-none absolute -top-1.5 -end-1.5 h-4 min-w-4 px-1 text-[10px] ring-2 ring-background"
-              />
-            </span>
-          </PopoverTrigger>
-
-          <PopoverContent align="end" className="w-80 p-0">
-            <div className="flex items-center justify-between px-3 py-2.5">
-              <span className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-muted-foreground">
-                Affichage et filtres
+          <Popover open={open} onOpenChange={setOpen}>
+            {/* Le trigger enveloppe un <span> : Radix y pose sa ref d'ancrage,
+                que le Button du kit (composant fonction) ne peut pas recevoir.
+                Sans cet hote, le panneau s'ouvrait hors ecran. */}
+            <PopoverTrigger asChild>
+              <span className="relative inline-flex">
+                <Button variant="outline" size="icon" aria-label="Affichage et filtres">
+                  <FilterListIcon size={16} strokeWidth={1.75} />
+                </Button>
+                <NavCountBadge
+                  count={activeFilters.length}
+                  tone="primary"
+                  className="pointer-events-none absolute -top-1.5 -end-1.5 h-4 min-w-4 px-1 text-[10px] ring-2 ring-background"
+                />
               </span>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                aria-label="Fermer"
-                onClick={() => setOpen(false)}
-              >
-                <CloseIcon size={14} strokeWidth={2} />
-              </Button>
-            </div>
-            <Separator />
+            </PopoverTrigger>
 
-            <div className="flex flex-col gap-3 p-3">
-              {viewToggle && (
-                <Field>
-                  <FieldLabel htmlFor="filterbar-view">Vue</FieldLabel>
-                  {/* Le libellé revient : trois icônes nues obligeaient à les
-                      survoler une par une pour deviner ce qu'elles font. */}
-                  <ToggleGroup
-                    id="filterbar-view"
-                    type="single"
-                    variant="outline"
-                    size="sm"
-                    spacing={0}
-                    value={viewToggle.mode}
-                    onValueChange={(next) => {
-                      if (next) viewToggle.onChange(next as ViewToggleConfig['mode']);
-                    }}
-                    className="w-full [&>*]:flex-1"
-                  >
-                    {modes.map((mode) => (
-                      <ToggleGroupItem key={mode} value={mode} className="gap-1.5 text-xs">
-                        {VIEW_ICON[mode]}
-                        {VIEW_LABEL[mode]}
-                      </ToggleGroupItem>
-                    ))}
-                  </ToggleGroup>
-                </Field>
-              )}
-
-              {definedFilters.map(([key, filter]) => (
-                <Field key={key}>
-                  <FieldLabel htmlFor={`filterbar-${key}`}>{filter.label || key}</FieldLabel>
-                  <NativeSelect
-                    id={`filterbar-${key}`}
-                    className="w-full"
-                    value={filter.value}
-                    onChange={(e) => filter.onChange(e.target.value)}
-                  >
-                    {filter.options.map((option) => (
-                      <NativeSelectOption key={option.value} value={option.value}>
-                        {option.label}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
-                </Field>
-              ))}
-
-              {extraActions && (
-                <>
-                  <Separator />
-                  <div className="flex flex-wrap items-center gap-2">{extraActions}</div>
-                </>
-              )}
-            </div>
-
-            {activeFilters.length > 0 && (
-              <>
-                <Separator />
-                <div className="flex items-center justify-between px-3 py-2">
-                  <span className="text-[11px] tabular-nums text-muted-foreground">{counterText}</span>
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="h-auto p-0 text-[12px] font-semibold"
-                    onClick={() => Object.values(filters).forEach((f) => f?.onChange(''))}
-                  >
-                    Tout effacer
-                  </Button>
-                </div>
-              </>
-            )}
-          </PopoverContent>
-        </Popover>
+            <PopoverContent align="end" className="w-80 p-0">
+              <div className="flex items-center justify-between px-3 py-2.5">
+                <span className="text-[10.5px] font-bold uppercase tracking-[0.06em] text-muted-foreground">
+                  Affichage et filtres
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label="Fermer"
+                  onClick={() => setOpen(false)}
+                >
+                  <CloseIcon size={14} strokeWidth={2} />
+                </Button>
+              </div>
+              <Separator />
+              {panelBody}
+            </PopoverContent>
+          </Popover>
       </div>
     </>
   );

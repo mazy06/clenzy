@@ -44,12 +44,12 @@ interface InterventionsListProps {
 }
 
 const ICON_BUTTON_CLASS =
-  'p-[3px] rounded-[9px] border border-solid border-[var(--line-2)] text-[var(--muted)] '
-  + 'hover:bg-[var(--hover)] hover:border-[var(--faint)] hover:text-[var(--ink)]';
+  'p-[3px] rounded-md border border-solid border-border text-muted-foreground '
+  + 'hover:bg-muted hover:border-faint hover:text-foreground';
 
 const ICON_BUTTON_ACCENT_CLASS =
-  'p-[3px] rounded-[9px] border border-solid border-[var(--accent)] text-[var(--accent)] '
-  + 'hover:bg-[var(--accent-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)]';
+  'p-[3px] rounded-md border border-solid border-primary text-primary '
+  + 'hover:bg-primary-soft hover:border-primary hover:text-primary';
 
 export default function InterventionsList({ embedded = false, actionsContainer, filtersContainer }: InterventionsListProps) {
   const {
@@ -255,9 +255,9 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
       <div className="p-3">
         <UiAlert variant="info">
           <Info />
-          <AlertDescription><h6 className="cn-text-h6 mb-[0.35em]">
+          <AlertDescription><h6 className="text-sm font-semibold mb-[0.35em]">
             {t('interventions.errors.noPermission')}
-          </h6><p className="cn-text-body1">
+          </h6><p className="text-sm">
             {t('interventions.noPermissionMessage')}
           </p></AlertDescription>
         </UiAlert>
@@ -498,7 +498,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
           </DropdownMenuItem>
           {(isManager() || isAdmin()) && selectedIntervention?.status === 'PENDING' && (
             <DropdownMenuItem onClick={onMenuItem(handleOpenAssignDialog)}>
-              <span className="inline-flex text-[var(--info)]"><AssignmentIcon size={18} strokeWidth={1.75} /></span>
+              <span className="inline-flex text-info"><AssignmentIcon size={18} strokeWidth={1.75} /></span>
               Assigner
             </DropdownMenuItem>
           )}

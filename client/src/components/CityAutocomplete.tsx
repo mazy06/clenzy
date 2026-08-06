@@ -103,10 +103,10 @@ export function CityAutocomplete({
                 <div className="flex items-start gap-1.5">
                   <span className="inline-flex text-muted-foreground mt-0.5"><LocationCityIcon size={18} strokeWidth={1.75} /></span>
                   <div>
-                    <p className="cn-text-body2 text-[0.85rem]">
+                    <p className="text-sm">
                       {option.city || option.label}
                     </p>
-                    <span className="cn-text-caption text-muted-foreground text-[0.72rem]">
+                    <span className="text-xs text-muted-foreground">
                       {option.postcode && `${option.postcode} · `}
                       {option.department && `(${option.department}) · `}
                       {option.country || option.countryCode}

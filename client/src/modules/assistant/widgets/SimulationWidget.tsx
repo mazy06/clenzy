@@ -59,8 +59,8 @@ interface SimulationWidgetProps {
  *   <li>{@code calendar_block} : KPI perte + alternatives</li>
  * </ul>
  *
- * <p>Pattern « Signature » : tokens var(--…), deltas display tabular-nums et
- * couleurs semantiques {@code --ok}/{@code --err}/{@code --warn}.</p>
+ * <p>Habillage Baitly UI : deltas en {@code tabular-nums} et couleurs
+ * sémantiques {@code success}/{@code destructive}/{@code warning}.</p>
  */
 export const SimulationWidget: React.FC<SimulationWidgetProps> = ({ data }) => {
   if (data && typeof data === 'object' && 'kind' in data) {
@@ -87,21 +87,21 @@ const PricingChangeView: React.FC<{ data: PricingChangePayload }> = ({ data }) =
   return (
     <div className="mt-1.5 mb-2 flex flex-col gap-2">
       {data.title && (
-        <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
+        <p className="block text-2xs font-bold uppercase tracking-[.05em] text-faint">
           {data.title}
         </p>
       )}
 
       {/* Bandeau verdict — couleur selon delta */}
-      <div className={cn('px-[9px] py-[7.5px] rounded-[12px]', positive ? 'bg-[var(--ok-soft)]' : negative ? 'bg-[var(--err-soft)]' : 'bg-[var(--field)]')}>
+      <div className={cn('px-[9px] py-[7.5px] rounded-xl', positive ? 'bg-success-soft' : negative ? 'bg-destructive-soft' : 'bg-muted')}>
         <div className="flex items-baseline gap-2 flex-wrap">
-          <p className="cn-text-body1 text-[1.5rem] font-semibold tabular-nums leading-[1]" style={{ fontFamily: 'var(--font-display)', color: deltaColor(data.pctRevenueChange) }}>
+          <p className="text-[1.5rem] font-semibold tabular-nums leading-[1]" style={{ color: deltaColor(data.pctRevenueChange) }}>
             {formatPctSigned(data.pctRevenueChange)}
           </p>
-          <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[.05em]">
+          <p className="text-2xs font-bold text-faint uppercase tracking-[.05em]">
             Revenue projete
           </p>
-          <p className="cn-text-body1 text-[0.85rem] font-semibold tabular-nums ms-auto" style={{ fontFamily: 'var(--font-display)', color: deltaColor(data.deltaRevenue) }}>
+          <p className="text-[0.85rem] font-semibold tabular-nums ms-auto" style={{ color: deltaColor(data.deltaRevenue) }}>
             {formatCurrencySigned(data.deltaRevenue)}
           </p>
         </div>
@@ -134,11 +134,11 @@ const PricingChangeView: React.FC<{ data: PricingChangePayload }> = ({ data }) =
       />
 
       {data.recommendation && (
-        <div className="px-2 py-2 rounded-[12px] bg-[var(--accent-soft)]">
-          <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--accent)] mb-0.5">
+        <div className="px-2 py-2 rounded-xl bg-primary-soft">
+          <p className="block text-2xs font-bold uppercase tracking-[.05em] text-primary mb-0.5">
             Recommandation
           </p>
-          <p className="cn-text-body1 text-[12.5px] text-[var(--body)] leading-[1.45]">
+          <p className="text-xs text-foreground leading-[1.45]">
             {data.recommendation}
           </p>
         </div>
@@ -153,19 +153,19 @@ const ScenarioCard: React.FC<{
   variant: 'neutral' | 'positive' | 'negative';
 }> = ({ label, scenario, variant }) => {
   const bg =
-    variant === 'positive' ? 'var(--ok-soft)'
-    : variant === 'negative' ? 'var(--err-soft)'
-    : 'var(--field)';
+    variant === 'positive' ? 'var(--color-success-soft)'
+    : variant === 'negative' ? 'var(--color-destructive-soft)'
+    : 'var(--color-muted)';
 
   return (
-    <div className="px-[7.5px] py-1.5 rounded-[10px]" style={{ backgroundColor: bg }}>
-      <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-0.5">
+    <div className="px-[7.5px] py-1.5 rounded-lg" style={{ backgroundColor: bg }}>
+      <p className="block text-2xs font-bold uppercase tracking-[.05em] text-faint mb-0.5">
         {label}
       </p>
-      <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.35rem] font-semibold text-[var(--ink)] tabular-nums tracking-[-0.01em] leading-[1.1]">
+      <p className="text-[1.35rem] font-semibold text-foreground tabular-nums tracking-[-0.01em] leading-[1.1]">
         {formatCurrency(scenario.revenue)}
       </p>
-      <div className="flex gap-2 mt-0.5 flex-wrap text-[var(--muted)]">
+      <div className="flex gap-2 mt-0.5 flex-wrap text-muted-foreground">
         <MetricInline label="ADR" value={`${Math.round(scenario.adr)} €`} />
         <MetricInline label="Occ." value={`${Math.round(scenario.occupancyRate * 100)}%`} />
         <MetricInline label="Nuits" value={String(scenario.bookedNights)} />
@@ -176,10 +176,10 @@ const ScenarioCard: React.FC<{
 
 const MetricInline: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="inline-flex items-baseline gap-0.5">
-    <p className="cn-text-body1 text-[10.5px] font-bold text-[var(--faint)] uppercase tracking-[.04em]">
+    <p className="text-2xs font-bold text-faint uppercase tracking-[.04em]">
       {label}
     </p>
-    <p className="cn-text-body1 text-[12.5px] font-semibold text-[var(--ink)] tabular-nums">
+    <p className="text-xs font-semibold text-foreground tabular-nums">
       {value}
     </p>
   </div>
@@ -191,19 +191,19 @@ const CalendarBlockView: React.FC<{ data: CalendarBlockPayload }> = ({ data }) =
   return (
     <div className="mt-1.5 mb-2 flex flex-col gap-2">
       {data.title && (
-        <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)]">
+        <p className="block text-2xs font-bold uppercase tracking-[.05em] text-faint">
           {data.title}
         </p>
       )}
 
-      <div className="px-2 py-2 rounded-[12px] bg-[var(--warn-soft)] flex flex-col gap-0.5">
-        <p className="cn-text-body1 text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--warn)]">
+      <div className="px-2 py-2 rounded-xl bg-warning-soft flex flex-col gap-0.5">
+        <p className="text-2xs font-bold uppercase tracking-[.05em] text-warning-ink">
           Perte estimee de revenue
         </p>
-        <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1.75rem] font-semibold text-[var(--warn)] tabular-nums tracking-[-0.02em] leading-[1]">
+        <p className="text-[1.75rem] font-semibold text-warning-ink tabular-nums tracking-[-0.02em] leading-[1]">
           {formatCurrency(data.estimatedLostRevenue)}
         </p>
-        <p className="cn-text-body1 text-[11.5px] text-[var(--muted)] mt-0.5">
+        <p className="text-xs text-muted-foreground mt-0.5">
           sur {data.daysBlocked} jour(s){data.reference ? ` · base sur ${data.reference}` : ''}
         </p>
       </div>
@@ -216,13 +216,13 @@ const CalendarBlockView: React.FC<{ data: CalendarBlockPayload }> = ({ data }) =
       </div>
 
       {data.alternativeSuggestions && data.alternativeSuggestions.length > 0 && (
-        <div className="px-2 py-2 rounded-[12px] bg-[var(--accent-soft)]">
-          <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--accent)] mb-0.5">
+        <div className="px-2 py-2 rounded-xl bg-primary-soft">
+          <p className="block text-2xs font-bold uppercase tracking-[.05em] text-primary mb-0.5">
             Alternatives suggerees
           </p>
           <ul className="ps-3.5 m-0 my-0.5">
             {data.alternativeSuggestions.map((s, i) => (
-              <li className="text-[12.5px] text-[var(--body)] leading-[1.45] mb-0.5" key={i}>
+              <li className="text-xs text-foreground leading-[1.45] mb-0.5" key={i}>
                 {s}
               </li>
             ))}
@@ -234,11 +234,11 @@ const CalendarBlockView: React.FC<{ data: CalendarBlockPayload }> = ({ data }) =
 };
 
 const KpiTile: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div className="px-2 py-1.5 rounded-[10px] bg-[var(--field)]">
-    <p className="cn-text-body1 block text-[10.5px] font-bold uppercase tracking-[.05em] text-[var(--faint)] mb-0.5">
+  <div className="px-2 py-1.5 rounded-lg bg-muted">
+    <p className="block text-2xs font-bold uppercase tracking-[.05em] text-faint mb-0.5">
       {label}
     </p>
-    <p className="cn-text-body1 font-[family-name:var(--font-display)] text-[1rem] font-semibold text-[var(--ink)] tabular-nums">
+    <p className="text-[1rem] font-semibold text-foreground tabular-nums">
       {value}
     </p>
   </div>
@@ -248,8 +248,8 @@ const KpiTile: React.FC<{ label: string; value: string }> = ({ label, value }) =
 
 const FallbackUnknown: React.FC = () => (
   <div className="mt-1.5 mb-2">
-    <div className="p-3 rounded-[12px] bg-[var(--field)] text-center">
-      <p className="cn-text-body1 text-[12.5px] text-[var(--muted)]">
+    <div className="p-3 rounded-xl bg-muted text-center">
+      <p className="text-xs text-muted-foreground">
         Simulation non interpretable.
       </p>
     </div>
@@ -277,7 +277,7 @@ function formatPctSigned(frac: number): string {
 }
 
 function deltaColor(value: number): string {
-  if (value > 0.005) return 'var(--ok)';
-  if (value < -0.005) return 'var(--err)';
-  return 'var(--ink)';
+  if (value > 0.005) return 'var(--color-success-ink)';
+  if (value < -0.005) return 'var(--color-destructive-ink)';
+  return 'var(--color-foreground)';
 }

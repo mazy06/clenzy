@@ -3,7 +3,7 @@ import { Skeleton } from '../../components/ui';
 import { Button } from '../../components/ui';
 import { MonitorHeart, BatteryAlert, ChevronRight } from '../../icons';
 import PageHeader from '../../components/PageHeader';
-import StatTile from '../../components/StatTile';
+import StatTile from '../../components/baitly/StatTile';
 import EmptyState from '../../components/EmptyState';
 import StatusPill from './components/StatusPill';
 import { DEVICE_KINDS } from './deviceRegistry';
@@ -15,6 +15,18 @@ import SensorDetail from './device-details/SensorDetail';
 import type { DeviceKind } from './types';
 
 const SENSOR_KINDS: DeviceKind[] = ['climate', 'contact', 'motion', 'smoke'];
+
+// `DEVICE_KINDS[].color` reste un hex : il alimente aussi `iconBadgeColor` du
+// PageHeader. Cette table donne l'equivalent Baitly UI pour l'icone de tuile.
+const DEVICE_ICON_CLASSES: Record<string, string> = {
+  '#7BA3C2': 'text-info',
+  '#4A9B8E': 'text-success',
+  '#D4A574': 'text-warning',
+  '#C97A7A': 'text-destructive',
+  '#6B8A9A': 'text-primary',
+};
+
+const deviceIconClass = (hex: string): string => DEVICE_ICON_CLASSES[hex] ?? 'text-primary';
 
 const HUB_PATH = '/properties?tab=connected-objects';
 
@@ -83,13 +95,13 @@ export default function DeviceDetail() {
             icon={<MonitorHeart />}
             label="Connexion"
             value={device.online ? 'En ligne' : device.statusLevel === 'unknown' ? 'En attente' : 'Hors ligne'}
-            color={device.online ? '#4A9B8E' : '#9CA3AF'}
+            iconClassName={device.online ? 'text-success' : 'text-muted-foreground'}
           />
           {device.battery != null && (
-            <StatTile icon={<BatteryAlert />} label="Batterie" value={`${device.battery}%`} color="#D4A574" />
+            <StatTile icon={<BatteryAlert />} label="Batterie" value={`${device.battery}%`} iconClassName="text-warning" />
           )}
           {device.primaryMetric && (
-            <StatTile icon={meta.icon()} label={device.primaryMetric.label} value={device.primaryMetric.value} color={meta.color} />
+            <StatTile icon={meta.icon()} label={device.primaryMetric.label} value={device.primaryMetric.value} iconClassName={deviceIconClass(meta.color)} />
           )}
         </div>
       )}

@@ -226,10 +226,10 @@ const HERO_PHOTO_URL = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e
 const softColor = (color: string, percent: number) =>
   `color-mix(in srgb, ${color} ${percent}%, transparent)`;
 
-/** Pont vers la primary MUI, seule teinte du theme utilisee par ce layout. */
-const PRIMARY = 'var(--mui-primary)';
+/** Primary Baitly UI, seule teinte du theme utilisee par ce layout. */
+const PRIMARY = 'var(--bui-primary)';
 
-/** `theme.breakpoints.up('md')` de MUI : md vaut 900px, pas 768px. */
+/** Le point de bascule desktop de ce layout vaut 900px, pas les 768px de Tailwind. */
 const MD_UP_QUERY = '(min-width: 900px)';
 
 export default function AuthLayout({ children, maxFormWidth = 440 }: AuthLayoutProps) {
@@ -312,12 +312,12 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
 
   return (
     <div
-      // Écrans auth = toujours CLAIRS + accent de marque indigo, quel que soit
-      // le thème/teinte du device (résidu localStorage du dernier compte). On
-      // force data-theme="light" (le device peut être en data-theme="dark") pour
-      // que les vars CSS de surfaces/champs (--field, --card…) repassent en clair,
-      // et className="brand-accent" fige l'accent indigo #5453D6 (cf. tokens.css).
-      className="brand-accent min-h-screen flex flex-col min-[900px]:flex-row bg-[var(--card)]"
+      // Écrans auth = toujours CLAIRS, quel que soit le thème/teinte du device
+      // (résidu localStorage du dernier compte). On force data-theme="light" (le
+      // device peut être en data-theme="dark") pour que les jetons de surfaces et
+      // de champs repassent en clair. `brand-accent` reste posée pour les rares
+      // descendants encore branchés sur l'accent de marque (cf. tokens.css).
+      className="brand-accent min-h-screen flex flex-col min-[900px]:flex-row bg-card"
       data-theme="light"
     >
       {/* ── PANNEAU BRAND (desktop) ─────────────────────────────────────── */}
@@ -410,11 +410,11 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                     (Linear, Vercel, Stripe Dashboard). Responsive : 2rem sur md,
                     2.375rem sur lg (au-dela de 1200px). */}
                 <h2
-                  className="cn-text-body1 min-[900px]:text-[2rem] min-[1200px]:text-[2.375rem] font-semibold leading-[1.15] tracking-[-0.02em] text-balance mb-[15px]"
+                  className="text-[2rem] min-[1200px]:text-[2.375rem] font-semibold leading-[1.15] tracking-[-0.02em] text-balance mb-[15px]"
                   style={{
                     // Texte titre : blanc en photo mode (sur fond fonce),
-                    // text.primary en sober mode (sur fond clair)
-                    color: ENABLE_PHOTO_HERO ? '#FFFFFF' : 'var(--ink)',
+                    // encre du theme en sober mode (sur fond clair)
+                    color: ENABLE_PHOTO_HERO ? '#FFFFFF' : 'var(--bui-foreground)',
                     // text-shadow subtil en photo mode : renforce la lisibilite
                     // sur photo+overlay (sans tomber dans le "drop-shadow lourd")
                     textShadow: ENABLE_PHOTO_HERO ? '0 1px 12px rgba(0, 0, 0, 0.4)' : 'none',
@@ -447,9 +447,9 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
                     pour donner de l'air entre les lignes, color un peu plus
                     muted (0.75 au lieu de 0.92) pour que le titre domine. */}
                 <p
-                  className="cn-text-body1 text-[0.8125rem] font-normal leading-[1.7]"
+                  className="text-[0.8125rem] font-normal leading-[1.7]"
                   style={{
-                    color: ENABLE_PHOTO_HERO ? softColor('#FFFFFF', 78) : 'var(--muted)',
+                    color: ENABLE_PHOTO_HERO ? softColor('#FFFFFF', 78) : 'var(--bui-muted-foreground)',
                     textShadow: ENABLE_PHOTO_HERO ? '0 1px 6px rgba(0, 0, 0, 0.25)' : 'none',
                   }}
                 >
@@ -552,8 +552,8 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
       )}
 
       {/* ── ZONE FORM ───────────────────────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center p-[18px] min-[600px]:p-[30px] min-[900px]:p-9 bg-[var(--card)]">
-        {/* Champs auth uniformisés sur l'accent indigo (bordure + remplissage
+      <div className="flex-1 flex items-center justify-center p-[18px] min-[600px]:p-[30px] min-[900px]:p-9 bg-card">
+        {/* Champs auth uniformisés sur la primary Baitly (bordure + remplissage
             soft au survol/focus), alignés sur le bouton primary — cohérent sur
             TOUTES les pages auth (Login, Inscription…). Le sélecteur d'erreur
             est plus spécifique que celui de repos : un champ invalide garde sa
@@ -561,10 +561,10 @@ function AuthLayoutInner({ children, maxFormWidth }: AuthLayoutProps) {
         <div
           className={cn(
             'w-full flex flex-col',
-            '[&_[data-slot=input]]:border-[var(--accent)] [&_[data-slot=input]]:transition-colors',
-            '[&_[data-slot=input]:hover]:bg-[var(--accent-soft)]',
-            '[&_[data-slot=input]:focus]:bg-[var(--accent-soft)]',
-            '[&_[data-slot=input][aria-invalid=true]]:border-[var(--err)]',
+            '[&_[data-slot=input]]:border-primary [&_[data-slot=input]]:transition-colors',
+            '[&_[data-slot=input]:hover]:bg-primary-soft',
+            '[&_[data-slot=input]:focus]:bg-primary-soft',
+            '[&_[data-slot=input][aria-invalid=true]]:border-destructive',
           )}
           style={{ maxWidth: maxFormWidth }}
         >
@@ -606,9 +606,9 @@ function ServiceChip({
   service: ServiceBadge;
   onDark: boolean;
 }) {
-  // Couleur du logo : blanc en photo mode, hex brand en sober mode.
+  // Couleur du logo : blanc en photo mode, hex brand Baitly en sober mode.
   // simple-icons accepte hex sans `#` ou keyword `white`/`black`.
-  const iconColor = onDark ? 'white' : '6B8A9A';
+  const iconColor = onDark ? 'white' : '1B2A35';
 
   return (
     // Les teintes dependent du mode photo : custom properties, la variante
@@ -636,8 +636,8 @@ function ServiceChip({
         />
       )}
       <span
-        className="cn-text-body1 text-[0.7rem] font-medium tracking-[0.2px] whitespace-nowrap leading-[1.1]"
-        style={{ color: onDark ? softColor('#FFFFFF', 88) : 'var(--ink)' }}
+        className="text-[0.7rem] font-medium tracking-[0.2px] whitespace-nowrap leading-[1.1]"
+        style={{ color: onDark ? softColor('#FFFFFF', 88) : 'var(--bui-foreground)' }}
       >
         {service.name}
       </span>
@@ -647,14 +647,14 @@ function ServiceChip({
 
 /** Trust signal compact pour le footer du panneau brand.
  *  onDark : si true, texte en blanc-translucide (pour lisibilite sur photo hero).
- *  Sinon, text.secondary du theme MUI. */
+ *  Sinon, l'encre secondaire du theme Baitly UI. */
 function TrustItem({ dot, label, onDark = false }: { dot: string; label: string; onDark?: boolean }) {
   return (
     <div className="flex items-center gap-1">
       <div className={cn('w-[5px] h-[5px] rounded-[50%]', onDark ? 'opacity-85' : 'opacity-60')} style={{ backgroundColor: dot }} />
       <span
-        className="cn-text-caption text-[0.75rem] font-medium"
-        style={{ color: onDark ? softColor('#FFFFFF', 75) : 'var(--muted)' }}
+        className="text-xs font-medium"
+        style={{ color: onDark ? softColor('#FFFFFF', 75) : 'var(--bui-muted-foreground)' }}
       >
         {label}
       </span>

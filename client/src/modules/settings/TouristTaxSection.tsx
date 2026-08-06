@@ -169,7 +169,7 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
         <span className="inline-flex text-primary">
           <Gavel size={20} strokeWidth={1.75} />
         </span>
-        <h6 className="cn-text-subtitle1 font-semibold">
+        <h6 className="text-sm font-semibold tracking-tight">
           {t('touristTax.baremes.title', 'Barèmes de taxe de séjour')}
         </h6>
         <div className="flex-1" />
@@ -187,7 +187,7 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
           </BuiButton>
         )}
       </div>
-      <p className="cn-text-body2 text-muted-foreground mb-3">
+      <p className="mb-3 text-xs text-muted-foreground">
         {t(
           'touristTax.baremes.subtitle',
           'Saisis tes barèmes communaux : un barème par défaut pour l’organisation, et des barèmes spécifiques par logement si besoin.'
@@ -277,7 +277,7 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
                               aria-label={t('common.delete', 'Supprimer')}
                               onClick={() => deleteMutation.mutate(config.id)}
                               disabled={deleteMutation.isPending}
-                              className="hover:text-[var(--err)] hover:bg-[var(--err-soft)]"
+                              className="hover:bg-destructive-soft hover:text-destructive"
                             >
                               <Delete size={16} strokeWidth={1.75} />
                             </BuiButton>
@@ -302,11 +302,11 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
         <span className="inline-flex text-primary">
           <Receipt size={20} strokeWidth={1.75} />
         </span>
-        <h6 className="cn-text-subtitle1 font-semibold">
+        <h6 className="text-sm font-semibold tracking-tight">
           {t('touristTax.report.title', 'Rapport par période')}
         </h6>
       </div>
-      <p className="cn-text-body2 text-muted-foreground mb-3">
+      <p className="mb-3 text-xs text-muted-foreground">
         {t(
           'touristTax.report.subtitle',
           'Taxe de séjour des réservations confirmées dont le départ tombe dans la période (pour ta déclaration).'
@@ -398,12 +398,12 @@ export default function TouristTaxSection({ canEdit }: TouristTaxSectionProps) {
                   ))}
                   <TableRow>
                     <TableCell colSpan={6}>
-                      <p className="cn-text-body2 font-semibold">
+                      <p className="text-xs font-semibold">
                         {t('touristTax.report.total', 'Total collecté')}
                       </p>
                     </TableCell>
                     <TableCell className="text-end tabular-nums">
-                      <p className="cn-text-body2 font-semibold">
+                      <p className="text-xs font-semibold">
                         {num(report.totalTax)} EUR
                       </p>
                     </TableCell>
@@ -480,11 +480,11 @@ function TaxFilingsRegistry({ canEdit }: { canEdit: boolean }) {
         <span className="inline-flex text-primary">
           <Gavel size={20} strokeWidth={1.75} />
         </span>
-        <h6 className="cn-text-subtitle1 font-semibold">
+        <h6 className="text-sm font-semibold tracking-tight">
           {t('touristTax.filings.title', 'Registre des déclarations')}
         </h6>
       </div>
-      <p className="cn-text-body2 text-muted-foreground mb-3">
+      <p className="mb-3 text-xs text-muted-foreground">
         {t('touristTax.filings.subtitle',
           'Un trimestre clôturé = une entrée. Après ton dépôt auprès de l’autorité, marque la déclaration (référence facultative) — la carte de l’agent Conformité se résout.')}
       </p>
@@ -512,7 +512,7 @@ function TaxFilingsRegistry({ canEdit }: { canEdit: boolean }) {
                   <TableCell>{statusBadge(filing.status)}</TableCell>
                   <TableCell className="tabular-nums">{filing.paymentReference ?? '—'}</TableCell>
                   {canEdit && (
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       {filing.status === 'DUE' && (
                         <BuiButton size="sm" variant="outline"
                           onClick={() => setPendingRef({ id: filing.id, action: 'filed', reference: '' })}>

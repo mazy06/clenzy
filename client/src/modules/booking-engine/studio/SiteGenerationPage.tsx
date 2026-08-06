@@ -3,7 +3,11 @@ import { cn } from '../../../utils/cn';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
+  Alert,
+  AlertDescription,
   Button,
+  Field as UiField,
+  FieldLabel,
   Input,
   Spinner,
   Textarea,
@@ -11,6 +15,7 @@ import {
   ToggleGroupItem,
 } from '../../../components/ui';
 import { Sparkles, AlertTriangle, Globe, FileText, SlidersHorizontal, Plus, ArrowRight, ArrowLeft, Check, LayoutGrid } from 'lucide-react';
+import EmptyState from '../../../components/EmptyState';
 import { bookingEngineApi, type BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
 import { sitesApi, type SiteGenerationBrief } from '../../../services/api/sitesApi';
 import { designSystemsApi, type DesignSystem, type DesignSystemSource } from '../../../services/api/designSystemsApi';
@@ -154,7 +159,10 @@ export default function SiteGenerationPage() {
     ...initialBrief, propertyType, tone: tone || null, brandName: brandName || null,
     primaryColorHint: primaryColorHint || null, languages,
   });
-  const briefScoreColor = briefScore >= 80 ? 'var(--ok, #3E8E7E)' : briefScore >= 50 ? 'var(--accent)' : 'var(--warn, #D4A574)';
+  // Deux jetons pour une meme information : `-ink` porte le TEXTE (contraste AA),
+  // la teinte vive remplit la BARRE. Les memes seuils pilotent les deux.
+  const briefScoreTextClass = briefScore >= 80 ? 'text-success-ink' : briefScore >= 50 ? 'text-primary' : 'text-warning-ink';
+  const briefScoreBarClass = briefScore >= 80 ? 'bg-success' : briefScore >= 50 ? 'bg-primary' : 'bg-warning';
 
   const canCreateDs = dsName.trim() && (
     (dsSource === 'URL' && dsUrl.trim()) || (dsSource === 'BRAND' && dsBrand.trim()) ||
@@ -228,47 +236,46 @@ export default function SiteGenerationPage() {
   // ── États plein écran : génération en cours / indisponible ──
   if (generating) {
     return (
-      <div className="od-canvas min-h-[100vh] bg-[var(--bg)] grid place-items-[center] p-[18px]">
+      <div className="od-canvas min-h-[100vh] bg-background grid place-items-center p-[18px]">
         <div className="w-full max-w-[560px]"><SiteGenerationProgress brandLabel={brandName.trim() || null} /></div>
       </div>
     );
   }
   if (unavailable) {
     return (
-      <div className="od-canvas min-h-[100vh] bg-[var(--bg)] grid place-items-[center] p-[18px]">
-        <div className="max-w-[420px] text-center flex flex-col items-center gap-2">
-          <div className="w-[48px] h-[48px] rounded-[50%] grid place-items-[center] bg-[var(--err-soft)] text-[var(--err)]"><AlertTriangle size={26} strokeWidth={2} /></div>
-          <div className="font-[family-name:var(--font-display)] text-[var(--text-xl)] font-bold text-[var(--ink)]">{k('unavailableTitle', 'Génération IA indisponible')}</div>
-          <div className="text-[var(--text-sm)] text-[var(--muted)] leading-[1.55]">{k('unavailableBody', "Aucun modèle IA n'est disponible pour la génération de site pour le moment. Les administrateurs ont été notifiés et vont rétablir le service. Réessayez plus tard.")}</div>
-          {/* Accent terracotta conserve : c'est la couleur porteuse de cet ecran (badge, etapes,
-              lignes de direction). Seul le fond est surcharge, le gabarit vient du kit. */}
-          <Button onClick={() => navigate(-1)} className="mt-1.5 bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-deep)]">{k('unavailableClose', 'Fermer')}</Button>
+      <div className="od-canvas min-h-[100vh] bg-background grid place-items-center p-[18px]">
+        <div className="w-full max-w-[460px]">
+          <EmptyState
+            variant="plain"
+            icon={<AlertTriangle />}
+            title={k('unavailableTitle', 'Génération IA indisponible')}
+            description={k('unavailableBody', "Aucun modèle IA n'est disponible pour la génération de site pour le moment. Les administrateurs ont été notifiés et vont rétablir le service. Réessayez plus tard.")}
+            action={<Button onClick={() => navigate(-1)}>{k('unavailableClose', 'Fermer')}</Button>}
+          />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="od-canvas min-h-[100vh] bg-[var(--bg)]">
-      {/* Barre supérieure — sticky frostée, grille 1fr auto 1fr, marque centrée (modèle .ds-setup-topbar). */}
-      <div className="sticky top-0 z-[20] h-[64px] grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 min-[900px]:px-7 bg-[color-mix(in_srgb,_var(--bg)_88%,_transparent)]" style={{ borderBottom: '1px solid var(--line)', backdropFilter: 'saturate(1.4) blur(10px)' }}>
+    <div className="od-canvas min-h-[100vh] bg-background">
+      {/* Barre supérieure — sticky, grille 1fr auto 1fr, marque centrée (modèle .ds-setup-topbar). */}
+      <div className="sticky top-0 z-[20] h-[64px] grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 min-[900px]:px-7 border-b border-border bg-background/90 backdrop-blur-md backdrop-saturate-150">
         <div className="justify-self-start">
-          <Button variant="ghost" onClick={() => (step === 2 ? (setError(null), setStep(1)) : navigate(-1))} className="text-[var(--muted)]">
+          <Button variant="ghost" onClick={() => (step === 2 ? (setError(null), setStep(1)) : navigate(-1))}>
             <ArrowLeft size={16} strokeWidth={2} />
             {step === 2 ? k('back', 'Direction') : 'Retour'}
           </Button>
         </div>
-        <div className="grid h-8 w-8 place-items-center justify-self-center text-[var(--accent)]"><LayoutGrid size={20} strokeWidth={2} /></div>
+        <div className="grid h-8 w-8 place-items-center justify-self-center text-primary"><LayoutGrid size={20} strokeWidth={2} /></div>
         <div className="justify-self-end">
           {step === 1 ? (
-            <Button onClick={() => { setError(null); setStep(2); }}
-              className="bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-deep)]">
+            <Button onClick={() => { setError(null); setStep(2); }}>
               {k('continue', 'Continuer vers le brief')}
               <ArrowRight size={16} strokeWidth={2} />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={!canSubmit}
-              className="bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-deep)]">
+            <Button onClick={handleSubmit} disabled={!canSubmit}>
               <Sparkles size={16} strokeWidth={2} />
               {k('submit', 'Générer le site')}
             </Button>
@@ -280,18 +287,18 @@ export default function SiteGenerationPage() {
       <div className="mx-auto grid max-w-[1320px] grid-cols-[1fr] items-start gap-[18px] px-3 py-[18px] min-[900px]:grid-cols-[minmax(320px,420px)_minmax(0,1fr)] min-[900px]:gap-12 min-[900px]:px-6 min-[900px]:py-[30px]">
         {/* ─── Colonne gauche : cadrage + étapes — épinglée au scroll (position: sticky, comme open-design) ─── */}
         <div className="self-start min-[900px]:sticky min-[900px]:top-[84px]">
-          <div className="inline-flex items-center gap-[4.5px] mb-[15px] ps-[3px] pe-[9px] py-[3px] rounded-[var(--radius-pill,_999px)] bg-[color-mix(in_srgb,_var(--accent)_7%,_var(--surface))] border border-solid border-[color-mix(in_srgb,_var(--accent)_18%,_var(--line))]" style={{ boxShadow: '0 1px 2px color-mix(in srgb, var(--accent) 8%, transparent)' }}>
-            <div className="grid place-items-[center] w-[22px] h-[22px] rounded-[50%] bg-[var(--accent)] text-[var(--on-accent)] shrink-0" style={{ boxShadow: '0 1px 4px color-mix(in srgb, var(--accent) 40%, transparent)' }} aria-hidden>
+          <div className="inline-flex items-center gap-[4.5px] mb-[15px] ps-[3px] pe-[9px] py-[3px] rounded-full bg-primary-soft border border-solid border-primary/20">
+            <div className="grid place-items-center w-[22px] h-[22px] rounded-full bg-primary text-primary-foreground shrink-0" aria-hidden>
               <Sparkles size={12} strokeWidth={2.4} />
             </div>
-            <span className="text-[10.5px] font-bold tracking-[0.09em] uppercase text-[var(--accent)]">
+            <span className="text-2xs font-semibold tracking-wide uppercase text-primary">
               Génération IA
             </span>
           </div>
-          <div className="[font-family:var(--font-display)] text-[30px] font-bold leading-[1.08] tracking-[-0.02em] text-balance text-[var(--ink)] min-[900px]:text-[42px]">
+          <div className="[font-family:var(--font-display)] text-[30px] font-bold leading-[1.08] tracking-[-0.02em] text-balance text-foreground min-[900px]:text-[42px]">
             Générez votre site, en minutes
           </div>
-          <div className="text-[var(--text-md)] text-[var(--muted)] leading-[1.6] mt-3 max-w-[460px]">
+          <div className="text-sm text-muted-foreground leading-[1.6] mt-3 max-w-[460px]">
             L'IA rédige et structure un site complet à partir de votre brief, puis en dérive un thème on-brand. Les pages sont créées en brouillon — à relire avant publication.
           </div>
           <div className="flex flex-col gap-2 mt-4">
@@ -302,10 +309,10 @@ export default function SiteGenerationPage() {
               const active = step === s.n;
               return (
                 <div className="flex gap-2 items-start" key={s.n}>
-                  <div className={cn('grid place-items-[center] w-[22px] h-[22px] rounded-[50%] shrink-0 mt-[1.2000000000000002px] text-[12px] font-bold tabular-nums', active ? 'bg-[var(--accent)]' : 'bg-[var(--accent-soft)]', active ? 'text-[var(--on-accent)]' : 'text-[var(--accent)]')}>{s.n}</div>
+                  <div className={cn('grid place-items-center w-[22px] h-[22px] rounded-full shrink-0 mt-px text-2xs font-bold tabular-nums', active ? 'bg-primary text-primary-foreground' : 'bg-primary-soft text-primary')}>{s.n}</div>
                   <div>
-                    <div className={cn('text-[var(--text-sm)] font-bold', active ? 'text-[var(--ink)]' : 'text-[var(--body)]')}>{s.t}</div>
-                    <div className="text-[var(--text-2xs)] text-[var(--muted)]">{s.d}</div>
+                    <div className={cn('text-xs font-semibold', active ? 'text-foreground' : 'text-muted-foreground')}>{s.t}</div>
+                    <div className="text-2xs text-muted-foreground">{s.d}</div>
                   </div>
                 </div>
               );
@@ -316,25 +323,28 @@ export default function SiteGenerationPage() {
           {step === 2 && (
             <div className="mt-6 flex flex-col gap-2">
               {selectedDsName && (
-                <div className="flex items-center gap-1 text-[var(--text-2xs)] text-[var(--body)] bg-[var(--accent-soft)] border border-[var(--line)] rounded-[var(--radius-md)] px-2 py-1.5">
-                  <Check size={14} strokeWidth={2.4} style={{ color: 'var(--accent)' }} /> {k('directionApplied', 'Direction')} : <b>{selectedDsName}</b>
+                <div className="flex items-center gap-1 text-2xs text-foreground bg-primary-soft border border-border rounded-lg px-2 py-1.5">
+                  <Check size={14} strokeWidth={2.4} className="text-primary shrink-0" /> {k('directionApplied', 'Direction')} : <b>{selectedDsName}</b>
                 </div>
               )}
               {recap && (
-                <div className="text-[var(--text-2xs)] text-[var(--body)] bg-[var(--surface)] border border-[var(--line)] rounded-[var(--radius-md)] px-2 py-1.5 leading-[1.5]">
-                  <span className="font-semibold text-[var(--ink)]">{k('briefRecap', 'Brief')} : </span>{recap}
+                <div className="text-2xs text-foreground bg-card border border-border rounded-lg px-2 py-1.5 leading-[1.5]">
+                  <span className="font-semibold">{k('briefRecap', 'Brief')} : </span>{recap}
                 </div>
               )}
               <div>
-                <div className="flex justify-between text-[var(--text-2xs)] text-[var(--muted)] mb-0.5">
+                <div className="flex justify-between text-2xs text-muted-foreground mb-0.5">
                   <span>{k('completeness', 'Complétude du brief')}</span>
-                  <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: briefScoreColor }}>{briefScore}%</span>
+                  <span className={cn('font-semibold tabular-nums', briefScoreTextClass)}>{briefScore}%</span>
                 </div>
-                <div className="h-[6px] rounded-[999px] bg-[var(--line)] overflow-hidden">
-                  <div className="h-full" style={{ width: `${briefScore}%`, backgroundColor: briefScoreColor, transition: 'width var(--duration-fast) var(--ease-out)' }} />
+                <div className="h-[6px] rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={cn('h-full transition-[width] duration-150 ease-out-quart motion-reduce:transition-none', briefScoreBarClass)}
+                    style={{ width: `${briefScore}%` }}
+                  />
                 </div>
                 {briefScore < 100 && briefHints.length > 0 && (
-                  <div className="mt-0.5 text-[var(--text-2xs)] text-[var(--muted)]">{k('completenessHint', 'Pour un meilleur résultat')} : {briefHints.join(' · ')}</div>
+                  <div className="mt-0.5 text-2xs text-muted-foreground">{k('completenessHint', 'Pour un meilleur résultat')} : {briefHints.join(' · ')}</div>
                 )}
               </div>
             </div>
@@ -345,8 +355,8 @@ export default function SiteGenerationPage() {
         <div className="flex flex-col">
           {step === 1 ? (
             <>
-              <div className="text-[var(--text-xl)] font-bold text-[var(--ink)]">Direction de design</div>
-              <div className="text-[var(--text-sm)] text-[var(--muted)] mt-0.5 mb-3 leading-[1.55]">
+              <div className="text-lg font-bold tracking-tight text-balance text-foreground">Direction de design</div>
+              <div className="text-xs text-muted-foreground mt-0.5 mb-3 leading-[1.55]">
                 {k('directionIntro', "Choisissez la DIRECTION (identité visuelle + voix) que l'IA suivra, ou créez-en une. Optionnel : sans direction, l'IA choisit un style.")}
               </div>
 
@@ -355,7 +365,11 @@ export default function SiteGenerationPage() {
                   <div className="flex flex-col gap-1">
                     <DirectionRow selected={selectedDsId === null} onClick={() => setSelectedDsId(null)}
                       title={k('directionNone', 'Sans direction')} subtitle={k('directionNoneSub', "L'IA choisit un style adapté au brief")} />
-                    {systems === null && <div className="text-[var(--text-sm)] text-[var(--muted)] px-1.5 py-1.5">Chargement…</div>}
+                    {systems === null && (
+                      <div className="flex items-center gap-1.5 px-1.5 py-1.5 text-xs text-muted-foreground">
+                        <Spinner className="size-[14px]" /> Chargement…
+                      </div>
+                    )}
                     {systems?.map((s) => (
                       <DirectionRow key={s.id} selected={selectedDsId === s.id} onClick={() => setSelectedDsId(s.id)}
                         title={s.name} subtitle={[s.category, s.scope === 'GLOBAL' ? 'Baitly' : 'Privé'].filter(Boolean).join(' · ')} />
@@ -368,7 +382,7 @@ export default function SiteGenerationPage() {
               )}
 
               {dsCreating && (
-                <div className="flex flex-col gap-2 border border-[var(--line)] rounded-[var(--radius-md)] p-3">
+                <div className="flex flex-col gap-2 border border-border bg-card rounded-lg p-3">
                   <ToggleGroup
                     type="single"
                     value={dsSource}
@@ -386,11 +400,11 @@ export default function SiteGenerationPage() {
                   {/* `field-sizing: content` du primitif neutralise `rows` : la hauteur
                       minimale se pose en lignes (`lh`) pour retrouver les minRows. */}
                   {dsSource === 'BRAND' && <Textarea value={dsBrand} onChange={(e) => setDsBrand(e.target.value)} placeholder={k('directionBrand', 'Décrivez la marque (ambiance, couleurs, voix…)')} className="min-h-[3lh]" />}
-                  {(dsSource === 'PASTE' || dsSource === 'MANUAL') && <Textarea value={dsMarkdown} onChange={(e) => setDsMarkdown(e.target.value)} placeholder="# Design System…" className="min-h-[4lh] [font-family:ui-monospace,Menlo,monospace] text-[var(--text-sm)]" />}
+                  {(dsSource === 'PASTE' || dsSource === 'MANUAL') && <Textarea value={dsMarkdown} onChange={(e) => setDsMarkdown(e.target.value)} placeholder="# Design System…" className="min-h-[4lh] [font-family:ui-monospace,Menlo,monospace] text-xs" />}
                   <div className="flex justify-end gap-1.5">
                     <Button variant="outline" onClick={() => setDsCreating(false)} disabled={dsBusy}>{t('common.cancel', 'Annuler')}</Button>
-                    <Button onClick={handleCreateDs} disabled={!canCreateDs || dsBusy} className="bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-deep)]">
-                      {dsBusy ? <><Spinner className="size-[15px] text-[var(--on-accent)]" /> {k('directionCreating', 'Création…')}</> : <><Sparkles size={16} strokeWidth={2} /> {k('directionDo', 'Créer')}</>}
+                    <Button onClick={handleCreateDs} disabled={!canCreateDs || dsBusy}>
+                      {dsBusy ? <><Spinner className="size-[15px]" /> {k('directionCreating', 'Création…')}</> : <><Sparkles size={16} strokeWidth={2} /> {k('directionDo', 'Créer')}</>}
                     </Button>
                   </div>
                 </div>
@@ -398,8 +412,8 @@ export default function SiteGenerationPage() {
             </>
           ) : (
             <>
-              <div className="text-[var(--text-xl)] font-bold text-[var(--ink)]">Brief</div>
-              <div className="text-[var(--text-sm)] text-[var(--muted)] mt-0.5 mb-3 leading-[1.55]">
+              <div className="text-lg font-bold tracking-tight text-balance text-foreground">Brief</div>
+              <div className="text-xs text-muted-foreground mt-0.5 mb-3 leading-[1.55]">
                 {k('intro', "Décrivez votre activité : l'IA rédige et structure un site complet (selon les pages choisies) et dérive un thème. Les pages sont créées en brouillon — à relire avant publication.")}
               </div>
 
@@ -416,7 +430,7 @@ export default function SiteGenerationPage() {
                   </Field>
                   <Field label={k('colorLabel', 'Couleur principale')}>
                     <div className="flex items-center gap-1">
-                      <input className="w-[38px] h-[38px] p-0 border border-solid border-[var(--line)] rounded-[var(--radius-md)] bg-[var(--field)] cursor-pointer shrink-0" type="color" value={/^#[0-9a-fA-F]{6}$/.test(primaryColorHint) ? primaryColorHint : '#5453D6'} onChange={(e) => setPrimaryColorHint((e.target as HTMLInputElement).value)} aria-label={k('colorPickerLabel', 'Choisir une couleur')} />
+                      <input className="w-[38px] h-[38px] p-0 border border-solid border-field-line rounded-lg bg-field cursor-pointer shrink-0" type="color" value={/^#[0-9a-fA-F]{6}$/.test(primaryColorHint) ? primaryColorHint : '#5453D6'} onChange={(e) => setPrimaryColorHint((e.target as HTMLInputElement).value)} aria-label={k('colorPickerLabel', 'Choisir une couleur')} />
                       <Input value={primaryColorHint} onChange={(e) => setPrimaryColorHint(e.target.value)} placeholder={k('colorPlaceholder', 'Auto')} className="flex-1" />
                     </div>
                   </Field>
@@ -435,16 +449,17 @@ export default function SiteGenerationPage() {
                       </ToggleGroupItem>
                     ))}
                   </ToggleGroup>
-                  <div className="mt-1 text-[var(--text-2xs)] text-[var(--muted)]">{k('languagesHint', 'La première langue sélectionnée est rédigée par l’IA ; les autres sont produites par auto-traduction (à relire).')}</div>
+                  <div className="mt-1 text-2xs text-muted-foreground">{k('languagesHint', 'La première langue sélectionnée est rédigée par l’IA ; les autres sont produites par auto-traduction (à relire).')}</div>
                 </Field>
               </div>
             </>
           )}
 
           {error && (
-            <div className="flex items-center gap-1.5 mt-3 p-2 rounded-[var(--radius-md)] bg-[var(--err-soft)] text-[var(--err)] text-[var(--text-sm)]">
-              <AlertTriangle size={16} strokeWidth={2} style={{ flexShrink: 0 }} /> {error}
-            </div>
+            <Alert variant="destructive" className="mt-3">
+              <AlertTriangle />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
         </div>
       </div>
@@ -466,27 +481,29 @@ function DirectionRow({ selected, onClick, title, subtitle }: { selected: boolea
       aria-pressed={selected}
       className={cn(
         'flex w-full items-center justify-between gap-2 text-start px-3 py-[6.6px] cursor-pointer',
-        'rounded-[var(--radius-md)] border-[1.5px] border-solid',
-        'transition-[border-color,background] duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:border-[var(--accent)]',
-        selected ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] bg-[var(--surface)]',
+        'rounded-lg border-[1.5px] border-solid',
+        'transition-[border-color,background-color] duration-150 ease-out-quart motion-reduce:transition-none hover:border-primary',
+        'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2',
+        selected ? 'border-primary bg-primary-soft' : 'border-border bg-card',
       )}
     >
       <div className="min-w-0">
-        <div className="text-[var(--text-sm)] font-semibold text-[var(--ink)]">{title}</div>
-        {subtitle && <div className="text-[var(--text-2xs)] text-[var(--muted)]">{subtitle}</div>}
+        <div className="text-xs font-semibold text-foreground">{title}</div>
+        {subtitle && <div className="text-2xs text-muted-foreground">{subtitle}</div>}
       </div>
-      {selected && <Check size={16} strokeWidth={2.4} style={{ color: 'var(--accent)', flexShrink: 0 }} />}
+      {selected && <Check size={16} strokeWidth={2.4} className="text-primary shrink-0" />}
     </button>
   );
 }
 
+/** Champ de brief : le primitif `Field` du kit, avec la largeur fluide de cette grille. */
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
-    <div className="flex-1 min-w-[200px]">
-      <label className="block mb-0.5 text-[var(--text-sm)] font-[family-name:var(--fw-medium)] text-[var(--body)]">
-        {label}{required && <span className="text-[var(--accent)] ms-0.5">*</span>}
-      </label>
+    <UiField className="flex-1 min-w-[200px]">
+      <FieldLabel>
+        {label}{required && <span className="text-primary ms-0.5">*</span>}
+      </FieldLabel>
       {children}
-    </div>
+    </UiField>
   );
 }

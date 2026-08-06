@@ -36,10 +36,20 @@ import type { PropertyFormValues } from '../../schemas';
 
 // ─── Stable class constants ─────────────────────────────────────────────────
 
-const SECTION_TITLE_CLASS = 'text-[0.6875rem] font-bold uppercase tracking-[0.05em] text-[var(--muted)] mb-[9px]';
+/** Titre de section — echelle « overline » de Baitly UI. */
+const SECTION_TITLE_CLASS = 'text-2xs font-semibold uppercase tracking-wide text-muted-foreground mb-[9px]';
 
 /** Variante avec icone en tete de titre (gap 0.5 de l'ancien spacing MUI = 3 px). */
 const SECTION_TITLE_ICON_CLASS = `${SECTION_TITLE_CLASS} flex items-center gap-[3px]`;
+
+/**
+ * Encart d'interrupteur (fond + filet teintes quand l'option est active).
+ * Teinte vive pour le filet et l'icone, `-soft` pour le fond — cf. contrat §2.4.
+ */
+const TOGGLE_PANEL_CLASS = 'items-center gap-[9px] py-1.5 px-[9px] rounded-lg border transition-[background-color,border-color] duration-150 ease-out';
+
+/** Libelle plein largeur de ces encarts : titre + aide, tout cliquable. */
+const TOGGLE_LABEL_CLASS = 'flex-1 w-auto flex-col items-start gap-0 cursor-pointer';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -71,7 +81,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
       <div className="flex flex-col gap-4">
         {/* ── Configuration ────────────────────────────────────────────── */}
         <div>
-          <p className={cn(SECTION_TITLE_CLASS, 'cn-text-body1')}>
+          <p className={SECTION_TITLE_CLASS}>
             {t('properties.configuration')}
           </p>
 
@@ -151,16 +161,24 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                 name="bookingEngineVisible"
                 control={control}
                 render={({ field }) => (
-                  <div className={cn('flex items-center gap-[9px] py-1.5 px-[9px] rounded-[11px] border border-solid', field.value ? 'bg-[var(--ok-soft)]' : 'bg-[var(--field)]', field.value ? 'border-[color-mix(in_srgb,_var(--ok)_30%,_transparent)]' : 'border-[var(--field-line)]')} style={{ transition: 'background-color .14s, border-color .14s' }}>
-                    <span className={cn('inline-flex', field.value ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}><Language size={18} strokeWidth={1.75} /></span>
-                    <label className="flex-1 cursor-pointer" htmlFor="property-booking-engine-visible">
-                      <span className="cn-text-body1 text-[0.8125rem] font-semibold block">
+                  <Field
+                    orientation="horizontal"
+                    className={cn(
+                      TOGGLE_PANEL_CLASS,
+                      field.value ? 'bg-success-soft border-success/30' : 'bg-field border-field-line',
+                    )}
+                  >
+                    <span className={cn('inline-flex', field.value ? 'text-success' : 'text-muted-foreground')}><Language size={18} strokeWidth={1.75} /></span>
+                    {/* Le libelle englobe titre ET aide : toute la zone reste
+                        cliquable, comme avant la refonte. */}
+                    <FieldLabel htmlFor="property-booking-engine-visible" className={TOGGLE_LABEL_CLASS}>
+                      <span className="block text-[0.8125rem] font-semibold">
                         {t('properties.bookingEngineVisible')}
                       </span>
-                      <span className="cn-text-body1 text-[0.6875rem] text-muted-foreground block">
+                      <span className="block text-2xs font-normal text-muted-foreground">
                         {t('properties.bookingEngineVisibleHelper')}
                       </span>
-                    </label>
+                    </FieldLabel>
                     {/* color="success" de MUI : le kit n'a qu'une teinte d'encre par
                         defaut, la couleur « actif » se pose en classe data-checked. */}
                     <Switch
@@ -168,9 +186,9 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                       size="sm"
                       checked={field.value ?? false}
                       onCheckedChange={(checked) => field.onChange(checked)}
-                      className="data-checked:bg-[var(--ok)]"
+                      className="data-checked:bg-success"
                     />
-                  </div>
+                  </Field>
                 )}
               />
             </div>
@@ -183,26 +201,32 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                 name="orgCanCreateVouchers"
                 control={control}
                 render={({ field }) => (
-                  <div className={cn('flex items-center gap-[9px] py-1.5 px-[9px] rounded-[11px] border border-solid', field.value ? 'bg-[var(--ok-soft)]' : 'bg-[var(--field)]', field.value ? 'border-[color-mix(in_srgb,_var(--ok)_30%,_transparent)]' : 'border-[var(--field-line)]')} style={{ transition: 'background-color .14s, border-color .14s' }}>
-                    <span className={cn('inline-flex', field.value ? 'text-[var(--ok)]' : 'text-[var(--muted)]')}>
+                  <Field
+                    orientation="horizontal"
+                    className={cn(
+                      TOGGLE_PANEL_CLASS,
+                      field.value ? 'bg-success-soft border-success/30' : 'bg-field border-field-line',
+                    )}
+                  >
+                    <span className={cn('inline-flex', field.value ? 'text-success' : 'text-muted-foreground')}>
                       <Language size={18} strokeWidth={1.75} />
                     </span>
-                    <label className="flex-1 cursor-pointer" htmlFor="property-org-can-create-vouchers">
-                      <span className="cn-text-body1 text-[0.8125rem] font-semibold block">
+                    <FieldLabel htmlFor="property-org-can-create-vouchers" className={TOGGLE_LABEL_CLASS}>
+                      <span className="block text-[0.8125rem] font-semibold">
                         {t('properties.orgCanCreateVouchers')}
                       </span>
-                      <span className="cn-text-body1 text-[0.6875rem] text-muted-foreground block">
+                      <span className="block text-2xs font-normal text-muted-foreground">
                         {t('properties.orgCanCreateVouchersHelper')}
                       </span>
-                    </label>
+                    </FieldLabel>
                     <Switch
                       id="property-org-can-create-vouchers"
                       size="sm"
                       checked={field.value ?? false}
                       onCheckedChange={(checked) => field.onChange(checked)}
-                      className="data-checked:bg-[var(--ok)]"
+                      className="data-checked:bg-success"
                     />
-                  </div>
+                  </Field>
                 )}
               />
             </div>
@@ -218,7 +242,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                     <FieldLabel htmlFor="property-check-in-time">{t('properties.checkInTime')}</FieldLabel>
                     <InputGroup>
                       <InputGroupAddon>
-                        <span className="inline-flex text-[var(--muted)]"><Schedule size={16} strokeWidth={1.75} /></span>
+                        <span className="inline-flex text-muted-foreground"><Schedule size={16} strokeWidth={1.75} /></span>
                       </InputGroupAddon>
                       <InputGroupInput
                         {...field}
@@ -243,7 +267,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                     <FieldLabel htmlFor="property-check-out-time">{t('properties.checkOutTime')}</FieldLabel>
                     <InputGroup>
                       <InputGroupAddon>
-                        <span className="inline-flex text-[var(--muted)]"><Schedule size={16} strokeWidth={1.75} /></span>
+                        <span className="inline-flex text-muted-foreground"><Schedule size={16} strokeWidth={1.75} /></span>
                       </InputGroupAddon>
                       <InputGroupInput
                         {...field}
@@ -265,7 +289,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
 
         {/* ── Tarification ménage ──────────────────────────────────────── */}
         <div>
-          <p className={cn(SECTION_TITLE_ICON_CLASS, 'cn-text-body1')}>
+          <p className={SECTION_TITLE_ICON_CLASS}>
             <CleaningServices size={14} strokeWidth={1.75} />
             {t('properties.cleaningPricing')}
           </p>
@@ -398,12 +422,17 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                 name="cleaningNotes"
                 control={control}
                 render={({ field: { ref: _ref, ...field }, fieldState }) => (
-                  <div className={cn('flex gap-1.5 py-[7.5px] px-[9px] rounded-[11px] bg-[var(--accent-soft)] border border-solid min-h-[80px]', fieldState.error ? 'border-[var(--err)]' : 'border-[color-mix(in_srgb,_var(--accent)_30%,_transparent)]')} style={{ transition: 'border-color 0.15s ease' }}>
-                    <span className="inline-flex text-[var(--accent)] mt-0 shrink-0"><Checklist size={16} strokeWidth={1.75} /></span>
-                    <div className="flex-1">
+                  <div
+                    className={cn(
+                      'flex gap-1.5 py-[7.5px] px-[9px] rounded-lg bg-primary-soft border min-h-[80px] transition-[border-color] duration-150 ease-out',
+                      fieldState.error ? 'border-destructive' : 'border-primary/30',
+                    )}
+                  >
+                    <span className="inline-flex text-primary mt-0 shrink-0"><Checklist size={16} strokeWidth={1.75} /></span>
+                    <Field className="flex-1">
                       <FieldLabel
                         htmlFor="property-cleaning-notes"
-                        className="text-[0.625rem] font-bold uppercase tracking-[0.05em] text-[var(--accent)] mb-0.5"
+                        className="text-2xs font-semibold uppercase tracking-wide text-primary mb-0.5"
                       >
                         {t('properties.cleaningNotes')}
                       </FieldLabel>
@@ -416,12 +445,12 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                         value={field.value ?? ''}
                         placeholder={t('properties.cleaningNotesPlaceholder')}
                         aria-invalid={!!fieldState.error}
-                        className="w-full border-0 bg-transparent p-0 rounded-none min-h-[2lh] max-h-[6lh] overflow-y-auto text-[0.75rem] leading-[1.4] text-[var(--muted)] placeholder:text-[0.75rem] placeholder:text-[var(--faint)] focus-visible:ring-0"
+                        className="w-full border-0 bg-transparent p-0 rounded-none min-h-[2lh] max-h-[6lh] overflow-y-auto text-xs leading-[1.4] text-muted-foreground placeholder:text-xs placeholder:text-faint focus-visible:ring-0"
                       />
                       {fieldState.error && (
                         <FieldError className="mt-0.5">{fieldState.error.message}</FieldError>
                       )}
-                    </div>
+                    </Field>
                   </div>
                 )}
               />
@@ -433,7 +462,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
 
         {/* ── Prestations à la carte ─────────────────────────────────────── */}
         <div>
-          <p className={cn(SECTION_TITLE_ICON_CLASS, 'cn-text-body1')}>
+          <p className={SECTION_TITLE_ICON_CLASS}>
             <Window width={14} />
             {t('properties.addOnServices.title')}
           </p>

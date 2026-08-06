@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Alert as BuiAlert, AlertDescription, AlertAction, Button as BuiButton } from '../../components/ui';
 import { TriangleAlert, X } from 'lucide-react';
 import { Spinner } from '../../components/ui';
-import { Card } from '../../components/ui';
 import {
   Dialog,
   DialogContent,
@@ -172,7 +171,7 @@ export default function MessageTemplateEditor({
         </DialogHeader>
 
         {/* Les filets haut/bas remplacent le `dividers` de la modale MUI. */}
-        <div className="border-y border-solid border-[var(--line)] py-3">
+        <div className="border-y border-border py-3">
         {error && (
           <BuiAlert variant="destructive" className="mb-3">
             <TriangleAlert />
@@ -273,25 +272,27 @@ export default function MessageTemplateEditor({
               </div>
             </div>
 
-            {/* Preview */}
-            <div className="mt-4">
-              <h6 className="cn-text-subtitle2 text-muted-foreground mb-[0.35em]">
+            {/* Aperçu — surface `muted` bordée plutôt qu'une Card : la modale
+                est déjà une surface, empiler une carte dedans ferait un troisième
+                niveau pour un simple encart de prévisualisation. */}
+            <div className="mt-4 flex flex-col gap-1.5">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {t('messaging.templates.editor.preview')}
-              </h6>
-              <Card className="gap-0 py-0 p-3 bg-[var(--hover)]">
-                <h6 className="cn-text-subtitle2 mb-[0.35em]">
+              </h4>
+              <div className="rounded-xl border border-border bg-muted p-3">
+                <p className="text-sm font-medium text-foreground">
                   {t('messaging.templates.editor.previewSubject')}: {getPreviewText(subject) || '—'}
-                </h6>
-                <Separator className="my-1.5" />
+                </p>
+                <Separator className="my-2" />
                 {body ? (
-                  <div className="cn-text-body2 font-[inherit]">
+                  <div className="text-sm">
                     {/* Rendu identique à l'email envoyé (gras, puces, paragraphes) */}
                     <EmailMarkdownPreview text={getPreviewText(body)} />
                   </div>
                 ) : (
-                  <p className="cn-text-body2">—</p>
+                  <p className="text-sm text-muted-foreground">—</p>
                 )}
-              </Card>
+              </div>
             </div>
           </div>
 
@@ -299,13 +300,13 @@ export default function MessageTemplateEditor({
               par categorie, palette Baitly). Composant partage avec
               SystemTemplateEditDialog pour coherence visuelle. */}
           <div className="col-span-12 min-[900px]:col-span-5">
-            <div className="sticky top-4 p-3 rounded-xl border border-solid border-[var(--line)] bg-[var(--card)]">
-              <h6 className="cn-text-subtitle2 font-semibold mb-[0.35em]">
+            <div className="sticky top-4 rounded-xl border border-border bg-card p-3">
+              <h4 className="text-sm font-semibold text-foreground">
                 {t('messaging.templates.editor.variables')}
-              </h6>
-              <span className="cn-text-caption text-muted-foreground block mb-2">
+              </h4>
+              <p className="mb-2 mt-0.5 text-xs text-muted-foreground">
                 {t('messaging.templates.editor.variablesDesc')}
-              </span>
+              </p>
               <VariablePicker
                 variables={variables}
                 usedKeys={usedVariables}

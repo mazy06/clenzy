@@ -59,7 +59,7 @@ export default function OpenBankingConsentBanner({
               size="sm"
               variant="outline"
               onClick={onReconnect}
-              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              className="text-warning-ink border-warning hover:bg-warning-soft"
             >
               Compléter le SCA
             </Button>
@@ -124,7 +124,7 @@ export default function OpenBankingConsentBanner({
               size="sm"
               variant="outline"
               onClick={onReconnect}
-              className="text-[var(--warn)] border-[var(--warn)] hover:bg-[var(--warn-soft)]"
+              className="text-warning-ink border-warning hover:bg-warning-soft"
             >
               Renouveler maintenant
             </Button>

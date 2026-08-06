@@ -82,24 +82,29 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
   const averagePerMonth = monthsWithData > 0 ? Math.round((totalCompleted / 6) * 10) / 10 : 0;
   const completionRate = totalInterventions > 0 ? Math.round((totalCompleted / totalInterventions) * 100) : 0;
 
+  // Icône = teinte vive, valeur = encre `-ink` (§2.4). Classes littérales :
+  // Tailwind émet ses utilitaires en scannant les sources.
   const summaryStats = [
     {
       label: t('teams.performance.totalCompleted'),
       value: totalCompleted.toString(),
-      icon: <span className="inline-flex text-[var(--ok)]"><TrendingUp size={22} strokeWidth={1.75} /></span>,
-      color: 'var(--ok)',
+      icon: <TrendingUp size={22} strokeWidth={1.75} />,
+      iconClassName: 'text-success',
+      valueClassName: 'text-success-ink',
     },
     {
       label: t('teams.performance.averagePerMonth'),
       value: averagePerMonth.toString(),
-      icon: <span className="inline-flex text-[var(--info)]"><CalendarMonth size={22} strokeWidth={1.75} /></span>,
-      color: 'var(--info)',
+      icon: <CalendarMonth size={22} strokeWidth={1.75} />,
+      iconClassName: 'text-info',
+      valueClassName: 'text-info-ink',
     },
     {
       label: t('teams.performance.completionRate'),
       value: `${completionRate}%`,
-      icon: <span className="inline-flex text-[var(--accent)]"><Speed size={22} strokeWidth={1.75} /></span>,
-      color: 'var(--accent)',
+      icon: <Speed size={22} strokeWidth={1.75} />,
+      iconClassName: 'text-primary',
+      valueClassName: 'text-foreground',
     },
   ];
 
@@ -107,19 +112,19 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
     <Card className="h-full">
       {/* p: 3 = 18 px (theme.spacing vaut 6 dans ce projet). */}
       <CardContent className="p-[18px]">
-        <h6 className="cn-text-h6 text-[var(--ink)] font-semibold mb-3">
+        <h6 className="text-sm font-semibold text-foreground mb-3">
           {t('teams.performance.title')}
         </h6>
 
         <div className="grid grid-cols-12 gap-3 mb-[18px]">
           {summaryStats.map((stat) => (
             <div className="col-span-4" key={stat.label}>
-              <div className="text-center p-2 rounded-[12px] bg-[var(--field)] border border-[var(--field-line)]">
-                {stat.icon}
-                <h5 className="cn-text-h5 font-bold mt-[3px]" style={{ color: stat.color }}>
+              <div className="text-center p-2 rounded-xl bg-field border border-field-line">
+                <span className={cn('inline-flex', stat.iconClassName)}>{stat.icon}</span>
+                <h5 className={cn('text-sm font-bold mt-[3px] tabular-nums', stat.valueClassName)}>
                   {stat.value}
                 </h5>
-                <span className="cn-text-caption text-muted-foreground text-[0.7rem]">
+                <span className="block text-2xs text-muted-foreground">
                   {stat.label}
                 </span>
               </div>
@@ -127,7 +132,7 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
           ))}
         </div>
 
-        <p className="cn-text-body2 font-medium mb-1.5">
+        <p className="text-xs font-medium mb-1.5">
           {t('teams.performance.monthlyTrend')}
         </p>
 
