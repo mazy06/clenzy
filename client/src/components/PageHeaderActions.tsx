@@ -44,9 +44,54 @@ import { useTranslation } from '../hooks/useTranslation';
  * arrivent déjà au bon gabarit.</p>
  */
 
-/** Dans le dropdown : boutons pleine largeur, libellé visible, alignés au début. */
-const LABELED_ITEM_CLASS =
-  '[&_button]:w-full [&_button]:min-w-0 [&_button]:justify-start [&_button]:text-[13px]';
+/**
+ * Mise en page du contenu replié.
+ *
+ * <p>Le menu reçoit les slots `filters` et `actions` TELS QUELS : ce sont des
+ * groupes pensés pour une barre horizontale, avec leur propre alignement. Posés
+ * sans retouche dans un menu vertical, ils y gardaient leur disposition — d'où
+ * une ligne « 10 demandes + filtre » calée à droite, puis une ligne « export +
+ * ajouter » calée à gauche, et des boutons icône muets.</p>
+ *
+ * <p>Ces règles remettent donc TOUT à plat : chaque groupe redevient une pile,
+ * chaque bouton une ligne pleine largeur alignée au début. Les compteurs et
+ * mentions qui accompagnent les filtres restent lisibles, alignés comme le
+ * reste.</p>
+ */
+const MENU_LAYOUT_CLASS = [
+  // Chaque groupe passé en slot redevient une colonne.
+  //
+  // Les DEUX niveaux sont visés à dessein : les slots arrivent souvent enveloppés
+  // d'un conteneur en `display: contents`, transparent à la mise en page. Viser
+  // le seul enfant direct ne touchait alors rien du tout, et les groupes
+  // restaient des rangées horizontales — « Exporter » et « Nouvelle demande »
+  // côte à côte, « Affichage et filtres » calé à droite sur sa propre ligne.
+  // `:not([data-inline-panel])` : un contrôle qui sait déjà se rendre en colonne
+  // dans ce menu — le panneau de filtres — garde SA mise en page. Ces règles ne
+  // servent qu'aux groupes qui arrivent tels quels d'une barre horizontale.
+  '[&>*:not([data-inline-panel])]:flex [&>*:not([data-inline-panel])]:min-w-0',
+  '[&>*:not([data-inline-panel])]:flex-col [&>*:not([data-inline-panel])]:items-stretch [&>*:not([data-inline-panel])]:gap-1',
+  '[&>*>div:not([data-inline-panel])]:flex [&>*>div:not([data-inline-panel])]:min-w-0',
+  '[&>*>div:not([data-inline-panel])]:flex-col [&>*>div:not([data-inline-panel])]:items-stretch [&>*>div:not([data-inline-panel])]:gap-1',
+  // Les boutons sont souvent enveloppés d'un `<span inline-flex>` — l'ancre que
+  // Radix exige pour ses infobulles. Ce span se dimensionne au contenu, si bien
+  // que le `w-full` du bouton ne valait que la largeur de son propre libellé :
+  // les lignes finissaient en escalier (158, 97, 161 px). On étire l'ancre.
+  '[&_span:has(>button)]:flex [&_span:has(>button)]:w-full',
+  // Un bouton = une ligne, jamais un carré d'icône.
+  '[&_button]:h-8 [&_button]:w-full [&_button]:min-w-0 [&_button]:justify-start',
+  '[&_button]:gap-2 [&_button]:px-2 [&_button]:text-[13px]',
+  // Un bouton dont le seul enfant est une icône n'a pas de libellé visible :
+  // on affiche son nom accessible, sans quoi le menu est une rangée de
+  // pictogrammes sans texte.
+  "[&_button:has(>svg:only-child)]:after:content-[attr(aria-label)]",
+  // Textes d'accompagnement (compteurs, mentions) : même gouttière que les boutons.
+  '[&>*>p]:px-2 [&>*>span]:px-2 [&>*>p]:text-xs [&>*>span]:text-xs',
+].join(' ');
+
+/* Le menu ne publie plus de contexte : les slots arrivent souvent par portail,
+   et le contexte React suivrait alors l.arbre de l.ecran, pas celui du menu.
+   Le controle qui doit s.adapter lit donc le meme seuil (cf. FilterSearchBar). */
 
 interface PageHeaderActionsProps {
   /** Recherche / filtres (slot gauche du groupe d'actions). */
@@ -103,18 +148,34 @@ export default function PageHeaderActions({ filters, actions, narrow }: PageHead
         <TooltipContent>{t('common.actions', 'Actions')}</TooltipContent>
       </Tooltip>
       {/* `w-auto` annule le calage sur la largeur du déclencheur que pose le
-          primitif : le déclencheur est un carré de 32 px, le menu doit respirer. */}
-      <DropdownMenuContent align="end" className="w-auto min-w-[200px] p-1.5">
-        {/* Le contenu n'est pas fait de DropdownMenuItem (ce sont les boutons
-            arbitraires des écrans) : la fermeture au clic est donc portée ici,
-            comme le faisait le onClick du Popover MUI. */}
-        <div
-          className={`flex flex-col items-stretch gap-1 ${LABELED_ITEM_CLASS}`}
-          onClick={() => setOpen(false)}
-        >
-          {filters}
-          {actions}
-        </div>
+          primitif : le déclencheur est un carré de 32 px, le menu doit respirer.
+          `w-[min(20rem,calc(100vw-1.5rem))]` : le panneau de filtres s'affiche
+          ici EN LIGNE, il lui faut une vraie largeur — bornée à l'écran pour ne
+          pas déborder sur mobile. */}
+      <DropdownMenuContent
+        align="end"
+        className="max-h-[70dvh] w-[min(20rem,calc(100vw-1.5rem))] overflow-y-auto p-1.5"
+      >
+        {/* Le contenu n'est pas fait de DropdownMenuItem (ce sont les contrôles
+            arbitraires des écrans) : la fermeture au clic est donc portée ici. */}
+          <div
+            className={`flex flex-col items-stretch gap-1 ${MENU_LAYOUT_CLASS}`}
+            onClick={(e) => {
+              // Les contrôles du panneau de filtres (listes déroulantes,
+              // bascules d'affichage) vivent MAINTENANT dans ce menu : un clic
+              // dessus ne doit pas le refermer, sinon on ne peut rien régler.
+              // Seules les vraies actions — exporter, créer — le referment.
+              const el = e.target as HTMLElement;
+              if (el.closest('[data-inline-panel]') || el.closest('[aria-haspopup]')) return;
+              setOpen(false);
+            }}
+          >
+            {filters}
+            {/* Un filet quand les deux slots sont remplis : « ce qui filtre » et
+                « ce qui agit » ne se lisent pas de la même façon. */}
+            {filters && actions && <div className="my-0.5 h-px shrink-0 bg-border" />}
+            {actions}
+          </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

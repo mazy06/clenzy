@@ -426,8 +426,13 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
         </div>
       )}
 
-      {/* ─── Les trois tuiles de la projection ── */}
-      <div className="grid grid-cols-1 gap-3 mb-3 shrink-0 sm:grid-cols-3">
+      {/* ─── Les trois tuiles de la projection ──
+          Sous `sm`, une rangee qui DEFILE horizontalement plutot qu'une colonne :
+          empilees, les trois tuiles mangeaient 302 px des 812 px de l'ecran avant
+          meme la carte, et `shrink-0` les rendait incompressibles. Le plancher de
+          largeur evite qu'elles se tassent, `snap` cale le defilement sur chaque
+          tuile. A partir de `sm` on retrouve la grille a trois colonnes. */}
+      <div className="mb-3 flex shrink-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [&>*]:w-[68%] [&>*]:shrink-0 [&>*]:snap-start sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 sm:[&>*]:w-auto">
         <StatTile
           icon={<WarningIcon />}
           label={t('serviceRequests.kpi.late', 'En retard')}
