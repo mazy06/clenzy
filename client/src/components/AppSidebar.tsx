@@ -405,7 +405,11 @@ export default function AppSidebar({
               <span className="grid min-w-0 flex-1 text-start leading-tight">
                 <span className="truncate text-[13px] font-semibold">{displayName}</span>
                 {user?.roles && user.roles.length > 0 && (
-                  <span className="truncate text-[10.5px] text-sidebar-foreground/60">
+                  // `/70` et non `/60` : a 60 % l'encre de la sidebar tombait a
+                  // 4,03:1 sur son fond clair, sous le seuil AA — mesure au
+                  // navigateur. A 70 % elle vaut 5,47:1 et reste nettement
+                  // secondaire face au nom. Le mode sombre passait deja (5,61).
+                  <span className="truncate text-[10.5px] text-sidebar-foreground/70">
                     {t(`navigation.roles.${user.roles[0]}`) || user.roles[0]}
                   </span>
                 )}
