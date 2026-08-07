@@ -8,7 +8,12 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.13</version>
+        <!-- 3.5.16 (2026-08) : correctifs seuls, meme branche mineure. Traite d'un
+             coup les CVE >= 7 remontees par dependency-check sur tomcat-embed-core
+             (9.8), spring-core (9.8), spring-security-core et
+             spring-security-oauth2-resource-server (8.1), postgresql (8.2) et
+             jackson-databind (8.1) — toutes gerees par le BOM. -->
+        <version>3.5.16</version>
         <relativePath/>
     </parent>
 
@@ -257,11 +262,14 @@
 
         <!-- Firebase Admin SDK (Push Notifications FCM) -->
         <!-- CVE 2026-06 : 9.2.0 tirait protobuf-java 3.23.2 (CVE-2024-7254, DoS parsing).
-             9.4.x tire un protobuf-java patché. -->
+             9.4.x tire un protobuf-java patché.
+             CVE 2026-08 : 9.4.3 tirait netty-transport 4.1.132 (36 CVE, dont 10.0),
+             httpcore5 5.3.6 (7.5) et trois modules opentelemetry alpha (7.3-7.5).
+             9.10.0 reste sur la meme majeure et rafraichit ces transitives. -->
         <dependency>
             <groupId>com.google.firebase</groupId>
             <artifactId>firebase-admin</artifactId>
-            <version>9.4.3</version>
+            <version>9.10.0</version>
         </dependency>
 
         <!-- Jasypt Spring Boot (Chiffrement tokens en base) -->
