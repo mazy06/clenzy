@@ -126,11 +126,13 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     needs: build-and-test
-    # La premiere synchronisation NVD a pris 228 min. Une fois la base en cache,
-    # une passe incrementale se compte en minutes. Ce plafond borne les degats si
-    # le cache est manque : le job echoue en 90 min au lieu de brûler les 6 h du
-    # defaut GitHub.
-    timeout-minutes: 90
+    # Ce plafond est un garde-fou contre l'emballement, PAS un objectif de duree.
+    # Il doit donc couvrir le pire cas legitime : une synchronisation NVD a froid,
+    # mesuree a 228 min. Un premier reglage a 90 min avait ete calibre sur le
+    # regime incremental vise (quelques minutes une fois la base en cache) — il
+    # aurait tue la passe a froid qui CONSTITUE ce cache, et une annulation en
+    # cours de route risquait de sauvegarder une base partielle, pire qu'aucune.
+    timeout-minutes: 240
 
     steps:
       - name: Checkout code
