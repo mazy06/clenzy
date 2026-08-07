@@ -1,5 +1,9 @@
 # Channex — questions ouvertes pour le support et le commercial
 
+> English version: [CHANNEX-QUESTIONS-SUPPORT.en.md](CHANNEX-QUESTIONS-SUPPORT.en.md).
+> C'est celle qu'on envoie à Channex ; celle-ci est la référence interne.
+> Toute modification doit être portée dans les deux.
+
 > Établi le 2026-08-07, à partir d'un audit de notre implémentation confrontée à
 > la documentation publique (`docs.channex.io`).
 >
