@@ -2,7 +2,14 @@
 
 > English version: [CHANNEX-QUESTIONS-SUPPORT.en.md](CHANNEX-QUESTIONS-SUPPORT.en.md).
 > C'est celle qu'on envoie à Channex ; celle-ci est la référence interne.
-> Toute modification doit être portée dans les deux.
+>
+> Le formulaire PDF se regénère avec
+> `python3 server/generate_channex_questions_pdf.py --out ~/Desktop`
+> ([generate_channex_questions_pdf.py](generate_channex_questions_pdf.py)).
+>
+> **Ces trois fichiers portent le même contenu.** Toute modification doit être
+> portée dans les trois — sans quoi le PDF envoyé finira par contredire nos
+> propres documents.
 
 > Établi le 2026-08-07, à partir d'un audit de notre implémentation confrontée à
 > la documentation publique (`docs.channex.io`).

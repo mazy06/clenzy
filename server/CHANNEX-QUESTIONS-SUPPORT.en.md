@@ -1,7 +1,8 @@
 # Channex — open questions for support and sales
 
 > Version française : [CHANNEX-QUESTIONS-SUPPORT.md](CHANNEX-QUESTIONS-SUPPORT.md).
-> Keep both in sync when either changes.
+> PDF form sent to Channex: `python3 server/generate_channex_questions_pdf.py --out ~/Desktop`.
+> The three carry the same content — keep them in sync when any one changes.
 
 > Compiled 2026-08-07, from an audit of our integration against the public
 > documentation at `docs.channex.io`.
