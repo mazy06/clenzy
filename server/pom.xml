@@ -526,11 +526,21 @@
                 </configuration>
             </plugin>
 
-            <!-- OWASP Dependency-Check : analyse des CVE dans les dependances -->
+            <!-- OWASP Dependency-Check : analyse des CVE dans les dependances.
+                 13.0.0 (2026) succede a 9.0.9 (debut 2024) : rapports CVSS v4,
+                 client NVD API refondu, Java 11 minimum (nous sommes en 21).
+
+                 ATTENTION - la montee de version ne suffit PAS a rendre ce gate
+                 utile : sans `nvdApiKey`, le NVD repond 403, l'analyse s'arrete
+                 avant d'avoir examine la moindre dependance, et le step passe au
+                 vert grace au `-DfailOnError=false` du workflow. Le gate est donc
+                 vert sans rien verifier. Renseigner le secret NVD_API_KEY (gratuit,
+                 https://nvd.nist.gov/developers/request-an-api-key) est ce qui lui
+                 donnera un sens. -->
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
-                <version>9.0.9</version>
+                <version>13.0.0</version>
                 <configuration>
                     <failBuildOnCVSS>7</failBuildOnCVSS>
                     <formats>
