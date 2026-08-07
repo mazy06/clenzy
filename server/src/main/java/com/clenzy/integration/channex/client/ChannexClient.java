@@ -48,14 +48,24 @@ import java.util.stream.Collectors;
  * (Channex n'utilise PAS {@code Authorization: Bearer} — voir docs.channex.io/api-v1/authorization).</p>
  *
  * <p><b>Retry :</b> {@link ChannexProperties#getMaxRetries()} tentatives en
- * backoff exponentiel (200ms, 400ms, 800ms) sur les erreurs retryables
- * (rate limit 429, 5xx, timeout). Les 4xx (sauf 429) ne sont pas retries.</p>
+ * backoff exponentiel (200ms, 400ms, 800ms) sur les 5xx et les erreurs de
+ * transport. Les 4xx ne sont pas retries.</p>
  *
- * <p><b>Limites Channex (selon docs.channex.io) :</b></p>
+ * <p><b>Le 429 fait exception</b> : il est retryable, mais pas ici. La doc
+ * (Rate Limits) demande de suspendre les updates de la propriete pendant une
+ * minute ; retenter a 200/400/800 ms rebrulerait le quota. Il est propage tel
+ * quel, et le differe appartient a l'appelant — {@code ChannexAriBatcher} pour
+ * l'ARI, les schedulers de reconciliation ailleurs.</p>
+ *
+ * <p><b>Limites Channex (docs.channex.io/api-v.1-documentation/rate-limits) :</b></p>
  * <ul>
- *   <li>Rate limit : 100 req/min par API key</li>
- *   <li>Batch availability : max 500 updates par appel</li>
- *   <li>Batch rates : max 500 updates par appel</li>
+ *   <li>ARI : 20 requetes/min et par propriete, soit 10 restrictions&amp;prix
+ *       + 10 availability. Le batcher tient 2+2/min et par propriete.</li>
+ *   <li>Aucun maximum d'entrees par appel n'est documente : le decoupage a
+ *       {@code ARI_MAX_ENTRIES_PER_CALL} est une marge que nous nous donnons,
+ *       pas une contrainte de l'API.</li>
+ *   <li>Taille des proprietes : 50 room types et 10 rate plans par room type
+ *       en location saisonniere.</li>
  * </ul>
  *
  * <p>Tous les payloads sont au format JSON:API (wrapper {@code data}). Le
@@ -886,9 +896,18 @@ public class ChannexClient {
      *
      * <p><b>Endpoint whitelabel</b> : {@code POST /webhooks}.</p>
      *
+     * <p><b>Sans appelant en production a ce jour</b> : l'enregistrement reel
+     * passe par {@link #registerGlobalWebhook}, qui couvre tout le compte avec
+     * un masque unique. Cette variante n'a d'interet que sous contrat
+     * whitelabel — d'ou la garde {@code tryWhitelabel}. Conservee a ce titre,
+     * pas par accident.</p>
+     *
      * @param callbackUrl URL publique de notre controller webhook
-     * @param eventNames  events a souscrire ({@code listing_updated},
-     *                    {@code content_updated}, {@code property_updated}, ...)
+     * @param eventNames  events a souscrire, parmi ceux de la doc Webhook
+     *                    Collection ({@code booking_new},
+     *                    {@code booking_modification}, {@code sync_error},
+     *                    {@code message}, {@code review}, ...) ; joints par
+     *                    des points-virgules dans {@code event_mask}
      */
     public boolean registerWebhook(String callbackUrl, List<String> eventNames) {
         return tryWhitelabel(
@@ -896,10 +915,13 @@ public class ChannexClient {
             "registerWebhook url=" + callbackUrl,
             () -> {
                 String url = props.getBaseUrl() + "/webhooks";
+                // Le champ est `event_mask`, une chaine a separateurs
+                // point-virgule (doc Webhook Collection) — pas un tableau
+                // `events`, qui n'existe pas et etait ignore en silence.
                 Map<String, Object> body = Map.of(
                     "webhook", Map.of(
                         "callback_url", callbackUrl,
-                        "events", eventNames,
+                        "event_mask", String.join(";", eventNames),
                         "is_active", true
                     )
                 );
@@ -1789,7 +1811,15 @@ public class ChannexClient {
                 return convertJsonApiResponse(response.getBody(), responseType);
             } catch (HttpStatusCodeException e) {
                 lastError = mapHttpError(e.getStatusCode(), e.getResponseBodyAsString());
-                if (!lastError.isRetryable()) {
+                // Un 429 se retente, mais PAS ici. La doc Channex (Rate Limits)
+                // demande de suspendre les updates de la propriete pendant une
+                // minute ; nos trois tentatives a 200/400/800 ms ne feraient que
+                // rebruler le quota et prolonger le throttling. On propage tout
+                // de suite : le differe d'une minute appartient a l'appelant
+                // (ChannexAriBatcher pour l'ARI, les schedulers de
+                // reconciliation ailleurs).
+                if (lastError.getKind() == ChannexException.Kind.RATE_LIMITED
+                    || !lastError.isRetryable()) {
                     metrics.recordClientError(operation, lastError.getKind().name(),
                         System.currentTimeMillis() - startMs);
                     throw lastError;

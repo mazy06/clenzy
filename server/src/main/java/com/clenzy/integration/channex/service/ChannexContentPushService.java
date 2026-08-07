@@ -39,10 +39,38 @@ import java.util.Set;
  *       on ne supprime jamais les photos deja presentes/importees).</li>
  * </ul>
  *
- * <p>NON pousses (pas de modele Clenzy equivalent — signale dans les notes du
- * resultat plutot que d'inventer des donnees) : hotel policies, taxes/tax_sets.
- * A brancher quand la donnee existera cote Clenzy (prerequis Google/contenu
- * complet Booking.com).</p>
+ * <p><b>NON pousses</b>, pour deux raisons distinctes — signalees dans les notes
+ * du resultat plutot que compensees par des valeurs inventees :</p>
+ * <ul>
+ *   <li><b>Hotel policies</b> : {@code POST /hotel_policies} exige
+ *       {@code internet_access_type}, {@code parking_type},
+ *       {@code parking_reservation}, {@code parking_is_private},
+ *       {@code pets_policy}, {@code pets_non_refundable_fee},
+ *       {@code pets_refundable_deposit} et {@code smoking_policy}. Baitly ne
+ *       porte que {@code defaultCheckInTime} / {@code defaultCheckOutTime} et
+ *       la capacite : creer la policy demanderait de fabriquer le reste.
+ *       ({@code cancellationPolicy} ne va PAS la : Channex la porte sur le
+ *       rate plan et les booking settings, pas sur la hotel policy.)</li>
+ *   <li><b>Taxes / tax_sets</b> : le modele Baitly existe pourtant
+ *       ({@code TouristTaxConfig}) et la correspondance est proche —
+ *       {@code calculationMode} → {@code logic}
+ *       ({@code per_person_per_night} / {@code percent}), {@code ratePerPerson}
+ *       ou {@code percentageRate} → {@code rate}, {@code maxNights} →
+ *       {@code max_nights}, surcharges departementale et regionale → taxes
+ *       additionnelles du meme tax set, et Channex accepte litteralement
+ *       {@code type: "city tax"}. Ce qui bloque est ailleurs :
+ *       {@code capPerPersonNight}, {@code exemptMinors} et
+ *       {@code childrenExemptUnder} n'ont AUCUN equivalent — Channex ignore
+ *       l'exoneration par age. Une taxe poussee serait donc surestimee des
+ *       qu'un sejour comporte des enfants, et pousser un montant faux vers un
+ *       OTA est pire que ne rien pousser.</li>
+ * </ul>
+ *
+ * <p>Piste si le sujet est repris : ne pousser que les configurations
+ * exactement representables (ni plafond, ni exoneration) et signaler les
+ * autres. Prealable a verifier aupres du support Channex : que les taxes
+ * atteignent effectivement Airbnb et Booking.com — ni la doc Taxes ni la doc
+ * Channel API ne l'affirment.</p>
  *
  * <p>Appels HTTP hors transaction (regle audit n°2) : ce service est
  * volontairement non transactionnel — lectures via repositories, puis appels
@@ -94,8 +122,10 @@ public class ChannexContentPushService {
         // 2. Photos (additif, idempotent par URL)
         int[] photoCounts = pushPhotos(mapping, notes); // [created, already, skipped, errors]
 
-        notes.add("Hotel policies et taxes non poussees : pas de modele Clenzy equivalent "
-            + "(a completer via le dashboard/iframe Channex si un OTA l'exige).");
+        notes.add("Conditions d'accueil et taxes de sejour non transmises : Baitly ne couvre pas "
+            + "tous les champs exiges (stationnement, internet, animaux, tabac), et les regles "
+            + "d'exoneration des enfants n'ont pas d'equivalent chez notre hub — une taxe "
+            + "transmise serait surestimee. A renseigner depuis le hub si une plateforme l'exige.");
 
         ChannexContentPushResult result = new ChannexContentPushResult(
             descriptionPushed, photoCounts[0], photoCounts[1], photoCounts[2], photoCounts[3], notes);
