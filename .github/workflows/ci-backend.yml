@@ -149,11 +149,27 @@ jobs:
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
+          # Invocation par COORDONNEES COMPLETES, pas par prefixe.
+          #
+          # `mvn dependency-check:check` oblige Maven a traduire le prefixe
+          # `dependency-check` en coordonnees, ce qui passe par le telechargement de
+          # `org/owasp/maven-metadata.xml` depuis Central. Ce telechargement a deja
+          # echoue sur un aleas reseau (« No plugin found for prefix
+          # 'dependency-check' »), cassant un check REQUIS alors que le plugin est
+          # bel et bien declare dans server/pom.xml — le meme commit etait passe
+          # vert deux minutes plus tot.
+          #
+          # La forme groupId:artifactId:goal saute cette etape et lit la version
+          # depuis <build><plugins> du pom : une seule source de verite pour la
+          # version, et un appel reseau fragile en moins.
+          #
           # -DfailBuildOnCVSS=7 : bloque sur une vraie CVE (>= 7) quand les données NVD sont dispo.
           # -DfailOnError=false : tolère un echec d'infrastructure (NVD 403/rate-limit sans clé API) —
           #   sans donnees, aucun finding => le step passe (pas de faux rouge), au lieu de casser le CI.
+          #   Ne couvre QUE les erreurs de l'analyse : un echec de resolution du plugin survient
+          #   avant, et reste bloquant — d'ou le point ci-dessus.
           # NVD_API_KEY (secret optionnel) : fiabilise l'update NVD ; sans lui, le NVD 403 souvent.
-          mvn dependency-check:check -B -q \
+          mvn org.owasp:dependency-check-maven:check -B -q \
             -DfailBuildOnCVSS=7 \
             -DfailOnError=false \
             ${NVD_API_KEY:+-DnvdApiKey=$NVD_API_KEY}
