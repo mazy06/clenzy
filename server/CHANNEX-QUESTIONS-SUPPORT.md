@@ -1,15 +1,21 @@
+<!-- FICHIER GÉNÉRÉ — NE PAS ÉDITER À LA MAIN.
+     Source unique : server/generate_channex_questions.py
+     Régénérer : python3 server/generate_channex_questions.py -->
+
+
 # Channex — questions ouvertes pour le support et le commercial
 
-> English version: [CHANNEX-QUESTIONS-SUPPORT.en.md](CHANNEX-QUESTIONS-SUPPORT.en.md).
-> C'est celle qu'on envoie à Channex ; celle-ci est la référence interne.
+> English version: [CHANNEX-QUESTIONS-SUPPORT.en.md](CHANNEX-QUESTIONS-SUPPORT.en.md)
+> — c'est celle qu'on envoie à Channex ; celle-ci est la référence interne.
 >
-> Le formulaire PDF se regénère avec
-> `python3 server/generate_channex_questions_pdf.py --out ~/Desktop`
-> ([generate_channex_questions_pdf.py](generate_channex_questions_pdf.py)).
+> Les deux fichiers et le formulaire PDF sont **générés** depuis
+> [generate_channex_questions.py](generate_channex_questions.py). Une question se
+> modifie là, jamais ici.
 >
-> **Ces trois fichiers portent le même contenu.** Toute modification doit être
-> portée dans les trois — sans quoi le PDF envoyé finira par contredire nos
-> propres documents.
+> ```
+> python3 server/generate_channex_questions.py              # les deux .md
+> python3 server/generate_channex_questions.py --pdf ~/Desktop
+> ```
 
 > Établi le 2026-08-07, à partir d'un audit de notre implémentation confrontée à
 > la documentation publique (`docs.channex.io`).
@@ -22,14 +28,15 @@
 > Priorités : **P0** bloque un chantier en cours · **P1** conditionne un choix
 > d'architecture · **P2** informatif, à confirmer sans urgence.
 
+
 ---
+
 
 ## 1. Cloisonnement multi-organisations (groups)
 
-Contexte : nous sommes un PMS multi-tenant sur **une seule clé API** Channex.
-`GET /properties` renvoie donc le compte entier, toutes nos organisations
-clientes confondues. Nous avons construit l'isolation sur les **groups** — un
-group par organisation, filtrage de la découverte sur le contenu des groups.
+
+Contexte : nous sommes un PMS multi-tenant sur **une seule clé API** Channex. `GET /properties` renvoie donc le compte entier, toutes nos organisations clientes confondues. Nous avons construit l'isolation sur les **groups** — un group par organisation, filtrage de la découverte sur le contenu des groups.
+
 
 | # | Prio | Question |
 |---|---|---|
@@ -39,13 +46,12 @@ group par organisation, filtrage de la découverte sur le contenu des groups.
 | 1.4 | P1 | Y a-t-il une **limite au nombre de groups** par compte ? Nous en créons un par organisation cliente. |
 | 1.5 | P2 | Les **Group Users** peuvent-ils servir à donner à un de nos clients un accès dashboard restreint à son seul group, sans voir les autres ? |
 
+
 ## 2. Limites de débit
 
-Source de l'ambiguïté : `api-v.1-documentation/rate-limits` dit littéralement
-« The limit is 20 ARI total per minute **total** and broken down into 2
-endpoints : 10 Restrictions & Price Requests **per minute per property**, 10
-Availability Requests **per minute per property** ». Le mot « total » et la
-mention « per property » se contredisent.
+
+Source de l'ambiguïté : `api-v.1-documentation/rate-limits` dit littéralement « The limit is 20 ARI total per minute **total** and broken down into 2 endpoints : 10 Restrictions & Price Requests **per minute per property**, 10 Availability Requests **per minute per property** ». Le mot « total » et la mention « per property » se contredisent.
+
 
 | # | Prio | Question |
 |---|---|---|
@@ -55,11 +61,12 @@ mention « per property » se contredisent.
 | 2.4 | P1 | Renvoyez-vous un en-tête **`Retry-After`** sur un 429 ? La doc n'en mentionne aucun ; nous appliquons donc une pause fixe d'une minute, comme recommandé. |
 | 2.5 | P2 | Y a-t-il un **maximum d'entrées** par appel `POST /availability` ou `POST /restrictions` ? La doc n'en cite aucun. Nous découpons à 5000 entrées, par prudence et non par contrainte connue. |
 
+
 ## 3. Taxes et taxe de séjour
 
-Contexte : marché **Maroc et France**, où la taxe de séjour communale est une
-obligation. Notre modèle interne la couvre ; nous voulons savoir si Channex peut
-la porter jusqu'aux plateformes.
+
+Contexte : marché **Maroc et France**, où la taxe de séjour communale est une obligation. Notre modèle interne la couvre ; nous voulons savoir si Channex peut la porter jusqu'aux plateformes.
+
 
 | # | Prio | Question |
 |---|---|---|
@@ -70,7 +77,9 @@ la porter jusqu'aux plateformes.
 | 3.5 | P1 | `applicable_date_ranges` est limité à **20 plages**. Est-ce suffisant pour un barème saisonnier pluriannuel, ou faut-il recréer la taxe chaque année ? |
 | 3.6 | P2 | Le `level` d'un tax set gouverne-t-il bien la **taxation en cascade** (une surcharge départementale calculée sur la taxe communale, et non sur le prix nu) ? |
 
+
 ## 4. Contenu poussé vers les plateformes
+
 
 | # | Prio | Question |
 |---|---|---|
@@ -79,7 +88,9 @@ la porter jusqu'aux plateformes.
 | 4.3 | P1 | Les **hotel policies** sont-elles **exigées** par un canal en particulier (complétude du contenu Booking.com, prérequis Google Vacation Rental) ? `POST /hotel_policies` impose stationnement, accès internet, animaux et tabac — champs qu'un PMS de location courte durée ne détient pas toujours. Peut-on créer une policy partielle ? |
 | 4.4 | P2 | La politique d'annulation se porte-t-elle bien sur le **rate plan** et les booking settings, et non sur la hotel policy ? Notre lecture de la doc le suggère, nous voulons le confirmer. |
 
+
 ## 5. Webhooks
+
 
 | # | Prio | Question |
 |---|---|---|
@@ -88,11 +99,12 @@ la porter jusqu'aux plateformes.
 | 5.3 | P1 | Que se passe-t-il si nous **n'acquittons jamais** une réservation ? `non_acked_booking` se déclenche après 30 minutes — ensuite ? Y a-t-il une conséquence côté canal (annulation automatique, alerte à l'hôte) ? |
 | 5.4 | P2 | Quelle est votre **politique de réémission** en cas d'échec de notre endpoint (nombre de tentatives, espacement, abandon) ? |
 
+
 ## 6. Connexion des canaux et compte whitelabel
 
-Contexte : sur un compte standard, nous ne pouvons pas créer un canal par API et
-passons par votre widget iframe. Nous avons dû inventer une propriété « pivot »
-comme point d'ancrage de l'OAuth.
+
+Contexte : sur un compte standard, nous ne pouvons pas créer un canal par API et passons par votre widget iframe. Nous avons dû inventer une propriété « pivot » comme point d'ancrage de l'OAuth.
+
 
 | # | Prio | Question |
 |---|---|---|
@@ -101,7 +113,9 @@ comme point d'ancrage de l'OAuth.
 | 6.3 | P1 | Un compte standard peut-il, à terme, **créer un canal par API** sans passer au whitelabel ? |
 | 6.4 | P2 | Le widget iframe peut-il être **pré-rempli au-delà du filtre par OTA** (identifiants, sélection d'annonce) pour raccourcir le parcours de nos hôtes ? |
 
+
 ## 7. Application de paiement
+
 
 | # | Prio | Question |
 |---|---|---|
@@ -111,7 +125,9 @@ comme point d'ancrage de l'OAuth.
 | 7.4 | P1 | Couvre-t-elle la **pré-autorisation / caution** (empreinte de carte sans débit, capture différée, libération) ? |
 | 7.5 | P2 | Comment s'articule-t-elle avec la **tokenisation Stripe** déjà exposée sur les réservations ? Sont-ce deux chemins concurrents ou complémentaires ? |
 
+
 ## 8. Marché marocain
+
 
 | # | Prio | Question |
 |---|---|---|
@@ -119,39 +135,44 @@ comme point d'ancrage de l'OAuth.
 | 8.2 | P1 | Le **MAD** est-il pris en charge comme devise de propriété et de rate plan sur l'ensemble des canaux ? |
 | 8.3 | P1 | Existe-t-il des **exigences de contenu propres au Maroc** (classement, licence, numéro d'établissement) que les canaux imposent et que nous devrions collecter ? |
 
+
 ## 9. Limites de dimensionnement
+
 
 | # | Prio | Question |
 |---|---|---|
 | 9.1 | P1 | Y a-t-il une **limite au nombre de propriétés** par compte ? La doc plafonne les room types (50) et rate plans (10 par room type) en location saisonnière, mais reste muette sur le compte. |
 | 9.2 | P2 | Vous indiquez pouvoir **relever ces plafonds au cas par cas**. Quelle est la procédure, et le délai ? |
 
----
 
-## Questions commerciales
+## C. Questions commerciales
 
-| # | Question |
-|---|---|
-| C.1 | **Modèle tarifaire** : par propriété, par canal connecté, par réservation, ou forfait ? Grille exacte pour un parc de 10, 100 et 1000 logements. |
-| C.2 | Une propriété **sans canal actif** (créée mais pas encore distribuée) est-elle facturée ? *Notre parcours en crée à l'avance ; l'exposition financière dépend de la réponse.* |
-| C.3 | Le type `property_type: "apartment"` conditionne-t-il bien le **barème Vacation Rental** plutôt qu'hôtelier ? |
-| C.4 | Les **propriétés pivots** techniques, et les propriétés orphelines que nous purgeons, entrent-elles dans le décompte facturé ? |
-| C.5 | **Environnement de test** : le sandbox est-il gratuit et sans limite de durée ? Reflète-t-il le comportement réel des canaux, ou seulement l'API ? |
-| C.6 | Quel est l'**engagement de service** (disponibilité, délai de réponse au support, canal d'escalade en incident de production) ? |
-| C.7 | Où sont **hébergées les données** ? Question RGPD : sous-traitant au sens de l'article 28, DPA disponible, transferts hors UE ? |
-| C.8 | Quel **préavis** en cas d'évolution incompatible de l'API ? Versionnez-vous, ou modifiez-vous v1 en place ? |
+
+| # | Prio | Question |
+|---|---|---|
+| C.1 | **P0** | **Modèle tarifaire** : par propriété, par canal connecté, par réservation, ou forfait ? Grille exacte pour un parc de 10, 100 et 1000 logements. |
+| C.2 | **P0** | Une propriété **sans canal actif** (créée mais pas encore distribuée) est-elle facturée ? *Notre parcours en crée à l'avance ; l'exposition financière dépend de la réponse.* |
+| C.3 | P1 | Le type `property_type: "apartment"` conditionne-t-il bien le **barème Vacation Rental** plutôt qu'hôtelier ? |
+| C.4 | P1 | Les **propriétés pivots** techniques, et les propriétés orphelines que nous purgeons, entrent-elles dans le décompte facturé ? |
+| C.5 | P1 | **Environnement de test** : le sandbox est-il gratuit et sans limite de durée ? Reflète-t-il le comportement réel des canaux, ou seulement l'API ? |
+| C.6 | P1 | Quel est l'**engagement de service** (disponibilité, délai de réponse au support, canal d'escalade en incident de production) ? |
+| C.7 | **P0** | Où sont **hébergées les données** ? Question RGPD : sous-traitant au sens de l'article 28, DPA disponible, transferts hors UE ? |
+| C.8 | P1 | Quel **préavis** en cas d'évolution incompatible de l'API ? Versionnez-vous, ou modifiez-vous v1 en place ? |
+
 
 ---
 
 ## Ce qui n'a pas besoin d'être demandé
 
-Vérifié dans la documentation, sans ambiguïté — noté ici pour éviter de faire
-perdre du temps à l'interlocuteur :
+Vérifié dans la documentation, sans ambiguïté — noté ici pour éviter de faire perdre du temps à l'interlocuteur :
+
 
 - Format ARI `date_from`/`date_to`, champs requis et optionnels.
+
 - Catalogue des 25 types d'événements webhook.
-- Contrainte « une propriété appartient à au moins un group », d'où l'ordre
-  rattacher-puis-détacher.
-- Absence de filtre `group_id` sur `GET /properties` (filtres : `id`, `title`,
-  `is_active`) — d'où l'interrogation du group plutôt que des propriétés.
+
+- Contrainte « une propriété appartient à au moins un group », d'où l'ordre rattacher-puis-détacher.
+
+- Absence de filtre `group_id` sur `GET /properties` (filtres : `id`, `title`, `is_active`) — d'où l'interrogation du group plutôt que des propriétés.
+
 - Format `event_mask` en chaîne à points-virgules.
