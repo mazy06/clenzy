@@ -348,21 +348,25 @@ class ChannexClientTest {
         }
 
         @Test
-        @DisplayName("429 + 429 + success retourne le success apres retries")
-        void retriesOnRateLimit() {
-            String successBody = """
-                { "id": "prop-retry", "title": "T", "currency": "EUR" }
-                """;
-
-            mockServer.expect(requestTo(BASE + "/properties/prop-retry"))
+        @DisplayName("whenRateLimited_thenPropagatedImmediatelyWithoutASecondCall")
+        void doesNotRetryInProcessOnRateLimit() {
+            // La doc Channex demande de suspendre les updates de la propriete
+            // pendant une minute apres un 429. Retenter a 200/400/800 ms
+            // rebrulerait le quota : le client propage, et le differe appartient
+            // a l'appelant (ChannexAriBatcher, schedulers de reconciliation).
+            // Un seul appel attendu : mockServer.verify() echoue s'il y en a deux.
+            mockServer.expect(requestTo(BASE + "/properties/prop-429"))
                 .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
-            mockServer.expect(requestTo(BASE + "/properties/prop-retry"))
-                .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
-            mockServer.expect(requestTo(BASE + "/properties/prop-retry"))
-                .andRespond(withSuccess(successBody, MediaType.APPLICATION_JSON));
 
-            ChannexPropertyDto result = client.getProperty("prop-retry");
-            assertThat(result.id()).isEqualTo("prop-retry");
+            assertThatThrownBy(() -> client.getProperty("prop-429"))
+                .isInstanceOf(ChannexException.class)
+                .satisfies(e -> {
+                    ChannexException ex = (ChannexException) e;
+                    assertThat(ex.getKind()).isEqualTo(ChannexException.Kind.RATE_LIMITED);
+                    // Le 429 reste retryable dans l'absolu : c'est le MOMENT du
+                    // retry qui change, pas sa legitimite.
+                    assertThat(ex.isRetryable()).isTrue();
+                });
             mockServer.verify();
         }
 

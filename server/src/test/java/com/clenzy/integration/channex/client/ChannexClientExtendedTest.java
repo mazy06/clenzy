@@ -576,7 +576,25 @@ class ChannexClientExtendedTest {
         mockServer.expect(requestTo(BASE + "/webhooks"))
             .andRespond(withSuccess());
 
-        assertThat(client.registerWebhook("https://x.com/hook", List.of("listing_updated"))).isTrue();
+        assertThat(client.registerWebhook("https://x.com/hook", List.of("booking_new"))).isTrue();
+    }
+
+    @Test
+    @DisplayName("whenRegisteringWebhook_thenEventsAreSentAsSemicolonEventMask")
+    void registerWebhook_usesEventMaskNotEventsArray() {
+        // Le champ documente est `event_mask`, une chaine a separateurs
+        // point-virgule. Un tableau `events` n'existe pas cote Channex : il
+        // etait accepte puis ignore, donc le webhook s'abonnait a autre chose
+        // que ce qu'on croyait — sans la moindre erreur pour le signaler.
+        mockServer.expect(requestTo(BASE + "/webhooks"))
+            .andExpect(method(HttpMethod.POST))
+            .andExpect(jsonPath("$.webhook.event_mask").value("booking_new;booking_modification"))
+            .andExpect(jsonPath("$.webhook.events").doesNotExist())
+            .andRespond(withSuccess());
+
+        assertThat(client.registerWebhook(
+            "https://x.com/hook", List.of("booking_new", "booking_modification"))).isTrue();
+        mockServer.verify();
     }
 
     // --- Availability / Rates ---
