@@ -126,6 +126,13 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     needs: build-and-test
+    # Ce plafond est un garde-fou contre l'emballement, PAS un objectif de duree.
+    # Il doit donc couvrir le pire cas legitime : une synchronisation NVD a froid,
+    # mesuree a 228 min. Un premier reglage a 90 min avait ete calibre sur le
+    # regime incremental vise (quelques minutes une fois la base en cache) — il
+    # aurait tue la passe a froid qui CONSTITUE ce cache, et une annulation en
+    # cours de route risquait de sauvegarder une base partielle, pire qu'aucune.
+    timeout-minutes: 240
 
     steps:
       - name: Checkout code
@@ -137,6 +144,25 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
           cache: 'maven'
+
+      # Cle du jour : chaque journee repart de la base de la veille (restore-keys)
+      # puis n'applique qu'un delta, et sauvegarde sous la cle du jour. Sans cela,
+      # dependency-check retelecharge les ~290 000 CVE du NVD a chaque execution.
+      - name: Date du jour (cle de cache NVD)
+        id: nvd-date
+        run: echo "day=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      # Base NVD hors de ~/.m2 : `setup-java` cache deja ~/.m2/repository avec une
+      # cle calculee sur le hash des pom.xml. Y laisser la base NVD la rendrait
+      # invalide a chaque modification de dependance — soit 4 h de resynchro pour
+      # une montee de version sans rapport. Repertoire dedie, cle independante.
+      - name: Cache de la base NVD
+        uses: actions/cache@v4
+        with:
+          path: ~/.dependency-check-data
+          key: nvd-data-${{ steps.nvd-date.outputs.day }}
+          restore-keys: |
+            nvd-data-
 
       # Audit 2026-07 F7-01 : gate SCA BLOQUANT (avant : failBuildOnCVSS=9 + `|| true`
       # + continue-on-error => jamais bloquant). Bloque désormais sur CVSS >= 7 (aligné
@@ -163,13 +189,21 @@ jobs:
           # depuis <build><plugins> du pom : une seule source de verite pour la
           # version, et un appel reseau fragile en moins.
           #
+          # -DdataDirectory : doit pointer le repertoire mis en cache a l'etape
+          #   precedente. Par defaut le plugin range sa base sous
+          #   ~/.m2/repository/org/owasp/dependency-check-data, donc sous une cle de
+          #   cache indexee sur le hash des pom.xml — invalidee des qu'une dependance
+          #   bouge. Repertoire dedie, duree de vie independante des dependances.
           # -DfailBuildOnCVSS=7 : bloque sur une vraie CVE (>= 7) quand les données NVD sont dispo.
           # -DfailOnError=false : tolère un echec d'infrastructure (NVD 403/rate-limit sans clé API) —
           #   sans donnees, aucun finding => le step passe (pas de faux rouge), au lieu de casser le CI.
           #   Ne couvre QUE les erreurs de l'analyse : un echec de resolution du plugin survient
           #   avant, et reste bloquant — d'ou le point ci-dessus.
-          # NVD_API_KEY (secret optionnel) : fiabilise l'update NVD ; sans lui, le NVD 403 souvent.
+          # NVD_API_KEY : depuis qu'il est renseigne, l'analyse tourne pour de vrai. Avant,
+          #   le NVD repondait 403, l'analyse s'arretait avant la premiere dependance, et le
+          #   step passait au vert sans rien avoir verifie.
           mvn org.owasp:dependency-check-maven:check -B -q \
+            -DdataDirectory="$HOME/.dependency-check-data" \
             -DfailBuildOnCVSS=7 \
             -DfailOnError=false \
             ${NVD_API_KEY:+-DnvdApiKey=$NVD_API_KEY}

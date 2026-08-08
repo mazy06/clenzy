@@ -8,7 +8,12 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.13</version>
+        <!-- 3.5.16 (2026-08) : correctifs seuls, meme branche mineure. Traite d'un
+             coup les CVE >= 7 remontees par dependency-check sur tomcat-embed-core
+             (9.8), spring-core (9.8), spring-security-core et
+             spring-security-oauth2-resource-server (8.1), postgresql (8.2) et
+             jackson-databind (8.1) — toutes gerees par le BOM. -->
+        <version>3.5.16</version>
         <relativePath/>
     </parent>
 
@@ -257,11 +262,14 @@
 
         <!-- Firebase Admin SDK (Push Notifications FCM) -->
         <!-- CVE 2026-06 : 9.2.0 tirait protobuf-java 3.23.2 (CVE-2024-7254, DoS parsing).
-             9.4.x tire un protobuf-java patché. -->
+             9.4.x tire un protobuf-java patché.
+             CVE 2026-08 : 9.4.3 tirait netty-transport 4.1.132 (36 CVE, dont 10.0),
+             httpcore5 5.3.6 (7.5) et trois modules opentelemetry alpha (7.3-7.5).
+             9.10.0 reste sur la meme majeure et rafraichit ces transitives. -->
         <dependency>
             <groupId>com.google.firebase</groupId>
             <artifactId>firebase-admin</artifactId>
-            <version>9.4.3</version>
+            <version>9.10.0</version>
         </dependency>
 
         <!-- Jasypt Spring Boot (Chiffrement tokens en base) -->
@@ -298,21 +306,33 @@
             <version>5.0.2</version>
         </dependency>
 
-        <!-- XDocReport : traitement templates ODT avec Freemarker -->
+        <!-- XDocReport : traitement templates ODT avec Freemarker.
+
+             2.2.0 corrige CVE-2025-64087 (9.8) sur xdocreport.core.
+
+             Le module converter.odt.odfdom a ete RETIRE. Il n'etait utilise nulle
+             part — DocumentTemplateRenderer ne fait que du rendu de gabarit
+             (IXDocReport.process), sans aucun appel de conversion — et il tirait a
+             lui seul deux bibliotheques abandonnees depuis 2009 :
+             com.lowagie:itext 2.1.7 (CVE-2017-9096, XXE au parsing PDF, 8.8) et
+             xerces:xercesImpl 2.9.1 (7.5), via odfdom-java 0.8.7.
+
+             Monter en 2.2.0 ne les aurait PAS enlevees : la chaine de transitives
+             est identique dans cette version. Seule la suppression du module les
+             fait disparaitre.
+
+             Nos PDF ne passent pas par la : ils sont produits par iText 7
+             (com.itextpdf:itext7-core), sans rapport avec le com.lowagie:itext
+             2.1.7 dont il descend. -->
         <dependency>
             <groupId>fr.opensagres.xdocreport</groupId>
             <artifactId>fr.opensagres.xdocreport.document.odt</artifactId>
-            <version>2.0.4</version>
+            <version>2.2.0</version>
         </dependency>
         <dependency>
             <groupId>fr.opensagres.xdocreport</groupId>
             <artifactId>fr.opensagres.xdocreport.template.freemarker</artifactId>
-            <version>2.0.4</version>
-        </dependency>
-        <dependency>
-            <groupId>fr.opensagres.xdocreport</groupId>
-            <artifactId>fr.opensagres.xdocreport.converter.odt.odfdom</artifactId>
-            <version>2.0.4</version>
+            <version>2.2.0</version>
         </dependency>
 
         <!-- JODConverter : conversion ODT vers PDF via LibreOffice headless -->
