@@ -605,6 +605,23 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     List<ChannelFeeAggregate> aggregateOtaFeesBySource(@Param("orgId") Long orgId,
                                                        @Param("from") LocalDate from);
 
+    /**
+     * Reservation avec son guest et sa propriete DEJA charges.
+     *
+     * <p>Pour les appelants qui construisent un payload hors transaction : le
+     * push CRS Channex tient volontairement l'appel HTTP hors session (regle
+     * projet : jamais d'appel externe dans une transaction), si bien qu'un
+     * {@code findById} suivi d'un {@code getGuest()} levait
+     * {@code LazyInitializationException}. Le fetch join resout la dependance
+     * a la lecture plutot qu'en elargissant la transaction autour de l'appel
+     * reseau.</p>
+     */
+    @Query("SELECT r FROM Reservation r "
+        + "LEFT JOIN FETCH r.guest "
+        + "LEFT JOIN FETCH r.property "
+        + "WHERE r.id = :id")
+    Optional<Reservation> findByIdWithGuestAndProperty(@Param("id") Long id);
+
     /** Projection de {@link #aggregateOtaFeesBySource}. */
     interface ChannelFeeAggregate {
         String getSource();

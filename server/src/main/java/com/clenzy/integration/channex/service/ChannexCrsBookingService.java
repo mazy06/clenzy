@@ -130,8 +130,19 @@ public class ChannexCrsBookingService {
     // transaction, suffisant pour ces operations mono-statement ; le POST/PUT
     // Channex reste ainsi hors de toute transaction DB (audit n°2).
 
+    /**
+     * Charge la reservation AVEC son guest et sa propriete.
+     *
+     * <p>Le fetch join n'est pas une optimisation : il est necessaire. Ce
+     * service tient l'appel Channex hors transaction (regle projet : jamais
+     * d'appel HTTP externe dans une transaction), donc le payload se construit
+     * sans session ouverte. Un {@code findById} nu rendait
+     * {@code reservation.getGuest()} en proxy non initialise et
+     * {@link #buildCrsPayload} echouait en {@code LazyInitializationException}
+     * — « Could not initialize proxy [Guest#…] - no session ».</p>
+     */
     private Reservation loadOwnedReservation(Long reservationId, Long orgId) {
-        Reservation reservation = reservationRepository.findById(reservationId)
+        Reservation reservation = reservationRepository.findByIdWithGuestAndProperty(reservationId)
             .orElseThrow(() -> new IllegalStateException("Reservation introuvable : " + reservationId));
         // findById contourne le filtre Hibernate : validation d'org explicite (audit n°3)
         if (!orgId.equals(reservation.getOrganizationId())) {

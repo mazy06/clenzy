@@ -93,7 +93,7 @@ class ChannexCrsBookingServiceTest {
     @Test
     @DisplayName("100.00 EUR sur 3 nuits -> 33.33 + 33.33 + 33.34 (somme EXACTE, ajustement derniere nuit)")
     void nightPricesSumToExactTotal() {
-        when(reservationRepository.findById(555L)).thenReturn(Optional.of(reservation));
+        when(reservationRepository.findByIdWithGuestAndProperty(555L)).thenReturn(Optional.of(reservation));
         when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.of(mapping));
         when(channexClient.createCrsBooking(any())).thenReturn("chx-book-1");
 
@@ -117,7 +117,7 @@ class ChannexCrsBookingServiceTest {
     @Test
     @DisplayName("payload CRS : ota Offline + mapping room/rate + customer + occupancy")
     void payloadCarriesCrsContract() {
-        when(reservationRepository.findById(555L)).thenReturn(Optional.of(reservation));
+        when(reservationRepository.findByIdWithGuestAndProperty(555L)).thenReturn(Optional.of(reservation));
         when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.of(mapping));
         when(channexClient.createCrsBooking(any())).thenReturn("chx-book-1");
 
@@ -141,7 +141,7 @@ class ChannexCrsBookingServiceTest {
     @Test
     @DisplayName("id Channex retourne -> persiste sur la reservation")
     void persistsChannexBookingId() {
-        when(reservationRepository.findById(555L)).thenReturn(Optional.of(reservation));
+        when(reservationRepository.findByIdWithGuestAndProperty(555L)).thenReturn(Optional.of(reservation));
         when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.of(mapping));
         when(channexClient.createCrsBooking(any())).thenReturn("chx-book-9");
 
@@ -156,7 +156,7 @@ class ChannexCrsBookingServiceTest {
     @DisplayName("resa deja poussee -> already_pushed, pas de nouveau POST (idempotence)")
     void alreadyPushedSkips() {
         reservation.setChannexCrsBookingId("chx-book-1");
-        when(reservationRepository.findById(555L)).thenReturn(Optional.of(reservation));
+        when(reservationRepository.findByIdWithGuestAndProperty(555L)).thenReturn(Optional.of(reservation));
 
         var result = service.pushReservation(555L, 42L);
 
@@ -168,7 +168,7 @@ class ChannexCrsBookingServiceTest {
     @DisplayName("resa VENUE de Channex -> jamais re-poussee (boucle)")
     void otaBookingNeverPushed() {
         reservation.setExternalUid("channex:booking-abc");
-        when(reservationRepository.findById(555L)).thenReturn(Optional.of(reservation));
+        when(reservationRepository.findByIdWithGuestAndProperty(555L)).thenReturn(Optional.of(reservation));
 
         var result = service.pushReservation(555L, 42L);
 
@@ -179,7 +179,7 @@ class ChannexCrsBookingServiceTest {
     @Test
     @DisplayName("resa d'une autre org -> AccessDeniedException (audit n°3)")
     void crossOrgDenied() {
-        when(reservationRepository.findById(555L)).thenReturn(Optional.of(reservation));
+        when(reservationRepository.findByIdWithGuestAndProperty(555L)).thenReturn(Optional.of(reservation));
 
         assertThatThrownBy(() -> service.pushReservation(555L, 999L))
             .isInstanceOf(AccessDeniedException.class);
@@ -190,7 +190,7 @@ class ChannexCrsBookingServiceTest {
     @DisplayName("annulation d'une resa poussee -> PUT status=cancelled")
     void cancelPushedReservation() {
         reservation.setChannexCrsBookingId("chx-book-1");
-        when(reservationRepository.findById(555L)).thenReturn(Optional.of(reservation));
+        when(reservationRepository.findByIdWithGuestAndProperty(555L)).thenReturn(Optional.of(reservation));
         when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.of(mapping));
 
         var result = service.cancelPushedReservation(555L, 42L);
@@ -205,7 +205,7 @@ class ChannexCrsBookingServiceTest {
     @Test
     @DisplayName("annulation d'une resa jamais poussee -> not_pushed, aucun appel")
     void cancelNotPushedNoop() {
-        when(reservationRepository.findById(555L)).thenReturn(Optional.of(reservation));
+        when(reservationRepository.findByIdWithGuestAndProperty(555L)).thenReturn(Optional.of(reservation));
 
         var result = service.cancelPushedReservation(555L, 42L);
 
