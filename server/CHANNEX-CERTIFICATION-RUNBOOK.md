@@ -35,22 +35,40 @@
 > (jamais de script à côté — anti-pattern rejeté), et on note le(s) **task ID(s)**
 > retournés (visibles dans les logs backend `ChannexSync[availability|rates]: ... task_ids=[...]`).
 
-| # | Test | Déclencheur Baitly | Attendu côté API | Task IDs | Statut |
-|---|---|---|---|---|---|
-| 1 | Full sync 500 j | Bouton resync ⟳ (property Appartement Duplex Marrakech, `resync` months=0) | **2 appels** : 1 availability + 1 rates&restrictions (compression date_from/date_to) | avail `c6992b17-3e30-41a1-8e0f-bfccf07434e1` · rates `abc0cc82-9ab6-40f0-ac69-0044d0107382` | ✅ |
-| 2 | Prix 1 date / 1 rate | Changer un prix (RateOverride) dans l'UI Tarification (date 2026-07-29) | 1 appel rates (+ 1 availability) | rates `831e13e8-4a80-454e-9f73-c14c61aaa460` · avail `d1960881-38cb-4624-8738-1390620b09c8` | ✅ |
-| 3 | Prix multi-rates, 1 date | N/A — Baitly VR mono rate-plan (voir note test 14). Couvert par le test 2. | **1 appel** | (mono rate-plan) | ➖ |
-| 4 | Prix multi-dates multi-rates | New Plan Base sur plage future (ex. 2026-08-12 → 08-16) | **1 appel** rates compressé (ranges) | rates `6d6a999d-e345-4221-bf64-27c0aeb7c420` · avail `7e4edb4a-dd3e-4c23-87b5-fe40b27e936a` | ✅ |
-| 5 | Min stay sur rates | Onglet Restrictions → séjour min (restriction 18-22 août, min 3) | **1 appel** rates | `2214774d-e785-40d3-81db-7580f39cdaec` | ✅ |
-| 6 | Stop sell | Blocage de dates (planning) 17→20 oct → availability=0 | **1 appel** availability | `48caa749-92b9-4aed-8a00-b9827771a2a1` | ✅ |
-| 7 | Restrictions combinées (CTA/CTD/min/max stay) | Onglet Restrictions → min3/max15/CTA (18-22 août) + min14/max20/CTD (02-23 sept) | **1 appel** rates chacune | `2214774d-…` · `311c3690-fbc7-40f1-b08e-1d6fa01cd8e1` | ✅ |
-| 8 | Semestre (rate+CTA+CTD+min stay, 5 mois) | Même mécanisme que 7 sur une plage longue (restriction 02-23 sept = 22 nuits, 3 entrées compressées) ; extensible à 5 mois en 1 appel | **1 appel** rates | `311c3690-fbc7-40f1-b08e-1d6fa01cd8e1` (mécanisme prouvé) | ✅ |
-| 9 | Availability 1 date | Résa 1 nuit dans Baitly (03→04 déc) → dispo 0 | 1 appel availability | `bf89a174-f614-4633-adec-c78816430f9b` | ✅ |
-| 10 | Availability multi-dates | Résa 4 nuits (10→14 déc) → dispo sur la plage | 1 appel availability | `381fbae0-a596-4e7b-8366-4355288d10c2` | ✅ |
-| 11 | Réception bookings (create/modif/annulation) | App Booking CRS → booking OFL-TEST-11-002 (create/modify/cancel) | feed → persist → **ack par révision** (3/3 ackées, 0 échec) | booking `60b45383-f304-4eb3-a92d-4a94b169c3a1` · résa #118 | ✅ |
-| 12 | Rate limits | — engagement, **rédigé §Engagements 12/13** (vérifié dans le code le 2026-08-06) | | n/a | ✅ |
-| 13 | Update logic | — engagement, **rédigé §Engagements 12/13** (vérifié dans le code le 2026-08-06) | | n/a | ✅ |
-| 14 | Extra notes | **rédigées §Extra notes (test 14)** | | n/a | ✅ |
+> **Les task IDs ne sont plus ici.** Ce runbook décrit *comment* déclencher chaque
+> scénario ; les identifiants du dernier passage vivent dans un seul endroit,
+> `CHANNEX-CERTIFICATION-REPONSES.md` — celui qu'on recopie dans le formulaire.
+> Les tenir aux deux endroits les avait déjà fait diverger : la table ci-dessous
+> a porté pendant un mois les IDs du 9 juillet, pointant sur une propriété
+> supprimée entre-temps.
+
+| # | Test | Déclencheur Baitly | Attendu côté API | Statut |
+|---|---|---|---|---|
+| 1 | Full sync 500 j | Bouton resync ⟳ (`resync` months=0) | **2 appels** : 1 availability + 1 rates&restrictions (compression date_from/date_to) | ✅ |
+| 2 | Prix 1 date / 1 rate | Changer un prix (RateOverride) dans l'UI Tarification | 1 appel rates (+ 1 availability) | ✅ |
+| 3 | Prix multi-rates, 1 date | N/A — Baitly VR mono rate-plan (voir note test 14). Couvert par le test 2. | **1 appel** | ➖ |
+| 4 | Prix multi-dates multi-rates | Nouveau plan tarifaire sur une plage future | **1 appel** rates compressé (ranges) | ✅ |
+| 5 | Min stay sur rates | Onglet Restrictions → séjour min sur une plage | **1 appel** rates | ✅ |
+| 6 | Stop sell | N/A — Baitly ne pousse pas `stop_sell` : fermer une date, c'est `availability = 0`, source unique de vérité. Démontré par le test 10. | **1 appel** availability | ➖ |
+| 7 | Restrictions combinées (CTA/CTD/min/max stay) | Onglet Restrictions → min/max + CTA/CTD sur deux plages | **1 appel** rates chacune | ✅ |
+| 8 | Semestre (rate+CTA+CTD+min stay, 5 mois) | Même mécanisme que 7 sur **152 jours** (2027-08-01 → 12-31, min 2 / max 21 / CTA / CTD) | **1 appel** rates | ✅ |
+| 9 | Availability 1 date | Résa 1 nuit dans Baitly → dispo 0 | 1 appel availability | ✅ |
+| 10 | Availability multi-dates | Résa de plusieurs nuits → dispo sur la plage | 1 appel availability | ✅ |
+| 11 | Réception bookings (create/modif/annulation) | Résa directe poussée au CRS (`push-crs`) → **new** ; séjour prolongé via l'app Booking CRS → **modified** ; `cancel-crs` → **cancelled** | feed interrogé toutes les 10 min → persist → **ack par révision** (3/3 ackées, 0 échec) | ✅ |
+| 12 | Rate limits | — engagement, **rédigé §Engagements 12/13** (vérifié dans le code le 2026-08-06) | n/a | ✅ |
+| 13 | Update logic | — engagement, **rédigé §Engagements 12/13** (vérifié dans le code le 2026-08-06) | n/a | ✅ |
+| 14 | Extra notes | **rédigées §Extra notes (test 14)** | n/a | ✅ |
+
+> **Test 11 : aucun webhook public n'est nécessaire.** Le feed de révisions est
+> interrogé toutes les 10 minutes (`clenzy.channex.booking-feed-interval-minutes`),
+> et c'est ce planificateur qui a consommé les trois révisions. Un tunnel entrant
+> ne sert qu'à réduire la latence, pas à rendre le test possible.
+>
+> **Un avertissement OVERBOOKING est attendu dans ce montage** : la réservation
+> de test est fabriquée en la poussant depuis Baitly, donc les nuits sont déjà
+> occupées par la réservation directe quand Channex nous la renvoie en booking
+> OTA. Le garde-fou persiste et acquitte, laisse le calendrier intact et signale
+> l'intervention — comportement correct, pas un défaut du test.
 
 > ¹ **Stop sell** : Baitly ne pousse pas `stop_sell` par date (l'indisponibilité passe
 > par availability=0). À signaler en Extra Notes, OU à couvrir via une fermeture
