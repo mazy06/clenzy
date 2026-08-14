@@ -42,6 +42,9 @@ package com.clenzy.integration.channex.dto;
  * @param otaAllowsPets          guest_controls.allows_pets_as_host
  * @param otaAllowsSmoking       guest_controls.allows_smoking_as_host
  * @param otaAllowsEvents        guest_controls.allows_events_as_host
+ * @param reattachPropertyId     logement Baitly a RATTACHER plutot qu'a importer
+ *                               (null si aucune correspondance sure) — cf. plus bas
+ * @param reattachPropertyName   son nom, pour que l'ecran puisse nommer la cible
  */
 public record ChannexDiscoveredProperty(
     String channexPropertyId,
@@ -78,5 +81,39 @@ public record ChannexDiscoveredProperty(
     String otaInstantBooking,
     Boolean otaAllowsPets,
     Boolean otaAllowsSmoking,
-    Boolean otaAllowsEvents
-) {}
+    Boolean otaAllowsEvents,
+    Long reattachPropertyId,
+    String reattachPropertyName
+) {
+    /**
+     * Sans suggestion de rattachement — le cas courant.
+     *
+     * <p>La suggestion n'est calculee que dans la boucle de decouverte ; partout
+     * ailleurs (tests, constructions ponctuelles) elle est absente. Cette forme
+     * evite d'ajouter deux {@code null} a une trentaine d'arguments positionnels
+     * a chaque appel.</p>
+     */
+    public ChannexDiscoveredProperty(
+        String channexPropertyId, String title, String currency, String country,
+        String timezone, Integer maxOccupancy, String suggestedType,
+        boolean hasActiveOta, boolean hasRoomType, boolean hasRatePlan,
+        int photoCount, boolean hasDescription, boolean hasAddress,
+        boolean isImported, Long clenzyPropertyId, String clenzyPropertyName,
+        java.util.List<ChannexPropertyOtaSync> connectedOtas,
+        String otaListingType, java.math.BigDecimal otaNightlyPrice,
+        java.math.BigDecimal otaWeekendPrice, Integer otaGuestsIncluded,
+        java.math.BigDecimal otaPricePerExtraPerson, Double otaWeeklyPriceFactor,
+        Double otaMonthlyPriceFactor, Integer otaMinNights, Integer otaMaxNights,
+        String otaCheckInTimeStart, String otaCheckInTimeEnd, Integer otaCheckOutTime,
+        String otaCancellationPolicy, String otaInstantBooking,
+        Boolean otaAllowsPets, Boolean otaAllowsSmoking, Boolean otaAllowsEvents) {
+        this(channexPropertyId, title, currency, country, timezone, maxOccupancy,
+            suggestedType, hasActiveOta, hasRoomType, hasRatePlan, photoCount,
+            hasDescription, hasAddress, isImported, clenzyPropertyId, clenzyPropertyName,
+            connectedOtas, otaListingType, otaNightlyPrice, otaWeekendPrice,
+            otaGuestsIncluded, otaPricePerExtraPerson, otaWeeklyPriceFactor,
+            otaMonthlyPriceFactor, otaMinNights, otaMaxNights, otaCheckInTimeStart,
+            otaCheckInTimeEnd, otaCheckOutTime, otaCancellationPolicy, otaInstantBooking,
+            otaAllowsPets, otaAllowsSmoking, otaAllowsEvents, null, null);
+    }
+}

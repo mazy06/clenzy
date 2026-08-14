@@ -687,10 +687,10 @@ class ChannexConnectControllerTest {
             ChannexOtaChannelResponse response = ChannexOtaChannelResponse.of(
                 "chan-id", "Airbnb - Studio", "Airbnb", "https://channex.io/oauth");
             when(connectService.createOtaChannel(100L, 42L, "Airbnb",
-                "admin@clenzy.fr", "fr")).thenReturn(response);
+                "admin@clenzy.fr", "fr", null)).thenReturn(response);
 
             var result = controller.createOtaChannel(100L,
-                new ChannexConnectController.CreateOtaChannelBody("Airbnb"), "fr", jwt);
+                new ChannexConnectController.CreateOtaChannelBody("Airbnb", null), "fr", jwt);
 
             assertThat(result.channelId()).isEqualTo("chan-id");
             assertThat(result.embedUrl()).isEqualTo("https://channex.io/oauth");
@@ -708,7 +708,7 @@ class ChannexConnectControllerTest {
         @DisplayName("createOtaChannel : otaChannelName blank -> IllegalArgumentException")
         void createOtaChannel_blankName() {
             assertThatThrownBy(() -> controller.createOtaChannel(100L,
-                new ChannexConnectController.CreateOtaChannelBody("   "), "fr", jwt))
+                new ChannexConnectController.CreateOtaChannelBody("   ", null), "fr", jwt))
                 .isInstanceOf(IllegalArgumentException.class);
         }
 
@@ -716,7 +716,7 @@ class ChannexConnectControllerTest {
         @DisplayName("createOtaChannel : otaChannelName null -> IllegalArgumentException")
         void createOtaChannel_nullName() {
             assertThatThrownBy(() -> controller.createOtaChannel(100L,
-                new ChannexConnectController.CreateOtaChannelBody(null), "fr", jwt))
+                new ChannexConnectController.CreateOtaChannelBody(null, null), "fr", jwt))
                 .isInstanceOf(IllegalArgumentException.class);
         }
 
@@ -726,13 +726,13 @@ class ChannexConnectControllerTest {
             ChannexOtaChannelResponse response = ChannexOtaChannelResponse.of(
                 "c", "t", "n", "u");
             when(connectService.createOtaChannel(100L, 42L, "Airbnb",
-                "clenzy-org-42", "fr")).thenReturn(response);
+                "clenzy-org-42", "fr", null)).thenReturn(response);
 
             controller.createOtaChannel(100L,
-                new ChannexConnectController.CreateOtaChannelBody("Airbnb"), "fr", null);
+                new ChannexConnectController.CreateOtaChannelBody("Airbnb", null), "fr", null);
 
             verify(connectService).createOtaChannel(100L, 42L, "Airbnb",
-                "clenzy-org-42", "fr");
+                "clenzy-org-42", "fr", null);
         }
     }
 

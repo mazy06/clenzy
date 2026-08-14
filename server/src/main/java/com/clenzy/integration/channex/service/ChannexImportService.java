@@ -264,6 +264,25 @@ public class ChannexImportService {
                 .ifPresent(p -> clenzyPropertyNames.put(p.getId(), p.getName()));
         }
 
+        // 3bis. Candidats au RATTACHEMENT : les logements Baitly de l'org qui
+        //       n'ont plus de mapping, indexes par nom normalise.
+        //
+        //       Une deconnexion supprime le mapping mais laisse VOLONTAIREMENT
+        //       la property cote Channex. Celle-ci ressort donc en decouverte,
+        //       ou l'import — dont le metier est de creer — fabriquerait un
+        //       SECOND logement Baitly : le premier garde ses tarifs, son
+        //       calendrier et ses reservations, le second herite du lien vers
+        //       Channex. C'est arrive le 2026-08-14 (logements 3 et 83).
+        //       Proposer le rattachement ferme ce piege a la source.
+        Set<Long> mappedPropertyIds = mappingsByChannexId.values().stream()
+            .map(com.clenzy.integration.channex.model.ChannexPropertyMapping::getClenzyPropertyId)
+            .collect(java.util.stream.Collectors.toSet());
+        Map<String, List<Property>> reattachCandidates = propertyRepository
+            .findByOrganizationId(orgId).stream()
+            .filter(p -> !mappedPropertyIds.contains(p.getId()))
+            .filter(p -> normalizeTitle(p.getName()) != null)
+            .collect(java.util.stream.Collectors.groupingBy(p -> normalizeTitle(p.getName())));
+
         // 4. Construit le map propertyId → List<OTAs> via les channels du hub
         //    (un channel par OTA, lie a 1+ properties via attributes.properties[]).
         // Map propertyId → infos OTA enrichies (otaName, listingId, pricing)
@@ -373,6 +392,22 @@ public class ChannexImportService {
             Long clenzyId = isImported ? mapping.getClenzyPropertyId() : null;
             String clenzyName = isImported ? clenzyPropertyNames.get(clenzyId) : null;
 
+            // Suggestion de rattachement : un SEUL logement Baitly sans mapping
+            // porte ce nom. A deux candidats on ne propose rien — se tromper de
+            // cible rattacherait le hub au mauvais logement, ce qui est pire que
+            // de laisser l'utilisateur choisir. Les pivots techniques n'en ont
+            // jamais (leur titre ne designe aucun logement reel).
+            Long reattachId = null;
+            String reattachName = null;
+            if (!isImported && !isPivot) {
+                List<Property> candidates = reattachCandidates
+                    .getOrDefault(normalizeTitle(title), List.of());
+                if (candidates.size() == 1) {
+                    reattachId = candidates.get(0).getId();
+                    reattachName = candidates.get(0).getName();
+                }
+            }
+
             List<ChannexPropertyOtaSync> connectedOtasForProp =
                 otasByPropertyId.getOrDefault(channexId, List.of());
 
@@ -436,12 +471,15 @@ public class ChannexImportService {
                 info != null ? info.instantBookingPolicy() : null,
                 info != null ? info.allowsPets() : null,
                 info != null ? info.allowsSmoking() : null,
-                info != null ? info.allowsEvents() : null));
+                info != null ? info.allowsEvents() : null,
+                reattachId, reattachName));
         }
 
         long unmappedCount = result.stream().filter(p -> !p.isImported()).count();
-        log.info("ChannexImport: discovery org={} -> {} non-importees + {} importees (sur {} totales hub)",
-            orgId, unmappedCount, result.size() - unmappedCount, totalInHub);
+        long reattachable = result.stream().filter(p -> p.reattachPropertyId() != null).count();
+        log.info("ChannexImport: discovery org={} -> {} non-importees ({} rattachables) "
+                + "+ {} importees (sur {} totales hub)",
+            orgId, unmappedCount, reattachable, result.size() - unmappedCount, totalInHub);
         return ChannexDiscoveryResponse.of(result, totalInHub);
     }
 
@@ -1176,6 +1214,47 @@ public class ChannexImportService {
         return results;
     }
 
+    /**
+     * Rattache une property Channex EXISTANTE a un logement Baitly EXISTANT,
+     * au lieu d'en creer un second.
+     *
+     * <p>C'est la sortie du piege deconnexion → re-import : la deconnexion
+     * supprime le mapping mais laisse la property cote Channex, qui ressort
+     * alors en decouverte. L'importer, dont le metier est de creer, fabriquerait
+     * un logement Baitly de plus — l'ancien gardant tarifs, calendrier et
+     * reservations. Ici on se contente de recreer le lien.</p>
+     *
+     * <p>On ne cree RIEN cote Channex : les room type et rate plan doivent deja
+     * exister, ce qui est le cas d'une property precedemment mappee. S'ils
+     * manquent, la property n'a jamais ete exploitee et l'import est la bonne
+     * reponse — on le dit plutot que de bricoler.</p>
+     *
+     * <p>Les deux lectures Channex se font AVANT de deleguer, donc hors
+     * transaction (regle projet : jamais d'appel HTTP externe dans une
+     * transaction). La delegation passe par le bean {@code connectService},
+     * dont le proxy porte le {@code @Transactional}.</p>
+     */
+    public ChannexImportResult reattach(Long orgId, String channexPropertyId, Long clenzyPropertyId) {
+        List<ChannexRoomTypeDto> roomTypes = channexClient.fetchRoomTypesForProperty(channexPropertyId);
+        List<ChannexRatePlanDto> ratePlans = channexClient.fetchRatePlansForProperty(channexPropertyId);
+        if (roomTypes.isEmpty() || ratePlans.isEmpty()) {
+            return new ChannexImportResult(1, 0, 0, 1, List.of(new ChannexImportResult.Item(
+                channexPropertyId, "ERROR", clenzyPropertyId,
+                "Ce logement du hub n'a pas de type de chambre ou de tarif : importez-le"
+                    + " plutot que de le rattacher")));
+        }
+
+        var request = new com.clenzy.integration.channex.dto.ChannexConnectRequest(
+            com.clenzy.integration.channex.dto.ChannexConnectRequest.Mode.IMPORT_EXISTING,
+            channexPropertyId, roomTypes.get(0).id(), ratePlans.get(0).id());
+        var mapping = connectService.connect(clenzyPropertyId, orgId, request);
+
+        log.info("ChannexImport: property {} RATTACHEE au logement {} (mapping {}) — "
+                + "aucun logement cree", channexPropertyId, clenzyPropertyId, mapping.getId());
+        return new ChannexImportResult(1, 1, 0, 0, List.of(new ChannexImportResult.Item(
+            channexPropertyId, "REATTACHED", clenzyPropertyId, "Mapping recree")));
+    }
+
     /** Helper local : parse safely un JSON array de strings (amenities). */
     private List<String> parseAmenitiesJson(String json) {
         if (json == null || json.isBlank()) return List.of();
@@ -1708,6 +1787,22 @@ public class ChannexImportService {
     /** Normalise : "" / null → null. */
     private static String emptyToNull(String value) {
         return (value == null || value.isBlank()) ? null : value;
+    }
+
+    /**
+     * Cle de rapprochement entre un titre de property Channex et un nom de
+     * logement Baitly : casse et espaces neutralises.
+     *
+     * <p>Deliberement stricte — pas de correspondance approximative. Un
+     * rapprochement errone rattacherait le hub au mauvais logement, une faute
+     * silencieuse et penible a defaire ; ne rien proposer coute seulement un
+     * clic de plus.</p>
+     *
+     * @return null si le nom est vide (aucun rapprochement possible)
+     */
+    private static String normalizeTitle(String value) {
+        if (value == null || value.isBlank()) return null;
+        return value.trim().replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT);
     }
 
     /** Heuristique simple pour suggerer le type Clenzy a partir du titre. */

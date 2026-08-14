@@ -35,7 +35,7 @@ import {
   TooltipTrigger,
 } from '../../../components/ui';
 import { cn } from '../../../utils/cn';
-import { ArrowRight, Download, RefreshCw, CheckCircle2, AlertCircle, Info, Sparkles, Trash2, Image as ImageIcon } from 'lucide-react';
+import { ArrowRight, Download, RefreshCw, CheckCircle2, AlertCircle, Info, Sparkles, Trash2, Link2, Image as ImageIcon } from 'lucide-react';
 
 import {
   channexApi,
@@ -140,6 +140,8 @@ export default function ChannexImportDiscoveryDialog({
   /** Logement du hub en attente de confirmation de suppression (irreversible). */
   const [hubDeleteTarget, setHubDeleteTarget] = useState<ChannexDiscoveredProperty | null>(null);
   const [hubDeleting, setHubDeleting] = useState(false);
+  /** Property du hub dont le rattachement est en cours (une seule a la fois). */
+  const [reattaching, setReattaching] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -174,6 +176,33 @@ export default function ChannexImportDiscoveryDialog({
       setLoading(false);
     }
   }, []);
+
+  /**
+   * Rattache la property du hub au logement Baitly que le backend a reconnu,
+   * au lieu d'en creer un second.
+   *
+   * Le logement conserve ainsi ses tarifs, son calendrier et ses reservations —
+   * c'est tout l'interet par rapport a un import, qui repartirait de zero.
+   */
+  const handleReattach = useCallback(async (p: ChannexDiscoveredProperty) => {
+    if (p.reattachPropertyId == null) return;
+    setReattaching(p.channexPropertyId);
+    setError(null);
+    try {
+      const result = await channexApi.reattachProperty(p.channexPropertyId, p.reattachPropertyId);
+      const failure = result.details.find((d) => d.status === 'ERROR');
+      if (failure) {
+        setError(failure.message);
+      } else {
+        await refresh();
+        if (onImported) onImported();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Le rattachement a echoue.');
+    } finally {
+      setReattaching(null);
+    }
+  }, [refresh, onImported]);
 
   useEffect(() => {
     if (open) {
@@ -836,6 +865,32 @@ export default function ChannexImportDiscoveryDialog({
                           .filter(Boolean)
                           .join(' · ')}
                       </span>
+
+                      {/* Ce logement existe deja dans Baitly : l'importer en
+                          creerait un SECOND, l'ancien gardant tarifs, calendrier
+                          et reservations. La case reste utilisable — on propose,
+                          on n'interdit pas — mais le rattachement est a un clic. */}
+                      {p.reattachPropertyId != null && (
+                        <div className="mt-[6px] flex flex-wrap items-center gap-[6px] rounded-lg border border-solid border-info/40 bg-info-soft/40 px-[7.5px] py-[6px]">
+                          <Link2 size={13} className="shrink-0 text-info" />
+                          <span className="min-w-0 flex-1 text-xs leading-[1.4] text-info-ink">
+                            Déjà présent dans Baitly sous «&nbsp;{p.reattachPropertyName}&nbsp;» —
+                            le rattacher conserve ses tarifs et son historique.
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-[26px] shrink-0 gap-1 text-xs"
+                            disabled={reattaching !== null}
+                            onClick={() => { void handleReattach(p); }}
+                          >
+                            {reattaching === p.channexPropertyId
+                              ? <Spinner className="size-3" />
+                              : <Link2 size={12} />}
+                            Rattacher
+                          </Button>
+                        </div>
+                      )}
                       {/* Donnees STRUCTUREES OTA (rate_plan.settings) — pas de
                           scraping HTML. Chaque chip correspond a un champ JSON
                           de Channex (fiable et verifiable). Bedrooms/beds/baths/
