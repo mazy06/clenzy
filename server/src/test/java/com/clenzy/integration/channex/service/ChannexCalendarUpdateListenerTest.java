@@ -63,8 +63,10 @@ class ChannexCalendarUpdateListenerTest {
             "from", "2026-06-01", "to", "2026-06-03"
         ));
 
+        // La portee voyage avec l'event : PRICE_UPDATED ne concerne que les tarifs.
         verify(ariBatcher).enqueue(100L, 42L,
-            LocalDate.parse("2026-06-01"), LocalDate.parse("2026-06-03"));
+            LocalDate.parse("2026-06-01"), LocalDate.parse("2026-06-03"),
+            com.clenzy.integration.channex.model.ChannexAriScope.RATES);
     }
 
     @Test
@@ -78,7 +80,7 @@ class ChannexCalendarUpdateListenerTest {
             "from", "2026-06-01", "to", "2026-06-07"
         ));
 
-        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any());
+        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any());
     }
 
     @Test
@@ -93,7 +95,7 @@ class ChannexCalendarUpdateListenerTest {
             "from", "2026-06-01", "to", "2026-06-03"
         ));
 
-        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any());
+        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any());
     }
 
     @Test
@@ -101,7 +103,7 @@ class ChannexCalendarUpdateListenerTest {
     void skipsOnIncompleteEvent() {
         listener.onCalendarUpdate(Map.of("action", "WHATEVER"));
         verify(mappingRepository, never()).findByClenzyPropertyId(anyLong(), anyLong());
-        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any());
+        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any());
     }
 
     @Test
@@ -110,7 +112,7 @@ class ChannexCalendarUpdateListenerTest {
         listener.onCalendarUpdate(Map.of(
             "propertyId", 100, "orgId", 42, "action", "BOOKING_CREATED"
         ));
-        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any());
+        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any());
     }
 
     @Test
@@ -125,7 +127,8 @@ class ChannexCalendarUpdateListenerTest {
         ));
 
         verify(ariBatcher).enqueue(100L, 42L,
-            LocalDate.parse("2026-06-01"), LocalDate.parse("2026-06-07"));
+            LocalDate.parse("2026-06-01"), LocalDate.parse("2026-06-07"),
+            com.clenzy.integration.channex.model.ChannexAriScope.BOTH);
     }
 
     @Test
@@ -135,7 +138,7 @@ class ChannexCalendarUpdateListenerTest {
             "propertyId", 100, "orgId", 42, "action", "X",
             "from", "not-a-date", "to", "also-bad"
         ));
-        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any());
+        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any());
     }
 
     @Test
@@ -145,14 +148,14 @@ class ChannexCalendarUpdateListenerTest {
             "propertyId", "abc", "orgId", 42, "action", "X",
             "from", "2026-06-01", "to", "2026-06-03"
         ));
-        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any());
+        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any());
     }
 
     @Test
     @DisplayName("Event payload type inattendu -> skip silencieux")
     void unwrapUnknownType_skips() {
         listener.onCalendarUpdate(Integer.valueOf(42));
-        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any());
+        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any());
     }
 
     @Test
@@ -165,7 +168,8 @@ class ChannexCalendarUpdateListenerTest {
             "{\"propertyId\":100,\"orgId\":42,\"action\":\"X\",\"from\":\"2026-06-01\",\"to\":\"2026-06-03\"}");
 
         verify(ariBatcher).enqueue(100L, 42L,
-            LocalDate.parse("2026-06-01"), LocalDate.parse("2026-06-03"));
+            LocalDate.parse("2026-06-01"), LocalDate.parse("2026-06-03"),
+            com.clenzy.integration.channex.model.ChannexAriScope.BOTH);
     }
 
     @Test

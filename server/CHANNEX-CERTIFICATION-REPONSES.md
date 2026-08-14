@@ -4,9 +4,26 @@
 > structure réelle du formulaire (extraite le 2026-08-07) avec les résultats
 > consignés dans `CHANNEX-CERTIFICATION-RUNBOOK.md`.
 >
-> **État au 2026-08-14** : le setup a été recréé et **les onze tests rejoués** —
-> tous les IDs ci-dessous sont frais et vérifiables. Le dossier est complet ;
-> il ne reste qu'à trancher la réponse PCI et à recopier.
+> ## ⛔ Ce dossier a été SOUMIS et REFUSÉ le 2026-08-14
+>
+> Ne pas resoumettre ces task IDs : ils décrivent le comportement que Channex a
+> rejeté. Neuf scénarios sur onze tombaient sur un même défaut — Baitly poussait
+> `availability` **et** `rates` à chaque flush, là où le protocole attend un seul
+> appel. Les autres reproches : les restrictions déclarées absentes des dates
+> sans restriction explicite, `stop_sell` jamais envoyé, `availability = 0` pour
+> un blocage là où Channex attend un inventaire, et des livraisons de webhook
+> toutes en échec.
+>
+> **Les quatre correctifs sont faits** (portée des pushes, restrictions
+> complètes, `availability` = inventaire + `stop_sell`, webhook réactivable) mais
+> **aucun n'a encore été exercé contre le staging**. La prochaine campagne exige
+> de tout rejouer : un scénario à la fois, **déclenché depuis l'écran**, en
+> laissant passer le flush de 30 s entre deux — sinon le batcher fusionne les
+> plages et les task IDs redeviennent inattribuables, ce qui a fait tomber le
+> test 2 (« Update targets 2027-03-15, expected the single date 2026-11-22 »).
+>
+> Le reste du document — setup, UUID, justifications des tests 3 et 6,
+> engagements 12/13 — garde sa valeur. Seuls les task IDs sont périmés.
 
 ## Page 1 — Identité
 
@@ -191,9 +208,15 @@ f5c80a78-44c4-4d5c-91b3-c4bd0d6e075b
 | **Booking Revision ID — Modified** | `78ccf904-d76d-4c35-a6cf-e095ea0f2868` |
 | **Booking Revision ID — Cancelled** | `ac013d96-3ee7-48b2-9ce9-7a76100d08df` |
 
-**Aucun webhook public n'a été nécessaire.** Le feed de révisions est interrogé
-toutes les 10 minutes (`clenzy.channex.booking-feed-interval-minutes`), et c'est
-ce planificateur — pas un appel fabriqué — qui a consommé les trois révisions :
+> ⛔ **Démenti par le refus.** Ce paragraphe affirmait qu'aucun webhook public
+> n'était nécessaire. Channex a répondu que « the webhook endpoint must accept
+> the notification and respond with success », et a compté les huit lectures par
+> liste ou par identifiant comme des réceptions illégitimes. Le feed seul ne
+> suffit pas.
+
+Le feed de révisions est interrogé toutes les 10 minutes
+(`clenzy.channex.booking-feed-interval-minutes`), et c'est ce planificateur qui a
+consommé les trois révisions :
 
 ```
 00:39:26  reservation BAITLY-243 creee depuis 813a13e1-…      ack 6548e90c-…
@@ -236,13 +259,16 @@ pour le screenshare — sont dans `CHANNEX-CERTIFICATION-RUNBOOK.md`, section
 
 ## Avant d'envoyer — ce qui reste
 
-1. ~~UUID de la propriété de test~~ — ✅ **fait** (setup recréé le 2026-08-13).
-2. ~~Rejouer les 11 scénarios~~ — ✅ **fait** le 2026-08-14, task IDs remplacés.
-3. ~~Les trois IDs de révision du test 11~~ — ✅ **fait**.
-4. ~~Le test 8 joué réellement sur cinq mois~~ — ✅ **fait**.
-5. ~~Le webhook entrant~~ — **sans objet** : le feed est interrogé toutes les
-   10 minutes, aucun tunnel public n'est nécessaire pour le test 11.
-6. **Trancher la réponse PCI** (seul point encore ouvert, cf. plus haut).
+Après le refus du 2026-08-14, la liste se réduit à ceci :
+
+1. **Rebuild du conteneur**, puis exercer les quatre correctifs contre le
+   staging — rien n'a encore été vérifié en conditions réelles.
+2. **Rendre Baitly joignable** et lancer `POST /webhooks/ensure` : URL avec le
+   chemin `/api/webhooks/channex`, webhook réactivé, une livraison qui aboutit.
+3. **Rejouer les onze scénarios depuis l'écran**, un à la fois, en laissant
+   passer le flush de 30 s entre deux, et noter le task ID au moment du clic.
+4. **Ne pas lancer `pull-bookings`** pendant la campagne.
+5. **Trancher la réponse PCI**, toujours ouverte.
 
 ### Un bug corrigé au passage
 

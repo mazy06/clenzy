@@ -1,6 +1,7 @@
 package com.clenzy.integration.channex.service;
 
 import com.clenzy.config.KafkaConfig;
+import com.clenzy.integration.channex.model.ChannexAriScope;
 import com.clenzy.integration.channex.model.ChannexPropertyMapping;
 import com.clenzy.integration.channex.model.ChannexSyncStatus;
 import com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository;
@@ -72,7 +73,22 @@ public class ChannexCalendarUpdateListener {
             return;
         }
 
-        ariBatcher.enqueue(propertyId, orgId, from, to);
+        // La NATURE du changement voyage jusqu'au batcher : un changement de
+        // prix ne doit pousser que les tarifs, un blocage que la disponibilite.
+        // Pousser les deux systematiquement a fait echouer sept scenarios de
+        // certification le 2026-08-14 (cf. ChannexAriScope).
+        ChannexAriScope scope = ChannexAriScope.fromCalendarAction(
+            extractString(event, "action"));
+
+        ariBatcher.enqueue(propertyId, orgId, from, to, scope);
+    }
+
+    /** Lit un champ texte du payload ; null si absent ou vide. */
+    private String extractString(Map<String, Object> event, String key) {
+        Object value = event.get(key);
+        if (value == null) return null;
+        String text = String.valueOf(value).trim();
+        return text.isEmpty() ? null : text;
     }
 
     // ─── Payload helpers (factorises avec ChannelSyncService) ───────────────

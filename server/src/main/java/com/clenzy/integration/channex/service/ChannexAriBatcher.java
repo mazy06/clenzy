@@ -1,5 +1,6 @@
 package com.clenzy.integration.channex.service;
 
+import com.clenzy.integration.channex.model.ChannexAriScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -82,17 +83,32 @@ public class ChannexAriBatcher {
      * successives sont fusionnees en leur enveloppe [min(from), max(to)] :
      * pousser une plage plus large que necessaire est correct (les valeurs
      * sont recalculees depuis CalendarEngine/PriceEngine au flush).
+     *
+     * <p>La PORTEE se fusionne elle aussi : deux changements de meme nature
+     * gardent la leur, deux natures differentes donnent {@code BOTH} — les deux
+     * canaux ont alors vraiment change, deux appels sont legitimes.</p>
+     *
+     * @param scope canal(aux) a pousser ; {@code null} vaut {@code BOTH}
      */
-    public void enqueue(Long propertyId, Long orgId, LocalDate from, LocalDate to) {
+    public void enqueue(Long propertyId, Long orgId, LocalDate from, LocalDate to,
+                        ChannexAriScope scope) {
+        ChannexAriScope effective = scope != null ? scope : ChannexAriScope.BOTH;
         pending.merge(propertyId,
-            new PendingRange(orgId, from, to, Instant.EPOCH, 0),
+            new PendingRange(orgId, from, to, Instant.EPOCH, 0, effective),
             (current, incoming) -> new PendingRange(
                 current.orgId(),
                 current.from().isBefore(incoming.from()) ? current.from() : incoming.from(),
                 current.to().isAfter(incoming.to()) ? current.to() : incoming.to(),
                 current.nextAttemptAt(),
-                current.attempts()));
-        log.debug("ChannexAriBatcher: enqueue property={} [{}, {}]", propertyId, from, to);
+                current.attempts(),
+                current.scope().merge(incoming.scope())));
+        log.debug("ChannexAriBatcher: enqueue property={} [{}, {}] scope={}",
+            propertyId, from, to, effective);
+    }
+
+    /** Enfile en poussant les deux canaux — resynchronisation manuelle. */
+    public void enqueue(Long propertyId, Long orgId, LocalDate from, LocalDate to) {
+        enqueue(propertyId, orgId, from, to, ChannexAriScope.BOTH);
     }
 
     /** Nombre de proprietes en attente de flush (observabilite/tests). */
@@ -133,7 +149,7 @@ public class ChannexAriBatcher {
             ChannexSyncService.ChannexSyncResult result;
             try {
                 result = syncService.processCalendarRange(
-                    propertyId, range.orgId(), range.from(), range.to());
+                    propertyId, range.orgId(), range.from(), range.to(), range.scope());
             } catch (Exception e) {
                 // Erreur inattendue (hors ChannexException, deja absorbee par le
                 // sync service) : on retente comme un echec de push classique.
@@ -160,7 +176,7 @@ public class ChannexAriBatcher {
         }
         Instant nextAttempt = clock.instant().plusSeconds(retrySeconds);
         PendingRange retry = new PendingRange(
-            failed.orgId(), failed.from(), failed.to(), nextAttempt, attempts);
+            failed.orgId(), failed.from(), failed.to(), nextAttempt, attempts, failed.scope());
         // merge : si des events sont arrives entre-temps, fusionner les plages
         // et conserver le differe (on ne re-pousse pas avant le backoff).
         pending.merge(propertyId, retry, (current, incoming) -> new PendingRange(
@@ -168,11 +184,13 @@ public class ChannexAriBatcher {
             current.from().isBefore(incoming.from()) ? current.from() : incoming.from(),
             current.to().isAfter(incoming.to()) ? current.to() : incoming.to(),
             incoming.nextAttemptAt(),
-            incoming.attempts()));
+            incoming.attempts(),
+            current.scope().merge(incoming.scope())));
         log.warn("ChannexAriBatcher: push KO property={} ({}), retry #{} dans {}s",
             propertyId, reason, attempts, retrySeconds);
     }
 
     private record PendingRange(Long orgId, LocalDate from, LocalDate to,
-                                Instant nextAttemptAt, int attempts) {}
+                                Instant nextAttemptAt, int attempts,
+                                ChannexAriScope scope) {}
 }

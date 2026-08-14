@@ -111,6 +111,22 @@ public class ChannexSyncService {
      */
     public ChannexSyncResult processCalendarRange(Long propertyId, Long orgId,
                                                   LocalDate from, LocalDate to) {
+        return processCalendarRange(propertyId, orgId, from, to,
+            com.clenzy.integration.channex.model.ChannexAriScope.BOTH);
+    }
+
+    /**
+     * Variante qui ne pousse que le canal concerne par le changement.
+     *
+     * <p>Un changement de prix ne doit toucher que les tarifs, un blocage de
+     * dates que la disponibilite. Pousser les deux systematiquement a fait
+     * echouer sept scenarios de certification le 2026-08-14 : « Expected
+     * exactly one update, found: ["Property.UpdateRestrictions",
+     * "Property.UpdateAvailability"] ».</p>
+     */
+    public ChannexSyncResult processCalendarRange(Long propertyId, Long orgId,
+                                                  LocalDate from, LocalDate to,
+                                                  com.clenzy.integration.channex.model.ChannexAriScope scope) {
         Optional<ChannexPropertyMapping> mappingOpt =
             mappingRepository.findByClenzyPropertyId(propertyId, orgId);
         if (mappingOpt.isEmpty()) {
@@ -147,12 +163,19 @@ public class ChannexSyncService {
           }
         }
 
-        log.info("ChannexSync: push batche property={} period=[{},{}]", propertyId, from, to);
+        var effectiveScope = scope != null
+            ? scope : com.clenzy.integration.channex.model.ChannexAriScope.BOTH;
+        log.info("ChannexSync: push batche property={} period=[{},{}] scope={}",
+            propertyId, from, to, effectiveScope);
 
-        // Push availability + rates (les 2 sont independants — un echec n'impacte pas l'autre).
-        // Les echecs OTA sont catch dans les methodes de push et enregistres en ERROR.
-        boolean availabilityOk = pushAvailabilityForRange(mapping, from, to);
-        boolean ratesOk = pushRatesForRange(mapping, from, to);
+        // Seul le canal concerne part (les 2 sont independants — un echec
+        // n'impacte pas l'autre). Un canal non pousse vaut succes : il n'avait
+        // rien a dire. Les echecs OTA sont catch dans les methodes de push et
+        // enregistres en ERROR.
+        boolean availabilityOk = !effectiveScope.includesAvailability()
+            || pushAvailabilityForRange(mapping, from, to);
+        boolean ratesOk = !effectiveScope.includesRates()
+            || pushRatesForRange(mapping, from, to);
 
         updateMappingStatus(mapping, availabilityOk && ratesOk, null);
         boolean ok = availabilityOk && ratesOk;
@@ -260,19 +283,26 @@ public class ChannexSyncService {
                 mapping.getClenzyPropertyId(), from, to, mapping.getOrganizationId()
             );
 
-            // Construire un index des jours bloques (BOOKED ou BLOCKED)
-            java.util.Set<LocalDate> blockedDates = new java.util.HashSet<>();
+            // SEULE une reservation consomme l'inventaire. Un blocage manuel
+            // (BLOCKED / MAINTENANCE) laisse l'unite existante et ferme la vente
+            // par stop_sell, cote rates — cf. resolveStopSell.
+            //
+            // Avant, les deux ecrivaient 0, ce qui confondait « plus d'unite » et
+            // « ne pas vendre ». La certification Channex l'a refuse le
+            // 2026-08-14 : « Availability is 0, expected 1 or 3 (a vacation
+            // rental is a single unit) », et « Property supports Stop Sell and
+            // cannot skip this test: expected a stop sell update ... found none ».
+            java.util.Set<LocalDate> bookedDates = new java.util.HashSet<>();
             for (CalendarDay d : days) {
-                CalendarDayStatus st = d.getStatus();
-                if (st == CalendarDayStatus.BOOKED || st == CalendarDayStatus.BLOCKED) {
-                    blockedDates.add(d.getDate());
+                if (d.getStatus() == CalendarDayStatus.BOOKED) {
+                    bookedDates.add(d.getDate());
                 }
             }
 
-            // Construire les updates pour TOUTE la plage : 1 = disponible, 0 = bloque
+            // 1 = l'unite est disponible, 0 = elle est occupee par une reservation
             List<ChannexAvailabilityUpdate> updates = new ArrayList<>();
             for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1)) {
-                int avail = blockedDates.contains(d) ? 0 : 1;
+                int avail = bookedDates.contains(d) ? 0 : 1;
                 updates.add(new ChannexAvailabilityUpdate(
                     mapping.getChannexPropertyId(),
                     mapping.getChannexRoomTypeId(),
@@ -325,6 +355,18 @@ public class ChannexSyncService {
                     mapping.getClenzyPropertyId(), from, to.plusDays(1),
                     mapping.getOrganizationId());
 
+            // Defauts de la propriete : ce que vaut une date qu'aucune
+            // restriction explicite ne couvre. Sans eux, ces dates partaient
+            // avec des champs nuls, donc ABSENTS du payload — la certification
+            // les compte comme des restrictions declarees mais non envoyees
+            // (« 154/181 restriction objects are missing... », 2026-08-14).
+            RestrictionDefaults defaults = resolveRestrictionDefaults(mapping.getClenzyPropertyId());
+
+            // Dates fermees a la vente : blocage manuel ou maintenance. Elles
+            // gardent leur unite disponible (availability = 1) et se ferment par
+            // stop_sell — le champ que Channex attend pour une fermeture.
+            java.util.Set<LocalDate> stopSoldDates = resolveStopSoldDates(mapping, from, to);
+
             // Fan-out multi-rate-plan : pousse les prix/restrictions sur chaque rate plan cible
             // (le defaut + les additionnels mappes). getTargetRatePlanIds() renvoie [defaut] si
             // aucun additionnel -> comportement mono-rate-plan preserve.
@@ -341,11 +383,15 @@ public class ChannexSyncService {
                         ratePlanId,
                         date,
                         entry.getValue(),
-                        restriction != null ? restriction.getMinStay() : null,
-                        restriction != null ? restriction.getMinStayArrival() : null,
-                        restriction != null ? restriction.getClosedToArrival() : null,
-                        restriction != null ? restriction.getClosedToDeparture() : null,
-                        restriction != null ? restriction.getMaxStay() : null
+                        resolveMinStayThrough(restriction, defaults),
+                        resolveMinStayArrival(restriction, defaults),
+                        restriction != null && restriction.getClosedToArrival() != null
+                            ? restriction.getClosedToArrival() : Boolean.FALSE,
+                        restriction != null && restriction.getClosedToDeparture() != null
+                            ? restriction.getClosedToDeparture() : Boolean.FALSE,
+                        restriction != null && restriction.getMaxStay() != null
+                            ? restriction.getMaxStay() : defaults.maxStay(),
+                        stopSoldDates.contains(date)
                     ));
                 }
             }
@@ -401,6 +447,72 @@ public class ChannexSyncService {
 
     private static String truncateForLog(String s) {
         return s != null && s.length() > 900 ? s.substring(0, 900) + "…" : s;
+    }
+
+    /**
+     * Dates fermees a la vente sans etre reservees : blocage manuel, maintenance.
+     *
+     * <p>Ces dates gardent leur unite disponible ({@code availability = 1}) et se
+     * ferment par {@code stop_sell}. La distinction est celle de Channex :
+     * {@code availability} porte un INVENTAIRE, {@code stop_sell} une decision
+     * commerciale. Les confondre — ecrire 0 dans les deux cas — a fait echouer
+     * les scenarios 6 et 10 de la certification le 2026-08-14.</p>
+     */
+    private java.util.Set<LocalDate> resolveStopSoldDates(ChannexPropertyMapping mapping,
+                                                          LocalDate from, LocalDate to) {
+        java.util.Set<LocalDate> closed = new java.util.HashSet<>();
+        for (CalendarDay day : calendarDayRepository.findByPropertyAndDateRange(
+                mapping.getClenzyPropertyId(), from, to, mapping.getOrganizationId())) {
+            CalendarDayStatus status = day.getStatus();
+            if (status == CalendarDayStatus.BLOCKED || status == CalendarDayStatus.MAINTENANCE) {
+                closed.add(day.getDate());
+            }
+        }
+        return closed;
+    }
+
+    /** Valeurs de repli d'une propriete pour les dates sans restriction explicite. */
+    record RestrictionDefaults(int minStay, int maxStay) {}
+
+    /**
+     * Defauts de restriction d'une propriete.
+     *
+     * <p>Sejour minimum : celui de la propriete, au moins 1 — Channex refuse 0.
+     * Sejour maximum : 0 signifie « pas de limite » dans leur convention, ce qui
+     * est exactement ce qu'on veut dire quand la propriete n'en fixe aucun.</p>
+     */
+    private RestrictionDefaults resolveRestrictionDefaults(Long propertyId) {
+        return propertyRepository.findById(propertyId)
+            .map(p -> new RestrictionDefaults(
+                p.getMinimumNights() != null && p.getMinimumNights() > 0 ? p.getMinimumNights() : 1,
+                p.getMaximumNights() != null && p.getMaximumNights() > 0 ? p.getMaximumNights() : 0))
+            .orElseGet(() -> new RestrictionDefaults(1, 0));
+    }
+
+    private static Integer resolveMinStayThrough(com.clenzy.model.BookingRestriction restriction,
+                                                 RestrictionDefaults defaults) {
+        if (restriction != null && restriction.getMinStay() != null && restriction.getMinStay() > 0) {
+            return restriction.getMinStay();
+        }
+        return defaults.minStay();
+    }
+
+    /**
+     * Sejour minimum a l'arrivee.
+     *
+     * <p>Nos restrictions ne renseignent en pratique que {@code minStay} : la
+     * colonne {@code min_stay_arrival} etait nulle sur les cinq restrictions de
+     * la propriete de certification, d'ou le « 181/181 missing » du rapport. On
+     * retombe donc sur le sejour minimum general — deux champs que Channex
+     * traite comme distincts mais que notre modele ne distingue pas encore.</p>
+     */
+    private static Integer resolveMinStayArrival(com.clenzy.model.BookingRestriction restriction,
+                                                 RestrictionDefaults defaults) {
+        if (restriction != null && restriction.getMinStayArrival() != null
+            && restriction.getMinStayArrival() > 0) {
+            return restriction.getMinStayArrival();
+        }
+        return resolveMinStayThrough(restriction, defaults);
     }
 
     private com.clenzy.model.BookingRestriction pickHighestPriorityFor(

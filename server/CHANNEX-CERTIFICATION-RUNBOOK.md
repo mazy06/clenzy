@@ -59,10 +59,25 @@
 | 13 | Update logic | — engagement, **rédigé §Engagements 12/13** (vérifié dans le code le 2026-08-06) | n/a | ✅ |
 | 14 | Extra notes | **rédigées §Extra notes (test 14)** | n/a | ✅ |
 
-> **Test 11 : aucun webhook public n'est nécessaire.** Le feed de révisions est
-> interrogé toutes les 10 minutes (`clenzy.channex.booking-feed-interval-minutes`),
-> et c'est ce planificateur qui a consommé les trois révisions. Un tunnel entrant
-> ne sert qu'à réduire la latence, pas à rendre le test possible.
+> ### ⚠️ Test 11 : le webhook public EST nécessaire — démenti du 2026-08-14
+>
+> Ce runbook affirmait qu'un tunnel entrant ne servait qu'à réduire la latence,
+> le feed de révisions étant interrogé toutes les 10 minutes
+> (`clenzy.channex.booking-feed-interval-minutes`). **C'était faux.** Le retour de
+> certification est explicite : *« All webhook deliveries for revision … failed
+> (notes.success != true); the webhook endpoint must accept the notification and
+> respond with success. »* Channex mesure le succès des livraisons, et un feed
+> qui tourne ne compense pas un webhook muet.
+>
+> Deux causes, trouvées en inspectant le compte : l'URL enregistrée était la
+> **racine du tunnel ngrok, sans le chemin `/api/webhooks/channex`** — chaque
+> livraison tombait donc en 404 — et Channex avait fini par **désactiver les deux
+> webhooks** du compte. `POST /webhooks/ensure` refuse désormais une URL sans ce
+> chemin et réactive un webhook désactivé.
+>
+> **Et ne jamais lancer `pull-bookings` pendant une campagne** : Channex trace
+> chaque lecture par liste ou par identifiant comme une réception hors
+> webhook/feed, et la compte contre vous.
 >
 > **Un avertissement OVERBOOKING est attendu dans ce montage** : la réservation
 > de test est fabriquée en la poussant depuis Baitly, donc les nuits sont déjà
