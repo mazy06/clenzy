@@ -2,12 +2,57 @@
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
     <!--
         Fichier de suppression OWASP Dependency-Check.
-        Ajouter ici les faux positifs ou les CVE connues/acceptees.
 
-        Exemple :
-        <suppress>
-            <notes>Faux positif - non applicable a notre usage</notes>
-            <cve>CVE-2023-XXXXX</cve>
-        </suppress>
+        Une suppression n'est PAS un correctif : elle éteint une alerte. On n'en
+        ajoute une que dans deux cas, et l'entrée doit dire lequel :
+          1. faux positif de rapprochement CPE — la CVE vise un autre produit
+             que la bibliothèque réellement embarquée ;
+          2. CVE réelle mais non atteignable par notre usage, ET sans version
+             corrigée publiée.
+        Toute suppression porte une date et la raison de sa levée future.
+
+        Tout ce qui a une version corrigée disponible se règle dans `pom.xml`
+        (override de propriété du BOM ou dependencyManagement), jamais ici.
     -->
+
+    <!--
+        2026-08-15 — OpenTelemetry, artefacts alpha tirés par firebase-admin
+        (→ google-cloud-firestore). Rapprochement CPE générique
+        `cpe:2.3:a:opentelemetry:opentelemetry` : les CVE visent le produit
+        OpenTelemetry dans son ensemble, pas ces extensions Java.
+
+        Aucune mise à jour n'existe : `opentelemetry-extension-incubator`
+        s'arrête à 1.36.0-alpha et `opentelemetry-semconv` à 1.29.0-alpha sous
+        ces coordonnées — les deux artefacts ont été retirés au profit de
+        `opentelemetry-api-incubator`. firebase-admin 9.10.0 est déjà la
+        dernière version publiée et les tire encore.
+
+        À lever quand firebase-admin migrera vers les nouvelles coordonnées.
+    -->
+    <suppress>
+        <notes>OpenTelemetry alpha via firebase-admin : CPE générique, aucune version corrigée publiée</notes>
+        <packageUrl regex="true">^pkg:maven/io\.opentelemetry(\.contrib|\.semconv)?/opentelemetry-.*$</packageUrl>
+        <cve>CVE-2026-24051</cve>
+        <cve>CVE-2026-39883</cve>
+        <cve>CVE-2026-29181</cve>
+    </suppress>
+
+    <!--
+        2026-08-15 — keycloak-core 24.0.5, CVE-2024-7341 (7.1) : fixation de
+        session dans les **adaptateurs SAML** de Keycloak.
+
+        Non atteignable ici : le code n'importe que `org.keycloak.admin.client.*`
+        et `org.keycloak.representations.idm.*` (administration des utilisateurs
+        et des rôles). L'authentification passe par OIDC via Spring Security ;
+        aucun adaptateur SAML n'est embarqué.
+
+        Non corrigée par une montée de version : le correctif est en 26.x, or le
+        client d'administration doit rester aligné sur le serveur Keycloak 24 de
+        l'infrastructure. À lever lors de la montée coordonnée du serveur.
+    -->
+    <suppress>
+        <notes>keycloak-core : CVE des adaptateurs SAML, non embarqués — nous n'utilisons que le client d'administration et OIDC</notes>
+        <packageUrl regex="true">^pkg:maven/org\.keycloak/keycloak-core@.*$</packageUrl>
+        <cve>CVE-2024-7341</cve>
+    </suppress>
 </suppressions>

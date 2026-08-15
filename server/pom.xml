@@ -52,6 +52,32 @@
             manage déjà des versions patchées (tomcat ≥ 10.1.4x, postgresql ≥ 42.7.x).
             Vérifié post-build via dependency:list.
         -->
+
+        <!--
+            Correctifs de sécurité au-dessus du BOM (2026-08-15). 3.5.16 est le
+            DERNIER de la branche 3.5 : plus aucun correctif n'arrivera par le
+            parent, la suite est Spring Boot 4.0 (Jakarta EE 11 + Spring
+            Framework 7), une migration à part entière. En attendant, on relève
+            ici les dépendances que dependency-check fait échouer (CVSS ≥ 7),
+            toutes DANS leur branche majeure : aucun changement d'API attendu.
+
+            Retirer un override dès que le parent gère une version au moins
+            égale — sinon on gèlerait la dépendance sous le BOM.
+        -->
+        <!-- 10.1.55 : CVE-2026-55276 / -53434 / -59083 / -59084 (9.1) -->
+        <tomcat.version>10.1.57</tomcat.version>
+        <!-- 4.1.135 : 13 CVE, dont CVE-2026-56820 (9.1) -->
+        <netty.version>4.1.137.Final</netty.version>
+        <!-- 42.7.11 : CVE-2026-54291 (8.2) -->
+        <postgresql.version>42.7.13</postgresql.version>
+        <!-- 1.9.25 : CVE-2026-53914 (9.8). Transitif via minio → okhttp ;
+             la stdlib Kotlin est rétro-compatible, okhttp 4.12 tourne dessus. -->
+        <kotlin.version>2.4.10</kotlin.version>
+        <!-- 5.3.6 : CVE-2026-54399 / -54428 (7.5). La branche 5.3 s'arrête à
+             .6, le correctif n'existe qu'en 5.4 — d'où le passage conjoint de
+             httpclient5 en 5.6, seule ligne appairée avec httpcore5 5.4. -->
+        <httpcore5.version>5.4.3</httpcore5.version>
+        <httpclient5.version>5.6.4</httpclient5.version>
     </properties>
 
     <dependencies>
@@ -439,6 +465,30 @@
 
     <dependencyManagement>
         <dependencies>
+            <!--
+                Correctifs de sécurité hors périmètre du BOM Spring Boot
+                (2026-08-15). Contrairement aux overrides de <properties>, ces
+                dépendances arrivent par des tiers : on remonte la chaîne au
+                lieu de forcer la feuille, pour ne pas désappairer une lib de
+                son parent.
+            -->
+            <!-- commons-beanutils 1.9.4 : CVE-2025-48734 (8.8). Il arrive par
+                 ical4j → commons-validator 1.7. On relève le validator, dont la
+                 1.11.0 dépend de beanutils 1.11.0 : le correctif vient de la
+                 source, sans épingler la feuille sous son parent. -->
+            <dependency>
+                <groupId>commons-validator</groupId>
+                <artifactId>commons-validator</artifactId>
+                <version>1.11.0</version>
+            </dependency>
+            <!-- opentelemetry-gcp-resources 1.37.0-alpha : CVE-2026-24051 (7.0),
+                 -39883 (7.3), -29181 (7.5). Transitif via firebase-admin, déjà
+                 en dernière version — d'où l'épinglage direct. -->
+            <dependency>
+                <groupId>io.opentelemetry.contrib</groupId>
+                <artifactId>opentelemetry-gcp-resources</artifactId>
+                <version>1.59.0-alpha</version>
+            </dependency>
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
