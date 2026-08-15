@@ -2,57 +2,81 @@
 
 > Déroulé des 14 tests officiels (https://docs.channex.io/api-v.1-documentation/pms-certification-tests)
 > contre **staging.channex.io**, avec consignation des task IDs exigés au dossier.
-> Environnement : compte staging Baitly, clé API dans `clenzy-infra/.env` (CHANNEX_API_KEY,
-> **jetable — à révoquer/régénérer après la certification**).
+> Environnement : compte staging Baitly, clé API dans **`clenzy-infra/.env.dev`**
+> (`CHANNEX_API_KEY`, **jetable — à révoquer/régénérer après la certification**).
+>
+> ⚠️ **Pas `.env`.** Les deux fichiers portent une clé Channex, et elles voient des
+> comptes **différents** : `.env` (`uhH3tu…`) n'a pas de `CHANNEX_BASE_URL` et
+> tombe donc sur `app.channex.io`, tandis que `.env.dev` (`ulALqE…`) est celle que
+> le backend de dev emploie contre staging. Toute vérification par API doit
+> utiliser celle de `.env.dev` : la propriété de test interrogée avec l'autre
+> répond `resource_not_found` alors qu'elle existe. Cette confusion a coûté la
+> suppression d'une propriété de staging le 2026-08-13.
 >
 > Baitly = Vacation Rental **mono-unité** : 1 logement = 1 property Channex à
 > 1 room type × 1 rate plan. Le protocole hôtel demande 2×2 — l'adaptation
 > mono-unité est **explicitement prévue par la doc** (« VR mono-unité : adapter
 > à 1 room/1 rate et le signaler ») → à signaler dans les Extra Notes (test 14).
 
-## ⛔ Avant de rejouer — les quatre points qui ont fait échouer le 2026-08-15
+## ✅ Passage intégral du 2026-08-16 — les onze scénarios, d'une traite
 
-> Le code est corrigé pour le reste (pushs en delta au lieu d'instantanés, cf.
-> `ChannexRateField`). **Ces quatre points-là ne sont PAS du code** : ils tiennent
-> à la configuration de l'environnement et à la façon de jouer les scénarios.
-> Les ignorer refera échouer exactement les mêmes tests.
+Tous rejoués **depuis l'écran** (sauf le push CRS du test 11, qui n'a pas de
+commande d'interface), un à la fois, chaque payload relu via `GET /tasks/{id}`
+avant d'être consigné. Tous en `success: true`.
+
+Les identifiants sont dans `CHANNEX-CERTIFICATION-REPONSES.md` — **un seul
+endroit**, c'est la règle ; les tenir aussi ici les avait déjà fait diverger.
+
+### Ce que ce passage a réglé
+
+**Le test 8 avait une cause, et ce n'était pas les données.** Ce runbook a
+longtemps affirmé que la propriété manquait d'un prix de base et d'une
+restriction sur la période — c'était faux, vérifié en base. La vraie cause a été
+trouvée en relisant le payload refusé `9b0c5223` : il contenait six entrées dont
+une en syntaxe `{"date": …}`. Leur validateur ne lit que `date_from`/`date_to`,
+ignorait cette entrée et ne reconstituait donc pas la couverture du semestre.
+`putDateOrRange` n'émet plus jamais la clé `date`.
+
+**Deux régressions introduites par la correction du delta**, invisibles aux
+13 406 tests et sorties par le rejeu en conditions réelles :
+
+- `rate must be >= 0, got null` — le passage au delta rendait le tarif
+  facultatif, l'invariant du DTO le refusait encore.
+- des fermetures à `false` embarquées dans un delta de séjour minimum —
+  `closed_to_arrival` et `closed_to_departure` sont NOT NULL en base, le filtre
+  « champ non nul » ne pouvait pas les écarter.
+
+### Les pièges de mise en scène — c'est là que ça casse, pas dans le code
 
 | # | À faire | Sinon |
 |---|---|---|
-| 0 | Poser `CHANNEX_IMPORT_PULL_BOOKINGS=false` sur l'environnement de certification | Test 11 échoue à l'identique |
+| 0 | Poser `CHANNEX_IMPORT_PULL_BOOKINGS=false` | Trois `booking_revision_received_via_list`, refus |
+| 2·4 | Une date **future** | « Past date is not allowed » — un scénario joué sur des dates passées est rejeté sec |
 | 6 | Bloquer **une seule nuit**, pas une plage | « Update must target a single date, got 2027-02-10..2027-02-13 » |
-| 8 | **Cause inconnue** — diagnostiquer en rejouant, payload en main | « No valid rate / no valid min stay over the half-year range » |
-| 9 | **Annuler** une réservation d'**une** nuit (ne pas en créer une) | « No update sets availability to 1 or 7 » |
+| 7 | Choisir une plage **sans restriction préexistante** | La restriction déjà en base gagne la résolution et le push ne porte qu'elle |
+| 9·10 | **Annuler** une réservation (ne pas en créer une) | « No update sets availability to 1 » — créer donne 0, ce qu'ils refusent |
+| — | Un scénario à la fois, **30 s entre deux** | Le batcher fusionne les plages, plus aucun ID n'est attribuable |
 
-**Le point 0 est le moins intuitif et le plus coûteux.** Ce n'est pas un
-`pull-bookings` manuel qui a produit les trois `booking_revision_received_via_list`
-du refus : c'est **l'étape 7 de l'import**, qui rattrape l'historique par appel de
-liste à chaque connexion de propriété. Comme Channex a repris l'hôtel de test
-quatre fois dans la journée, chaque reconnexion en a déclenché un. L'ancienne
-consigne « ne jamais lancer `pull-bookings` pendant le partage » était donc
-insuffisante — on ne le lançait pas.
+**Le point 0 est le moins intuitif.** Ce n'est pas un `pull-bookings` manuel qui
+a produit les `booking_revision_received_via_list` du refus : c'est **l'étape 7
+de l'import**, qui rattrape l'historique par appel de liste à chaque connexion de
+propriété. Channex ayant repris l'hôtel de test quatre fois dans la journée,
+chaque reconnexion en a déclenché un. La consigne « ne jamais lancer
+`pull-bookings` pendant le partage » était respectée — et inutile.
 
 Le drapeau reste à `true` par défaut : ce rattrapage donne son passé à une
 propriété fraîchement connectée (année fiscale en cours, LMNP), et le flux de
 révisions ne remonte pas l'antérieur. C'est un réglage de certification, pas de
 production.
 
-**Sur le point 8, la cause reste à trouver.** J'avais écrit ici que la propriété
-manquait d'un prix de base et d'une restriction couvrant la période : **c'est
-faux, vérifié en base le 2026-08-15**. La propriété 3 porte `nightly_price =
-120.00`, et une restriction `2027-08-01 → 2027-12-31` (min 3 / max 21) existe
-bien. Il n'y a en outre ni override ni plan tarifaire sur ce semestre, donc
-toutes les dates y valent 120 — des valeurs uniformes, que la compression aurait
-dû fusionner en **une** entrée `date_from`/`date_to`.
+**Le point 7 s'est payé au passage du 16.** Joué d'abord sur 2027-05-10→05-14,
+plage déjà couverte par une restriction en base (min 3 seul) : c'est elle qui
+gagnait la résolution, et le push ne portait qu'un `min_stay` — ni max, ni
+CTA/CTD. Le code était juste, la plage ne l'était pas. `SELECT start_date,
+end_date FROM booking_restrictions` avant de choisir.
 
-Autrement dit, le payload attendu était exactement celui que Channex réclame. Le
-reproche « No valid rate » et « single-date objects » ne s'explique pas par les
-données. À diagnostiquer en rejouant le scénario **payload en main** (task ID →
-API des tâches Channex), et non en supposant.
-
-Un push tarifaire sans aucune entrée émet désormais un `WARN`
-(`push rates SANS AUCUNE entree`) : si le cas se reproduit, les journaux le
-diront cette fois.
+Un push tarifaire sans aucune entrée émet un `WARN`
+(`push rates SANS AUCUNE entree`) : si le cas se reproduit, les journaux le diront.
 
 ## Pré-vol (exigences d'architecture — toutes satisfaites par les phases A/B/C)
 
@@ -66,14 +90,18 @@ diront cette fois.
 
 ## Mise en place (une fois)
 
-- [ ] Backend dev relancé avec `CHANNEX_API_KEY` (image rebuildée avec les phases A/B/C)
-- [ ] Sanity : `GET /api/integrations/channex/preflight` → OK
-- [ ] Propriété Clenzy **« Test Property - Baitly »**, devise **USD**, adresse/geo/téléphone renseignés
-- [ ] Connect AUTO_CREATE → property + room type + rate plan créés sur staging (payload enrichi B3 : `property_type=apartment`, settings autoupdate off, state_length 500)
-- [ ] (Webhooks entrants) tunnel public + `CHANNEX_WEBHOOK_CALLBACK_URL` + `CHANNEX_WEBHOOK_SECRET` → `POST /webhooks/ensure` → `created`
-- [ ] Données réalistes : prix variés (pas de valeur uniforme — les données synthétiques uniformes sont **rejetées** à la revue)
-- [ ] **`CHANNEX_IMPORT_PULL_BOOKINGS=false`** (cf. §Avant de rejouer, point 0) — à remettre à `true` après
-- [x] Prix de base sur la propriété — **déjà en place** (`nightly_price = 120.00` sur la propriété 3, vérifié le 2026-08-15). Sans lui, `PriceEngine` renverrait `null` pour chaque date et tout push tarifaire partirait vide
+> État au 2026-08-16, après le passage intégral. Les cases cochées l'ont été
+> vérifiées ce jour-là ; le reste est à refaire si l'environnement est reconstruit.
+
+- [x] Backend dev bâti avec `CHANNEX_API_KEY` (celle de `.env.dev`)
+- [x] Sanity : diagnostic Channex de l'écran Intégrations → **4/4 OK**
+- [x] Propriété **« Test Property - Baitly »**, devise **USD**, `MA / Africa/Casablanca`, `property_type=apartment`, autoupdate off des deux côtés, `state_length 500`, `min_stay_type both`
+- [x] Property / room type / rate plan créés sur staging (identifiants dans la feuille de réponses)
+- [x] Tunnel public + `CHANNEX_WEBHOOK_CALLBACK_URL` **avec le chemin complet** `/api/webhooks/channex` → webhook `792bcc83` actif, `event_mask: *`
+- [x] Données réalistes : prix variés (pas de valeur uniforme — les données synthétiques uniformes sont **rejetées** à la revue)
+- [x] **`CHANNEX_IMPORT_PULL_BOOKINGS=false`** (cf. §Pièges, point 0) — à remettre à `true` après la certification
+- [x] Prix de base sur la propriété (`nightly_price = 120.00` sur la propriété 3). Sans lui, `PriceEngine` renverrait `null` pour chaque date et tout push tarifaire partirait vide
+- [ ] **Canal Booking.com actif** — `914511ae` existe avec sa propriété rattachée, mais reste `is_active: false`. **Hors de notre main** : l'activation ne passe que par l'assistant Channex, un `PUT is_active: true` répond 200 sans effet. Les pushs partent grâce à `CHANNEX_ALLOW_PUSH_WITHOUT_ACTIVE_OTA`, à remettre à `false` après la certification et à ne **jamais** activer en production
 
 ## Les 14 tests
 
@@ -88,24 +116,24 @@ diront cette fois.
 > a porté pendant un mois les IDs du 9 juillet, pointant sur une propriété
 > supprimée entre-temps.
 
-> **Statut = résultat du passage du 2026-08-15**, pas un état de santé.
-> ✅ accepté · ⚠️ à rejouer (avertissement ou échec) · ➖ non applicable, justifié.
-> Aucun ⚠️ n'a encore été rejoué contre Channex : le code est corrigé, la preuve
-> reste à faire.
+> **Statut = résultat du passage du 2026-08-16**, pas un état de santé.
+> ✅ vérifié payload en main · ➖ non applicable, justifié.
+> Les onze scénarios ont été rejoués d'affilée et chaque `payload.values` relu
+> champ par champ sur l'API des tâches.
 
 | # | Test | Déclencheur Baitly | Attendu côté API | Statut |
 |---|---|---|---|---|
-| 1 | Full sync 500 j | Bouton resync ⟳ (`resync` months=0) | **2 appels** : 1 availability + 1 rates&restrictions (compression date_from/date_to) | ✅ |
-| 2 | Prix 1 date / 1 rate | Changer un prix (RateOverride) dans l'UI Tarification | **1 appel rates, et RIEN d'autre** — pas d'availability, et le payload ne porte que `rate` | ⚠️ |
+| 1 | Full sync 500 j | Intégrations → Channex → « Connecter un logement déjà dans Baitly » → icône ⟳ sur la ligne de la propriété (`resync` months=0) | **2 appels** : 1 availability + 1 rates&restrictions (compression date_from/date_to) | ✅ |
+| 2 | Prix 1 date / 1 rate | Tarification → « Par propriété » → clic sur une case du calendrier → prix | **1 appel rates, et RIEN d'autre** — pas d'availability, et le payload ne porte que `rate` | ✅ |
 | 3 | Prix multi-rates, 1 date | N/A — Baitly VR mono rate-plan (voir note test 14). Couvert par le test 2. | **1 appel** | ➖ |
-| 4 | Prix multi-dates multi-rates | Nouveau plan tarifaire sur une plage future | **1 appel** rates compressé (ranges), payload limité à `rate` | ⚠️ |
-| 5 | Min stay sur rates | Onglet Restrictions → séjour min **seul** (ne rien cocher d'autre) | **1 appel** rates, payload limité à `min_stay_*` | ⚠️ |
-| 6 | Stop sell | **Bloquer UNE SEULE nuit** depuis le planning | **1 appel** rates, payload limité à `stop_sell: true`, `availability` **inchangée à 1** | ⚠️ |
-| 7 | Restrictions combinées (CTA/CTD/min/max stay) | Onglet Restrictions → min/max + CTA/CTD sur deux plages | **1 appel** rates chacune | ✅ |
-| 8 | Semestre (rate+CTA+CTD+min stay, 5 mois) | Même mécanisme que 7 sur **au moins 152 jours**. Données déjà en place (restriction 2027-08-01→12-31, prix de base 120) | **1 appel** rates, compressé en `date_from`/`date_to` (une entrée, pas 152) | ⚠️ |
-| 9 | Availability 1 date | **ANNULER** une résa d'UNE nuit → dispo repasse à 1 | 1 appel availability, `availability: 1` (créer une résa donne 0, ce que Channex refuse) | ⚠️ |
-| 10 | Availability multi-dates | Résa de plusieurs nuits → dispo sur la plage | 1 appel availability | ✅ |
-| 11 | Réception bookings (create/modif/annulation) | Résa directe poussée au CRS (`push-crs`) → **new** ; séjour prolongé via l'app Booking CRS → **modified** ; `cancel-crs` → **cancelled** | réception par **webhook/flux UNIQUEMENT** → persist → ack par révision. Aucun appel de liste ni par identifiant (cf. point 0) | ⚠️ |
+| 4 | Prix multi-dates multi-rates | Même écran, **cliquer-glisser** sur une plage → barre d'action en bas → « Modifier le prix » → « Appliquer sur la période » | **1 appel** rates compressé (une entrée), payload limité à `rate` | ✅ |
+| 5 | Min stay sur rates | Onglet Restrictions → séjour min **seul** (ne rien remplir d'autre) | **1 appel** rates, payload limité à `min_stay_*` | ✅ |
+| 6 | Stop sell | **Bloquer UNE SEULE nuit** depuis le planning (onglet Blocage de la modale) | **1 appel** rates, payload limité à `stop_sell: true`, `availability` **inchangée à 1** | ✅ |
+| 7 | Restrictions combinées (CTA/CTD/min/max stay) | Onglet Restrictions → min + max + CTA + CTD sur une plage **libre de toute restriction** | **1 appel** rates, une entrée, les quatre champs, ni tarif ni `stop_sell` | ✅ |
+| 8 | Semestre (rate+CTA+CTD+min stay, 5 mois) | **Deux gestes espacés** : un plan tarifaire « Base » sur 2027-08-01→12-31, puis l'édition de la restriction semestrielle | **2 appels** rates, un par dimension changée, chacun une entrée sur les 153 jours | ✅ |
+| 9 | Availability 1 date | **ANNULER** une résa d'UNE nuit → dispo repasse à 1 | 1 appel availability, `availability: 1` (créer une résa donne 0, ce que Channex refuse) | ✅ |
+| 10 | Availability multi-dates | **ANNULER** une résa de plusieurs nuits | 1 appel availability, `availability: 1`, compressé sur les nuits occupées (la nuit de départ n'en fait pas partie) | ✅ |
+| 11 | Réception bookings (create/modif/annulation) | Résa directe poussée au CRS (`push-crs`) → **new** ; séjour prolongé par `PUT /bookings/:id` → **modified** ; `cancel-crs` → **cancelled** | réception par **webhook/flux UNIQUEMENT** → persist → ack par révision. Aucun appel de liste ni par identifiant (cf. point 0) | ✅ |
 | 12 | Rate limits | — engagement, **rédigé §Engagements 12/13** (vérifié dans le code le 2026-08-06) | n/a | ✅ |
 | 13 | Update logic | — engagement, **rédigé §Engagements 12/13** (vérifié dans le code le 2026-08-06) | n/a | ✅ |
 | 14 | Extra notes | **rédigées §Extra notes (test 14)** | n/a | ✅ |
@@ -136,9 +164,27 @@ diront cette fois.
 > OTA. Le garde-fou persiste et acquitte, laisse le calendrier intact et signale
 > l'intervention — comportement correct, pas un défaut du test.
 
-> ¹ **Stop sell** : Baitly ne pousse pas `stop_sell` par date (l'indisponibilité passe
-> par availability=0). À signaler en Extra Notes, OU à couvrir via une fermeture
-> de plage (availability 0) selon la lecture du reviewer.
+> ### Test 11 — trois choses qu'on ne trouve qu'en le jouant
+>
+> **Le push CRS n'a aucune commande d'interface.** `POST
+> /api/integrations/channex/reservations/{id}/push-crs` et son pendant
+> `cancel-crs` n'existent que côté API — aucun bouton ne les appelle dans le
+> front. Les invoquer depuis la session authentifiée, en visant le backend
+> **directement** (`http://localhost:8084`) : le serveur de dev Vite ne proxifie
+> pas `/api`, un appel relatif répond 404 sans jamais atteindre Spring.
+>
+> **La modification passe par un `PUT /bookings/:id` complet.** Envoyer le seul
+> champ modifié fait répondre `can't be blank` sur `property_id`, `currency`,
+> `ota_name`, `arrival_date`, `customer` et `rooms` : il faut relire le booking,
+> reposter l'objet entier avec la valeur changée — et, si l'on prolonge le
+> séjour, **ajouter la nuit dans `rooms[].days`** en plus de décaler
+> `departure_date` et `checkout_date`.
+>
+> **Une réservation poussée au CRS nous revient par webhook.** Elle est
+> désormais *adoptée* par `channexCrsBookingId` au lieu d'être recréée — le
+> journal l'écrit noir sur blanc (« est notre propre resa #N poussée au CRS —
+> adoptée, pas de doublon »). Avant ce correctif, chaque passage laissait deux
+> réservations sur la même nuit. Vérifier en base qu'il n'en reste qu'une.
 
 ## Engagements 12/13 — texte à recopier dans le formulaire
 
@@ -226,10 +272,23 @@ aucun d'automatique.
 
 ## Soumission
 
-1. Formulaire : https://forms.gle/xA8F3eSYBPBd8apYA (task IDs + captures + notes)
-2. **Screenshare live** : le reviewer demande un changement de prix dans l'UI Baitly
-   et observe les appels partir en temps réel (préparer l'UI Tarification + les logs).
+1. Formulaire : https://forms.gle/xA8F3eSYBPBd8apYA (task IDs + notes)
+2. Prévenir Evan (Channex, via Intercom) que le nouveau dossier **remplace** le
+   précédent — sans quoi un reviewer peut ouvrir l'ancien et re-refuser sur des
+   tâches obsolètes.
 3. Credentials production après validation.
+
+**Troisième dossier soumis le 2026-08-16**, avec les identifiants du passage
+intégral du même jour. Réponse envoyée dans le fil « Certification form
+resubmitted » le jour même.
+
+### Tant que la revue est en cours — ne rien couper
+
+- **Le tunnel et le serveur de dev restent debout.** Si Channex livre un webhook
+  qui tombe dans le vide, ce sont ces échecs répétés qui finissent par faire
+  désactiver le webhook — l'un des motifs du premier refus.
+- **`CHANNEX_IMPORT_PULL_BOOKINGS` reste à `false`.** Une reconnexion de
+  propriété suffirait à produire un `booking_revision_received_via_list`.
 
 ## Post-certification
 
@@ -237,3 +296,6 @@ aucun d'automatique.
 - [ ] Env prod : `CHANNEX_BASE_URL=https://app.channex.io/api/v1`, clé prod,
   `CHANNEX_WEBHOOK_CALLBACK_URL=https://app.clenzy.fr/api/webhooks/channex`,
   `CHANNEX_WEBHOOK_SECRET`, `CHANNEX_PUBLIC_MEDIA_BASE_URL=https://app.clenzy.fr`
+- [ ] Remettre `CHANNEX_IMPORT_PULL_BOOKINGS=true` (le rattrapage d'historique
+  redevient utile hors certification)
+- [ ] Remettre `CHANNEX_ALLOW_PUSH_WITHOUT_ACTIVE_OTA=false` — **jamais en production**
