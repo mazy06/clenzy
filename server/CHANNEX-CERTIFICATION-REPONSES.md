@@ -4,26 +4,64 @@
 > structure réelle du formulaire (extraite le 2026-08-07) avec les résultats
 > consignés dans `CHANNEX-CERTIFICATION-RUNBOOK.md`.
 >
-> ## ⛔ Ce dossier a été SOUMIS et REFUSÉ le 2026-08-14
+> ## ⛔ Deux dossiers soumis, deux refus — 2026-08-14 puis 2026-08-15
 >
-> Ne pas resoumettre ces task IDs : ils décrivent le comportement que Channex a
-> rejeté. Neuf scénarios sur onze tombaient sur un même défaut — Baitly poussait
-> `availability` **et** `rates` à chaque flush, là où le protocole attend un seul
-> appel. Les autres reproches : les restrictions déclarées absentes des dates
-> sans restriction explicite, `stop_sell` jamais envoyé, `availability = 0` pour
-> un blocage là où Channex attend un inventaire, et des livraisons de webhook
-> toutes en échec.
+> **Refus n°1 (2026-08-14).** Baitly poussait `availability` **et** `rates` à
+> chaque flush, là où le protocole attend un seul appel. Plus : restrictions
+> absentes des dates sans restriction explicite, `stop_sell` jamais envoyé,
+> `availability = 0` sur un blocage, webhooks tous en échec.
 >
-> **Les quatre correctifs sont faits** (portée des pushes, restrictions
-> complètes, `availability` = inventaire + `stop_sell`, webhook réactivable) mais
-> **aucun n'a encore été exercé contre le staging**. La prochaine campagne exige
-> de tout rejouer : un scénario à la fois, **déclenché depuis l'écran**, en
-> laissant passer le flush de 30 s entre deux — sinon le batcher fusionne les
-> plages et les task IDs redeviennent inattribuables, ce qui a fait tomber le
-> test 2 (« Update targets 2027-03-15, expected the single date 2026-11-22 »).
+> **Refus n°2 (2026-08-15).** Les correctifs ont ouvert le défaut inverse. En
+> remplissant tous les champs partout pour combler les restrictions manquantes,
+> chaque push est devenu un **instantané** là où Channex attend un **delta** :
+> « Update also carries all declared restrictions […]; this looks like a
+> snapshot-based update rather than a rate-only delta » — quatre scénarios.
 >
-> Le reste du document — setup, UUID, justifications des tests 3 et 6,
-> engagements 12/13 — garde sa valeur. Seuls les task IDs sont périmés.
+> ## ✅ Ce qui est corrigé, et vérifié contre staging le 2026-08-15
+>
+> `ChannexRateField` : un push ne porte plus que le champ modifié. Un prix →
+> `rate` seul ; un séjour minimum → `min_stay_*` seuls ; un blocage →
+> `stop_sell` seul ; un full sync → tout, l'instantané y restant légitime.
+>
+> `putDateOrRange` : plus jamais la clé `date`, toujours `date_from`/`date_to`.
+> C'est la cause **prouvée** de l'échec du test 8 — payload `9b0c5223` relu, il
+> mélangeait les deux syntaxes et leur validateur ne reconstituait pas la
+> couverture du semestre.
+>
+> Cinq payloads produits le 2026-08-15 après correctifs : **une entrée chacun**,
+> tous en `date_from`/`date_to`, tous `success: true`. Contre six entrées dont
+> une en syntaxe `date` au passage refusé.
+>
+> ## ✅ ÉTAT DES TASK IDs — dix scénarios rejoués le 2026-08-15
+>
+> Tous redéclenchés **depuis l'écran**, un à la fois, chaque payload relu via
+> `GET /tasks/{id}`. Récapitulatif complet :
+>
+> | Test | Task ID | Payload vérifié |
+> |---|---|---|
+> | 1 · Full sync | `5d87ca9b-0869-46f2-969f-7a8ac51bdb4c` | availability, 7 entrées / 500 j |
+> | 1 · Full sync | `f49532c0-0d82-4b4b-93b1-4670b99b9c8d` | rates, 203 entrées / 500 j |
+> | 2 · Prix, 1 date | `cf88aa2e-a533-4b4c-b0c7-24117d3bba64` | `rate=289.00` seul, 2026-08-27 |
+> | 3 · Multi-rates | — | non applicable, mono rate-plan |
+> | 4 · Prix, plage | `3eae6651-9d82-4034-854e-be5b30caa67b` | `rate=275.00` seul, 08-17→08-21 |
+> | 5 · Séjour min | `00cdaa1d-b8ae-4bea-8dcf-4829c7202ba9` | `min_stay=5` SEUL, 2027-02-08 |
+> | 6 · Stop sell | `d255bd86-94f3-4337-8f4d-0c5d923a217f` | `stop_sell=true` seul, 1 date |
+> | 7 · Restrictions | `763537be-f8e5-4412-9a37-d66271c92065` | min/max + CTA/CTD, 1 entrée |
+> | 8 · Semestre | `247b29b1-fb5c-471f-a230-e899e926dc6e` | `rate=150.00` seul, 08-01→12-31 |
+> | 8 · Semestre | `6fb294e1-ccf9-4f20-86f0-e4f977c885f2` | restrictions seules, même plage |
+> | 9 · Dispo, 1 date | `6027c590-3fc9-47f1-b8bd-9c1317b61bd7` | `availability=1`, 1 date |
+> | 10 · Dispo, plage | `e6ca649e-f622-40c0-9c4f-899cf67fb4a3` | `availability=1`, 09-23→09-26 |
+> | 11 · Réception | **à rejouer** | exige un tunnel public |
+>
+> Tous en `success: true`, zéro erreur. **Une entrée par appel** quand les
+> valeurs sont uniformes, toujours en `date_from`/`date_to`, jamais la clé
+> `date`, et **uniquement le champ modifié** — sauf le full sync, où
+> l'instantané reste légitime.
+>
+> **Seul le test 11 reste à faire.** Il exige un tunnel public,
+> `CHANNEX_WEBHOOK_CALLBACK_URL` avec le chemin complet, un rebuild puis
+> `POST /webhooks/ensure`. Et le drapeau `CHANNEX_IMPORT_PULL_BOOKINGS=false`
+> doit rester posé — cf. le runbook.
 
 ## Page 1 — Identité
 
@@ -40,7 +78,7 @@
 |---|---|---|
 | Multiple **Room Types** per Property | **No** | Vacation Rental mono-unité : 1 logement = 1 property à 1 room type |
 | Multiple **Rate Plans** per Room Type | **No** | 1 seul rate plan par room type |
-| **Restrictions supportées** (cases) | ☑ Availability ☑ Rate ☑ Min Stay Through ☑ Min Stay Arrival ☑ Max Stay ☑ Closed To Arrival ☑ Closed To Departure — **☐ Stop Sell** | Tout est prouvé par les tests 5 et 7. Stop Sell **non coché** : Baitly ferme par `availability = 0`, il ne pousse pas le champ `stop_sell`. Ne pas le cocher est ce qui rend la réponse au test 6 cohérente. |
+| **Restrictions supportées** (cases) | ☑ Availability ☑ Rate ☑ Min Stay Through ☑ Min Stay Arrival ☑ Max Stay ☑ Closed To Arrival ☑ Closed To Departure ☑ **Stop Sell** | **Toutes cochées, Stop Sell comprise.** Cette case était décochée aux deux passages précédents, au motif que Baitly fermait par `availability = 0` : c'était l'erreur. Un blocage envoie désormais `stop_sell: true` en laissant l'inventaire à 1 — seule une réservation le consomme. C'est ce qui rend le test 6 applicable. |
 | Credit card details with bookings ? | **No** | Les paiements passent par l'application Stripe Tokenization de Channex |
 | PCI Certified ? | **No, but we use PCI Service like Vaultera, PCI Booking or Tokenex** | ⚠️ *Choix à confirmer.* Baitly ne reçoit ni ne stocke aucune donnée de carte : c'est Stripe (PCI-DSS niveau 1) qui les traite, via l'app de tokenisation de Channex. « No » sec serait trompeur dans l'autre sens — il laisserait croire qu'on manipule des cartes sans protection. |
 
@@ -101,25 +139,30 @@ task IDs. Le formulaire compare le texte déclaré au contenu réel de la tâche
 au passage précédent, le test 2 a été refusé parce que la date et le tarif
 annoncés ne correspondaient pas à ce que Channex avait reçu.
 
-> ### ✅ Passage du 2026-08-14, après correctifs — chaque payload relu sur l'API
+> ### Méthode — inchangée, et non négociable
 >
-> Les IDs ci-dessous ne viennent pas de nos journaux : chaque tâche a été
-> relue via `GET /tasks/{id}` sur staging, et son `payload.values` vérifié.
-> Toutes sont en `success: true`, sans erreur.
+> Un ID ne se prend jamais dans les journaux seuls : chaque tâche est relue via
+> `GET /tasks/{id}` sur staging et son `payload.values` vérifié champ par champ.
+> Le formulaire compare le texte déclaré au contenu réel — un écart suffit.
 >
-> **Un seul ID par test, sauf le test 1.** C'est le cœur du refus précédent :
-> Baitly poussait availability ET rates à chaque changement. Un full sync envoie
-> légitimement les deux ; un changement ciblé, un seul.
+> **Un seul ID par test**, sauf le test 1 (full sync, deux canaux légitimes) et
+> le test 8 (une dimension changée = un appel, cf. sa note).
 >
-> **Chaque test a été déclenché seul, en laissant passer le flush de 30 s.**
-> Enchaînés, le batcher fusionne les plages et aucun ID n'est attribuable.
+> **Un scénario à la fois, 30 s entre deux.** Enchaînés, le batcher fusionne les
+> plages et plus aucun ID n'est attribuable — c'est ce qui a fait tomber le test
+> 2 au premier passage (« Update targets 2027-03-15, expected 2026-11-22 »).
+>
+> **Ce que le payload doit montrer, désormais** : une seule entrée par appel
+> quand les valeurs sont uniformes, en `date_from`/`date_to` — jamais la clé
+> `date` —, et **uniquement le champ modifié**. Un changement de prix ne porte
+> ni restriction ni `stop_sell` ; un séjour minimum ne porte pas le prix.
 
 ### Test 1 — Full Sync
-Applicable : **Yes**
+Applicable : **Yes** — ✅ **IDs À JOUR** (rejoué le 2026-08-15 depuis l'écran)
 
 ```
-1cc44acd-781d-4fc1-bf66-ff5d31a389bf
-fc6a44ea-acbc-4b68-a355-3dd0c3a1f996
+5d87ca9b-0869-46f2-969f-7a8ac51bdb4c
+f49532c0-0d82-4b4b-93b1-4670b99b9c8d
 ```
 
 `Property.UpdateAvailability` + `Property.UpdateRestrictions`, 500 jours.
@@ -128,18 +171,22 @@ sur les 500** — là où le rapport comptait « 154/181 » et « 181/181 » d'a
 La disponibilité part en `date_from`/`date_to` fusionnés.
 
 ### Test 2 — Single Date Update for Single Rate
-Applicable : **Yes**
+Applicable : **Yes** — ✅ **IDs À JOUR** (rejoué le 2026-08-15 depuis l'écran)
 
 ```
-Price set to 333.00 USD on the single date 2026-11-22, from the Pricing screen.
-One Property.UpdateRestrictions call, one entry, one date. No availability call.
+Price set to 289.00 USD on the single date 2026-08-27, from the Pricing screen.
+One Property.UpdateRestrictions call, one entry, one date, in date_from/date_to
+form with both bounds equal. The payload carries the rate only - no restriction
+field and no stop_sell - and no availability call is emitted.
 ```
 
 ```
-5ea7ac56-6e92-4944-999e-d65bccb0829b
+cf88aa2e-a533-4b4c-b0c7-24117d3bba64
 ```
 
-Payload reçu : `{"date": "2026-11-22", "rate": "333.00", …}`.
+> Le payload d'avant portait les sept champs : « Update also carries all
+> declared restrictions […]; snapshot-based update rather than a rate-only
+> delta ». Vérifier que le nouveau ne contient QUE `rate`.
 
 ### Test 3 — Single Date Update for Multiple Rates
 Applicable : **No**
@@ -155,48 +202,64 @@ single-date rate update on our single rate plan.
 ```
 
 ### Test 4 — Multiple Date Update for Multiple Rates
-Applicable : **Yes**
+Applicable : **Yes** — ✅ **IDs À JOUR** (rejoué le 2026-08-15 depuis l'écran)
 
 ```
-Price changed to 275.00 USD over 2026-12-01 to 2026-12-05 from the Pricing
-screen. One API call, compressed into a single date_from/date_to entry. The
-"multiple rates" part is not applicable: we have a single rate plan (see Test 3).
+Price changed to 275.00 USD over 2026-08-17 to 2026-08-21 from the Pricing screen. One
+API call, compressed into a single date_from/date_to entry, carrying the rate
+only. The "multiple rates" part is not applicable: we have a single rate plan
+(see Test 3).
 ```
 
 ```
-4f4b527a-4ce5-463f-9417-a4127aa86f86
+3eae6651-9d82-4034-854e-be5b30caa67b
 ```
+
+> Même reproche qu'au test 2 : le payload ne doit porter QUE `rate`.
 
 ### Test 5 — Min Stay Update
-Applicable : **Yes**
+Applicable : **Yes** — ✅ **IDs À JOUR** (rejoué le 2026-08-15 depuis l'écran)
 
 ```
-Minimum stay set to 4 nights on the single date 2027-01-15, from the
-Restrictions tab. One Property.UpdateRestrictions call, one entry, one date.
-Both min_stay_through and min_stay_arrival are set to 4 (our model holds a
-single min-stay value - see Extra Notes).
+Minimum stay set to 5 nights on the single date 2027-02-08, from the Restrictions
+tab. One Property.UpdateRestrictions call, one entry, one date. The payload
+carries min_stay_through and min_stay_arrival only - no rate, no max stay, no
+closed-to-arrival/departure, no stop_sell. Both min-stay fields hold the same
+value (our model has a single min-stay - see Extra Notes).
 ```
 
 ```
-9f7d5f27-9cbe-4d61-9402-ecdc7c8e029f
+00cdaa1d-b8ae-4bea-8dcf-4829c7202ba9
 ```
+
+> Reproche du 2026-08-15 : « Min stay update also carries other fields
+> (closed_to_arrival, closed_to_departure, max_stay, rate, stop_sell); it should
+> contain only min stay. » Ne poser QUE le séjour minimum dans le formulaire :
+> le filtre ne retient que les champs non nuls de la restriction.
 
 ### Test 6 — Stop Sell Update
 Applicable : **Yes** — *répondait No au passage précédent, c'était l'erreur*
 
 ```
-Dates 2027-02-10 to 2027-02-13 blocked from the Planning screen. One
-Property.UpdateRestrictions call carrying stop_sell: true. Availability stays 1:
-a manual block closes the date for sale without consuming inventory, while a
-booking consumes it (availability 0). Only a booking touches availability.
+A SINGLE night, 2026-08-23, blocked from the Planning screen. One
+Property.UpdateRestrictions call, one entry, that single date, carrying
+stop_sell: true and nothing else. Availability stays 1: a manual block closes
+the date for sale without consuming inventory, while a booking consumes it
+(availability 0). Only a booking touches availability.
 ```
 
 ```
-36278866-9d29-47bd-8d0d-fffb1b64f5a2
+d255bd86-94f3-4337-8f4d-0c5d923a217f
 ```
+
+> **Deux reproches en un** le 2026-08-15 : « Update must target a single date,
+> got 2027-02-10..2027-02-13 » — quatre nuits bloquées par erreur de
+> manipulation — et « also carries other fields; it should contain only stop
+> sell ». Bloquer **une seule** nuit, et vérifier que le payload ne porte que
+> `stop_sell`.
 
 ### Test 7 — Multiple Restrictions Update
-Applicable : **Yes**
+Applicable : **Yes** — ✅ **IDs À JOUR** (rejoué le 2026-08-15 depuis l'écran)
 
 ```
 Combined restriction over 2027-04-05 to 2027-04-12: min stay 3, max stay 14,
@@ -210,34 +273,66 @@ restriction values are identical throughout.
 ```
 
 ### Test 8 — Half-year Update
-Applicable : **Yes**
+Applicable : **Yes** — ✅ **IDs À JOUR** (2026-08-15, après correctifs)
 
 ```
-Combined restriction over 153 days, 2027-08-01 to 2027-12-31: min stay 3,
-max stay 21, closed to arrival and closed to departure, with rates. One single
-Property.UpdateRestrictions call, compressed into 6 date_from/date_to ranges
-following the rate changes.
+Rate and restrictions applied over 153 days, 2027-08-01 to 2027-12-31.
+
+Two Property.UpdateRestrictions calls, one per changed dimension, because our
+PMS emits field-level deltas: an update carries only what actually changed.
+Each call is a single entry covering the whole half-year in date_from/date_to
+form.
+
+247b29b1 - rate set to 150.00 USD over the range, no restriction field.
+6fb294e1 - min stay 6, max stay 21, closed to arrival, closed to departure,
+           no rate and no stop_sell.
 ```
 
 ```
-9b0c5223-7dd8-471b-9f69-7fdc5e0c09fa
+247b29b1-fb5c-471f-a230-e899e926dc6e
+6fb294e1-ccf9-4f20-86f0-e4f977c885f2
 ```
+
+> **Deux IDs ici, et c'est assumé.** Le modèle delta exigé par les tests 2, 5 et
+> 6 — « it should contain only min stay », « only stop sell » — implique un
+> appel par dimension modifiée. Les deux critères du test 8 sont satisfaits : un
+> tarif valide **et** un séjour minimum valides sur le semestre.
+>
+> Pour n'en avoir qu'un seul, il faut que les deux gestes tombent dans la même
+> fenêtre de flush de 30 s : le batcher fusionne alors les champs par union et
+> envoie un appel unique portant tarif et restrictions. Faisable, mais serré
+> depuis l'écran — au passage du 2026-08-15 ils étaient espacés de 14 s et un
+> tick est tombé entre les deux.
+>
+> **Ce que ce test corrige.** L'ancien payload `9b0c5223` contenait **six**
+> entrées, dont une en syntaxe `date` (`{"date":"2027-09-07"}`) : des nuits
+> bloquées à l'intérieur du semestre faisaient alterner `stop_sell`, ce qui
+> fragmentait la compression, et l'une des séries ne durait qu'un jour. Le
+> validateur Channex, qui lit les `date_from`/`date_to`, ignorait cette entrée
+> et ne reconstituait pas la couverture — d'où « No valid rate set over the
+> half-year range ». Le prix de base et la restriction semestrielle étaient
+> pourtant bien présents en base : ce n'a jamais été un problème de données.
 
 ### Test 9 — Single Date Availability Update
-Applicable : **Yes**
+Applicable : **Yes** — ✅ **IDs À JOUR** (rejoué le 2026-08-15 depuis l'écran)
 
 ```
-One-night booking created for 2027-03-05. One Property.UpdateAvailability call,
-one entry, single date, availability 0 - the unit is taken. No rate or
-restriction call is emitted.
+A one-night booking on 2026-08-24 was CANCELLED, releasing the unit. One
+Property.UpdateAvailability call, one entry, single date, availability 1 - the
+unit is free again. One unit, so availability is 1 when free and 0 when booked.
+No rate or restriction call is emitted.
 ```
 
 ```
-0d43be0c-64bd-45f2-aa04-9831bd2d2328
+6027c590-3fc9-47f1-b8bd-9c1317b61bd7
 ```
+
+> Reproche du 2026-08-15 : « No update sets availability to 1 or 7 (a vacation
+> rental is a single unit). » Créer une réservation donne 0 — ce qu'ils
+> refusent. Il faut **annuler** une réservation d'UNE nuit pour poser 1.
 
 ### Test 10 — Multiple Date Availability Update
-Applicable : **Yes**
+Applicable : **Yes** — ✅ **IDs À JOUR** (rejoué le 2026-08-15 depuis l'écran)
 
 ```
 A four-night booking over 2026-12-01 to 2026-12-04 was cancelled, releasing the
@@ -255,7 +350,7 @@ when booked.
 > aussi ce qui répond au « Availability is 0, expected 1 or 3 » du rapport.
 
 ### Test 11 — Booking Receiving
-Applicable : **Yes**
+Applicable : **Yes** — ⚠️ **SEUL TEST NON REJOUÉ** : exige un tunnel public
 
 | Champ | Valeur |
 |---|---|
@@ -292,9 +387,17 @@ Chaine complete relevee dans les journaux, en quelques secondes :
 > reactiver. Les revisions arrivent desormais **par livraison webhook**, pas par
 > le planificateur de 10 minutes.
 >
-> **Aucun `pull-bookings` ni `getBooking` de tout le passage.** Les huit
-> evenements `..._via_list` / `..._via_find` reproches venaient d'appels de
-> diagnostic, pas d'un flux automatique.
+> ⛔ **Cette affirmation était fausse, et le refus du 2026-08-15 l'a prouvé.**
+> On écrivait ici « aucun `pull-bookings` de tout le passage, les événements
+> `..._via_list` venaient d'appels de diagnostic ». Le verdict suivant a compté
+> **trois** `booking_revision_received_via_list`, et aucun n'était manuel :
+> c'est **l'étape 7 de l'import** qui rattrape l'historique par appel de liste à
+> chaque connexion de propriété. Channex ayant repris l'hôtel de test quatre
+> fois dans la journée, chaque reconnexion en a déclenché un.
+>
+> D'où le drapeau `CHANNEX_IMPORT_PULL_BOOKINGS`, **à poser à `false`** sur
+> l'environnement de certification. La consigne « ne jamais lancer
+> `pull-bookings` pendant le partage » était respectée — et inutile.
 >
 > ⚠️ Le webhook pointe sur un **tunnel ephemere**, ferme apres ce passage. Pour
 > rejouer le test 11, relancer un tunnel, remettre
@@ -322,17 +425,27 @@ pour le screenshare — sont dans `CHANNEX-CERTIFICATION-RUNBOOK.md`, section
 
 ## Avant d'envoyer — ce qui reste
 
-Les onze scénarios ont été rejoués le 2026-08-14 après correctifs, chaque
-payload relu sur l'API des tâches Channex. Il reste :
+**Dix scénarios sur onze portent des IDs à jour**, rejoués depuis l'écran le
+2026-08-15 et chacun relu sur l'API des tâches. Il reste :
 
-1. **Trancher la réponse PCI** — seul champ encore ouvert.
-2. **Cocher Stop Sell** dans les fonctionnalités : la réponse passe de No à Yes,
-   c'était l'erreur qui rendait le test 6 injouable.
-3. **Recopier les Extra Notes** du runbook, dont la note sur le second rate plan
+1. **Le test 11.** Il exige un tunnel public,
+   `CHANNEX_WEBHOOK_CALLBACK_URL` avec le chemin complet
+   (`/api/webhooks/channex`, jamais la racine), un rebuild du conteneur puis
+   `POST /webhooks/ensure`. Vérifier ensuite côté Channex que le webhook est
+   **actif**.
+2. **Garder `CHANNEX_IMPORT_PULL_BOOKINGS=false`** sur l'environnement de
+   certification pendant tout le passage — c'est l'étape 7 de l'import, et non
+   un pull manuel, qui a produit les `booking_revision_received_via_list` du
+   refus précédent.
+3. **Trancher la réponse PCI** — seul champ encore ouvert sur le fond.
+4. **Recopier les Extra Notes** du runbook, dont la note sur le second rate plan
    dérivé par Channex — sans elle, le test 3 peut se faire rouvrir.
-4. **Rejouer les scénarios depuis l'écran** avant le screenshare : ce passage a
-   été déclenché par les endpoints, qui sont le même chemin de code mais pas le
-   même geste. Le reviewer demandera des actions dans l'interface.
+
+**Recréer le canal Booking.com avant le screenshare.** Il a de nouveau disparu
+le 2026-08-15 (« Aucun OTA connecté ») : Channex reprend les hôtels de test sans
+prévenir, cinq fois à ce jour. Les pushs continuent de partir grâce au
+contournement `allow-push-without-active-ota`, mais le reviewer voudra voir un
+canal actif.
 
 ### Un bug corrigé au passage
 
