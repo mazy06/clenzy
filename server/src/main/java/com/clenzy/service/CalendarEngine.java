@@ -864,15 +864,34 @@ public class CalendarEngine {
 
     /**
      * Construit le payload JSON pour un event outbox calendrier.
+     *
+     * <p><b>La borne {@code to} publiee est INCLUSIVE</b>, alors que le
+     * calendrier travaille en {@code [from, to)}. Ce n'est pas une coquetterie :
+     * tous les autres producteurs d'evenements du topic sont deja inclusifs —
+     * {@code RateOverrideService} (« plage inclusive [from, to] »),
+     * {@code RatePlanService} (dates de validite du plan),
+     * {@code BookingRestrictionService} ({@code endDate} testee par
+     * {@code date <= endDate}) — et les consommateurs le sont aussi
+     * ({@code pushAvailabilityForRange} itere {@code !d.isAfter(to)}).</p>
+     *
+     * <p>Publier une borne exclusive faisait pousser une nuit de trop a chaque
+     * changement : une modification d'une seule nuit couvrait deux dates, ce qui
+     * a fait echouer le critere « update must target a single date » de la
+     * certification Channex (2026-08-14). Convertir ICI, a la source, est le seul
+     * endroit sur : le consommateur ne peut pas deviner de quelle convention
+     * vient l'evenement qu'il recoit.</p>
      */
     private String buildPayload(String action, Long propertyId, Long orgId, LocalDate from, LocalDate to,
                                  String source, Long reservationId) {
+        // [from, to) -> [from, to-1]. Une plage vide, d'un jour, ou sans borne
+        // de fin (certaines annulations n'en ont pas) reste sur from.
+        LocalDate lastDay = (to != null && to.isAfter(from)) ? to.minusDays(1) : from;
         StringBuilder sb = new StringBuilder("{");
         sb.append("\"action\":\"").append(action).append("\"");
         sb.append(",\"propertyId\":").append(propertyId);
         if (orgId != null) sb.append(",\"orgId\":").append(orgId);
         sb.append(",\"from\":\"").append(from).append("\"");
-        sb.append(",\"to\":\"").append(to).append("\"");
+        sb.append(",\"to\":\"").append(lastDay).append("\"");
         if (source != null) sb.append(",\"source\":\"").append(source).append("\"");
         if (reservationId != null) sb.append(",\"reservationId\":").append(reservationId);
         sb.append(",\"timestamp\":\"").append(java.time.Instant.now()).append("\"");
