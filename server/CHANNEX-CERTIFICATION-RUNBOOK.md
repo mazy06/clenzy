@@ -21,7 +21,7 @@
 |---|---|---|
 | 0 | Poser `CHANNEX_IMPORT_PULL_BOOKINGS=false` sur l'environnement de certification | Test 11 échoue à l'identique |
 | 6 | Bloquer **une seule nuit**, pas une plage | « Update must target a single date, got 2027-02-10..2027-02-13 » |
-| 8 | Donner un **prix de base** à la propriété **et** une restriction couvrant les **6 mois entiers** | « No valid rate / no valid min stay over the half-year range » |
+| 8 | **Cause inconnue** — diagnostiquer en rejouant, payload en main | « No valid rate / no valid min stay over the half-year range » |
 | 9 | **Annuler** une réservation d'**une** nuit (ne pas en créer une) | « No update sets availability to 1 or 7 » |
 
 **Le point 0 est le moins intuitif et le plus coûteux.** Ce n'est pas un
@@ -37,9 +37,22 @@ propriété fraîchement connectée (année fiscale en cours, LMNP), et le flux 
 révisions ne remonte pas l'antérieur. C'est un réglage de certification, pas de
 production.
 
-**Sur le point 8**, un push tarifaire qui ne produit aucune entrée émet désormais
-un `WARN` explicite (`push rates SANS AUCUNE entree`). Si le semestre repart vide,
-les journaux le diront — mais autant régler le prix de base avant.
+**Sur le point 8, la cause reste à trouver.** J'avais écrit ici que la propriété
+manquait d'un prix de base et d'une restriction couvrant la période : **c'est
+faux, vérifié en base le 2026-08-15**. La propriété 3 porte `nightly_price =
+120.00`, et une restriction `2027-08-01 → 2027-12-31` (min 3 / max 21) existe
+bien. Il n'y a en outre ni override ni plan tarifaire sur ce semestre, donc
+toutes les dates y valent 120 — des valeurs uniformes, que la compression aurait
+dû fusionner en **une** entrée `date_from`/`date_to`.
+
+Autrement dit, le payload attendu était exactement celui que Channex réclame. Le
+reproche « No valid rate » et « single-date objects » ne s'explique pas par les
+données. À diagnostiquer en rejouant le scénario **payload en main** (task ID →
+API des tâches Channex), et non en supposant.
+
+Un push tarifaire sans aucune entrée émet désormais un `WARN`
+(`push rates SANS AUCUNE entree`) : si le cas se reproduit, les journaux le
+diront cette fois.
 
 ## Pré-vol (exigences d'architecture — toutes satisfaites par les phases A/B/C)
 
@@ -60,7 +73,7 @@ les journaux le diront — mais autant régler le prix de base avant.
 - [ ] (Webhooks entrants) tunnel public + `CHANNEX_WEBHOOK_CALLBACK_URL` + `CHANNEX_WEBHOOK_SECRET` → `POST /webhooks/ensure` → `created`
 - [ ] Données réalistes : prix variés (pas de valeur uniforme — les données synthétiques uniformes sont **rejetées** à la revue)
 - [ ] **`CHANNEX_IMPORT_PULL_BOOKINGS=false`** (cf. §Avant de rejouer, point 0) — à remettre à `true` après
-- [ ] **Prix de base renseigné sur la propriété** : sans lui, `PriceEngine` renvoie `null` pour chaque date et tout push tarifaire part vide
+- [x] Prix de base sur la propriété — **déjà en place** (`nightly_price = 120.00` sur la propriété 3, vérifié le 2026-08-15). Sans lui, `PriceEngine` renverrait `null` pour chaque date et tout push tarifaire partirait vide
 
 ## Les 14 tests
 
@@ -89,7 +102,7 @@ les journaux le diront — mais autant régler le prix de base avant.
 | 5 | Min stay sur rates | Onglet Restrictions → séjour min **seul** (ne rien cocher d'autre) | **1 appel** rates, payload limité à `min_stay_*` | ⚠️ |
 | 6 | Stop sell | **Bloquer UNE SEULE nuit** depuis le planning | **1 appel** rates, payload limité à `stop_sell: true`, `availability` **inchangée à 1** | ⚠️ |
 | 7 | Restrictions combinées (CTA/CTD/min/max stay) | Onglet Restrictions → min/max + CTA/CTD sur deux plages | **1 appel** rates chacune | ✅ |
-| 8 | Semestre (rate+CTA+CTD+min stay, 5 mois) | Même mécanisme que 7 sur **au moins 152 jours**. Prérequis : prix de base sur la propriété, restriction couvrant TOUTE la période | **1 appel** rates, compressé en `date_from`/`date_to` (une entrée, pas 152) | ⚠️ |
+| 8 | Semestre (rate+CTA+CTD+min stay, 5 mois) | Même mécanisme que 7 sur **au moins 152 jours**. Données déjà en place (restriction 2027-08-01→12-31, prix de base 120) | **1 appel** rates, compressé en `date_from`/`date_to` (une entrée, pas 152) | ⚠️ |
 | 9 | Availability 1 date | **ANNULER** une résa d'UNE nuit → dispo repasse à 1 | 1 appel availability, `availability: 1` (créer une résa donne 0, ce que Channex refuse) | ⚠️ |
 | 10 | Availability multi-dates | Résa de plusieurs nuits → dispo sur la plage | 1 appel availability | ✅ |
 | 11 | Réception bookings (create/modif/annulation) | Résa directe poussée au CRS (`push-crs`) → **new** ; séjour prolongé via l'app Booking CRS → **modified** ; `cancel-crs` → **cancelled** | réception par **webhook/flux UNIQUEMENT** → persist → ack par révision. Aucun appel de liste ni par identifiant (cf. point 0) | ⚠️ |

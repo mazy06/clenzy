@@ -465,12 +465,15 @@ public class ChannexSyncService {
                     ));
                 }
             }
-            // Un push qui ne produit AUCUNE entree est un no-op silencieux, et
-            // c'est ce qui rend un echec de certification indechiffrable :
-            // « No valid rate set over the half-year range » (2026-08-15) vient
-            // de la — la propriete n'a pas de prix de base, PriceEngine renvoie
-            // null pour chaque date, et la boucle les saute toutes. Rien dans
-            // les journaux ne le disait.
+            // Un push qui ne produit AUCUNE entree est un no-op silencieux :
+            // rien dans les journaux ne distingue « envoye avec succes » de
+            // « il n'y avait rien a envoyer ». Cas typique : propriete sans prix
+            // de base ni plan tarifaire — PriceEngine renvoie null pour chaque
+            // date et la boucle les saute toutes.
+            //
+            // (Ce n'est PAS l'explication du « No valid rate set over the
+            // half-year range » de la certification du 2026-08-15 : la propriete
+            // de test porte bien un prix de base. Cause encore inconnue.)
             if (updates.isEmpty()) {
                 log.warn("ChannexSync: push rates SANS AUCUNE entree property={} [{}, {}] champs={} "
                     + "— aucun prix resolu (propriete sans prix de base ni plan tarifaire ?) "
