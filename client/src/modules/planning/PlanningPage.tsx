@@ -471,6 +471,14 @@ const PlanningPage: React.FC = () => {
     if (event.reservation) hideReservation(event.reservation.id);
   }, [hideReservation]);
 
+  // `to` arrive déjà EXCLUSIVE depuis l'événement de planning — c'est la borne
+  // qu'attend l'API. On laisse remonter l'échec : le tooltip l'affiche.
+  const handleUnblock = useCallback(async (propertyId: number, from: string, to: string) => {
+    const { calendarPricingApi } = await import('../../services/api/calendarPricingApi');
+    await calendarPricingApi.unblockDates(propertyId, from, to);
+    queryClient.invalidateQueries({ queryKey: ['planning-page'] });
+  }, [queryClient]);
+
   // Intervention actions (create, assign, priority, notes)
   const {
     createAutoCleaning,
@@ -924,6 +932,7 @@ const PlanningPage: React.FC = () => {
             drag={drag}
             onEventClick={handleEventClick}
             onHideEvent={handleHideEvent}
+            onUnblock={handleUnblock}
             onEmptyClick={openQuickCreate}
             quickCreateOpen={!!quickCreateData}
             scrollRef={timeline.scrollRef}
