@@ -16,26 +16,10 @@
     -->
 
     <!--
-        2026-08-15 — OpenTelemetry, artefacts alpha tirés par firebase-admin
-        (→ google-cloud-firestore). Rapprochement CPE générique
-        `cpe:2.3:a:opentelemetry:opentelemetry` : les CVE visent le produit
-        OpenTelemetry dans son ensemble, pas ces extensions Java.
-
-        Aucune mise à jour n'existe : `opentelemetry-extension-incubator`
-        s'arrête à 1.36.0-alpha et `opentelemetry-semconv` à 1.29.0-alpha sous
-        ces coordonnées — les deux artefacts ont été retirés au profit de
-        `opentelemetry-api-incubator`. firebase-admin 9.10.0 est déjà la
-        dernière version publiée et les tire encore.
-
-        À lever quand firebase-admin migrera vers les nouvelles coordonnées.
+        (Une suppression OpenTelemetry a existé ici quelques heures le
+        2026-08-15. Elle est devenue sans objet le jour même : le retrait de
+        firebase-admin a fait disparaître les artefacts alpha de l'arbre.)
     -->
-    <suppress>
-        <notes>OpenTelemetry alpha via firebase-admin : CPE générique, aucune version corrigée publiée</notes>
-        <packageUrl regex="true">^pkg:maven/io\.opentelemetry(\.contrib|\.semconv)?/opentelemetry-.*$</packageUrl>
-        <cve>CVE-2026-24051</cve>
-        <cve>CVE-2026-39883</cve>
-        <cve>CVE-2026-29181</cve>
-    </suppress>
 
     <!--
         2026-08-15 — keycloak-core 24.0.5, CVE-2024-7341 (7.1) : fixation de

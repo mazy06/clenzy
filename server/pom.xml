@@ -73,11 +73,8 @@
         <!-- 1.9.25 : CVE-2026-53914 (9.8). Transitif via minio → okhttp ;
              la stdlib Kotlin est rétro-compatible, okhttp 4.12 tourne dessus. -->
         <kotlin.version>2.4.10</kotlin.version>
-        <!-- 5.3.6 : CVE-2026-54399 / -54428 (7.5). La branche 5.3 s'arrête à
-             .6, le correctif n'existe qu'en 5.4 — d'où le passage conjoint de
-             httpclient5 en 5.6, seule ligne appairée avec httpcore5 5.4. -->
-        <httpcore5.version>5.4.3</httpcore5.version>
-        <httpclient5.version>5.6.4</httpclient5.version>
+        <!-- httpcore5 / httpclient5 : plus d'override, ils ne sont plus dans
+             l'arbre depuis le retrait de firebase-admin, qui les tirait seul. -->
     </properties>
 
     <dependencies>
@@ -286,18 +283,19 @@
             <artifactId>spring-kafka</artifactId>
         </dependency>
 
-        <!-- Firebase Admin SDK (Push Notifications FCM) -->
-        <!-- CVE 2026-06 : 9.2.0 tirait protobuf-java 3.23.2 (CVE-2024-7254, DoS parsing).
-             9.4.x tire un protobuf-java patché.
-             CVE 2026-08 : 9.4.3 tirait netty-transport 4.1.132 (36 CVE, dont 10.0),
-             httpcore5 5.3.6 (7.5) et trois modules opentelemetry alpha (7.3-7.5).
-             9.10.0 reste sur la meme majeure et rafraichit ces transitives. -->
-        <dependency>
-            <groupId>com.google.firebase</groupId>
-            <artifactId>firebase-admin</artifactId>
-            <version>9.10.0</version>
-        </dependency>
+        <!--
+            firebase-admin RETIRÉ (2026-08-15). Le mobile émet un jeton **Expo**
+            (`getExpoPushTokenAsync`), que `FirebaseMessaging.send()` ne sait pas
+            adresser : il attend un jeton d'enregistrement FCM natif. Le push ne
+            pouvait donc pas fonctionner, et ne fonctionnait pas — les
+            identifiants n'étaient d'ailleurs présents dans aucun environnement
+            déployé. Le SDK ne servait plus qu'à traîner ses transitives
+            (google-cloud-firestore, opentelemetry alpha, httpclient5).
 
+            Ce qui reste en place : la table `device_tokens`, `DeviceToken`,
+            `DeviceTokenService` et `POST /devices/register`. Les jetons Expo se
+            stockent à l'identique — l'envoi vers l'API Expo reste à écrire.
+        -->
         <!-- Jasypt Spring Boot (Chiffrement tokens en base) -->
         <dependency>
             <groupId>com.github.ulisesbocchio</groupId>
@@ -480,14 +478,6 @@
                 <groupId>commons-validator</groupId>
                 <artifactId>commons-validator</artifactId>
                 <version>1.11.0</version>
-            </dependency>
-            <!-- opentelemetry-gcp-resources 1.37.0-alpha : CVE-2026-24051 (7.0),
-                 -39883 (7.3), -29181 (7.5). Transitif via firebase-admin, déjà
-                 en dernière version — d'où l'épinglage direct. -->
-            <dependency>
-                <groupId>io.opentelemetry.contrib</groupId>
-                <artifactId>opentelemetry-gcp-resources</artifactId>
-                <version>1.59.0-alpha</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework.cloud</groupId>

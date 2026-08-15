@@ -380,7 +380,12 @@ public class KafkaConfig {
             TOPIC_MINUT_WEBHOOKS,
             TOPIC_CALENDAR_UPDATES,
             TOPIC_DOCUMENT_GENERATE,
-            TOPIC_NOTIFICATIONS,
+            // TOPIC_NOTIFICATIONS retire le 2026-08-15 : il est encore PRODUIT par
+            // NotificationService mais plus consomme depuis le retrait de
+            // firebase-admin (le push mobile attend son emetteur Expo). Sa
+            // creation ne depend pas de cette liste — elle a son propre bean,
+            // cf. notificationsTopic() — et une DLT sans consommateur n'aurait
+            // rien a recueillir. A remettre ici en meme temps que le listener.
             TOPIC_PAYMENT_EVENTS,
             TOPIC_REVIEWS_SYNC,
             "booking.reservations",
