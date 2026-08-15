@@ -40,8 +40,26 @@ public record ChannexRateUpdate(
     Boolean stopSell
 ) {
     public ChannexRateUpdate {
-        if (rate == null || rate.signum() < 0) {
+        // `rate` peut etre NUL : c'est ainsi qu'un delta l'omet du payload
+        // (cf. ChannexRateField). Une mise a jour de sejour minimum seul ne doit
+        // pas embarquer le prix — « Min stay update also carries other fields
+        // [...]; it should contain only min stay », certification 2026-08-15.
+        //
+        // L'invariant d'origine l'exigeait, ce qui etait juste tant que chaque
+        // push portait tout. Depuis le passage en delta il faisait echouer le
+        // push entier : « rate must be >= 0, got null », releve au rejeu du
+        // scenario 8 le 2026-08-15 — les tests unitaires ne couvraient pas ce
+        // chemin.
+        if (rate != null && rate.signum() < 0) {
             throw new IllegalArgumentException("rate must be >= 0, got " + rate);
+        }
+        // Une entree sans aucun champ ne veut rien dire et serait rejetee par
+        // Channex : mieux vaut echouer ici, ou la cause est lisible.
+        if (rate == null && minStayThrough == null && minStayArrival == null
+            && closedToArrival == null && closedToDeparture == null
+            && maxStay == null && stopSell == null) {
+            throw new IllegalArgumentException(
+                "ChannexRateUpdate sans aucun champ a pousser (date " + date + ")");
         }
     }
 
