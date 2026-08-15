@@ -143,23 +143,35 @@ aucun d'automatique.
 
 ## Extra notes (test 14) — texte à recopier
 
-1. **Vacation Rental mono-unité.** Un logement Baitly = 1 property Channex à
-   **1 room type × 1 rate plan**. Le protocole hôtel demande 2×2 ; l'adaptation
-   mono-unité est explicitement prévue par votre documentation. Conséquence
-   directe : le **test 3** (prix multi-rates sur une date) est sans objet et se
-   trouve couvert par le test 2.
-2. **Min stay.** `min_stay_arrival` **et** `min_stay_through` sont supportés.
-3. **Stop sell.** Baitly ne pousse pas `stop_sell` par date : l'indisponibilité
-   passe par `availability = 0`, y compris pour les blocages manuels de plage
-   (test 6). Si votre revue exige le champ `stop_sell` explicite, nous
-   l'ajoutons — dites-le nous.
-4. **Cartes bancaires.** Non requises : les paiements passent par l'application
-   Stripe Tokenization de Channex, aucune donnée de carte ne transite ni n'est
-   stockée par Baitly.
-5. **Ack des réservations.** Le feed `booking_revisions/feed` est acquitté
-   **par révision, après commit** de la persistance — jamais avant. Une
-   réservation reçue mais non persistée n'est donc pas acquittée et revient au
-   cycle suivant.
+> Réécrites le 2026-08-14 après le refus. La note « stop sell » disait l'inverse
+> de ce qui est vrai aujourd'hui.
+
+1. **Single-unit vacation rental.** One Baitly property = one Channex property
+   with **1 room type × 1 rate plan**. The hotel protocol asks for 2×2; the
+   single-unit adaptation is explicitly allowed by your documentation. Direct
+   consequence: **test 3** (multiple rates on one date) is not applicable and is
+   covered by test 2.
+2. **A second rate plan appears on the property — it is not ours.** Alongside
+   our `Standard Rate` (`bdacb7fc-…`, the one declared in the setup), you will
+   see `Standard Rate - BookingCom …` (`fd230382-…`). Channex derived it
+   automatically when the Booking.com channel was mapped: it carries a `channel`
+   relationship, and our PMS neither created nor prices it. Our data model still
+   holds exactly one rate plan per room type.
+3. **Min stay.** Both `min_stay_through` and `min_stay_arrival` are sent on
+   every date. Our model has a **single min-stay value**, so the two fields are
+   always present and always equal — we do not currently let them diverge.
+4. **Max stay.** Sent as **0** when the property sets no maximum, per your
+   "no limit" convention.
+5. **Stop sell.** Supported and sent on every date. A booking consumes
+   inventory (`availability = 0`); a manual block or maintenance keeps the unit
+   (`availability = 1`) and closes the date through `stop_sell = true`. The two
+   used to be conflated — that is fixed.
+6. **Credit cards.** Not required: payments go through the Channex Stripe
+   Tokenization app; no card data transits through or is stored by Baitly.
+7. **Booking acknowledgement.** The `booking_revisions/feed` is acknowledged
+   **per revision, after the persistence commit** — never before. A booking
+   received but not persisted is therefore not acknowledged and comes back on
+   the next cycle.
 
 ## Soumission
 

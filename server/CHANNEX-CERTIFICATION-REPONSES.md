@@ -96,147 +96,210 @@ recalculerait de son côté et les résultats de test seraient ininterprétables
 
 ## Les 11 cas de test
 
-Chaque cas suit le même triptyque : *applicable ?* → si oui, les task IDs ; si
-non, la justification.
+Chaque cas donne : *applicable ?*, le texte de description à recopier, et les
+task IDs. Le formulaire compare le texte déclaré au contenu réel de la tâche —
+au passage précédent, le test 2 a été refusé parce que la date et le tarif
+annoncés ne correspondaient pas à ce que Channex avait reçu.
 
-> ### ✅ Task IDs régénérés le 2026-08-14
+> ### ✅ Passage du 2026-08-14, après correctifs — chaque payload relu sur l'API
 >
-> Tous les scénarios ci-dessous ont été rejoués sur la propriété recréée
-> (`789973a4-…`), avec une grille tarifaire variée — 180 jours, 175 prix
-> distincts de 110 à 240 USD, week-ends marqués. Les IDs sont ceux de ce
-> passage ; les anciens (9 juillet) pointaient sur une propriété supprimée.
+> Les IDs ci-dessous ne viennent pas de nos journaux : chaque tâche a été
+> relue via `GET /tasks/{id}` sur staging, et son `payload.values` vérifié.
+> Toutes sont en `success: true`, sans erreur.
 >
-> **Chaque test a été déclenché seul, en attendant le flush du batcher entre
-> deux.** C'est indispensable : le batcher fusionne les plages d'une même
-> propriété sur une fenêtre de 30 s — enchaînés, les tests seraient partis en un
-> seul appel et aucun ID n'aurait pu être attribué à un test précis.
+> **Un seul ID par test, sauf le test 1.** C'est le cœur du refus précédent :
+> Baitly poussait availability ET rates à chaque changement. Un full sync envoie
+> légitimement les deux ; un changement ciblé, un seul.
 >
-> L'ordre availability / rates varie d'un test à l'autre dans les journaux ; les
-> deux lignes appartiennent au même déclenchement.
+> **Chaque test a été déclenché seul, en laissant passer le flush de 30 s.**
+> Enchaînés, le batcher fusionne les plages et aucun ID n'est attribuable.
 
 ### Test 1 — Full Sync
-**Test results** (un ID par ligne) :
+Applicable : **Yes**
+
 ```
-cf4361b6-1ad2-467b-83d0-8c6ce9d730e6
-39377a2d-44e6-44a2-b7ad-8ed22c3ba2ca
+1cc44acd-781d-4fc1-bf66-ff5d31a389bf
+fc6a44ea-acbc-4b68-a355-3dd0c3a1f996
 ```
+
+`Property.UpdateAvailability` + `Property.UpdateRestrictions`, 500 jours.
+Vérifié : **500 objets de restriction, les six restrictions déclarées présentes
+sur les 500** — là où le rapport comptait « 154/181 » et « 181/181 » d'absences.
+La disponibilité part en `date_from`/`date_to` fusionnés.
 
 ### Test 2 — Single Date Update for Single Rate
 Applicable : **Yes**
+
 ```
-3aaa0ec2-aa81-4aaa-883b-d588c0781de8
-607bf28b-896e-4f65-8ce2-1fedb2d92de9
+Price set to 333.00 USD on the single date 2026-11-22, from the Pricing screen.
+One Property.UpdateRestrictions call, one entry, one date. No availability call.
 ```
 
-### Test 3 — Single Date Update for **Multiple Rates**
+```
+5ea7ac56-6e92-4944-999e-d65bccb0829b
+```
+
+Payload reçu : `{"date": "2026-11-22", "rate": "333.00", …}`.
+
+### Test 3 — Single Date Update for Multiple Rates
 Applicable : **No**
 
-> Baitly is a vacation-rental PMS: one property has exactly one room type with
-> one rate plan, so there is never more than one rate to update on a given date.
-> This scenario is structurally impossible in our data model — it is covered by
-> Test 2, which performs the same update on the single rate plan.
+```
+Baitly is a single-unit vacation-rental PMS. One property has exactly one room
+type with exactly one rate plan, so a given date never carries more than one
+rate. There is no second rate to update, which makes this scenario structurally
+impossible in our data model rather than merely unimplemented.
+
+The underlying capability is proven by Test 2, which performs the same
+single-date rate update on our single rate plan.
+```
 
 ### Test 4 — Multiple Date Update for Multiple Rates
 Applicable : **Yes**
+
 ```
-d5ae6aca-5df0-44f4-87d6-08a39ccb2152
-d54b8636-4f91-4b61-8d27-5d3a6eeadb14
+Price changed to 275.00 USD over 2026-12-01 to 2026-12-05 from the Pricing
+screen. One API call, compressed into a single date_from/date_to entry. The
+"multiple rates" part is not applicable: we have a single rate plan (see Test 3).
 ```
-> Une phrase à ajouter dans le champ, sinon le reviewer verra une contradiction
-> avec le test 3 : *« Multi-date range on our single rate plan, compressed into
-> one call using date_from/date_to. The 'multiple rates' part is not applicable
-> (see Test 3). »*
+
+```
+4f4b527a-4ce5-463f-9417-a4127aa86f86
+```
 
 ### Test 5 — Min Stay Update
 Applicable : **Yes**
+
 ```
-6e380d46-8791-4ad6-a091-d7e1ace9e44e
-ddc37878-8207-47ef-ac3e-8c0dc322ec2c
+Minimum stay set to 4 nights on the single date 2027-01-15, from the
+Restrictions tab. One Property.UpdateRestrictions call, one entry, one date.
+Both min_stay_through and min_stay_arrival are set to 4 (our model holds a
+single min-stay value - see Extra Notes).
+```
+
+```
+9f7d5f27-9cbe-4d61-9402-ecdc7c8e029f
 ```
 
 ### Test 6 — Stop Sell Update
-Applicable : **No**
+Applicable : **Yes** — *répondait No au passage précédent, c'était l'erreur*
 
-> Baitly does not push the `stop_sell` field. Closing dates for sale is done by
-> pushing `availability = 0`, which is our single source of truth for
-> availability — a blocked date, a manual block and a booking all converge to
-> the same representation. Task ID `f5c80a78-44c4-4d5c-91b3-c4bd0d6e075b`
-> (Test 10) shows a date range being closed this way. If your review requires
-> the explicit `stop_sell` field, we will add it — please tell us.
+```
+Dates 2027-02-10 to 2027-02-13 blocked from the Planning screen. One
+Property.UpdateRestrictions call carrying stop_sell: true. Availability stays 1:
+a manual block closes the date for sale without consuming inventory, while a
+booking consumes it (availability 0). Only a booking touches availability.
+```
+
+```
+36278866-9d29-47bd-8d0d-fffb1b64f5a2
+```
 
 ### Test 7 — Multiple Restrictions Update
 Applicable : **Yes**
+
 ```
-3a74a2ea-9c5f-41b7-aa71-7cbf9abd434c
-424889c0-d063-43cf-8eb5-f2546e1a234a
+Combined restriction over 2027-04-05 to 2027-04-12: min stay 3, max stay 14,
+closed to arrival and closed to departure. One Property.UpdateRestrictions call.
+It contains two entries because the nightly rate differs across the range;
+restriction values are identical throughout.
+```
+
+```
+6cd6f048-199b-4ff6-bb28-e1a16683366a
 ```
 
 ### Test 8 — Half-year Update
 Applicable : **Yes**
+
 ```
-9790ef16-5c71-4510-b2f6-28fcafc9812b
-2f19d09e-72c2-4725-9d6b-215ae8a86606
+Combined restriction over 153 days, 2027-08-01 to 2027-12-31: min stay 3,
+max stay 21, closed to arrival and closed to departure, with rates. One single
+Property.UpdateRestrictions call, compressed into 6 date_from/date_to ranges
+following the rate changes.
 ```
 
-> Joué pour de vrai le 2026-08-14 : une restriction combinée (min 2, max 21,
-> CTA, CTD) sur **152 jours** — 2027-08-01 → 2027-12-31 — poussée en **un seul
-> appel rates**. Plus de doublon avec le test 7, chaque test a son propre ID.
+```
+9b0c5223-7dd8-471b-9f69-7fdc5e0c09fa
+```
 
 ### Test 9 — Single Date Availability Update
 Applicable : **Yes**
+
 ```
-64e13714-db99-425b-bdd0-152ca5ed637b
-1b261919-734b-4ef7-8a10-4b55df67578e
+One-night booking created for 2027-03-05. One Property.UpdateAvailability call,
+one entry, single date, availability 0 - the unit is taken. No rate or
+restriction call is emitted.
 ```
-> Le premier est l'appel availability — celui que le test vise. Le second est le
-> rates émis par le même déclenchement : nos pushes vont par paire, et les
-> déclarer tous deux évite de donner une image fausse du schéma d'appels.
+
+```
+0d43be0c-64bd-45f2-aa04-9831bd2d2328
+```
 
 ### Test 10 — Multiple Date Availability Update
 Applicable : **Yes**
+
 ```
-f5c80a78-44c4-4d5c-91b3-c4bd0d6e075b
-7f6de9a9-537e-47a1-8bb0-af4a98bc237d
+A four-night booking over 2026-12-01 to 2026-12-04 was cancelled, releasing the
+unit. One Property.UpdateAvailability call, availability 1, compressed into a
+single date_from/date_to range. One unit, so availability is 1 when free and 0
+when booked.
 ```
 
-### Test 11 — Booking Receiving — ✅ rejoué le 2026-08-14
+```
+1a54db96-52a7-4280-85b2-f1d730edd556
+```
+
+> Il a fallu passer par une **annulation** : depuis la séparation
+> inventaire / fermeture, seule une réservation touche `availability`. C'est
+> aussi ce qui répond au « Availability is 0, expected 1 or 3 » du rapport.
+
+### Test 11 — Booking Receiving
+Applicable : **Yes**
 
 | Champ | Valeur |
 |---|---|
-| **Booking ID** | `813a13e1-237e-4a13-942c-537bbbb4df59` |
-| **Booking Revision ID — New** | `6548e90c-393c-4784-a7ed-1bdeacd67874` |
-| **Booking Revision ID — Modified** | `78ccf904-d76d-4c35-a6cf-e095ea0f2868` |
-| **Booking Revision ID — Cancelled** | `ac013d96-3ee7-48b2-9ce9-7a76100d08df` |
-
-> ⛔ **Démenti par le refus.** Ce paragraphe affirmait qu'aucun webhook public
-> n'était nécessaire. Channex a répondu que « the webhook endpoint must accept
-> the notification and respond with success », et a compté les huit lectures par
-> liste ou par identifiant comme des réceptions illégitimes. Le feed seul ne
-> suffit pas.
-
-Le feed de révisions est interrogé toutes les 10 minutes
-(`clenzy.channex.booking-feed-interval-minutes`), et c'est ce planificateur qui a
-consommé les trois révisions :
+| **Booking ID** | `9dc4350b-b8ea-41aa-ab97-91d9672c329d` |
+| **Revision — New** | `028960e8-56d2-43ff-bb41-7c5897a60cff` |
+| **Revision — Modified** | `738a68ab-635c-4c7a-828b-60dfbcc2eaf2` |
+| **Revision — Cancelled** | `d1725050-3511-4c6d-b660-f2c669dc9188` |
 
 ```
-00:39:26  reservation BAITLY-243 creee depuis 813a13e1-…      ack 6548e90c-…
-00:49:25  reservation #244 modifiee (dates_changed=true)      ack 78ccf904-…
-00:49:26  reservation #244 annulee depuis Channex             ack ac013d96-…
-          ChannexFeed: 3 revisions traitees, 3 ackees, 0 en echec
+Bookings are received through the webhook. Channex delivered booking, booking_new
+and ari events to our public endpoint; each delivery drains the revisions feed and
+acknowledges per revision, after the persistence commit. No list polling and no
+by-id fetching was used during this run.
+
+New: a direct reservation was pushed to the CRS. Modified: the stay was extended
+by two nights and occupancy raised to 3, from the Booking CRS app. Cancelled:
+cancelled from Baitly.
 ```
 
-Déroulé : la réservation directe #243 est poussée au CRS (`push-crs`) → révision
-**new** ; le séjour est prolongé de 2 nuits et passé à 3 adultes via l'app
-Booking CRS, qui joue le rôle du canal → révision **modified** ; l'annulation
-part de Baitly (`cancel-crs`) → révision **cancelled**.
+Les trois revisions sont en `acknowledge_status: acknowledged` cote Channex.
+Chaine complete relevee dans les journaux, en quelques secondes :
 
-> **Un avertissement OVERBOOKING apparaît dans les journaux — il est attendu.**
-> La réservation a été fabriquée en la poussant depuis Baitly, donc les nuits
-> étaient déjà occupées par la réservation directe #243 quand Channex nous l'a
-> renvoyée en tant que booking OTA. Le garde-fou a fait exactement son travail :
-> réservation persistée **et** acquittée, calendrier laissé intact, intervention
-> signalée. Avec un vrai canal OTA (le cas nominal) la nuit est libre et le
-> calendrier se bloque normalement.
+```
+15:25:03  webhook recu: event=booking  -> ack 028960e8  (1 traitee, 1 ackee, 0 echec)
+15:25:39  webhook recu                 -> ack 738a68ab
+15:26:01  webhook recu                 -> ack d1725050
+```
+
+> **Ce qui a change depuis le refus.** Le rapport disait « All webhook deliveries
+> for revision 6548e90c… failed ». Deux causes, corrigees : l'URL enregistree
+> etait la racine du tunnel, sans `/api/webhooks/channex` — chaque livraison
+> tombait en 404 et Channex a fini par desactiver le webhook ; et
+> `/webhooks/ensure` se contentait de signaler un webhook inactif au lieu de le
+> reactiver. Les revisions arrivent desormais **par livraison webhook**, pas par
+> le planificateur de 10 minutes.
+>
+> **Aucun `pull-bookings` ni `getBooking` de tout le passage.** Les huit
+> evenements `..._via_list` / `..._via_find` reproches venaient d'appels de
+> diagnostic, pas d'un flux automatique.
+>
+> ⚠️ Le webhook pointe sur un **tunnel ephemere**, ferme apres ce passage. Pour
+> rejouer le test 11, relancer un tunnel, remettre
+> `CHANNEX_WEBHOOK_CALLBACK_URL` (avec le chemin complet), recreer le conteneur,
+> puis `POST /webhooks/ensure`.
 
 ## Rate Limits and Update logic
 
@@ -259,16 +322,17 @@ pour le screenshare — sont dans `CHANNEX-CERTIFICATION-RUNBOOK.md`, section
 
 ## Avant d'envoyer — ce qui reste
 
-Après le refus du 2026-08-14, la liste se réduit à ceci :
+Les onze scénarios ont été rejoués le 2026-08-14 après correctifs, chaque
+payload relu sur l'API des tâches Channex. Il reste :
 
-1. **Rebuild du conteneur**, puis exercer les quatre correctifs contre le
-   staging — rien n'a encore été vérifié en conditions réelles.
-2. **Rendre Baitly joignable** et lancer `POST /webhooks/ensure` : URL avec le
-   chemin `/api/webhooks/channex`, webhook réactivé, une livraison qui aboutit.
-3. **Rejouer les onze scénarios depuis l'écran**, un à la fois, en laissant
-   passer le flush de 30 s entre deux, et noter le task ID au moment du clic.
-4. **Ne pas lancer `pull-bookings`** pendant la campagne.
-5. **Trancher la réponse PCI**, toujours ouverte.
+1. **Trancher la réponse PCI** — seul champ encore ouvert.
+2. **Cocher Stop Sell** dans les fonctionnalités : la réponse passe de No à Yes,
+   c'était l'erreur qui rendait le test 6 injouable.
+3. **Recopier les Extra Notes** du runbook, dont la note sur le second rate plan
+   dérivé par Channex — sans elle, le test 3 peut se faire rouvrir.
+4. **Rejouer les scénarios depuis l'écran** avant le screenshare : ce passage a
+   été déclenché par les endpoints, qui sont le même chemin de code mais pas le
+   même geste. Le reviewer demandera des actions dans l'interface.
 
 ### Un bug corrigé au passage
 
