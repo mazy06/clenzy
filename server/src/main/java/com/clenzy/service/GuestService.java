@@ -347,7 +347,12 @@ public class GuestService {
      * prénom/nom/langue seulement si non vides ; email/téléphone/pays/notes sont écrits tels
      * quels (vidés si chaîne vide). Renvoie le DTO à jour, ou vide si le voyageur n'existe pas
      * dans l'organisation.
+     *
+     * <p>{@code @Transactional} obligatoire, cf. {@link #createDirect} : la classe
+     * est en {@code readOnly}. C'est le chemin emprunté quand le formulaire de
+     * réservation vise un voyageur DÉJÀ existant.</p>
      */
+    @Transactional
     public Optional<GuestDto> updateGuest(Long guestId, Long organizationId, GuestDto dto) {
         return guestRepository.findById(guestId)
                 .filter(g -> g.getOrganizationId().equals(organizationId))
@@ -387,7 +392,15 @@ public class GuestService {
      * (langue, pays, notes) fournies au formulaire. Langue/pays sont mis à jour si
      * fournis ; les notes ne le sont que si le voyageur n'en a pas déjà (évite d'écraser
      * à la déduplication par email).
+     *
+     * <p>{@code @Transactional} est INDISPENSABLE ici : la classe porte
+     * {@code readOnly = true} et chaque méthode d'écriture doit le surcharger.
+     * Sans cette annotation, l'insertion échouait sur « cannot execute INSERT in
+     * a read-only transaction » — et donc toute création de réservation depuis le
+     * planning, puisqu'elle commence par créer la fiche voyageur. C'était la
+     * seule méthode d'écriture du service à l'avoir perdue.</p>
      */
+    @Transactional
     public GuestDto createDirect(GuestDto dto, Long orgId) {
         Guest guest = findOrCreate(
                 dto.firstName(), dto.lastName(), dto.email(), dto.phone(),
