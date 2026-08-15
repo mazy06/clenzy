@@ -1357,14 +1357,28 @@ public class ChannexClient {
             && java.util.Objects.equals(a.stopSell(), b.stopSell());
     }
 
+    /**
+     * Ecrit la plage de dates d'une entree, TOUJOURS en {@code date_from} /
+     * {@code date_to} — y compris pour un seul jour.
+     *
+     * <p>Cette methode emettait la cle {@code date} quand la serie tenait sur un
+     * jour. Un payload pouvait donc melanger les deux syntaxes, et c'est ce qui
+     * a fait echouer le test 8 de la certification du 2026-08-15. Payload
+     * 9b0c5223 relu le lendemain : six entrees couvrant 2027-08-01 → 12-31,
+     * dont la troisieme portait {@code "date": "2027-09-07"} — une nuit bloquee
+     * isolee entre deux plages ouvertes, qui fragmentait la serie. Verdict
+     * Channex : « Use date_range syntax with merged sequences instead of
+     * single-date objects », et — faute de reconstituer la couverture — « No
+     * valid rate set over the half-year range ».
+     *
+     * <p>Une plage d'un jour s'exprime tres bien par {@code date_from ==
+     * date_to} : c'est ce que les scenarios « single date » attendent, leur
+     * critere portant sur l'etendue visee, pas sur le nom de la cle.</p>
+     */
     private static void putDateOrRange(Map<String, Object> entry,
                                        java.time.LocalDate from, java.time.LocalDate to) {
-        if (from.equals(to)) {
-            entry.put("date", from.toString());
-        } else {
-            entry.put("date_from", from.toString());
-            entry.put("date_to", to.toString());
-        }
+        entry.put("date_from", from.toString());
+        entry.put("date_to", to.toString());
     }
 
     /**
