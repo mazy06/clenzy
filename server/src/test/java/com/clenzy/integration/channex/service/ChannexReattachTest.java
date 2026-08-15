@@ -85,7 +85,7 @@ class ChannexReattachTest {
             connectService, userRepository, lengthOfStayDiscountRepository,
             ratePlanRepository, occupancyPricingRepository, rateOverrideRepository,
             bookingRestrictionRepository, objectMapper, amenityManagementService, pricingImporter,
-            groupService, selfProvider);
+            groupService, selfProvider, new com.clenzy.integration.channex.config.ChannexProperties());
         when(selfProvider.getObject()).thenAnswer(inv -> service);
         when(groupService.propertyIdsOwnedByOtherOrgs(anyLong())).thenReturn(Set.of());
         when(mappingRepository.findAllByOrgId(anyLong())).thenReturn(List.of());

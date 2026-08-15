@@ -64,9 +64,53 @@ class ChannexCalendarUpdateListenerTest {
         ));
 
         // La portee voyage avec l'event : PRICE_UPDATED ne concerne que les tarifs.
+        // Et les CHAMPS aussi : un changement de prix ne porte QUE le prix. Envoyer
+        // les sept champs donnait un instantane la ou Channex attend un delta
+        // (« snapshot-based update rather than a rate-only delta », 2026-08-15).
         verify(ariBatcher).enqueue(100L, 42L,
             LocalDate.parse("2026-06-01"), LocalDate.parse("2026-06-03"),
-            com.clenzy.integration.channex.model.ChannexAriScope.RATES);
+            com.clenzy.integration.channex.model.ChannexAriScope.RATES,
+            java.util.Set.of(com.clenzy.integration.channex.model.ChannexRateField.RATE));
+    }
+
+    @Test
+    @DisplayName("BLOCKED -> tarifs, et le payload ne porte QUE stop_sell")
+    void blockedCarriesOnlyStopSell() {
+        when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
+            .thenReturn(Optional.of(mapping));
+
+        listener.onCalendarUpdate(Map.of(
+            "propertyId", 100, "orgId", 42, "action", "BLOCKED",
+            "from", "2027-02-10", "to", "2027-02-10"
+        ));
+
+        // Un blocage ferme la vente sans toucher au prix ni aux restrictions.
+        // « Stop sell update also carries other fields [...]; it should contain
+        // only stop sell » — certification du 2026-08-15.
+        verify(ariBatcher).enqueue(100L, 42L,
+            LocalDate.parse("2027-02-10"), LocalDate.parse("2027-02-10"),
+            com.clenzy.integration.channex.model.ChannexAriScope.RATES,
+            java.util.Set.of(com.clenzy.integration.channex.model.ChannexRateField.STOP_SELL));
+    }
+
+    @Test
+    @DisplayName("RESTRICTION_UPDATED -> les quatre champs de restriction, sans prix ni stop_sell")
+    void restrictionCarriesOnlyRestrictionFields() {
+        when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
+            .thenReturn(Optional.of(mapping));
+
+        listener.onCalendarUpdate(Map.of(
+            "propertyId", 100, "orgId", 42, "action", "RESTRICTION_UPDATED",
+            "from", "2027-03-12", "to", "2027-03-12"
+        ));
+
+        // Le service filtrera ensuite sur les champs NON NULS de la restriction :
+        // c'est ce qui distingue « sejour minimum seul » de « restrictions
+        // combinees » sans que l'action ait a le dire.
+        verify(ariBatcher).enqueue(100L, 42L,
+            LocalDate.parse("2027-03-12"), LocalDate.parse("2027-03-12"),
+            com.clenzy.integration.channex.model.ChannexAriScope.RATES,
+            com.clenzy.integration.channex.model.ChannexRateField.RESTRICTION_FIELDS);
     }
 
     @Test
@@ -80,7 +124,7 @@ class ChannexCalendarUpdateListenerTest {
             "from", "2026-06-01", "to", "2026-06-07"
         ));
 
-        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any());
+        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any(), any());
     }
 
     @Test
@@ -95,7 +139,7 @@ class ChannexCalendarUpdateListenerTest {
             "from", "2026-06-01", "to", "2026-06-03"
         ));
 
-        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any());
+        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any(), any());
     }
 
     @Test
@@ -103,7 +147,7 @@ class ChannexCalendarUpdateListenerTest {
     void skipsOnIncompleteEvent() {
         listener.onCalendarUpdate(Map.of("action", "WHATEVER"));
         verify(mappingRepository, never()).findByClenzyPropertyId(anyLong(), anyLong());
-        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any());
+        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any(), any());
     }
 
     @Test
@@ -112,7 +156,7 @@ class ChannexCalendarUpdateListenerTest {
         listener.onCalendarUpdate(Map.of(
             "propertyId", 100, "orgId", 42, "action", "BOOKING_CREATED"
         ));
-        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any());
+        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any(), any());
     }
 
     @Test
@@ -128,7 +172,8 @@ class ChannexCalendarUpdateListenerTest {
 
         verify(ariBatcher).enqueue(100L, 42L,
             LocalDate.parse("2026-06-01"), LocalDate.parse("2026-06-07"),
-            com.clenzy.integration.channex.model.ChannexAriScope.BOTH);
+            com.clenzy.integration.channex.model.ChannexAriScope.BOTH,
+            com.clenzy.integration.channex.model.ChannexRateField.ALL);
     }
 
     @Test
@@ -138,7 +183,7 @@ class ChannexCalendarUpdateListenerTest {
             "propertyId", 100, "orgId", 42, "action", "X",
             "from", "not-a-date", "to", "also-bad"
         ));
-        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any());
+        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any(), any());
     }
 
     @Test
@@ -148,14 +193,14 @@ class ChannexCalendarUpdateListenerTest {
             "propertyId", "abc", "orgId", 42, "action", "X",
             "from", "2026-06-01", "to", "2026-06-03"
         ));
-        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any());
+        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any(), any());
     }
 
     @Test
     @DisplayName("Event payload type inattendu -> skip silencieux")
     void unwrapUnknownType_skips() {
         listener.onCalendarUpdate(Integer.valueOf(42));
-        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any());
+        verify(ariBatcher, never()).enqueue(anyLong(), anyLong(), any(), any(), any(), any());
     }
 
     @Test
@@ -169,7 +214,8 @@ class ChannexCalendarUpdateListenerTest {
 
         verify(ariBatcher).enqueue(100L, 42L,
             LocalDate.parse("2026-06-01"), LocalDate.parse("2026-06-03"),
-            com.clenzy.integration.channex.model.ChannexAriScope.BOTH);
+            com.clenzy.integration.channex.model.ChannexAriScope.BOTH,
+            com.clenzy.integration.channex.model.ChannexRateField.ALL);
     }
 
     @Test

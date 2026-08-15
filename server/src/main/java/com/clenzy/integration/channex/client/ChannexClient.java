@@ -1326,7 +1326,10 @@ public class ChannexClient {
             entry.put("property_id", run.channexPropertyId());
             entry.put("rate_plan_id", run.channexRatePlanId());
             putDateOrRange(entry, run.date(), runEnd);
-            entry.put("rate", normalize(run.rate()));
+            // `rate` est conditionnel comme les autres : une mise a jour de
+            // sejour minimum seul ne doit PAS embarquer le prix (« Min stay
+            // update also carries other fields », certification 2026-08-15).
+            if (run.rate() != null) entry.put("rate", normalize(run.rate()));
             if (run.minStayThrough() != null) entry.put("min_stay_through", run.minStayThrough());
             if (run.minStayArrival() != null) entry.put("min_stay_arrival", run.minStayArrival());
             if (run.closedToArrival() != null) entry.put("closed_to_arrival", run.closedToArrival());

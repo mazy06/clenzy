@@ -83,7 +83,8 @@ class ChannexImportServicePricingTest {
             ratePlanRepository, occupancyPricingRepository, rateOverrideRepository,
             bookingRestrictionRepository,
             new ObjectMapper(), amenityManagementService,
-            realPricingImporter, groupService, selfProvider
+            realPricingImporter, groupService, selfProvider,
+            new com.clenzy.integration.channex.config.ChannexProperties()
         );
         // self = l'instance elle-meme (pas de proxy Spring en test unitaire)
         org.mockito.Mockito.lenient().when(selfProvider.getObject()).thenAnswer(inv -> service);

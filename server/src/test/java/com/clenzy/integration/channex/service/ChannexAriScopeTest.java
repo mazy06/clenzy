@@ -123,7 +123,7 @@ class ChannexAriScopeTest {
     @Test
     @DisplayName("plusieurs changements de prix -> la portee reste RATES, un seul push")
     void batcherKeepsSingleScope() {
-        when(syncService.processCalendarRange(anyLong(), anyLong(), any(), any(), any()))
+        when(syncService.processCalendarRange(anyLong(), anyLong(), any(), any(), any(), any()))
             .thenReturn(OK);
         ChannexAriBatcher batcher = batcher();
 
@@ -135,14 +135,14 @@ class ChannexAriScopeTest {
 
         ArgumentCaptor<ChannexAriScope> scope = ArgumentCaptor.forClass(ChannexAriScope.class);
         verify(syncService, times(1)).processCalendarRange(
-            anyLong(), anyLong(), any(), any(), scope.capture());
+            anyLong(), anyLong(), any(), any(), scope.capture(), any());
         assertThat(scope.getValue()).isEqualTo(ChannexAriScope.RATES);
     }
 
     @Test
     @DisplayName("un prix ET un blocage dans la meme fenetre -> BOTH")
     void batcherMergesMixedScopes() {
-        when(syncService.processCalendarRange(anyLong(), anyLong(), any(), any(), any()))
+        when(syncService.processCalendarRange(anyLong(), anyLong(), any(), any(), any(), any()))
             .thenReturn(OK);
         ChannexAriBatcher batcher = batcher();
 
@@ -153,14 +153,14 @@ class ChannexAriScopeTest {
         batcher.flush();
 
         ArgumentCaptor<ChannexAriScope> scope = ArgumentCaptor.forClass(ChannexAriScope.class);
-        verify(syncService).processCalendarRange(anyLong(), anyLong(), any(), any(), scope.capture());
+        verify(syncService).processCalendarRange(anyLong(), anyLong(), any(), any(), scope.capture(), any());
         assertThat(scope.getValue()).isEqualTo(ChannexAriScope.BOTH);
     }
 
     @Test
     @DisplayName("enqueue sans portee -> BOTH (resynchronisation manuelle)")
     void enqueueWithoutScope_pushesBoth() {
-        when(syncService.processCalendarRange(anyLong(), anyLong(), any(), any(), any()))
+        when(syncService.processCalendarRange(anyLong(), anyLong(), any(), any(), any(), any()))
             .thenReturn(OK);
         ChannexAriBatcher batcher = batcher();
 
@@ -168,7 +168,7 @@ class ChannexAriScopeTest {
         batcher.flush();
 
         ArgumentCaptor<ChannexAriScope> scope = ArgumentCaptor.forClass(ChannexAriScope.class);
-        verify(syncService).processCalendarRange(anyLong(), anyLong(), any(), any(), scope.capture());
+        verify(syncService).processCalendarRange(anyLong(), anyLong(), any(), any(), scope.capture(), any());
         assertThat(scope.getValue()).isEqualTo(ChannexAriScope.BOTH);
     }
 }

@@ -6,6 +6,7 @@ import com.clenzy.integration.channex.dto.ChannexAvailabilityUpdate;
 import com.clenzy.integration.channex.dto.ChannexRateUpdate;
 import com.clenzy.integration.channex.exception.ChannexException;
 import com.clenzy.integration.channex.model.ChannexPropertyMapping;
+import com.clenzy.integration.channex.model.ChannexRateField;
 import com.clenzy.integration.channex.model.ChannexSyncStatus;
 import com.clenzy.integration.channex.repository.ChannexPropertyMappingRepository;
 import com.clenzy.model.CalendarDay;
@@ -127,6 +128,21 @@ public class ChannexSyncService {
     public ChannexSyncResult processCalendarRange(Long propertyId, Long orgId,
                                                   LocalDate from, LocalDate to,
                                                   com.clenzy.integration.channex.model.ChannexAriScope scope) {
+        return processCalendarRange(propertyId, orgId, from, to, scope, ChannexRateField.ALL);
+    }
+
+    /**
+     * Variante qui restreint aussi les CHAMPS du payload tarifs.
+     *
+     * <p>La portee dit quel canal pousser ; {@code rateFields} dit quoi mettre
+     * dedans. Sans ce second filtre, un changement de prix partait avec les
+     * sept champs renseignes — un instantane la ou Channex attend un delta
+     * (quatre avertissements de certification le 2026-08-15).</p>
+     */
+    public ChannexSyncResult processCalendarRange(Long propertyId, Long orgId,
+                                                  LocalDate from, LocalDate to,
+                                                  com.clenzy.integration.channex.model.ChannexAriScope scope,
+                                                  java.util.Set<ChannexRateField> rateFields) {
         Optional<ChannexPropertyMapping> mappingOpt =
             mappingRepository.findByClenzyPropertyId(propertyId, orgId);
         if (mappingOpt.isEmpty()) {
@@ -175,7 +191,7 @@ public class ChannexSyncService {
         boolean availabilityOk = !effectiveScope.includesAvailability()
             || pushAvailabilityForRange(mapping, from, to);
         boolean ratesOk = !effectiveScope.includesRates()
-            || pushRatesForRange(mapping, from, to);
+            || pushRatesForRange(mapping, from, to, rateFields);
 
         updateMappingStatus(mapping, availabilityOk && ratesOk, null);
         boolean ok = availabilityOk && ratesOk;
@@ -336,6 +352,31 @@ public class ChannexSyncService {
      * restrictions du DTO etaient inutilises → asymmetrie import vs export.</p>
      */
     private boolean pushRatesForRange(ChannexPropertyMapping mapping, LocalDate from, LocalDate to) {
+        return pushRatesForRange(mapping, from, to,
+            ChannexRateField.ALL);
+    }
+
+    /**
+     * Variante qui ne met dans le payload que les champs demandes.
+     *
+     * <p>Un push ne doit porter que ce que l'action a change. Envoyer les sept
+     * champs a chaque fois donne un instantane la ou Channex attend un delta —
+     * quatre avertissements de certification le 2026-08-15, « this looks like a
+     * snapshot-based update rather than a rate-only delta ».</p>
+     *
+     * <p>Les champs de restriction subissent un second filtre : meme demandes,
+     * ils ne partent que s'ils sont <b>non nuls</b> dans la
+     * {@code BookingRestriction} qui couvre la date. C'est ce qui separe le
+     * scenario « sejour minimum seul » du scenario « restrictions combinees ».
+     * Les defauts de propriete ne comblent plus les trous que pour un
+     * instantane complet, jamais pour un delta.</p>
+     */
+    private boolean pushRatesForRange(ChannexPropertyMapping mapping, LocalDate from, LocalDate to,
+                                      java.util.Set<ChannexRateField> fields) {
+        var wanted = (fields == null || fields.isEmpty())
+            ? ChannexRateField.ALL : fields;
+        boolean snapshot = wanted.containsAll(
+            ChannexRateField.ALL);
         long startMs = System.currentTimeMillis();
         try {
             // resolvePriceRange est EXCLUSIF sur `to` (PriceEngine: date.isBefore(to)).
@@ -374,26 +415,67 @@ public class ChannexSyncService {
             List<ChannexRateUpdate> updates = new ArrayList<>(prices.size() * Math.max(1, ratePlanIds.size()));
             for (String ratePlanId : ratePlanIds) {
                 for (Map.Entry<LocalDate, BigDecimal> entry : prices.entrySet()) {
-                    if (entry.getValue() == null) continue;
+                    // Un prix absent ne disqualifie la date que si le prix est
+                    // la SEULE chose a envoyer. Une mise a jour de restriction
+                    // ou de stop_sell doit partir meme la ou aucun prix n'est
+                    // resolu — sinon le delta se viderait de son contenu.
+                    if (entry.getValue() == null
+                        && !wanted.contains(ChannexRateField.MIN_STAY)
+                        && !wanted.contains(ChannexRateField.MAX_STAY)
+                        && !wanted.contains(ChannexRateField.CLOSED_TO_ARRIVAL)
+                        && !wanted.contains(ChannexRateField.CLOSED_TO_DEPARTURE)
+                        && !wanted.contains(ChannexRateField.STOP_SELL)) {
+                        continue;
+                    }
                     LocalDate date = entry.getKey();
                     com.clenzy.model.BookingRestriction restriction = pickHighestPriorityFor(
                         applicableRestrictions, date);
+                    // `null` = champ ABSENT du payload (cf. compressRates). C'est
+                    // le mecanisme qui rend le delta possible : on ne renseigne
+                    // que ce qui est demande.
                     updates.add(new ChannexRateUpdate(
                         mapping.getChannexPropertyId(),
                         ratePlanId,
                         date,
-                        entry.getValue(),
-                        resolveMinStayThrough(restriction, defaults),
-                        resolveMinStayArrival(restriction, defaults),
-                        restriction != null && restriction.getClosedToArrival() != null
-                            ? restriction.getClosedToArrival() : Boolean.FALSE,
-                        restriction != null && restriction.getClosedToDeparture() != null
-                            ? restriction.getClosedToDeparture() : Boolean.FALSE,
-                        restriction != null && restriction.getMaxStay() != null
-                            ? restriction.getMaxStay() : defaults.maxStay(),
-                        stopSoldDates.contains(date)
+                        wanted.contains(ChannexRateField.RATE) ? entry.getValue() : null,
+                        wanted.contains(ChannexRateField.MIN_STAY)
+                            ? (snapshot ? resolveMinStayThrough(restriction, defaults)
+                                        : (restriction != null ? restriction.getMinStay() : null))
+                            : null,
+                        wanted.contains(ChannexRateField.MIN_STAY)
+                            ? (snapshot ? resolveMinStayArrival(restriction, defaults)
+                                        : (restriction != null ? restriction.getMinStay() : null))
+                            : null,
+                        wanted.contains(ChannexRateField.CLOSED_TO_ARRIVAL)
+                            ? (restriction != null && restriction.getClosedToArrival() != null
+                                ? restriction.getClosedToArrival()
+                                : (snapshot ? Boolean.FALSE : null))
+                            : null,
+                        wanted.contains(ChannexRateField.CLOSED_TO_DEPARTURE)
+                            ? (restriction != null && restriction.getClosedToDeparture() != null
+                                ? restriction.getClosedToDeparture()
+                                : (snapshot ? Boolean.FALSE : null))
+                            : null,
+                        wanted.contains(ChannexRateField.MAX_STAY)
+                            ? (restriction != null && restriction.getMaxStay() != null
+                                ? restriction.getMaxStay()
+                                : (snapshot ? defaults.maxStay() : null))
+                            : null,
+                        wanted.contains(ChannexRateField.STOP_SELL) ? stopSoldDates.contains(date) : null
                     ));
                 }
+            }
+            // Un push qui ne produit AUCUNE entree est un no-op silencieux, et
+            // c'est ce qui rend un echec de certification indechiffrable :
+            // « No valid rate set over the half-year range » (2026-08-15) vient
+            // de la — la propriete n'a pas de prix de base, PriceEngine renvoie
+            // null pour chaque date, et la boucle les saute toutes. Rien dans
+            // les journaux ne le disait.
+            if (updates.isEmpty()) {
+                log.warn("ChannexSync: push rates SANS AUCUNE entree property={} [{}, {}] champs={} "
+                    + "— aucun prix resolu (propriete sans prix de base ni plan tarifaire ?) "
+                    + "ni restriction applicable. Rien n'a ete envoye a Channex.",
+                    mapping.getClenzyPropertyId(), from, to, wanted);
             }
             com.clenzy.integration.channex.dto.ChannexAriPushResult pushResult =
                 channexClient.pushRates(updates);

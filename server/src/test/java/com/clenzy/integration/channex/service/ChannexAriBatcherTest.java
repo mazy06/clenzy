@@ -49,7 +49,7 @@ class ChannexAriBatcherTest {
     @Test
     @DisplayName("enqueue x3 meme propriete -> UN SEUL push couvrant l'enveloppe des plages")
     void mergesRangesPerProperty() {
-        when(syncService.processCalendarRange(anyLong(), anyLong(), any(), any(), any())).thenReturn(OK);
+        when(syncService.processCalendarRange(anyLong(), anyLong(), any(), any(), any(), any())).thenReturn(OK);
 
         batcher.enqueue(100L, 42L, LocalDate.parse("2026-06-05"), LocalDate.parse("2026-06-07"));
         batcher.enqueue(100L, 42L, LocalDate.parse("2026-06-01"), LocalDate.parse("2026-06-02"));
@@ -58,27 +58,27 @@ class ChannexAriBatcherTest {
 
         verify(syncService, times(1)).processCalendarRange(
             eq(100L), eq(42L),
-            eq(LocalDate.parse("2026-06-01")), eq(LocalDate.parse("2026-06-12")), any());
+            eq(LocalDate.parse("2026-06-01")), eq(LocalDate.parse("2026-06-12")), any(), any());
         assertThat(batcher.pendingCount()).isZero();
     }
 
     @Test
     @DisplayName("proprietes distinctes -> un push chacune")
     void separatePushPerProperty() {
-        when(syncService.processCalendarRange(anyLong(), anyLong(), any(), any(), any())).thenReturn(OK);
+        when(syncService.processCalendarRange(anyLong(), anyLong(), any(), any(), any(), any())).thenReturn(OK);
 
         batcher.enqueue(100L, 42L, LocalDate.parse("2026-06-01"), LocalDate.parse("2026-06-03"));
         batcher.enqueue(200L, 42L, LocalDate.parse("2026-06-01"), LocalDate.parse("2026-06-03"));
         batcher.flush();
 
-        verify(syncService).processCalendarRange(eq(100L), eq(42L), any(), any(), any());
-        verify(syncService).processCalendarRange(eq(200L), eq(42L), any(), any(), any());
+        verify(syncService).processCalendarRange(eq(100L), eq(42L), any(), any(), any(), any());
+        verify(syncService).processCalendarRange(eq(200L), eq(42L), any(), any(), any(), any());
     }
 
     @Test
     @DisplayName("push KO -> re-enfile avec differe (backoff), pas de re-push immediat")
     void requeuesWithBackoffOnFailure() {
-        when(syncService.processCalendarRange(anyLong(), anyLong(), any(), any(), any())).thenReturn(KO);
+        when(syncService.processCalendarRange(anyLong(), anyLong(), any(), any(), any(), any())).thenReturn(KO);
 
         batcher.enqueue(100L, 42L, LocalDate.parse("2026-06-01"), LocalDate.parse("2026-06-03"));
         batcher.flush();
@@ -87,13 +87,13 @@ class ChannexAriBatcherTest {
         // flush immediat ne doit PAS re-pousser.
         assertThat(batcher.pendingCount()).isEqualTo(1);
         batcher.flush();
-        verify(syncService, times(1)).processCalendarRange(anyLong(), anyLong(), any(), any(), any());
+        verify(syncService, times(1)).processCalendarRange(anyLong(), anyLong(), any(), any(), any(), any());
     }
 
     @Test
     @DisplayName("exception inattendue du sync -> traitee comme un echec (retry), pas de crash")
     void unexpectedExceptionRequeues() {
-        when(syncService.processCalendarRange(anyLong(), anyLong(), any(), any(), any()))
+        when(syncService.processCalendarRange(anyLong(), anyLong(), any(), any(), any(), any()))
             .thenThrow(new RuntimeException("DB down"));
 
         batcher.enqueue(100L, 42L, LocalDate.parse("2026-06-01"), LocalDate.parse("2026-06-03"));
@@ -106,6 +106,6 @@ class ChannexAriBatcherTest {
     @DisplayName("flush a vide -> aucun appel")
     void emptyFlushNoop() {
         batcher.flush();
-        verify(syncService, never()).processCalendarRange(anyLong(), anyLong(), any(), any(), any());
+        verify(syncService, never()).processCalendarRange(anyLong(), anyLong(), any(), any(), any(), any());
     }
 }

@@ -89,6 +89,7 @@ public class ChannexImportService {
     private static final Logger log = LoggerFactory.getLogger(ChannexImportService.class);
 
     private final ChannexClient channexClient;
+    private final com.clenzy.integration.channex.config.ChannexProperties channexProperties;
     private final ChannexPropertyMappingRepository mappingRepository;
     private final PropertyRepository propertyRepository;
     private final PropertyPhotoRepository propertyPhotoRepository;
@@ -133,8 +134,10 @@ public class ChannexImportService {
                                   AmenityManagementService amenityManagementService,
                                   ChannexPricingImporter pricingImporter,
                                   ChannexGroupService groupService,
-                                  ObjectProvider<ChannexImportService> self) {
+                                  ObjectProvider<ChannexImportService> self,
+                                  com.clenzy.integration.channex.config.ChannexProperties channexProperties) {
         this.channexClient = channexClient;
+        this.channexProperties = channexProperties;
         this.mappingRepository = mappingRepository;
         this.propertyRepository = propertyRepository;
         this.propertyPhotoRepository = propertyPhotoRepository;
@@ -862,19 +865,30 @@ public class ChannexImportService {
                 //    l'import (la property est deja creee). L'admin peut
                 //    re-trigger un pull manuel depuis le module Channels.
                 int importedBookings = 0;
-                try {
-                    LocalDate arrivalFrom = LocalDate.of(LocalDate.now().getYear(), 1, 1);
-                    LocalDate arrivalTo = LocalDate.now().plusMonths(12);
-                    var pullResult = connectService.pullBookings(prop.getId(), orgId,
-                        arrivalFrom, arrivalTo);
-                    importedBookings = pullResult.importedOrIdempotent();
-                    log.info("ChannexImport: pull bookings OK property={} periode=[{},{}] total={} imported={} skipped={}",
-                        prop.getId(), arrivalFrom, arrivalTo, pullResult.totalReceived(),
-                        pullResult.importedOrIdempotent(), pullResult.skipped());
-                } catch (Exception bex) {
-                    log.warn("ChannexImport: pull bookings KO property={} : {} "
-                        + "(import termine, l'admin peut re-trigger manuellement)",
-                        prop.getId(), bex.getMessage());
+                if (!channexProperties.isImportPullBookings()) {
+                    // Channex compte chaque lecture par liste comme une reception
+                    // illegitime. C'est CE rattrapage — et non un pull manuel —
+                    // qui a produit les trois evenements
+                    // booking_revision_received_via_list du refus du 2026-08-15,
+                    // un par reconnexion du canal.
+                    log.info("ChannexImport: pull bookings DESACTIVE (clenzy.channex.import-pull-bookings=false) "
+                        + "property={} — les reservations arriveront par webhook/flux uniquement",
+                        prop.getId());
+                } else {
+                    try {
+                        LocalDate arrivalFrom = LocalDate.of(LocalDate.now().getYear(), 1, 1);
+                        LocalDate arrivalTo = LocalDate.now().plusMonths(12);
+                        var pullResult = connectService.pullBookings(prop.getId(), orgId,
+                            arrivalFrom, arrivalTo);
+                        importedBookings = pullResult.importedOrIdempotent();
+                        log.info("ChannexImport: pull bookings OK property={} periode=[{},{}] total={} imported={} skipped={}",
+                            prop.getId(), arrivalFrom, arrivalTo, pullResult.totalReceived(),
+                            pullResult.importedOrIdempotent(), pullResult.skipped());
+                    } catch (Exception bex) {
+                        log.warn("ChannexImport: pull bookings KO property={} : {} "
+                            + "(import termine, l'admin peut re-trigger manuellement)",
+                            prop.getId(), bex.getMessage());
+                    }
                 }
 
                 // 7. PUSH INITIAL availability + rates sur 12 mois.

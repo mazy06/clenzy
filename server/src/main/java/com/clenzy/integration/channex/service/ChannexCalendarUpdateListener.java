@@ -77,10 +77,17 @@ public class ChannexCalendarUpdateListener {
         // prix ne doit pousser que les tarifs, un blocage que la disponibilite.
         // Pousser les deux systematiquement a fait echouer sept scenarios de
         // certification le 2026-08-14 (cf. ChannexAriScope).
-        ChannexAriScope scope = ChannexAriScope.fromCalendarAction(
-            extractString(event, "action"));
+        String action = extractString(event, "action");
+        ChannexAriScope scope = ChannexAriScope.fromCalendarAction(action);
 
-        ariBatcher.enqueue(propertyId, orgId, from, to, scope);
+        // La portee dit QUEL canal pousser ; les champs disent QUOI mettre dans
+        // le payload tarifs. Sans ce second filtre, un changement de prix
+        // partait avec les sept champs renseignes — un instantane la ou Channex
+        // attend un delta (certification du 2026-08-15).
+        var rateFields = com.clenzy.integration.channex.model.ChannexRateField
+            .fromCalendarAction(action);
+
+        ariBatcher.enqueue(propertyId, orgId, from, to, scope, rateFields);
     }
 
     /** Lit un champ texte du payload ; null si absent ou vide. */

@@ -73,6 +73,11 @@
         <!-- 1.9.25 : CVE-2026-53914 (9.8). Transitif via minio → okhttp ;
              la stdlib Kotlin est rétro-compatible, okhttp 4.12 tourne dessus. -->
         <kotlin.version>2.4.10</kotlin.version>
+        <!-- 2.24.3 : CVE-2026-34479, corrigee en 2.25.4. Attention au score —
+             dependency-check AFFICHE le CVSS v4.0 (6.9) mais compare le v3.1
+             (7.5) au seuil : la ligne semblait sous le seuil et bloquait bel et
+             bien le build. -->
+        <log4j2.version>2.25.5</log4j2.version>
         <!-- httpcore5 / httpclient5 : plus d'override, ils ne sont plus dans
              l'arbre depuis le retrait de firebase-admin, qui les tirait seul. -->
     </properties>

@@ -85,7 +85,8 @@ class ChannexImportServiceTest {
             connectService, userRepository, lengthOfStayDiscountRepository,
             ratePlanRepository, occupancyPricingRepository, rateOverrideRepository,
             bookingRestrictionRepository,
-            objectMapper, amenityManagementService, pricingImporter, groupService, selfProvider);
+            objectMapper, amenityManagementService, pricingImporter, groupService, selfProvider,
+            new com.clenzy.integration.channex.config.ChannexProperties());
         // Par defaut, aucune property n'appartient a une autre organisation :
         // les tests qui verifient le cloisonnement le redefinissent.
         lenient().when(groupService.propertyIdsOwnedByOtherOrgs(anyLong())).thenReturn(java.util.Set.of());
