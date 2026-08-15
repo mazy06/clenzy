@@ -308,6 +308,19 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     boolean existsByExternalUidAndPropertyId(String externalUid, Long propertyId);
 
+    /**
+     * Reservation DIRECTE deja poussee au Booking CRS de Channex, retrouvee par
+     * l'identifiant du booking cree la-bas.
+     *
+     * <p>Sert a reconnaitre notre propre reservation quand elle nous revient par
+     * webhook : sans cela, l'import la prend pour une reservation OTA neuve et
+     * la recree en double (constate le 2026-08-15 — reservation 251 poussee au
+     * CRS, reservation 252 recreee 29 s plus tard depuis le webhook, meme nuit,
+     * meme logement).</p>
+     */
+    Optional<Reservation> findByChannexCrsBookingIdAndPropertyId(String channexCrsBookingId,
+                                                                 Long propertyId);
+
     @Query("SELECT COUNT(r) FROM Reservation r WHERE r.property.id = :propertyId AND r.organizationId = :orgId")
     long countByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
 

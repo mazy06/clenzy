@@ -138,6 +138,32 @@ public class ChannexBookingService {
             return existing.get();
         }
 
+        // NOTRE PROPRE reservation qui revient. Une resa directe poussee au
+        // Booking CRS cree un booking chez Channex, dont le webhook nous revient
+        // aussitot. Sans ce second filet, l'import la prend pour une reservation
+        // OTA neuve et la recree : constate le 2026-08-15, la reservation 251
+        // poussee au CRS s'est vue doubler par la 252 vingt-neuf secondes plus
+        // tard, meme nuit et meme logement — donc un faux conflit de
+        // disponibilite pour l'hote.
+        //
+        // On l'adopte au lieu de la recreer : l'externalUid est pose au passage,
+        // pour que les revisions suivantes (modification, annulation) retombent
+        // sur le filet d'idempotence normal ci-dessus.
+        Optional<Reservation> pushedByUs = reservationRepository
+            .findByChannexCrsBookingIdAndPropertyId(
+                booking.stableBookingId(), mapping.getClenzyPropertyId());
+        if (pushedByUs.isPresent()) {
+            Reservation own = pushedByUs.get();
+            if (own.getExternalUid() == null) {
+                own.setExternalUid(externalUid);
+                own = reservationRepository.save(own);
+            }
+            log.info("ChannexBooking: booking {} est notre propre resa #{} poussee au CRS "
+                + "— adoptee, pas de doublon", booking.stableBookingId(), own.getId());
+            metrics.recordBookingProcessed("crs_roundtrip_adopted");
+            return own;
+        }
+
         Property property = propertyRepository.findById(mapping.getClenzyPropertyId())
             .orElseThrow(() -> new IllegalStateException(
                 "Property " + mapping.getClenzyPropertyId() + " mappee Channex mais introuvable en DB"));

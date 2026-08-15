@@ -51,17 +51,23 @@
 > | 8 · Semestre | `6fb294e1-ccf9-4f20-86f0-e4f977c885f2` | restrictions seules, même plage |
 > | 9 · Dispo, 1 date | `6027c590-3fc9-47f1-b8bd-9c1317b61bd7` | `availability=1`, 1 date |
 > | 10 · Dispo, plage | `e6ca649e-f622-40c0-9c4f-899cf67fb4a3` | `availability=1`, 09-23→09-26 |
-> | 11 · Réception | **à rejouer** | exige un tunnel public |
+> | 11 · Réception | `4cda103c` + 3 révisions | webhook only, 3/3 ackées |
 >
 > Tous en `success: true`, zéro erreur. **Une entrée par appel** quand les
 > valeurs sont uniformes, toujours en `date_from`/`date_to`, jamais la clé
 > `date`, et **uniquement le champ modifié** — sauf le full sync, où
 > l'instantané reste légitime.
 >
-> **Seul le test 11 reste à faire.** Il exige un tunnel public,
-> `CHANNEX_WEBHOOK_CALLBACK_URL` avec le chemin complet, un rebuild puis
-> `POST /webhooks/ensure`. Et le drapeau `CHANNEX_IMPORT_PULL_BOOKINGS=false`
-> doit rester posé — cf. le runbook.
+> **Les onze scénarios sont couverts.** Le test 11 a été rejoué le 2026-08-15
+> avec un tunnel ngrok : webhook `792bcc83` réenregistré avec le chemin complet,
+> trois révisions livrées et acquittées, `has_unacked_revisions: false` côté
+> Channex.
+>
+> ⚠️ Le webhook pointe sur un **tunnel éphémère**, fermé après ce passage. Pour
+> rejouer : relancer un tunnel, remettre `CHANNEX_WEBHOOK_CALLBACK_URL` (chemin
+> complet), recréer le conteneur, puis `POST /webhooks/ensure` — et vérifier
+> qu'aucun ancien webhook actif ne subsiste, ses échecs de livraison finissant
+> par faire désactiver l'ensemble.
 
 ## Page 1 — Identité
 
@@ -350,24 +356,26 @@ when booked.
 > aussi ce qui répond au « Availability is 0, expected 1 or 3 » du rapport.
 
 ### Test 11 — Booking Receiving
-Applicable : **Yes** — ⚠️ **SEUL TEST NON REJOUÉ** : exige un tunnel public
+Applicable : **Yes** — ✅ **IDs À JOUR** (rejoué le 2026-08-15)
 
 | Champ | Valeur |
 |---|---|
-| **Booking ID** | `9dc4350b-b8ea-41aa-ab97-91d9672c329d` |
-| **Revision — New** | `028960e8-56d2-43ff-bb41-7c5897a60cff` |
-| **Revision — Modified** | `738a68ab-635c-4c7a-828b-60dfbcc2eaf2` |
-| **Revision — Cancelled** | `d1725050-3511-4c6d-b660-f2c669dc9188` |
+| **Booking ID** | `4cda103c-73a3-4f3c-8c8e-5b57e1450154` |
+| **Revision — New** | `574e660d-97ce-4aea-b880-15354456540d` |
+| **Revision — Modified** | `b660cb4e-0a4e-438e-8527-e3753ff13da3` |
+| **Revision — Cancelled** | `09cc4174-64ee-4be1-981c-ea9ebe9c3a23` |
 
 ```
-Bookings are received through the webhook. Channex delivered booking, booking_new
-and ari events to our public endpoint; each delivery drains the revisions feed and
-acknowledges per revision, after the persistence commit. No list polling and no
-by-id fetching was used during this run.
+Bookings are received through the webhook only. Channex delivered booking,
+booking_new, booking_modification, booking_cancellation and ari events to our
+public endpoint; every delivery answered 200 in under a second, drained the
+revisions feed and acknowledged per revision, after the persistence commit.
 
-New: a direct reservation was pushed to the CRS. Modified: the stay was extended
-by two nights and occupancy raised to 3, from the Booking CRS app. Cancelled:
-cancelled from Baitly.
+No list polling and no by-id fetching was used at any point during this run.
+
+New: a direct reservation (2026-08-24 to 2026-08-25) was pushed to the CRS.
+Modified: the stay was extended by one night and occupancy raised to 3 adults.
+Cancelled: the booking was cancelled.
 ```
 
 Les trois revisions sont en `acknowledge_status: acknowledged` cote Channex.
