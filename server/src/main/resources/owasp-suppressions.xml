@@ -35,8 +35,52 @@
         l'infrastructure. À lever lors de la montée coordonnée du serveur.
     -->
     <suppress>
-        <notes>keycloak-core : CVE des adaptateurs SAML, non embarqués — nous n'utilisons que le client d'administration et OIDC</notes>
-        <packageUrl regex="true">^pkg:maven/org\.keycloak/keycloak-core@.*$</packageUrl>
+        <notes>keycloak : CVE des adaptateurs SAML, non embarqués — nous n'utilisons que le client d'administration et OIDC</notes>
+        <packageUrl regex="true">^pkg:maven/org\.keycloak/keycloak-.*$</packageUrl>
         <cve>CVE-2024-7341</cve>
+    </suppress>
+
+    <!--
+        2026-08-15 — tomcat-embed-core 10.1.57, CVE-2026-66299 (7.5) :
+        consommation de ressources non maîtrisée dans **l'application d'exemple
+        WebSocket chat** de Tomcat.
+
+        Non atteignable ici : le Tomcat embarqué de Spring Boot n'embarque
+        aucune application d'exemple. L'avis le dit lui-même — « Users who have
+        followed the security guidance to remove the examples web application
+        are not affected by this issue ».
+
+        Aucune version corrigée : l'avis couvre 10.1.24 à 10.1.57, et 10.1.57
+        est la dernière publiée de la branche. À lever dès qu'une 10.1.58 sort,
+        ou à la migration Spring Boot 4 (Tomcat 11).
+    -->
+    <suppress>
+        <notes>tomcat-embed-core : DoS de l'application d'exemple WebSocket, absente du Tomcat embarqué de Spring Boot</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat-embed-.*$</packageUrl>
+        <cve>CVE-2026-66299</cve>
+    </suppress>
+
+    <!--
+        2026-08-15 — kotlin-stdlib 2.4.10 et kotlin-stdlib-common 1.9.10,
+        CVE-2026-53914 (9.8) : exécution de code par désérialisation non sûre
+        dans **les métadonnées du cache de build** de Kotlin.
+
+        Non atteignable ici : c'est une faille de la chaîne de compilation
+        Kotlin. Ce projet est en Java, aucun compilateur Kotlin n'est invoqué —
+        la stdlib n'arrive qu'en transitive d'exécution (minio → okhttp → okio)
+        et aucun cache de build Kotlin n'existe.
+
+        Aucune version corrigée publiée : l'avis vise « before 2.4.20 », or
+        2.4.20 n'existe qu'en Beta et RC. On ne met pas une préversion en
+        production. À lever à la sortie de 2.4.20 stable.
+
+        kotlin-stdlib-common reste en 1.9.10 (épinglé par okio-jvm) : on ne
+        l'aligne pas sur 2.4.10, la stdlib 2.x ayant absorbé le contenu de
+        -common — forcer les deux risquerait un doublon de classes.
+    -->
+    <suppress>
+        <notes>kotlin-stdlib : faille du cache de build Kotlin, projet Java sans compilation Kotlin ; correctif 2.4.20 encore en préversion</notes>
+        <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin-stdlib.*$</packageUrl>
+        <cve>CVE-2026-53914</cve>
     </suppress>
 </suppressions>
