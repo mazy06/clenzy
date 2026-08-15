@@ -10,6 +10,37 @@
 > mono-unité est **explicitement prévue par la doc** (« VR mono-unité : adapter
 > à 1 room/1 rate et le signaler ») → à signaler dans les Extra Notes (test 14).
 
+## ⛔ Avant de rejouer — les quatre points qui ont fait échouer le 2026-08-15
+
+> Le code est corrigé pour le reste (pushs en delta au lieu d'instantanés, cf.
+> `ChannexRateField`). **Ces quatre points-là ne sont PAS du code** : ils tiennent
+> à la configuration de l'environnement et à la façon de jouer les scénarios.
+> Les ignorer refera échouer exactement les mêmes tests.
+
+| # | À faire | Sinon |
+|---|---|---|
+| 0 | Poser `CHANNEX_IMPORT_PULL_BOOKINGS=false` sur l'environnement de certification | Test 11 échoue à l'identique |
+| 6 | Bloquer **une seule nuit**, pas une plage | « Update must target a single date, got 2027-02-10..2027-02-13 » |
+| 8 | Donner un **prix de base** à la propriété **et** une restriction couvrant les **6 mois entiers** | « No valid rate / no valid min stay over the half-year range » |
+| 9 | **Annuler** une réservation d'**une** nuit (ne pas en créer une) | « No update sets availability to 1 or 7 » |
+
+**Le point 0 est le moins intuitif et le plus coûteux.** Ce n'est pas un
+`pull-bookings` manuel qui a produit les trois `booking_revision_received_via_list`
+du refus : c'est **l'étape 7 de l'import**, qui rattrape l'historique par appel de
+liste à chaque connexion de propriété. Comme Channex a repris l'hôtel de test
+quatre fois dans la journée, chaque reconnexion en a déclenché un. L'ancienne
+consigne « ne jamais lancer `pull-bookings` pendant le partage » était donc
+insuffisante — on ne le lançait pas.
+
+Le drapeau reste à `true` par défaut : ce rattrapage donne son passé à une
+propriété fraîchement connectée (année fiscale en cours, LMNP), et le flux de
+révisions ne remonte pas l'antérieur. C'est un réglage de certification, pas de
+production.
+
+**Sur le point 8**, un push tarifaire qui ne produit aucune entrée émet désormais
+un `WARN` explicite (`push rates SANS AUCUNE entree`). Si le semestre repart vide,
+les journaux le diront — mais autant régler le prix de base avant.
+
 ## Pré-vol (exigences d'architecture — toutes satisfaites par les phases A/B/C)
 
 | Exigence | Implémentation Baitly |
@@ -28,6 +59,8 @@
 - [ ] Connect AUTO_CREATE → property + room type + rate plan créés sur staging (payload enrichi B3 : `property_type=apartment`, settings autoupdate off, state_length 500)
 - [ ] (Webhooks entrants) tunnel public + `CHANNEX_WEBHOOK_CALLBACK_URL` + `CHANNEX_WEBHOOK_SECRET` → `POST /webhooks/ensure` → `created`
 - [ ] Données réalistes : prix variés (pas de valeur uniforme — les données synthétiques uniformes sont **rejetées** à la revue)
+- [ ] **`CHANNEX_IMPORT_PULL_BOOKINGS=false`** (cf. §Avant de rejouer, point 0) — à remettre à `true` après
+- [ ] **Prix de base renseigné sur la propriété** : sans lui, `PriceEngine` renvoie `null` pour chaque date et tout push tarifaire part vide
 
 ## Les 14 tests
 
@@ -42,19 +75,24 @@
 > a porté pendant un mois les IDs du 9 juillet, pointant sur une propriété
 > supprimée entre-temps.
 
+> **Statut = résultat du passage du 2026-08-15**, pas un état de santé.
+> ✅ accepté · ⚠️ à rejouer (avertissement ou échec) · ➖ non applicable, justifié.
+> Aucun ⚠️ n'a encore été rejoué contre Channex : le code est corrigé, la preuve
+> reste à faire.
+
 | # | Test | Déclencheur Baitly | Attendu côté API | Statut |
 |---|---|---|---|---|
 | 1 | Full sync 500 j | Bouton resync ⟳ (`resync` months=0) | **2 appels** : 1 availability + 1 rates&restrictions (compression date_from/date_to) | ✅ |
-| 2 | Prix 1 date / 1 rate | Changer un prix (RateOverride) dans l'UI Tarification | 1 appel rates (+ 1 availability) | ✅ |
+| 2 | Prix 1 date / 1 rate | Changer un prix (RateOverride) dans l'UI Tarification | **1 appel rates, et RIEN d'autre** — pas d'availability, et le payload ne porte que `rate` | ⚠️ |
 | 3 | Prix multi-rates, 1 date | N/A — Baitly VR mono rate-plan (voir note test 14). Couvert par le test 2. | **1 appel** | ➖ |
-| 4 | Prix multi-dates multi-rates | Nouveau plan tarifaire sur une plage future | **1 appel** rates compressé (ranges) | ✅ |
-| 5 | Min stay sur rates | Onglet Restrictions → séjour min sur une plage | **1 appel** rates | ✅ |
-| 6 | Stop sell | N/A — Baitly ne pousse pas `stop_sell` : fermer une date, c'est `availability = 0`, source unique de vérité. Démontré par le test 10. | **1 appel** availability | ➖ |
+| 4 | Prix multi-dates multi-rates | Nouveau plan tarifaire sur une plage future | **1 appel** rates compressé (ranges), payload limité à `rate` | ⚠️ |
+| 5 | Min stay sur rates | Onglet Restrictions → séjour min **seul** (ne rien cocher d'autre) | **1 appel** rates, payload limité à `min_stay_*` | ⚠️ |
+| 6 | Stop sell | **Bloquer UNE SEULE nuit** depuis le planning | **1 appel** rates, payload limité à `stop_sell: true`, `availability` **inchangée à 1** | ⚠️ |
 | 7 | Restrictions combinées (CTA/CTD/min/max stay) | Onglet Restrictions → min/max + CTA/CTD sur deux plages | **1 appel** rates chacune | ✅ |
-| 8 | Semestre (rate+CTA+CTD+min stay, 5 mois) | Même mécanisme que 7 sur **152 jours** (2027-08-01 → 12-31, min 2 / max 21 / CTA / CTD) | **1 appel** rates | ✅ |
-| 9 | Availability 1 date | Résa 1 nuit dans Baitly → dispo 0 | 1 appel availability | ✅ |
+| 8 | Semestre (rate+CTA+CTD+min stay, 5 mois) | Même mécanisme que 7 sur **au moins 152 jours**. Prérequis : prix de base sur la propriété, restriction couvrant TOUTE la période | **1 appel** rates, compressé en `date_from`/`date_to` (une entrée, pas 152) | ⚠️ |
+| 9 | Availability 1 date | **ANNULER** une résa d'UNE nuit → dispo repasse à 1 | 1 appel availability, `availability: 1` (créer une résa donne 0, ce que Channex refuse) | ⚠️ |
 | 10 | Availability multi-dates | Résa de plusieurs nuits → dispo sur la plage | 1 appel availability | ✅ |
-| 11 | Réception bookings (create/modif/annulation) | Résa directe poussée au CRS (`push-crs`) → **new** ; séjour prolongé via l'app Booking CRS → **modified** ; `cancel-crs` → **cancelled** | feed interrogé toutes les 10 min → persist → **ack par révision** (3/3 ackées, 0 échec) | ✅ |
+| 11 | Réception bookings (create/modif/annulation) | Résa directe poussée au CRS (`push-crs`) → **new** ; séjour prolongé via l'app Booking CRS → **modified** ; `cancel-crs` → **cancelled** | réception par **webhook/flux UNIQUEMENT** → persist → ack par révision. Aucun appel de liste ni par identifiant (cf. point 0) | ⚠️ |
 | 12 | Rate limits | — engagement, **rédigé §Engagements 12/13** (vérifié dans le code le 2026-08-06) | n/a | ✅ |
 | 13 | Update logic | — engagement, **rédigé §Engagements 12/13** (vérifié dans le code le 2026-08-06) | n/a | ✅ |
 | 14 | Extra notes | **rédigées §Extra notes (test 14)** | n/a | ✅ |
