@@ -538,6 +538,14 @@ export function useReservationForm(props: ReservationDialogProps): UseReservatio
     const sameProp = events.filter((e) => {
       if (e.propertyId !== effectivePropertyId) return false;
       if (isEdit && reservation && e.reservation?.id === reservation.id) return false;
+      // Une réservation ANNULÉE ne bloque plus rien : elle reste visible au
+      // planning (la légende « Annulée » la filtre), mais ses dates sont
+      // redevenues libres. Sans cette exclusion, un séjour annulé interdisait
+      // définitivement de réserver les mêmes nuits — le formulaire refusait la
+      // création avec « conflit », sans qu'aucun appel ne parte, et le message
+      // d'erreur restait hors de la zone visible du dialogue.
+      if (e.reservation?.status?.toLowerCase() === 'cancelled') return false;
+      if (e.type === 'reservation' && e.status?.toLowerCase() === 'cancelled') return false;
       return true;
     });
 

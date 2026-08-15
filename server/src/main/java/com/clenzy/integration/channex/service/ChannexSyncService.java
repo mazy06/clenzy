@@ -430,47 +430,80 @@ public class ChannexSyncService {
                     LocalDate date = entry.getKey();
                     com.clenzy.model.BookingRestriction restriction = pickHighestPriorityFor(
                         applicableRestrictions, date);
+                    // `closed_to_arrival` / `closed_to_departure` sont NOT NULL en
+                    // base : ils valent `false` quand la case est decochee, jamais
+                    // `null`. Le filtre « champs non nuls » ne peut donc pas les
+                    // ecarter d'un delta, et une mise a jour de sejour minimum les
+                    // embarquait encore a `false` — precisement ce que la
+                    // certification reproche (« Min stay update also carries other
+                    // fields (closed_to_arrival, closed_to_departure, ...) »).
+                    //
+                    // Dans un delta on ne les envoie donc QUE si l'un des deux est
+                    // vrai. Les deux partent ensemble : sans cela, retirer la
+                    // fermeture a l'arrivee d'une restriction qui garde celle au
+                    // depart n'aurait jamais propage le `false`.
+                    boolean fermetureDeclaree = restriction != null
+                        && (Boolean.TRUE.equals(restriction.getClosedToArrival())
+                            || Boolean.TRUE.equals(restriction.getClosedToDeparture()));
                     // `null` = champ ABSENT du payload (cf. compressRates). C'est
                     // le mecanisme qui rend le delta possible : on ne renseigne
                     // que ce qui est demande.
-                    updates.add(new ChannexRateUpdate(
-                        mapping.getChannexPropertyId(),
-                        ratePlanId,
-                        date,
-                        wanted.contains(ChannexRateField.RATE) ? entry.getValue() : null,
-                        wanted.contains(ChannexRateField.MIN_STAY)
-                            ? (snapshot ? resolveMinStayThrough(restriction, defaults)
-                                        : (restriction != null ? restriction.getMinStay() : null))
-                            : null,
-                        wanted.contains(ChannexRateField.MIN_STAY)
-                            ? (snapshot ? resolveMinStayArrival(restriction, defaults)
-                                        : (restriction != null ? restriction.getMinStay() : null))
-                            : null,
+                    BigDecimal tarif =
+                        wanted.contains(ChannexRateField.RATE) ? entry.getValue() : null;
+                    Integer sejourMin = wanted.contains(ChannexRateField.MIN_STAY)
+                        ? (snapshot ? resolveMinStayThrough(restriction, defaults)
+                                    : (restriction != null ? restriction.getMinStay() : null))
+                        : null;
+                    Integer sejourMinArrivee = wanted.contains(ChannexRateField.MIN_STAY)
+                        ? (snapshot ? resolveMinStayArrival(restriction, defaults)
+                                    : (restriction != null ? restriction.getMinStay() : null))
+                        : null;
+                    Boolean fermeArrivee =
                         wanted.contains(ChannexRateField.CLOSED_TO_ARRIVAL)
-                            ? (restriction != null && restriction.getClosedToArrival() != null
-                                ? restriction.getClosedToArrival()
-                                : (snapshot ? Boolean.FALSE : null))
-                            : null,
+                            && (snapshot || fermetureDeclaree)
+                        ? (restriction != null && restriction.getClosedToArrival() != null
+                            ? restriction.getClosedToArrival() : Boolean.FALSE)
+                        : null;
+                    Boolean fermeDepart =
                         wanted.contains(ChannexRateField.CLOSED_TO_DEPARTURE)
-                            ? (restriction != null && restriction.getClosedToDeparture() != null
-                                ? restriction.getClosedToDeparture()
-                                : (snapshot ? Boolean.FALSE : null))
-                            : null,
-                        wanted.contains(ChannexRateField.MAX_STAY)
-                            ? (restriction != null && restriction.getMaxStay() != null
-                                ? restriction.getMaxStay()
-                                : (snapshot ? defaults.maxStay() : null))
-                            : null,
-                        wanted.contains(ChannexRateField.STOP_SELL) ? stopSoldDates.contains(date) : null
-                    ));
+                            && (snapshot || fermetureDeclaree)
+                        ? (restriction != null && restriction.getClosedToDeparture() != null
+                            ? restriction.getClosedToDeparture() : Boolean.FALSE)
+                        : null;
+                    Integer sejourMax = wanted.contains(ChannexRateField.MAX_STAY)
+                        ? (restriction != null && restriction.getMaxStay() != null
+                            ? restriction.getMaxStay()
+                            : (snapshot ? defaults.maxStay() : null))
+                        : null;
+                    Boolean fermeVente = wanted.contains(ChannexRateField.STOP_SELL)
+                        ? stopSoldDates.contains(date) : null;
+
+                    // Une date dont TOUS les champs retenus sont nuls n'a rien a
+                    // dire : la sauter plutot que construire une entree vide, que
+                    // ChannexRateUpdate refuse. Cas reel : un delta de restriction
+                    // sur une plage ou certaines dates n'ont aucune restriction
+                    // applicable.
+                    if (tarif == null && sejourMin == null && sejourMinArrivee == null
+                        && fermeArrivee == null && fermeDepart == null
+                        && sejourMax == null && fermeVente == null) {
+                        continue;
+                    }
+
+                    updates.add(new ChannexRateUpdate(
+                        mapping.getChannexPropertyId(), ratePlanId, date,
+                        tarif, sejourMin, sejourMinArrivee,
+                        fermeArrivee, fermeDepart, sejourMax, fermeVente));
                 }
             }
-            // Un push qui ne produit AUCUNE entree est un no-op silencieux, et
-            // c'est ce qui rend un echec de certification indechiffrable :
-            // « No valid rate set over the half-year range » (2026-08-15) vient
-            // de la — la propriete n'a pas de prix de base, PriceEngine renvoie
-            // null pour chaque date, et la boucle les saute toutes. Rien dans
-            // les journaux ne le disait.
+            // Un push qui ne produit AUCUNE entree est un no-op silencieux :
+            // rien dans les journaux ne distingue « envoye avec succes » de
+            // « il n'y avait rien a envoyer ». Cas typique : propriete sans prix
+            // de base ni plan tarifaire — PriceEngine renvoie null pour chaque
+            // date et la boucle les saute toutes.
+            //
+            // (Ce n'est PAS l'explication du « No valid rate set over the
+            // half-year range » de la certification du 2026-08-15 : la propriete
+            // de test porte bien un prix de base. Cause encore inconnue.)
             if (updates.isEmpty()) {
                 log.warn("ChannexSync: push rates SANS AUCUNE entree property={} [{}, {}] champs={} "
                     + "— aucun prix resolu (propriete sans prix de base ni plan tarifaire ?) "

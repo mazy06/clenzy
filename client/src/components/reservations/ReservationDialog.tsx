@@ -61,12 +61,17 @@ const EditBody: React.FC<{ form: UseReservationFormResult; onClose: () => void }
         </div>
 
         <ConflictAlert form={form} fullWidth />
-        {form.error && (
-          <p className="col-span-full mt-0 mx-[22px] mb-5 text-[12.5px] font-semibold text-destructive-ink">
-            {form.error}
-          </p>
-        )}
       </div>
+
+      {/* Hors de la zone defilante, cf. la meme correction dans le wizard. */}
+      {form.error && (
+        <p
+          role="alert"
+          className="shrink-0 px-[22px] pb-2 text-[12.5px] font-semibold text-destructive-ink"
+        >
+          {form.error}
+        </p>
+      )}
 
       <div className={cn(FOOT_CLS, 'justify-end')}>
         <button type="button" onClick={onClose} className={BTN_GHOST_CLS}>
@@ -131,11 +136,20 @@ const CreateWizard: React.FC<{
           </>
         )}
         {step === 4 && <FinalizeStep form={form} />}
-
-        {form.error && (
-          <p className="text-[12.5px] font-semibold text-destructive-ink">{form.error}</p>
-        )}
       </div>
+
+      {/* Hors de la zone defilante, juste au-dessus des boutons : a l'interieur,
+          le message se retrouvait sous le pli des que l'etape etait haute. Le
+          bouton restait actif, le clic ne produisait rien de visible, et rien
+          ne disait ce qui bloquait. */}
+      {form.error && (
+        <p
+          role="alert"
+          className="shrink-0 px-[22px] pb-2 text-[12.5px] font-semibold text-destructive-ink"
+        >
+          {form.error}
+        </p>
+      )}
 
       <div className={FOOT_CLS}>
         <button type="button" onClick={onClose} className={BTN_GHOST_CLS}>
