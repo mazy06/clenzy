@@ -296,8 +296,8 @@ class ChannexSyncServicePricingPushTest {
     }
 
     @Test
-    @DisplayName("pushRatesForRange : aucune BookingRestriction -> ChannexRateUpdate avec restrictions null")
-    void pushRates_noBookingRestriction_nullFields() {
+    @DisplayName("pushRatesForRange : aucune BookingRestriction -> restrictions aux DEFAUTS, jamais nulles")
+    void pushRates_noBookingRestriction_fallsBackToPropertyDefaults() {
         when(mappingRepository.findByClenzyPropertyId(eq(100L), eq(42L)))
             .thenReturn(Optional.of(mapping()));
         when(channexClient.hasActiveOtaChannel(eq("channex-prop-abc"))).thenReturn(true);
@@ -306,15 +306,26 @@ class ChannexSyncServicePricingPushTest {
             .thenReturn(java.util.Map.of(d, new BigDecimal("100")));
         when(bookingRestrictionRepository.findApplicable(eq(100L), any(), any(), eq(42L)))
             .thenReturn(java.util.List.of());
+        // Les defauts se lisent sur la propriete : 2 nuits mini, 30 maxi.
+        when(propertyRepository.findById(100L)).thenReturn(Optional.of(propertyClenzy()));
 
         service.pushProperty(100L, 42L, d, d);
 
         ArgumentCaptor<java.util.List<com.clenzy.integration.channex.dto.ChannexRateUpdate>> captor =
             ArgumentCaptor.forClass(java.util.List.class);
         verify(channexClient).pushRates(captor.capture());
-        assertThat(captor.getValue().get(0).minStayThrough()).isNull();
-        assertThat(captor.getValue().get(0).closedToArrival()).isNull();
-        assertThat(captor.getValue().get(0).closedToDeparture()).isNull();
+        // Ces champs etaient nuls, donc ABSENTS du payload. La certification
+        // Channex a compte les absences le 2026-08-14 (« 154/181 restriction
+        // objects are missing the declared restriction... ») : une restriction
+        // declaree doit etre presente sur chaque date, aux defauts de la
+        // propriete quand aucune restriction explicite ne la couvre.
+        var update = captor.getValue().get(0);
+        assertThat(update.minStayThrough()).isEqualTo(2);   // propertyClenzy() : 2 nuits mini
+        assertThat(update.minStayArrival()).isEqualTo(2);
+        assertThat(update.maxStay()).isEqualTo(30);         // propertyClenzy() : 30 nuits maxi
+        assertThat(update.closedToArrival()).isFalse();
+        assertThat(update.closedToDeparture()).isFalse();
+        assertThat(update.stopSell()).isFalse();
     }
 
     @Test

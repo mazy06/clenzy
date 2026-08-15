@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui';
-import { Lock as LockIcon } from '../../icons';
+import { Lock as LockIcon, LockOpen as LockOpenIcon } from '../../icons';
 
 interface PlanningBlockedBandProps {
   /** Position et taille (px) calculées par le layout du planning. */
@@ -11,6 +11,14 @@ interface PlanningBlockedBandProps {
   notes?: string;
   /** Source du blocage (ex: "ICAL:42", "MANUAL", "AIRBNB"). */
   source?: string;
+  /** Bornes de la plage — `endDate` est EXCLUSIVE, comme l'attend l'API. */
+  startDate?: string;
+  endDate?: string;
+  /**
+   * Débloque la plage. Absent = action non proposée (le tooltip reste
+   * informatif). Rejette pour afficher l'erreur dans le tooltip.
+   */
+  onUnblock?: (startDate: string, endDate: string) => Promise<void>;
 }
 
 /**
@@ -21,8 +29,19 @@ interface PlanningBlockedBandProps {
  * Le blocage reste présent dans les données (`allEvents`) : le drag-to-select
  * de création de réservation continue de l'éviter.
  */
-const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({ left, width, height, notes, source }) => {
+const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({
+  left,
+  width,
+  height,
+  notes,
+  source,
+  startDate,
+  endDate,
+  onUnblock,
+}) => {
   const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
   const bandRef = useRef<HTMLDivElement>(null);
 
   const close = useCallback(() => setOpen(false), []);
@@ -45,6 +64,23 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({ left, width, 
   }, [open]);
 
   const isExternal = !!source && source.toUpperCase().startsWith('ICAL');
+
+  const peutDebloquer = !!onUnblock && !!startDate && !!endDate;
+
+  const debloquer = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onUnblock || !startDate || !endDate) return;
+    setPending(true);
+    setErreur(null);
+    try {
+      await onUnblock(startDate, endDate);
+      setOpen(false);
+    } catch {
+      setErreur('Le déblocage a échoué. Réessayez.');
+    } finally {
+      setPending(false);
+    }
+  }, [onUnblock, startDate, endDate]);
 
   // Largeur minimale pour afficher l'icône / le label sans tronquer.
   const showIcon = width >= 22;
@@ -108,6 +144,37 @@ const PlanningBlockedBand: React.FC<PlanningBlockedBandProps> = ({ left, width, 
             <p className="cn-text-body1 text-[0.6875rem] mt-0.5 opacity-85 italic">
               {notes}
             </p>
+          )}
+          {peutDebloquer && (
+            <>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={debloquer}
+                className={
+                  'mt-1.5 w-full inline-flex items-center justify-center gap-1 rounded-md px-2 py-1 ' +
+                  'cn-text-body1 text-[0.6875rem] font-semibold cursor-pointer ' +
+                  'bg-[color-mix(in_srgb,currentColor_12%,transparent)] ' +
+                  'hover:bg-[color-mix(in_srgb,currentColor_20%,transparent)] ' +
+                  'disabled:opacity-60 disabled:cursor-default ' +
+                  'transition-[background-color] duration-150 ease-out'
+                }
+              >
+                <LockOpenIcon size={12} strokeWidth={1.75} />
+                {pending ? 'Déblocage…' : 'Débloquer la période'}
+              </button>
+              {isExternal && (
+                <p className="cn-text-body1 text-[0.6875rem] mt-1 leading-[1.35] opacity-85">
+                  Le blocage revient à la prochaine synchronisation s'il n'est pas
+                  aussi levé chez le canal.
+                </p>
+              )}
+              {erreur && (
+                <p role="alert" className="cn-text-body1 text-[0.6875rem] mt-1 font-semibold">
+                  {erreur}
+                </p>
+              )}
+            </>
           )}
         </div>
       </TooltipContent>

@@ -991,6 +991,32 @@ public class ChannexClient {
         return id;
     }
 
+    /**
+     * Reactive un webhook existant : {@code PUT /webhooks/:id}.
+     *
+     * <p>Channex desactive un webhook dont les livraisons echouent de façon
+     * repetee — c'est ce qui est arrive aux deux webhooks du compte de
+     * certification, retrouves en {@code is_active: false} le 2026-08-14 apres
+     * que « all webhook deliveries failed ». Sans reactivation, plus rien n'est
+     * livre et le silence passe pour un calme trompeur.</p>
+     *
+     * <p>On en profite pour re-poser le masque d'evenements et le header secret :
+     * un webhook cree a la main peut les avoir incomplets.</p>
+     */
+    public void activateWebhook(String webhookId, String eventMask, String secretToken) {
+        String url = props.getBaseUrl() + "/webhooks/" + webhookId;
+        Map<String, Object> webhook = new LinkedHashMap<>();
+        webhook.put("is_active", true);
+        if (eventMask != null && !eventMask.isBlank()) {
+            webhook.put("event_mask", eventMask);
+        }
+        if (secretToken != null && !secretToken.isBlank()) {
+            webhook.put("headers", Map.of("X-Channex-Token", secretToken));
+        }
+        exchange(HttpMethod.PUT, url, Map.of("webhook", webhook), JsonNode.class);
+        log.info("Channex: webhook {} reactive (is_active=true)", webhookId);
+    }
+
     // ─── Applications (doc Applications API) ────────────────────────────────
 
     /** Catalogue des applications Channex disponibles : {@code GET /applications}. */
@@ -1300,12 +1326,16 @@ public class ChannexClient {
             entry.put("property_id", run.channexPropertyId());
             entry.put("rate_plan_id", run.channexRatePlanId());
             putDateOrRange(entry, run.date(), runEnd);
-            entry.put("rate", normalize(run.rate()));
+            // `rate` est conditionnel comme les autres : une mise a jour de
+            // sejour minimum seul ne doit PAS embarquer le prix (« Min stay
+            // update also carries other fields », certification 2026-08-15).
+            if (run.rate() != null) entry.put("rate", normalize(run.rate()));
             if (run.minStayThrough() != null) entry.put("min_stay_through", run.minStayThrough());
             if (run.minStayArrival() != null) entry.put("min_stay_arrival", run.minStayArrival());
             if (run.closedToArrival() != null) entry.put("closed_to_arrival", run.closedToArrival());
             if (run.closedToDeparture() != null) entry.put("closed_to_departure", run.closedToDeparture());
             if (run.maxStay() != null) entry.put("max_stay", run.maxStay());
+            if (run.stopSell() != null) entry.put("stop_sell", run.stopSell());
             out.add(entry);
             i = j;
         }
@@ -1323,7 +1353,8 @@ public class ChannexClient {
             && java.util.Objects.equals(a.minStayArrival(), b.minStayArrival())
             && java.util.Objects.equals(a.closedToArrival(), b.closedToArrival())
             && java.util.Objects.equals(a.closedToDeparture(), b.closedToDeparture())
-            && java.util.Objects.equals(a.maxStay(), b.maxStay());
+            && java.util.Objects.equals(a.maxStay(), b.maxStay())
+            && java.util.Objects.equals(a.stopSell(), b.stopSell());
     }
 
     private static void putDateOrRange(Map<String, Object> entry,
@@ -1417,7 +1448,16 @@ public class ChannexClient {
 
     // ─── Bookings ───────────────────────────────────────────────────────────
 
-    /** Recupere une booking specifique (utile pour reconciliation post-webhook). */
+    /**
+     * Recupere une booking specifique (reconciliation post-webhook).
+     *
+     * <p><b>Aucun appelant a ce jour, et c'est volontaire.</b> Channex trace
+     * chaque lecture par identifiant comme un
+     * {@code booking_received_via_booking_find} et refuse la certification si
+     * elle en trouve : une reservation doit arriver par le webhook ou le feed de
+     * revisions. Avant de brancher cette methode, verifier qu'aucun flux de
+     * reception ne peut l'emprunter.</p>
+     */
     public JsonNode getBooking(String bookingId) {
         String url = props.getBaseUrl() + "/bookings/" + bookingId;
         return exchange(HttpMethod.GET, url, null, JsonNode.class);

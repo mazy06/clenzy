@@ -311,7 +311,7 @@ class ChannexConnectServiceTest {
             null, List.of()
         );
         when(channexClient.listBookings(eq("chx-prop-1"), any(), any()))
-            .thenReturn(new ChannexBookingsListResponse(List.of(b1, b2)));
+            .thenReturn(ChannexBookingsListResponse.of(List.of(b1, b2)));
 
         com.clenzy.model.Reservation r1 = new com.clenzy.model.Reservation();
         r1.setId(1L);
@@ -341,7 +341,7 @@ class ChannexConnectServiceTest {
         mapping.setChannexPropertyId("chx-prop-1");
         when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.of(mapping));
         when(channexClient.listBookings(eq("chx-prop-1"), any(), any()))
-            .thenReturn(new ChannexBookingsListResponse(List.of()));
+            .thenReturn(ChannexBookingsListResponse.of(List.of()));
 
         ChannexConnectService.PullBookingsResult result = service.pullBookings(
             100L, 42L, java.time.LocalDate.now(), java.time.LocalDate.now().plusMonths(6)

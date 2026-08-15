@@ -92,14 +92,36 @@ class ChannexWebhookRegistrationServiceTest {
     }
 
     @Test
-    @DisplayName("webhook present mais is_active=false (defaut Channex piege) -> signale, pas de doublon")
-    void flagsInactiveWebhook() {
+    @DisplayName("webhook present mais is_active=false -> REACTIVE, pas de doublon")
+    void reactivatesInactiveWebhook() {
+        // Channex desactive un webhook dont les livraisons echouent. Se contenter
+        // de le signaler laissait le compte muet — les deux webhooks du compte de
+        // certification ont ete retrouves inactifs le 2026-08-14, apres que
+        // « all webhook deliveries failed ». « Ensure » doit garantir, pas constater.
         when(channexClient.listWebhooks())
             .thenReturn(List.of(webhookNode("wh-1", CALLBACK, false)));
 
         var result = service.ensureGlobalWebhook();
 
-        assertThat(result.status()).isEqualTo("exists_inactive");
+        assertThat(result.status()).isEqualTo("reactivated");
+        assertThat(result.webhookId()).isEqualTo("wh-1");
+        verify(channexClient).activateWebhook(org.mockito.ArgumentMatchers.eq("wh-1"), any(), any());
+        verify(channexClient, never()).registerGlobalWebhook(anyString(), anyString(), any());
+    }
+
+    @Test
+    @DisplayName("URL de rappel sans le chemin du controller -> refus, rien n'est enregistre")
+    void rejectsCallbackUrlWithoutControllerPath() {
+        // Le defaut exact du compte de certification : l'URL enregistree etait la
+        // racine du tunnel ngrok. Channex livrait sur un 404, comptait l'echec,
+        // puis desactivait le webhook. Mieux vaut refuser que livrer dans le vide.
+        props.setWebhookCallbackUrl("https://abcd-1234.ngrok-free.app");
+
+        var result = service.ensureGlobalWebhook();
+
+        assertThat(result.status()).isEqualTo("invalid_callback_url");
+        assertThat(result.detail()).contains("/api/webhooks/channex");
+        verify(channexClient, never()).listWebhooks();
         verify(channexClient, never()).registerGlobalWebhook(anyString(), anyString(), any());
     }
 

@@ -52,6 +52,34 @@
             manage déjà des versions patchées (tomcat ≥ 10.1.4x, postgresql ≥ 42.7.x).
             Vérifié post-build via dependency:list.
         -->
+
+        <!--
+            Correctifs de sécurité au-dessus du BOM (2026-08-15). 3.5.16 est le
+            DERNIER de la branche 3.5 : plus aucun correctif n'arrivera par le
+            parent, la suite est Spring Boot 4.0 (Jakarta EE 11 + Spring
+            Framework 7), une migration à part entière. En attendant, on relève
+            ici les dépendances que dependency-check fait échouer (CVSS ≥ 7),
+            toutes DANS leur branche majeure : aucun changement d'API attendu.
+
+            Retirer un override dès que le parent gère une version au moins
+            égale — sinon on gèlerait la dépendance sous le BOM.
+        -->
+        <!-- 10.1.55 : CVE-2026-55276 / -53434 / -59083 / -59084 (9.1) -->
+        <tomcat.version>10.1.57</tomcat.version>
+        <!-- 4.1.135 : 13 CVE, dont CVE-2026-56820 (9.1) -->
+        <netty.version>4.1.137.Final</netty.version>
+        <!-- 42.7.11 : CVE-2026-54291 (8.2) -->
+        <postgresql.version>42.7.13</postgresql.version>
+        <!-- 1.9.25 : CVE-2026-53914 (9.8). Transitif via minio → okhttp ;
+             la stdlib Kotlin est rétro-compatible, okhttp 4.12 tourne dessus. -->
+        <kotlin.version>2.4.10</kotlin.version>
+        <!-- 2.24.3 : CVE-2026-34479, corrigee en 2.25.4. Attention au score —
+             dependency-check AFFICHE le CVSS v4.0 (6.9) mais compare le v3.1
+             (7.5) au seuil : la ligne semblait sous le seuil et bloquait bel et
+             bien le build. -->
+        <log4j2.version>2.25.5</log4j2.version>
+        <!-- httpcore5 / httpclient5 : plus d'override, ils ne sont plus dans
+             l'arbre depuis le retrait de firebase-admin, qui les tirait seul. -->
     </properties>
 
     <dependencies>
@@ -260,18 +288,19 @@
             <artifactId>spring-kafka</artifactId>
         </dependency>
 
-        <!-- Firebase Admin SDK (Push Notifications FCM) -->
-        <!-- CVE 2026-06 : 9.2.0 tirait protobuf-java 3.23.2 (CVE-2024-7254, DoS parsing).
-             9.4.x tire un protobuf-java patché.
-             CVE 2026-08 : 9.4.3 tirait netty-transport 4.1.132 (36 CVE, dont 10.0),
-             httpcore5 5.3.6 (7.5) et trois modules opentelemetry alpha (7.3-7.5).
-             9.10.0 reste sur la meme majeure et rafraichit ces transitives. -->
-        <dependency>
-            <groupId>com.google.firebase</groupId>
-            <artifactId>firebase-admin</artifactId>
-            <version>9.10.0</version>
-        </dependency>
+        <!--
+            firebase-admin RETIRÉ (2026-08-15). Le mobile émet un jeton **Expo**
+            (`getExpoPushTokenAsync`), que `FirebaseMessaging.send()` ne sait pas
+            adresser : il attend un jeton d'enregistrement FCM natif. Le push ne
+            pouvait donc pas fonctionner, et ne fonctionnait pas — les
+            identifiants n'étaient d'ailleurs présents dans aucun environnement
+            déployé. Le SDK ne servait plus qu'à traîner ses transitives
+            (google-cloud-firestore, opentelemetry alpha, httpclient5).
 
+            Ce qui reste en place : la table `device_tokens`, `DeviceToken`,
+            `DeviceTokenService` et `POST /devices/register`. Les jetons Expo se
+            stockent à l'identique — l'envoi vers l'API Expo reste à écrire.
+        -->
         <!-- Jasypt Spring Boot (Chiffrement tokens en base) -->
         <dependency>
             <groupId>com.github.ulisesbocchio</groupId>
@@ -439,6 +468,22 @@
 
     <dependencyManagement>
         <dependencies>
+            <!--
+                Correctifs de sécurité hors périmètre du BOM Spring Boot
+                (2026-08-15). Contrairement aux overrides de <properties>, ces
+                dépendances arrivent par des tiers : on remonte la chaîne au
+                lieu de forcer la feuille, pour ne pas désappairer une lib de
+                son parent.
+            -->
+            <!-- commons-beanutils 1.9.4 : CVE-2025-48734 (8.8). Il arrive par
+                 ical4j → commons-validator 1.7. On relève le validator, dont la
+                 1.11.0 dépend de beanutils 1.11.0 : le correctif vient de la
+                 source, sans épingler la feuille sous son parent. -->
+            <dependency>
+                <groupId>commons-validator</groupId>
+                <artifactId>commons-validator</artifactId>
+                <version>1.11.0</version>
+            </dependency>
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>

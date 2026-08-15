@@ -1428,28 +1428,46 @@ export default function ChannexMappingDialog({ open, onClose, guided = false }: 
           Le wizard Channex s'ouvre filtre sur l'OTA choisi (param available_channels)
           ce qui evite a l'utilisateur de chercher dans 500+ options.
 
-          NOTE : on avait tente une pre-creation via POST /channels + mapping
-          automatique, mais le mapping property↔channel n'est pas expose en
-          API publique Channex (tous formats testes -> 422/500). Le wizard
-          iframe reste l'unique chemin pour finaliser le mapping. Le call
-          createOtaChannel reste cote backend pour usage futur (whitelabel
-          ou si Channex expose l'endpoint). */}
+          Deux chemins, selon ce que Channex accepte :
+
+          1. PRE-CREATION (createOtaChannel) quand on a les reglages du channel.
+             Le channel naît deja rattache a la bonne propriete et le wizard
+             s'ouvre directement dessus. C'est ce qui evite le piege observe le
+             2026-08-14 : un channel cree dans le wizard sans choisir la
+             propriete se retrouve rattache a rien, l'ecran de mapping affiche
+             « No data » et le channel ne peut pas etre active.
+
+          2. WIZARD SEUL en repli. Channex refuse la creation API d'Airbnb, Vrbo
+             et Expedia (`channel: is invalid`) : pour eux le wizard est le seul
+             chemin. L'echec de pre-creation est donc un cas NORMAL, pas une
+             panne — on enchaîne sans rien dire a l'utilisateur. */}
       <ChannexOtaPickerDialog
         open={pickerDialog.open}
         onClose={() => setPickerDialog({ open: false, property: null })}
         propertyName={pickerDialog.property?.name ?? ''}
-        onPick={(code) => {
-          // Bascule du picker au widget iframe Channex pre-filtre sur l'OTA choisi
+        onPick={async (code, settings) => {
           const property = pickerDialog.property;
           setPickerDialog({ open: false, property: null });
-          if (property) {
-            setEmbedDialog({
-              open: true,
-              property,
-              channelCode: code,
-              prefetchedUrl: null, // pas de pre-create -> ChannexEmbedDialog fetche lui-meme
-            });
+          if (!property) return;
+
+          const option = CHANNEX_OTA_OPTIONS.find((o) => o.code === code);
+          let prefetchedUrl: string | null = null;
+
+          if (option && settings) {
+            try {
+              const created = await channexApi.createOtaChannel(
+                property.id,
+                option.apiChannelName,
+                settings,
+              );
+              prefetchedUrl = created.embedUrl ?? null;
+            } catch (err) {
+              // Repli silencieux sur le wizard : cf. cas 2 ci-dessus.
+              console.warn('Channex: pre-creation du channel impossible, repli wizard', err);
+            }
           }
+
+          setEmbedDialog({ open: true, property, channelCode: code, prefetchedUrl });
         }}
       />
 

@@ -88,7 +88,7 @@ class ChannexImportServiceExtraTest {
             connectService, userRepository, lengthOfStayDiscountRepository,
             ratePlanRepository, occupancyPricingRepository, rateOverrideRepository,
             bookingRestrictionRepository, objectMapper, amenityManagementService, pricingImporter,
-            groupService, selfProvider);
+            groupService, selfProvider, new com.clenzy.integration.channex.config.ChannexProperties());
         // self = l'instance elle-meme (pas de proxy Spring en test unitaire)
         when(selfProvider.getObject()).thenAnswer(inv -> service);
     }

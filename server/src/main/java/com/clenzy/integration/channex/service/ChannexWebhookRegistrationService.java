@@ -32,6 +32,13 @@ public class ChannexWebhookRegistrationService {
 
     private static final Logger log = LoggerFactory.getLogger(ChannexWebhookRegistrationService.class);
 
+    /**
+     * Chemin du controller qui recoit les webhooks — cf.
+     * {@code ChannexWebhookController}, {@code @RequestMapping("/api/webhooks/channex")}.
+     * Toute URL de rappel doit s'y terminer, sinon Channex livre sur un 404.
+     */
+    static final String WEBHOOK_PATH = "/api/webhooks/channex";
+
     private final ChannexClient channexClient;
     private final ChannexProperties props;
 
@@ -74,9 +81,10 @@ public class ChannexWebhookRegistrationService {
     /**
      * Garantit qu'un webhook global pointe sur notre callback URL.
      *
-     * @return statut : {@code already_registered} (webhook existant sur la meme
-     *         URL), {@code created} (nouveau webhook, id retourne), ou
-     *         {@code not_configured}.
+     * @return statut : {@code already_registered} (webhook existant et actif),
+     *         {@code reactivated} (webhook existant remis en service),
+     *         {@code created} (nouveau webhook, id retourne),
+     *         {@code invalid_callback_url} ou {@code not_configured}.
      */
     public RegistrationResult ensureGlobalWebhook() {
         if (!isFullyConfigured()) {
@@ -86,6 +94,19 @@ public class ChannexWebhookRegistrationService {
 
         String callbackUrl = props.getWebhookCallbackUrl().trim();
 
+        // Une URL sans le chemin du controller livre dans le vide : Channex
+        // recoit un 404 et compte l'echec. C'est exactement ce qui s'est passe
+        // sur le compte de certification, ou l'URL enregistree etait la racine
+        // du tunnel ngrok — aucune livraison n'a jamais pu aboutir, et Channex
+        // a fini par desactiver le webhook.
+        if (!callbackUrl.endsWith(WEBHOOK_PATH)) {
+            log.error("ChannexWebhookRegistration: callback URL '{}' ne finit pas par '{}' — "
+                + "les livraisons tomberaient en 404", callbackUrl, WEBHOOK_PATH);
+            return new RegistrationResult("invalid_callback_url", null,
+                "L'URL de rappel doit se terminer par " + WEBHOOK_PATH
+                    + " — sinon Channex livre dans le vide et desactive le webhook");
+        }
+
         List<JsonNode> existing = channexClient.listWebhooks();
         for (JsonNode webhook : existing) {
             String url = webhook.path("attributes").path("callback_url").asText("");
@@ -93,12 +114,14 @@ public class ChannexWebhookRegistrationService {
                 String id = webhook.path("id").asText(null);
                 boolean active = webhook.path("attributes").path("is_active").asBoolean(false);
                 if (!active) {
-                    // is_active=false (defaut Channex piege) : webhook muet — on le
-                    // signale explicitement plutot que de le doublonner.
-                    log.warn("ChannexWebhookRegistration: webhook {} existe mais is_active=false — "
-                        + "l'activer dans le dashboard Channex ou le supprimer puis relancer /ensure", id);
-                    return new RegistrationResult("exists_inactive", id,
-                        "Webhook existant mais inactif cote Channex — activation requise");
+                    // Channex desactive un webhook dont les livraisons echouent.
+                    // On le remet en service plutot que de renvoyer l'operateur
+                    // vers le dashboard : « ensure » doit garantir, pas constater.
+                    channexClient.activateWebhook(id, props.getWebhookEventMask(),
+                        props.getWebhookSecret());
+                    log.info("ChannexWebhookRegistration: webhook {} etait inactif, reactive", id);
+                    return new RegistrationResult("reactivated", id,
+                        "Webhook remis en service (il avait ete desactive cote Channex)");
                 }
                 return new RegistrationResult("already_registered", id, null);
             }

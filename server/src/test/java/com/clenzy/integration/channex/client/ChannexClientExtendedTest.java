@@ -721,6 +721,27 @@ class ChannexClientExtendedTest {
         assertThat(result.bookings()).isEmpty();
     }
 
+    @Test
+    @DisplayName("listBookings deballe l'enveloppe JSON:API (attributes)")
+    void listBookings_unwrapsJsonApiEnvelope() {
+        // Forme reelle de Channex : les champs du booking sont dans attributes.
+        // Les lire a plat laissait propertyId nul -> import rejete.
+        // Pas de champ date ici : le mapper de ce test n'embarque pas JSR-310,
+        // ce qui n'a rien a voir avec le deballage qu'on verifie.
+        String body = """
+            {"data":[{"id":"bk-1","type":"booking","attributes":{
+              "id":"bk-1","property_id":"prop-1","status":"new"}}]}""";
+        mockServer.expect(requestTo(containsString("/bookings?")))
+            .andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+
+        var bookings = client.listBookings("prop-1",
+            LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 30)).bookings();
+
+        assertThat(bookings).hasSize(1);
+        assertThat(bookings.get(0).id()).isEqualTo("bk-1");
+        assertThat(bookings.get(0).propertyId()).isEqualTo("prop-1");
+    }
+
     // --- Sprint Quick Wins endpoints (Optional pattern) ---
 
     @Test

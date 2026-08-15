@@ -1149,7 +1149,15 @@ public class ChannexConnectService {
                 "Aucun mapping Channex pour la propriete " + clenzyPropertyId
                 + ". Connectez la property d'abord."));
 
-        log.info("ChannexConnect[PULL]: import bookings property={} channex={} periode={}-{}",
+        // Channex trace chaque lecture par liste comme un
+        // « booking_received_via_booking_list » et REFUSE la certification si
+        // elle en trouve : une reservation doit arriver par le webhook ou le
+        // feed de revisions, jamais par interrogation. Cet import reste
+        // legitime — il sert a rapatrier l'historique au branchement d'une
+        // propriete — mais il ne doit pas tourner pendant une campagne de
+        // certification. D'ou cette trace, pour qu'on sache l'attribuer.
+        log.warn("ChannexConnect[PULL]: import bookings PAR LISTE property={} channex={} periode={}-{}"
+                + " — trace par Channex comme reception hors webhook/feed",
             clenzyPropertyId, mapping.getChannexPropertyId(), arrivalFrom, arrivalTo);
 
         ChannexBookingsListResponse response;
@@ -1299,17 +1307,28 @@ public class ChannexConnectService {
      *       with Airbnb" → 1 clic OAuth pour terminer.</li>
      * </ul>
      *
+     * <p><b>Tous les OTA ne sont pas creables par API.</b> Channex refuse
+     * "Airbnb", "VrboCom" et "ExpediaQuickConnect" avec
+     * {@code channel: is invalid} — leur channel ne naît que dans le wizard.
+     * L'appelant doit donc traiter l'echec comme un cas normal et retomber sur
+     * {@link #getEmbedUrl}, pas comme une panne.</p>
+     *
      * @param clenzyPropertyId id de la property Clenzy
      * @param orgId            id de l'organisation (tenant)
      * @param otaChannelName   nom Channex de l'OTA ("Airbnb", "BookingCom",
      *                         "VrboCom", "ExpediaQuickConnect", "Agoda")
      * @param username         email admin Clenzy (audit cote Channex)
      * @param language         code langue UI iframe (fr/en/...)
+     * @param settings         reglages specifiques au channel — pour Booking.com
+     *                         {@code {"hotel_id": "..."}}. Obligatoire sur les
+     *                         channels a credentials : sans lui Channex renvoie
+     *                         500. {@code null} pour les channels OAuth.
      * @throws IllegalStateException si la property n'a pas de mapping Channex
      */
     public ChannexOtaChannelResponse createOtaChannel(Long clenzyPropertyId, Long orgId,
                                                         String otaChannelName, String username,
-                                                        String language) {
+                                                        String language,
+                                                        Map<String, Object> settings) {
         ChannexPropertyMapping mapping = mappingRepository.findByClenzyPropertyId(clenzyPropertyId, orgId)
             .orElseThrow(() -> new IllegalStateException(
                 "Aucun mapping Channex pour la propriete " + clenzyPropertyId
@@ -1330,7 +1349,7 @@ public class ChannexConnectService {
         // 3. Creer le channel via API (is_active=false, sera active apres OAuth)
         ChannexChannelDto created = channexClient.createChannel(
             new ChannexCreateChannelRequest(title, otaChannelName,
-                mapping.getChannexPropertyId(), groupId));
+                mapping.getChannexPropertyId(), groupId, settings));
 
         log.info("ChannexConnect: channel OTA cree id={} title={} pour property {} (org={})",
             created.id(), created.title(), clenzyPropertyId, orgId);

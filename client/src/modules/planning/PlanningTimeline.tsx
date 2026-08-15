@@ -39,6 +39,8 @@ interface PlanningTimelineProps {
   drag: UsePlanningDragReturn;
   onEventClick: (event: PlanningEvent) => void;
   onHideEvent?: (event: PlanningEvent) => void;
+  /** Débloque une plage — `to` est EXCLUSIVE. Absent = action non proposée. */
+  onUnblock?: (propertyId: number, from: string, to: string) => Promise<void>;
   onEmptyClick: (data: QuickCreateData) => void;
   quickCreateOpen: boolean;
   scrollRef: React.RefObject<HTMLDivElement | null>;
@@ -81,6 +83,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   drag,
   onEventClick,
   onHideEvent,
+  onUnblock,
   onEmptyClick,
   quickCreateOpen,
   scrollRef,
@@ -275,6 +278,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                       }
                       onEventClick={onEventClick}
                       onHideEvent={onHideEvent}
+                      onUnblock={onUnblock}
                       onEmptyClick={onEmptyClick}
                       quickCreateOpen={quickCreateOpen}
                       showPrices={showPrices}

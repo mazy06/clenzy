@@ -90,6 +90,24 @@ public class ChannexProperties {
      */
     private boolean allowPushWithoutActiveOta = false;
 
+    /**
+     * Rejoue l'historique des reservations par APPEL DE LISTE a la fin d'un
+     * import de propriete. DEFAUT {@code true} : c'est le rattrapage qui donne
+     * a une propriete fraichement connectee son passe (annee fiscale en cours,
+     * declaration LMNP) et ses douze mois a venir — le flux de revisions ne
+     * remonte pas l'anterieur.
+     *
+     * <p>Passer a {@code false} PENDANT UNE CERTIFICATION. Channex compte
+     * chaque lecture par liste ou par identifiant comme une reception
+     * illegitime : « bookings must be received via webhook/feed, not
+     * list-polling or by-id fetching ». Le refus du 2026-08-15 vient de la —
+     * trois evenements {@code booking_revision_received_via_list}, un par
+     * reconnexion du canal, chacun declenche par ce rattrapage et non par une
+     * action manuelle. Le runbook interdisait le pull manuel ; il ignorait que
+     * l'import en lancait un tout seul.</p>
+     */
+    private boolean importPullBookings = true;
+
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
 
@@ -122,6 +140,9 @@ public class ChannexProperties {
 
     public boolean isAllowPushWithoutActiveOta() { return allowPushWithoutActiveOta; }
     public void setAllowPushWithoutActiveOta(boolean allowPushWithoutActiveOta) { this.allowPushWithoutActiveOta = allowPushWithoutActiveOta; }
+
+    public boolean isImportPullBookings() { return importPullBookings; }
+    public void setImportPullBookings(boolean importPullBookings) { this.importPullBookings = importPullBookings; }
 
     /** True si l'API key est configuree (sandbox ou prod). */
     public boolean isConfigured() {

@@ -37,9 +37,14 @@ public class NotificationService {
     private final TenantContext tenantContext;
 
     /**
-     * Moteur Ménage 2B (P4) — clés poussées en PUSH MOBILE via l'outbox → Kafka
-     * ({@code notifications.send}) → FcmNotificationConsumer. Whitelist volontaire :
+     * Moteur Ménage 2B (P4) — clés destinées au PUSH MOBILE, publiées via
+     * l'outbox → Kafka ({@code notifications.send}). Whitelist volontaire :
      * les clés TERRAIN d'abord ; étendre ici quand un nouveau cas est validé.
+     *
+     * <p><b>Aucun consommateur ne lit ce topic depuis le retrait de
+     * firebase-admin (2026-08-15)</b> : le push mobile est en attente d'un
+     * émetteur vers l'API Expo. Les événements continuent d'être publiés, la
+     * notification in-app n'est pas concernée.
      */
     static final Set<NotificationKey> PUSH_ENABLED_KEYS = Set.of(
             NotificationKey.INTERVENTION_ASSIGNED_TO_USER,
@@ -269,7 +274,7 @@ public class NotificationService {
             return;
         }
         try {
-            // Payload aligné sur le contrat de FcmNotificationConsumer.
+            // Contrat attendu du futur consommateur de push (cf. PUSH_ENABLED_KEYS).
             // notificationId est le SEUL champ dont il dépend pour le destinataire et le
             // contenu : il recharge la notification en base (audit 2026-07, P5-08 — un
             // payload dictant titre et destinataire permettait un push de phishing forgé).

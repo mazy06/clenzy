@@ -16,6 +16,7 @@ import com.clenzy.repository.ReservationRepository;
 import com.clenzy.config.SyncMetrics;
 import io.micrometer.core.instrument.Timer;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -128,6 +129,50 @@ class CalendarEngineTest {
         assertNotNull(result);
         verify(calendarDayRepository).saveAll(anyList());
         verify(outboxPublisher).publishCalendarEvent(eq("CALENDAR_BOOKED"), eq(propertyId), eq(orgId), anyString());
+    }
+
+    @Test
+    @DisplayName("l'event publie une borne 'to' INCLUSIVE, la ou le calendrier est en [from, to)")
+    void publishedPayloadUsesInclusiveEndDate() {
+        // Le calendrier va de checkIn a checkOut-1 ; l'event doit donc annoncer
+        // checkOut-1. Publier checkOut faisait pousser une nuit de trop vers
+        // Channex — « update must target a single date », refus du 2026-08-14.
+        when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(true);
+        when(calendarDayRepository.countConflicts(propertyId, checkIn, checkOut, orgId)).thenReturn(0L);
+        when(restrictionEngine.validate(propertyId, checkIn, checkOut, orgId))
+                .thenReturn(RestrictionEngine.ValidationResult.valid());
+        when(priceEngine.resolvePriceRange(propertyId, checkIn, checkOut, orgId)).thenReturn(Map.of());
+        when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
+        when(calendarDayRepository.saveAll(anyList())).thenAnswer(i -> i.getArgument(0));
+
+        calendarEngine.book(propertyId, checkIn, checkOut, reservationId, orgId, source, actorId);
+
+        ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
+        verify(outboxPublisher).publishCalendarEvent(eq("CALENDAR_BOOKED"), eq(propertyId),
+                eq(orgId), payload.capture());
+        assertTrue(payload.getValue().contains("\"from\":\"2025-06-01\""), payload.getValue());
+        assertTrue(payload.getValue().contains("\"to\":\"2025-06-04\""), payload.getValue());
+    }
+
+    @Test
+    @DisplayName("une plage d'UNE nuit publie from == to")
+    void singleNightPayloadCollapsesToOneDate() {
+        LocalDate oneNight = LocalDate.of(2025, 6, 1);
+        LocalDate next = oneNight.plusDays(1);
+        when(calendarDayRepository.acquirePropertyLock(propertyId)).thenReturn(true);
+        when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
+        when(calendarDayRepository.findByPropertyAndDateRange(anyLong(), any(), any(), anyLong()))
+                .thenReturn(List.of());
+        when(calendarDayRepository.saveAll(anyList())).thenAnswer(i -> i.getArgument(0));
+
+        calendarEngine.updateManualPrice(propertyId, oneNight, next, new BigDecimal("333.00"),
+                orgId, actorId);
+
+        ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
+        verify(outboxPublisher).publishCalendarEvent(eq("CALENDAR_PRICE_UPDATED"), eq(propertyId),
+                eq(orgId), payload.capture());
+        assertTrue(payload.getValue().contains("\"from\":\"2025-06-01\""), payload.getValue());
+        assertTrue(payload.getValue().contains("\"to\":\"2025-06-01\""), payload.getValue());
     }
 
     @Test

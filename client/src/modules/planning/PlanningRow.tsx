@@ -38,6 +38,8 @@ interface PlanningRowProps {
   rowDrag: RowDragState | null;
   onEventClick: (event: PlanningEvent) => void;
   onHideEvent?: (event: PlanningEvent) => void;
+  /** Débloque une plage — `to` est EXCLUSIVE. Absent = action non proposée. */
+  onUnblock?: (propertyId: number, from: string, to: string) => Promise<void>;
   onEmptyClick: (data: QuickCreateData) => void;
   quickCreateOpen: boolean;
   showPrices: boolean;
@@ -74,6 +76,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   rowDrag,
   onEventClick,
   onHideEvent,
+  onUnblock,
   onEmptyClick,
   quickCreateOpen,
   showPrices,
@@ -554,6 +557,9 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
           height={activeRowHeight}
           notes={layout.event.label && layout.event.label !== 'Bloqué' ? layout.event.label : undefined}
           source={layout.event.sublabel}
+          startDate={layout.event.startDate}
+          endDate={layout.event.endDate}
+          onUnblock={onUnblock && ((from, to) => onUnblock(layout.event.propertyId, from, to))}
         />
       ))}
 

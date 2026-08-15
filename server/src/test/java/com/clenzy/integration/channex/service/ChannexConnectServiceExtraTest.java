@@ -164,7 +164,7 @@ class ChannexConnectServiceExtraTest {
     void createOtaChannel_noMapping() {
         when(mappingRepository.findByClenzyPropertyId(99L, 42L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.createOtaChannel(99L, 42L, "Airbnb", "admin@x.fr", "fr"))
+        assertThatThrownBy(() -> service.createOtaChannel(99L, 42L, "Airbnb", "admin@x.fr", "fr", null))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("Aucun mapping Channex");
     }
@@ -176,7 +176,7 @@ class ChannexConnectServiceExtraTest {
         when(mappingRepository.findByClenzyPropertyId(100L, 42L)).thenReturn(Optional.of(m));
         when(propertyRepository.findById(100L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.createOtaChannel(100L, 42L, "Airbnb", "admin@x.fr", "fr"))
+        assertThatThrownBy(() -> service.createOtaChannel(100L, 42L, "Airbnb", "admin@x.fr", "fr", null))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("introuvable");
     }
@@ -194,7 +194,7 @@ class ChannexConnectServiceExtraTest {
         when(channexClient.createChannelEmbedUrl(eq("ch-100"), eq("chan-1"), anyString(), anyString()))
             .thenReturn("https://embed.channex.io/oauth");
 
-        ChannexOtaChannelResponse result = service.createOtaChannel(100L, 42L, "Airbnb", "admin@x.fr", "fr");
+        ChannexOtaChannelResponse result = service.createOtaChannel(100L, 42L, "Airbnb", "admin@x.fr", "fr", null);
 
         assertThat(result.channelId()).isEqualTo("chan-1");
         assertThat(result.channelTitle()).isEqualTo("Airbnb - Studio Marais");
@@ -219,7 +219,7 @@ class ChannexConnectServiceExtraTest {
         when(channexClient.createChannelEmbedUrl(any(), any(), any(), any()))
             .thenReturn("https://embed.channex.io/oauth");
 
-        service.createOtaChannel(100L, 42L, "BookingCom", "admin@x.fr", "fr");
+        service.createOtaChannel(100L, 42L, "BookingCom", "admin@x.fr", "fr", null);
 
         ArgumentCaptor<ChannexOtaChannel> saved = ArgumentCaptor.forClass(ChannexOtaChannel.class);
         verify(otaChannelRepository).save(saved.capture());
@@ -254,7 +254,7 @@ class ChannexConnectServiceExtraTest {
         when(channexClient.createChannelEmbedUrl(any(), any(), any(), any()))
             .thenReturn("https://embed.channex.io/x");
 
-        service.createOtaChannel(100L, 42L, "Airbnb", "admin@x.fr", "fr");
+        service.createOtaChannel(100L, 42L, "Airbnb", "admin@x.fr", "fr", null);
 
         ArgumentCaptor<ChannexOtaChannel> saved = ArgumentCaptor.forClass(ChannexOtaChannel.class);
         verify(otaChannelRepository).save(saved.capture());
@@ -284,7 +284,7 @@ class ChannexConnectServiceExtraTest {
         when(channexClient.createChannelEmbedUrl(any(), any(), any(), any()))
             .thenReturn("https://embed.channex.io/oauth");
 
-        ChannexOtaChannelResponse result = service.createOtaChannel(100L, 42L, "Airbnb", "admin@x.fr", "fr");
+        ChannexOtaChannelResponse result = service.createOtaChannel(100L, 42L, "Airbnb", "admin@x.fr", "fr", null);
 
         assertThat(result.embedUrl()).isEqualTo("https://embed.channex.io/oauth");
     }
@@ -303,7 +303,7 @@ class ChannexConnectServiceExtraTest {
         when(channexClient.createChannelEmbedUrl(any(), any(), any(), any()))
             .thenReturn("https://embed.channex.io/x");
 
-        ChannexOtaChannelResponse result = service.createOtaChannel(100L, 42L, "Airbnb", "admin@x.fr", "fr");
+        ChannexOtaChannelResponse result = service.createOtaChannel(100L, 42L, "Airbnb", "admin@x.fr", "fr", null);
         assertThat(result.channelTitle()).contains("Propriete #100");
     }
 
@@ -321,7 +321,7 @@ class ChannexConnectServiceExtraTest {
         when(channexClient.createChannelEmbedUrl(any(), any(), any(), any()))
             .thenReturn("https://embed.channex.io/x");
 
-        ChannexOtaChannelResponse result = service.createOtaChannel(100L, 42L, "Airbnb", "admin@x.fr", "fr");
+        ChannexOtaChannelResponse result = service.createOtaChannel(100L, 42L, "Airbnb", "admin@x.fr", "fr", null);
         assertThat(result).isNotNull();
     }
 

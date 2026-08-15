@@ -385,17 +385,25 @@ export const channexApi = {
    *
    * Le backend resoud automatiquement le group_id Channex de la property.
    *
+   * Tous les OTA ne sont pas creables par API : Channex refuse Airbnb, Vrbo et
+   * Expedia avec `channel: is invalid`. L'appelant doit traiter l'echec comme un
+   * cas normal et retomber sur getEmbedUrl (le wizard), pas comme une panne.
+   *
    * @param apiChannelName Nom Channex officiel ("Airbnb", "BookingCom", ...)
    *                       — utiliser CHANNEX_OTA_OPTIONS[i].apiChannelName
+   * @param settings       Reglages specifiques au channel — pour Booking.com
+   *                       `{ hotel_id: '10485037' }`. Obligatoire sur les
+   *                       channels a credentials : sans eux Channex renvoie 500.
    */
   createOtaChannel(
     clenzyPropertyId: number,
     apiChannelName: string,
+    settings?: Record<string, string>,
     lng: string = 'fr',
   ): Promise<ChannexOtaChannelResponse> {
     return apiClient.post<ChannexOtaChannelResponse>(
       `/integrations/channex/properties/${clenzyPropertyId}/ota-channels`,
-      { otaChannelName: apiChannelName },
+      { otaChannelName: apiChannelName, settings: settings ?? null },
       { params: { lng } },
     );
   },
@@ -434,6 +442,24 @@ export const channexApi = {
         targetOrganizationId: overrides?.targetOrganizationId ?? null,
         targetOwnerId: overrides?.targetOwnerId ?? null,
       },
+    );
+  },
+
+  /**
+   * Rattache une property du hub a un logement Baitly EXISTANT, au lieu d'en
+   * creer un second.
+   *
+   * A utiliser quand la decouverte renvoie un `reattachPropertyId` : ce cas
+   * signale une property dont le mapping a ete supprime (deconnexion) alors que
+   * le logement Baitly, lui, existe toujours avec ses tarifs et son historique.
+   */
+  reattachProperty(
+    channexPropertyId: string,
+    clenzyPropertyId: number,
+  ): Promise<ChannexImportResult> {
+    return apiClient.post<ChannexImportResult>(
+      '/integrations/channex/discover/reattach',
+      { channexPropertyId, clenzyPropertyId },
     );
   },
 
@@ -636,6 +662,18 @@ export interface ChannexDiscoveredProperty {
   otaAllowsSmoking: boolean | null;
   /** Evenements acceptes ? */
   otaAllowsEvents: boolean | null;
+  /**
+   * Logement Baitly a RATTACHER plutot qu'a importer — null si aucune
+   * correspondance sure (le backend n'en propose une que si un SEUL logement
+   * sans mapping porte ce nom).
+   *
+   * Une deconnexion supprime le mapping mais laisse la property cote Channex,
+   * qui ressort donc ici. L'importer en creerait un SECOND logement, l'ancien
+   * gardant tarifs, calendrier et reservations.
+   */
+  reattachPropertyId: number | null;
+  /** Nom du logement a rattacher, pour pouvoir le nommer dans l'ecran. */
+  reattachPropertyName: string | null;
 }
 
 /** OTA sync sur une property (mini-badge logo + check vert dans la UI). */
@@ -698,10 +736,30 @@ export interface ChannexOtaChannelResponse {
  */
 export type ChannexOtaCode = 'ABB' | 'BDC' | 'VRB' | 'EXP' | 'AGO';
 
+/**
+ * Reglage que Channex exige a la creation du channel par API.
+ *
+ * Sa presence signifie « cet OTA se pre-cree ». Sans elle on ouvre directement
+ * le wizard : Channex refuse la creation API d'Airbnb, Vrbo et Expedia
+ * (`channel: is invalid`), leur channel ne naît que dans son interface.
+ */
+export interface ChannexOtaCreateSetting {
+  /** Cle envoyee dans `settings` (ex. `hotel_id`). */
+  key: string;
+  label: string;
+  help: string;
+  placeholder: string;
+}
+
 export interface ChannexOtaOption {
   code: ChannexOtaCode;
   /** Nom Channex officiel a envoyer dans POST /channels (champ `channel`). */
   apiChannelName: string;
+  /**
+   * Renseigne = le channel peut etre pre-cree par API, rattache d'emblee a la
+   * bonne propriete. Absent = passer par le wizard.
+   */
+  createSetting?: ChannexOtaCreateSetting;
   name: string;                // libelle UI
   brandColor: string;          // bg du card
   brandColorFg: string;        // texte/icone sur le bg
@@ -727,6 +785,12 @@ export const CHANNEX_OTA_OPTIONS: readonly ChannexOtaOption[] = [
     brandColorFg: '#FFFFFF',
     initials: 'B.',
     description: 'XML API · credentials hotel',
+    createSetting: {
+      key: 'hotel_id',
+      label: 'Identifiant Booking.com du logement',
+      help: "Visible en haut de l'extranet Booking.com, à côté du nom de l'établissement.",
+      placeholder: '10485037',
+    },
   },
   {
     code: 'VRB',

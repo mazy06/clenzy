@@ -218,6 +218,13 @@ clenzy:
     # DEFAUT false : en prod, l'ARI ne part qu'a partir du 1er OTA mappe. Ne
     # JAMAIS mettre true en prod.
     allow-push-without-active-ota: ${CHANNEX_ALLOW_PUSH_WITHOUT_ACTIVE_OTA:false}
+    # Rattrapage de l'historique des reservations par APPEL DE LISTE a la fin
+    # d'un import. DEFAUT true : c'est ce qui donne son passe a une propriete
+    # fraichement connectee (le flux de revisions ne remonte pas l'anterieur).
+    # A METTRE A false PENDANT UNE CERTIFICATION : Channex compte chaque lecture
+    # par liste comme une reception illegitime, et c'est ce rattrapage — pas un
+    # pull manuel — qui a fait echouer le test 11 le 2026-08-15.
+    import-pull-bookings: ${CHANNEX_IMPORT_PULL_BOOKINGS:true}
   ai:
     enabled: false
     openai:

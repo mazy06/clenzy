@@ -779,11 +779,18 @@ public class ChannexConnectController {
             throw new IllegalArgumentException("otaChannelName est requis (ex: 'Airbnb', 'BookingCom')");
         }
         return connectService.createOtaChannel(clenzyPropertyId, orgId,
-            body.otaChannelName(), username, lng);
+            body.otaChannelName(), username, lng, body.settings());
     }
 
-    /** Body pour POST /properties/{id}/ota-channels. */
-    public record CreateOtaChannelBody(String otaChannelName) {}
+    /**
+     * Body pour POST /properties/{id}/ota-channels.
+     *
+     * @param otaChannelName nom Channex de l'OTA ("BookingCom", "Agoda"…)
+     * @param settings       reglages specifiques au channel, transmis tels quels
+     *                       a Channex — pour Booking.com {@code {"hotel_id": "..."}}.
+     *                       Sans eux, un channel a credentials fait repondre 500.
+     */
+    public record CreateOtaChannelBody(String otaChannelName, Map<String, Object> settings) {}
 
     // ─── Discovery / Import depuis Channex ──────────────────────────────────
 
@@ -801,6 +808,31 @@ public class ChannexConnectController {
         Long orgId = tenantContext.getRequiredOrganizationId();
         return importService.discoverUnmappedProperties(orgId);
     }
+
+    /**
+     * Rattache une property du hub a un logement Baitly EXISTANT, au lieu d'en
+     * creer un second.
+     *
+     * <p>Repond au piege deconnexion → re-import : la deconnexion supprime le
+     * mapping mais laisse la property cote Channex, qui ressort en decouverte.
+     * L'import en fabriquerait un doublon, l'ancien logement gardant tarifs,
+     * calendrier et reservations. La decouverte signale la cible via
+     * {@code reattachPropertyId} ; cet endpoint refait le lien.</p>
+     */
+    @PostMapping("/discover/reattach")
+    @Operation(summary = "Rattache une property du hub a un logement Baitly existant")
+    public ChannexImportResult reattachProperty(@Valid @RequestBody ReattachBody body) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        if (body == null || body.channexPropertyId() == null || body.channexPropertyId().isBlank()
+            || body.clenzyPropertyId() == null) {
+            throw new IllegalArgumentException(
+                "channexPropertyId et clenzyPropertyId sont requis");
+        }
+        return importService.reattach(orgId, body.channexPropertyId(), body.clenzyPropertyId());
+    }
+
+    /** Body pour POST /discover/reattach. */
+    public record ReattachBody(String channexPropertyId, Long clenzyPropertyId) {}
 
     /**
      * Importe en masse les properties Channex selectionnees comme Properties
