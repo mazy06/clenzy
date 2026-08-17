@@ -259,8 +259,9 @@ export default function CalendarPage() {
   );
 
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader
+        className="shrink-0"
         title="Planning des interventions"
         subtitle="Vue calendrier de toutes les interventions planifiees"
         iconBadge={<CalendarMonth />}
@@ -278,7 +279,7 @@ export default function CalendarPage() {
 
       {/* Calendar */}
       {loading ? (
-        <Skeleton className="h-[calc(100vh-320px)] min-h-[400px] rounded-lg" />
+        <Skeleton className="min-h-0 flex-1 rounded-lg" />
       ) : !error && interventions.length === 0 ? (
         <EmptyState
           icon={<CalendarMonth />}
@@ -286,43 +287,49 @@ export default function CalendarPage() {
           description="Les interventions planifiees (menage, maintenance, check-in/out) apparaitront ici dans une vue calendrier."
         />
       ) : (
-        <Card className="gap-0 py-0 cal-signature p-3">
-          <FullCalendar
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
-            initialView={isMobile ? 'listWeek' : 'dayGridMonth'}
-            locale={frLocale}
-            headerToolbar={{
-              left: 'prev,next today',
-              center: 'title',
-              right: isMobile
-                ? 'listWeek,dayGridMonth'
-                : 'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
-            }}
-            events={events}
-            eventClick={handleEventClick}
-            height={isMobile ? 'auto' : 'calc(100vh - 320px)'}
-            editable={false}
-            selectable={false}
-            dayMaxEvents={3}
-            moreLinkText={(n) => `+${n} autres`}
-            noEventsText="Aucune intervention planifiee"
-            allDaySlot={false}
-            slotMinTime="06:00:00"
-            slotMaxTime="22:00:00"
-            eventTimeFormat={{
-              hour: '2-digit',
-              minute: '2-digit',
-              meridiem: false,
-              hour12: false,
-            }}
-            buttonText={{
-              today: "Aujourd'hui",
-              month: 'Mois',
-              week: 'Semaine',
-              day: 'Jour',
-              list: 'Liste',
-            }}
-          />
+        <Card className="flex min-h-0 flex-1 flex-col gap-0 py-0 cal-signature p-3">
+          {/* La grille prend la hauteur restante : c'est ce conteneur qui la
+              porte, pour que le `height="100%"` de FullCalendar se resolve. */}
+          <div className="min-h-0 flex-1">
+            <FullCalendar
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
+              initialView={isMobile ? 'listWeek' : 'dayGridMonth'}
+              locale={frLocale}
+              headerToolbar={{
+                left: 'prev,next today',
+                center: 'title',
+                right: isMobile
+                  ? 'listWeek,dayGridMonth'
+                  : 'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
+              }}
+              events={events}
+              eventClick={handleEventClick}
+              height={isMobile ? 'auto' : '100%'}
+              editable={false}
+              selectable={false}
+              // `true` = le nombre d'evenements visibles suit la hauteur reelle de
+              // la cellule (le reste passe en « +N autres »), au lieu d'un palier fixe.
+              dayMaxEvents={isMobile ? 3 : true}
+              moreLinkText={(n) => `+${n} autres`}
+              noEventsText="Aucune intervention planifiee"
+              allDaySlot={false}
+              slotMinTime="06:00:00"
+              slotMaxTime="22:00:00"
+              eventTimeFormat={{
+                hour: '2-digit',
+                minute: '2-digit',
+                meridiem: false,
+                hour12: false,
+              }}
+              buttonText={{
+                today: "Aujourd'hui",
+                month: 'Mois',
+                week: 'Semaine',
+                day: 'Jour',
+                list: 'Liste',
+              }}
+            />
+          </div>
         </Card>
       )}
 
