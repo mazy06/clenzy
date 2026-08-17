@@ -5,13 +5,22 @@
 > Environnement : compte staging Baitly, clé API dans **`clenzy-infra/.env.dev`**
 > (`CHANNEX_API_KEY`, **jetable — à révoquer/régénérer après la certification**).
 >
-> ⚠️ **Pas `.env`.** Les deux fichiers portent une clé Channex, et elles voient des
-> comptes **différents** : `.env` (`uhH3tu…`) n'a pas de `CHANNEX_BASE_URL` et
-> tombe donc sur `app.channex.io`, tandis que `.env.dev` (`ulALqE…`) est celle que
-> le backend de dev emploie contre staging. Toute vérification par API doit
-> utiliser celle de `.env.dev` : la propriété de test interrogée avec l'autre
-> répond `resource_not_found` alors qu'elle existe. Cette confusion a coûté la
-> suppression d'une propriété de staging le 2026-08-13.
+> ⚠️ **Pas `.env`. Deux comptes Channex coexistent — établi le 2026-08-17.**
+>
+> | Fichier | Clé | Compte staging | Contenu |
+> |---|---|---|---|
+> | `.env` | `uhH3tu…qHyYrj` | **mazytoufik@proton.me** (pseudo « Baitly ») | **rien** — `GET /properties` renvoie `total: 0` |
+> | `.env.dev` | `ulALqE…wZCBBE` | **mazytoufik@outlook.com** (« Toufik Mazy ») | `Test Property - Baitly` + `[Clenzy Hub] OAuth Bridge`, groupe `Baitly Org 2` |
+>
+> **Tout ce qui touche à la certification vit dans le compte `outlook`** : la
+> propriété de test, les tâches, les logs. C'est celui-là qu'il faut employer,
+> par API comme au dashboard. Le compte `proton.me` est vide et n'a jamais rien
+> contenu — s'y connecter donne « You don't have any properties created yet »,
+> ce qui ressemble à une panne mais n'en est pas une.
+>
+> Cette confusion a coûté la suppression d'une propriété de staging le
+> 2026-08-13, puis une demi-heure de diagnostic le 2026-08-17 avant la vidéo de
+> live testing.
 >
 > Baitly = Vacation Rental **mono-unité** : 1 logement = 1 property Channex à
 > 1 room type × 1 rate plan. Le protocole hôtel demande 2×2 — l'adaptation
@@ -270,6 +279,55 @@ aucun d'automatique.
    received but not persisted is therefore not acknowledged and comes back on
    the next cycle.
 
+## Live testing — la vidéo (étape en cours depuis le 2026-08-17)
+
+Les onze tests ont été **acceptés** (retour Channex du 2026-08-17, test 3 écarté
+au motif mono room type / mono rate plan, exactement l'argument des Extra notes).
+L'étape suivante est une vidéo de trois scénarios, à envoyer à evan@channex.io
+avec l'identifiant de la propriété — ou, au choix, un appel de 60 min.
+
+### Où filmer côté Channex
+
+Se connecter au dashboard avec **mazytoufik@outlook.com** (cf. l'avertissement
+sur les deux comptes en tête de fichier), puis :
+
+`Properties` → ligne *Test Property - Baitly* → `Actions` → **Logs**
+
+La page s'intitule **Tasks** : une ligne par appel, colonne `Is Success`, et
+`View` ouvre le **payload complet** — c'est la preuve la plus forte, elle montre
+les dates et les valeurs telles que Channex les a reçues.
+
+Deux détails qui se voient à l'image : les heures sont affichées en **UTC+2**
+(deux heures d'écart avec l'horloge du poste), et la liste **ne s'actualise pas
+seule** — cliquer `Refresh` après chaque geste.
+
+### Les trois scénarios, et ce qu'ils produisent
+
+Répétition intégrale du 2026-08-17, payloads relus des deux côtés :
+
+| Geste dans Baitly | Attendu chez Channex |
+|---|---|
+| Créer une réservation d'**1 nuit** | **1 appel**, 1 entrée, `availability: 0` sur la seule nuit. Aucun appel `rates` |
+| **Déplacer** la réservation d'une semaine | **1 appel**, 2 entrées : `availability: 1` sur l'ancienne plage, `0` sur la nouvelle |
+| **Full sync** | **2 appels** : `UpdateAvailability` + `UpdateRestrictions`, horodatés à la même seconde |
+
+**Compter 30 à 45 s** entre le geste et l'appel (fenêtre de flush du batcher) :
+ne pas couper l'enregistrement trop tôt. **Espacer les scénarios d'une minute**,
+sinon le batcher les fusionne et la démonstration perd sa lisibilité.
+
+> **Sur le déplacement, une nuance à assumer.** Channex demande « des mises à
+> jour pour les nouvelles dates ET les anciennes ». Elles y sont, mais en **un
+> seul appel** — les deux événements (`CALENDAR_CANCELLED` puis
+> `CALENDAR_BOOKED`) tombent dans la même fenêtre de flush et le batcher fusionne
+> les plages en enveloppe. De plus l'entrée libérée s'étend jusqu'au jour
+> précédant la nouvelle réservation, la compression ayant fusionné la nuit rendue
+> avec les jours suivants déjà à `1`. Chaque date porte sa valeur exacte : c'est
+> plus large que le minimum théorique, jamais faux.
+
+> `Channel Syncs: This task not have changes to sync with OTA's` apparaît sur
+> chaque tâche. C'est la conséquence du canal Booking.com inactif, pas un défaut
+> du PMS.
+
 ## Soumission
 
 1. Formulaire : https://forms.gle/xA8F3eSYBPBd8apYA (task IDs + notes)
@@ -280,7 +338,8 @@ aucun d'automatique.
 
 **Troisième dossier soumis le 2026-08-16**, avec les identifiants du passage
 intégral du même jour. Réponse envoyée dans le fil « Certification form
-resubmitted » le jour même.
+resubmitted » le jour même. **Accepté le 2026-08-17 — onze tests passés**, reste
+le live testing (section précédente).
 
 ### Tant que la revue est en cours — ne rien couper
 
