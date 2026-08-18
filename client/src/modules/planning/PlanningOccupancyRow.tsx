@@ -65,7 +65,10 @@ const PlanningOccupancyRow: React.FC<PlanningOccupancyRowProps> = React.memo(({
   collapsed = false,
 }) => {
   return (
-    <div className="flex bg-[var(--surface-2)]" style={{ borderTop: '1px solid var(--line)' }}>
+    // `mt-auto` : pied de la carte. Le parent (contenu scrollable de
+    // PlanningTimeline) est une colonne flex d'au moins la hauteur visible,
+    // donc la marge automatique pousse la rangée au bas, sous les lignes.
+    <div className="mt-auto flex bg-[var(--surface-2)]" style={{ borderTop: '1px solid var(--line)' }}>
       {/* Coin sticky aligné sur la colonne logements */}
       <div
         className={cn(

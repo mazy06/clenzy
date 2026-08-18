@@ -31,8 +31,6 @@ export interface UsePlanningPaginationReturn {
   rangeStart: number;
   rangeEnd: number;
   goToPage: (page: number) => void;
-  goNextPage: () => void;
-  goPrevPage: () => void;
 }
 
 // ─── Page size computation ──────────────────────────────────────────────────
@@ -137,14 +135,6 @@ export function usePlanningPagination({
     [totalPages],
   );
 
-  const goNextPage = useCallback(() => {
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1));
-  }, [totalPages]);
-
-  const goPrevPage = useCallback(() => {
-    setCurrentPage((prev) => Math.max(prev - 1, 0));
-  }, []);
-
   return {
     paginatedProperties,
     currentPage,
@@ -153,7 +143,5 @@ export function usePlanningPagination({
     rangeStart,
     rangeEnd,
     goToPage,
-    goNextPage,
-    goPrevPage,
   };
 }

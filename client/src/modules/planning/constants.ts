@@ -196,7 +196,8 @@ export const WEEKEND_CELL_BG = 'var(--pl-cell-we)';
 
 // ─── Pagination ─────────────────────────────────────────────────────────────
 
-export const PAGINATION_BAR_HEIGHT = 32;
+// Hauteur du bandeau bas : `PagePagination` (boutons h-8) + respiration.
+export const PAGINATION_BAR_HEIGHT = 44;
 // Hauteur desktop : rangée contrôles (~44px) + rangée filtres fusionnée
 // canaux+statuts+interventions (~32px) + gaps/padding. Sert au calcul du
 // pageSize (sur-estimé = sûr, jamais de clip).

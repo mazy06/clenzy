@@ -283,7 +283,10 @@ const AssistantDockTab: React.FC = () => {
               Au survol, fermee seulement : leger soulevement en `transform`
               (aucun layout shift). Largeurs en dur — 560px = largeur du panneau,
               300px = largeur de l'onglet : une classe Tailwind ne peut pas naitre
-              d'une constante JS. Ruptures a 600px = le `sm` de MUI. Marges et
+              d'une constante JS. Onglet FERME : compact (logo seul, 56px) jusqu'a
+              900px — au format tablette ses 300px mangeaient le bas de l'ecran, ou
+              le planning colle sa barre de pagination. OUVERT il suit le panneau,
+              docke des 600px (le `sm` de MUI). Marges et
               arrondis restent PHYSIQUES, comme l'ancrage `right-0` du conteneur :
               l'encoche est un bord d'ecran, pas un flux de lecture.
 
@@ -297,8 +300,7 @@ const AssistantDockTab: React.FC = () => {
             aria-expanded={open}
             aria-label={open ? t('assistant.closeDock') : t('assistant.openDock')}
             className={cn(
-              'items-center justify-center min-[600px]:justify-start gap-2 h-[44px] max-w-[100vw]',
-              'px-0 min-[600px]:ps-2.5 min-[600px]:pe-2',
+              'items-center gap-2 h-[44px] max-w-[100vw]',
               'border border-solid border-border border-r-0 border-b-0',
               'cursor-pointer [font-family:inherit] translate-y-0 bg-card',
               '[transition:width_220ms_cubic-bezier(0.22,1,0.36,1),border-radius_220ms_ease-out,background-color_220ms_ease-out,transform_200ms_cubic-bezier(0.22,1,0.36,1),box-shadow_200ms_ease-out]',
@@ -306,12 +308,13 @@ const AssistantDockTab: React.FC = () => {
               'focus-visible:[outline:2px_solid_var(--bui-primary)] focus-visible:[outline-offset:-2px]',
               open
                 ? cn(
-                    'hidden min-[600px]:flex w-[560px] rounded-none',
+                    'hidden min-[600px]:flex w-[560px] rounded-none justify-start ps-2.5 pe-2',
                     'shadow-[0_20px_50px_-12px_color-mix(in_srgb,var(--bui-primary)_28%,transparent)]',
                     'hover:bg-accent',
                   )
                 : cn(
-                    'flex w-[56px] min-[600px]:w-[300px] rounded-tl-xl',
+                    'flex w-[56px] min-[900px]:w-[300px] rounded-tl-xl',
+                    'justify-center px-0 min-[900px]:justify-start min-[900px]:ps-2.5 min-[900px]:pe-2',
                     'shadow-[0_-6px_18px_-8px_color-mix(in_srgb,var(--bui-primary)_24%,transparent)]',
                     'hover:bg-accent hover:-translate-y-[3px] hover:shadow-[0_-10px_24px_-8px_color-mix(in_srgb,var(--bui-primary)_32%,transparent)]',
                   ),
@@ -323,9 +326,14 @@ const AssistantDockTab: React.FC = () => {
 
             {/* Phrase animee — flex:1 pour occuper la largeur disponible (fermee
                 comme ouverte). key force le remontage → l'animation d'entree
-                rejoue a chaque phrase. Mobile : logo seul, pas de phrase — le
-                `sm` MUI vaut 600px. */}
-            <div className="hidden min-[600px]:block flex-1 min-w-0 overflow-hidden text-start">
+                rejoue a chaque phrase. Onglet ferme : logo seul jusqu'a 900px
+                (mobile ET tablette) ; ouvert, il est large des 600px. */}
+            <div
+              className={cn(
+                'hidden flex-1 min-w-0 overflow-hidden text-start',
+                open ? 'min-[600px]:block' : 'min-[900px]:block',
+              )}
+            >
               {/* Les keyframes maison dockPhraseIn etaient declarees par le `sx`
                   du Box supprime : tw-animate-css rend exactement le meme
                   mouvement (fondu + montee de 6px sur 420 ms). */}
@@ -338,13 +346,13 @@ const AssistantDockTab: React.FC = () => {
             </div>
 
             {/* Chevron : pointe vers le haut (deplier), pivote a l'ouverture.
-                Mobile : logo seul, pas de chevron. */}
-            {/* Rupture ecrite en pixels : le `sm` MUI vaut 600px, pas les 640px de Tailwind. */}
+                Masque tant que l'onglet est compact (logo seul). Ruptures ecrites
+                en pixels : le `sm` MUI vaut 600px, pas les 640px de Tailwind. */}
             <div
               className={cn(
                 'hidden text-muted-foreground transition-transform duration-[220ms]',
-                'ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none min-[600px]:flex',
-                open ? 'rotate-180' : 'rotate-0',
+                'ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
+                open ? 'min-[600px]:flex rotate-180' : 'min-[900px]:flex rotate-0',
               )}
             >
               <ChevronUp size={16} />

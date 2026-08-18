@@ -189,7 +189,10 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   }, [events]);
 
   return (
-    <Card className="gap-0 py-0 flex-1 min-h-[0px] flex flex-col bg-[var(--card)] overflow-hidden">
+    // Sous 900px la carte est a fleur d'ecran : ni arrondi ni filet lateral —
+    // sur 375px, 8px de marge de chaque cote + un rayon de 14px coutaient une
+    // colonne de jour. Au-dela, la carte reprend l'aspect du kit.
+    <Card className="gap-0 py-0 flex-1 min-h-[0px] flex flex-col bg-[var(--card)] overflow-hidden rounded-none ring-0 min-[900px]:rounded-xl min-[900px]:ring-1">
       <DndContext
         sensors={drag.sensors}
         modifiers={drag.modifiers}
@@ -209,8 +212,17 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
           onScroll={onScroll}
           className="flex-1 relative overflow-x-auto overflow-y-hidden [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          {/* Scrollable content: headers + rows */}
-          <div className="min-w-full" style={{ width: propertyColWidth + totalGridWidth }}>
+          {/* Scrollable content: headers + rows.
+              Colonne flex d'au moins la hauteur du scroller : c'est ce qui
+              permet a la rangee « Occupation » de s'ancrer en pied (`mt-auto`)
+              plutot que de flotter au bout de la pile des lignes. `shrink-0`
+              sur les enfants — sans lui, une pile plus haute que le scroller
+              se ferait comprimer au lieu de deborder (comportement actuel,
+              masque par `overflow-y-hidden`). */}
+          <div
+            className="min-w-full flex flex-col min-h-full [&>*]:shrink-0"
+            style={{ width: propertyColWidth + totalGridWidth }}
+          >
             {/* Date headers (sticky top) */}
             <PlanningDateHeaders
               days={days}
@@ -314,9 +326,14 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
               </div>
             </div>
 
-            {/* Rangée « Occupation » (projection) — masquée en mode accordéon :
-                l'accordéon est dimensionné pour remplir EXACTEMENT le viewport,
-                une rangée de plus créerait un débordement vertical. */}
+            {/* Rangée « Occupation » (projection) — pied de la carte, ancrée en
+                bas par son `mt-auto` : le nombre de lignes vient d'un pageSize
+                ESTIME (cf. usePlanningPagination), donc la pile ne remplit pas
+                exactement la carte et l'ecart varie avec la largeur d'ecran ;
+                la synthese resterait sinon a une distance du bas differente a
+                chaque taille. Masquée en mode accordéon : l'accordéon est
+                dimensionné pour remplir EXACTEMENT le viewport, une rangée de
+                plus créerait un débordement vertical. */}
             {dayOccupancy && expandedPropertyId == null && (
               <PlanningOccupancyRow
                 days={days}

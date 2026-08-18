@@ -720,12 +720,18 @@ const PlanningPage: React.FC = () => {
   return (
     // Marges negatives : compensent le padding du MainLayoutFull <main> pour
     // coller aux bords. Rupture MUI md = 900px (breakpoints non configures).
+    // `h-svh` sous 900px et non `calc(100vh - 48px)` : ces 48 px compensaient
+    // une AppBar mobile qui n'existe plus (le PageHeader vit dans la page), et
+    // laissaient une bande morte en bas — la pagination flottait au-dessus de
+    // l'encoche de l'assistant au lieu d'etre collee au bas de l'ecran comme
+    // aux autres tailles. `svh` et non `vh` : sur mobile la barre d'URL du
+    // navigateur rend 100vh plus haut que la zone reellement visible.
     <div
       className={cn(
         'flex flex-col',
         nav.isFullscreen
           ? 'fixed inset-0 m-0 z-[1300] h-screen bg-[var(--bg)]'
-          : 'm-[-9px] min-[900px]:m-[-12px] h-[calc(100vh_-_48px)] min-[900px]:h-screen',
+          : 'm-[-9px] min-[900px]:m-[-12px] h-svh min-[900px]:h-screen',
       )}
     >
       {/* Page header — masqué en plein écran (le fullscreen masque déjà le
@@ -916,8 +922,9 @@ const PlanningPage: React.FC = () => {
           />
         </div>
       ) : (
-        /* Main content area */
-        <div className="flex-1 min-h-0 min-w-0 overflow-hidden px-2 flex flex-col">
+        /* Main content area — `px-0` sous 900px : la grille va d'un bord a
+           l'autre de l'ecran. */
+        <div className="flex-1 min-h-0 min-w-0 overflow-hidden px-0 min-[900px]:px-2 flex flex-col">
           <PlanningTimeline
             properties={pagination.paginatedProperties}
             days={timeline.days}
@@ -954,16 +961,20 @@ const PlanningPage: React.FC = () => {
             renderExpanded={canSupervise ? renderExpandedPanel : undefined}
           />
 
-          {/* Pagination — pinned to bottom, full width (compensate parent px) */}
-          <div className="shrink-0 mt-1.5 mx-[-9px]">
+          {/* Pagination — collee en bas, pleine largeur : la marge negative
+              annule le padding lateral de la zone grille (nul sous 900px,
+              `px-2` au-dela). L'ancien `mx-[-9px]` etait cale sur le padding du
+              <main>, pas sur celui d'ici : la barre depassait de 9px de chaque
+              cote et rognait le « x-y sur n » au bord de l'ecran. */}
+          <div className="shrink-0 mt-1.5 mx-0 min-[900px]:-mx-2">
             <PlanningPaginationBar
               currentPage={pagination.currentPage}
               totalPages={pagination.totalPages}
               rangeStart={pagination.rangeStart}
               rangeEnd={pagination.rangeEnd}
               totalProperties={filteredProperties.length}
-              onPrevPage={pagination.goPrevPage}
-              onNextPage={pagination.goNextPage}
+              onPageChange={pagination.goToPage}
+              reserveAssistantSlot={!nav.isFullscreen}
             />
           </div>
         </div>

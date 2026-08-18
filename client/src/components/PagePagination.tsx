@@ -43,10 +43,23 @@ interface PagePaginationProps {
   /** Tailles de page proposées. Le sélecteur n'apparaît qu'à partir de 2 valeurs. */
   rowsPerPageOptions?: number[];
   onRowsPerPageChange?: (rowsPerPage: number) => void;
+  /**
+   * Bornes affichées du rappel « x-y sur n », quand les pages ne sont pas
+   * toutes de la même taille (planning en accordéon). Prioritaires sur le
+   * calcul page × rowsPerPage.
+   */
+  rangeFrom?: number;
+  rangeTo?: number;
   /** Masquer le rappel « x-y sur n ». */
   hideTotal?: boolean;
   /** Masquer entièrement le bloc quand il n'y a qu'une page. Défaut : true. */
   hideOnSinglePage?: boolean;
+  /**
+   * Centrer les boutons dans la largeur au lieu de les caler à droite, le
+   * rappel du total restant à gauche. Pour les écrans dont le bord droit est
+   * occupé — le planning, où l'encoche de l'assistant Baitly mordrait dessus.
+   */
+  centerNav?: boolean;
   className?: string;
 }
 
@@ -76,8 +89,11 @@ export default function PagePagination({
   totalPages: totalPagesProp,
   rowsPerPageOptions,
   onRowsPerPageChange,
+  rangeFrom,
+  rangeTo,
   hideTotal = false,
   hideOnSinglePage = true,
+  centerNav = false,
   className,
 }: PagePaginationProps) {
   const { t } = useTranslation();
@@ -94,9 +110,10 @@ export default function PagePagination({
 
   if (hideOnSinglePage && totalPages <= 1 && !showSizeSelect) return null;
 
-  const showRange = !hideTotal && count != null && !!rowsPerPage;
-  const from = count === 0 ? 0 : page * (rowsPerPage ?? 0) + 1;
-  const to = Math.min(count ?? 0, (page + 1) * (rowsPerPage ?? 0));
+  const hasExplicitRange = rangeFrom != null && rangeTo != null;
+  const showRange = !hideTotal && count != null && (!!rowsPerPage || hasExplicitRange);
+  const from = rangeFrom ?? (count === 0 ? 0 : page * (rowsPerPage ?? 0) + 1);
+  const to = rangeTo ?? Math.min(count ?? 0, (page + 1) * (rowsPerPage ?? 0));
 
   const go = (target: number) => {
     const next = Math.min(Math.max(target, 1), totalPages);
@@ -104,7 +121,15 @@ export default function PagePagination({
   };
 
   return (
-    <div className={cn('flex flex-wrap items-center justify-between gap-2 py-2', className)}>
+    <div
+      className={cn(
+        'items-center gap-2 py-2',
+        centerNav
+          ? 'grid grid-cols-[1fr_auto_1fr]'
+          : 'flex flex-wrap justify-between',
+        className,
+      )}
+    >
       <div className="flex items-center gap-3">
         {showRange && (
           <span className="text-xs text-muted-foreground tabular-nums">
@@ -134,7 +159,7 @@ export default function PagePagination({
         )}
       </div>
 
-      <Pagination className="mx-0 w-auto justify-end">
+      <Pagination className={cn('mx-0 w-auto', centerNav ? 'justify-center' : 'justify-end')}>
         <PaginationContent>
           <PaginationItem>
             <PaginationPrevious

@@ -17,6 +17,9 @@ function perfQueryOptions(propertyId: number) {
   };
 }
 import { Label as TagIcon, Wifi as ChannelIcon, ChevronDown } from '../../icons';
+import { useTranslation } from '../../hooks/useTranslation';
+import { getPropertyTypeLabel } from '../../utils/statusUtils';
+import { getPropertyTypeIcon } from '../../utils/propertyTypeIcon';
 import type { ChannelSyncMap } from './hooks/usePlanningChannelSync';
 
 // ─── Colonne logements (gauche, sticky) ──────────────────────────────────────
@@ -68,6 +71,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
   accordionHeight = 600,
   collapsed = false,
 }) => {
+  const { t } = useTranslation();
   // ── Popover logement (maquette) : ouvert au clic sur le nom ──────────────
   const [popover, setPopover] = useState<{ anchorEl: HTMLElement; propertyId: number } | null>(null);
   const popoverProperty = popover
@@ -163,14 +167,39 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             ? 'var(--ok)'
             : sync.synced > 0 ? 'var(--warn)' : 'var(--err)'
           : 'var(--faint)';
-        // Repliée : une ligne nue, à la seule hauteur qu'exige l'alignement.
+        // Repliée (rail de 28 px) : le nom ne tient plus, le TYPE de logement
+        // le remplace sous forme d'icône — c'est la forme qui distingue, pas la
+        // couleur (14 types, un rail de cette largeur ne supporte pas 14
+        // aplats). Au clic, la MEME carte que sur le nom déplié
+        // (`PropertyPopover`, qui gère lui-même son placement en écran
+        // étroit) : une seule fiche logement, quelle que soit la taille.
         if (collapsed) {
+          const TypeIcon = getPropertyTypeIcon(property.type);
+          const typeLabel = getPropertyTypeLabel(property.type ?? '', t);
           return (
             <React.Fragment key={property.id}>
               <div
                 className="bg-[var(--card)]"
                 style={{ height: effectiveRowHeight, borderBottom: '1px solid var(--line)' }}
-              />
+              >
+                <button
+                  type="button"
+                  aria-label={[property.name, typeLabel].filter(Boolean).join(' — ')}
+                  className={cn(
+                    'flex h-full w-full items-center justify-center cursor-pointer',
+                    'hover:bg-[var(--hover)] hover:text-[var(--accent)]',
+                    '[transition:color_150ms_ease,background-color_150ms_ease]',
+                    'focus-visible:[outline:2px_solid_var(--bui-primary)] focus-visible:[outline-offset:-2px]',
+                    popover?.propertyId === property.id
+                      ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+                      : 'text-[var(--muted)]',
+                  )}
+                  onClick={(e) => setPopover({ anchorEl: e.currentTarget, propertyId: property.id })}
+                  onMouseEnter={() => prefetchPerformance(property.id)}
+                >
+                  <TypeIcon size={15} strokeWidth={1.75} />
+                </button>
+              </div>
               {expandedPropertyId === property.id && (
                 <div
                   className="bg-[var(--bg)]"
