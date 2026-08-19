@@ -48,6 +48,10 @@ export const STORAGE_KEYS = {
   // (cf. TokenService.notifyOtherTabs — pas un "stockage" de pref)
   TOKEN_UPDATE: 'clenzy_token_update',
 
+  // Position du guide de demarrage flottant (per-device : elle depend de la
+  // taille d'ecran, une position d'ordinateur n'a pas de sens sur telephone)
+  ONBOARDING_DOCK_POSITION: 'clenzy_onboarding_dock_position',
+
   // Contract CTA banner dismissed (per-device)
   CONTRACT_CTA_DISMISSED: 'clenzy_contract_cta_dismissed',
 

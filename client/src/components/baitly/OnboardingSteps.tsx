@@ -28,6 +28,15 @@ export interface OnboardingStep {
   action?: { label: string; onClick?: () => void };
   onSkip?: () => void;
   skipLabel?: string;
+  /**
+   * Jalons INTERNES a l'etape, affiches sous sa description quand elle est
+   * depliee. Ils ne comptent pas dans la progression : une etape reste l'unite
+   * qu'on coche. Cas d'usage : « Configurer mes versements » se decompose en
+   * creation du compte Stripe puis validation de l'identite (KYC), deux jalons
+   * qui appartiennent au meme objectif et qu'on ne veut pas voir en tete de
+   * liste comme deux etapes independantes.
+   */
+  substeps?: Array<{ key: string; title: string; state?: OnboardingStepState }>;
 }
 
 export interface OnboardingGroup {
@@ -43,23 +52,29 @@ export const countDoneSteps = (steps: OnboardingStep[]) =>
 
 export const formatStepProgress = (done: number, total: number) => `${done}/${total} terminées`;
 
-/** Glyphe d'état — trois valeurs distinctes, jamais un simple gris « désactivé ». */
+/**
+ * Glyphe d'état — trois valeurs distinctes, jamais un simple gris « désactivé ».
+ *
+ * Taille calee sur le TEXTE (16px, soit `size-4`) et non sur une pastille
+ * autonome : a 24px la puce pesait plus lourd que le libelle qu'elle qualifie et
+ * decalait toute la liste vers la droite. Un filet de 1,5px suffit a la lire.
+ */
 export function OnboardingStepGlyph({ state }: { state: OnboardingStepState }) {
   if (state === 'done') {
     return (
-      <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground [&>svg]:size-3.5">
-        <CheckIcon strokeWidth={3} />
+      <span className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground [&>svg]:size-2.5">
+        <CheckIcon strokeWidth={3.5} />
       </span>
     );
   }
   if (state === 'locked') {
     return (
-      <span className="inline-flex size-6 shrink-0 items-center justify-center text-muted-foreground [&>svg]:size-4">
+      <span className="inline-flex size-4 shrink-0 items-center justify-center text-muted-foreground [&>svg]:size-3">
         <LockIcon />
       </span>
     );
   }
-  return <span className="inline-flex size-6 shrink-0 rounded-full border-2 border-border" />;
+  return <span className="inline-flex size-4 shrink-0 rounded-full border-[1.5px] border-solid border-border" />;
 }
 
 export interface OnboardingStepListProps {
@@ -124,10 +139,33 @@ export function OnboardingStepList({
               </button>
             </div>
 
-            {expanded && (step.description || step.action) && (
-              <div className="pb-4 ps-9">
+            {expanded && (step.description || step.action || step.substeps?.length) && (
+              <div className="pb-4 ps-7">
                 {step.description && (
                   <p className="m-0 text-sm text-muted-foreground">{step.description}</p>
+                )}
+
+                {/* Jalons de l'etape : meme glyphe, un cran plus discret. Ils
+                    informent de l'avancement interne, ils ne se cliquent pas —
+                    c'est l'action de l'etape qui les fait avancer. */}
+                {step.substeps && step.substeps.length > 0 && (
+                  <ul className="m-0 mt-2 flex list-none flex-col gap-1.5 p-0">
+                    {step.substeps.map((sub) => (
+                      <li key={sub.key} className="flex items-center gap-2">
+                        <OnboardingStepGlyph state={sub.state ?? 'todo'} />
+                        <span
+                          className={cn(
+                            'min-w-0 flex-1 text-xs',
+                            (sub.state ?? 'todo') === 'done'
+                              ? 'text-muted-foreground line-through'
+                              : 'text-foreground',
+                          )}
+                        >
+                          {sub.title}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 )}
                 {step.action && (
                   <div className="mt-3 flex flex-wrap items-center gap-3">

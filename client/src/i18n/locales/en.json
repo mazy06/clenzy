@@ -2708,7 +2708,9 @@
       "start": "Start",
       "end": "End",
       "notes": "Notes",
-      "beforePhotosStandalone": "Before intervention photos"
+      "beforePhotosStandalone": "Before intervention photos",
+      "scheduledFor": "Can start on",
+      "openRunScreen": "Open tracking"
     },
     "progressSteps": {
       "inspection": "Inspection",
@@ -2746,7 +2748,8 @@
       "docGenerated": "Generated",
       "emailFailed": "Email failed",
       "viewPdf": "View",
-      "download": "Download"
+      "download": "Download",
+      "nextStep": "Next step"
     },
     "roomNames": {
       "bedroom": "Bedroom",
@@ -2799,6 +2802,16 @@
       "photosBeforeHelper": "These photos will serve as reference for the general inspection.",
       "photosAfterHelper": "These photos will confirm that the intervention is complete.",
       "uploading": "Uploading..."
+    },
+    "run": {
+      "exit": "Back to details",
+      "elapsedLabel": "Elapsed time"
+    },
+    "quotes": {
+      "emptyClosed": "No quote recorded. The intervention is no longer open, so a quote entered here will not reach the Operations agent.",
+      "emptyTooOld": "No quote recorded. The intervention is more than 60 days old; beyond that the Operations agent stops scanning it.",
+      "noticeClosed": "The intervention is no longer open: these quotes no longer reach the Operations agent. Approval remains possible here.",
+      "noticeTooOld": "The intervention is more than 60 days old: the Operations agent no longer scans it. Approval remains possible here."
     }
   },
   "reservations": {
@@ -4075,7 +4088,8 @@
     "tabs": {
       "serviceRequests": "Service Requests",
       "interventions": "Interventions",
-      "issues": "Issues"
+      "issues": "Issues",
+      "calendar": "Calendar"
     },
     "recommended": {
       "scale": "Recommended scale",
@@ -4150,6 +4164,20 @@
       "equipment": "Faulty equipment",
       "safety": "Safety risk",
       "other": "Other"
+    },
+    "report": {
+      "title": "Report an issue",
+      "ctaRoom": "Report an issue — {{room}}",
+      "help": "The report goes to the property manager's Issues tab, where it is qualified and turned into a maintenance request if needed.",
+      "roomField": "Where?",
+      "roomUnset": "Property (no specific room)",
+      "titleField": "What is happening?",
+      "titlePlaceholder": "E.g. leak under the kitchen sink",
+      "descriptionField": "Details (optional)",
+      "severityField": "Severity",
+      "submit": "Report",
+      "roomAction": "Issue",
+      "roomAriaLabel": "Report an issue in {{room}}"
     }
   },
   "propertiesPage": {
@@ -6227,6 +6255,18 @@
       "createTeam": {
         "label": "Create a team",
         "description": "Set up your first team and assign members."
+      },
+      "setupPayoutAccount": {
+        "label": "Set up my payouts",
+        "description": "Connect your Stripe account to get paid for your jobs, and check your rates."
+      },
+      "setupRates": {
+        "label": "Set my services and rates",
+        "description": "List the services you provide and their price — your jobs are quoted and paid on this basis."
+      },
+      "acceptProviderTerms": {
+        "label": "Accept the provider terms",
+        "description": "Rules for your jobs, commission and payment of your fees. Your agreement is required to get paid."
       }
     },
     "skip": "Skip",
@@ -6234,7 +6274,11 @@
       "title": "Getting started guide",
       "continue": "Continue"
     },
-    "completionMessage": "Complete the initial setup to access the full dashboard"
+    "completionMessage": "Complete the initial setup to access the full dashboard",
+    "substeps": {
+      "stripeAccount": "Stripe account created",
+      "stripeKyc": "Identity and bank details verified by Stripe"
+    }
   },
   "tabHeaders": {
     "designSystem": {
@@ -7235,5 +7279,34 @@
     "internalNote": "Internal note (hidden from the guest)",
     "internalNotePlaceholder": "Note for the team…",
     "internalNoteBadge": "Internal note"
+  },
+  "account": {
+    "title": "My account",
+    "subtitle": "Your personal information and notification preferences.",
+    "tabs": {
+      "profile": "Profile",
+      "notifications": "Notifications",
+      "business": "My business"
+    },
+    "identity": {
+      "firstName": "First name",
+      "lastName": "Last name",
+      "username": "Username",
+      "email": "Email"
+    },
+    "savePreferences": "Save my preferences",
+    "terms": {
+      "title": "Provider terms",
+      "upToDate": "Accepted",
+      "pending": "To accept",
+      "body": "They set the rules for your jobs: rates, photo evidence, the commission withheld by the property manager and the payment of your fees. Your agreement is required to get paid.",
+      "acceptedOn": "Accepted on",
+      "version": "version",
+      "newVersion": "The terms have been updated since you last accepted them.",
+      "accept": "I accept the provider terms",
+      "accepted": "Terms accepted",
+      "loadError": "Could not load your terms.",
+      "acceptError": "Saving failed, please try again."
+    }
   }
 }

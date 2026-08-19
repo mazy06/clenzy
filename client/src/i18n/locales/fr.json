@@ -2730,7 +2730,9 @@
       "start": "Début",
       "end": "Fin",
       "notes": "Notes",
-      "beforePhotosStandalone": "Photos avant intervention"
+      "beforePhotosStandalone": "Photos avant intervention",
+      "scheduledFor": "Démarrage possible le",
+      "openRunScreen": "Ouvrir le suivi"
     },
     "progressSteps": {
       "inspection": "Inspection",
@@ -2768,7 +2770,8 @@
       "docGenerated": "Généré",
       "emailFailed": "Email échoué",
       "viewPdf": "Voir",
-      "download": "Télécharger"
+      "download": "Télécharger",
+      "nextStep": "Étape suivante"
     },
     "roomNames": {
       "bedroom": "Chambre",
@@ -2821,6 +2824,16 @@
       "photosBeforeHelper": "Ces photos serviront de référence pour l'inspection générale.",
       "photosAfterHelper": "Ces photos confirmeront que l'intervention est terminée.",
       "uploading": "Upload..."
+    },
+    "run": {
+      "exit": "Revenir à la fiche",
+      "elapsedLabel": "Temps écoulé"
+    },
+    "quotes": {
+      "emptyClosed": "Aucun devis saisi. L'intervention n'étant plus ouverte, un devis enregistré ici ne remontera pas à l'agent Opérations.",
+      "emptyTooOld": "Aucun devis saisi. L'intervention date de plus de 60 jours : au-delà, l'agent Opérations ne la scanne plus.",
+      "noticeClosed": "L'intervention n'est plus ouverte : ces devis ne remontent plus à l'agent Opérations. L'approbation reste possible ici.",
+      "noticeTooOld": "L'intervention date de plus de 60 jours : l'agent Opérations ne la scanne plus. L'approbation reste possible ici."
     }
   },
   "reservations": {
@@ -4097,7 +4110,8 @@
     "tabs": {
       "serviceRequests": "Demandes de service",
       "interventions": "Interventions",
-      "issues": "Anomalies"
+      "issues": "Anomalies",
+      "calendar": "Calendrier"
     },
     "recommended": {
       "scale": "Barème conseillé",
@@ -4172,6 +4186,20 @@
       "equipment": "Équipement défaillant",
       "safety": "Risque sécurité",
       "other": "Autre"
+    },
+    "report": {
+      "title": "Signaler une anomalie",
+      "ctaRoom": "Signaler une anomalie — {{room}}",
+      "help": "Le signalement part vers l'onglet Anomalies de la conciergerie, qui le qualifie et le convertit si besoin en demande de maintenance.",
+      "roomField": "Où ?",
+      "roomUnset": "Logement (hors pièce précise)",
+      "titleField": "Que se passe-t-il ?",
+      "titlePlaceholder": "Ex. : fuite sous l’évier de la cuisine",
+      "descriptionField": "Détails (optionnel)",
+      "severityField": "Gravité",
+      "submit": "Signaler",
+      "roomAction": "Anomalie",
+      "roomAriaLabel": "Signaler une anomalie dans {{room}}"
     }
   },
   "propertiesPage": {
@@ -6184,6 +6212,18 @@
       "createTeam": {
         "label": "Créer une équipe",
         "description": "Constituez votre première équipe de techniciens ou housekeepers pour gérer les interventions."
+      },
+      "setupPayoutAccount": {
+        "label": "Configurer mes versements",
+        "description": "Connectez votre compte Stripe pour être payé de vos missions, et vérifiez vos tarifs."
+      },
+      "setupRates": {
+        "label": "Définir mes prestations et mes tarifs",
+        "description": "Renseignez les services que vous proposez et leur prix : c'est sur cette base que vos missions sont chiffrées et payées."
+      },
+      "acceptProviderTerms": {
+        "label": "Accepter les conditions de prestation",
+        "description": "Règles de vos missions, commission et versement de votre rémunération. Votre accord est nécessaire pour être payé."
       }
     },
     "skip": "Passer",
@@ -6191,7 +6231,11 @@
       "title": "Guide de démarrage",
       "continue": "Continuer"
     },
-    "completionMessage": "Complétez la configuration initiale pour accéder au tableau de bord complet"
+    "completionMessage": "Complétez la configuration initiale pour accéder au tableau de bord complet",
+    "substeps": {
+      "stripeAccount": "Compte Stripe créé",
+      "stripeKyc": "Identité et IBAN validés par Stripe"
+    }
   },
   "shop": {
     "title": "Boutique Hardware",
@@ -7259,5 +7303,34 @@
     "internalNote": "Note interne (invisible pour le voyageur)",
     "internalNotePlaceholder": "Note pour l'équipe…",
     "internalNoteBadge": "Note interne"
+  },
+  "account": {
+    "title": "Mon compte",
+    "subtitle": "Vos informations personnelles et vos préférences de notification.",
+    "tabs": {
+      "profile": "Profil",
+      "notifications": "Notifications",
+      "business": "Mon activité"
+    },
+    "identity": {
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "username": "Nom d'utilisateur",
+      "email": "Email"
+    },
+    "savePreferences": "Enregistrer mes préférences",
+    "terms": {
+      "title": "Conditions de prestation",
+      "upToDate": "Acceptées",
+      "pending": "À accepter",
+      "body": "Elles fixent les règles de vos missions : tarifs appliqués, preuve photo, commission retenue par la conciergerie et versement de votre rémunération. Votre accord est nécessaire pour être payé.",
+      "acceptedOn": "Acceptées le",
+      "version": "version",
+      "newVersion": "Les conditions ont été mises à jour depuis votre dernière acceptation.",
+      "accept": "J'accepte les conditions de prestation",
+      "accepted": "Conditions acceptées",
+      "loadError": "Impossible de charger vos conditions.",
+      "acceptError": "L'enregistrement a échoué, réessayez."
+    }
   }
 }

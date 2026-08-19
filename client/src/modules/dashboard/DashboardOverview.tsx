@@ -29,7 +29,6 @@ import { cn } from '../../utils/cn';
 import DashboardErrorBoundary from './DashboardErrorBoundary';
 import DashboardWidgetGrid, { type DashboardWidgetEntry } from './DashboardWidgetGrid';
 import MissingContractsDashboardAlert from './MissingContractsDashboardAlert';
-import OnboardingChecklist from './OnboardingChecklist';
 import {
   ActionItemsCard,
   TodayOperationsSection,
@@ -118,14 +117,11 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   const { data: upcomingArrivals } = useDashboardUpcomingArrivals(7);
   const upcomingCount = upcomingArrivals?.length ?? 0;
 
-  const {
-    isAllCompleted: onboardingComplete,
-    isDismissed: onboardingDismissed,
-    totalCount: onboardingTotal,
-    isLoading: onboardingLoading,
-  } = useOnboarding();
-  const showOnboardingOverlay =
-    !onboardingLoading && onboardingTotal > 0 && !onboardingComplete && !onboardingDismissed;
+  // Le guide de demarrage vit dans le dock flottant : le tableau de bord n'a
+  // plus besoin que du chargement de son statut pour se declarer pret. Il ne
+  // FLOUTE plus ses tuiles tant que la configuration n'est pas finie — le guide
+  // porte deja le message, rendre l'ecran illisible n'aidait personne.
+  const { isLoading: onboardingLoading } = useOnboarding();
 
   // ─── Périmètre par rôle ─────────────────────────────────────────────────
   const roles = useMemo(() => user?.roles ?? [], [user?.roles]);
@@ -145,7 +141,12 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
       markReady('kpis');
     }
   }, [loading, markReady]);
-  const onOnboardingReady = useCallback(() => markReady('onboarding'), [markReady]);
+  // Le guide de demarrage vit desormais dans le dock flottant global
+  // (`OnboardingDockMount`), plus dans le tableau de bord : c'est donc le
+  // chargement du statut qui libere l'affichage, et non plus un composant local.
+  useEffect(() => {
+    if (!onboardingLoading) markReady('onboarding');
+  }, [onboardingLoading, markReady]);
 
   // ─── Registre des tuiles ────────────────────────────────────────────────
   // ⚠️ Les identifiants sont persistés dans les préférences utilisateur : les
@@ -405,16 +406,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
         <div className={cn('flex flex-col gap-4', !isReady && 'sr-only')}>
           <MissingContractsDashboardAlert />
 
-          <OnboardingChecklist onReady={onOnboardingReady} />
-
           <div className="relative flex flex-col gap-4">
-            {showOnboardingOverlay && (
-              <div className="absolute inset-0 z-[2] flex justify-center rounded-xl bg-background/55 pt-8 backdrop-blur-[3px]">
-                <p className="m-0 h-fit rounded-lg border border-border bg-card/95 px-4 py-2 text-center text-sm font-semibold text-muted-foreground shadow-sm">
-                  {t('onboarding.completionMessage')}
-                </p>
-              </div>
-            )}
 
             {/* `[&>*]:shrink-0` — les tuiles ne doivent JAMAIS etre comprimees :
                 cette colonne vit dans une zone qui defile deja, sa hauteur doit
@@ -429,7 +421,6 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
             <div
               className={cn(
                 'flex flex-col gap-4 [&>*]:shrink-0',
-                showOnboardingOverlay && 'pointer-events-none select-none',
               )}
             >
               <DashboardWidgetGrid
