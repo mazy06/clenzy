@@ -161,6 +161,19 @@ public class User {
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
     
+    // ── CGU prestataire (intervenants payes a la mission) ──────────────────
+    // Acceptation HORODATEE, pas signature : la version acceptee, la date et
+    // l'IP suffisent a rendre la retenue de commission opposable. La version est
+    // stockee pour pouvoir republier des CGU sans perdre la trace precedente.
+    @Column(name = "provider_terms_version", length = 20)
+    private String providerTermsVersion;
+
+    @Column(name = "provider_terms_accepted_at")
+    private LocalDateTime providerTermsAcceptedAt;
+
+    @Column(name = "provider_terms_accepted_ip", length = 45)
+    private String providerTermsAcceptedIp;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -425,6 +438,30 @@ public class User {
 
     public void setNewsletterOptIn(boolean newsletterOptIn) {
         this.newsletterOptIn = newsletterOptIn;
+    }
+
+    public String getProviderTermsVersion() {
+        return providerTermsVersion;
+    }
+
+    public void setProviderTermsVersion(String providerTermsVersion) {
+        this.providerTermsVersion = providerTermsVersion;
+    }
+
+    public LocalDateTime getProviderTermsAcceptedAt() {
+        return providerTermsAcceptedAt;
+    }
+
+    public void setProviderTermsAcceptedAt(LocalDateTime providerTermsAcceptedAt) {
+        this.providerTermsAcceptedAt = providerTermsAcceptedAt;
+    }
+
+    public String getProviderTermsAcceptedIp() {
+        return providerTermsAcceptedIp;
+    }
+
+    public void setProviderTermsAcceptedIp(String providerTermsAcceptedIp) {
+        this.providerTermsAcceptedIp = providerTermsAcceptedIp;
     }
 
     public String getPromoCode() {

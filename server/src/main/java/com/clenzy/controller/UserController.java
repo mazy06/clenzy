@@ -1,6 +1,8 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.UserDto;
+import com.clenzy.service.signature.TrustedClientIpResolver;
+import jakarta.servlet.http.HttpServletRequest;
 import com.clenzy.model.User;
 import com.clenzy.service.DeviceTokenService;
 import com.clenzy.service.LoginProtectionService;
@@ -59,6 +61,38 @@ public class UserController {
                                               @AuthenticationPrincipal Jwt jwt) {
         userService.updateOwnProfile(jwt.getSubject(), body);
         return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    /**
+     * Etat d'acceptation des CGU prestataire pour l'utilisateur connecte.
+     *
+     * <p>Ouvert a tout utilisateur authentifie : ce sont SES conditions, et le
+     * parcours d'onboarding des intervenants s'appuie dessus.</p>
+     */
+    @GetMapping("/me/provider-terms")
+    @Operation(summary = "Etat d'acceptation de ses CGU prestataire")
+    public ResponseEntity<UserService.ProviderTermsStatus> getMyProviderTerms(
+            @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(userService.getProviderTermsStatus(jwt.getSubject()));
+    }
+
+    /**
+     * Acceptation des CGU prestataire dans leur version courante.
+     *
+     * <p>L'IP enregistree est resolue par {@link TrustedClientIpResolver} et
+     * jamais lue directement dans {@code X-Forwarded-For} : c'est une preuve,
+     * et le premier maillon de cet en-tete est forgeable par le client.</p>
+     */
+    @PostMapping("/me/provider-terms/accept")
+    @Operation(summary = "Accepter les CGU prestataire")
+    public ResponseEntity<UserService.ProviderTermsStatus> acceptMyProviderTerms(
+            HttpServletRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String clientIp = TrustedClientIpResolver.resolve(
+                request.getRemoteAddr(),
+                request.getHeader("X-Forwarded-For"),
+                request.getHeader("X-Real-IP"));
+        return ResponseEntity.ok(userService.acceptProviderTerms(jwt.getSubject(), clientIp));
     }
 
     /**

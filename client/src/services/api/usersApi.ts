@@ -169,3 +169,26 @@ export function userAvatarSrc(
   }
   return undefined;
 }
+
+// ─── CGU prestataire (acceptation horodatee) ────────────────────────────────
+
+export interface ProviderTermsStatus {
+  /** Version publiee par la plateforme. */
+  currentVersion: string;
+  /** Version acceptee par l'utilisateur, `null` s'il n'a jamais accepte. */
+  acceptedVersion: string | null;
+  acceptedAt: string | null;
+  /** `false` si jamais accepte OU si les CGU ont ete republiees depuis. */
+  upToDate: boolean;
+}
+
+export const providerTermsApi = {
+  getMine(): Promise<ProviderTermsStatus> {
+    return apiClient.get<ProviderTermsStatus>('/users/me/provider-terms');
+  },
+
+  /** L'IP de preuve est resolue cote serveur — le client n'envoie rien. */
+  accept(): Promise<ProviderTermsStatus> {
+    return apiClient.post<ProviderTermsStatus>('/users/me/provider-terms/accept', {});
+  },
+};

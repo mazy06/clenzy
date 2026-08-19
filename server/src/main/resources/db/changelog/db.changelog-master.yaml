@@ -3736,3 +3736,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0397__channex_organization_groups.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0398-user-provider-terms-acceptance"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0398__user_provider_terms_acceptance.sql
+        relativeToChangelogFile: true

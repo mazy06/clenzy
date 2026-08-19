@@ -537,8 +537,8 @@ class UserOnboardingServiceTest {
         }
 
         @Test
-        @DisplayName("HOUSEKEEPER role: 3 steps in correct order")
-        void whenHousekeeper_then3Steps() {
+        @DisplayName("HOUSEKEEPER role: 6 steps in correct order")
+        void whenHousekeeper_then6Steps() {
             when(repository.findByUserIdAndRole(USER_ID, UserRole.HOUSEKEEPER))
                     .thenReturn(List.of());
             when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -546,9 +546,14 @@ class UserOnboardingServiceTest {
 
             OnboardingStatusDto dto = service.getStatus(USER_ID, UserRole.HOUSEKEEPER, ORG_ID);
 
-            assertThat(dto.steps()).hasSize(3);
+            // L'ORDRE porte une regle metier : les conditions de prestation
+            // precedent le compte de versement et les tarifs — sans accord, ni la
+            // commission retenue ni le reversement ne sont opposables.
+            assertThat(dto.steps()).hasSize(6);
             assertThat(dto.steps()).extracting(OnboardingStatusDto.StepDto::key)
-                    .containsExactly("complete_profile", "setup_notifications", "view_interventions");
+                    .containsExactly("complete_profile", "setup_notifications",
+                            "accept_provider_terms", "setup_payout_account", "setup_rates",
+                            "view_interventions");
         }
 
         @Test

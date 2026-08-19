@@ -9,11 +9,19 @@
  *   Cles Properties : properties | pricing | vouchers
  */
 
+/** Jalon interne d'une etape — informatif, il ne compte pas dans la progression. */
+export interface OnboardingSubstepConfig {
+  key: string;
+  labelKey: string;
+}
+
 export interface OnboardingStepConfig {
   key: string;
   labelKey: string;        // i18n key for step label
   descriptionKey: string;  // i18n key for step description
-  navigationPath: string;  // where to navigate when user clicks "Go"
+  navigationPath: string;
+  /** Jalons affiches sous la description quand l'etape est depliee. */
+  substeps?: OnboardingSubstepConfig[];  // where to navigate when user clicks "Go"
   /** If true, step opens a modal instead of navigating (e.g. iCal import) */
   isModal?: boolean;
   /** If true, user can skip this step and move to the next one */
@@ -189,14 +197,38 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       key: 'complete_profile',
       labelKey: 'onboarding.steps.completeProfile.label',
       descriptionKey: 'onboarding.steps.completeProfile.description',
-      navigationPath: '/settings?tab=general',
+      navigationPath: '/account?tab=profile',
     },
     {
       key: 'setup_notifications',
       labelKey: 'onboarding.steps.setupNotifications.label',
       descriptionKey: 'onboarding.steps.setupNotifications.description',
-      navigationPath: '/settings?tab=notifications',
+      navigationPath: '/account?tab=notifications',
       skippable: true,
+    },
+    {
+      key: 'accept_provider_terms',
+      labelKey: 'onboarding.steps.acceptProviderTerms.label',
+      descriptionKey: 'onboarding.steps.acceptProviderTerms.description',
+      navigationPath: '/account?tab=business',
+    },
+    {
+      key: 'setup_payout_account',
+      labelKey: 'onboarding.steps.setupPayoutAccount.label',
+      descriptionKey: 'onboarding.steps.setupPayoutAccount.description',
+      navigationPath: '/account?tab=business',
+      // Creer le compte ne suffit pas : tant que Stripe n'a pas valide identite
+      // et IBAN, `payouts_enabled` reste faux et l'argent ne part pas.
+      substeps: [
+        { key: 'stripe_account', labelKey: 'onboarding.substeps.stripeAccount' },
+        { key: 'stripe_kyc', labelKey: 'onboarding.substeps.stripeKyc' },
+      ],
+    },
+    {
+      key: 'setup_rates',
+      labelKey: 'onboarding.steps.setupRates.label',
+      descriptionKey: 'onboarding.steps.setupRates.description',
+      navigationPath: '/account?tab=business',
     },
     {
       key: 'view_interventions',
@@ -212,14 +244,38 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       key: 'complete_profile',
       labelKey: 'onboarding.steps.completeProfile.label',
       descriptionKey: 'onboarding.steps.completeProfile.description',
-      navigationPath: '/settings?tab=general',
+      navigationPath: '/account?tab=profile',
     },
     {
       key: 'setup_notifications',
       labelKey: 'onboarding.steps.setupNotifications.label',
       descriptionKey: 'onboarding.steps.setupNotifications.description',
-      navigationPath: '/settings?tab=notifications',
+      navigationPath: '/account?tab=notifications',
       skippable: true,
+    },
+    {
+      key: 'accept_provider_terms',
+      labelKey: 'onboarding.steps.acceptProviderTerms.label',
+      descriptionKey: 'onboarding.steps.acceptProviderTerms.description',
+      navigationPath: '/account?tab=business',
+    },
+    {
+      key: 'setup_payout_account',
+      labelKey: 'onboarding.steps.setupPayoutAccount.label',
+      descriptionKey: 'onboarding.steps.setupPayoutAccount.description',
+      navigationPath: '/account?tab=business',
+      // Creer le compte ne suffit pas : tant que Stripe n'a pas valide identite
+      // et IBAN, `payouts_enabled` reste faux et l'argent ne part pas.
+      substeps: [
+        { key: 'stripe_account', labelKey: 'onboarding.substeps.stripeAccount' },
+        { key: 'stripe_kyc', labelKey: 'onboarding.substeps.stripeKyc' },
+      ],
+    },
+    {
+      key: 'setup_rates',
+      labelKey: 'onboarding.steps.setupRates.label',
+      descriptionKey: 'onboarding.steps.setupRates.description',
+      navigationPath: '/account?tab=business',
     },
     {
       key: 'view_interventions',
@@ -235,13 +291,13 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       key: 'complete_profile',
       labelKey: 'onboarding.steps.completeProfile.label',
       descriptionKey: 'onboarding.steps.completeProfile.description',
-      navigationPath: '/settings?tab=general',
+      navigationPath: '/account?tab=profile',
     },
     {
       key: 'setup_notifications',
       labelKey: 'onboarding.steps.setupNotifications.label',
       descriptionKey: 'onboarding.steps.setupNotifications.description',
-      navigationPath: '/settings?tab=notifications',
+      navigationPath: '/account?tab=notifications',
       skippable: true,
     },
     {

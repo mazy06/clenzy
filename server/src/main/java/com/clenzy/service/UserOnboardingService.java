@@ -51,7 +51,10 @@ public class UserOnboardingService {
      */
     private static final Set<String> AUTO_COMPLETE_ONLY_STEPS = Set.of(
         "invite_members", "setup_notifications", "setup_messaging",
-        "setup_integrations", "connect_channels"
+        "setup_integrations", "connect_channels",
+        // Etapes du parcours TERRAIN : optionnelles au sens ou l'intervenant
+        // peut travailler avant de les finir, mais jamais dé-cochées ensuite.
+        "setup_payout_account", "setup_rates"
     );
 
     /** Ordered step keys per role — must match client-side onboardingConfig.ts */
@@ -68,8 +71,10 @@ public class UserOnboardingService {
             "complete_profile", "create_property", "configure_details",
             "define_pricing", "connect_channels", "setup_notifications", "setup_payouts"
         )),
-        Map.entry(UserRole.HOUSEKEEPER, List.of("complete_profile", "setup_notifications", "view_interventions")),
-        Map.entry(UserRole.TECHNICIAN, List.of("complete_profile", "setup_notifications", "view_interventions")),
+        Map.entry(UserRole.HOUSEKEEPER, List.of("complete_profile", "setup_notifications",
+            "accept_provider_terms", "setup_payout_account", "setup_rates", "view_interventions")),
+        Map.entry(UserRole.TECHNICIAN, List.of("complete_profile", "setup_notifications",
+            "accept_provider_terms", "setup_payout_account", "setup_rates", "view_interventions")),
         Map.entry(UserRole.SUPERVISOR, List.of("complete_profile", "setup_notifications", "create_team", "view_interventions")),
         Map.entry(UserRole.LAUNDRY, List.of("complete_profile", "setup_notifications", "view_interventions")),
         Map.entry(UserRole.EXTERIOR_TECH, List.of("complete_profile", "setup_notifications", "view_interventions"))
@@ -226,6 +231,14 @@ public class UserOnboardingService {
                 // ── Operational steps ──
                 case "create_team" -> false; // Requires explicit team creation via form
                 case "view_interventions" -> false; // Requires the user to visit the page at least once
+                // Le compte de versement et les tarifs se declarent depuis
+                // « Mon compte » : l'ecran appelle /complete, aucune deduction
+                // automatique ici (une auto-completion prematurée ferait croire
+                // l'intervenant paye alors que son compte Stripe n'existe pas).
+                case "setup_payout_account", "setup_rates" -> false;
+                // Celle-ci se deduit : l'acceptation est en base, inutile
+                // d'attendre un appel /complete que l'ecran pourrait rater.
+                case "accept_provider_terms" -> hasAcceptedProviderTerms(userOpt.orElse(null));
 
                 default -> false;
             };
@@ -311,6 +324,15 @@ public class UserOnboardingService {
         boolean hasLastName = user.getLastName() != null && !user.getLastName().isBlank();
         boolean hasPhone = user.getPhoneNumber() != null && !user.getPhoneNumber().isBlank();
         return hasFirstName && hasLastName && hasPhone;
+    }
+
+    /**
+     * CGU prestataire acceptees DANS LEUR VERSION COURANTE. Une acceptation
+     * ancienne ne vaut pas : republier des CGU doit redemander l'accord.
+     */
+    private boolean hasAcceptedProviderTerms(User user) {
+        return user != null
+                && UserService.PROVIDER_TERMS_VERSION.equals(user.getProviderTermsVersion());
     }
 
     /** Organization has at least one property */
