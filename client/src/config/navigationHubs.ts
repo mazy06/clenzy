@@ -56,14 +56,13 @@ export const NAVIGATION_HUBS: HubDef[] = [
       },
       {
         path: '/reservations',
-        matchPrefixes: ['/calendar'],
         translationKey: 'navigation.reservations',
         fallbackLabel: 'Réservations',
         isAccessible: (a) => has(a, 'reservations:view'),
       },
       {
         path: '/interventions',
-        matchPrefixes: ['/service-requests'],
+        matchPrefixes: ['/service-requests', '/calendar'],
         translationKey: 'navigation.interventions',
         fallbackLabel: 'Interventions',
         isAccessible: (a) => has(a, 'interventions:view') || has(a, 'service-requests:view'),

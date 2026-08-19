@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Alert, AlertDescription } from '../../components/ui';
 import { TriangleAlert } from 'lucide-react';
 import { Card, Button } from '../../components/ui';
@@ -75,7 +76,17 @@ const mapToEvent = (intervention: Intervention): EventInput => {
 // ---------------------------------------------------------------------------
 // CalendarPage component
 // ---------------------------------------------------------------------------
-export default function CalendarPage() {
+interface CalendarPageProps {
+  /**
+   * Monte en ONGLET de la page Interventions (`WorkOrdersPage`) : pas de
+   * `PageHeader` propre, les filtres partent dans le slot du header commun.
+   * Meme contrat que `InterventionsList` / `IssuesList`.
+   */
+  embedded?: boolean;
+  filtersContainer?: HTMLElement | null;
+}
+
+export default function CalendarPage({ embedded = false, filtersContainer }: CalendarPageProps = {}) {
   const { user } = useAuth();
   const { t } = useTranslation();
   // Le palier `sm` de MUI vaut 600 px — useIsMobile prend le seuil en parametre.
@@ -260,15 +271,19 @@ export default function CalendarPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader
-        className="shrink-0"
-        title="Planning des interventions"
-        subtitle="Vue calendrier de toutes les interventions planifiees"
-        iconBadge={<CalendarMonth />}
-        backPath="/interventions"
-        showBackButton={false}
-        filters={filterBar}
-      />
+      {embedded ? (
+        filtersContainer && createPortal(filterBar, filtersContainer)
+      ) : (
+        <PageHeader
+          className="shrink-0"
+          title="Planning des interventions"
+          subtitle="Vue calendrier de toutes les interventions planifiees"
+          iconBadge={<CalendarMonth />}
+          backPath="/interventions"
+          showBackButton={false}
+          filters={filterBar}
+        />
+      )}
 
       {error && (
         <Alert variant="destructive" className="mb-3 py-1.5">

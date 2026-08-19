@@ -41,6 +41,8 @@ const WorkOrdersPage = lazy(() => import('./work-orders/WorkOrdersPage'));
 const InterventionForm = lazy(() => import('./interventions/InterventionForm'));
 const InterventionDetails = lazy(() => import('./interventions/InterventionDetails'));
 const InterventionEdit = lazy(() => import('./interventions/InterventionEdit'));
+const InterventionRunScreen = lazy(() => import('./interventions/InterventionRunScreen'));
+const MyAccountPage = lazy(() => import('./account/MyAccountPage'));
 const PaymentSuccess = lazy(() => import('./interventions/PaymentSuccess'));
 const PaymentCancel = lazy(() => import('./interventions/PaymentCancel'));
 const InterventionsPendingPayment = lazy(() => import('./interventions/InterventionsPendingPayment'));
@@ -91,7 +93,6 @@ const TemplateDetails = lazy(() => import('./documents/TemplateDetails'));
 const NotificationsPage = lazy(() => import('./notifications/NotificationsPage'));
 
 // Calendar
-const CalendarPage = lazy(() => import('./calendar/CalendarPage'));
 
 // Portfolios (sub-routes only — main list is inside DirectoryPage)
 const ClientPropertyAssignmentForm = lazy(() => import('./portfolios/ClientPropertyAssignmentForm'));
@@ -302,6 +303,13 @@ const AuthenticatedApp: React.FC = () => {
             </ErrorBoundary>
           </ProtectedRoute>
         } />
+        {/* Ecran terrain plein ecran de l'intervention en cours. Il se garde
+            lui-meme : tout statut autre que IN_PROGRESS renvoie a la fiche. */}
+        <Route path="/interventions/:id/suivi" element={
+          <ProtectedRoute requiredPermission="interventions:view">
+            <InterventionRunScreen />
+          </ProtectedRoute>
+        } />
         <Route path="/interventions/:id/edit" element={
           <ProtectedRoute requiredPermission="interventions:edit">
             <ErrorBoundary>
@@ -363,11 +371,9 @@ const AuthenticatedApp: React.FC = () => {
         {/* Backward-compat redirects */}
         <Route path="/payments/history" element={<Navigate to="/billing" replace />} />
 
-        <Route path="/calendar" element={
-          <ProtectedRoute requiredPermission="interventions:view">
-            <CalendarPage />
-          </ProtectedRoute>
-        } />
+        {/* Le calendrier des interventions est un ONGLET de /interventions ;
+            l'URL historique y mene, comme /service-requests. */}
+        <Route path="/calendar" element={<Navigate to="/interventions?tab=calendar" replace />} />
 
         <Route path="/teams" element={<Navigate to="/directory?tab=teams" replace />} />
         <Route path="/teams/new" element={
@@ -410,6 +416,9 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
         
+        {/* « Mon compte » : profil + notifications, SANS permission dediee —
+            /settings exige `settings:view`, absente des roles operationnels. */}
+        <Route path="/account" element={<MyAccountPage />} />
         <Route path="/settings" element={
           <ProtectedRoute requiredPermission="settings:view">
             <Settings />
