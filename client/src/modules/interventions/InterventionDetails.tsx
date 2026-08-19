@@ -9,6 +9,7 @@ import {
   Build as WrenchIcon,
   PriorityHigh as PriorityHighIcon,
   PlayCircleOutline as PlayCircleOutlineIcon,
+  PlayArrow as PlayArrowIcon,
   StopCircle as StopCircleIcon,
 } from '../../icons';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -89,6 +90,16 @@ export default function InterventionDetailsPage() {
     setStartSuccessMessage(null);
   }, [startSuccessMessage, notify, setStartSuccessMessage]);
 
+  // Intervention EN COURS et utilisateur charge de l'executer → l'ecran terrain
+  // prend la main : pendant l'execution, le detail (metriques, adresse,
+  // personnes) n'a plus d'utilite, seul le suivi compte. `replace` pour que le
+  // retour arriere sorte vers la liste et non vers une fiche qui redirige.
+  // Les autres profils (manager en lecture, comptabilite) gardent la fiche.
+  const shouldRunFieldScreen = intervention?.status === 'IN_PROGRESS' && canStartOrUpdateIntervention;
+  useEffect(() => {
+    if (shouldRunFieldScreen) navigate(`/interventions/${id}/suivi`, { replace: true });
+  }, [shouldRunFieldScreen, navigate, id]);
+
   if (!permissionsLoaded || loading) {
     return (
       <div className="flex justify-center py-12">
@@ -115,26 +126,10 @@ export default function InterventionDetailsPage() {
   const buildViewModel = (): WorkOrderViewModel | null => {
     if (!intervention) return null;
 
-    // Start / end times surfaced as extra KPI tiles (intervention-only fields).
+    // Debut et fin ne sont PAS des tuiles : le bloc « Detail du temps » les
+    // rend deja, plus bas dans le meme ecran. Sans ce doublon, les tuiles
+    // restantes (type, duree, echeance, cout) tiennent sur une seule rangee.
     const extraMetrics: WorkOrderMetric[] = [];
-    if (intervention.startTime) {
-      extraMetrics.push({
-        icon: <PlayCircleOutlineIcon size={18} strokeWidth={1.75} />,
-        // `tone` est peint en `color:` sur la valeur ET sur l'icone : c'est du
-        // TEXTE, donc l'encre `-ink` (la teinte vive plafonne a ~2,2:1).
-        tone: 'var(--bui-success-ink)',
-        value: formatDateTime(intervention.startTime),
-        label: t('interventions.detail.start'),
-      });
-    }
-    if (intervention.endTime) {
-      extraMetrics.push({
-        icon: <StopCircleIcon size={18} strokeWidth={1.75} />,
-        tone: 'var(--bui-destructive-ink)',
-        value: formatDateTime(intervention.endTime),
-        label: t('interventions.detail.end'),
-      });
-    }
 
     // Start / end times also listed in the time-detail section for completeness.
     const extraTimeRows: WorkOrderTimeRow[] = [];
@@ -195,6 +190,47 @@ export default function InterventionDetailsPage() {
 
   const vm = buildViewModel();
 
+  /**
+   * Action principale, posee en tete de fiche (carte Progression). Avant, le
+   * bouton « Demarrer » vivait au bas du stepper : il fallait defiler toute la
+   * fiche pour l'atteindre, alors que c'est la seule chose qu'un intervenant
+   * vient y faire.
+   */
+  const heroAction = (() => {
+    if (!intervention) return undefined;
+    if (canStartIntervention) {
+      return (
+        <BuiButton size="sm" onClick={handleStartIntervention} disabled={starting}>
+          {starting ? <Spinner className="size-4" /> : <PlayArrowIcon size={16} strokeWidth={1.75} />}
+          {starting
+            ? t('interventions.progressSteps.starting')
+            : t('interventions.progressSteps.startIntervention')}
+        </BuiButton>
+      );
+    }
+    // Assigne mais trop tot : le bouton n'a pas de sens, la date en a un.
+    if (canStartOrUpdateIntervention && intervention.status === 'PENDING'
+        && isBeforeScheduledDate && intervention.scheduledDate) {
+      return (
+        <span className="rounded-lg bg-warning-soft px-2 py-1 text-xs font-semibold text-warning-ink">
+          {t('interventions.detail.scheduledFor', 'Démarrage possible le')}{' '}
+          {formatDateTime(intervention.scheduledDate)}
+        </span>
+      );
+    }
+    // En cours vu par un profil non executant (manager) : la fiche reste, mais
+    // l'ecran terrain est a un tap. L'executant, lui, y est deja redirige.
+    if (intervention.status === 'IN_PROGRESS') {
+      return (
+        <BuiButton variant="outline" size="sm" onClick={() => navigate(`/interventions/${id}/suivi`)}>
+          <PlayArrowIcon size={16} strokeWidth={1.75} />
+          {t('interventions.detail.openRunScreen', 'Ouvrir le suivi')}
+        </BuiButton>
+      );
+    }
+    return undefined;
+  })();
+
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* ─── Header ──────────────────────────────────────────────────────── */}
@@ -242,6 +278,7 @@ export default function InterventionDetailsPage() {
       {vm && intervention && (
         <WorkOrderDetailLayout
           vm={vm}
+          heroAction={heroAction}
           propertyAction={
             // Action discrete au coin d'une carte : ghost, et xs pour retrouver
             // la hauteur 24 que le sx d'origine imposait.
@@ -255,6 +292,11 @@ export default function InterventionDetailsPage() {
           }
           extraSection={
             <>
+              {/* Le suivi vit desormais sur l'ecran terrain
+                  (/interventions/:id/suivi). Sur la fiche il ne reste que pour
+                  une intervention TERMINEE : c'est alors un recapitulatif
+                  (pieces validees, photos, documents) et le bouton Rouvrir. */}
+              {intervention.status === 'COMPLETED' && (
               <Card size="sm" className="mb-[9px] shadow-none">
                 <CardContent>
                   <p className={WORKFLOW_TITLE_CLASS}>
@@ -277,11 +319,14 @@ export default function InterventionDetailsPage() {
                   />
                 </CardContent>
               </Card>
+              )}
               {/* Devis prestataires (M4) — l'approbation reporte le montant sur le
                   coût estimé : on invalide la query détail pour rafraîchir les KPI. */}
               <InterventionQuotesSection
                 interventionId={Number(id)}
                 canEdit={canEditInterventions}
+                interventionStatus={intervention.status}
+                interventionCreatedAt={intervention.createdAt}
                 onQuoteApproved={() => {
                   queryClient.invalidateQueries({ queryKey: interventionsKeys.detail(id ?? '') });
                 }}

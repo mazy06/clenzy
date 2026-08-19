@@ -8,6 +8,8 @@ import {
   TooltipTrigger,
 } from '../../components/ui';
 import StatusChip from '../../components/StatusChip';
+import StatTile from '../../components/baitly/StatTile';
+import StatTileRow from '../../components/baitly/StatTileRow';
 import { cn } from '../../utils/cn';
 import {
   LocationOn,
@@ -86,6 +88,18 @@ const INFO_LABEL_CLASS = 'text-[11px] font-medium text-muted-foreground';
 
 /** Valeur d'une ligne d'information. */
 const INFO_VALUE_CLASS = 'text-[13px] font-semibold text-foreground mt-px';
+
+/**
+ * Tuile de la rangee : rembourrage resserre par rapport au defaut du kit (p-4),
+ * pour qu'une rangee de quatre tienne sur une largeur de tablette.
+ */
+const TILE_CLASS = 'p-3 gap-0.5';
+
+/**
+ * Tuile mise en avant : fond pastel et filet primaire. Pas de bande laterale ni
+ * d'ombre coloree — le contrat les proscrit ; c'est la SURFACE qui distingue.
+ */
+const HERO_TILE_CLASS = 'border-primary/45 bg-primary-soft';
 
 /** Valeur chiffree d'une tuile metrique. */
 const METRIC_VALUE_CLASS =
@@ -280,6 +294,12 @@ export interface WorkOrderDetailLayoutProps {
    * interactif d'une intervention). N'a pas d'équivalent côté demande de service.
    */
   extraSection?: React.ReactNode;
+  /**
+   * Action principale de l'ecran, posee DANS la carte de progression — c'est le
+   * premier bloc de la page, donc le seul endroit ou un « Demarrer » se voit
+   * sans defiler. Optionnelle : une demande de service n'en a pas.
+   */
+  heroAction?: React.ReactNode;
 }
 
 // ─── Service type → ConsigneVariant ──────────────────────────────────────────
@@ -314,6 +334,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
   vm,
   propertyAction,
   extraSection,
+  heroAction,
 }) => {
   const { t } = useTranslation();
 
@@ -347,18 +368,72 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
 
   const addressLine = [p.address, p.city].filter(Boolean).join(', ') + (p.postalCode ? ` ${p.postalCode}` : '');
 
+  // L'ordre est-il encore en cours ? Tant qu'il l'est, c'est l'ECHEANCE qui
+  // commande ; une fois clos, c'est le COUT qu'on vient relire.
+  const isClosed = ['COMPLETED', 'CANCELLED', 'REJECTED'].includes(vm.status);
+  const isHeroDueDate = !isClosed && !!vm.dueDate;
+  const hasActualCost = vm.actualCost != null && vm.actualCost > 0;
+
+  const costTile = hasActualCost ? (
+    <StatTile
+      icon={<AttachMoney />}
+      label={t('serviceRequests.details.actualCost')}
+      value={<Money value={vm.actualCost!} from="EUR" />}
+      iconClassName="text-success"
+      className={cn(TILE_CLASS, isClosed && HERO_TILE_CLASS)}
+    />
+  ) : vm.estimatedCost != null ? (
+    <StatTile
+      icon={<Euro />}
+      label={t('serviceRequests.details.estimatedCost')}
+      value={<Money value={vm.estimatedCost} from="EUR" />}
+      className={cn(TILE_CLASS, isClosed && HERO_TILE_CLASS)}
+      hint={vm.recommendedCost != null && vm.recommendedCost > 0 ? (() => {
+        // Moteur Menage 2A : ecart vs bareme conseil (snapshot recommended_cost).
+        const delta = vm.estimatedCost! - vm.recommendedCost!;
+        const conform = Math.abs(delta) <= 5;
+        const deltaPct = Math.round((delta / vm.recommendedCost!) * 100);
+        const label = conform
+          ? t('workOrders.recommended.conform')
+          : `${deltaPct > 0 ? '+' : ''}${deltaPct} % ${t('workOrders.recommended.vsScale')}`;
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span
+                className={cn(
+                  'inline-block rounded-[7px] px-1.5 py-px text-[10px] font-bold tabular-nums whitespace-nowrap cursor-default',
+                  conform
+                    ? 'text-success-ink bg-success-soft'
+                    : 'text-muted-foreground bg-field border border-solid border-field-line',
+                )}
+              >
+                {label}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{`${t('workOrders.recommended.scale')} : ${vm.recommendedCost} €`}</TooltipContent>
+          </Tooltip>
+        );
+      })() : undefined}
+    />
+  ) : null;
+
   return (
     <div className="pt-1.5 flex-1 min-h-0 overflow-auto">
 
       {/* ── Status progress bar ──────────────────────────────────────── */}
       <div className={cn(CARD_CLASS, 'p-[9px] mb-[9px]')}>
-        <div className="flex items-center justify-between mb-1">
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
           <p className={cn(SECTION_TITLE_CLASS, 'mb-0')}>
             {t('serviceRequests.details.progression')}
           </p>
-          <p className="text-[12px] font-bold" style={{ color: statusTextColor }}>
-            {vm.statusLabel}
-          </p>
+          {/* Statut et action groupes a droite : sans action, le statut garde
+              exactement sa place d'avant. */}
+          <div className="flex items-center gap-2">
+            <p className="text-[12px] font-bold" style={{ color: statusTextColor }}>
+              {vm.statusLabel}
+            </p>
+            {heroAction}
+          </div>
         </div>
         {/* La teinte depend du statut (valeur d'execution) : elle transite par une
             variable CSS, une classe Tailwind ne pouvant pas naitre d'une variable. */}
@@ -376,110 +451,40 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
         </div>
       </div>
 
-      {/* ── Key metrics grid ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-12 gap-1.5 mb-[9px]">
-        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
-          <div className="p-[9px] flex flex-col items-center text-center border border-solid border-border bg-card rounded-xl shadow-none min-h-[72px] justify-center">
-            {getTypeIcon(vm.type)}
-            <p className={cn(METRIC_VALUE_CLASS, 'text-[12px]')}>
-              {getInterventionTypeLabel(vm.type, t)}
-            </p>
-            <p className={METRIC_LABEL_CLASS}>{t('common.type')}</p>
-          </div>
-        </div>
+      {/* ── Rangee de tuiles ────────────────────────────────────────────
+          `StatTileRow` + `StatTile` (kit Baitly) au lieu d'une grille 12
+          colonnes redeclaree ici : sur telephone, la rangee DEFILE au lieu de
+          s'empiler — quatre tuiles empilees mangeaient la moitie de l'ecran
+          avant le premier contenu utile.
+
+          Hierarchie : une tuile porte l'information qui commande l'action et se
+          detache sur fond pastel — l'echeance tant que l'ordre est ouvert, le
+          cout une fois qu'il est clos. Les autres restent neutres. C'est ce qui
+          evite la « grille de cartes identiques » proscrite par le contrat. */}
+      <StatTileRow className="mb-[9px]">
+        <StatTile
+          icon={getTypeIcon(vm.type)}
+          label={t('common.type')}
+          value={<span className="text-[15px]">{getInterventionTypeLabel(vm.type, t)}</span>}
+          className={TILE_CLASS}
+        />
+        <StatTile
+          icon={<CalendarToday />}
+          label={t('serviceRequests.dueDateShort')}
+          value={<span className="text-[15px]">{formatDateTime(vm.dueDate) || '—'}</span>}
+          className={cn(TILE_CLASS, isHeroDueDate && HERO_TILE_CLASS)}
+          iconClassName={isHeroDueDate ? 'text-primary' : undefined}
+        />
         {vm.estimatedDurationHours != null && (
-          <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
-            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-border bg-card rounded-xl shadow-none min-h-[72px] justify-center">
-              <span className="inline-flex text-primary mb-0.5"><AccessTime size={18} strokeWidth={1.75} /></span>
-              <p className={METRIC_VALUE_CLASS}>
-                {formatDuration(vm.estimatedDurationHours)}
-              </p>
-              <p className={METRIC_LABEL_CLASS}>{t('serviceRequests.estimatedDurationLabel')}</p>
-            </div>
-          </div>
+          <StatTile
+            icon={<AccessTime />}
+            label={t('serviceRequests.estimatedDurationLabel')}
+            value={formatDuration(vm.estimatedDurationHours)}
+            className={TILE_CLASS}
+          />
         )}
-        <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
-          <div className="p-[9px] flex flex-col items-center text-center border border-solid border-border bg-card rounded-xl shadow-none min-h-[72px] justify-center">
-            <span className="inline-flex text-primary mb-0.5"><CalendarToday size={18} strokeWidth={1.75} /></span>
-            <p className={cn(METRIC_VALUE_CLASS, 'text-[12px]')}>
-              {formatDateTime(vm.dueDate) || '—'}
-            </p>
-            <p className={METRIC_LABEL_CLASS}>{t('serviceRequests.dueDateShort')}</p>
-          </div>
-        </div>
-        {vm.estimatedCost != null && (
-          <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
-            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-border bg-card rounded-xl shadow-none min-h-[72px] justify-center">
-              <span className="inline-flex text-primary mb-0.5"><Euro size={18} strokeWidth={1.75} /></span>
-              <p className={METRIC_VALUE_CLASS}>
-                <Money value={vm.estimatedCost} from="EUR" />
-              </p>
-              <p className={METRIC_LABEL_CLASS}>{t('serviceRequests.details.estimatedCost')}</p>
-              {/* Moteur Ménage 2A : écart vs barème conseil (snapshot recommended_cost). */}
-              {vm.recommendedCost != null && vm.recommendedCost > 0 && (() => {
-                const delta = vm.estimatedCost! - vm.recommendedCost!;
-                const conform = Math.abs(delta) <= 5;
-                const deltaPct = Math.round((delta / vm.recommendedCost!) * 100);
-                const label = conform
-                  ? t('workOrders.recommended.conform')
-                  : `${deltaPct > 0 ? '+' : ''}${deltaPct} % ${t('workOrders.recommended.vsScale')}`;
-                return (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span
-                        className={cn(
-                          'mt-[3px] text-[10px] font-bold rounded-[7px] px-1.5 py-px whitespace-nowrap cursor-default tabular-nums',
-                          conform
-                            ? 'text-success-ink bg-success-soft'
-                            : 'text-muted-foreground bg-field border border-solid border-field-line',
-                        )}
-                      >
-                        {label}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>{`${t('workOrders.recommended.scale')} : ${vm.recommendedCost} €`}</TooltipContent>
-                  </Tooltip>
-                );
-              })()}
-            </div>
-          </div>
-        )}
-        {vm.actualCost != null && vm.actualCost > 0 && (
-          <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
-            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-border bg-card rounded-xl shadow-none min-h-[72px] justify-center">
-              <span className="inline-flex text-success mb-0.5"><AttachMoney size={18} strokeWidth={1.75} /></span>
-              <p className={cn(METRIC_VALUE_CLASS, 'text-success-ink')}>
-                <Money value={vm.actualCost} from="EUR" />
-              </p>
-              <p className={METRIC_LABEL_CLASS}>{t('serviceRequests.details.actualCost')}</p>
-            </div>
-          </div>
-        )}
-        {vm.createdAt && (
-          <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2">
-            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-border bg-card rounded-xl shadow-none min-h-[72px] justify-center">
-              <span className="inline-flex text-primary mb-0.5"><Schedule size={18} strokeWidth={1.75} /></span>
-              <p className={cn(METRIC_VALUE_CLASS, 'text-[12px]')}>
-                {formatDateTime(vm.createdAt)}
-              </p>
-              <p className={METRIC_LABEL_CLASS}>{t('serviceRequests.createdDateShort')}</p>
-            </div>
-          </div>
-        )}
-        {vm.extraMetrics?.map((m) => (
-          <div className="col-span-6 min-[600px]:col-span-4 min-[900px]:col-span-2" key={`extra-metric-${m.label}`}>
-            <div className="p-[9px] flex flex-col items-center text-center border border-solid border-border bg-card rounded-xl shadow-none min-h-[72px] justify-center">
-              <span className="inline-flex mb-[1.5px]" style={{ color: m.tone ?? 'var(--bui-primary)' }}>{m.icon}</span>
-              {/* `m.tone` est une valeur d'execution : elle ne peut pas donner
-                  naissance a une classe Tailwind, d'ou le style inline. */}
-              <p className={cn(METRIC_VALUE_CLASS, 'text-[12px]')} style={m.tone ? { color: m.tone } : undefined}>
-                {m.value}
-              </p>
-              <p className={METRIC_LABEL_CLASS}>{m.label}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+        {costTile}
+      </StatTileRow>
 
       {/* ── Two-column detail layout ────────────────────────────────── */}
       <div className="flex flex-wrap min-[900px]:flex-nowrap gap-[9px] mb-[9px]">

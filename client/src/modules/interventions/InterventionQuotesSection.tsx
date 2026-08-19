@@ -13,8 +13,29 @@ import {
 interface Props {
   interventionId: number;
   canEdit: boolean;
+  /** Statut de l'intervention — conditionne la remontee vers la constellation. */
+  interventionStatus?: string;
+  /** Date de creation de l'intervention (ISO) — meme raison. */
+  interventionCreatedAt?: string | null;
   /** L'approbation reporte le montant sur estimatedCost : la fiche doit se rafraîchir. */
   onQuoteApproved?: () => void;
+}
+
+/**
+ * Conditions EXACTES du scanner `OpsMaintenanceScanner.scanQuotesAwaitingApproval`
+ * (serveur) : l'agent Operations ne ramasse un devis que si l'intervention est
+ * encore ouverte ET a ete creee il y a moins de 60 jours. Repliquees ici pour ne
+ * pas promettre une carte que la constellation ne produira jamais.
+ */
+const OPEN_STATUSES = ['PENDING', 'AWAITING_VALIDATION', 'AWAITING_PAYMENT', 'IN_PROGRESS'];
+const SCAN_WINDOW_DAYS = 60;
+
+function scanEligibility(status?: string, createdAt?: string | null): 'eligible' | 'closed' | 'tooOld' | 'unknown' {
+  if (!status) return 'unknown';
+  if (!OPEN_STATUSES.includes(status)) return 'closed';
+  if (!createdAt) return 'eligible';
+  const ageDays = (Date.now() - new Date(createdAt).getTime()) / 86_400_000;
+  return ageDays > SCAN_WINDOW_DAYS ? 'tooOld' : 'eligible';
 }
 
 const EMPTY_FORM: ServiceQuoteRequest = {
@@ -41,7 +62,13 @@ const STATUS_TONE: Record<ServiceQuote['status'], 'ok' | 'warn' | 'err' | 'neutr
  * l'approbation (ici ou depuis la constellation) écarte les concurrents et
  * reporte le montant sur le coût estimé de l'intervention.
  */
-export default function InterventionQuotesSection({ interventionId, canEdit, onQuoteApproved }: Props) {
+export default function InterventionQuotesSection({
+  interventionId,
+  canEdit,
+  interventionStatus,
+  interventionCreatedAt,
+  onQuoteApproved,
+}: Props) {
   const { t } = useTranslation();
   const [quotes, setQuotes] = useState<ServiceQuote[] | null>(null);
   const [form, setForm] = useState<ServiceQuoteRequest | null>(null);
@@ -91,6 +118,7 @@ export default function InterventionQuotesSection({ interventionId, canEdit, onQ
     setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
 
   const hasApproved = (quotes ?? []).some((q) => q.status === 'APPROVED');
+  const eligibility = scanEligibility(interventionStatus, interventionCreatedAt);
 
   return (
     <Card size="sm" className="mb-[9px] shadow-none">
@@ -116,10 +144,26 @@ export default function InterventionQuotesSection({ interventionId, canEdit, onQ
           </div>
         ) : quotes.length === 0 ? (
           <p className="m-0 py-2 text-xs text-muted-foreground">
-            {t('interventions.quotes.empty',
-              "Aucun devis saisi. Dès qu'un devis est enregistré ici, l'agent Opérations propose son approbation dans la constellation.")}
+            {eligibility === 'closed'
+              ? t('interventions.quotes.emptyClosed',
+                  "Aucun devis saisi. L'intervention n'étant plus ouverte, un devis enregistré ici ne remontera pas à l'agent Opérations.")
+              : eligibility === 'tooOld'
+                ? t('interventions.quotes.emptyTooOld',
+                    "Aucun devis saisi. L'intervention date de plus de 60 jours : au-delà, l'agent Opérations ne la scanne plus.")
+                : t('interventions.quotes.empty',
+                    "Aucun devis saisi. Dès qu'un devis est enregistré ici, l'agent Opérations propose son approbation dans la constellation.")}
           </p>
         ) : (
+          <>
+            {eligibility !== 'eligible' && eligibility !== 'unknown' && (
+              <p className="m-0 mb-2 text-xs text-warning-ink">
+                {eligibility === 'closed'
+                  ? t('interventions.quotes.noticeClosed',
+                      "L'intervention n'est plus ouverte : ces devis ne remontent plus à l'agent Opérations. L'approbation reste possible ici.")
+                  : t('interventions.quotes.noticeTooOld',
+                      "L'intervention date de plus de 60 jours : l'agent Opérations ne la scanne plus. L'approbation reste possible ici.")}
+              </p>
+            )}
           <Table>
             <TableHeader>
               <TableRow>
@@ -175,6 +219,7 @@ export default function InterventionQuotesSection({ interventionId, canEdit, onQ
               ))}
             </TableBody>
           </Table>
+          </>
         )}
 
         {form && (
