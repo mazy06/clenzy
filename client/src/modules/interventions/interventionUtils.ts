@@ -77,6 +77,17 @@ export interface InterventionDetailsData {
   propertyCoverPhotoUrl?: string;
   /** Réponse de l'intervenant à l'assignation. */
   assignmentResponse?: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+  /** Signalement à l'origine, quand l'intervention en découle. */
+  sourceIssue?: {
+    id: number;
+    title: string;
+    description?: string | null;
+    severity?: string | null;
+    reportedByName?: string | null;
+    createdAt?: string | null;
+    /** Photos du constat, prises avant toute intervention. */
+    photoUrls?: string[] | null;
+  };
   /** Tâches chiffrées de la demande d'origine. */
   quoteLines?: { label: string; quantity: number; unitPrice: number; interventionType?: string | null }[];
   id: number;
@@ -126,6 +137,16 @@ export interface PropertyDetails {
   bathroomCount?: number;
   livingRooms?: number;
   kitchens?: number;
+  /**
+   * Consignes d'accès du logement — code de porte, stationnement, arrivée.
+   * Elles vivaient dans la fiche du logement, à deux écrans de celui qui se
+   * déplace.
+   */
+  checkInInstructions?: {
+    accessCode?: string | null;
+    parkingInfo?: string | null;
+    arrivalInstructions?: string | null;
+  };
 }
 
 export type StepType = 'inspection' | 'rooms' | 'after_photos';

@@ -2420,7 +2420,14 @@
       "approvedBy": "Approuvé par",
       "devisAcceptedBy": "Devis accepté par",
       "directions": "Itinéraire",
-      "tasks": "Prestations demandées"
+      "tasks": "Prestations demandées",
+      "accessSection": "Accès au logement",
+      "accessCode": "Code",
+      "accessParking": "Stationnement",
+      "accessArrival": "Arrivée",
+      "sourceIssue": "Signalement à l’origine",
+      "reportedBy": "Signalé par {{name}}",
+      "issuePhotoAlt": "Photo du signalement {{index}}"
     },
     "search": "Rechercher une demande...",
     "allTypes": "Tous les types",
@@ -2576,7 +2583,8 @@
       "cleaning": "Ménage",
       "maintenance": "Maintenance",
       "other": "Autre"
-    }
+    },
+    "createdAtLabel": "Créée le"
   },
   "interventions": {
     "due": {
@@ -2857,7 +2865,15 @@
       "noticeClosed": "L'intervention n'est plus ouverte : ces devis ne remontent plus à l'agent Opérations. L'approbation reste possible ici.",
       "noticeTooOld": "L'intervention date de plus de 60 jours : l'agent Opérations ne la scanne plus. L'approbation reste possible ici.",
       "submitMine": "Chiffrer cette intervention",
-      "submitMineTitle": "Chiffrer cette intervention"
+      "submitMineTitle": "Chiffrer cette intervention",
+      "fromDate": "dispo. dès le {{date}}",
+      "untilDate": "valable jusqu’au {{date}}",
+      "openPreview": "Ouvrir l’aperçu",
+      "download": "Télécharger le devis",
+      "preview": "Aperçu du devis",
+      "previewFailed": "Le document n’a pas pu être chargé.",
+      "fileName": "devis-{{id}}",
+      "openInTab": "Ouvrir dans un nouvel onglet"
     }
   },
   "reservations": {
@@ -4201,7 +4217,8 @@
       "noCategory": "Sans catégorie",
       "submit": "Signaler",
       "success": "Anomalie signalée",
-      "error": "Création impossible — vérifiez les champs."
+      "error": "Création impossible — vérifiez les champs.",
+      "photosFailed": "Anomalie signalée, mais les photos n’ont pas pu être envoyées."
     },
     "categories": {
       "damage": "Dommage constaté",
@@ -4223,7 +4240,11 @@
       "severityField": "Gravité",
       "submit": "Signaler",
       "roomAction": "Anomalie",
-      "roomAriaLabel": "Signaler une anomalie dans {{room}}"
+      "roomAriaLabel": "Signaler une anomalie dans {{room}}",
+      "photosField": "Photos (optionnel)",
+      "photosHelp": "Une photo vaut mieux qu’une description : elle permet de chiffrer sans revenir sur place.",
+      "addPhoto": "Ajouter",
+      "removePhoto": "Retirer la photo"
     }
   },
   "propertiesPage": {

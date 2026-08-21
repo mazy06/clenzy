@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Alert,
   AlertDescription,
@@ -19,6 +19,7 @@ import {
 import StatusChip from '../../components/StatusChip';
 import type { StatusTone } from '../../components/StatusChip';
 import { TriangleAlert } from 'lucide-react';
+import { DeleteOutline, PhotoCamera } from '../../icons';
 import { useNotification } from '../../hooks/useNotification';
 import { useTranslation } from '../../hooks/useTranslation';
 import { cn } from '../../utils/cn';
@@ -33,6 +34,10 @@ const SEVERITY_TONES: Record<IssueSeverity, StatusTone> = {
 };
 
 const SEVERITIES: IssueSeverity[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+
+/** Memes bornes que le serveur — l'ecran ne doit pas promettre plus. */
+const MAX_PHOTOS = 6;
+const ACCEPTED_PHOTOS = 'image/jpeg,image/png,image/webp,image/gif';
 
 interface Props {
   open: boolean;
@@ -83,6 +88,18 @@ export default function IssueReportDialog({
   }, [currentRoom, roomTouched, open]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Les photos partent APRES la creation : l'anomalie doit exister pour les
+  // porter. On les garde donc en attente, avec leur apercu local.
+  const [photos, setPhotos] = useState<File[]>([]);
+  const fileInput = useRef<HTMLInputElement | null>(null);
+  const previews = React.useMemo(
+    () => photos.map((file) => ({ file, url: URL.createObjectURL(file) })),
+    [photos],
+  );
+  React.useEffect(
+    () => () => previews.forEach((preview) => URL.revokeObjectURL(preview.url)),
+    [previews],
+  );
 
   const severityLabel = (value: IssueSeverity) => t(
     `issues.severity.${value}`,
@@ -95,6 +112,7 @@ export default function IssueReportDialog({
     setSeverity('MEDIUM');
     setRoom(currentRoom ?? '');
     setRoomTouched(false);
+    setPhotos([]);
     setError(null);
   };
 
@@ -103,7 +121,7 @@ export default function IssueReportDialog({
     setSaving(true);
     setError(null);
     try {
-      await issuesApi.create({
+      const issue = await issuesApi.create({
         propertyId,
         sourceInterventionId,
         // La piece prefixe le TITRE : c'est la colonne que le gestionnaire lit
@@ -113,6 +131,16 @@ export default function IssueReportDialog({
         description: description.trim() || undefined,
         severity,
       });
+      // Le signalement est deja parti : un depot de photo qui echoue ne doit
+      // pas le faire passer pour perdu.
+      if (photos.length > 0) {
+        try {
+          await issuesApi.uploadPhotos(issue.id, photos);
+        } catch {
+          notify.warning(t('issues.create.photosFailed',
+            'Anomalie signalée, mais les photos n’ont pas pu être envoyées.'));
+        }
+      }
       notify.success(t('issues.create.success', 'Anomalie signalée'));
       reset();
       onReported?.();
@@ -181,6 +209,70 @@ export default function IssueReportDialog({
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+            />
+          </Field>
+
+          <Field>
+            <FieldLabel>
+              {t('issues.report.photosField', 'Photos (optionnel)')}
+            </FieldLabel>
+            <p className="m-0 mb-1.5 text-xs text-muted-foreground">
+              {t('issues.report.photosHelp',
+                'Une photo vaut mieux qu’une description : elle permet de chiffrer sans revenir sur place.')}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {previews.map((preview, index) => (
+                <span key={preview.url} className="relative inline-flex">
+                  <img
+                    src={preview.url}
+                    alt=""
+                    className="size-16 rounded-md border border-solid border-border object-cover"
+                  />
+                  <button
+                    type="button"
+                    aria-label={t('issues.report.removePhoto', 'Retirer la photo')}
+                    onClick={() => setPhotos((current) => current.filter((_, i) => i !== index))}
+                    className={cn(
+                      'absolute -end-1.5 -top-1.5 inline-flex size-6 items-center justify-center',
+                      'rounded-full border border-solid border-border bg-card text-muted-foreground',
+                      'transition-colors hover:text-destructive-ink',
+                      'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+                    )}
+                  >
+                    <DeleteOutline size={13} strokeWidth={1.75} />
+                  </button>
+                </span>
+              ))}
+              {photos.length < MAX_PHOTOS && (
+                <button
+                  type="button"
+                  onClick={() => fileInput.current?.click()}
+                  className={cn(
+                    'inline-flex size-16 flex-col items-center justify-center gap-0.5',
+                    'rounded-md border border-dashed border-border bg-card text-muted-foreground',
+                    'transition-colors hover:bg-muted hover:text-foreground',
+                    'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+                  )}
+                >
+                  <PhotoCamera size={18} strokeWidth={1.75} />
+                  <span className="text-2xs">{t('issues.report.addPhoto', 'Ajouter')}</span>
+                </button>
+              )}
+            </div>
+            {/* `capture` cible l'appareil photo du telephone : l'intervenant est
+                devant l'anomalie, pas devant sa galerie. */}
+            <input
+              ref={fileInput}
+              type="file"
+              accept={ACCEPTED_PHOTOS}
+              capture="environment"
+              multiple
+              className="hidden"
+              onChange={(event) => {
+                const chosen = Array.from(event.target.files ?? []);
+                setPhotos((current) => [...current, ...chosen].slice(0, MAX_PHOTOS));
+                event.target.value = '';
+              }}
             />
           </Field>
 

@@ -185,6 +185,18 @@ export default function InterventionDetailsPage() {
       // La photo de couverture arrive avec l'intervention depuis le lot
       // pre-charge : un intervenant reconnait un lieu avant de le lire.
       propertyPhotoUrl: intervention.propertyCoverPhotoUrl,
+      // L'acces vient de la PROPRIETE : code de porte, stationnement, arrivee.
+      // Il vivait a deux ecrans de celui qui se deplace.
+      // Le signalement d'origine : l'intervention seule ne dit pas POURQUOI
+      // elle existe, ni ce qui a ete constate sur place.
+      sourceIssue: intervention.sourceIssue
+        ? { ...intervention.sourceIssue, photoUrls: intervention.sourceIssue.photoUrls ?? undefined }
+        : undefined,
+      access: {
+        code: propertyDetails?.checkInInstructions?.accessCode,
+        parking: propertyDetails?.checkInInstructions?.parkingInfo,
+        arrival: propertyDetails?.checkInInstructions?.arrivalInstructions,
+      },
       tasks: intervention.quoteLines?.map((line) => ({
         label: line.label,
         quantity: line.quantity,

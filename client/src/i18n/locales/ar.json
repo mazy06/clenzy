@@ -2398,7 +2398,14 @@
       "approvedBy": "وافق عليه",
       "devisAcceptedBy": "قبل عرض السعر",
       "directions": "المسار",
-      "tasks": "الخدمات المطلوبة"
+      "tasks": "الخدمات المطلوبة",
+      "accessSection": "الدخول إلى العقار",
+      "accessCode": "الرمز",
+      "accessParking": "الوقوف",
+      "accessArrival": "الوصول",
+      "sourceIssue": "البلاغ الأصلي",
+      "reportedBy": "أبلغ عنه {{name}}",
+      "issuePhotoAlt": "صورة البلاغ {{index}}"
     },
     "search": "البحث عن طلب...",
     "allTypes": "جميع الأنواع",
@@ -2558,7 +2565,8 @@
       "cleaning": "تنظيف",
       "maintenance": "صيانة",
       "other": "أخرى"
-    }
+    },
+    "createdAtLabel": "أُنشئت في"
   },
   "interventions": {
     "due": {
@@ -2839,7 +2847,15 @@
       "noticeClosed": "التدخل لم يعد مفتوحاً: لم تعد عروض الأسعار هذه تصل إلى وكيل العمليات. تبقى الموافقة ممكنة هنا.",
       "noticeTooOld": "مضى على التدخل أكثر من 60 يوماً: لم يعد وكيل العمليات يفحصه. تبقى الموافقة ممكنة هنا.",
       "submitMine": "تسعير هذه المهمة",
-      "submitMineTitle": "تسعير هذه المهمة"
+      "submitMineTitle": "تسعير هذه المهمة",
+      "fromDate": "متاح من {{date}}",
+      "untilDate": "صالح حتى {{date}}",
+      "openPreview": "فتح المعاينة",
+      "download": "تنزيل عرض السعر",
+      "preview": "معاينة عرض السعر",
+      "previewFailed": "تعذّر تحميل المستند.",
+      "fileName": "devis-{{id}}",
+      "openInTab": "فتح في تبويب جديد"
     }
   },
   "reservations": {
@@ -4147,7 +4163,8 @@
       "noCategory": "بدون فئة",
       "submit": "إبلاغ",
       "success": "تم الإبلاغ عن الخلل",
-      "error": "تعذر الإنشاء — تحقق من الحقول."
+      "error": "تعذر الإنشاء — تحقق من الحقول.",
+      "photosFailed": "تم الإبلاغ عن العطل، لكن تعذّر إرسال الصور."
     },
     "categories": {
       "damage": "ضرر ملحوظ",
@@ -4169,7 +4186,11 @@
       "severityField": "الخطورة",
       "submit": "إبلاغ",
       "roomAction": "خلل",
-      "roomAriaLabel": "الإبلاغ عن خلل في {{room}}"
+      "roomAriaLabel": "الإبلاغ عن خلل في {{room}}",
+      "photosField": "صور (اختياري)",
+      "photosHelp": "الصورة أوضح من الوصف: تتيح التسعير دون زيارة ثانية.",
+      "addPhoto": "إضافة",
+      "removePhoto": "إزالة الصورة"
     }
   },
   "propertiesPage": {

@@ -2399,7 +2399,14 @@
       "approvedBy": "Approved by",
       "devisAcceptedBy": "Estimate accepted by",
       "directions": "Directions",
-      "tasks": "Requested services"
+      "tasks": "Requested services",
+      "accessSection": "Property access",
+      "accessCode": "Code",
+      "accessParking": "Parking",
+      "accessArrival": "Arrival",
+      "sourceIssue": "Originating report",
+      "reportedBy": "Reported by {{name}}",
+      "issuePhotoAlt": "Report photo {{index}}"
     },
     "search": "Search for a request...",
     "allTypes": "All types",
@@ -2555,7 +2562,8 @@
       "cleaning": "Cleaning",
       "maintenance": "Maintenance",
       "other": "Other"
-    }
+    },
+    "createdAtLabel": "Created on"
   },
   "interventions": {
     "due": {
@@ -2836,7 +2844,15 @@
       "noticeClosed": "The intervention is no longer open: these quotes no longer reach the Operations agent. Approval remains possible here.",
       "noticeTooOld": "The intervention is more than 60 days old: the Operations agent no longer scans it. Approval remains possible here.",
       "submitMine": "Price this job",
-      "submitMineTitle": "Price this job"
+      "submitMineTitle": "Price this job",
+      "fromDate": "available from {{date}}",
+      "untilDate": "valid until {{date}}",
+      "openPreview": "Open preview",
+      "download": "Download the quote",
+      "preview": "Quote preview",
+      "previewFailed": "The document could not be loaded.",
+      "fileName": "quote-{{id}}",
+      "openInTab": "Open in a new tab"
     }
   },
   "reservations": {
@@ -4180,7 +4196,8 @@
       "noCategory": "No category",
       "submit": "Report",
       "success": "Issue reported",
-      "error": "Creation failed — check the fields."
+      "error": "Creation failed — check the fields.",
+      "photosFailed": "Issue reported, but the photos could not be sent."
     },
     "categories": {
       "damage": "Damage found",
@@ -4202,7 +4219,11 @@
       "severityField": "Severity",
       "submit": "Report",
       "roomAction": "Issue",
-      "roomAriaLabel": "Report an issue in {{room}}"
+      "roomAriaLabel": "Report an issue in {{room}}",
+      "photosField": "Photos (optional)",
+      "photosHelp": "A photo beats a description: it lets the job be priced without a second visit.",
+      "addPhoto": "Add",
+      "removePhoto": "Remove photo"
     }
   },
   "propertiesPage": {

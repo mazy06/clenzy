@@ -3792,3 +3792,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0405__provider_agreed_rates.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0406-issue-photos"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0406__issue_photos.sql
+        relativeToChangelogFile: true

@@ -1,8 +1,22 @@
 import React from 'react';
 import {
+  Avatar,
+  AvatarFallback,
   Badge,
+  Button,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
   Progress,
   Separator,
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -12,35 +26,37 @@ import StatTile from '../../components/baitly/StatTile';
 import StatTileRow from '../../components/baitly/StatTileRow';
 import { cn } from '../../utils/cn';
 import {
-  LocationOn,
-  Person,
-  Category,
-  Schedule,
-  CalendarToday,
   AccessTime,
   Assignment,
-  AutoAwesome,
-  Build,
-  Group,
-  Flag,
-  Yard,
-  BugReport,
-  AutoFixHigh,
-  Home,
-  Bed,
-  Bathtub,
-  SquareFoot,
-  People,
-  Layers,
-  Deck,
-  LocalLaundryService,
   AttachMoney,
-  Description,
-  VpnKey,
-  Euro,
-  NoteAlt,
+  AutoAwesome,
+  AutoFixHigh,
+  Bathtub,
+  Bed,
+  BugReport,
+  Build,
   CalendarMonth,
+  CalendarToday,
+  Category,
+  Deck,
+  Description,
+  Euro,
+  Flag,
+  Group,
+  Home,
+  Layers,
+  LocalLaundryService,
+  LocationOn,
+  NoteAlt,
+  People,
+  Person,
+  ReportProblem,
+  Schedule,
+  SquareFoot,
+  VpnKey,
+  Yard,
 } from '../../icons';
+import { toApiMediaUrl } from '../../utils/mediaUrl';
 import { useTranslation } from '../../hooks/useTranslation';
 import { Money } from '../../components/Money';
 import { formatDateTime, formatDuration } from '../../utils/formatUtils';
@@ -258,6 +274,37 @@ export interface WorkOrderTask {
   unitPrice: number;
 }
 
+/**
+ * Acces au logement, tel qu'il est renseigne sur la PROPRIETE.
+ *
+ * <p>Code de porte, stationnement, consignes d'arrivee : la seule information
+ * qui laisse quelqu'un devant une porte fermee quand elle manque. Elle vivait
+ * dans la fiche du logement, a deux ecrans de celui qui se deplace.</p>
+ */
+export interface WorkOrderAccess {
+  code?: string | null;
+  parking?: string | null;
+  arrival?: string | null;
+}
+
+/**
+ * Signalement a l'origine de l'ordre de travail.
+ *
+ * <p>Une intervention nee d'une anomalie ne disait pas POURQUOI elle existe :
+ * l'intervenant lisait « Fuite sous evier » sans savoir qui l'avait constatee,
+ * quand, ni ce qui avait ete decrit sur place.</p>
+ */
+export interface WorkOrderSourceIssue {
+  id: number;
+  title: string;
+  description?: string | null;
+  severity?: string | null;
+  reportedByName?: string | null;
+  createdAt?: string | null;
+  /** Photos prises au moment du constat, avant toute intervention. */
+  photoUrls?: string[];
+}
+
 /** Ligne supplémentaire dans la section « Détail du temps ». */
 export interface WorkOrderTimeRow {
   icon: React.ReactNode;
@@ -270,6 +317,10 @@ export interface WorkOrderViewModel {
   propertyPhotoUrl?: string;
   /** Taches chiffrees de la demande. Vide pour un forfait sans devis structure. */
   tasks?: WorkOrderTask[];
+  /** Acces au logement, renseigne sur la propriete. */
+  access?: WorkOrderAccess;
+  /** Signalement dont decoule ce travail, le cas echeant. */
+  sourceIssue?: WorkOrderSourceIssue;
   type: string;
   status: string;
   /** Libellé de statut déjà traduit. */
@@ -344,6 +395,26 @@ function getConsigneVariant(type: string): ConsigneVariant {
   return 'other';
 }
 
+/** Initiales d'une personne, pour l'avatar de repli. */
+function initialsOf(name: string): string {
+  return name
+    .replace(/^\s*\[[^\]]*\]\s*/, '')
+    .split(/[\s-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase() || '?';
+}
+
+/** Gravite d'une anomalie → ton de pastille. */
+const ISSUE_SEVERITY_TONE: Record<string, 'ok' | 'warn' | 'err' | 'neutral'> = {
+  LOW: 'neutral',
+  MEDIUM: 'warn',
+  HIGH: 'err',
+  CRITICAL: 'err',
+};
+
 // ─── Layout ──────────────────────────────────────────────────────────────────
 
 /**
@@ -388,7 +459,8 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
   if (p.hasExterior) propertyTags.push({ icon: <Deck size={13} strokeWidth={1.75} />, label: t('serviceRequests.layout.exterior', 'Extérieur') });
   if (p.hasLaundry) propertyTags.push({ icon: <LocalLaundryService size={13} strokeWidth={1.75} />, label: t('serviceRequests.layout.laundry', 'Linge') });
 
-  const hasNotesSection = !!(p.description || p.cleaningNotes || vm.specialInstructions || vm.accessNotes);
+  const hasAccessSection = !!(vm.access?.code || vm.access?.parking || vm.access?.arrival || vm.accessNotes);
+  const hasNotesSection = !!(p.description || p.cleaningNotes || vm.specialInstructions);
 
   const addressLine = [p.address, p.city].filter(Boolean).join(', ') + (p.postalCode ? ` ${p.postalCode}` : '');
 
@@ -441,134 +513,288 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
     />
   ) : null;
 
-  return (
-    <div className="pt-1.5 flex-1 min-h-0 overflow-auto">
+  /** Fait saillant : un libelle discret, une valeur qui porte. */
+  const Fact = ({ icon, label, value, strong }: {
+    icon: React.ReactNode; label: string; value: React.ReactNode; strong?: boolean;
+  }) => (
+    <div className="flex min-w-0 items-start gap-2">
+      <span className={cn('mt-[3px] inline-flex shrink-0', strong ? 'text-primary' : 'text-muted-foreground')}>
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="m-0 text-2xs font-semibold uppercase tracking-[.05em] text-faint">{label}</p>
+        <p className={cn('m-0 truncate', strong ? 'text-[15px] font-semibold text-foreground' : 'text-[15px] text-foreground')}>
+          {value}
+        </p>
+      </div>
+    </div>
+  );
 
-      {/* ── Status progress bar ──────────────────────────────────────── */}
-      <div className={cn(CARD_CLASS, 'p-[9px] mb-[9px]')}>
-        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-          <p className={cn(SECTION_TITLE_CLASS, 'mb-0')}>
-            {t('serviceRequests.details.progression')}
-          </p>
-          {/* Statut et action groupes a droite : sans action, le statut garde
-              exactement sa place d'avant. */}
-          <div className="flex items-center gap-2">
-            <p className="text-[12px] font-bold" style={{ color: statusTextColor }}>
-              {vm.statusLabel}
+  /** Titre de section : un filet et une capitale, pas un cadre de plus. */
+  const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+    <p className="m-0 mb-2 border-b border-solid border-border pb-1.5 text-2xs font-bold uppercase tracking-[.06em] text-faint">
+      {children}
+    </p>
+  );
+
+  const tasksTotal = (vm.tasks ?? []).reduce(
+    (sum, task) => sum + task.unitPrice * (task.quantity || 1), 0);
+
+  return (
+    <div className="min-h-0 flex-1 overflow-auto pt-1.5">
+      {/*
+        Plus aucune carte. Chaque bloc etait encadre, ombre et espace : huit
+        boites empilees pour un seul objet, et le regard butait sur les
+        contours au lieu de suivre le contenu. La hierarchie tient desormais a
+        la typographie et aux filets — un titre en capitales, un trait, du blanc.
+      */}
+
+      {/* ── Bandeau : ou, quoi, dans quel etat ───────────────────────────── */}
+      <div className="flex flex-wrap items-start gap-4 pb-4">
+        {vm.propertyPhotoUrl && (
+          <img
+            src={toApiMediaUrl(vm.propertyPhotoUrl)}
+            alt=""
+            className="size-20 shrink-0 rounded-xl border border-solid border-border object-cover"
+          />
+        )}
+
+        <div className="min-w-0 flex-1">
+          <p className="m-0 text-lg font-semibold leading-tight text-foreground">{p.name}</p>
+          {addressLine.trim() && (
+            <p className="m-0 mt-0.5 flex items-start gap-1 text-[13px] text-muted-foreground">
+              <span className="inline-flex shrink-0 pt-[2px]"><LocationOn size={14} strokeWidth={1.75} /></span>
+              <span>
+                {addressLine}
+                {p.country && <span className="text-faint"> · {p.country}</span>}
+              </span>
             </p>
-            {heroAction}
+          )}
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            {addressLine.trim() && (
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addressLine)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-4 hover:underline"
+              >
+                <LocationOn size={12} strokeWidth={1.75} />
+                {t('serviceRequests.details.directions', 'Itinéraire')}
+              </a>
+            )}
+            {propertyAction}
           </div>
         </div>
-        {/* La teinte depend du statut (valeur d'execution) : elle transite par une
-            variable CSS, une classe Tailwind ne pouvant pas naitre d'une variable. */}
+
+        {heroAction && <div className="shrink-0">{heroAction}</div>}
+      </div>
+
+      {statusBanner && <div className="pb-4">{statusBanner}</div>}
+
+      {/* ── Progression : une barre fine, sans cadre ─────────────────────── */}
+      <div className="pb-4">
         <Progress
           value={statusProgress}
-          className="h-1.5 rounded-[3px] bg-field [&_[data-slot=progress-indicator]]:bg-[var(--wo-progress-tone)]"
-          style={{ '--wo-progress-tone': statusBarColor } as React.CSSProperties}
+          className="h-1"
+          style={{ ['--bui-primary' as string]: statusBarColor }}
         />
-        <div className="flex justify-between mt-0.5">
+        <div className="mt-1 flex justify-between">
           {progressSteps.map((label, i) => (
-            <p className={cn('text-[10px]', statusProgress >= PROGRESS_VALUES[i] ? 'font-semibold' : 'font-normal')} style={{ color: statusProgress >= PROGRESS_VALUES[i] ? statusTextColor : 'var(--bui-faint)' }} key={label}>
+            <p
+              key={label}
+              className={cn('m-0 text-[10px]', statusProgress >= PROGRESS_VALUES[i] ? 'font-semibold' : 'font-normal')}
+              style={{ color: statusProgress >= PROGRESS_VALUES[i] ? statusTextColor : 'var(--bui-faint)' }}
+            >
               {label}
             </p>
           ))}
         </div>
       </div>
 
-      {statusBanner && <div className="mb-[9px]">{statusBanner}</div>}
-
-      {/* ── Rangee de tuiles ────────────────────────────────────────────
-          `StatTileRow` + `StatTile` (kit Baitly) au lieu d'une grille 12
-          colonnes redeclaree ici : sur telephone, la rangee DEFILE au lieu de
-          s'empiler — quatre tuiles empilees mangeaient la moitie de l'ecran
-          avant le premier contenu utile.
-
-          Hierarchie : une tuile porte l'information qui commande l'action et se
-          detache sur fond pastel — l'echeance tant que l'ordre est ouvert, le
-          cout une fois qu'il est clos. Les autres restent neutres. C'est ce qui
-          evite la « grille de cartes identiques » proscrite par le contrat. */}
-      <StatTileRow className="mb-[9px]">
-        <StatTile
-          icon={getTypeIcon(vm.type)}
-          label={t('common.type')}
-          value={<span className="text-[15px]">{getInterventionTypeLabel(vm.type, t)}</span>}
-          className={TILE_CLASS}
-        />
-        <StatTile
-          icon={<CalendarToday />}
-          label={t('serviceRequests.dueDateShort')}
-          value={<span className="text-[15px]">{formatDateTime(vm.dueDate) || '—'}</span>}
-          className={cn(TILE_CLASS, isHeroDueDate && HERO_TILE_CLASS)}
-          iconClassName={isHeroDueDate ? 'text-primary' : undefined}
-        />
-        {vm.estimatedDurationHours != null && (
-          <StatTile
-            icon={<AccessTime />}
-            label={t('serviceRequests.estimatedDurationLabel')}
-            value={formatDuration(vm.estimatedDurationHours)}
-            className={TILE_CLASS}
+      {/* ── Les quatre faits, en rangee separee par des filets ───────────── */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-y border-solid border-border py-3 min-[900px]:grid-cols-4 min-[900px]:divide-x min-[900px]:divide-solid min-[900px]:divide-border">
+        <div className="min-[900px]:pe-4">
+          <Fact icon={getTypeIcon(vm.type)} label={t('common.type')}
+            value={getInterventionTypeLabel(vm.type, t)} />
+        </div>
+        <div className="min-[900px]:px-4">
+          <Fact icon={<CalendarToday size={16} strokeWidth={1.75} />} label={t('serviceRequests.dueDateShort')}
+            value={formatDateTime(vm.dueDate) || '—'} strong={isHeroDueDate} />
+        </div>
+        <div className="min-[900px]:px-4">
+          <Fact icon={<AccessTime size={16} strokeWidth={1.75} />} label={t('serviceRequests.estimatedDurationLabel')}
+            value={vm.estimatedDurationHours != null ? formatDuration(vm.estimatedDurationHours) : '—'} />
+        </div>
+        <div className="min-[900px]:ps-4">
+          <Fact
+            icon={<AttachMoney size={16} strokeWidth={1.75} />}
+            label={hasActualCost ? t('serviceRequests.details.actualCost') : t('serviceRequests.details.estimatedCost')}
+            value={
+              hasActualCost ? <Money value={vm.actualCost!} from="EUR" />
+                : vm.estimatedCost != null ? <Money value={vm.estimatedCost} from="EUR" /> : '—'
+            }
+            strong={isClosed}
           />
-        )}
-        {costTile}
-      </StatTileRow>
+        </div>
+      </div>
 
-      {/* ── Two-column detail layout ────────────────────────────────── */}
-      <div className="flex flex-wrap min-[900px]:flex-nowrap gap-[9px] mb-[9px]">
-        {/* ── Left column ──────────────────────────────────────────── */}
-        <div className="flex-[1_1_100%] min-[900px]:flex-[7] min-w-0 flex flex-col gap-[9px]">
+      {/* ── Deux colonnes, sans boites ───────────────────────────────────── */}
+      <div className="flex flex-wrap gap-x-8 gap-y-6 py-5 min-[900px]:flex-nowrap">
+        <div className="min-w-0 flex-[1_1_100%] min-[900px]:flex-[7]">
 
-          {/* Taches chiffrees — le CONTENU du travail. Une description generique
-              ne dit pas ce qu'il y a a faire ni pour combien. */}
-          {vm.tasks && vm.tasks.length > 0 && (
-            <div className={CARD_CLASS}>
-              <p className={SECTION_TITLE_CLASS}>
-                <Description size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                {t('serviceRequests.details.tasks', 'Prestations demandées')}
+          {/* L'acces passe AVANT le travail : sans code de porte, le reste ne
+              sert a rien. Seule zone teintee de la colonne — elle signale ce qui
+              bloque physiquement, pas une categorie de plus. */}
+          {hasAccessSection && (
+            <section className="mb-6 rounded-lg border border-solid border-warning/30 bg-warning-soft p-3">
+              <p className="m-0 mb-2 flex items-center gap-1.5 text-2xs font-bold uppercase tracking-[.06em] text-warning-ink">
+                <VpnKey size={13} strokeWidth={1.75} />
+                {t('serviceRequests.details.accessSection', 'Accès au logement')}
               </p>
-              <div className="flex flex-col">
-                {vm.tasks.map((task, index) => (
-                  <div
-                    key={`${task.label}-${index}`}
-                    className={cn(
-                      'flex items-baseline justify-between gap-3 py-[5px]',
-                      index > 0 && 'border-t border-solid border-border',
-                    )}
-                  >
-                    <span className="min-w-0 text-[13px] text-foreground">
-                      {task.label}
-                      {task.quantity > 1 && (
-                        <span className="ms-1 text-muted-foreground">×{task.quantity}</span>
-                      )}
-                    </span>
-                    <span className="shrink-0 text-[13px] font-medium tabular-nums text-foreground">
-                      <Money value={task.unitPrice * (task.quantity || 1)} decimals={0} />
-                    </span>
-                  </div>
-                ))}
-              </div>
-              {/* La description courte se replie ici : une carte pleine largeur
-                  pour une phrase etait du vide encadre. */}
-              {vm.description && vm.description.length <= SHORT_DESCRIPTION_CHARS && (
-                <p className="m-0 mt-2 border-t border-solid border-border pt-2 text-[13px] leading-[1.6] text-muted-foreground">
-                  {vm.description}
-                </p>
-              )}
-            </div>
+              <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
+                {vm.access?.code && (
+                  <>
+                    <dt className="text-2xs font-semibold uppercase tracking-[.05em] text-warning-ink/80">
+                      {t('serviceRequests.details.accessCode', 'Code')}
+                    </dt>
+                    <dd className="m-0 font-mono text-[15px] font-semibold tracking-[.08em] text-foreground">
+                      {vm.access.code}
+                    </dd>
+                  </>
+                )}
+                {vm.access?.parking && (
+                  <>
+                    <dt className="text-2xs font-semibold uppercase tracking-[.05em] text-warning-ink/80">
+                      {t('serviceRequests.details.accessParking', 'Stationnement')}
+                    </dt>
+                    <dd className="m-0 text-[13px] leading-[1.5] text-foreground">{vm.access.parking}</dd>
+                  </>
+                )}
+                {vm.access?.arrival && (
+                  <>
+                    <dt className="text-2xs font-semibold uppercase tracking-[.05em] text-warning-ink/80">
+                      {t('serviceRequests.details.accessArrival', 'Arrivée')}
+                    </dt>
+                    <dd className="m-0 whitespace-pre-line text-[13px] leading-[1.5] text-foreground">
+                      {vm.access.arrival}
+                    </dd>
+                  </>
+                )}
+                {vm.accessNotes && (
+                  <>
+                    <dt className="text-2xs font-semibold uppercase tracking-[.05em] text-warning-ink/80">
+                      {t('serviceRequests.details.accessNotes')}
+                    </dt>
+                    <dd className="m-0 whitespace-pre-line text-[13px] leading-[1.5] text-foreground">
+                      {vm.accessNotes}
+                    </dd>
+                  </>
+                )}
+              </dl>
+            </section>
           )}
 
-          {/* Description — carte propre seulement quand elle porte un vrai texte,
-              ou qu'il n'y a pas de taches ou la replier. */}
-          {vm.description
-            && !(vm.tasks && vm.tasks.length > 0 && vm.description.length <= SHORT_DESCRIPTION_CHARS)
-            && (
-            <div className={CARD_CLASS}>
-              <p className={SECTION_TITLE_CLASS}>
-                <Description size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                {t('serviceRequests.fields.detailedDescription')}
-              </p>
+          {vm.sourceIssue && (
+            <section className="mb-6">
+              <SectionTitle>
+                {t('serviceRequests.details.sourceIssue', 'Signalement à l’origine')}
+              </SectionTitle>
+              <div className="flex items-start gap-2.5">
+                <span className="mt-[3px] inline-flex shrink-0 text-warning-ink">
+                  <ReportProblem size={16} strokeWidth={1.75} />
+                </span>
+                <div className="min-w-0">
+                  <p className="m-0 flex flex-wrap items-center gap-2 text-[14px] font-medium text-foreground">
+                    {vm.sourceIssue.title}
+                    {vm.sourceIssue.severity && (
+                      <StatusChip
+                        tone={ISSUE_SEVERITY_TONE[vm.sourceIssue.severity] ?? 'neutral'}
+                        label={t(`issues.severity.${vm.sourceIssue.severity.toLowerCase()}`, vm.sourceIssue.severity)}
+                        size="sm"
+                        dot
+                      />
+                    )}
+                  </p>
+                  {vm.sourceIssue.description && (
+                    <p className="m-0 mt-1 whitespace-pre-line text-[13px] leading-[1.6] text-muted-foreground">
+                      {vm.sourceIssue.description}
+                    </p>
+                  )}
+                  {(vm.sourceIssue.photoUrls?.length ?? 0) > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {vm.sourceIssue.photoUrls!.map((url, index) => (
+                        <a
+                          key={url}
+                          href={toApiMediaUrl(url)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block"
+                        >
+                          <img
+                            src={toApiMediaUrl(url)}
+                            alt={t('serviceRequests.details.issuePhotoAlt',
+                              'Photo du signalement {{index}}', { index: index + 1 })}
+                            loading="lazy"
+                            className="size-20 rounded-md border border-solid border-border object-cover transition-opacity duration-150 hover:opacity-80"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  <p className="m-0 mt-1.5 text-xs text-faint">
+                    {[
+                      vm.sourceIssue.reportedByName
+                        && t('serviceRequests.details.reportedBy', 'Signalé par {{name}}', {
+                          name: vm.sourceIssue.reportedByName,
+                        }),
+                      vm.sourceIssue.createdAt && formatDateTime(vm.sourceIssue.createdAt),
+                    ].filter(Boolean).join(' · ')}
+                  </p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {vm.tasks && vm.tasks.length > 0 && (
+            <section className="mb-6">
+              <SectionTitle>{t('serviceRequests.details.tasks', 'Prestations demandées')}</SectionTitle>
+              <Table>
+                <TableBody>
+                  {vm.tasks.map((task, index) => (
+                    <TableRow key={`${task.label}-${index}`}>
+                      <TableCell className="ps-0 text-[13px] text-foreground">
+                        {task.label}
+                        {task.quantity > 1 && (
+                          <span className="ms-1 text-muted-foreground">×{task.quantity}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="pe-0 text-end text-[13px] font-medium tabular-nums text-foreground">
+                        <Money value={task.unitPrice * (task.quantity || 1)} decimals={0} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Le total ne se justifie qu'a plusieurs lignes. */}
+                  {vm.tasks.length > 1 && (
+                    <TableRow>
+                      <TableCell className="ps-0 text-[13px] font-semibold text-foreground">
+                        {t('field.proposals.total', 'Total')}
+                      </TableCell>
+                      <TableCell className="pe-0 text-end text-[13px] font-semibold tabular-nums text-foreground">
+                        <Money value={tasksTotal} decimals={0} />
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </section>
+          )}
+
+          {vm.description && (
+            <section className="mb-6">
+              <SectionTitle>{t('serviceRequests.fields.detailedDescription')}</SectionTitle>
               <div className="flex items-start gap-1.5">
                 {vm.importSource && ICAL_SOURCE_LOGOS[vm.importSource.toLowerCase()] && (
-                  <div className="size-[22px] min-w-[22px] rounded-full border-[1.5px] border-solid border-border bg-card flex items-center justify-center shrink-0 mt-[1.5px]">
+                  <div className="mt-[1.5px] flex size-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-solid border-border bg-card">
                     <img
                       src={ICAL_SOURCE_LOGOS[vm.importSource.toLowerCase()]}
                       alt={vm.importSource}
@@ -578,246 +804,142 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
                     />
                   </div>
                 )}
-                <p className="text-[13px] text-foreground leading-[1.6] whitespace-pre-line">
+                <p className="m-0 whitespace-pre-line text-[13px] leading-[1.6] text-foreground">
                   {vm.description}
                 </p>
               </div>
-            </div>
+            </section>
           )}
 
-          {/* Propriété */}
-          <div className={CARD_CLASS}>
-            <div className="flex items-center justify-between mb-1.5">
-              <p className={cn(SECTION_TITLE_CLASS, 'mb-0')}>
-                <Home size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                {t('serviceRequests.sections.property')}
-              </p>
-              {propertyAction}
-            </div>
-
-            {/* Le nom, l'adresse et le pays occupaient trois rangees etiquetees,
-                chacune avec sa propre epingle. Une identite de lieu se lit d'un
-                bloc : le nom en titre, l'adresse dessous, une seule epingle. */}
-            <div className="flex items-start gap-2.5 py-[3px]">
-              {vm.propertyPhotoUrl && (
-                <img
-                  src={vm.propertyPhotoUrl}
-                  alt=""
-                  className="size-14 shrink-0 rounded-lg border border-solid border-border object-cover"
-                />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="m-0 text-[15px] font-semibold text-foreground">{p.name}</p>
-                {(p.address || p.city) && (
-                  <p className="m-0 mt-0.5 flex items-start gap-1 text-[13px] text-muted-foreground">
-                    <span className="inline-flex shrink-0 pt-[2px]">
-                      <LocationOn size={14} strokeWidth={1.75} />
-                    </span>
-                    <span>
-                      {addressLine}
-                      {p.country && <span className="text-faint"> · {p.country}</span>}
-                    </span>
-                  </p>
-                )}
-                {addressLine && (
-                  <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addressLine)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-4 hover:underline"
-                  >
-                    <LocationOn size={12} strokeWidth={1.75} />
-                    {t('serviceRequests.details.directions', 'Itinéraire')}
-                  </a>
-                )}
-              </div>
-            </div>
-
-            {propertyTags.length > 0 && (
-              <>
-                <Separator className="my-[4.5px]" />
-                <div className="flex flex-wrap gap-0.5 mt-0.5">
-                  {propertyTags.map((tag) => (
-                    <StatusChip
-                      key={tag.label}
-                      icon={tag.icon}
-                      label={tag.label}
-                      tokens={PROPERTY_TAG_TOKENS}
-                      className={PROPERTY_TAG_CLASS}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Notes et Consignes */}
           {hasNotesSection && (
-            <div className={CARD_CLASS}>
-              <p className={SECTION_TITLE_CLASS}>
-                <NoteAlt size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                {t('serviceRequests.details.notesInstructions')}
-              </p>
-
+            <section className="mb-6">
+              <SectionTitle>{t('serviceRequests.details.notesInstructions')}</SectionTitle>
               <DescriptionNotesDisplay
                 description={p.description}
                 notes={p.cleaningNotes}
                 variant={consigneVariant}
               />
-
               {vm.specialInstructions && (
-                <div className="mt-2">
-                  <p className="text-[11px] font-semibold text-muted-foreground mb-0.5">
-                    {t('serviceRequests.details.specialInstructions')}
-                  </p>
-                  <p className="text-[13px] text-foreground leading-[1.5] whitespace-pre-line bg-field p-2 rounded-md border border-solid border-field-line">
-                    {vm.specialInstructions}
-                  </p>
-                </div>
+                <p className="m-0 mt-2 whitespace-pre-line text-[13px] leading-[1.5] text-foreground">
+                  {vm.specialInstructions}
+                </p>
               )}
+            </section>
+          )}
 
-              {vm.accessNotes && (
-                <div className="mt-2">
-                  <p className="text-[11px] font-semibold text-muted-foreground mb-0.5">
-                    <VpnKey size={12} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                    {t('serviceRequests.details.accessNotes')}
-                  </p>
-                  <p className="text-[13px] text-foreground leading-[1.5] whitespace-pre-line bg-warning-soft p-[7.5px] rounded-md border border-solid border-warning/30">
-                    {vm.accessNotes}
-                  </p>
-                </div>
-              )}
-            </div>
+          {propertyTags.length > 0 && (
+            <section>
+              <SectionTitle>{t('serviceRequests.sections.property')}</SectionTitle>
+              <div className="flex flex-wrap gap-1">
+                {propertyTags.map((tag) => (
+                  <StatusChip
+                    key={tag.label}
+                    icon={tag.icon}
+                    label={tag.label}
+                    tokens={PROPERTY_TAG_TOKENS}
+                    className={PROPERTY_TAG_CLASS}
+                  />
+                ))}
+              </div>
+            </section>
           )}
         </div>
 
-        {/* ── Right column ─────────────────────────────────────────── */}
-        <div className="flex-[1_1_100%] min-[900px]:flex-[5] min-w-0 flex flex-col gap-[9px]">
-
-          {/* Personnes impliquées */}
+        <div className="min-w-0 flex-[1_1_100%] min-[900px]:flex-[5]">
           {(vm.requestor || vm.assignee) && (
-            <div className={CARD_CLASS}>
-              <p className={SECTION_TITLE_CLASS}>
-                {t('serviceRequests.peopleInvolved')}
-              </p>
-
-              {vm.requestor && (
-                <div className="flex items-center gap-1.5 py-[4.5px]">
-                  <span className="inline-flex text-muted-foreground"><Person size={16} strokeWidth={1.75} /></span>
-                  <div className="flex-1">
-                    <p className={INFO_LABEL_CLASS}>{t('serviceRequests.fields.requestor')}</p>
-                    <div className="flex items-center gap-1">
-                      <p className={INFO_VALUE_CLASS}>{vm.requestor.name}</p>
-                      {vm.requestor.roleLabel && (
-                        <Badge variant="outline" className="h-[18px] text-[0.5625rem] px-0.5">{vm.requestor.roleLabel}</Badge>
-                      )}
-                    </div>
-                    {vm.requestor.email && (
-                      <p className="text-[11px] text-muted-foreground">
-                        {vm.requestor.email}
-                      </p>
+            <section className="mb-6">
+              <SectionTitle>{t('serviceRequests.peopleInvolved')}</SectionTitle>
+              <ItemGroup>
+                {vm.requestor && (
+                  <Item size="sm" className="px-0">
+                    <ItemMedia>
+                      <Avatar className="size-8">
+                        <AvatarFallback className="text-2xs">{initialsOf(vm.requestor.name)}</AvatarFallback>
+                      </Avatar>
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle>{vm.requestor.name}</ItemTitle>
+                      <ItemDescription>
+                        {[t('serviceRequests.fields.requestor'), vm.requestor.email].filter(Boolean).join(' · ')}
+                      </ItemDescription>
+                    </ItemContent>
+                    {vm.requestor.roleLabel && (
+                      <ItemActions>
+                        <Badge variant="outline" className="h-[18px] px-1 text-[0.5625rem]">
+                          {vm.requestor.roleLabel}
+                        </Badge>
+                      </ItemActions>
                     )}
-                  </div>
-                </div>
-              )}
-
-              {vm.requestor && vm.assignee && <Separator className="my-[3px]" />}
-
-              {vm.assignee && (
-                <div className="flex items-center gap-1.5 py-[4.5px]">
-                  {vm.assignee.type === 'team' ? (
-                    <span className="inline-flex text-muted-foreground"><Group size={16} strokeWidth={1.75} /></span>
-                  ) : (
-                    <span className="inline-flex text-muted-foreground"><Assignment size={16} strokeWidth={1.75} /></span>
-                  )}
-                  <div className="flex-1">
-                    <p className={INFO_LABEL_CLASS}>{t('serviceRequests.assignedTo')}</p>
-                    {vm.assignee.name ? (
-                      <div className="flex items-center gap-1">
-                        <p className={INFO_VALUE_CLASS}>{vm.assignee.name}</p>
-                        {vm.assignee.typeLabel && (
-                          <StatusChip
-                            tone={vm.assignee.type === 'team' ? 'info' : 'neutral'}
-                            label={vm.assignee.typeLabel}
-                            size="sm"
-                            className="h-[20px] text-[0.6rem]"
-                          />
+                  </Item>
+                )}
+                {vm.assignee && (
+                  <Item size="sm" className="px-0">
+                    <ItemMedia>
+                      <Avatar className="size-8">
+                        <AvatarFallback className="text-2xs">
+                          {vm.assignee.name ? initialsOf(vm.assignee.name) : '—'}
+                        </AvatarFallback>
+                      </Avatar>
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle>
+                        {vm.assignee.name ?? (
+                          <span className="italic text-faint">{t('serviceRequests.fields.noAssignment')}</span>
                         )}
-                      </div>
-                    ) : (
-                      <p className={cn(INFO_VALUE_CLASS, 'text-faint italic')}>
-                        {t('serviceRequests.fields.noAssignment')}
-                      </p>
+                      </ItemTitle>
+                      <ItemDescription>
+                        {[t('serviceRequests.assignedTo'), vm.assignee.email].filter(Boolean).join(' · ')}
+                      </ItemDescription>
+                    </ItemContent>
+                    {vm.assignee.typeLabel && (
+                      <ItemActions>
+                        <StatusChip
+                          tone={vm.assignee.type === 'team' ? 'info' : 'neutral'}
+                          label={vm.assignee.typeLabel}
+                          size="sm"
+                        />
+                      </ItemActions>
                     )}
-                    {vm.assignee.email && vm.assignee.type === 'user' && (
-                      <p className="text-[11px] text-muted-foreground">
-                        {vm.assignee.email}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+                  </Item>
+                )}
+              </ItemGroup>
+            </section>
           )}
 
-          {/* Détail du temps */}
-          <div className={CARD_CLASS}>
-            <p className={SECTION_TITLE_CLASS}>
-              <AccessTime size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-              {t('serviceRequests.layout.timeDetail', 'Détail du temps')}
-            </p>
-
-            {/* L'echeance et la duree estimee vivent deja dans la rangee de
-                tuiles, en haut de l'ecran. Les repeter ici doublait quatre
-                valeurs sur six et noyait ce que cette carte apporte vraiment :
-                le deroule reel. */}
-
-            {vm.property.cleaningDurationMinutes != null && vm.property.cleaningDurationMinutes > 0 && (
-              <>
-                <div className="flex items-center gap-1.5 py-[4.5px]">
-                  <span className="inline-flex text-muted-foreground"><Schedule size={16} strokeWidth={1.75} /></span>
-                  <div className="flex-1">
-                    <p className={INFO_LABEL_CLASS}>{t('serviceRequests.layout.propertyCleaningDuration', 'Durée ménage (propriété)')}</p>
-                    <p className={INFO_VALUE_CLASS}>
-                      {vm.property.cleaningDurationMinutes >= 60
-                        ? `${Math.floor(vm.property.cleaningDurationMinutes / 60)}h${vm.property.cleaningDurationMinutes % 60 > 0 ? String(vm.property.cleaningDurationMinutes % 60).padStart(2, '0') : ''}`
-                        : `${vm.property.cleaningDurationMinutes} min`}
-                    </p>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {vm.extraTimeRows?.map((row) => (
-              <React.Fragment key={`time-row-${row.label}`}>
-                <Separator className="my-[3px]" />
-                <div className="flex items-center gap-1.5 py-[4.5px]">
-                  <span className="inline-flex text-muted-foreground">{row.icon}</span>
-                  <div className="flex-1">
-                    <p className={INFO_LABEL_CLASS}>{row.label}</p>
-                    <p className={INFO_VALUE_CLASS}>{row.value}</p>
-                  </div>
-                </div>
-              </React.Fragment>
-            ))}
-
-            {vm.createdAt && (
-              <>
-                <Separator className="my-[3px]" />
-                <div className="flex items-center gap-1.5 py-[4.5px]">
-                  <span className="inline-flex text-muted-foreground"><CalendarMonth size={16} strokeWidth={1.75} /></span>
-                  <div className="flex-1">
-                    <p className={INFO_LABEL_CLASS}>{t('serviceRequests.createdDateLabel')}</p>
-                    <p className={INFO_VALUE_CLASS}>{formatDateTime(vm.createdAt)}</p>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+          <section>
+            <SectionTitle>{t('serviceRequests.layout.timeDetail', 'Détail du temps')}</SectionTitle>
+            <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+              {vm.property.cleaningDurationMinutes != null && vm.property.cleaningDurationMinutes > 0 && (
+                <>
+                  <dt className="text-2xs font-semibold uppercase tracking-[.05em] text-faint">
+                    {t('serviceRequests.layout.propertyCleaningDuration', 'Durée ménage (propriété)')}
+                  </dt>
+                  <dd className="m-0 text-[13px] tabular-nums text-foreground">
+                    {vm.property.cleaningDurationMinutes >= 60
+                      ? `${Math.floor(vm.property.cleaningDurationMinutes / 60)}h${vm.property.cleaningDurationMinutes % 60 > 0 ? String(vm.property.cleaningDurationMinutes % 60).padStart(2, '0') : ''}`
+                      : `${vm.property.cleaningDurationMinutes} min`}
+                  </dd>
+                </>
+              )}
+              {vm.extraTimeRows?.map((row) => (
+                <React.Fragment key={`time-row-${row.label}`}>
+                  <dt className="text-2xs font-semibold uppercase tracking-[.05em] text-faint">{row.label}</dt>
+                  <dd className="m-0 text-[13px] tabular-nums text-foreground">{row.value}</dd>
+                </React.Fragment>
+              ))}
+              {vm.createdAt && (
+                <>
+                  <dt className="text-2xs font-semibold uppercase tracking-[.05em] text-faint">
+                    {t('serviceRequests.createdAtLabel')}
+                  </dt>
+                  <dd className="m-0 text-[13px] tabular-nums text-foreground">{formatDateTime(vm.createdAt)}</dd>
+                </>
+              )}
+            </dl>
+          </section>
         </div>
       </div>
 
-      {/* ── Extra rich section (ex: intervention stepper) ─────────────── */}
       {extraSection}
     </div>
   );

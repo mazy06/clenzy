@@ -22,6 +22,8 @@ export interface Issue {
   suggestedCost: number | null;
   convertedServiceRequestId: number | null;
   dismissReason: string | null;
+  /** Adresses relatives des photos jointes — à absolutiser via `toApiMediaUrl`. */
+  photoUrls: string[] | null;
   createdAt: string;
   updatedAt: string | null;
 }
@@ -58,6 +60,13 @@ export const issuesApi = {
 
   create(payload: CreateIssuePayload): Promise<Issue> {
     return apiClient.post<Issue>('/issues', payload);
+  },
+
+  /** Photos du constat — jusqu'à 6, 5 Mo chacune (validé côté serveur). */
+  uploadPhotos(id: number, files: File[]): Promise<Issue> {
+    const form = new FormData();
+    files.forEach((file) => form.append('photos', file));
+    return apiClient.upload<Issue>(`/issues/${id}/photos`, form);
   },
 
   qualify(id: number, payload: QualifyIssuePayload): Promise<Issue> {

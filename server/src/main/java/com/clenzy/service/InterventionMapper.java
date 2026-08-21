@@ -12,6 +12,8 @@ import com.clenzy.model.Team;
 import com.clenzy.model.User;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.TeamRepository;
+import com.clenzy.repository.IssuePhotoRepository;
+import com.clenzy.repository.IssueRepository;
 import com.clenzy.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -35,6 +37,8 @@ public class InterventionMapper {
 
     private final PropertyRepository propertyRepository;
     private final ObjectMapper objectMapper;
+    private final IssueRepository issueRepository;
+    private final IssuePhotoRepository issuePhotoRepository;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final InterventionPhotoService photoService;
@@ -43,9 +47,13 @@ public class InterventionMapper {
                               UserRepository userRepository,
                               TeamRepository teamRepository,
                               InterventionPhotoService photoService,
-                              ObjectMapper objectMapper) {
+                              ObjectMapper objectMapper,
+                              IssueRepository issueRepository,
+                              IssuePhotoRepository issuePhotoRepository) {
         this.propertyRepository = propertyRepository;
         this.objectMapper = objectMapper;
+        this.issueRepository = issueRepository;
+        this.issuePhotoRepository = issuePhotoRepository;
         this.userRepository = userRepository;
         this.teamRepository = teamRepository;
         this.photoService = photoService;
@@ -211,6 +219,27 @@ public class InterventionMapper {
             if (propertyPhotoMap != null) {
                 builder.propertyCoverPhotoUrl(propertyPhotoMap.get(prop.getId()));
             }
+        }
+
+        // Signalement a l'origine : l'anomalie porte le lien vers la demande, pas
+        // l'inverse. On remonte donc depuis l'identifiant de demande. Absent
+        // pour une intervention creee directement — le cas courant.
+        if (intervention.getServiceRequest() != null && issueRepository != null) {
+            issueRepository.findByConvertedServiceRequestIdAndOrganizationId(
+                    intervention.getServiceRequest().getId(), intervention.getOrganizationId())
+                .ifPresent(issue -> builder.sourceIssue(new InterventionResponse.SourceIssueDto(
+                        issue.getId(), issue.getTitle(), issue.getDescription(),
+                        issue.getSeverity() != null ? issue.getSeverity().name() : null,
+                        issue.getReportedBy() != null
+                                ? userRepository.findById(issue.getReportedBy())
+                                    .map(User::getFullName).orElse(null)
+                                : null,
+                        issue.getCreatedAt(),
+                        issuePhotoRepository == null ? List.of()
+                                : issuePhotoRepository.findIdsByIssueId(issue.getId()).stream()
+                                    .map(photoId -> "/api/issues/" + issue.getId()
+                                            + "/photos/" + photoId + "/data")
+                                    .toList())));
         }
 
         // Taches chiffrees de la demande d'origine. Le JSON est stocke tel quel

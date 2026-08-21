@@ -7,12 +7,16 @@ import com.clenzy.dto.IssueDtos.QualifyIssueRequest;
 import com.clenzy.model.Issue.IssueStatus;
 import com.clenzy.service.IssueService;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -62,6 +66,29 @@ public class IssueController {
     }
 
     /** Qualification (catégorie / sévérité / chiffrage) — gestionnaires. */
+    // ── Photos ───────────────────────────────────────────────────────────────
+
+    @PostMapping(value = "/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Joindre des photos a un signalement")
+    public ResponseEntity<IssueDto> addPhotos(@PathVariable Long id,
+                                              @RequestParam("photos") List<MultipartFile> photos,
+                                              @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(issueService.addPhotos(id, photos, jwt.getSubject()));
+    }
+
+    @GetMapping("/{id}/photos/{photoId}/data")
+    @Operation(summary = "Lire le binaire d'une photo de signalement")
+    public ResponseEntity<byte[]> photoData(@PathVariable Long id, @PathVariable Long photoId) {
+        Object[] payload = issueService.streamPhoto(id, photoId);
+        if (payload == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, (String) payload[1])
+                .header(HttpHeaders.CACHE_CONTROL, "private, max-age=3600")
+                .body((byte[]) payload[0]);
+    }
+
     @PutMapping("/{id}/qualify")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SUPER_MANAGER', 'HOST')")
     public ResponseEntity<IssueDto> qualify(@PathVariable Long id,

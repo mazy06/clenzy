@@ -32,6 +32,8 @@ public final class IssueDtos {
             BigDecimal suggestedCost,
             Long convertedServiceRequestId,
             String dismissReason,
+            /** Adresses de lecture des photos jointes au signalement. */
+            java.util.List<String> photoUrls,
             LocalDateTime createdAt,
             LocalDateTime updatedAt) {
     }

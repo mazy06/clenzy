@@ -26,6 +26,8 @@ public record InterventionResponse(
      * forfait et non d'un devis structure.
      */
     List<QuoteLineDto> quoteLines,
+    /** Signalement a l'origine de l'intervention, quand elle en decoule. */
+    SourceIssueDto sourceIssue,
     Double propertyLatitude,
     Double propertyLongitude,
     Long requestorId,
@@ -64,6 +66,16 @@ public record InterventionResponse(
     LocalDateTime assignmentRespondedAt,
     String assignmentDeclineReason
 ) {
+    /**
+     * Signalement a l'origine — ce qui a ete constate sur place, par qui, et
+     * avec quelle gravite. L'intervention seule ne dit pas POURQUOI elle existe.
+     */
+    public record SourceIssueDto(Long id, String title, String description,
+                                 String severity, String reportedByName,
+                                 java.time.LocalDateTime createdAt,
+                                 /** Photos prises au moment du constat. */
+                                 List<String> photoUrls) {}
+
     public static Builder builder() { return new Builder(); }
 
     public static class Builder {
@@ -80,6 +92,7 @@ public record InterventionResponse(
         private String propertyCoverPhotoUrl;
         private String propertyOwnerName;
         private List<QuoteLineDto> quoteLines;
+        private SourceIssueDto sourceIssue;
         private Double propertyLatitude;
         private Double propertyLongitude;
         private Long requestorId;
@@ -130,6 +143,7 @@ public record InterventionResponse(
         public Builder propertyCoverPhotoUrl(String propertyCoverPhotoUrl) { this.propertyCoverPhotoUrl = propertyCoverPhotoUrl; return this; }
         public Builder propertyOwnerName(String propertyOwnerName) { this.propertyOwnerName = propertyOwnerName; return this; }
         public Builder quoteLines(List<QuoteLineDto> quoteLines) { this.quoteLines = quoteLines; return this; }
+        public Builder sourceIssue(SourceIssueDto sourceIssue) { this.sourceIssue = sourceIssue; return this; }
         public Builder propertyLatitude(Double propertyLatitude) { this.propertyLatitude = propertyLatitude; return this; }
         public Builder propertyLongitude(Double propertyLongitude) { this.propertyLongitude = propertyLongitude; return this; }
         public Builder requestorId(Long requestorId) { this.requestorId = requestorId; return this; }
@@ -171,7 +185,7 @@ public record InterventionResponse(
             return new InterventionResponse(
                 id, title, description, type, priority, status,
                 propertyId, propertyName, propertyAddress, propertyType,
-                propertyCoverPhotoUrl, propertyOwnerName, quoteLines,
+                propertyCoverPhotoUrl, propertyOwnerName, quoteLines, sourceIssue,
                 propertyLatitude, propertyLongitude,
                 requestorId, requestorName,
                 assignedToType, assignedToId, assignedToName, assignedUserRole,

@@ -58,6 +58,7 @@ class IssueServiceTest {
     @Mock private InterventionRepository interventionRepository;
     @Mock private PropertyRepository propertyRepository;
     @Mock private UserRepository userRepository;
+    @Mock private com.clenzy.repository.IssuePhotoRepository issuePhotoRepository;
     @Mock private PricingConfigService pricingConfigService;
     @Mock private ServiceRequestService serviceRequestService;
     @Mock private NotificationService notificationService;
@@ -69,7 +70,7 @@ class IssueServiceTest {
     void setUp() {
         // Guard REEL (fail-closed) sur un TenantContext mocké : pas de bypass staff.
         OrganizationAccessGuard accessGuard = new OrganizationAccessGuard(tenantContext);
-        service = new IssueService(issueRepository, interventionRepository, propertyRepository,
+        service = new IssueService(issueRepository, issuePhotoRepository, interventionRepository, propertyRepository,
                 userRepository, pricingConfigService, serviceRequestService, notificationService,
                 accessGuard, tenantContext);
         lenient().when(tenantContext.getOrganizationId()).thenReturn(ORG_ID);
