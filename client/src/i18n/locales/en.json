@@ -2397,7 +2397,9 @@
       "guestCheckin": "Guest check-in",
       "approvalDevis": "Approval & estimate",
       "approvedBy": "Approved by",
-      "devisAcceptedBy": "Estimate accepted by"
+      "devisAcceptedBy": "Estimate accepted by",
+      "directions": "Directions",
+      "tasks": "Requested services"
     },
     "search": "Search for a request...",
     "allTypes": "All types",
@@ -2729,7 +2731,9 @@
       "notes": "Notes",
       "beforePhotosStandalone": "Before intervention photos",
       "scheduledFor": "Can start on",
-      "openRunScreen": "Open tracking"
+      "openRunScreen": "Open tracking",
+      "toConfirm": "This job is offered to you — it awaits your answer.",
+      "accepted": "Job accepted."
     },
     "progressSteps": {
       "inspection": "Inspection",

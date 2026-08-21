@@ -171,7 +171,11 @@ public class InterventionService {
 
             accessPolicy.assertCanAccess(intervention, jwt);
 
-            return interventionMapper.convertToResponse(intervention);
+            // La photo de couverture passait par la carte pre-chargee du chemin de
+            // LISTE ; la lecture unitaire la laissait vide, et la fiche restait
+            // sans vignette. Le meme helper la resout pour une seule ligne.
+            return interventionMapper.convertToResponse(
+                    intervention, null, coverPhotosFor(List.of(intervention)));
         } catch (NotFoundException e) {
             log.error("getById - not found: {}", e.getMessage());
             throw e;

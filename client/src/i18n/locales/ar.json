@@ -2396,7 +2396,9 @@
       "guestCheckin": "وصول المسافر",
       "approvalDevis": "الموافقة وعرض السعر",
       "approvedBy": "وافق عليه",
-      "devisAcceptedBy": "قبل عرض السعر"
+      "devisAcceptedBy": "قبل عرض السعر",
+      "directions": "المسار",
+      "tasks": "الخدمات المطلوبة"
     },
     "search": "البحث عن طلب...",
     "allTypes": "جميع الأنواع",
@@ -2732,7 +2734,9 @@
       "notes": "ملاحظات",
       "beforePhotosStandalone": "صور قبل التدخل",
       "scheduledFor": "يمكن البدء في",
-      "openRunScreen": "فتح المتابعة"
+      "openRunScreen": "فتح المتابعة",
+      "toConfirm": "عُرضت عليك هذه المهمة — وهي بانتظار ردك.",
+      "accepted": "تم قبول المهمة."
     },
     "progressSteps": {
       "inspection": "الفحص",

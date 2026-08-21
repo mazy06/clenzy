@@ -26,6 +26,7 @@ import {
 import InterventionProgressSteps from './InterventionProgressSteps';
 import InterventionQuotesSection from './InterventionQuotesSection';
 import { useAuth } from '../../hooks/useAuth';
+import { interventionsApi } from '../../services/api/interventionsApi';
 import { TRADE_ROLES } from '../../utils/fieldRoles';
 import { interventionsKeys } from './useInterventionsList';
 import { NotesDialog, PhotosDialog } from './InterventionDialogs';
@@ -45,6 +46,25 @@ export default function InterventionDetailsPage() {
   const queryClient = useQueryClient();
 
   const { hasAnyRole } = useAuth();
+  const [respondingAssignment, setRespondingAssignment] = React.useState(false);
+
+  /** Accepter ou refuser la mission depuis sa fiche, sans repasser par le tableau de bord. */
+  const respondToAssignment = async (accept: boolean) => {
+    if (!id) return;
+    setRespondingAssignment(true);
+    try {
+      await (accept ? interventionsApi.accept(Number(id)) : interventionsApi.decline(Number(id)));
+      notify.success(accept
+        ? t('field.proposals.accepted', 'Mission acceptée')
+        : t('field.proposals.declined', 'Mission refusée'));
+      queryClient.invalidateQueries({ queryKey: interventionsKeys.detail(id) });
+    } catch {
+      setError(t('field.proposals.error', 'L’action a échoué, réessayez.'));
+    } finally {
+      setRespondingAssignment(false);
+    }
+  };
+
   /** Metiers de travaux : eux seuls chiffrent une intervention. */
   const canSubmitOwnQuote = hasAnyRole([...TRADE_ROLES]);
 
@@ -162,6 +182,14 @@ export default function InterventionDetailsPage() {
 
     return {
       type: intervention.type,
+      // La photo de couverture arrive avec l'intervention depuis le lot
+      // pre-charge : un intervenant reconnait un lieu avant de le lire.
+      propertyPhotoUrl: intervention.propertyCoverPhotoUrl,
+      tasks: intervention.quoteLines?.map((line) => ({
+        label: line.label,
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
+      })),
       status: intervention.status,
       statusLabel: getStatusLabel(intervention.status, t),
       description: intervention.description || undefined,
@@ -285,6 +313,46 @@ export default function InterventionDetailsPage() {
         <WorkOrderDetailLayout
           vm={vm}
           heroAction={heroAction}
+          statusBanner={
+            // La fiche restait muette sur l'etat d'assignation, que le tableau
+            // de bord affiche : il fallait revenir en arriere pour repondre.
+            intervention.assignmentResponse === 'PENDING' && canSubmitOwnQuote ? (
+              <BuiAlert variant="warning" className="items-center py-2">
+                <TriangleAlert />
+                <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    {t('interventions.detail.toConfirm',
+                      'Cette mission vous est proposée — elle attend votre réponse.')}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <BuiButton
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-destructive-ink"
+                      disabled={respondingAssignment}
+                      onClick={() => respondToAssignment(false)}
+                    >
+                      {t('field.proposals.decline', 'Refuser')}
+                    </BuiButton>
+                    <BuiButton
+                      variant="secondary"
+                      size="sm"
+                      disabled={respondingAssignment}
+                      onClick={() => respondToAssignment(true)}
+                    >
+                      {t('field.proposals.accept', 'Accepter')}
+                    </BuiButton>
+                  </span>
+                </AlertDescription>
+              </BuiAlert>
+            ) : intervention.assignmentResponse === 'ACCEPTED' ? (
+              <BuiAlert className="items-center py-1.5">
+                <AlertDescription className="text-success-ink">
+                  {t('interventions.detail.accepted', 'Mission acceptée.')}
+                </AlertDescription>
+              </BuiAlert>
+            ) : undefined
+          }
           propertyAction={
             // Action discrete au coin d'une carte : ghost, et xs pour retrouver
             // la hauteur 24 que le sx d'origine imposait.

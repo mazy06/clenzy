@@ -2418,7 +2418,9 @@
       "guestCheckin": "Arrivée voyageur",
       "approvalDevis": "Approbation et devis",
       "approvedBy": "Approuvé par",
-      "devisAcceptedBy": "Devis accepté par"
+      "devisAcceptedBy": "Devis accepté par",
+      "directions": "Itinéraire",
+      "tasks": "Prestations demandées"
     },
     "search": "Rechercher une demande...",
     "allTypes": "Tous les types",
@@ -2750,7 +2752,9 @@
       "notes": "Notes",
       "beforePhotosStandalone": "Photos avant intervention",
       "scheduledFor": "Démarrage possible le",
-      "openRunScreen": "Ouvrir le suivi"
+      "openRunScreen": "Ouvrir le suivi",
+      "toConfirm": "Cette mission vous est proposée — elle attend votre réponse.",
+      "accepted": "Mission acceptée."
     },
     "progressSteps": {
       "inspection": "Inspection",

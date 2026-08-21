@@ -81,6 +81,9 @@ const CARD_CLASS =
   'border border-solid border-border bg-card shadow-none rounded-xl p-3';
 
 /** Titre de section, en petites capitales discretes. */
+/** Au-dela, une description merite sa propre carte ; en deca, elle se replie. */
+const SHORT_DESCRIPTION_CHARS = 160;
+
 const SECTION_TITLE_CLASS = 'text-2xs font-bold uppercase tracking-[.05em] text-faint mb-[9px]';
 
 /** Libelle d'une ligne d'information. */
@@ -245,6 +248,16 @@ export interface WorkOrderMetric {
   label: string;
 }
 
+/**
+ * Tache chiffree de la demande d'origine : {@code total = quantity × unitPrice}.
+ * C'est le CONTENU du travail — une description generique ne le remplace pas.
+ */
+export interface WorkOrderTask {
+  label: string;
+  quantity: number;
+  unitPrice: number;
+}
+
 /** Ligne supplémentaire dans la section « Détail du temps ». */
 export interface WorkOrderTimeRow {
   icon: React.ReactNode;
@@ -253,6 +266,10 @@ export interface WorkOrderTimeRow {
 }
 
 export interface WorkOrderViewModel {
+  /** Photo de couverture du logement — un lieu se reconnait avant de se lire. */
+  propertyPhotoUrl?: string;
+  /** Taches chiffrees de la demande. Vide pour un forfait sans devis structure. */
+  tasks?: WorkOrderTask[];
   type: string;
   status: string;
   /** Libellé de statut déjà traduit. */
@@ -300,6 +317,12 @@ export interface WorkOrderDetailLayoutProps {
    * sans defiler. Optionnelle : une demande de service n'en a pas.
    */
   heroAction?: React.ReactNode;
+  /**
+   * Bandeau rendu JUSTE SOUS la progression : l'etat d'assignation et les gestes
+   * qui s'y rattachent. Le tableau de bord dit si une mission est a confirmer,
+   * la fiche restait muette — il fallait revenir en arriere pour repondre.
+   */
+  statusBanner?: React.ReactNode;
 }
 
 // ─── Service type → ConsigneVariant ──────────────────────────────────────────
@@ -335,6 +358,7 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
   propertyAction,
   extraSection,
   heroAction,
+  statusBanner,
 }) => {
   const { t } = useTranslation();
 
@@ -451,6 +475,8 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
         </div>
       </div>
 
+      {statusBanner && <div className="mb-[9px]">{statusBanner}</div>}
+
       {/* ── Rangee de tuiles ────────────────────────────────────────────
           `StatTileRow` + `StatTile` (kit Baitly) au lieu d'une grille 12
           colonnes redeclaree ici : sur telephone, la rangee DEFILE au lieu de
@@ -491,8 +517,50 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
         {/* ── Left column ──────────────────────────────────────────── */}
         <div className="flex-[1_1_100%] min-[900px]:flex-[7] min-w-0 flex flex-col gap-[9px]">
 
-          {/* Description */}
-          {vm.description && (
+          {/* Taches chiffrees — le CONTENU du travail. Une description generique
+              ne dit pas ce qu'il y a a faire ni pour combien. */}
+          {vm.tasks && vm.tasks.length > 0 && (
+            <div className={CARD_CLASS}>
+              <p className={SECTION_TITLE_CLASS}>
+                <Description size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                {t('serviceRequests.details.tasks', 'Prestations demandées')}
+              </p>
+              <div className="flex flex-col">
+                {vm.tasks.map((task, index) => (
+                  <div
+                    key={`${task.label}-${index}`}
+                    className={cn(
+                      'flex items-baseline justify-between gap-3 py-[5px]',
+                      index > 0 && 'border-t border-solid border-border',
+                    )}
+                  >
+                    <span className="min-w-0 text-[13px] text-foreground">
+                      {task.label}
+                      {task.quantity > 1 && (
+                        <span className="ms-1 text-muted-foreground">×{task.quantity}</span>
+                      )}
+                    </span>
+                    <span className="shrink-0 text-[13px] font-medium tabular-nums text-foreground">
+                      <Money value={task.unitPrice * (task.quantity || 1)} decimals={0} />
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {/* La description courte se replie ici : une carte pleine largeur
+                  pour une phrase etait du vide encadre. */}
+              {vm.description && vm.description.length <= SHORT_DESCRIPTION_CHARS && (
+                <p className="m-0 mt-2 border-t border-solid border-border pt-2 text-[13px] leading-[1.6] text-muted-foreground">
+                  {vm.description}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Description — carte propre seulement quand elle porte un vrai texte,
+              ou qu'il n'y a pas de taches ou la replier. */}
+          {vm.description
+            && !(vm.tasks && vm.tasks.length > 0 && vm.description.length <= SHORT_DESCRIPTION_CHARS)
+            && (
             <div className={CARD_CLASS}>
               <p className={SECTION_TITLE_CLASS}>
                 <Description size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
@@ -527,39 +595,43 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               {propertyAction}
             </div>
 
-            <div className="flex items-center gap-1.5 py-[4.5px]">
-              <span className="inline-flex text-muted-foreground"><LocationOn size={16} strokeWidth={1.75} /></span>
-              <div className="flex-1">
-                <p className={INFO_LABEL_CLASS}>{t('serviceRequests.propertyNameLabel')}</p>
-                <p className={INFO_VALUE_CLASS}>{p.name}</p>
+            {/* Le nom, l'adresse et le pays occupaient trois rangees etiquetees,
+                chacune avec sa propre epingle. Une identite de lieu se lit d'un
+                bloc : le nom en titre, l'adresse dessous, une seule epingle. */}
+            <div className="flex items-start gap-2.5 py-[3px]">
+              {vm.propertyPhotoUrl && (
+                <img
+                  src={vm.propertyPhotoUrl}
+                  alt=""
+                  className="size-14 shrink-0 rounded-lg border border-solid border-border object-cover"
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="m-0 text-[15px] font-semibold text-foreground">{p.name}</p>
+                {(p.address || p.city) && (
+                  <p className="m-0 mt-0.5 flex items-start gap-1 text-[13px] text-muted-foreground">
+                    <span className="inline-flex shrink-0 pt-[2px]">
+                      <LocationOn size={14} strokeWidth={1.75} />
+                    </span>
+                    <span>
+                      {addressLine}
+                      {p.country && <span className="text-faint"> · {p.country}</span>}
+                    </span>
+                  </p>
+                )}
+                {addressLine && (
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addressLine)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    <LocationOn size={12} strokeWidth={1.75} />
+                    {t('serviceRequests.details.directions', 'Itinéraire')}
+                  </a>
+                )}
               </div>
             </div>
-
-            {(p.address || p.city) && (
-              <>
-                <Separator className="my-[3px]" />
-                <div className="flex items-center gap-1.5 py-[4.5px]">
-                  <span className="inline-flex text-muted-foreground"><LocationOn size={16} strokeWidth={1.75} /></span>
-                  <div className="flex-1">
-                    <p className={INFO_LABEL_CLASS}>{t('serviceRequests.fullAddressLabel')}</p>
-                    <p className={INFO_VALUE_CLASS}>{addressLine}</p>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {p.country && (
-              <>
-                <Separator className="my-[3px]" />
-                <div className="flex items-center gap-1.5 py-[4.5px]">
-                  <span className="inline-flex text-muted-foreground"><Flag size={16} strokeWidth={1.75} /></span>
-                  <div className="flex-1">
-                    <p className={INFO_LABEL_CLASS}>{t('properties.country')}</p>
-                    <p className={INFO_VALUE_CLASS}>{p.country}</p>
-                  </div>
-                </div>
-              </>
-            )}
 
             {propertyTags.length > 0 && (
               <>
@@ -695,30 +767,13 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
               {t('serviceRequests.layout.timeDetail', 'Détail du temps')}
             </p>
 
-            <div className="flex items-center gap-1.5 py-[4.5px]">
-              <span className="inline-flex text-muted-foreground"><CalendarToday size={16} strokeWidth={1.75} /></span>
-              <div className="flex-1">
-                <p className={INFO_LABEL_CLASS}>{t('serviceRequests.dueDateLabel')}</p>
-                <p className={INFO_VALUE_CLASS}>{formatDateTime(vm.dueDate) || '—'}</p>
-              </div>
-            </div>
-
-            {vm.estimatedDurationHours != null && (
-              <>
-                <Separator className="my-[3px]" />
-                <div className="flex items-center gap-1.5 py-[4.5px]">
-                  <span className="inline-flex text-muted-foreground"><Schedule size={16} strokeWidth={1.75} /></span>
-                  <div className="flex-1">
-                    <p className={INFO_LABEL_CLASS}>{t('serviceRequests.estimatedDurationLabel')}</p>
-                    <p className={INFO_VALUE_CLASS}>{formatDuration(vm.estimatedDurationHours)}</p>
-                  </div>
-                </div>
-              </>
-            )}
+            {/* L'echeance et la duree estimee vivent deja dans la rangee de
+                tuiles, en haut de l'ecran. Les repeter ici doublait quatre
+                valeurs sur six et noyait ce que cette carte apporte vraiment :
+                le deroule reel. */}
 
             {vm.property.cleaningDurationMinutes != null && vm.property.cleaningDurationMinutes > 0 && (
               <>
-                <Separator className="my-[3px]" />
                 <div className="flex items-center gap-1.5 py-[4.5px]">
                   <span className="inline-flex text-muted-foreground"><Schedule size={16} strokeWidth={1.75} /></span>
                   <div className="flex-1">

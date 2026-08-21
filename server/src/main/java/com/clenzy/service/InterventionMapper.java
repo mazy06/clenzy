@@ -107,6 +107,16 @@ public class InterventionMapper {
     }
 
     /**
+     * Variante complete (photos d'intervention chargees) enrichie de la photo de
+     * couverture du logement — c'est le chemin de la FICHE.
+     */
+    public InterventionResponse convertToResponse(Intervention intervention,
+                                                  Map<Long, String> teamNameMap,
+                                                  Map<Long, String> propertyPhotoMap) {
+        return convertToResponseInternal(intervention, teamNameMap, true, propertyPhotoMap);
+    }
+
+    /**
      * Variante de liste enrichie de la photo de couverture des logements.
      *
      * <p>La carte {@code propertyPhotoMap} est construite en UNE requete pour

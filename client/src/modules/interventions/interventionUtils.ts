@@ -73,6 +73,12 @@ export function getTypeTokens(type: string): SoftTokens {
 
 // Types
 export interface InterventionDetailsData {
+  /** Photo de couverture du logement — repère visuel de la fiche. */
+  propertyCoverPhotoUrl?: string;
+  /** Réponse de l'intervenant à l'assignation. */
+  assignmentResponse?: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+  /** Tâches chiffrées de la demande d'origine. */
+  quoteLines?: { label: string; quantity: number; unitPrice: number; interventionType?: string | null }[];
   id: number;
   title: string;
   description: string;

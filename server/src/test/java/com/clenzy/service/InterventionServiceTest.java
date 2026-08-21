@@ -29,6 +29,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -239,7 +241,7 @@ class InterventionServiceTest {
             InterventionResponse resultResponse = buildResultResponse(1L, "PENDING", "Test Intervention");
 
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
-            when(interventionMapper.convertToResponse(intervention)).thenReturn(resultResponse);
+            when(interventionMapper.convertToResponse(eq(intervention), isNull(), anyMap())).thenReturn(resultResponse);
 
             InterventionResponse result = service.getById(1L, jwt);
 
