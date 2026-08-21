@@ -1,9 +1,38 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Card, CardContent, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, FieldLabel, Input, Spinner, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from '../../components/ui';
-import { Add, CheckCircleOutline, DeleteOutline, Receipt } from '../../icons';
+import {
+  Attachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentMedia,
+  AttachmentTitle,
+  AttachmentTrigger,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  Field,
+  FieldLabel,
+  Input,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemGroup,
+  ItemMedia,
+  Spinner,
+  Textarea,
+} from '../../components/ui';
+import { Add, CheckCircleOutline, DeleteOutline, Download, Receipt } from '../../icons';
+import { documentsApi } from '../../services/api/documentsApi';
+import { cn } from '../../utils/cn';
 import StatusChip from '../../components/StatusChip';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatCurrency } from '../../utils/currencyUtils';
+import { formatDate } from '../../utils/formatUtils';
 import {
   serviceQuotesApi,
   type ServiceQuote,
@@ -61,6 +90,99 @@ const STATUS_TONE: Record<ServiceQuote['status'], 'ok' | 'warn' | 'err' | 'neutr
   REJECTED: 'neutral',
   EXPIRED: 'err',
 };
+
+/**
+ * PDF du devis, en piece jointe ouvrable.
+ *
+ * <p>Le document est charge a la demande — a l'ouverture de l'apercu, pas au
+ * rendu de la liste : une fiche qui porte cinq devis n'a pas a telecharger cinq
+ * PDF pour afficher cinq lignes.</p>
+ */
+function QuoteAttachment({ generationId, label }: { generationId: number; label: string }) {
+  const { t } = useTranslation();
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const fileName = `${label}.pdf`;
+
+  const load = async () => {
+    if (blobUrl || loading) return;
+    setLoading(true);
+    try {
+      setBlobUrl(await documentsApi.fetchGenerationBlobUrl(generationId));
+    } catch {
+      setBlobUrl(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // L'URL d'objet immobilise le PDF en memoire tant qu'on ne la libere pas.
+  useEffect(() => () => { if (blobUrl) URL.revokeObjectURL(blobUrl); }, [blobUrl]);
+
+  return (
+    <Dialog onOpenChange={(open) => { if (open) load(); }}>
+      <Attachment className="w-full max-w-[260px]">
+        <AttachmentMedia>
+          <Receipt />
+        </AttachmentMedia>
+        <AttachmentContent>
+          <AttachmentTitle>{fileName}</AttachmentTitle>
+          <AttachmentDescription>
+            {t('interventions.quotes.openPreview', 'Ouvrir l’aperçu')}
+          </AttachmentDescription>
+        </AttachmentContent>
+        <AttachmentActions>
+          <AttachmentAction
+            aria-label={t('interventions.quotes.download', 'Télécharger le devis')}
+            onClick={() => documentsApi.downloadGeneration(generationId, fileName)}
+          >
+            <Download />
+          </AttachmentAction>
+        </AttachmentActions>
+        <DialogTrigger asChild>
+          <AttachmentTrigger aria-label={t('interventions.quotes.preview', 'Aperçu du devis')} />
+        </DialogTrigger>
+      </Attachment>
+      <DialogContent className="sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>{fileName}</DialogTitle>
+        </DialogHeader>
+        {loading ? (
+          <div className="flex h-[60vh] items-center justify-center">
+            <Spinner className="size-8" />
+          </div>
+        ) : blobUrl ? (
+          <>
+            <iframe src={blobUrl} title={fileName} className="h-[60vh] w-full rounded-md border border-solid border-border" />
+            {/* Filet de securite : un navigateur sans lecteur PDF integre
+                n'afficherait qu'un cadre vide, sans aucun moyen d'en sortir. */}
+            <div className="flex justify-end gap-3 text-xs">
+              <a
+                href={blobUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline-offset-2 hover:underline"
+              >
+                {t('interventions.quotes.openInTab', 'Ouvrir dans un nouvel onglet')}
+              </a>
+              <button
+                type="button"
+                className="text-primary underline-offset-2 hover:underline"
+                onClick={() => documentsApi.downloadGeneration(generationId, fileName)}
+              >
+                {t('interventions.quotes.download', 'Télécharger le devis')}
+              </button>
+            </div>
+          </>
+        ) : (
+          <p className="m-0 py-8 text-center text-sm text-muted-foreground">
+            {t('interventions.quotes.previewFailed', 'Le document n’a pas pu être chargé.')}
+          </p>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 /**
  * Fiche intervention > Devis (M4) — saisie des devis reçus des prestataires.
@@ -142,79 +264,128 @@ export default function InterventionQuotesSection({
   const eligibility = scanEligibility(interventionStatus, interventionCreatedAt);
 
   return (
-    <Card size="sm" className="mb-[9px] shadow-none">
-      <CardContent>
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Receipt size={16} strokeWidth={1.75} className="text-muted-foreground" />
-            <p className="m-0 text-2xs font-bold uppercase tracking-wider text-faint">
-              {t('interventions.quotes.title', 'Devis prestataires')}
-            </p>
-          </div>
-          {(canEdit || canSubmitOwn) && (
-            <Button variant="outline" size="xs" onClick={() => setForm(EMPTY_FORM)}>
-              <Add size={14} />
-              {canSubmitOwn
-                ? t('interventions.quotes.submitMine', 'Chiffrer cette intervention')
-                : t('interventions.quotes.add', 'Saisir un devis')}
-            </Button>
+    <section className="mb-6">
+      {/* Plus de carte : la fiche n'en porte aucune, et ce bloc en etait la
+          derniere. Meme filet de titre que les sections voisines. */}
+      <div className="mb-2 flex items-center justify-between gap-3 border-b border-solid border-border pb-1.5">
+        <p className="m-0 flex items-center gap-1.5 text-2xs font-bold uppercase tracking-[.06em] text-faint">
+          <Receipt size={14} strokeWidth={1.75} />
+          {t('interventions.quotes.title', 'Devis prestataires')}
+          {(quotes?.length ?? 0) > 0 && (
+            <span className="font-normal tabular-nums normal-case">({quotes!.length})</span>
           )}
-        </div>
+        </p>
+        {(canEdit || canSubmitOwn) && (
+          <Button variant="outline" size="xs" onClick={() => setForm(EMPTY_FORM)}>
+            <Add size={14} />
+            {canSubmitOwn
+              ? t('interventions.quotes.submitMine', 'Chiffrer cette intervention')
+              : t('interventions.quotes.add', 'Saisir un devis')}
+          </Button>
+        )}
+      </div>
 
-        {quotes === null ? (
-          <div className="flex justify-center py-5">
-            <Spinner className="size-6" />
-          </div>
-        ) : quotes.length === 0 ? (
-          <p className="m-0 py-2 text-xs text-muted-foreground">
-            {eligibility === 'closed'
-              ? t('interventions.quotes.emptyClosed',
-                  "Aucun devis saisi. L'intervention n'étant plus ouverte, un devis enregistré ici ne remontera pas à l'agent Opérations.")
-              : eligibility === 'tooOld'
-                ? t('interventions.quotes.emptyTooOld',
-                    "Aucun devis saisi. L'intervention date de plus de 60 jours : au-delà, l'agent Opérations ne la scanne plus.")
-                : t('interventions.quotes.empty',
-                    "Aucun devis saisi. Dès qu'un devis est enregistré ici, l'agent Opérations propose son approbation dans la constellation.")}
-          </p>
-        ) : (
-          <>
-            {eligibility !== 'eligible' && eligibility !== 'unknown' && (
-              <p className="m-0 mb-2 text-xs text-warning-ink">
-                {eligibility === 'closed'
-                  ? t('interventions.quotes.noticeClosed',
-                      "L'intervention n'est plus ouverte : ces devis ne remontent plus à l'agent Opérations. L'approbation reste possible ici.")
-                  : t('interventions.quotes.noticeTooOld',
-                      "L'intervention date de plus de 60 jours : l'agent Opérations ne la scanne plus. L'approbation reste possible ici.")}
-              </p>
-            )}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('interventions.quotes.provider', 'Prestataire')}</TableHead>
-                <TableHead>{t('interventions.quotes.amount', 'Montant')}</TableHead>
-                <TableHead>{t('interventions.quotes.validUntil', 'Valide jusqu’au')}</TableHead>
-                <TableHead>{t('interventions.quotes.earliestStart', 'Début possible')}</TableHead>
-                <TableHead>{t('interventions.quotes.statusHeader', 'Statut')}</TableHead>
-                {canEdit && <TableHead aria-label="actions" />}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {quotes.map((quote) => (
-                <TableRow key={quote.id}>
-                  <TableCell>
-                    <span className="font-medium">{quote.providerName}</span>
-                    {quote.description && (
-                      <span className="block text-xs text-muted-foreground">{quote.description}</span>
+      {quotes === null ? (
+        <div className="flex justify-center py-5">
+          <Spinner className="size-6" />
+        </div>
+      ) : quotes.length === 0 ? (
+        <p className="m-0 py-1 text-[13px] leading-[1.6] text-muted-foreground">
+          {eligibility === 'closed'
+            ? t('interventions.quotes.emptyClosed',
+                "Aucun devis saisi. L'intervention n'étant plus ouverte, un devis enregistré ici ne remontera pas à l'agent Opérations.")
+            : eligibility === 'tooOld'
+              ? t('interventions.quotes.emptyTooOld',
+                  "Aucun devis saisi. L'intervention date de plus de 60 jours : au-delà, l'agent Opérations ne la scanne plus.")
+              : t('interventions.quotes.empty',
+                  "Aucun devis saisi. Dès qu'un devis est enregistré ici, l'agent Opérations propose son approbation dans la constellation.")}
+        </p>
+      ) : (
+        <>
+          {eligibility !== 'eligible' && eligibility !== 'unknown' && (
+            <p className="m-0 mb-2 text-xs text-warning-ink">
+              {eligibility === 'closed'
+                ? t('interventions.quotes.noticeClosed',
+                    "L'intervention n'est plus ouverte : ces devis ne remontent plus à l'agent Opérations. L'approbation reste possible ici.")
+                : t('interventions.quotes.noticeTooOld',
+                    "L'intervention date de plus de 60 jours : l'agent Opérations ne la scanne plus. L'approbation reste possible ici.")}
+            </p>
+          )}
+          {/* Une ligne par devis, pas un tableau a six colonnes : le montant
+              est ce qu'on compare, les dates ne sont qu'une condition. Un
+              tableau imposait un defilement horizontal sur telephone. */}
+          <ItemGroup>
+            {quotes.map((quote) => {
+              const approved = quote.status === 'APPROVED';
+              const conditions = [
+                quote.earliestStartDate && t('interventions.quotes.fromDate',
+                  'dispo. dès le {{date}}', { date: formatDate(quote.earliestStartDate) }),
+                quote.validUntil && t('interventions.quotes.untilDate',
+                  'valable jusqu’au {{date}}', { date: formatDate(quote.validUntil) }),
+              ].filter(Boolean).join(' · ');
+
+              return (
+                <Item
+                  key={quote.id}
+                  size="sm"
+                  className={cn(
+                    // `Item` porte un liseré bas et un rayon : deux lignes
+                    // consécutives se lisaient alors comme deux boîtes. On ne
+                    // garde qu'un filet entre elles.
+                    'rounded-none border-x-0 border-b-0 border-t border-solid border-border first:border-t-0',
+                    // Le devis retenu porte la decision : il se distingue par
+                    // un fond, pas par une pastille de plus.
+                    approved && 'bg-success-soft',
+                  )}
+                >
+                  <ItemMedia>
+                    <span
+                      className={cn(
+                        'inline-flex size-8 items-center justify-center rounded-full',
+                        approved ? 'bg-success text-primary-foreground' : 'bg-muted text-muted-foreground',
+                      )}
+                    >
+                      {approved
+                        ? <CheckCircleOutline size={16} strokeWidth={2} />
+                        : <Receipt size={15} strokeWidth={1.75} />}
+                    </span>
+                  </ItemMedia>
+                  <ItemContent className="min-w-0 gap-0.5">
+                    <p className="m-0 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <span className="text-[15px] font-semibold tabular-nums text-foreground">
+                        {formatCurrency(quote.amount, quote.currency)}
+                      </span>
+                      <span className="truncate text-[13px] text-muted-foreground">
+                        {quote.providerName}
+                      </span>
+                      {quote.status !== 'RECEIVED' && (
+                        <StatusChip
+                          tone={STATUS_TONE[quote.status]}
+                          label={statusLabel(quote.status)}
+                          size="sm"
+                          dot
+                        />
+                      )}
+                    </p>
+                    {conditions && (
+                      <p className="m-0 text-xs text-faint tabular-nums">{conditions}</p>
                     )}
-                  </TableCell>
-                  <TableCell className="tabular-nums">{formatCurrency(quote.amount, quote.currency)}</TableCell>
-                  <TableCell className="tabular-nums">{quote.validUntil ?? '—'}</TableCell>
-                  <TableCell className="tabular-nums">{quote.earliestStartDate ?? '—'}</TableCell>
-                  <TableCell>
-                    <StatusChip tone={STATUS_TONE[quote.status]} label={statusLabel(quote.status)} size="sm" />
-                  </TableCell>
+                    {quote.description && (
+                      <p className="m-0 text-xs text-muted-foreground">{quote.description}</p>
+                    )}
+                  </ItemContent>
+                  {/* Le PDF se tient a droite du montant et du motif : c'est ce
+                      qu'on transmet au proprietaire, pas la ligne du tableau. */}
+                  {quote.documentGenerationId != null && (
+                    <div className="hidden shrink-0 min-[900px]:block">
+                      <QuoteAttachment
+                        generationId={quote.documentGenerationId}
+                        label={t('interventions.quotes.fileName', 'devis-{{id}}', { id: quote.id })}
+                      />
+                    </div>
+                  )}
                   {canEdit && (
-                    <TableCell className="text-right whitespace-nowrap">
+                    <ItemActions className="shrink-0 gap-1">
                       {quote.status === 'RECEIVED' && !hasApproved && (
                         <Button
                           variant="outline" size="xs"
@@ -227,23 +398,24 @@ export default function InterventionQuotesSection({
                           {t('interventions.quotes.approve', 'Approuver')}
                         </Button>
                       )}
-                      {quote.status !== 'APPROVED' && (
+                      {!approved && (
                         <Button
                           variant="ghost" size="icon-sm"
+                          className="text-muted-foreground hover:text-destructive-ink"
                           aria-label={t('common.delete', 'Supprimer')}
                           onClick={() => remove(quote.id)}
                         >
                           <DeleteOutline size={15} />
                         </Button>
                       )}
-                    </TableCell>
+                    </ItemActions>
                   )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          </>
-        )}
+                </Item>
+              );
+            })}
+          </ItemGroup>
+        </>
+      )}
 
         {form && (
           <Dialog open onOpenChange={(next) => { if (!next && !saving) setForm(null); }}>
@@ -371,8 +543,7 @@ export default function InterventionQuotesSection({
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        )}
-      </CardContent>
-    </Card>
+      )}
+    </section>
   );
 }

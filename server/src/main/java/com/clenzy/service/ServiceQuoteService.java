@@ -3,6 +3,9 @@ package com.clenzy.service;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.Intervention;
 import com.clenzy.model.ProviderAgreedRate;
+import com.clenzy.dto.DocumentGenerationDto;
+import com.clenzy.dto.GenerateDocumentRequest;
+import com.clenzy.model.DocumentType;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.repository.ProviderAgreedRateRepository;
 import java.time.LocalDateTime;
@@ -37,19 +40,22 @@ public class ServiceQuoteService {
     private final ProviderAgreedRateRepository agreedRateRepository;
     private final NotificationService notificationService;
     private final Clock clock;
+    private final DocumentGeneratorService documentGeneratorService;
 
     public ServiceQuoteService(ServiceQuoteRepository quoteRepository,
                                InterventionRepository interventionRepository,
                                UserRepository userRepository,
                                ProviderAgreedRateRepository agreedRateRepository,
                                NotificationService notificationService,
-                               Clock clock) {
+                               Clock clock,
+                               DocumentGeneratorService documentGeneratorService) {
         this.quoteRepository = quoteRepository;
         this.interventionRepository = interventionRepository;
         this.userRepository = userRepository;
         this.agreedRateRepository = agreedRateRepository;
         this.notificationService = notificationService;
         this.clock = clock;
+        this.documentGeneratorService = documentGeneratorService;
     }
 
     @Transactional(readOnly = true)
@@ -146,6 +152,43 @@ public class ServiceQuoteService {
         return quoteRepository.save(quote);
     }
 
+    /**
+     * Produit le PDF du devis et retient sa generation sur le devis.
+     *
+     * <p>Un devis n'existait que comme trois nombres dans une liste : rien a
+     * ouvrir, rien a transmettre au proprietaire. Le moteur de documents sait
+     * deja rendre un DEVIS pour une intervention — il ne lui manquait que
+     * d'etre appele.</p>
+     *
+     * <p>A l'APPROBATION seulement, et pas a la reception : le modele DEVIS tire
+     * son montant de l'intervention ({@code InterventionTagResolver} : tags
+     * {@code montant} et {@code total} = cout reel ou estime). Trois devis
+     * concurrents rendraient donc trois PDF identiques, portant un montant qui
+     * n'est celui d'aucun d'eux. L'approbation vient justement d'aligner
+     * {@code estimatedCost} sur le montant retenu : le document est alors
+     * exact.</p>
+     *
+     * <p>Best-effort et sans envoi de mail : un modele absent ou un rendu qui
+     * echoue ne doit pas annuler l'approbation, qui reste la decision.</p>
+     */
+    private void generateQuoteDocument(ServiceQuote quote) {
+        if (quote.getInterventionId() == null) {
+            return;
+        }
+        try {
+            GenerateDocumentRequest request = new GenerateDocumentRequest(
+                    DocumentType.DEVIS.name(), quote.getInterventionId(), "intervention", null, false);
+            DocumentGenerationDto generation = documentGeneratorService.generateDocument(request, null);
+            if (generation != null && generation.id() != null) {
+                quote.setDocumentRef(String.valueOf(generation.id()));
+                quoteRepository.save(quote);
+            }
+        } catch (Exception e) {
+            log.warn("Devis {} : generation du PDF impossible ({}) — le devis reste enregistre",
+                    quote.getId(), e.getMessage());
+        }
+    }
+
     @Transactional
     public void delete(Long id, Long orgId) {
         final ServiceQuote quote = quoteRepository.findByIdAndOrganizationId(id, orgId)
@@ -175,6 +218,8 @@ public class ServiceQuoteService {
             intervention.setEstimatedCost(quote.getAmount());
             interventionRepository.save(intervention);
         }
+        generateQuoteDocument(quote);
+
         // L'accord se memorise : c'est lui qui evite de redemander un devis a
         // chaque mission suivante sur le meme logement, tant que l'intervenant
         // ne change pas son tarif.

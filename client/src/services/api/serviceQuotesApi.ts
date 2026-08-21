@@ -15,9 +15,12 @@ export interface ServiceQuote {
   status: 'RECEIVED' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
   /** Intervenant qui a soumis le devis. `null` = saisi par un gestionnaire. */
   providerUserId: number | null;
+  /** PDF du devis. `null` si la génération a échoué (modèle absent, par ex.). */
+  documentGenerationId: number | null;
 }
 
-export type ServiceQuoteRequest = Omit<ServiceQuote, 'id' | 'interventionId' | 'status' | 'providerUserId'>;
+export type ServiceQuoteRequest = Omit<ServiceQuote,
+  'id' | 'interventionId' | 'status' | 'providerUserId' | 'documentGenerationId'>;
 
 /** Tarif approuvé pour un logement — l'accord en vigueur. */
 export interface AgreedRate {

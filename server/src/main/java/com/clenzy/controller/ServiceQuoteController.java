@@ -28,12 +28,23 @@ public class ServiceQuoteController {
                                   String providerEmail, String providerPhone,
                                   BigDecimal amount, String currency, LocalDate validUntil,
                                   LocalDate earliestStartDate, String description, String status,
-                                  Long providerUserId) {
+                                  Long providerUserId,
+                                  /** Generation du PDF du devis — de quoi l'ouvrir et le transmettre. */
+                                  Long documentGenerationId) {
         static ServiceQuoteDto from(ServiceQuote q) {
             return new ServiceQuoteDto(q.getId(), q.getInterventionId(), q.getProviderName(),
                     q.getProviderEmail(), q.getProviderPhone(), q.getAmount(), q.getCurrency(),
                     q.getValidUntil(), q.getEarliestStartDate(), q.getDescription(),
-                    q.getStatus().name(), q.getProviderUserId());
+                    q.getStatus().name(), q.getProviderUserId(), parseGenerationId(q.getDocumentRef()));
+        }
+
+        /** `documentRef` est un champ libre : un contenu non numerique n'est pas une generation. */
+        private static Long parseGenerationId(String documentRef) {
+            try {
+                return documentRef != null ? Long.valueOf(documentRef) : null;
+            } catch (NumberFormatException e) {
+                return null;
+            }
         }
     }
 
