@@ -544,7 +544,14 @@ const PlanningPage: React.FC = () => {
 
   const createPaymentSession = useCallback(async (interventionIds: number[], total: number) => {
     const { paymentsApi } = await import('../../services/api/paymentsApi');
-    const session = await paymentsApi.createSession({ interventionIds, totalAmount: total });
+    // Cet appel envoyait `interventionIds` / `totalAmount`, deux champs que
+    // `PaymentSessionRequest` ne declare pas : le serveur recevait un
+    // identifiant nul. Il n'accepte qu'UNE intervention, dont il recalcule
+    // lui-meme le montant — payer un lot demanderait un endpoint dedie.
+    const session = await paymentsApi.createSession({
+      interventionId: interventionIds[0],
+      amount: total,
+    });
     return { url: session.url, sessionId: session.sessionId };
   }, []);
 

@@ -79,7 +79,14 @@ export interface HostOption {
 // ─── API ────────────────────────────────────────────────────────────────────
 
 export const paymentsApi = {
-  createSession(data: { interventionIds: number[]; totalAmount: number }) {
+  createSession(data: {
+    interventionId: number;
+    amount: number;
+    /** `DEPOSIT` = acompte du devis approuvé ; absent = prestation entière. */
+    purpose?: 'DEPOSIT' | 'FULL';
+    /** Écran d'où part le paiement — Stripe y revient, succès comme abandon. */
+    returnUrl?: string;
+  }) {
     return apiClient.post<PaymentSession>('/payments/create-session', data);
   },
 

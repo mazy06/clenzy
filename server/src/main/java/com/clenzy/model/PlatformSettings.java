@@ -81,6 +81,16 @@ public class PlatformSettings {
     @Column(name = "concierge_autosend_min_forfait", nullable = false, columnDefinition = "TEXT")
     private String conciergeAutosendMinForfait = "premium";
 
+    /**
+     * Part du devis de maintenance exigible a la validation, en pourcentage.
+     *
+     * <p>Decide par la PLATEFORME : un prestataire qui fixerait le sien
+     * rendrait l'acompte imprevisible pour le proprietaire. 0 = pas d'acompte,
+     * tout se paie a la fin — le regime du menage et de la lingerie.</p>
+     */
+    @Column(name = "maintenance_deposit_percent", nullable = false)
+    private java.math.BigDecimal maintenanceDepositPercent = new java.math.BigDecimal("30.00");
+
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
@@ -122,4 +132,9 @@ public class PlatformSettings {
 
     public String getUpdatedBy() { return updatedBy; }
     public void setUpdatedBy(String updatedBy) { this.updatedBy = updatedBy; }
+
+    public java.math.BigDecimal getMaintenanceDepositPercent() { return maintenanceDepositPercent; }
+    public void setMaintenanceDepositPercent(java.math.BigDecimal maintenanceDepositPercent) {
+        this.maintenanceDepositPercent = maintenanceDepositPercent;
+    }
 }

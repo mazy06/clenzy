@@ -3799,3 +3799,31 @@ databaseChangeLog:
       sqlFile:
         path: changes/0406__issue_photos.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0407-service-quote-lines"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0407__service_quote_lines.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0408-contact-group-threads"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0408__contact_group_threads.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0409-contact-message-payload"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0409__contact_message_payload.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0410-maintenance-deposit"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0410__maintenance_deposit.sql
+        relativeToChangelogFile: true

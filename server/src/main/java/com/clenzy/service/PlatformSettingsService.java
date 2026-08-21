@@ -61,6 +61,23 @@ public class PlatformSettingsService {
     }
 
     @Transactional
+    /**
+     * Taux d'acompte des devis de maintenance, en pourcentage.
+     *
+     * <p>Reglage de PLATEFORME : le prestataire ne le choisit pas. Borne a
+     * [0, 100] — au-dela, l'acompte depasserait le devis.</p>
+     */
+    public PlatformSettings updateMaintenanceDepositPercent(java.math.BigDecimal percent, String updatedBy) {
+        if (percent == null || percent.compareTo(java.math.BigDecimal.ZERO) < 0
+                || percent.compareTo(java.math.BigDecimal.valueOf(100)) > 0) {
+            throw new IllegalArgumentException("Le taux d'acompte doit etre compris entre 0 et 100");
+        }
+        PlatformSettings settings = getOrDefault();
+        settings.setMaintenanceDepositPercent(percent);
+        settings.setUpdatedBy(updatedBy);
+        return repository.save(settings);
+    }
+
     public PlatformSettings updateInternalNotificationEmails(List<String> emails, String updatedBy) {
         String csv = String.join(",", cleanEmails(emails));
         return update(s -> s.setInternalNotificationEmails(csv), updatedBy);

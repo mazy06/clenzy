@@ -59,6 +59,8 @@ import {
 } from "../../hooks/useAccounting";
 import type { ChannelCommissionOverview } from "../../services/api/accountingApi";
 import SettingsSection from "./components/SettingsSection";
+import { useAuth } from "../../hooks/useAuth";
+import MaintenanceDepositSection from "./MaintenanceDepositSection";
 import SplitBarEditor from "./components/SplitBarEditor";
 import ServicesActivitiesPanel from "./components/ServicesActivitiesPanel";
 import type { SplitBarSegment } from "./components/SplitBarEditor";
@@ -182,6 +184,7 @@ const isProviderConfigured = (
 };
 
 export default function PaymentSettings() {
+  const { hasAnyRole } = useAuth();
   const { t } = useTranslation();
   const { showNotification } = useNotification();
   const [configs, setConfigs] = useState<PaymentMethodConfig[]>([]);
@@ -574,6 +577,10 @@ export default function PaymentSettings() {
       </Dialog>
 
       <div className="flex flex-col gap-3">
+        {/* Acompte de maintenance : reglage de PLATEFORME, donc reserve au
+            staff. Sa place est ici, avec ce qui touche a l'argent. */}
+        {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && <MaintenanceDepositSection />}
+
         {/* ─── Revenue Split ─── */}
         <SettingsSection
           title={t("settings.split.title")}

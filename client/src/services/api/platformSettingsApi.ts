@@ -12,6 +12,8 @@ export interface PlatformSettings {
   conciergeDraftEnabled: boolean;
   conciergeAutosendEnabled: boolean;
   conciergeAutosendMinForfait: string;
+  /** Part du devis de maintenance exigible à la validation, en pourcentage. */
+  maintenanceDepositPercent: number;
   updatedAt: string | null;
   updatedBy: string | null;
 }
@@ -27,6 +29,11 @@ export interface ConciergeSettingsUpdate {
 export const platformSettingsApi = {
   get(): Promise<PlatformSettings> {
     return apiClient.get<PlatformSettings>('/admin/platform-settings');
+  },
+  /** Taux d'acompte des devis de maintenance — décidé par la plateforme. */
+  setMaintenanceDepositPercent(percent: number): Promise<PlatformSettings> {
+    return apiClient.put<PlatformSettings>(
+      '/admin/platform-settings/maintenance-deposit-percent', { percent });
   },
   setProspectDevisEmails(enabled: boolean): Promise<{ sendProspectDevisEmails: boolean }> {
     return apiClient.put('/admin/platform-settings/prospect-devis-emails', undefined, {

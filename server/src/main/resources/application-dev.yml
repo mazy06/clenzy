@@ -184,6 +184,23 @@ jasypt:
   encryptor:
     password: ${JASYPT_ENCRYPTOR_PASSWORD}
 
+# Origines de confiance en developpement.
+#
+# Lue par StripePaymentProvider.sanitizeReturnUrl (retour de paiement) ET par
+# WebSocketConfig. Le defaut du code cote Stripe ne liste que les domaines de
+# production : sans cette surcharge, un retour vers le front local retombait
+# sur l'URL par defaut, et on quittait une discussion pour atterrir sur la
+# facturation.
+#
+# La liste reprend integralement DEV_DEFAULT_ORIGINS de WebSocketConfig : la
+# renseigner ici EVINCE ce defaut, et s'en tenir a deux ports aurait coupe les
+# WebSockets ouverts depuis les autres.
+#
+# DEV UNIQUEMENT — autoriser localhost en production ouvrirait une redirection
+# de paiement vers une machine tierce.
+cors:
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://localhost:8080,http://localhost:5173,http://localhost:5174,http://localhost:4173}
+
 stripe:
   secret-key: ${STRIPE_SECRET_KEY}
   publishable-key: ${STRIPE_PUBLISHABLE_KEY}
