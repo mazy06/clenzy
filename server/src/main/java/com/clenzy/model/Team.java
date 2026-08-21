@@ -34,6 +34,18 @@ public class Team {
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<TeamCoverageZone> coverageZones = new ArrayList<>();
 
+    /**
+     * Intervenant represente par cette equipe d'une seule personne, ou
+     * {@code null} pour une equipe classique.
+     *
+     * <p>Le moteur d'affectation ne raisonne qu'en equipes : zones clefees par
+     * team_id, occupation testee par team_id, metier porte par
+     * {@code interventionType}. Une equipe personnelle rend un independant
+     * visible de ce moteur sans le dupliquer pour les personnes.</p>
+     */
+    @Column(name = "personal_user_id")
+    private Long personalUserId;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -91,6 +103,19 @@ public class Team {
 
     public void setMembers(List<TeamMember> members) {
         this.members = members;
+    }
+
+    public Long getPersonalUserId() {
+        return personalUserId;
+    }
+
+    public void setPersonalUserId(Long personalUserId) {
+        this.personalUserId = personalUserId;
+    }
+
+    /** Equipe d'une seule personne, creee pour un intervenant independant. */
+    public boolean isPersonal() {
+        return personalUserId != null;
     }
 
     public List<TeamCoverageZone> getCoverageZones() {

@@ -200,10 +200,18 @@ public class TeamService {
     @Transactional(readOnly = true)
     public Page<TeamDto> list(Pageable pageable, Jwt jwt) {
         if (jwt == null) {
-            // Si pas de JWT, retourner toutes les équipes (pour compatibilité)
-            Page<Team> teams = teamRepository.findAll(pageable);
+            // Si pas de JWT, retourner toutes les équipes (pour compatibilité) —
+            // sauf les personnelles, comme partout ailleurs dans cet annuaire.
+            Page<Team> teams = teamRepository.findAllNonPersonal(pageable);
             return teams.map(this::convertToDto);
         }
+
+        // NOTE — les equipes PERSONNELLES (une par intervenant independant,
+        // cf. PersonalTeamService) sont ecartees de cet annuaire : elles y
+        // noieraient les vraies equipes sous autant d'entrees que
+        // d'intervenants. Elles restent visibles la ou elles servent : le choix
+        // d'un prestataire et l'auto-assignation, qui passent par
+        // PropertyTeamService.
 
         UserRole userRole = JwtRoleExtractor.extractUserRole(jwt);
         log.debug("list - Role: {}", userRole);
@@ -211,7 +219,7 @@ public class TeamService {
         if (userRole.isPlatformAdmin()) {
             // SUPER_ADMIN/ADMIN : toutes les équipes — pagination SQL réelle au
             // lieu d'un findAll() complet re-paginé en mémoire (audit perf 2026-07-21).
-            return teamRepository.findAll(pageable).map(this::convertToDto);
+            return teamRepository.findAllNonPersonal(pageable).map(this::convertToDto);
         }
 
         List<Team> filteredTeams;
@@ -245,6 +253,11 @@ public class TeamService {
             // Autres rôles : aucune équipe
             filteredTeams = new ArrayList<>();
         }
+
+        // Les equipes personnelles ne sont pas des equipes de l'annuaire.
+        filteredTeams = filteredTeams.stream()
+                .filter(team -> !team.isPersonal())
+                .collect(Collectors.toList());
 
         // Appliquer la pagination manuellement
         int start = (int) pageable.getOffset();

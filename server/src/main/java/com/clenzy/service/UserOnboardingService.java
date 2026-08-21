@@ -25,6 +25,10 @@ public class UserOnboardingService {
     private static final Logger log = LoggerFactory.getLogger(UserOnboardingService.class);
 
     private final UserOnboardingRepository repository;
+    private final ProviderDocumentService providerDocumentService;
+    private final PersonalTeamService personalTeamService;
+    private final com.clenzy.repository.TeamCoverageZoneRepository teamCoverageZoneRepository;
+    private final com.clenzy.repository.TeamWeeklyAvailabilityRepository weeklyAvailabilityRepository;
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
@@ -72,9 +76,11 @@ public class UserOnboardingService {
             "define_pricing", "connect_channels", "setup_notifications", "setup_payouts"
         )),
         Map.entry(UserRole.HOUSEKEEPER, List.of("complete_profile", "setup_notifications",
-            "accept_provider_terms", "setup_payout_account", "setup_rates", "view_interventions")),
+            "accept_provider_terms", "upload_provider_documents", "setup_payout_account",
+            "setup_coverage_zone", "setup_availability", "setup_rates", "view_interventions")),
         Map.entry(UserRole.TECHNICIAN, List.of("complete_profile", "setup_notifications",
-            "accept_provider_terms", "setup_payout_account", "setup_rates", "view_interventions")),
+            "accept_provider_terms", "upload_provider_documents", "setup_payout_account",
+            "setup_coverage_zone", "setup_availability", "setup_rates", "view_interventions")),
         Map.entry(UserRole.SUPERVISOR, List.of("complete_profile", "setup_notifications", "create_team", "view_interventions")),
         Map.entry(UserRole.LAUNDRY, List.of("complete_profile", "setup_notifications", "view_interventions")),
         Map.entry(UserRole.EXTERIOR_TECH, List.of("complete_profile", "setup_notifications", "view_interventions"))
@@ -89,9 +95,17 @@ public class UserOnboardingService {
                                   NotificationPreferenceRepository notificationPreferenceRepository,
                                   MessagingAutomationConfigRepository messagingAutomationConfigRepository,
                                   PaymentMethodConfigRepository paymentMethodConfigRepository,
-                                  ICalFeedRepository icalFeedRepository) {
+                                  ICalFeedRepository icalFeedRepository,
+                                  ProviderDocumentService providerDocumentService,
+                                  PersonalTeamService personalTeamService,
+                                  com.clenzy.repository.TeamCoverageZoneRepository teamCoverageZoneRepository,
+                                  com.clenzy.repository.TeamWeeklyAvailabilityRepository weeklyAvailabilityRepository) {
         this.repository = repository;
         this.userRepository = userRepository;
+        this.providerDocumentService = providerDocumentService;
+        this.personalTeamService = personalTeamService;
+        this.teamCoverageZoneRepository = teamCoverageZoneRepository;
+        this.weeklyAvailabilityRepository = weeklyAvailabilityRepository;
         this.organizationRepository = organizationRepository;
         this.organizationMemberRepository = organizationMemberRepository;
         this.fiscalProfileRepository = fiscalProfileRepository;
@@ -236,9 +250,31 @@ public class UserOnboardingService {
                 // automatique ici (une auto-completion prematurée ferait croire
                 // l'intervenant paye alors que son compte Stripe n'existe pas).
                 case "setup_payout_account", "setup_rates" -> false;
+                // La zone se DEDUIT : elle vit dans team_coverage_zones, portee
+                // par l'equipe personnelle de l'intervenant. Rien a declarer.
+                // Les disponibilites sont OPTIONNELLES : ne rien declarer laisse
+                // disponible. L'etape se coche donc des qu'un creneau existe, et
+                // reste passable sinon.
+                case "setup_availability" -> userOpt
+                        .map(u -> personalTeamService.find(u.getId())
+                                .map(team -> !weeklyAvailabilityRepository
+                                        .findByTeamIdOrderByDayOfWeekAscStartTimeAsc(team.getId()).isEmpty())
+                                .orElse(false))
+                        .orElse(false);
+                case "setup_coverage_zone" -> userOpt
+                        .map(u -> personalTeamService.find(u.getId())
+                                .map(team -> !teamCoverageZoneRepository.findByTeamId(team.getId()).isEmpty())
+                                .orElse(false))
+                        .orElse(false);
                 // Celle-ci se deduit : l'acceptation est en base, inutile
                 // d'attendre un appel /complete que l'ecran pourrait rater.
                 case "accept_provider_terms" -> hasAcceptedProviderTerms(userOpt.orElse(null));
+                // Dossier complet = une piece VALIDE et non perimee pour chacun
+                // des trois justificatifs obligatoires. Deduit, jamais declare :
+                // c'est le gestionnaire qui valide, pas l'intervenant.
+                case "upload_provider_documents" -> userOpt
+                        .map(u -> providerDocumentService.hasCompleteFile(u.getId()))
+                        .orElse(false);
 
                 default -> false;
             };

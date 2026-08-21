@@ -37,6 +37,7 @@ class PropertyTeamServiceTest {
     @Mock private TeamCoverageZoneRepository teamCoverageZoneRepository;
     @Mock private PropertyRepository propertyRepository;
     @Mock private OrganizationRepository organizationRepository;
+    @Mock private ProviderAvailabilityService availabilityService;
 
     private TenantContext tenantContext;
     private PropertyTeamService service;
@@ -48,7 +49,12 @@ class PropertyTeamServiceTest {
         tenantContext.setOrganizationId(ORG_ID);
         service = new PropertyTeamService(propertyTeamRepository, interventionRepository,
                 teamRepository, teamCoverageZoneRepository, propertyRepository,
-                organizationRepository, tenantContext);
+                organizationRepository, tenantContext, availabilityService);
+
+        // Aucune disponibilite declaree = disponible : c'est le comportement par
+        // defaut du service, et celui que ces tests supposaient avant qu'il
+        // existe.
+        lenient().when(availabilityService.isAvailable(any(), any(), any())).thenReturn(true);
 
         // Par defaut, l'org du test est de type SYSTEM (recherche uniquement dans sa propre org)
         Organization org = new Organization("Test Org", OrganizationType.SYSTEM, "test-org");

@@ -448,7 +448,7 @@ class TeamServiceTest {
             // Arrange
             Team team = buildTeam(1L, "Team A");
             Page<Team> page = new PageImpl<>(List.of(team), pageable, 1);
-            when(teamRepository.findAll(pageable)).thenReturn(page);
+            when(teamRepository.findAllNonPersonal(pageable)).thenReturn(page);
 
             // Act
             Page<TeamDto> result = teamService.list(pageable, null);
@@ -465,7 +465,7 @@ class TeamServiceTest {
             Team team1 = buildTeam(1L, "Team A");
             Team team2 = buildTeam(2L, "Team B");
             // Pagination SQL reelle (audit perf 2026-07-21)
-            when(teamRepository.findAll(pageable))
+            when(teamRepository.findAllNonPersonal(pageable))
                     .thenReturn(new PageImpl<>(List.of(team1, team2), pageable, 2));
 
             // Act
@@ -614,7 +614,7 @@ class TeamServiceTest {
             Pageable smallPage = PageRequest.of(0, 2);
             Team team1 = buildTeam(1L, "Team 1");
             Team team2 = buildTeam(2L, "Team 2");
-            when(teamRepository.findAll(smallPage))
+            when(teamRepository.findAllNonPersonal(smallPage))
                     .thenReturn(new PageImpl<>(List.of(team1, team2), smallPage, 3));
 
             // Act

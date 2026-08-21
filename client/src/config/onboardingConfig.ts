@@ -213,6 +213,17 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       navigationPath: '/account?tab=business',
     },
     {
+      key: 'upload_provider_documents',
+      labelKey: 'onboarding.steps.uploadProviderDocuments.label',
+      descriptionKey: 'onboarding.steps.uploadProviderDocuments.description',
+      navigationPath: '/account?tab=business',
+      substeps: [
+        { key: 'doc_company', labelKey: 'onboarding.substeps.docCompany' },
+        { key: 'doc_urssaf', labelKey: 'onboarding.substeps.docUrssaf' },
+        { key: 'doc_insurance', labelKey: 'onboarding.substeps.docInsurance' },
+      ],
+    },
+    {
       key: 'setup_payout_account',
       labelKey: 'onboarding.steps.setupPayoutAccount.label',
       descriptionKey: 'onboarding.steps.setupPayoutAccount.description',
@@ -225,10 +236,23 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       ],
     },
     {
+      key: 'setup_coverage_zone',
+      labelKey: 'onboarding.steps.setupCoverageZone.label',
+      descriptionKey: 'onboarding.steps.setupCoverageZone.description',
+      navigationPath: '/account?tab=business',
+    },
+    {
+      key: 'setup_availability',
+      labelKey: 'onboarding.steps.setupAvailability.label',
+      descriptionKey: 'onboarding.steps.setupAvailability.description',
+      navigationPath: '/mes-disponibilites',
+      skippable: true,
+    },
+    {
       key: 'setup_rates',
       labelKey: 'onboarding.steps.setupRates.label',
       descriptionKey: 'onboarding.steps.setupRates.description',
-      navigationPath: '/account?tab=business',
+      navigationPath: '/mes-tarifs',
     },
     {
       key: 'view_interventions',
@@ -260,6 +284,17 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       navigationPath: '/account?tab=business',
     },
     {
+      key: 'upload_provider_documents',
+      labelKey: 'onboarding.steps.uploadProviderDocuments.label',
+      descriptionKey: 'onboarding.steps.uploadProviderDocuments.description',
+      navigationPath: '/account?tab=business',
+      substeps: [
+        { key: 'doc_company', labelKey: 'onboarding.substeps.docCompany' },
+        { key: 'doc_urssaf', labelKey: 'onboarding.substeps.docUrssaf' },
+        { key: 'doc_insurance', labelKey: 'onboarding.substeps.docInsurance' },
+      ],
+    },
+    {
       key: 'setup_payout_account',
       labelKey: 'onboarding.steps.setupPayoutAccount.label',
       descriptionKey: 'onboarding.steps.setupPayoutAccount.description',
@@ -272,10 +307,23 @@ export const ONBOARDING_STEPS: Record<string, OnboardingStepConfig[]> = {
       ],
     },
     {
+      key: 'setup_coverage_zone',
+      labelKey: 'onboarding.steps.setupCoverageZone.label',
+      descriptionKey: 'onboarding.steps.setupCoverageZone.description',
+      navigationPath: '/account?tab=business',
+    },
+    {
+      key: 'setup_availability',
+      labelKey: 'onboarding.steps.setupAvailability.label',
+      descriptionKey: 'onboarding.steps.setupAvailability.description',
+      navigationPath: '/mes-disponibilites',
+      skippable: true,
+    },
+    {
       key: 'setup_rates',
       labelKey: 'onboarding.steps.setupRates.label',
       descriptionKey: 'onboarding.steps.setupRates.description',
-      navigationPath: '/account?tab=business',
+      navigationPath: '/mes-tarifs',
     },
     {
       key: 'view_interventions',

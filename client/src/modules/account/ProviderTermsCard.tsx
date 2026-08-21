@@ -114,7 +114,7 @@ export default function ProviderTermsCard({ onAccepted }: Props) {
 
             {status && !status.upToDate && (
               <div>
-                <Button size="sm" className="min-h-[44px]" onClick={accept} disabled={accepting}>
+                <Button variant="secondary" size="sm" onClick={accept} disabled={accepting}>
                   {accepting && <Spinner className="size-4" />}
                   {t('account.terms.accept', "J'accepte les conditions de prestation")}
                 </Button>
