@@ -2741,7 +2741,18 @@
       "scheduledFor": "Can start on",
       "openRunScreen": "Open tracking",
       "toConfirm": "This job is offered to you — it awaits your answer.",
-      "accepted": "Job accepted."
+      "accepted": "Mission accepted",
+      "assignmentLabel": "Your answer",
+      "assignment": {
+        "PENDING": "Pending",
+        "ACCEPTED": "Accepted",
+        "DECLINED": "Declined",
+        "QUOTE_SUBMITTED": "Quote submitted",
+        "QUOTE_APPROVED": "Quote accepted"
+      },
+      "acceptedHint": "You are committed to this job. Start it once you are on site.",
+      "acceptedRunning": "Job under way — remember the before/after photos.",
+      "quoteSubmittedHint": "Your quote is submitted: the owner or the agency still has to approve it."
     },
     "progressSteps": {
       "inspection": "Inspection",
@@ -2851,8 +2862,24 @@
       "download": "Download the quote",
       "preview": "Quote preview",
       "previewFailed": "The document could not be loaded.",
-      "fileName": "quote-{{id}}",
-      "openInTab": "Open in a new tab"
+      "fileName": "quote-{{provider}}",
+      "openInTab": "Open in a new tab",
+      "documentLabel": "Document",
+      "leadApproved": "One quote is retained: its amount becomes the intervention’s estimated cost, and its PDF is the document sent to the owner.",
+      "leadCompare": "{{count}} competing quotes. Approve the one you keep: the others are set aside and the retained quote’s PDF is generated.",
+      "leadSingle": "Quote awaiting a decision. On approval, its amount becomes the estimated cost and its PDF is generated.",
+      "pickTypes": "Your pricing",
+      "total": "Quote total",
+      "otherDomain": "Other",
+      "noRates": "No maintenance rates configured. You can still add a service below.",
+      "demandTitle": "What is being asked",
+      "demandLines": "Points to address",
+      "demandEmpty": "No detail came with the request.",
+      "customDomain": "Added",
+      "addLine": "Other service",
+      "addLinePlaceholder": "e.g. plaster patching",
+      "quantity": "Quantity",
+      "unitPrice": "Unit price"
     }
   },
   "reservations": {
@@ -7339,7 +7366,25 @@
     "noMessages": "No message in this conversation",
     "internalNote": "Internal note (hidden from the guest)",
     "internalNotePlaceholder": "Note for the team…",
-    "internalNoteBadge": "Internal note"
+    "internalNoteBadge": "Internal note",
+    "groupThread": "Group discussion",
+    "quote": {
+      "accept": "Accept the quote",
+      "reject": "Decline",
+      "approved": "Quote approved",
+      "rejected": "Quote set aside",
+      "decisionFailed": "The action failed, try again.",
+      "awaitingDecision": "Awaiting the owner’s or the agency’s decision.",
+      "deposit": "Deposit of {{amount}} on approval ({{percent}} % of the quote)."
+    },
+    "deposit": {
+      "title": "Deposit due",
+      "pay": "Pay the deposit",
+      "detail": "{{percent}} % of the {{total}} quote",
+      "failed": "The payment could not be opened.",
+      "awaiting": "Awaiting payment by the owner or the agency.",
+      "alreadyOpen": "A payment is already under way for this deposit. Wait a moment before trying again."
+    }
   },
   "account": {
     "title": "My account",

@@ -2744,7 +2744,18 @@
       "scheduledFor": "يمكن البدء في",
       "openRunScreen": "فتح المتابعة",
       "toConfirm": "عُرضت عليك هذه المهمة — وهي بانتظار ردك.",
-      "accepted": "تم قبول المهمة."
+      "accepted": "تم قبول المهمة",
+      "assignmentLabel": "ردّك",
+      "assignment": {
+        "PENDING": "في الانتظار",
+        "ACCEPTED": "مقبولة",
+        "DECLINED": "مرفوضة",
+        "QUOTE_SUBMITTED": "تم إرسال العرض",
+        "QUOTE_APPROVED": "تم قبول العرض"
+      },
+      "acceptedHint": "أنت ملتزم بهذا التدخل. ابدأه فور وصولك إلى الموقع.",
+      "acceptedRunning": "التدخل جارٍ — لا تنسَ صور قبل/بعد.",
+      "quoteSubmittedHint": "تم إرسال عرضك: لا يزال على المالك أو الوكالة الموافقة عليه."
     },
     "progressSteps": {
       "inspection": "الفحص",
@@ -2854,8 +2865,24 @@
       "download": "تنزيل عرض السعر",
       "preview": "معاينة عرض السعر",
       "previewFailed": "تعذّر تحميل المستند.",
-      "fileName": "devis-{{id}}",
-      "openInTab": "فتح في تبويب جديد"
+      "fileName": "devis-{{provider}}",
+      "openInTab": "فتح في تبويب جديد",
+      "documentLabel": "مستند",
+      "leadApproved": "تم اعتماد عرض سعر: مبلغه يصبح التكلفة التقديرية للتدخل، وملفه هو المستند المرسل إلى المالك.",
+      "leadCompare": "{{count}} عروض متنافسة. اعتمد العرض الذي تختاره: تُستبعد البقية ويُنشأ ملف العرض المعتمد.",
+      "leadSingle": "عرض سعر في انتظار القرار. عند الاعتماد، يصبح مبلغه التكلفة التقديرية ويُنشأ ملفه.",
+      "pickTypes": "تسعيرك",
+      "total": "إجمالي العرض",
+      "otherDomain": "أخرى",
+      "noRates": "لا توجد تعريفات صيانة. يمكنك مع ذلك إضافة خدمة أدناه.",
+      "demandTitle": "المطلوب منك",
+      "demandLines": "النقاط المطلوب معالجتها",
+      "demandEmpty": "لم تُرفق أي تفاصيل بالطلب.",
+      "customDomain": "مضافة",
+      "addLine": "خدمة أخرى",
+      "addLinePlaceholder": "مثال: ترميم الجبس",
+      "quantity": "الكمية",
+      "unitPrice": "سعر الوحدة"
     }
   },
   "reservations": {
@@ -7088,7 +7115,25 @@
     "noMessages": "لا توجد رسائل في هذه المحادثة",
     "internalNote": "ملاحظة داخلية (غير مرئية للضيف)",
     "internalNotePlaceholder": "ملاحظة للفريق…",
-    "internalNoteBadge": "ملاحظة داخلية"
+    "internalNoteBadge": "ملاحظة داخلية",
+    "groupThread": "نقاش جماعي",
+    "quote": {
+      "accept": "قبول العرض",
+      "reject": "رفض",
+      "approved": "تم قبول العرض",
+      "rejected": "تم استبعاد العرض",
+      "decisionFailed": "فشل الإجراء، أعد المحاولة.",
+      "awaitingDecision": "في انتظار قرار المالك أو الوكالة.",
+      "deposit": "دفعة مقدمة {{amount}} عند الاعتماد ({{percent}} % من العرض)."
+    },
+    "deposit": {
+      "title": "دفعة مقدمة مستحقة",
+      "pay": "دفع الدفعة المقدمة",
+      "detail": "{{percent}} % من عرض بقيمة {{total}}",
+      "failed": "تعذّر فتح صفحة الدفع.",
+      "awaiting": "في انتظار الدفع من المالك أو الوكالة.",
+      "alreadyOpen": "هناك دفعة جارية بالفعل لهذه الدفعة المقدمة. انتظر لحظات قبل إعادة المحاولة."
+    }
   },
   "account": {
     "title": "حسابي",

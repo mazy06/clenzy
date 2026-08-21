@@ -27,13 +27,14 @@ import static org.mockito.Mockito.*;
 class ContactControllerTest {
 
     @Mock private ContactMessageService contactMessageService;
+    @Mock private com.clenzy.service.ContactThreadService contactThreadService;
 
     private ContactController controller;
     private Jwt jwt;
 
     @BeforeEach
     void setUp() {
-        controller = new ContactController(contactMessageService);
+        controller = new ContactController(contactMessageService, contactThreadService);
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", "user-123")

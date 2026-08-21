@@ -46,6 +46,7 @@ import { useCanSuperviseAgents } from '../modules/supervision/useCanSuperviseAge
 import { useSupervisionConfig } from '../modules/supervision/useSupervisionConfig';
 import { useSupervisionPendingCounts } from '../modules/supervision/useSupervisionPendingCounts';
 import { useDocumentsFailedCount } from '../modules/documents/useDocumentsFailedCount';
+import { useContactUnreadCount } from './useContactUnreadCount';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -466,10 +467,14 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
   const documentsHubVisible = menuItems.some((item) => item.id === 'hub:documents');
   const documentsFailedCount = useDocumentsFailedCount(documentsHubVisible);
 
+  // Pastille « non lus » du hub Contacts : messages un-a-un + fils de groupe.
+  const contactsHubVisible = menuItems.some((item) => item.id === 'hub:contacts');
+  const contactsUnreadCount = useContactUnreadCount(contactsHubVisible);
+
   // Mémoriser le résultat + superposer les pastilles dynamiques (« en attente »
   // sur Planning, « échecs récents » sur Documents), hors du flux de construction.
   const memoizedMenuItems = useMemo(() => {
-    if (pendingTotal <= 0 && documentsFailedCount <= 0) return menuItems;
+    if (pendingTotal <= 0 && documentsFailedCount <= 0 && contactsUnreadCount <= 0) return menuItems;
     return menuItems.map((item) => {
       if (item.path === '/planning' && pendingTotal > 0) {
         return { ...item, badge: pendingTotal, badgeColor: 'warning' as const };
@@ -477,9 +482,12 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
       if (item.id === 'hub:documents' && documentsFailedCount > 0) {
         return { ...item, badge: documentsFailedCount, badgeColor: 'error' as const };
       }
+      if (item.id === 'hub:contacts' && contactsUnreadCount > 0) {
+        return { ...item, badge: contactsUnreadCount, badgeColor: 'error' as const };
+      }
       return item;
     });
-  }, [menuItems, pendingTotal, documentsFailedCount]);
+  }, [menuItems, pendingTotal, documentsFailedCount, contactsUnreadCount]);
 
   return {
     menuItems: memoizedMenuItems,

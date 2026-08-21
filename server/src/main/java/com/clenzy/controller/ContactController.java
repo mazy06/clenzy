@@ -8,6 +8,7 @@ import com.clenzy.dto.ContactMessageDto;
 import com.clenzy.dto.ContactSendRequest;
 import com.clenzy.dto.ContactThreadSummaryDto;
 import com.clenzy.service.ContactMessageService;
+import com.clenzy.service.ContactThreadService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
@@ -41,9 +42,12 @@ public class ContactController {
     private static final Logger log = LoggerFactory.getLogger(ContactController.class);
 
     private final ContactMessageService contactMessageService;
+    private final ContactThreadService contactThreadService;
 
-    public ContactController(ContactMessageService contactMessageService) {
+    public ContactController(ContactMessageService contactMessageService,
+                             ContactThreadService contactThreadService) {
         this.contactMessageService = contactMessageService;
+        this.contactThreadService = contactThreadService;
     }
 
     // ─── Lecture (contact:view) ─────────────────────────────────────────────
@@ -124,20 +128,41 @@ public class ContactController {
         return ResponseEntity.ok(contactMessageService.unarchiveMessage(jwt, id));
     }
 
+    @GetMapping("/unread-count")
+    @Operation(summary = "Nombre de messages non lus (pastille du menu Messagerie)")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
+    public ResponseEntity<Map<String, Long>> getUnreadCount(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(Map.of("count",
+                contactMessageService.countUnreadDirect(jwt)
+                        + contactThreadService.countMyUnread(jwt.getSubject())));
+    }
+
     // ─── Threads (messagerie instantanee) ──────────────────────────────────
 
     @GetMapping("/threads")
     @Operation(summary = "Liste des conversations groupees par interlocuteur")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
     public ResponseEntity<List<ContactThreadSummaryDto>> getThreads(@AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(contactMessageService.getThreads(jwt));
+        List<ContactThreadSummaryDto> threads =
+                new java.util.ArrayList<>(contactMessageService.getThreads(jwt));
+        threads.addAll(contactThreadService.listMyThreads(jwt.getSubject(), false));
+        threads.sort(java.util.Comparator.comparing(
+                ContactThreadSummaryDto::lastMessageAt,
+                java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())));
+        return ResponseEntity.ok(threads);
     }
 
     @GetMapping("/threads/archived")
     @Operation(summary = "Liste des conversations archivees, groupees par interlocuteur")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
     public ResponseEntity<List<ContactThreadSummaryDto>> getArchivedThreads(@AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(contactMessageService.getArchivedThreads(jwt));
+        List<ContactThreadSummaryDto> threads =
+                new java.util.ArrayList<>(contactMessageService.getArchivedThreads(jwt));
+        threads.addAll(contactThreadService.listMyThreads(jwt.getSubject(), true));
+        threads.sort(java.util.Comparator.comparing(
+                ContactThreadSummaryDto::lastMessageAt,
+                java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())));
+        return ResponseEntity.ok(threads);
     }
 
     @GetMapping("/threads/{counterpartKeycloakId}/messages")
@@ -148,7 +173,10 @@ public class ContactController {
             @PathVariable String counterpartKeycloakId,
             @RequestParam(defaultValue = "false") boolean archived
     ) {
-        return ResponseEntity.ok(contactMessageService.getThreadMessages(jwt, counterpartKeycloakId, archived));
+        Long groupId = ContactThreadService.parseGroupKey(counterpartKeycloakId);
+        return ResponseEntity.ok(groupId != null
+                ? contactThreadService.messages(groupId, jwt.getSubject())
+                : contactMessageService.getThreadMessages(jwt, counterpartKeycloakId, archived));
     }
 
     @PutMapping("/threads/{counterpartKeycloakId}/mark-read")
@@ -158,7 +186,10 @@ public class ContactController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable String counterpartKeycloakId
     ) {
-        int count = contactMessageService.markThreadAsRead(jwt, counterpartKeycloakId);
+        Long groupId = ContactThreadService.parseGroupKey(counterpartKeycloakId);
+        int count = groupId != null
+                ? contactThreadService.markAsRead(groupId, jwt.getSubject())
+                : contactMessageService.markThreadAsRead(jwt, counterpartKeycloakId);
         return ResponseEntity.ok(Map.of("updatedCount", count));
     }
 
@@ -169,6 +200,11 @@ public class ContactController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable String counterpartKeycloakId
     ) {
+        Long groupId = ContactThreadService.parseGroupKey(counterpartKeycloakId);
+        if (groupId != null) {
+            contactThreadService.setArchived(groupId, jwt.getSubject(), true);
+            return ResponseEntity.ok(Map.of("archivedCount", 1));
+        }
         int count = contactMessageService.archiveThread(jwt, counterpartKeycloakId);
         return ResponseEntity.ok(Map.of("archivedCount", count));
     }
@@ -180,8 +216,34 @@ public class ContactController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable String counterpartKeycloakId
     ) {
+        Long groupId = ContactThreadService.parseGroupKey(counterpartKeycloakId);
+        if (groupId != null) {
+            contactThreadService.setArchived(groupId, jwt.getSubject(), false);
+            return ResponseEntity.ok(Map.of("unarchivedCount", 1));
+        }
         int count = contactMessageService.unarchiveThread(jwt, counterpartKeycloakId);
         return ResponseEntity.ok(Map.of("unarchivedCount", count));
+    }
+
+    @PostMapping("/threads/{counterpartKeycloakId}/reply")
+    @Operation(summary = "Repondre dans une discussion de groupe")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
+    public ResponseEntity<Map<String, Object>> replyInThread(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String counterpartKeycloakId,
+            @RequestBody Map<String, String> body
+    ) {
+        Long groupId = ContactThreadService.parseGroupKey(counterpartKeycloakId);
+        if (groupId == null) {
+            throw new IllegalArgumentException("Cette conversation n'est pas une discussion de groupe");
+        }
+        String message = body.get("message");
+        if (message == null || message.isBlank()) {
+            throw new IllegalArgumentException("Le message est obligatoire");
+        }
+        contactThreadService.post(contactThreadService.requireThread(groupId),
+                jwt.getSubject(), null, message, null);
+        return ResponseEntity.ok(Map.of("sent", true));
     }
 
     // ─── Telechargement pieces jointes ─────────────────────────────────────

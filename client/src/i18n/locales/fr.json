@@ -2762,7 +2762,18 @@
       "scheduledFor": "Démarrage possible le",
       "openRunScreen": "Ouvrir le suivi",
       "toConfirm": "Cette mission vous est proposée — elle attend votre réponse.",
-      "accepted": "Mission acceptée."
+      "accepted": "Mission acceptée",
+      "assignmentLabel": "Votre réponse",
+      "assignment": {
+        "PENDING": "En attente",
+        "ACCEPTED": "Acceptée",
+        "DECLINED": "Refusée",
+        "QUOTE_SUBMITTED": "Devis soumis",
+        "QUOTE_APPROVED": "Devis accepté"
+      },
+      "acceptedHint": "Vous êtes engagé sur cette intervention. Démarrez-la une fois sur place.",
+      "acceptedRunning": "Intervention en cours — pensez aux photos avant/après.",
+      "quoteSubmittedHint": "Votre devis est soumis : le propriétaire ou la conciergerie doit encore l’approuver."
     },
     "progressSteps": {
       "inspection": "Inspection",
@@ -2872,8 +2883,24 @@
       "download": "Télécharger le devis",
       "preview": "Aperçu du devis",
       "previewFailed": "Le document n’a pas pu être chargé.",
-      "fileName": "devis-{{id}}",
-      "openInTab": "Ouvrir dans un nouvel onglet"
+      "fileName": "devis-{{provider}}",
+      "openInTab": "Ouvrir dans un nouvel onglet",
+      "documentLabel": "Document",
+      "leadApproved": "Un devis est retenu : son montant devient le coût estimé de l’intervention, et son PDF est le document transmis au propriétaire.",
+      "leadCompare": "{{count}} devis en concurrence. Approuvez celui que vous retenez : les autres sont écartés et le PDF du devis retenu est généré.",
+      "leadSingle": "Devis en attente de décision. À l’approbation, son montant devient le coût estimé et son PDF est généré.",
+      "pickTypes": "Votre chiffrage",
+      "total": "Total du devis",
+      "otherDomain": "Autres",
+      "noRates": "Aucun tarif travaux configuré. Vous pouvez tout de même ajouter une prestation ci-dessous.",
+      "demandTitle": "Ce qu’on vous demande",
+      "demandLines": "Points à traiter",
+      "demandEmpty": "Aucun détail fourni avec la demande.",
+      "customDomain": "Ajoutées",
+      "addLine": "Autre prestation",
+      "addLinePlaceholder": "Ex. : reprise d’enduit",
+      "quantity": "Quantité",
+      "unitPrice": "Prix unitaire"
     }
   },
   "reservations": {
@@ -7362,7 +7389,25 @@
     "noMessages": "Aucun message dans cette conversation",
     "internalNote": "Note interne (invisible pour le voyageur)",
     "internalNotePlaceholder": "Note pour l'équipe…",
-    "internalNoteBadge": "Note interne"
+    "internalNoteBadge": "Note interne",
+    "groupThread": "Discussion de groupe",
+    "quote": {
+      "accept": "Accepter le devis",
+      "reject": "Refuser",
+      "approved": "Devis approuvé",
+      "rejected": "Devis écarté",
+      "decisionFailed": "L’action a échoué, réessayez.",
+      "awaitingDecision": "En attente de la décision du propriétaire ou de la conciergerie.",
+      "deposit": "Acompte de {{amount}} à la validation ({{percent}} % du devis)."
+    },
+    "deposit": {
+      "title": "Acompte à régler",
+      "pay": "Payer l’acompte",
+      "detail": "{{percent}} % du devis de {{total}}",
+      "failed": "Le paiement n’a pas pu être ouvert.",
+      "awaiting": "En attente du règlement par le propriétaire ou la conciergerie.",
+      "alreadyOpen": "Un paiement est déjà en cours pour cet acompte. Patientez quelques instants avant de réessayer."
+    }
   },
   "account": {
     "title": "Mon compte",

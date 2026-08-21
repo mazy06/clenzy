@@ -12,6 +12,39 @@ export interface ContactAttachment {
   storagePath?: string | null;
 }
 
+/** Carte structurée rendue sous un message de discussion. */
+export interface QuoteCardPayload {
+  kind: 'SERVICE_QUOTE';
+  quoteId: number;
+  interventionId: number;
+  interventionTitle: string;
+  interventionType?: string | null;
+  propertyName?: string | null;
+  propertyAddress?: string | null;
+  scheduledDate?: string | null;
+  providerName?: string | null;
+  amount: number;
+  currency: string;
+  validUntil?: string | null;
+  earliestStartDate?: string | null;
+  documentGenerationId?: number | null;
+  lines?: { label: string; quantity: number; unitPrice: number }[];
+  /** Acompte exigible à la validation. Absent pour ménage et lingerie. */
+  depositPercent?: number | null;
+  depositAmount?: number | null;
+}
+
+/** Règlement de l'acompte, proposé après validation du devis. */
+export interface DepositCardPayload {
+  kind: 'QUOTE_DEPOSIT';
+  quoteId: number;
+  interventionId: number;
+  amount: number;
+  currency: string;
+  percent?: number | null;
+  totalAmount?: number | null;
+}
+
 export interface ContactMessage {
   id: number;
   senderId: string;
@@ -30,6 +63,8 @@ export interface ContactMessage {
   archivedAt?: string | null;
   archived?: boolean;
   attachments?: ContactAttachment[];
+  /** Carte structurée rendue sous le message. */
+  payload?: QuoteCardPayload | DepositCardPayload | null;
 }
 
 /** Presence/online status of a user, served by /presence/{userId}. */
@@ -71,6 +106,12 @@ export interface ContactThreadSummary {
   lastMessageAt: string;
   unreadCount: number;
   totalMessages: number;
+  /** Fil de GROUPE : son identifiant. `null` pour un échange un-à-un. */
+  threadId?: number | null;
+  /** Intitulé du fil de groupe — un groupe n'a pas d'« interlocuteur ». */
+  title?: string | null;
+  /** Noms des participants, l'appelant compris. */
+  participantNames?: string[];
 }
 
 export const contactApi = {
@@ -198,6 +239,12 @@ export const contactApi = {
   /** Marquer tous les messages non-lus d'un thread comme lus */
   markThreadAsRead(counterpartKeycloakId: string): Promise<{ updatedCount: number }> {
     return apiClient.put<{ updatedCount: number }>(`/contact/threads/${counterpartKeycloakId}/mark-read`);
+  },
+
+  /** Répondre dans une discussion de groupe (clé `group:<id>`). */
+  replyInThread(threadKey: string, message: string): Promise<{ sent: boolean }> {
+    return apiClient.post<{ sent: boolean }>(
+      `/contact/threads/${encodeURIComponent(threadKey)}/reply`, { message });
   },
 
   /** Archiver toute une conversation (thread) */
