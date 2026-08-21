@@ -37,6 +37,7 @@ import StatusChip from '../../../components/baitly/StatusChip';
 import { Money } from '../../../components/baitly/Money';
 import EmptyState from '../../../components/EmptyState';
 import { cn } from '../../../utils/cn';
+import { toApiMediaUrl } from '../../../utils/mediaUrl';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useNotification } from '../../../hooks/useNotification';
 import { BlockCard, BlockEmpty } from './DashboardOperationsBlocks';
@@ -178,7 +179,7 @@ function PropertyBubble({ mission }: { mission: Intervention }) {
 
   return showPhoto ? (
     <img
-      src={mission.propertyCoverPhotoUrl}
+      src={toApiMediaUrl(mission.propertyCoverPhotoUrl)}
       alt=""
       className="size-12 shrink-0 rounded-xl border border-solid border-border object-cover"
       onError={() => setBroken(true)}
