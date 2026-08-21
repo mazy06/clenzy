@@ -5,6 +5,7 @@ import com.clenzy.dto.InterventionResponse;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.exception.UnauthorizedException;
 import com.clenzy.model.Intervention;
+import com.clenzy.model.InterventionAssignmentResponse;
 import com.clenzy.model.InterventionStatus;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.model.UserRole;
@@ -61,6 +62,88 @@ public class InterventionLifecycleService {
     }
 
     /**
+     * Accepter une mission proposee.
+     *
+     * <p>Geste strictement personnel : {@code requireAssignee} refuse un
+     * gestionnaire qui repondrait a la place de l'intervenant.</p>
+     */
+    public InterventionResponse acceptAssignment(Long id, Jwt jwt) {
+        Intervention intervention = loadRespondable(id, jwt);
+
+        intervention.setAssignmentResponse(InterventionAssignmentResponse.ACCEPTED);
+        intervention.setAssignmentRespondedAt(LocalDateTime.now());
+        intervention.setAssignmentDeclineReason(null);
+        intervention = interventionRepository.save(intervention);
+
+        notifyManagers(intervention, "Mission acceptee",
+                "La mission '" + intervention.getTitle() + "' a ete acceptee.");
+        return interventionMapper.convertToResponse(intervention);
+    }
+
+    /**
+     * Refuser une mission proposee.
+     *
+     * <p>Le refus DESASSIGNE : sans cela la mission resterait sur la liste de
+     * quelqu'un qui a dit qu'il ne viendrait pas, et le gestionnaire n'aurait
+     * aucun signal pour la replacer. Le motif est conserve — c'est ce qui
+     * permet de ne pas reproposer la meme chose au meme moment.</p>
+     */
+    public InterventionResponse declineAssignment(Long id, String reason, Jwt jwt) {
+        Intervention intervention = loadRespondable(id, jwt);
+
+        String assigneeName = intervention.getAssignedUser() != null
+                ? intervention.getAssignedUser().getFullName()
+                : "L'equipe assignee";
+
+        intervention.setAssignmentResponse(InterventionAssignmentResponse.DECLINED);
+        intervention.setAssignmentRespondedAt(LocalDateTime.now());
+        intervention.setAssignmentDeclineReason(reason != null && !reason.isBlank() ? reason.trim() : null);
+        intervention.setAssignedUser(null);
+        intervention.setTeamId(null);
+        intervention = interventionRepository.save(intervention);
+
+        String motif = intervention.getAssignmentDeclineReason() != null
+                ? " Motif : " + intervention.getAssignmentDeclineReason()
+                : "";
+        notifyManagers(intervention, "Mission refusee",
+                assigneeName + " a refuse la mission '" + intervention.getTitle() + "'."
+                        + motif + " Elle est a reassigner.");
+        return interventionMapper.convertToResponse(intervention);
+    }
+
+    /**
+     * Charge une intervention sur laquelle l'appelant peut encore se prononcer.
+     *
+     * <p>Une mission deja commencee ou terminee n'est plus negociable : la
+     * refuser apres coup effacerait une affectation sur laquelle du travail a
+     * deja eu lieu.</p>
+     */
+    private Intervention loadRespondable(Long id, Jwt jwt) {
+        Intervention intervention = interventionRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Intervention non trouvee"));
+
+        accessPolicy.assertCanAccess(intervention, jwt);
+        accessPolicy.requireAssignee(intervention, jwt);
+
+        InterventionStatus status = intervention.getStatus();
+        if (status != InterventionStatus.PENDING) {
+            throw new IllegalStateException(
+                    "Impossible de repondre a une mission au statut " + status.name());
+        }
+        return intervention;
+    }
+
+    /** Le gestionnaire doit savoir, surtout en cas de refus : la mission lui revient. */
+    private void notifyManagers(Intervention intervention, String title, String message) {
+        try {
+            notificationService.notifyAdminsAndManagers(NotificationKey.INTERVENTION_ASSIGNED_TO_USER,
+                    title, message, "/interventions/" + intervention.getId());
+        } catch (Exception e) {
+            log.warn("Notification error assignment response: {}", e.getMessage());
+        }
+    }
+
+    /**
      * Demarrer une intervention (changer le statut en IN_PROGRESS).
      * Accessible aux TECHNICIAN, HOUSEKEEPER et SUPERVISOR pour leurs interventions assignees.
      */
@@ -85,6 +168,13 @@ public class InterventionLifecycleService {
 
         intervention.setStatus(InterventionStatus.IN_PROGRESS);
         intervention.setStartTime(LocalDateTime.now());
+
+        // Se mettre au travail vaut acceptation : personne ne doit confirmer une
+        // mission qu'il est en train de commencer.
+        if (intervention.getAssignmentResponse() == InterventionAssignmentResponse.PENDING) {
+            intervention.setAssignmentResponse(InterventionAssignmentResponse.ACCEPTED);
+            intervention.setAssignmentRespondedAt(LocalDateTime.now());
+        }
 
         if (intervention.getProgressPercentage() == null || intervention.getProgressPercentage() == 0) {
             intervention.setProgressPercentage(0);
