@@ -70,6 +70,24 @@ public class ServiceQuote {
     @Column(name = "document_ref", length = 500)
     private String documentRef;
 
+    /**
+     * Detail chiffre, en JSON : [{label, quantity, unitPrice, interventionType}].
+     * NULL pour un devis saisi a la main, qui n'a qu'un total.
+     */
+    @Column(name = "lines", columnDefinition = "TEXT")
+    private String lines;
+
+    /**
+     * Acompte exigible a la validation. Fige a l'emission : le pourcentage de
+     * la plateforme peut changer, un devis deja soumis ne change plus.
+     * NULL = pas d'acompte (menage, lingerie, ou taux a zero).
+     */
+    @Column(name = "deposit_percent")
+    private BigDecimal depositPercent;
+
+    @Column(name = "deposit_amount")
+    private BigDecimal depositAmount;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Status status = Status.RECEIVED;
@@ -116,6 +134,12 @@ public class ServiceQuote {
     public void setEarliestStartDate(LocalDate earliestStartDate) { this.earliestStartDate = earliestStartDate; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public BigDecimal getDepositPercent() { return depositPercent; }
+    public void setDepositPercent(BigDecimal depositPercent) { this.depositPercent = depositPercent; }
+    public BigDecimal getDepositAmount() { return depositAmount; }
+    public void setDepositAmount(BigDecimal depositAmount) { this.depositAmount = depositAmount; }
+    public String getLines() { return lines; }
+    public void setLines(String lines) { this.lines = lines; }
     public String getDocumentRef() { return documentRef; }
     public void setDocumentRef(String documentRef) { this.documentRef = documentRef; }
     public Status getStatus() { return status; }

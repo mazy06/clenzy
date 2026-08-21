@@ -955,7 +955,7 @@ class SuggestionActionExecutorTest {
         SupervisionSuggestion s = suggestion(SupervisionActionType.QUOTE_APPROVAL, "{\"quoteId\":23}");
         s.setAppliedBy(SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-4");
         executor.execute(s);
-        verify(serviceQuoteService).approve(23L, ORG_ID,
+        verify(serviceQuoteService).approveFromSupervision(23L, ORG_ID,
                 SupervisionSuggestion.APPLIED_BY_USER_PREFIX + "kc-4");
     }
 

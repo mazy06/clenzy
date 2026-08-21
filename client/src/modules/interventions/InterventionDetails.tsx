@@ -11,9 +11,13 @@ import {
   PlayCircleOutline as PlayCircleOutlineIcon,
   PlayArrow as PlayArrowIcon,
   StopCircle as StopCircleIcon,
+  CheckCircleOutline,
 } from '../../icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
+import { getInterventionTypeLabel } from '../../utils/statusUtils';
+import type { ServiceQuote } from '../../services/api/serviceQuotesApi';
+import type { WorkOrderAssignmentState } from '../work-orders/WorkOrderDetailLayout';
 import StatusChip from '../../components/StatusChip';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatDateTime } from '../../utils/formatUtils';
@@ -38,6 +42,24 @@ import WorkOrderDetailLayout, {
 
 // ─── Page ───────────────────────────────────────────────────────────────────
 
+/**
+ * Etat a montrer a l'intervenant.
+ *
+ * <p>Il accepte l'assignation, mais le prix ne devient acquis que lorsque le
+ * proprietaire ou la conciergerie approuve son devis. Entre les deux, dire
+ * « Acceptee » laisserait croire l'affaire conclue.</p>
+ */
+function resolveAssignmentState(
+  response: 'PENDING' | 'ACCEPTED' | 'DECLINED' | undefined,
+  quotes: ServiceQuote[] | null,
+): WorkOrderAssignmentState | undefined {
+  if (!response) return undefined;
+  if (response !== 'ACCEPTED') return response;
+  if (quotes?.some((quote) => quote.status === 'APPROVED')) return 'QUOTE_APPROVED';
+  if (quotes?.some((quote) => quote.status === 'RECEIVED')) return 'QUOTE_SUBMITTED';
+  return 'ACCEPTED';
+}
+
 export default function InterventionDetailsPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -47,6 +69,10 @@ export default function InterventionDetailsPage() {
 
   const { hasAnyRole } = useAuth();
   const [respondingAssignment, setRespondingAssignment] = React.useState(false);
+  // Incremente pour demander l'ouverture du chiffrage. Accepter une mission et
+  // annoncer son prix sont le meme geste : l'un sans l'autre laisse le
+  // gestionnaire sans rien a approuver.
+  const [quoteFormSignal, setQuoteFormSignal] = React.useState(0);
 
   /** Accepter ou refuser la mission depuis sa fiche, sans repasser par le tableau de bord. */
   const respondToAssignment = async (accept: boolean) => {
@@ -58,6 +84,7 @@ export default function InterventionDetailsPage() {
         ? t('field.proposals.accepted', 'Mission acceptée')
         : t('field.proposals.declined', 'Mission refusée'));
       queryClient.invalidateQueries({ queryKey: interventionsKeys.detail(id) });
+      if (accept && canSubmitOwnQuote) setQuoteFormSignal((signal) => signal + 1);
     } catch {
       setError(t('field.proposals.error', 'L’action a échoué, réessayez.'));
     } finally {
@@ -87,6 +114,10 @@ export default function InterventionDetailsPage() {
     setCompletedSteps, setInspectionComplete,
     startSuccessMessage, setStartSuccessMessage,
   } = useInterventionDetails(id);
+
+  // Les devis conditionnent l'etat affiche dans « Votre reponse » : la section
+  // les charge deja, elle les remonte plutot que d'ouvrir une seconde requete.
+  const [quotes, setQuotes] = React.useState<ServiceQuote[] | null>(null);
 
   const photosProps = useMemo(() => ({
     beforePhotos, afterPhotos, beforePhotoIds, afterPhotoIds,
@@ -189,6 +220,7 @@ export default function InterventionDetailsPage() {
       // Il vivait a deux ecrans de celui qui se deplace.
       // Le signalement d'origine : l'intervention seule ne dit pas POURQUOI
       // elle existe, ni ce qui a ete constate sur place.
+      assignment: resolveAssignmentState(intervention.assignmentResponse, quotes),
       sourceIssue: intervention.sourceIssue
         ? { ...intervention.sourceIssue, photoUrls: intervention.sourceIssue.photoUrls ?? undefined }
         : undefined,
@@ -358,11 +390,27 @@ export default function InterventionDetailsPage() {
                 </AlertDescription>
               </BuiAlert>
             ) : intervention.assignmentResponse === 'ACCEPTED' ? (
-              <BuiAlert className="items-center py-1.5">
-                <AlertDescription className="text-success-ink">
-                  {t('interventions.detail.accepted', 'Mission acceptée.')}
-                </AlertDescription>
-              </BuiAlert>
+              // Le bandeau disait « Mission acceptée. » en texte vert dans un
+              // cadre pale : rien ne se voyait avant de lire. L'acceptation est
+              // un engagement — elle se signale d'abord par un aplat.
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-solid border-success/35 bg-success-soft px-3 py-2">
+                <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-success text-primary-foreground">
+                  <CheckCircleOutline size={14} strokeWidth={2.25} />
+                </span>
+                <p className="m-0 text-[13px] font-semibold text-success-ink">
+                  {t('interventions.detail.accepted', 'Mission acceptée')}
+                </p>
+                <p className="m-0 text-xs text-foreground">
+                  {quotes?.some((quote) => quote.status === 'RECEIVED')
+                    ? t('interventions.detail.quoteSubmittedHint',
+                        'Votre devis est soumis : le propriétaire ou la conciergerie doit encore l’approuver.')
+                    : intervention.status === 'IN_PROGRESS'
+                      ? t('interventions.detail.acceptedRunning',
+                          'Intervention en cours — pensez aux photos avant/après.')
+                      : t('interventions.detail.acceptedHint',
+                          'Vous êtes engagé sur cette intervention. Démarrez-la une fois sur place.')}
+                </p>
+              </div>
             ) : undefined
           }
           propertyAction={
@@ -420,6 +468,16 @@ export default function InterventionDetailsPage() {
                 interventionCreatedAt={intervention.createdAt}
                 onQuoteApproved={() => {
                   queryClient.invalidateQueries({ queryKey: interventionsKeys.detail(id ?? '') });
+                }}
+                onQuotesLoaded={setQuotes}
+                openFormSignal={quoteFormSignal}
+                // Le contexte de la demande, pour chiffrer sans revenir en
+                // arriere : surface, piece, gravite vivent dans ces champs.
+                demand={{
+                  title: intervention.title,
+                  description: intervention.description,
+                  typeLabel: getInterventionTypeLabel(intervention.type, t),
+                  lines: intervention.quoteLines,
                 }}
               />
             </>

@@ -1,4 +1,7 @@
 import apiClient from '../apiClient';
+import type { QuoteLine } from './interventionsApi';
+
+export type { QuoteLine };
 
 /** Devis prestataire d'une intervention (fiche intervention > Devis, M4). */
 export interface ServiceQuote {
@@ -17,7 +20,10 @@ export interface ServiceQuote {
   providerUserId: number | null;
   /** PDF du devis. `null` si la génération a échoué (modèle absent, par ex.). */
   documentGenerationId: number | null;
+  /** Détail chiffré : ce que le total recouvre. Vide pour un devis saisi à la main. */
+  lines: QuoteLine[];
 }
+
 
 export type ServiceQuoteRequest = Omit<ServiceQuote,
   'id' | 'interventionId' | 'status' | 'providerUserId' | 'documentGenerationId'>;
@@ -56,12 +62,17 @@ export const serviceQuotesApi = {
    * de sens que pour un gestionnaire saisissant un devis externe.
    */
   submitMine(interventionId: number, request: Pick<ServiceQuoteRequest,
-    'amount' | 'currency' | 'validUntil' | 'earliestStartDate' | 'description'>): Promise<ServiceQuote> {
+    'amount' | 'currency' | 'validUntil' | 'earliestStartDate' | 'description' | 'lines'>): Promise<ServiceQuote> {
     return apiClient.post<ServiceQuote>(`/interventions/${interventionId}/quotes/mine`, request);
   },
   create(interventionId: number, request: ServiceQuoteRequest): Promise<ServiceQuote> {
     return apiClient.post<ServiceQuote>(`/interventions/${interventionId}/quotes`, request);
   },
+  /** Écarte CE devis sans en retenir un autre. */
+  reject(id: number): Promise<ServiceQuote> {
+    return apiClient.post<ServiceQuote>(`/service-quotes/${id}/reject`, {});
+  },
+
   /** Approuve CE devis : les concurrents passent REJECTED, le coût est reporté sur l'intervention. */
   approve(id: number): Promise<ServiceQuote> {
     return apiClient.post<ServiceQuote>(`/service-quotes/${id}/approve`, {});

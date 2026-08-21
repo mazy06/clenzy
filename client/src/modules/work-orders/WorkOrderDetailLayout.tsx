@@ -49,7 +49,10 @@ import {
   LocationOn,
   NoteAlt,
   People,
+  BlockOutlined,
+  CheckCircleOutline,
   Person,
+  Receipt,
   ReportProblem,
   Schedule,
   SquareFoot,
@@ -113,6 +116,32 @@ const INFO_VALUE_CLASS = 'text-[13px] font-semibold text-foreground mt-px';
  * pour qu'une rangee de quatre tienne sur une largeur de tablette.
  */
 const TILE_CLASS = 'p-3 gap-0.5';
+
+/**
+ * Etat de l'intervenant sur la mission.
+ *
+ * <p>Accepter l'assignation et voir son prix retenu sont deux choses : le
+ * technicien s'engage a intervenir, mais la decision sur le MONTANT revient au
+ * proprietaire ou a la conciergerie. QUOTE_SUBMITTED tient cet entre-deux, que
+ * « Acceptee » laissait croire acquis.</p>
+ */
+export type WorkOrderAssignmentState =
+  | 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'QUOTE_SUBMITTED' | 'QUOTE_APPROVED';
+
+const ASSIGNMENT_ICON: Record<WorkOrderAssignmentState, React.ReactNode> = {
+  PENDING: <Schedule size={16} strokeWidth={1.75} />,
+  ACCEPTED: <CheckCircleOutline size={16} strokeWidth={2} />,
+  DECLINED: <BlockOutlined size={16} strokeWidth={1.75} />,
+  QUOTE_SUBMITTED: <Receipt size={16} strokeWidth={1.75} />,
+  QUOTE_APPROVED: <CheckCircleOutline size={16} strokeWidth={2} />,
+};
+const ASSIGNMENT_VALUE_CLASS: Record<WorkOrderAssignmentState, string> = {
+  PENDING: 'text-warning-ink',
+  ACCEPTED: 'text-success-ink',
+  DECLINED: 'text-destructive-ink',
+  QUOTE_SUBMITTED: 'text-warning-ink',
+  QUOTE_APPROVED: 'text-success-ink',
+};
 
 /**
  * Tuile mise en avant : fond pastel et filet primaire. Pas de bande laterale ni
@@ -319,6 +348,12 @@ export interface WorkOrderViewModel {
   tasks?: WorkOrderTask[];
   /** Acces au logement, renseigne sur la propriete. */
   access?: WorkOrderAccess;
+  /**
+   * Reponse de l'intervenant a l'assignation. Une mission acceptee est un
+   * engagement : il doit se lire dans la rangee de faits, pas seulement dans
+   * un bandeau qu'on survole.
+   */
+  assignment?: WorkOrderAssignmentState;
   /** Signalement dont decoule ce travail, le cas echeant. */
   sourceIssue?: WorkOrderSourceIssue;
   type: string;
@@ -611,8 +646,16 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
         </div>
       </div>
 
-      {/* ── Les quatre faits, en rangee separee par des filets ───────────── */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-y border-solid border-border py-3 min-[900px]:grid-cols-4 min-[900px]:divide-x min-[900px]:divide-solid min-[900px]:divide-border">
+      {/* ── Les faits, en rangee separee par des filets ──────────────────── */}
+      <div
+        className={cn(
+          'grid grid-cols-2 gap-x-4 gap-y-3 border-y border-solid border-border py-3',
+          'min-[900px]:divide-x min-[900px]:divide-solid min-[900px]:divide-border',
+          // Classes ecrites en toutes lettres : une classe Tailwind ne nait
+          // jamais d'une interpolation.
+          vm.assignment ? 'min-[900px]:grid-cols-5' : 'min-[900px]:grid-cols-4',
+        )}
+      >
         <div className="min-[900px]:pe-4">
           <Fact icon={getTypeIcon(vm.type)} label={t('common.type')}
             value={getInterventionTypeLabel(vm.type, t)} />
@@ -636,6 +679,26 @@ const WorkOrderDetailLayout: React.FC<WorkOrderDetailLayoutProps> = ({
             strong={isClosed}
           />
         </div>
+        {vm.assignment && (
+          <div className="min-[900px]:ps-4">
+            <Fact
+              icon={ASSIGNMENT_ICON[vm.assignment]}
+              label={t('interventions.detail.assignmentLabel', 'Votre réponse')}
+              value={
+                <span className={ASSIGNMENT_VALUE_CLASS[vm.assignment]}>
+                  {t(`interventions.detail.assignment.${vm.assignment}`, {
+                    PENDING: 'En attente',
+                    ACCEPTED: 'Acceptée',
+                    DECLINED: 'Refusée',
+                    QUOTE_SUBMITTED: 'Devis soumis',
+                    QUOTE_APPROVED: 'Devis accepté',
+                  }[vm.assignment])}
+                </span>
+              }
+              strong
+            />
+          </div>
+        )}
       </div>
 
       {/* ── Deux colonnes, sans boites ───────────────────────────────────── */}

@@ -12,7 +12,8 @@ public enum ReferenceType {
     RESERVATION("Reservation"),
     PROVIDER_EXPENSE("Depense prestataire"),
     RECEIVED_FORM("Formulaire recu (contact)"),
-    MANAGEMENT_CONTRACT("Contrat de gestion");
+    MANAGEMENT_CONTRACT("Contrat de gestion"),
+    SERVICE_QUOTE("Devis prestataire");
 
     private final String label;
 

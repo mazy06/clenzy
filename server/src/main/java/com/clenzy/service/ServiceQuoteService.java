@@ -2,12 +2,20 @@ package com.clenzy.service;
 
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.Intervention;
+import com.clenzy.model.InterventionType;
 import com.clenzy.model.ProviderAgreedRate;
 import com.clenzy.dto.DocumentGenerationDto;
 import com.clenzy.dto.GenerateDocumentRequest;
 import com.clenzy.model.DocumentType;
+import com.clenzy.dto.QuoteLineDto;
+import com.clenzy.model.ContactMessageCategory;
+import com.clenzy.model.ContactMessagePriority;
+import com.clenzy.model.ContactThread;
 import com.clenzy.model.NotificationKey;
+import com.clenzy.model.UserRole;
 import com.clenzy.repository.ProviderAgreedRateRepository;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import com.clenzy.model.ServiceQuote;
 import com.clenzy.model.User;
@@ -16,11 +24,22 @@ import com.clenzy.repository.UserRepository;
 import com.clenzy.repository.ServiceQuoteRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.clenzy.model.UserRole;
+import com.clenzy.util.JwtRoleExtractor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Clock;
+import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Devis prestataires (M4, vague M-B). L'approbation est la décision qui compte :
@@ -33,6 +52,11 @@ import java.util.List;
 public class ServiceQuoteService {
 
     private static final Logger log = LoggerFactory.getLogger(ServiceQuoteService.class);
+    /** Les dates du devis sont des types java.time : le module est requis. */
+    private static final com.fasterxml.jackson.databind.ObjectMapper RECAP_MAPPER =
+            new com.fasterxml.jackson.databind.ObjectMapper()
+                    .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+                    .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     private final ServiceQuoteRepository quoteRepository;
     private final InterventionRepository interventionRepository;
@@ -41,6 +65,9 @@ public class ServiceQuoteService {
     private final NotificationService notificationService;
     private final Clock clock;
     private final DocumentGeneratorService documentGeneratorService;
+    private final ContactThreadService contactThreadService;
+    private final ServiceQuotePublisher publisher;
+    private final PlatformSettingsService platformSettingsService;
 
     public ServiceQuoteService(ServiceQuoteRepository quoteRepository,
                                InterventionRepository interventionRepository,
@@ -48,7 +75,10 @@ public class ServiceQuoteService {
                                ProviderAgreedRateRepository agreedRateRepository,
                                NotificationService notificationService,
                                Clock clock,
-                               DocumentGeneratorService documentGeneratorService) {
+                               DocumentGeneratorService documentGeneratorService,
+                               ContactThreadService contactThreadService,
+                               ServiceQuotePublisher publisher,
+                               PlatformSettingsService platformSettingsService) {
         this.quoteRepository = quoteRepository;
         this.interventionRepository = interventionRepository;
         this.userRepository = userRepository;
@@ -56,6 +86,9 @@ public class ServiceQuoteService {
         this.notificationService = notificationService;
         this.clock = clock;
         this.documentGeneratorService = documentGeneratorService;
+        this.contactThreadService = contactThreadService;
+        this.publisher = publisher;
+        this.platformSettingsService = platformSettingsService;
     }
 
     @Transactional(readOnly = true)
@@ -89,11 +122,37 @@ public class ServiceQuoteService {
         quote.setProviderUserId(me.getId());
         quote.setProviderName(me.getFullName());
         quote.setProviderEmail(me.getEmail());
+        applyMaintenanceDeposit(quote);
         ServiceQuote saved = create(orgId, quote);
 
-        // Un devis qui dort dans une liste ne sert a rien : le gestionnaire doit
-        // savoir qu'on attend sa reponse. Best-effort — une notification qui
-        // echoue ne doit pas annuler le devis.
+        // PDF, discussion et notifications sont des effets APRES COMMIT. Places
+        // dans la transaction, la moindre erreur la marquait rollback-only : le
+        // devis lui-meme repartait alors en 500 alors qu'il etait valide
+        // (regle audit n°2).
+        final ServiceQuote persisted = saved;
+        afterCommit(() -> publisher.publish(persisted, me,
+                (q, p) -> publishQuote(q, p, orgId)));
+        return saved;
+    }
+
+    /** Enregistre une action a executer une fois la transaction validee. */
+    private void afterCommit(Runnable action) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            action.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        action.run();
+                    }
+                });
+    }
+
+    /** Effets externes d'un devis soumis : document, discussion, notifications. */
+    private void publishQuote(ServiceQuote saved, User me, Long orgId) {
+        generateQuoteDocument(saved);
         try {
             String amount = saved.getAmount() != null
                     ? saved.getAmount().stripTrailingZeros().toPlainString() : "?";
@@ -104,11 +163,11 @@ public class ServiceQuoteService {
                             + saved.getInterventionId() + ". A approuver.",
                     "/interventions/" + saved.getInterventionId());
             notifyPropertyOwner(saved, me.getFullName(), amount);
+            openQuoteDiscussion(saved, me);
         } catch (Exception e) {
             log.warn("Notification de proposition de tarif echouee (devis {}) : {}",
                     saved.getId(), e.getMessage());
         }
-        return saved;
     }
 
     /**
@@ -122,6 +181,212 @@ public class ServiceQuoteService {
         User me = userRepository.findByKeycloakId(keycloakId)
                 .orElseThrow(() -> new NotFoundException("Utilisateur introuvable"));
         return agreedRateRepository.findByOrganizationIdAndProviderUserId(orgId, me.getId());
+    }
+
+    /**
+     * Annonce l'approbation dans la discussion du devis.
+     *
+     * <p>Le proprietaire cliquait « Accepter » et il ne se passait rien de
+     * visible : ni accuse de reception, ni indication de la suite. La reponse
+     * vient du PRESTATAIRE — c'est lui qui s'engage a intervenir — et porte
+     * l'acompte a regler quand il y en a un.</p>
+     */
+    private void announceApproval(ServiceQuote quote, Long orgId) {
+        if (quote.getInterventionId() == null) return;
+        ContactThread thread = contactThreadService
+                .findByReference(orgId, "SERVICE_QUOTE_INTERVENTION", quote.getInterventionId())
+                .orElse(null);
+        if (thread == null) return;
+
+        User provider = quote.getProviderUserId() != null
+                ? userRepository.findById(quote.getProviderUserId()).orElse(null) : null;
+        if (provider == null || provider.getKeycloakId() == null) return;
+
+        boolean hasDeposit = quote.getDepositAmount() != null
+                && quote.getDepositAmount().compareTo(BigDecimal.ZERO) > 0;
+
+        StringBuilder reply = new StringBuilder("Merci pour votre validation. ");
+        reply.append(hasDeposit
+                ? "Je bloque la date une fois l'acompte regle."
+                : "Je vous confirme mon intervention ; le reglement se fera une fois le travail termine.");
+
+        try {
+            contactThreadService.post(thread, provider.getKeycloakId(), null,
+                    reply.toString(), ContactMessagePriority.MEDIUM,
+                    hasDeposit ? depositCard(quote) : null);
+        } catch (Exception e) {
+            log.warn("Reponse automatique impossible sur le devis {} : {}",
+                    quote.getId(), e.getMessage());
+        }
+    }
+
+    /** Carte de reglement de l'acompte, payable par Stripe depuis la discussion. */
+    private String depositCard(ServiceQuote quote) {
+        Map<String, Object> card = new LinkedHashMap<>();
+        card.put("kind", "QUOTE_DEPOSIT");
+        card.put("quoteId", quote.getId());
+        card.put("interventionId", quote.getInterventionId());
+        card.put("amount", quote.getDepositAmount());
+        card.put("currency", quote.getCurrency() != null ? quote.getCurrency() : "EUR");
+        card.put("percent", quote.getDepositPercent());
+        card.put("totalAmount", quote.getAmount());
+        try {
+            return RECAP_MAPPER.writeValueAsString(card);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Fige l'acompte exigible a la validation.
+     *
+     * <p>Le menage et la lingerie se paient au travail fait : rien a avancer.
+     * Une maintenance peut demander du materiel ou immobiliser une journee —
+     * d'ou un acompte, dont la plateforme fixe le taux. Le prestataire ne le
+     * choisit pas : chacun fixerait le sien, et le proprietaire ne saurait plus
+     * a quoi s'attendre.</p>
+     *
+     * <p>Le taux est copie sur le devis, pas seulement reference : le reglage
+     * peut evoluer, un devis deja soumis ne change plus.</p>
+     */
+    private void applyMaintenanceDeposit(ServiceQuote quote) {
+        if (quote.getInterventionId() == null || quote.getAmount() == null) return;
+        Intervention intervention = interventionRepository.findById(quote.getInterventionId())
+                .orElse(null);
+        if (intervention == null || intervention.getType() == null) return;
+
+        InterventionType type;
+        try {
+            type = InterventionType.valueOf(intervention.getType());
+        } catch (IllegalArgumentException e) {
+            return;
+        }
+        if (!type.isMaintenance()) return;
+
+        BigDecimal percent = platformSettingsService.getOrDefault().getMaintenanceDepositPercent();
+        if (percent == null || percent.compareTo(BigDecimal.ZERO) <= 0) return;
+
+        quote.setDepositPercent(percent);
+        quote.setDepositAmount(quote.getAmount()
+                .multiply(percent)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
+    }
+
+    /**
+     * Ouvre la discussion du devis, avec le proprietaire ET la conciergerie.
+     *
+     * <p>Le devis partait en deux notifications separees : chacun voyait passer
+     * un montant sans pouvoir en discuter avec l'autre. Un fil de groupe les
+     * reunit autour du meme recapitulatif — et le meme fil sert aux devis
+     * suivants sur la meme intervention.</p>
+     */
+    private void openQuoteDiscussion(ServiceQuote quote, User provider) {
+        if (quote.getInterventionId() == null) return;
+        Intervention intervention = interventionRepository.findById(quote.getInterventionId()).orElse(null);
+        if (intervention == null) return;
+
+        Set<String> participants = new LinkedHashSet<>();
+        if (intervention.getProperty() != null && intervention.getProperty().getOwner() != null) {
+            String ownerKeycloakId = intervention.getProperty().getOwner().getKeycloakId();
+            if (ownerKeycloakId != null) participants.add(ownerKeycloakId);
+        }
+        userRepository.findByRoleIn(
+                        List.of(UserRole.SUPER_ADMIN, UserRole.SUPER_MANAGER), quote.getOrganizationId())
+                .stream().map(User::getKeycloakId).filter(Objects::nonNull)
+                .forEach(participants::add);
+
+        // Sans destinataire, le fil n'aurait que son auteur.
+        if (participants.isEmpty()) return;
+
+        String propertyName = intervention.getProperty() != null
+                ? intervention.getProperty().getName() : "";
+        String subject = "Devis — " + intervention.getTitle()
+                + (propertyName.isBlank() ? "" : " (" + propertyName + ")");
+
+        ContactThread thread = contactThreadService.openThread(
+                quote.getOrganizationId(), subject, ContactMessageCategory.MAINTENANCE,
+                provider.getKeycloakId(), "SERVICE_QUOTE_INTERVENTION", quote.getInterventionId(),
+                participants);
+
+        contactThreadService.post(thread, provider.getKeycloakId(), subject,
+                quoteRecap(quote, intervention, provider), ContactMessagePriority.MEDIUM,
+                quoteCard(quote, intervention, provider));
+    }
+
+    /**
+     * Carte du devis rendue sous le message : le logement, le montant, le PDF a
+     * ouvrir et les deux gestes de decision. Sans elle, le destinataire devait
+     * quitter la discussion pour agir.
+     */
+    private String quoteCard(ServiceQuote quote, Intervention intervention, User provider) {
+        Map<String, Object> card = new LinkedHashMap<>();
+        card.put("kind", "SERVICE_QUOTE");
+        card.put("quoteId", quote.getId());
+        card.put("interventionId", intervention.getId());
+        card.put("interventionTitle", intervention.getTitle());
+        card.put("interventionType", intervention.getType());
+        card.put("propertyName", intervention.getProperty() != null
+                ? intervention.getProperty().getName() : null);
+        card.put("propertyAddress", intervention.getProperty() != null
+                ? intervention.getProperty().getAddress() : null);
+        card.put("scheduledDate", intervention.getScheduledDate());
+        card.put("providerName", provider.getFullName());
+        card.put("amount", quote.getAmount());
+        card.put("currency", quote.getCurrency() != null ? quote.getCurrency() : "EUR");
+        card.put("validUntil", quote.getValidUntil());
+        card.put("earliestStartDate", quote.getEarliestStartDate());
+        card.put("lines", parseQuoteLines(quote.getLines()));
+        card.put("depositPercent", quote.getDepositPercent());
+        card.put("depositAmount", quote.getDepositAmount());
+        // Le PDF est deja genere a ce stade : la carte en porte l'adresse.
+        try {
+            card.put("documentGenerationId", quote.getDocumentRef() != null
+                    ? Long.valueOf(quote.getDocumentRef()) : null);
+        } catch (NumberFormatException e) {
+            card.put("documentGenerationId", null);
+        }
+        try {
+            return RECAP_MAPPER.writeValueAsString(card);
+        } catch (Exception e) {
+            log.warn("Carte du devis {} non serialisable : {}", quote.getId(), e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Le mot d'accompagnement du devis.
+     *
+     * <p>Il repetait le montant, le detail ligne a ligne et les dates — que la
+     * carte affiche juste en dessous, en mieux. Le meme contenu deux fois ne
+     * renseigne pas davantage, il fait douter de ce qu'on lit. Le message porte
+     * donc ce que la carte ne dira jamais : une phrase d'un intervenant, et sa
+     * note si elle apporte un contexte que les chiffres ne disent pas.</p>
+     */
+    private String quoteRecap(ServiceQuote quote, Intervention intervention, User provider) {
+        StringBuilder message = new StringBuilder("Bonjour, voici mon devis pour cette intervention.");
+
+        // Le mot libre de l'intervenant, s'il n'est pas juste la liste des
+        // prestations que la carte detaille deja.
+        String note = quote.getDescription();
+        List<QuoteLineDto> lines = parseQuoteLines(quote.getLines());
+        String linesJoined = lines.stream().map(QuoteLineDto::label)
+                .collect(java.util.stream.Collectors.joining(" + "));
+        if (note != null && !note.isBlank() && !note.trim().equals(linesJoined)) {
+            message.append("\n\n").append(note.trim());
+        }
+
+        message.append("\n\nJe reste disponible si vous souhaitez en discuter.");
+        return message.toString();
+    }
+
+    private List<QuoteLineDto> parseQuoteLines(String json) {
+        if (json == null || json.isBlank()) return List.of();
+        try {
+            return RECAP_MAPPER.readValue(json,
+                    new com.fasterxml.jackson.core.type.TypeReference<List<QuoteLineDto>>() {});
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 
     /** Le proprietaire du logement est partie prenante du prix : il est prevenu aussi. */
@@ -160,24 +425,24 @@ public class ServiceQuoteService {
      * deja rendre un DEVIS pour une intervention — il ne lui manquait que
      * d'etre appele.</p>
      *
-     * <p>A l'APPROBATION seulement, et pas a la reception : le modele DEVIS tire
-     * son montant de l'intervention ({@code InterventionTagResolver} : tags
-     * {@code montant} et {@code total} = cout reel ou estime). Trois devis
-     * concurrents rendraient donc trois PDF identiques, portant un montant qui
-     * n'est celui d'aucun d'eux. L'approbation vient justement d'aligner
-     * {@code estimatedCost} sur le montant retenu : le document est alors
-     * exact.</p>
+     * <p>Genere DES LA SOUMISSION : c'est le document qu'on transmet pour
+     * decision, il n'aurait aucun sens d'attendre l'approbation qu'il sert a
+     * obtenir. Le rendu passe par {@code ReferenceType.SERVICE_QUOTE} et non
+     * par l'intervention : les tags {@code montant} et {@code total} d'une
+     * intervention portent SON cout, si bien que trois devis concurrents
+     * auraient rendu trois PDF identiques affichant un montant qui n'est celui
+     * d'aucun d'eux (cf. {@code ServiceQuoteTagResolver}).</p>
      *
      * <p>Best-effort et sans envoi de mail : un modele absent ou un rendu qui
-     * echoue ne doit pas annuler l'approbation, qui reste la decision.</p>
+     * echoue ne doit pas annuler le devis, qui reste la donnee.</p>
      */
     private void generateQuoteDocument(ServiceQuote quote) {
-        if (quote.getInterventionId() == null) {
+        if (quote.getId() == null) {
             return;
         }
         try {
             GenerateDocumentRequest request = new GenerateDocumentRequest(
-                    DocumentType.DEVIS.name(), quote.getInterventionId(), "intervention", null, false);
+                    DocumentType.DEVIS.name(), quote.getId(), "service_quote", null, false);
             DocumentGenerationDto generation = documentGeneratorService.generateDocument(request, null);
             if (generation != null && generation.id() != null) {
                 quote.setDocumentRef(String.valueOf(generation.id()));
@@ -204,10 +469,76 @@ public class ServiceQuoteService {
      * reporté sur l'intervention. Échec explicite si le devis n'est plus RECEIVED
      * (déjà approuvé/écarté entre-temps — la carte peut être périmée).
      */
+    /**
+     * Qui tranche sur un devis.
+     *
+     * <p>Le controller n'exigeait que {@code isAuthenticated()} : tout membre de
+     * l'organisation pouvait approuver n'importe quel devis — y compris
+     * l'intervenant, sur le sien. Or accepter l'assignation et decider du PRIX
+     * sont deux choses : le second appartient a la conciergerie et au
+     * proprietaire du logement (regle audit n°2, validation d'ownership).</p>
+     */
+    private void assertCanDecide(ServiceQuote quote, Jwt jwt) {
+        UserRole role = JwtRoleExtractor.extractUserRole(jwt);
+        if (role != null && role.isPlatformStaff()) {
+            return;
+        }
+        // Le proprietaire tranche sur SON bien, pas sur celui d'un autre.
+        if (role == UserRole.HOST && quote.getInterventionId() != null && jwt != null) {
+            Intervention intervention = interventionRepository.findById(quote.getInterventionId())
+                    .orElse(null);
+            if (intervention != null && intervention.getProperty() != null
+                    && intervention.getProperty().getOwner() != null
+                    && jwt.getSubject().equals(intervention.getProperty().getOwner().getKeycloakId())) {
+                return;
+            }
+        }
+        throw new AccessDeniedException(
+                "Seuls la conciergerie et le proprietaire du logement decident d'un devis");
+    }
+
+    /**
+     * Ecarte le devis sans en retenir un autre.
+     *
+     * <p>Le refus n'existait pas : seule la suppression, qui efface la trace de
+     * ce qui avait ete propose. Un devis ecarte reste lisible — c'est
+     * l'historique de la negociation.</p>
+     */
     @Transactional
-    public ServiceQuote approve(Long id, Long orgId, String approvedBy) {
+    public ServiceQuote reject(Long id, Long orgId, Jwt jwt) {
         final ServiceQuote quote = quoteRepository.findByIdAndOrganizationId(id, orgId)
                 .orElseThrow(() -> new NotFoundException("Devis introuvable : " + id));
+        assertCanDecide(quote, jwt);
+        if (quote.getStatus() != ServiceQuote.Status.RECEIVED) {
+            throw new IllegalStateException("Devis déjà " + quote.getStatus() + " — refus impossible");
+        }
+        quote.setStatus(ServiceQuote.Status.REJECTED);
+        return quoteRepository.save(quote);
+    }
+
+    @Transactional
+    public ServiceQuote approve(Long id, Long orgId, String approvedBy, Jwt jwt) {
+        final ServiceQuote quote = quoteRepository.findByIdAndOrganizationId(id, orgId)
+                .orElseThrow(() -> new NotFoundException("Devis introuvable : " + id));
+        assertCanDecide(quote, jwt);
+        return applyApproval(quote, id, orgId, approvedBy);
+    }
+
+    /**
+     * Approbation par la constellation (carte HITL « Approuver un devis »).
+     *
+     * <p>Methode distincte, et non un {@code jwt} nul qui vaudrait passe-droit :
+     * ce chemin n'a pas de porteur, sa legitimite vient de la carte qu'un
+     * humain a appliquee.</p>
+     */
+    @Transactional
+    public ServiceQuote approveFromSupervision(Long id, Long orgId, String appliedBy) {
+        final ServiceQuote quote = quoteRepository.findByIdAndOrganizationId(id, orgId)
+                .orElseThrow(() -> new NotFoundException("Devis introuvable : " + id));
+        return applyApproval(quote, id, orgId, appliedBy);
+    }
+
+    private ServiceQuote applyApproval(ServiceQuote quote, Long id, Long orgId, String approvedBy) {
         if (quoteRepository.markApproved(id, orgId, approvedBy, clock.instant()) == 0) {
             throw new IllegalStateException("Devis déjà " + quote.getStatus()
                     + " — approbation impossible");
@@ -218,8 +549,6 @@ public class ServiceQuoteService {
             intervention.setEstimatedCost(quote.getAmount());
             interventionRepository.save(intervention);
         }
-        generateQuoteDocument(quote);
-
         // L'accord se memorise : c'est lui qui evite de redemander un devis a
         // chaque mission suivante sur le meme logement, tant que l'intervenant
         // ne change pas son tarif.
@@ -243,6 +572,13 @@ public class ServiceQuoteService {
 
         log.info("Devis {} approuvé (org={}, intervention={}, montant={})",
                 id, orgId, quote.getInterventionId(), quote.getAmount());
+
+        // Effets APRES commit : ecrire dans la discussion pendant la
+        // transaction d'approbation la remettrait en cause si l'ecriture
+        // echoue (regle audit n°2).
+        final ServiceQuote approved = quote;
+        afterCommit(() -> publisher.publish(approved, null,
+                (q, ignored) -> announceApproval(q, orgId)));
         return quoteRepository.findByIdAndOrganizationId(id, orgId).orElse(quote);
     }
 

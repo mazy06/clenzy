@@ -369,8 +369,8 @@ public class SuggestionActionExecutor {
     /** QUOTE_APPROVAL — délègue à l'approbation CAS (org, statut, report du coût côté service). */
     private void applyQuoteApproval(SupervisionSuggestion suggestion) {
         final long quoteId = requiredLongParam(suggestion, "quoteId");
-        serviceQuoteService.getObject().approve(quoteId, suggestion.getOrganizationId(),
-                suggestion.getAppliedBy());
+        serviceQuoteService.getObject().approveFromSupervision(quoteId,
+                suggestion.getOrganizationId(), suggestion.getAppliedBy());
     }
 
     /** CHARGEBACK_SUBMIT — délègue au dossier de litige (org, statut, Stripe côté service). */

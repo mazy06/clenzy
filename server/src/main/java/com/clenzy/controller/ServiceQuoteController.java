@@ -1,8 +1,11 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.QuoteLineDto;
 import com.clenzy.model.ServiceQuote;
 import com.clenzy.service.ServiceQuoteService;
 import com.clenzy.tenant.TenantContext;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,6 +26,9 @@ import java.util.List;
 @PreAuthorize("isAuthenticated()")
 public class ServiceQuoteController {
 
+    /** Lecture seule du detail JSON : pas d'etat, donc partageable. */
+    private static final ObjectMapper LINES_MAPPER = new ObjectMapper();
+
     /** Shape stable (jamais l'entité — règle audit n°5). */
     public record ServiceQuoteDto(Long id, Long interventionId, String providerName,
                                   String providerEmail, String providerPhone,
@@ -30,12 +36,28 @@ public class ServiceQuoteController {
                                   LocalDate earliestStartDate, String description, String status,
                                   Long providerUserId,
                                   /** Generation du PDF du devis — de quoi l'ouvrir et le transmettre. */
-                                  Long documentGenerationId) {
+                                  Long documentGenerationId,
+                                  /** Detail chiffre : ce que le total recouvre. */
+                                  List<QuoteLineDto> lines,
+                                  /** Acompte exigible a la validation (maintenance). */
+                                  BigDecimal depositPercent,
+                                  BigDecimal depositAmount) {
         static ServiceQuoteDto from(ServiceQuote q) {
             return new ServiceQuoteDto(q.getId(), q.getInterventionId(), q.getProviderName(),
                     q.getProviderEmail(), q.getProviderPhone(), q.getAmount(), q.getCurrency(),
                     q.getValidUntil(), q.getEarliestStartDate(), q.getDescription(),
-                    q.getStatus().name(), q.getProviderUserId(), parseGenerationId(q.getDocumentRef()));
+                    q.getStatus().name(), q.getProviderUserId(), parseGenerationId(q.getDocumentRef()),
+                    parseLines(q.getLines()), q.getDepositPercent(), q.getDepositAmount());
+        }
+
+        /** Un detail illisible ne doit pas faire echouer toute la liste. */
+        private static List<QuoteLineDto> parseLines(String json) {
+            if (json == null || json.isBlank()) return List.of();
+            try {
+                return LINES_MAPPER.readValue(json, new TypeReference<List<QuoteLineDto>>() {});
+            } catch (Exception e) {
+                return List.of();
+            }
         }
 
         /** `documentRef` est un champ libre : un contenu non numerique n'est pas une generation. */
@@ -45,6 +67,16 @@ public class ServiceQuoteController {
             } catch (NumberFormatException e) {
                 return null;
             }
+        }
+    }
+
+    /** Le detail est stocke tel quel ; une serialisation qui echoue laisse NULL. */
+    private static String serializeLines(List<QuoteLineDto> lines) {
+        if (lines == null || lines.isEmpty()) return null;
+        try {
+            return LINES_MAPPER.writeValueAsString(lines);
+        } catch (Exception e) {
+            return null;
         }
     }
 
@@ -79,6 +111,7 @@ public class ServiceQuoteController {
         quote.setValidUntil(request.validUntil());
         quote.setEarliestStartDate(request.earliestStartDate());
         quote.setDescription(request.description());
+        quote.setLines(serializeLines(request.lines()));
         return ResponseEntity.ok(ServiceQuoteDto.from(
                 serviceQuoteService.create(tenantContext.getRequiredOrganizationId(), quote)));
     }
@@ -117,9 +150,18 @@ public class ServiceQuoteController {
         quote.setValidUntil(request.validUntil());
         quote.setEarliestStartDate(request.earliestStartDate());
         quote.setDescription(request.description());
+        quote.setLines(serializeLines(request.lines()));
         // Nom, email et auteur viennent du JWT — pas du corps de requete.
         return ResponseEntity.ok(ServiceQuoteDto.from(serviceQuoteService.submitAsProvider(
                 tenantContext.getRequiredOrganizationId(), quote, jwt.getSubject())));
+    }
+
+    @PostMapping("/service-quotes/{id}/reject")
+    @Operation(summary = "Ecarter un devis sans en retenir un autre")
+    public ResponseEntity<ServiceQuoteDto> reject(@PathVariable Long id,
+                                                  @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(ServiceQuoteDto.from(serviceQuoteService.reject(
+                id, tenantContext.getRequiredOrganizationId(), jwt)));
     }
 
     @PostMapping("/service-quotes/{id}/approve")
@@ -128,7 +170,7 @@ public class ServiceQuoteController {
                                                    @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(ServiceQuoteDto.from(serviceQuoteService.approve(
                 id, tenantContext.getRequiredOrganizationId(),
-                "user:" + (jwt != null ? jwt.getSubject() : "unknown"))));
+                "user:" + (jwt != null ? jwt.getSubject() : "unknown"), jwt)));
     }
 
     @DeleteMapping("/service-quotes/{id}")

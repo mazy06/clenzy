@@ -52,6 +52,7 @@ import { issuesApi, type Issue } from '../../../services/api/issuesApi';
 import { providerExpensesApi } from '../../../services/api/providerExpensesApi';
 import { myAvailabilityApi } from '../../../services/api/myAvailabilityApi';
 import { serviceQuotesApi, type ServiceQuote } from '../../../services/api/serviceQuotesApi';
+import { getInterventionTypeLabel } from '../../../utils/statusUtils';
 import { technicianPrestationsApi } from '../../../services/api/technicianPrestationsApi';
 import { housekeeperRatesApi } from '../../../services/api/housekeeperRatesApi';
 import { useAuth } from '../../../hooks/useAuth';
@@ -636,13 +637,18 @@ export function MissionProposalsCard() {
   });
 
   const quoteMutation = useMutation({
-    mutationFn: ({ id, amount, note }: { id: number; amount: number; note: string }) =>
+    mutationFn: ({ id, amount, note, lines }: {
+      id: number; amount: number; note: string; lines: QuoteLine[];
+    }) =>
       serviceQuotesApi.submitMine(id, {
         amount,
         currency: 'EUR',
         validUntil: null,
         earliestStartDate: null,
         description: note || null,
+        // Le detail justifie le total : sans lui, le proprietaire ne voit
+        // qu'un montant.
+        lines,
       }),
     onSuccess: () => {
       notify.success(t('field.proposals.quoteSent', 'Tarif proposé — le gestionnaire est prévenu'));
@@ -754,6 +760,12 @@ export function MissionProposalsCard() {
                       id: mission.id,
                       amount: Math.round(mineTotal),
                       note: '',
+                      lines: [{
+                        label: getInterventionTypeLabel(mission.type, t),
+                        quantity: 1,
+                        unitPrice: Math.round(mineTotal),
+                        interventionType: mission.type,
+                      }],
                     })}
                   >
                     {t('field.proposals.proposeMine', 'Proposer {{amount}} €', {
