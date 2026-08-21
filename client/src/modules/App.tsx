@@ -5,6 +5,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 import keycloak, { keycloakInitPromise } from '../keycloak';
 import { useAuth } from '../hooks/useAuth';
+import SmartRedirect from '../components/SmartRedirect';
 import { useTokenManagement } from '../hooks/useTokenManagement';
 import { configureConsole } from '../config/console';
 import { CustomPermissionsProvider } from '../hooks/useCustomPermissions';
@@ -321,7 +322,7 @@ const App: React.FC = () => {
               !authenticated || !keycloak.authenticated ? (
                 <Login />
               ) : (
-                <Navigate to="/planning" replace />
+                <SmartRedirect />
               )
             }
           />
@@ -333,7 +334,7 @@ const App: React.FC = () => {
               !authenticated || !keycloak.authenticated ? (
                 <Inscription />
               ) : (
-                <Navigate to="/planning" replace />
+                <SmartRedirect />
               )
             }
           />
@@ -345,7 +346,7 @@ const App: React.FC = () => {
               !authenticated || !keycloak.authenticated ? (
                 <ForgotPassword />
               ) : (
-                <Navigate to="/planning" replace />
+                <SmartRedirect />
               )
             }
           />

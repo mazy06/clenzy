@@ -136,7 +136,7 @@ export default function InscriptionConfirm() {
 
       // Redirect vers le planning apres un court delai
       setTimeout(() => {
-        window.location.href = '/planning';
+        window.location.href = '/';
       }, 1500);
     } catch (err) {
       const apiErr = err as ApiError;

@@ -43,6 +43,7 @@ import {
 } from './ui';
 import { CurrencySymbol } from './Money';
 import { useAuth } from '../hooks/useAuth';
+import { FIELD_ROLES } from '../utils/fieldRoles';
 import { useTranslation } from '../hooks/useTranslation';
 import { useThemeMode, type ThemeMode } from '../hooks/useThemeMode';
 import { useCurrency, type CurrencyCode } from '../hooks/useCurrency';
@@ -288,6 +289,24 @@ export default function AppSidebar({
     if (isMobile) setOpenMobile(false);
   };
 
+  /**
+   * Destination de la carte utilisateur du pied.
+   *
+   * <p>Elle pointait sur `/settings`, dont la route exige `settings:view` —
+   * permission absente des roles operationnels. Une gouvernante qui cliquait
+   * sur son propre nom tombait sur « Acces restreint ».</p>
+   *
+   * <p>Le ROLE prime sur la permission : `settings:view` avait ete accordee a
+   * la main a un compte technicien, qui se retrouvait donc envoye sur les
+   * reglages de l'ORGANISATION en cliquant son propre nom. Un intervenant va
+   * toujours sur « Mon compte » — ses conditions, ses justificatifs, sa zone,
+   * ses notifications.</p>
+   */
+  const isFieldWorker = FIELD_ROLES.some((role) => user?.roles?.includes(role));
+  const accountPath = !isFieldWorker && user?.permissions?.includes('settings:view')
+    ? '/settings'
+    : '/account';
+
   /** Un hub reste actif sur toutes les routes couvertes par ses onglets. */
   const matches = (paths: string[], exact: string) =>
     location.pathname === exact
@@ -394,7 +413,7 @@ export default function AppSidebar({
                 side: tooltipSide,
               }}
               aria-label={displayName}
-              onClick={() => handleNavigation('/settings')}
+              onClick={() => handleNavigation(accountPath)}
             >
               <Avatar className="size-8 rounded-lg">
                 <AvatarImage src={userAvatarSrc(user)} alt="" />

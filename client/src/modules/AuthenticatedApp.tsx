@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import ProtectedRoute from '../components/ProtectedRoute';
+import { FIELD_ROLES } from '../utils/fieldRoles';
 import SmartRedirect from '../components/SmartRedirect';
 import RouteFallback from '../components/RouteFallback';
 import { useAuth } from '../hooks/useAuth';
@@ -43,6 +44,8 @@ const InterventionDetails = lazy(() => import('./interventions/InterventionDetai
 const InterventionEdit = lazy(() => import('./interventions/InterventionEdit'));
 const InterventionRunScreen = lazy(() => import('./interventions/InterventionRunScreen'));
 const MyAccountPage = lazy(() => import('./account/MyAccountPage'));
+const MyRatesPage = lazy(() => import('./account/MyRatesPage'));
+const MyAvailabilityPage = lazy(() => import('./account/MyAvailabilityPage'));
 const PaymentSuccess = lazy(() => import('./interventions/PaymentSuccess'));
 const PaymentCancel = lazy(() => import('./interventions/PaymentCancel'));
 const InterventionsPendingPayment = lazy(() => import('./interventions/InterventionsPendingPayment'));
@@ -419,8 +422,16 @@ const AuthenticatedApp: React.FC = () => {
         {/* « Mon compte » : profil + notifications, SANS permission dediee —
             /settings exige `settings:view`, absente des roles operationnels. */}
         <Route path="/account" element={<MyAccountPage />} />
+        {/* Tarifs et disponibilites : gestes du QUOTIDIEN d'un intervenant, donc
+            des ecrans a eux, pas des cartes noyees dans « Mon compte ». Aucune
+            permission dediee — ce sont ses propres donnees. */}
+        <Route path="/mes-tarifs" element={<MyRatesPage />} />
+        <Route path="/mes-disponibilites" element={<MyAvailabilityPage />} />
+        {/* Reglages de l'ORGANISATION. Fermes au terrain meme quand
+            `settings:view` leur a ete accordee a la main : leurs reglages
+            personnels vivent dans « Mon compte ». */}
         <Route path="/settings" element={
-          <ProtectedRoute requiredPermission="settings:view">
+          <ProtectedRoute requiredPermission="settings:view" deniedRoles={[...FIELD_ROLES]}>
             <Settings />
           </ProtectedRoute>
         } />

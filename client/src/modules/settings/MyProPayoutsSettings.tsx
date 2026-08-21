@@ -151,7 +151,7 @@ export default function MyProPayoutsSettings() {
             )}
             {!data?.onboardingCompleted && (
               <Button
-                variant="default"
+                variant="secondary"
                 size="sm"
                 onClick={startOnboarding}
                 disabled={initializing || onboardingOpen}
