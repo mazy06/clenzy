@@ -96,20 +96,27 @@ const itemMediaVariants = cva(
   }
 )
 
-function ItemMedia({
-  className,
-  variant = "default",
-  ...props
-}: React.ComponentProps<"div"> & VariantProps<typeof itemMediaVariants>) {
+/**
+ * `forwardRef` ajoute localement pour React 18 — cf. la note dans `button.tsx`.
+ *
+ * Sans lui, un `<TooltipTrigger asChild>` autour du media avertissait
+ * « Function components cannot be given refs » et perdait la ref : l'infobulle
+ * n'avait plus d'ancre a positionner.
+ */
+const ItemMedia = React.forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<"div"> & VariantProps<typeof itemMediaVariants>
+>(function ItemMedia({ className, variant = "default", ...props }, ref) {
   return (
     <div
+      ref={ref}
       data-slot="item-media"
       data-variant={variant}
       className={cn(itemMediaVariants({ variant, className }))}
       {...props}
     />
   )
-}
+})
 
 function ItemContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
