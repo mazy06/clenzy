@@ -7351,7 +7351,13 @@
         "APPROVED": "مقبول",
         "REJECTED": "مستبعَد",
         "EXPIRED": "منتهٍ"
-      }
+      },
+      "paid": "مسدّد",
+      "depositPaid": "تم استلام الدفعة",
+      "awaitingDeposit": "بانتظار الدفعة المقدمة",
+      "awaitingPayment": "بانتظار السداد",
+      "seeAll": "عرض عروضي ({{count}})",
+      "allTitle": "عروضي"
     }
   },
   "company": {

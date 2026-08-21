@@ -51,8 +51,10 @@ import {
 import { issuesApi, type Issue } from '../../../services/api/issuesApi';
 import { providerExpensesApi } from '../../../services/api/providerExpensesApi';
 import { myAvailabilityApi } from '../../../services/api/myAvailabilityApi';
-import { serviceQuotesApi, type ServiceQuote } from '../../../services/api/serviceQuotesApi';
+import { serviceQuotesApi, type MyQuote, type ServiceQuote } from '../../../services/api/serviceQuotesApi';
 import { getInterventionTypeLabel } from '../../../utils/statusUtils';
+import { formatDate } from '../../../utils/formatUtils';
+import PagePagination from '../../../components/PagePagination';
 import { technicianPrestationsApi } from '../../../services/api/technicianPrestationsApi';
 import { housekeeperRatesApi } from '../../../services/api/housekeeperRatesApi';
 import { useAuth } from '../../../hooks/useAuth';
@@ -1151,6 +1153,102 @@ export function MyFollowUpsSection() {
   );
 }
 
+/** Nombre de devis par page dans la modale. */
+const QUOTES_PER_PAGE = 8;
+
+/**
+ * Une ligne de devis. Extraite parce que le bloc et sa modale l'affichent
+ * a l'identique — dupliquer le rendu, c'est le voir diverger.
+ */
+function QuoteRow({ quote, onOpen }: { quote: MyQuote; onOpen: (id: number) => void }) {
+  const { t } = useTranslation();
+  return (
+          <Item
+            key={quote.id}
+            variant="outline"
+            size="sm"
+            className="cursor-pointer"
+            onClick={() => onOpen(quote.interventionId)}
+          >
+            <ItemContent className="min-w-0 gap-0.5">
+              {/* Reference + nature : de quoi citer le devis et savoir de quel
+                  metier il releve, sans ouvrir la fiche. */}
+              <span className="flex flex-wrap items-center gap-1.5">
+                <ItemTitle className="truncate">
+                  {quote.interventionTitle
+                    || quote.description
+                    || t('field.quotes.untitled', 'Intervention #{{id}}', { id: quote.interventionId })}
+                </ItemTitle>
+                {quote.interventionType && (
+                  <StatusChip
+                    tone="neutral"
+                    size="sm"
+                    className="shrink-0 font-normal"
+                    label={getInterventionTypeLabel(quote.interventionType, t)}
+                  />
+                )}
+              </span>
+              {/* Le bien, puis A QUI le devis est adresse : « Intervention
+                  #97 » ne disait ni ou, ni pour qui, ni quand. */}
+              <ItemDescription className="truncate">
+                {[
+                  quote.propertyName,
+                  quote.ownerName || quote.agencyName,
+                  quote.scheduledDate ? formatDate(quote.scheduledDate) : null,
+                ].filter(Boolean).join(' · ')}
+              </ItemDescription>
+              <ItemDescription className="truncate font-mono text-2xs">
+                {[
+                  quote.reference,
+                  quote.validUntil
+                    ? t('field.quotes.validUntil', 'valable jusqu’au {{date}}',
+                        { date: formatDate(quote.validUntil) })
+                    : null,
+                ].filter(Boolean).join(' · ')}
+              </ItemDescription>
+            </ItemContent>
+            <ItemActions className="shrink-0">
+              {/* Ou en est l'argent : l'intervenant ne pouvait pas savoir si
+                  son acompte etait tombe. */}
+              {quote.status === 'APPROVED' && (
+                <StatusChip
+                  tone={quote.paymentState === 'PAID' ? 'ok'
+                    : quote.paymentState === 'DEPOSIT_PAID' ? 'info' : 'warn'}
+                  size="sm"
+                  dot
+                  label={quote.paymentState === 'PAID'
+                    ? t('field.quotes.paid', 'Réglé')
+                    : quote.paymentState === 'DEPOSIT_PAID'
+                      ? t('field.quotes.depositPaid', 'Acompte reçu')
+                      : quote.depositAmount
+                        ? t('field.quotes.awaitingDeposit', 'Acompte attendu')
+                        : t('field.quotes.awaitingPayment', 'Règlement attendu')}
+                />
+              )}
+              <StatusChip
+                tone={QUOTE_TONES[quote.status]}
+                size="sm"
+                dot
+                label={t(`field.quotes.status.${quote.status}`, quote.status)}
+              />
+              {/* Le montant ferme la ligne : c'est la colonne qu'on balaie
+                  pour comparer. Barre quand la proposition est ecartee — le
+                  tarif a existe, il ne vaut plus. */}
+              <span
+                className={cn(
+                  'ms-1 min-w-[64px] text-end text-sm font-semibold tabular-nums',
+                  quote.status === 'REJECTED' || quote.status === 'EXPIRED'
+                    ? 'text-muted-foreground line-through'
+                    : 'text-foreground',
+                )}
+              >
+                <Money value={quote.amount} decimals={0} />
+              </span>
+            </ItemActions>
+          </Item>
+  );
+}
+
 // ─── Mes devis (métiers de travaux) ─────────────────────────────────────────
 
 function useMyQuotes() {
@@ -1198,10 +1296,19 @@ export function MyQuotesCard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: quotes, isLoading } = useMyQuotes();
+  // Les hooks passent AVANT le retour anticipe : places apres, le premier rendu
+  // (en chargement) en declarait moins que le suivant, et React refusait de
+  // reconcilier — « Rendered more hooks than during the previous render ».
+  const [showAll, setShowAll] = React.useState(false);
+  const [page, setPage] = React.useState(0);
 
   if (isLoading) return <Skeleton className="h-[160px] w-full rounded-xl" />;
 
-  const recent = (quotes ?? []).slice(0, 6);
+  const all = quotes ?? [];
+  // Trois lignes sur le tableau de bord : au-dela, le bloc chasse ce qui vient
+  // apres lui. Le reste vit dans la modale, paginee.
+  const recent = all.slice(0, 3);
+  const paged = all.slice(page * QUOTES_PER_PAGE, (page + 1) * QUOTES_PER_PAGE);
 
   return (
     <BlockCard
@@ -1220,39 +1327,54 @@ export function MyQuotesCard() {
       ) : (
         <div className="flex flex-col gap-1.5">
           {recent.map((quote) => (
-            <Item
-              key={quote.id}
-              variant="outline"
-              size="sm"
-              className="cursor-pointer"
-              onClick={() => navigate(`/interventions/${quote.interventionId}`)}
-            >
-              <ItemContent>
-                <ItemTitle>
-                  {quote.description
-                    || t('field.quotes.untitled', 'Intervention #{{id}}', { id: quote.interventionId })}
-                </ItemTitle>
-                <ItemDescription className="tabular-nums">
-                  {quote.validUntil
-                    ? t('field.quotes.validUntil', 'valable jusqu’au {{date}}', { date: quote.validUntil })
-                    : t('field.quotes.noValidity', 'sans date de validité')}
-                </ItemDescription>
-              </ItemContent>
-              <ItemActions>
-                <span className="text-sm font-semibold text-foreground tabular-nums">
-                  <Money value={quote.amount} decimals={0} />
-                </span>
-                <StatusChip
-                  tone={QUOTE_TONES[quote.status]}
-                  size="sm"
-                  dot
-                  label={t(`field.quotes.status.${quote.status}`, quote.status)}
-                />
-              </ItemActions>
-            </Item>
+            <QuoteRow key={quote.id} quote={quote} onOpen={(id) => navigate(`/interventions/${id}`)} />
           ))}
+
+          {all.length > recent.length && (
+            <button
+              type="button"
+              onClick={() => { setPage(0); setShowAll(true); }}
+              className={cn(
+                'mt-0.5 self-start text-xs text-primary underline-offset-2',
+                'transition-colors hover:underline',
+                'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+              )}
+            >
+              {t('field.quotes.seeAll', 'Voir mes {{count}} devis', { count: all.length })}
+            </button>
+          )}
         </div>
       )}
+
+      <Dialog open={showAll} onOpenChange={setShowAll}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {t('field.quotes.allTitle', 'Mes devis')}
+              <span className="ms-2 text-sm font-normal tabular-nums text-muted-foreground">
+                {all.length}
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-1.5">
+            {paged.map((quote) => (
+              <QuoteRow
+                key={quote.id}
+                quote={quote}
+                onOpen={(id) => { setShowAll(false); navigate(`/interventions/${id}`); }}
+              />
+            ))}
+          </div>
+          {all.length > QUOTES_PER_PAGE && (
+            <PagePagination
+              count={all.length}
+              page={page}
+              onPageChange={setPage}
+              rowsPerPage={QUOTES_PER_PAGE}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </BlockCard>
   );
 }

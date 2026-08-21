@@ -7602,7 +7602,13 @@
         "APPROVED": "Accepted",
         "REJECTED": "Declined",
         "EXPIRED": "Expired"
-      }
+      },
+      "paid": "Paid",
+      "depositPaid": "Deposit received",
+      "awaitingDeposit": "Deposit pending",
+      "awaitingPayment": "Payment pending",
+      "seeAll": "See my {{count}} quotes",
+      "allTitle": "My quotes"
     }
   },
   "company": {

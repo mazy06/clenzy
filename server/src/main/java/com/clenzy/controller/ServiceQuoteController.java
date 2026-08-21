@@ -26,6 +26,30 @@ import java.util.List;
 @PreAuthorize("isAuthenticated()")
 public class ServiceQuoteController {
 
+    /**
+     * Devis vu par SON auteur : ce que la liste « Mes devis » a besoin de dire.
+     *
+     * <p>Elle n'affichait que « Intervention #97 » et un montant — ni le
+     * logement, ni la date, ni ce qui avait ete regle. L'intervenant ne pouvait
+     * pas savoir si son acompte etait tombe.</p>
+     */
+    public record MyQuoteDto(Long id, Long interventionId, String interventionTitle,
+                             /** Reference du devis : numero legal du PDF, ou repli sur l'id. */
+                             String reference,
+                             String propertyName, String propertyAddress,
+                             /** A qui le devis est adresse : le proprietaire du bien. */
+                             String ownerName,
+                             /** Et la conciergerie qui gere le bien. */
+                             String agencyName,
+                             /** Nature de la prestation : travaux, menage… */
+                             String interventionType,
+                             String scheduledDate, String interventionStatus,
+                             BigDecimal amount, String currency, LocalDate validUntil,
+                             String description, String status,
+                             BigDecimal depositAmount,
+                             /** UNPAID, DEPOSIT_PAID ou PAID. */
+                             String paymentState) {}
+
     /** Lecture seule du detail JSON : pas d'etat, donc partageable. */
     private static final ObjectMapper LINES_MAPPER = new ObjectMapper();
 
@@ -118,10 +142,9 @@ public class ServiceQuoteController {
 
     @GetMapping("/service-quotes/mine")
     @Operation(summary = "Mes devis — ceux que j'ai soumis")
-    public ResponseEntity<List<ServiceQuoteDto>> listMine(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<List<MyQuoteDto>> listMine(@AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(serviceQuoteService
-                .listMine(jwt.getSubject(), tenantContext.getRequiredOrganizationId())
-                .stream().map(ServiceQuoteDto::from).toList());
+                .listMineDetailed(jwt.getSubject(), tenantContext.getRequiredOrganizationId()));
     }
 
     @GetMapping("/service-quotes/my-agreed-rates")

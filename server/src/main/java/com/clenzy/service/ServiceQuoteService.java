@@ -12,6 +12,9 @@ import com.clenzy.model.ContactMessageCategory;
 import com.clenzy.model.ContactMessagePriority;
 import com.clenzy.model.ContactThread;
 import com.clenzy.model.NotificationKey;
+import com.clenzy.model.Property;
+import com.clenzy.model.PaymentStatus;
+import com.clenzy.model.TransactionStatus;
 import com.clenzy.model.UserRole;
 import com.clenzy.repository.ProviderAgreedRateRepository;
 import java.math.BigDecimal;
@@ -68,6 +71,9 @@ public class ServiceQuoteService {
     private final ContactThreadService contactThreadService;
     private final ServiceQuotePublisher publisher;
     private final PlatformSettingsService platformSettingsService;
+    private final com.clenzy.repository.PaymentTransactionRepository paymentTransactionRepository;
+    private final com.clenzy.repository.DocumentGenerationRepository documentGenerationRepository;
+    private final com.clenzy.repository.OrganizationRepository organizationRepository;
 
     public ServiceQuoteService(ServiceQuoteRepository quoteRepository,
                                InterventionRepository interventionRepository,
@@ -78,7 +84,10 @@ public class ServiceQuoteService {
                                DocumentGeneratorService documentGeneratorService,
                                ContactThreadService contactThreadService,
                                ServiceQuotePublisher publisher,
-                               PlatformSettingsService platformSettingsService) {
+                               PlatformSettingsService platformSettingsService,
+                               com.clenzy.repository.PaymentTransactionRepository paymentTransactionRepository,
+                               com.clenzy.repository.DocumentGenerationRepository documentGenerationRepository,
+                               com.clenzy.repository.OrganizationRepository organizationRepository) {
         this.quoteRepository = quoteRepository;
         this.interventionRepository = interventionRepository;
         this.userRepository = userRepository;
@@ -89,6 +98,9 @@ public class ServiceQuoteService {
         this.contactThreadService = contactThreadService;
         this.publisher = publisher;
         this.platformSettingsService = platformSettingsService;
+        this.paymentTransactionRepository = paymentTransactionRepository;
+        this.documentGenerationRepository = documentGenerationRepository;
+        this.organizationRepository = organizationRepository;
     }
 
     @Transactional(readOnly = true)
@@ -108,6 +120,90 @@ public class ServiceQuoteService {
         User me = userRepository.findByKeycloakId(keycloakId)
                 .orElseThrow(() -> new NotFoundException("Utilisateur introuvable"));
         return quoteRepository.findByProviderUserIdAndOrganizationIdOrderByCreatedAtDesc(me.getId(), orgId);
+    }
+
+    /**
+     * Mes devis, avec de quoi les reconnaitre et savoir ou en est l'argent.
+     *
+     * <p>Le reglement se lit en deux temps : l'acompte, trace par une
+     * transaction aboutie portant la mention DEPOSIT, puis le solde, porte par
+     * le statut de paiement de l'intervention.</p>
+     */
+    @Transactional(readOnly = true)
+    public List<com.clenzy.controller.ServiceQuoteController.MyQuoteDto> listMineDetailed(
+            String keycloakId, Long orgId) {
+        return listMine(keycloakId, orgId).stream().map(quote -> {
+            Intervention intervention = quote.getInterventionId() != null
+                    ? interventionRepository.findById(quote.getInterventionId()).orElse(null)
+                    : null;
+            Property property = intervention != null ? intervention.getProperty() : null;
+            return new com.clenzy.controller.ServiceQuoteController.MyQuoteDto(
+                    quote.getId(), quote.getInterventionId(),
+                    intervention != null ? intervention.getTitle() : null,
+                    quoteReference(quote),
+                    property != null ? property.getName() : null,
+                    property != null ? property.getAddress() : null,
+                    property != null && property.getOwner() != null
+                            ? property.getOwner().getFullName() : null,
+                    agencyName(orgId),
+                    intervention != null ? intervention.getType() : null,
+                    intervention != null && intervention.getScheduledDate() != null
+                            ? intervention.getScheduledDate().toString() : null,
+                    intervention != null && intervention.getStatus() != null
+                            ? intervention.getStatus().name() : null,
+                    quote.getAmount(), quote.getCurrency(), quote.getValidUntil(),
+                    quote.getDescription(), quote.getStatus().name(),
+                    quote.getDepositAmount(),
+                    resolvePaymentState(quote, intervention, orgId));
+        }).toList();
+    }
+
+    /**
+     * Reference lisible du devis.
+     *
+     * <p>Le numero legal du PDF quand il existe — c'est celui que le
+     * proprietaire lira sur le document — sinon un repli sur l'identifiant, qui
+     * reste citable au telephone.</p>
+     */
+    private String quoteReference(ServiceQuote quote) {
+        if (quote.getDocumentRef() != null) {
+            try {
+                String legalNumber = documentGenerationRepository
+                        .findById(Long.valueOf(quote.getDocumentRef()))
+                        .map(com.clenzy.model.DocumentGeneration::getLegalNumber)
+                        .orElse(null);
+                if (legalNumber != null && !legalNumber.isBlank()) return legalNumber;
+            } catch (NumberFormatException ignored) {
+                // `documentRef` est un champ libre : un contenu non numerique
+                // n'est pas une generation.
+            }
+        }
+        return "DEV-" + quote.getId();
+    }
+
+    /** Nom de la conciergerie qui gere le bien. */
+    private String agencyName(Long orgId) {
+        return organizationRepository.findById(orgId)
+                .map(com.clenzy.model.Organization::getName)
+                .orElse(null);
+    }
+
+    private String resolvePaymentState(ServiceQuote quote, Intervention intervention, Long orgId) {
+        if (intervention != null && intervention.getPaymentStatus() == PaymentStatus.PAID) {
+            return "PAID";
+        }
+        if (quote.getDepositAmount() == null || quote.getInterventionId() == null) {
+            return "UNPAID";
+        }
+        // La mention DEPOSIT vit dans la cle d'idempotence : c'est elle qui
+        // distingue l'acompte du reglement complet sur la meme intervention.
+        boolean depositPaid = paymentTransactionRepository
+                .findByOrganizationIdAndSourceTypeAndSourceId(orgId, "INTERVENTION", quote.getInterventionId())
+                .stream()
+                .anyMatch(tx -> tx.getStatus() == TransactionStatus.COMPLETED
+                        && tx.getIdempotencyKey() != null
+                        && tx.getIdempotencyKey().contains("-DEPOSIT"));
+        return depositPaid ? "DEPOSIT_PAID" : "UNPAID";
     }
 
     /**

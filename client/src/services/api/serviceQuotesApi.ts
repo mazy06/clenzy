@@ -25,6 +25,33 @@ export interface ServiceQuote {
 }
 
 
+/** Devis vu par son auteur : la mission, et où en est l'argent. */
+export interface MyQuote {
+  id: number;
+  interventionId: number;
+  interventionTitle: string | null;
+  /** Référence du devis : numéro légal du PDF, ou repli sur l'identifiant. */
+  reference: string | null;
+  propertyName: string | null;
+  propertyAddress: string | null;
+  /** À qui le devis est adressé. */
+  ownerName: string | null;
+  /** La conciergerie qui gère le bien. */
+  agencyName: string | null;
+  /** Nature de la prestation : travaux, ménage… */
+  interventionType: string | null;
+  scheduledDate: string | null;
+  interventionStatus: string | null;
+  amount: number;
+  currency: string;
+  validUntil: string | null;
+  description: string | null;
+  status: ServiceQuote['status'];
+  depositAmount: number | null;
+  /** `UNPAID`, `DEPOSIT_PAID` ou `PAID`. */
+  paymentState: 'UNPAID' | 'DEPOSIT_PAID' | 'PAID';
+}
+
 export type ServiceQuoteRequest = Omit<ServiceQuote,
   'id' | 'interventionId' | 'status' | 'providerUserId' | 'documentGenerationId'>;
 
@@ -52,8 +79,8 @@ export const serviceQuotesApi = {
   },
 
   /** Mes devis — l'auteur est résolu depuis le JWT côté serveur. */
-  listMine(): Promise<ServiceQuote[]> {
-    return apiClient.get<ServiceQuote[]>('/service-quotes/mine');
+  listMine(): Promise<MyQuote[]> {
+    return apiClient.get<MyQuote[]>('/service-quotes/mine');
   },
 
   /**

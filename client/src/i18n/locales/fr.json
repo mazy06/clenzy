@@ -7625,7 +7625,13 @@
         "APPROVED": "Accepté",
         "REJECTED": "Écarté",
         "EXPIRED": "Expiré"
-      }
+      },
+      "paid": "Réglé",
+      "depositPaid": "Acompte reçu",
+      "awaitingDeposit": "Acompte attendu",
+      "awaitingPayment": "Règlement attendu",
+      "seeAll": "Voir mes {{count}} devis",
+      "allTitle": "Mes devis"
     }
   },
   "company": {
