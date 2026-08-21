@@ -3743,3 +3743,52 @@ databaseChangeLog:
       sqlFile:
         path: changes/0398__user_provider_terms_acceptance.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0399-provider-documents"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0399__provider_documents.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0400-personal-teams"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0400__personal_teams.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0401-provider-availability"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0401__provider_availability.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0402-intervention-assignment-response"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0402__intervention_assignment_response.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0403-service-quote-provider-user"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0403__service_quote_provider_user.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0404-user-company-logo"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0404__user_company_logo.sql
+        relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0405-provider-agreed-rates"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0405__provider_agreed_rates.sql
+        relativeToChangelogFile: true
