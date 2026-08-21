@@ -53,6 +53,20 @@ public class Intervention {
     @Column(name = "team_id")
     private Long teamId;
 
+    /**
+     * Reponse de l'intervenant a l'assignation. {@code null} = aucune reponse
+     * attendue (interventions anterieures a la fonctionnalite).
+     */
+    @Column(name = "assignment_response", length = 20)
+    @Enumerated(EnumType.STRING)
+    private InterventionAssignmentResponse assignmentResponse;
+
+    @Column(name = "assignment_responded_at")
+    private LocalDateTime assignmentRespondedAt;
+
+    @Column(name = "assignment_decline_reason", columnDefinition = "TEXT")
+    private String assignmentDeclineReason;
+
     @Column(name = "start_time")
     private LocalDateTime startTime;
 
@@ -487,6 +501,30 @@ public class Intervention {
 
     public void setTeamId(Long teamId) {
         this.teamId = teamId;
+    }
+
+    public InterventionAssignmentResponse getAssignmentResponse() {
+        return assignmentResponse;
+    }
+
+    public void setAssignmentResponse(InterventionAssignmentResponse assignmentResponse) {
+        this.assignmentResponse = assignmentResponse;
+    }
+
+    public LocalDateTime getAssignmentRespondedAt() {
+        return assignmentRespondedAt;
+    }
+
+    public void setAssignmentRespondedAt(LocalDateTime assignmentRespondedAt) {
+        this.assignmentRespondedAt = assignmentRespondedAt;
+    }
+
+    public String getAssignmentDeclineReason() {
+        return assignmentDeclineReason;
+    }
+
+    public void setAssignmentDeclineReason(String assignmentDeclineReason) {
+        this.assignmentDeclineReason = assignmentDeclineReason;
     }
 
     public LocalDateTime getStartTime() {

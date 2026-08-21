@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -39,9 +41,17 @@ public class ProviderExpenseController {
     public List<ProviderExpenseDto> getAll(
             @RequestParam(required = false) Long providerId,
             @RequestParam(required = false) Long propertyId,
-            @RequestParam(required = false) ExpenseStatus status) {
+            @RequestParam(required = false) ExpenseStatus status,
+            @RequestParam(required = false, defaultValue = "false") boolean mine,
+            @AuthenticationPrincipal Jwt jwt) {
         Long orgId = tenantContext.getRequiredOrganizationId();
 
+        // « mine » resout le fournisseur depuis le JWT : un intervenant lit ses
+        // propres frais sans avoir a nommer son identifiant.
+        if (mine) {
+            return expenseService.getMine(jwt.getSubject(), orgId).stream()
+                    .map(ProviderExpenseDto::from).toList();
+        }
         if (providerId != null) {
             return expenseService.getByProviderId(providerId, orgId).stream()
                     .map(ProviderExpenseDto::from).toList();

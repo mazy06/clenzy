@@ -210,7 +210,7 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     Page<Intervention> findAllWithRelations(Pageable pageable, @Param("orgId") Long orgId);
 
     // Utiliser EntityGraph pour charger les relations nécessaires avec pagination
-    @EntityGraph(attributePaths = {"property", "property.owner", "assignedUser", "requestor"})
+    @EntityGraph(attributePaths = {"property", "property.owner", "assignedUser", "requestor", "serviceRequest"})
     @Query("SELECT DISTINCT i FROM Intervention i " +
            "WHERE (:propertyId IS NULL OR i.property.id = :propertyId) AND " +
            "(:type IS NULL OR i.type = :type) AND " +
@@ -234,7 +234,7 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     /**
      * Trouver les interventions assignées à un utilisateur (individuellement ou via une équipe)
      */
-    @EntityGraph(attributePaths = {"property", "property.owner", "assignedUser", "requestor"})
+    @EntityGraph(attributePaths = {"property", "property.owner", "assignedUser", "requestor", "serviceRequest"})
     @Query("SELECT DISTINCT i FROM Intervention i " +
            "WHERE (i.assignedUser.id = :userId OR " +
            "EXISTS (SELECT 1 FROM TeamMember tm WHERE tm.team.id = i.teamId AND tm.user.id = :userId)) AND " +

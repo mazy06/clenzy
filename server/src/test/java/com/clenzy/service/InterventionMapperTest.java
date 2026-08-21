@@ -45,7 +45,7 @@ class InterventionMapperTest {
 
     @BeforeEach
     void setUp() {
-        mapper = new InterventionMapper(propertyRepository, userRepository, teamRepository, photoService);
+        mapper = new InterventionMapper(propertyRepository, userRepository, teamRepository, photoService, new com.fasterxml.jackson.databind.ObjectMapper());
     }
 
     private Intervention createIntervention() {

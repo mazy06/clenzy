@@ -3,6 +3,7 @@ package com.clenzy.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record InterventionResponse(
@@ -16,6 +17,15 @@ public record InterventionResponse(
     String propertyName,
     String propertyAddress,
     String propertyType,
+    /** Photo de couverture du logement — repere visuel sur le terrain. */
+    String propertyCoverPhotoUrl,
+    String propertyOwnerName,
+    /**
+     * Taches chiffrees de la demande d'origine — ce que le gestionnaire
+     * propose, ligne par ligne. Vide pour un menage, dont le cout vient d'un
+     * forfait et non d'un devis structure.
+     */
+    List<QuoteLineDto> quoteLines,
     Double propertyLatitude,
     Double propertyLongitude,
     Long requestorId,
@@ -48,7 +58,11 @@ public record InterventionResponse(
     String stripePaymentIntentId,
     String stripeSessionId,
     LocalDateTime paidAt,
-    String preferredTimeSlot
+    String preferredTimeSlot,
+    /** null = aucune reponse attendue (assignations anterieures). */
+    String assignmentResponse,
+    LocalDateTime assignmentRespondedAt,
+    String assignmentDeclineReason
 ) {
     public static Builder builder() { return new Builder(); }
 
@@ -63,6 +77,9 @@ public record InterventionResponse(
         private String propertyName;
         private String propertyAddress;
         private String propertyType;
+        private String propertyCoverPhotoUrl;
+        private String propertyOwnerName;
+        private List<QuoteLineDto> quoteLines;
         private Double propertyLatitude;
         private Double propertyLongitude;
         private Long requestorId;
@@ -96,6 +113,9 @@ public record InterventionResponse(
         private String stripeSessionId;
         private LocalDateTime paidAt;
         private String preferredTimeSlot;
+        private String assignmentResponse;
+        private LocalDateTime assignmentRespondedAt;
+        private String assignmentDeclineReason;
 
         public Builder id(Long id) { this.id = id; return this; }
         public Builder title(String title) { this.title = title; return this; }
@@ -107,6 +127,9 @@ public record InterventionResponse(
         public Builder propertyName(String propertyName) { this.propertyName = propertyName; return this; }
         public Builder propertyAddress(String propertyAddress) { this.propertyAddress = propertyAddress; return this; }
         public Builder propertyType(String propertyType) { this.propertyType = propertyType; return this; }
+        public Builder propertyCoverPhotoUrl(String propertyCoverPhotoUrl) { this.propertyCoverPhotoUrl = propertyCoverPhotoUrl; return this; }
+        public Builder propertyOwnerName(String propertyOwnerName) { this.propertyOwnerName = propertyOwnerName; return this; }
+        public Builder quoteLines(List<QuoteLineDto> quoteLines) { this.quoteLines = quoteLines; return this; }
         public Builder propertyLatitude(Double propertyLatitude) { this.propertyLatitude = propertyLatitude; return this; }
         public Builder propertyLongitude(Double propertyLongitude) { this.propertyLongitude = propertyLongitude; return this; }
         public Builder requestorId(Long requestorId) { this.requestorId = requestorId; return this; }
@@ -140,11 +163,15 @@ public record InterventionResponse(
         public Builder stripeSessionId(String stripeSessionId) { this.stripeSessionId = stripeSessionId; return this; }
         public Builder paidAt(LocalDateTime paidAt) { this.paidAt = paidAt; return this; }
         public Builder preferredTimeSlot(String preferredTimeSlot) { this.preferredTimeSlot = preferredTimeSlot; return this; }
+        public Builder assignmentResponse(String assignmentResponse) { this.assignmentResponse = assignmentResponse; return this; }
+        public Builder assignmentRespondedAt(LocalDateTime assignmentRespondedAt) { this.assignmentRespondedAt = assignmentRespondedAt; return this; }
+        public Builder assignmentDeclineReason(String assignmentDeclineReason) { this.assignmentDeclineReason = assignmentDeclineReason; return this; }
 
         public InterventionResponse build() {
             return new InterventionResponse(
                 id, title, description, type, priority, status,
                 propertyId, propertyName, propertyAddress, propertyType,
+                propertyCoverPhotoUrl, propertyOwnerName, quoteLines,
                 propertyLatitude, propertyLongitude,
                 requestorId, requestorName,
                 assignedToType, assignedToId, assignedToName, assignedUserRole,
@@ -156,7 +183,8 @@ public record InterventionResponse(
                 photos, beforePhotosUrls, afterPhotosUrls,
                 beforePhotoIds, afterPhotoIds,
                 paymentStatus, stripePaymentIntentId, stripeSessionId,
-                paidAt, preferredTimeSlot
+                paidAt, preferredTimeSlot,
+                assignmentResponse, assignmentRespondedAt, assignmentDeclineReason
             );
         }
     }

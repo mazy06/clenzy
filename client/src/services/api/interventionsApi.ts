@@ -5,6 +5,15 @@ import type { InterventionDetailsData } from '../../modules/interventions/interv
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+/** Une tâche chiffrée : {@code total = quantity × unitPrice}. */
+export interface QuoteLine {
+  label: string;
+  quantity: number;
+  unitPrice: number;
+  /** Relie la ligne au catalogue — c'est par lui qu'on retrouve le tarif du pro. */
+  interventionType?: string | null;
+}
+
 export interface Intervention {
   id: number;
   title: string;
@@ -19,6 +28,14 @@ export interface Intervention {
   propertyCity?: string;
   propertyPostalCode?: string;
   propertyCountry?: string;
+  /** Photo de couverture du logement — repère visuel sur le terrain. */
+  propertyCoverPhotoUrl?: string;
+  propertyOwnerName?: string;
+  /**
+   * Tâches chiffrées de la demande d'origine : ce que le gestionnaire propose,
+   * ligne par ligne. Absent pour un ménage, dont le coût vient d'un forfait.
+   */
+  quoteLines?: QuoteLine[];
   requestorId: number;
   requestorName: string;
   assignedToId: number;
@@ -41,6 +58,14 @@ export interface Intervention {
   completedSteps?: string;
   validatedRooms?: string;
   paymentStatus?: string;
+  /**
+   * Reponse de l'intervenant a l'assignation. `undefined` = aucune reponse
+   * attendue (missions anterieures a la fonctionnalite) : elles restent
+   * exploitables telles quelles.
+   */
+  assignmentResponse?: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+  assignmentRespondedAt?: string;
+  assignmentDeclineReason?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -126,6 +151,16 @@ export const interventionsApi = {
 
   delete(id: number) {
     return apiClient.delete(`/interventions/${id}`);
+  },
+
+  /** Accepter une mission proposee. */
+  accept(id: number) {
+    return apiClient.put<Intervention>(`/interventions/${id}/accept`, {});
+  },
+
+  /** Refuser une mission : elle est desassignee et repart au gestionnaire. */
+  decline(id: number, reason?: string) {
+    return apiClient.put<Intervention>(`/interventions/${id}/decline`, { reason: reason ?? null });
   },
 
   start(id: number) {
