@@ -13,6 +13,12 @@ import {
 interface Props {
   interventionId: number;
   canEdit: boolean;
+  /**
+   * L'intervenant assigne peut soumettre SON devis. Distinct de `canEdit` :
+   * celui-ci autorise a saisir un devis recu d'un tiers et a l'approuver, ce
+   * qui reste le geste d'un gestionnaire.
+   */
+  canSubmitOwn?: boolean;
   /** Statut de l'intervention — conditionne la remontee vers la constellation. */
   interventionStatus?: string;
   /** Date de creation de l'intervention (ISO) — meme raison. */
@@ -65,6 +71,7 @@ const STATUS_TONE: Record<ServiceQuote['status'], 'ok' | 'warn' | 'err' | 'neutr
 export default function InterventionQuotesSection({
   interventionId,
   canEdit,
+  canSubmitOwn = false,
   interventionStatus,
   interventionCreatedAt,
   onQuoteApproved,
@@ -87,10 +94,24 @@ export default function InterventionQuotesSection({
   );
 
   const save = async () => {
-    if (!form || !form.providerName.trim() || !(form.amount > 0)) return;
+    if (!form || !(form.amount > 0)) return;
+    // Un gestionnaire saisit un devis RECU : il nomme le prestataire. Un
+    // intervenant soumet LE SIEN : son identite vient du compte connecte, et
+    // le nom saisi ici serait au mieux redondant, au pire usurpe.
+    if (!canSubmitOwn && !form.providerName.trim()) return;
     setSaving(true);
     try {
-      await serviceQuotesApi.create(interventionId, form);
+      if (canSubmitOwn) {
+        await serviceQuotesApi.submitMine(interventionId, {
+          amount: form.amount,
+          currency: form.currency,
+          validUntil: form.validUntil,
+          earliestStartDate: form.earliestStartDate,
+          description: form.description,
+        });
+      } else {
+        await serviceQuotesApi.create(interventionId, form);
+      }
       setForm(null);
       reload();
     } finally {
@@ -130,10 +151,12 @@ export default function InterventionQuotesSection({
               {t('interventions.quotes.title', 'Devis prestataires')}
             </p>
           </div>
-          {canEdit && (
+          {(canEdit || canSubmitOwn) && (
             <Button variant="outline" size="xs" onClick={() => setForm(EMPTY_FORM)}>
               <Add size={14} />
-              {t('interventions.quotes.add', 'Saisir un devis')}
+              {canSubmitOwn
+                ? t('interventions.quotes.submitMine', 'Chiffrer cette intervention')
+                : t('interventions.quotes.add', 'Saisir un devis')}
             </Button>
           )}
         </div>
@@ -226,42 +249,53 @@ export default function InterventionQuotesSection({
           <Dialog open onOpenChange={(next) => { if (!next && !saving) setForm(null); }}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{t('interventions.quotes.addTitle', 'Saisir un devis reçu')}</DialogTitle>
+                <DialogTitle>
+                  {canSubmitOwn
+                    ? t('interventions.quotes.submitMineTitle', 'Chiffrer cette intervention')
+                    : t('interventions.quotes.addTitle', 'Saisir un devis reçu')}
+                </DialogTitle>
               </DialogHeader>
               <div className="grid gap-3 py-1">
-                <Field>
-                  <FieldLabel htmlFor="quote-provider-name">
-                    {t('interventions.quotes.provider', 'Prestataire')}
-                  </FieldLabel>
-                  <Input
-                    id="quote-provider-name"
-                    value={form.providerName}
-                    onChange={(e) => setField('providerName', e.target.value)}
-                  />
-                </Field>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field>
-                    <FieldLabel htmlFor="quote-provider-email">
-                      {t('interventions.quotes.providerEmail', 'Email')}
-                    </FieldLabel>
-                    <Input
-                      id="quote-provider-email"
-                      type="email"
-                      value={form.providerEmail ?? ''}
-                      onChange={(e) => setField('providerEmail', e.target.value || null)}
-                    />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="quote-provider-phone">
-                      {t('interventions.quotes.providerPhone', 'Téléphone')}
-                    </FieldLabel>
-                    <Input
-                      id="quote-provider-phone"
-                      value={form.providerPhone ?? ''}
-                      onChange={(e) => setField('providerPhone', e.target.value || null)}
-                    />
-                  </Field>
-                </div>
+                {/* Identite du prestataire : sans objet quand l'intervenant
+                    soumet SON devis — elle vient de son compte, et un champ
+                    libre inviterait a se faire passer pour un autre. */}
+                {!canSubmitOwn && (
+                  <>
+                    <Field>
+                      <FieldLabel htmlFor="quote-provider-name">
+                        {t('interventions.quotes.provider', 'Prestataire')}
+                      </FieldLabel>
+                      <Input
+                        id="quote-provider-name"
+                        value={form.providerName}
+                        onChange={(e) => setField('providerName', e.target.value)}
+                      />
+                    </Field>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field>
+                        <FieldLabel htmlFor="quote-provider-email">
+                          {t('interventions.quotes.providerEmail', 'Email')}
+                        </FieldLabel>
+                        <Input
+                          id="quote-provider-email"
+                          type="email"
+                          value={form.providerEmail ?? ''}
+                          onChange={(e) => setField('providerEmail', e.target.value || null)}
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="quote-provider-phone">
+                          {t('interventions.quotes.providerPhone', 'Téléphone')}
+                        </FieldLabel>
+                        <Input
+                          id="quote-provider-phone"
+                          value={form.providerPhone ?? ''}
+                          onChange={(e) => setField('providerPhone', e.target.value || null)}
+                        />
+                      </Field>
+                    </div>
+                  </>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <Field>
                     <FieldLabel htmlFor="quote-amount">
@@ -326,7 +360,11 @@ export default function InterventionQuotesSection({
                 <Button variant="outline" disabled={saving} onClick={() => setForm(null)}>
                   {t('common.cancel', 'Annuler')}
                 </Button>
-                <Button disabled={saving || !form.providerName.trim() || !(form.amount > 0)} onClick={save}>
+                <Button
+                  disabled={saving || !(form.amount > 0)
+                    || (!canSubmitOwn && !form.providerName.trim())}
+                  onClick={save}
+                >
                   {saving ? <Spinner className="size-[13px]" /> : null}
                   {t('common.save', 'Enregistrer')}
                 </Button>

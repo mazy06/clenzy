@@ -39,6 +39,13 @@ public class ServiceQuote {
     @Column(name = "provider_name", nullable = false, length = 200)
     private String providerName;
 
+    /**
+     * Intervenant qui a SOUMIS ce devis. {@code null} quand un gestionnaire
+     * saisit le devis d'un prestataire externe — le cas historique.
+     */
+    @Column(name = "provider_user_id")
+    private Long providerUserId;
+
     @Column(name = "provider_email", length = 320)
     private String providerEmail;
 
@@ -91,6 +98,10 @@ public class ServiceQuote {
     public void setInterventionId(Long interventionId) { this.interventionId = interventionId; }
     public String getProviderName() { return providerName; }
     public void setProviderName(String providerName) { this.providerName = providerName; }
+
+    public Long getProviderUserId() { return providerUserId; }
+
+    public void setProviderUserId(Long providerUserId) { this.providerUserId = providerUserId; }
     public String getProviderEmail() { return providerEmail; }
     public void setProviderEmail(String providerEmail) { this.providerEmail = providerEmail; }
     public String getProviderPhone() { return providerPhone; }

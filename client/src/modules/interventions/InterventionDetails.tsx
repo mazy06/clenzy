@@ -25,6 +25,8 @@ import {
 } from './interventionUtils';
 import InterventionProgressSteps from './InterventionProgressSteps';
 import InterventionQuotesSection from './InterventionQuotesSection';
+import { useAuth } from '../../hooks/useAuth';
+import { TRADE_ROLES } from '../../utils/fieldRoles';
 import { interventionsKeys } from './useInterventionsList';
 import { NotesDialog, PhotosDialog } from './InterventionDialogs';
 import WorkOrderDetailLayout, {
@@ -41,6 +43,10 @@ export default function InterventionDetailsPage() {
   const { t } = useTranslation();
   const { notify } = useNotification();
   const queryClient = useQueryClient();
+
+  const { hasAnyRole } = useAuth();
+  /** Metiers de travaux : eux seuls chiffrent une intervention. */
+  const canSubmitOwnQuote = hasAnyRole([...TRADE_ROLES]);
 
   const {
     intervention, loading, error, starting, completing,
@@ -325,6 +331,11 @@ export default function InterventionDetailsPage() {
               <InterventionQuotesSection
                 interventionId={Number(id)}
                 canEdit={canEditInterventions}
+                // Chiffrer sa propre mission est le geste economique du
+                // technicien. `canEditInterventions` ne l'ouvre pas : cette
+                // permission est reservee aux gestionnaires, qui saisissent les
+                // devis RECUS de tiers et les approuvent.
+                canSubmitOwn={canSubmitOwnQuote}
                 interventionStatus={intervention.status}
                 interventionCreatedAt={intervention.createdAt}
                 onQuoteApproved={() => {

@@ -2,8 +2,14 @@ package com.clenzy.service;
 
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.Intervention;
+import com.clenzy.model.ProviderAgreedRate;
+import com.clenzy.model.NotificationKey;
+import com.clenzy.repository.ProviderAgreedRateRepository;
+import java.time.LocalDateTime;
 import com.clenzy.model.ServiceQuote;
+import com.clenzy.model.User;
 import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.UserRepository;
 import com.clenzy.repository.ServiceQuoteRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,19 +33,105 @@ public class ServiceQuoteService {
 
     private final ServiceQuoteRepository quoteRepository;
     private final InterventionRepository interventionRepository;
+    private final UserRepository userRepository;
+    private final ProviderAgreedRateRepository agreedRateRepository;
+    private final NotificationService notificationService;
     private final Clock clock;
 
     public ServiceQuoteService(ServiceQuoteRepository quoteRepository,
                                InterventionRepository interventionRepository,
+                               UserRepository userRepository,
+                               ProviderAgreedRateRepository agreedRateRepository,
+                               NotificationService notificationService,
                                Clock clock) {
         this.quoteRepository = quoteRepository;
         this.interventionRepository = interventionRepository;
+        this.userRepository = userRepository;
+        this.agreedRateRepository = agreedRateRepository;
+        this.notificationService = notificationService;
         this.clock = clock;
     }
 
     @Transactional(readOnly = true)
     public List<ServiceQuote> listForIntervention(Long interventionId, Long orgId) {
         return quoteRepository.findByInterventionIdAndOrganizationIdOrderByAmountAsc(interventionId, orgId);
+    }
+
+    /**
+     * Les devis SOUMIS par un intervenant.
+     *
+     * <p>L'auteur vient du JWT, jamais d'un parametre : accepter un
+     * {@code providerUserId} en requete laisserait n'importe quel compte lire
+     * les devis — donc les prix — d'un concurrent.</p>
+     */
+    @Transactional(readOnly = true)
+    public List<ServiceQuote> listMine(String keycloakId, Long orgId) {
+        User me = userRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new NotFoundException("Utilisateur introuvable"));
+        return quoteRepository.findByProviderUserIdAndOrganizationIdOrderByCreatedAtDesc(me.getId(), orgId);
+    }
+
+    /**
+     * Devis soumis PAR un intervenant : l'auteur est resolu depuis le JWT et
+     * son nom prevaut sur celui du corps de requete — sinon n'importe qui
+     * pourrait deposer un devis au nom d'un autre.
+     */
+    @Transactional
+    public ServiceQuote submitAsProvider(Long orgId, ServiceQuote quote, String keycloakId) {
+        User me = userRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new NotFoundException("Utilisateur introuvable"));
+        quote.setProviderUserId(me.getId());
+        quote.setProviderName(me.getFullName());
+        quote.setProviderEmail(me.getEmail());
+        ServiceQuote saved = create(orgId, quote);
+
+        // Un devis qui dort dans une liste ne sert a rien : le gestionnaire doit
+        // savoir qu'on attend sa reponse. Best-effort — une notification qui
+        // echoue ne doit pas annuler le devis.
+        try {
+            String amount = saved.getAmount() != null
+                    ? saved.getAmount().stripTrailingZeros().toPlainString() : "?";
+            notificationService.notifyAdminsAndManagersByOrgId(orgId,
+                    NotificationKey.INTERVENTION_ASSIGNED_TO_USER,
+                    "Tarif propose par un intervenant",
+                    me.getFullName() + " propose " + amount + " EUR pour l'intervention #"
+                            + saved.getInterventionId() + ". A approuver.",
+                    "/interventions/" + saved.getInterventionId());
+            notifyPropertyOwner(saved, me.getFullName(), amount);
+        } catch (Exception e) {
+            log.warn("Notification de proposition de tarif echouee (devis {}) : {}",
+                    saved.getId(), e.getMessage());
+        }
+        return saved;
+    }
+
+    /**
+     * Mes tarifs CONVENUS, par logement.
+     *
+     * <p>C'est ce que l'ecran du terrain compare a ses propres tarifs : tant que
+     * les deux coincident, l'accord tient et aucun devis n'est a refaire.</p>
+     */
+    @Transactional(readOnly = true)
+    public List<ProviderAgreedRate> listMyAgreedRates(String keycloakId, Long orgId) {
+        User me = userRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new NotFoundException("Utilisateur introuvable"));
+        return agreedRateRepository.findByOrganizationIdAndProviderUserId(orgId, me.getId());
+    }
+
+    /** Le proprietaire du logement est partie prenante du prix : il est prevenu aussi. */
+    private void notifyPropertyOwner(ServiceQuote quote, String providerName, String amount) {
+        if (quote.getInterventionId() == null) return;
+        Intervention intervention = interventionRepository.findById(quote.getInterventionId()).orElse(null);
+        if (intervention == null || intervention.getProperty() == null
+                || intervention.getProperty().getOwner() == null) {
+            return;
+        }
+        notificationService.notify(intervention.getProperty().getOwner().getKeycloakId(),
+                NotificationKey.INTERVENTION_ASSIGNED_TO_USER,
+                "Tarif propose pour une intervention",
+                providerName + " propose " + amount + " EUR pour l'intervention sur "
+                        + intervention.getProperty().getName() + ".",
+                "/interventions/" + quote.getInterventionId());
     }
 
     @Transactional
@@ -83,6 +175,27 @@ public class ServiceQuoteService {
             intervention.setEstimatedCost(quote.getAmount());
             interventionRepository.save(intervention);
         }
+        // L'accord se memorise : c'est lui qui evite de redemander un devis a
+        // chaque mission suivante sur le meme logement, tant que l'intervenant
+        // ne change pas son tarif.
+        if (quote.getProviderUserId() != null && quote.getPropertyId() != null) {
+            ProviderAgreedRate agreed = agreedRateRepository
+                    .findByOrganizationIdAndProviderUserIdAndPropertyId(
+                            orgId, quote.getProviderUserId(), quote.getPropertyId())
+                    .orElseGet(ProviderAgreedRate::new);
+            agreed.setOrganizationId(orgId);
+            agreed.setProviderUserId(quote.getProviderUserId());
+            agreed.setPropertyId(quote.getPropertyId());
+            agreed.setAmount(quote.getAmount());
+            agreed.setCurrency(quote.getCurrency() != null ? quote.getCurrency() : "EUR");
+            agreed.setQuoteId(quote.getId());
+            agreed.setUpdatedAt(LocalDateTime.now());
+            if (agreed.getId() == null) {
+                agreed.setAgreedAt(LocalDateTime.now());
+            }
+            agreedRateRepository.save(agreed);
+        }
+
         log.info("Devis {} approuvé (org={}, intervention={}, montant={})",
                 id, orgId, quote.getInterventionId(), quote.getAmount());
         return quoteRepository.findByIdAndOrganizationId(id, orgId).orElse(quote);

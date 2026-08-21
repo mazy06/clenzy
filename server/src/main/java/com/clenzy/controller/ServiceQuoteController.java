@@ -27,12 +27,13 @@ public class ServiceQuoteController {
     public record ServiceQuoteDto(Long id, Long interventionId, String providerName,
                                   String providerEmail, String providerPhone,
                                   BigDecimal amount, String currency, LocalDate validUntil,
-                                  LocalDate earliestStartDate, String description, String status) {
+                                  LocalDate earliestStartDate, String description, String status,
+                                  Long providerUserId) {
         static ServiceQuoteDto from(ServiceQuote q) {
             return new ServiceQuoteDto(q.getId(), q.getInterventionId(), q.getProviderName(),
                     q.getProviderEmail(), q.getProviderPhone(), q.getAmount(), q.getCurrency(),
                     q.getValidUntil(), q.getEarliestStartDate(), q.getDescription(),
-                    q.getStatus().name());
+                    q.getStatus().name(), q.getProviderUserId());
         }
     }
 
@@ -69,6 +70,45 @@ public class ServiceQuoteController {
         quote.setDescription(request.description());
         return ResponseEntity.ok(ServiceQuoteDto.from(
                 serviceQuoteService.create(tenantContext.getRequiredOrganizationId(), quote)));
+    }
+
+    @GetMapping("/service-quotes/mine")
+    @Operation(summary = "Mes devis — ceux que j'ai soumis")
+    public ResponseEntity<List<ServiceQuoteDto>> listMine(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(serviceQuoteService
+                .listMine(jwt.getSubject(), tenantContext.getRequiredOrganizationId())
+                .stream().map(ServiceQuoteDto::from).toList());
+    }
+
+    @GetMapping("/service-quotes/my-agreed-rates")
+    @Operation(summary = "Mes tarifs convenus par logement (devis deja approuves)")
+    public ResponseEntity<List<AgreedRateDto>> myAgreedRates(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(serviceQuoteService
+                .listMyAgreedRates(jwt.getSubject(), tenantContext.getRequiredOrganizationId())
+                .stream()
+                .map(r -> new AgreedRateDto(r.getPropertyId(), r.getAmount(), r.getCurrency(), r.getAgreedAt()))
+                .toList());
+    }
+
+    /** Tarif deja approuve pour un logement — shape stable, jamais l'entite. */
+    public record AgreedRateDto(Long propertyId, BigDecimal amount, String currency,
+                                java.time.LocalDateTime agreedAt) {}
+
+    @PostMapping("/interventions/{interventionId}/quotes/mine")
+    @Operation(summary = "Soumettre MON devis sur une intervention (intervenant)")
+    public ResponseEntity<ServiceQuoteDto> submitMine(@PathVariable Long interventionId,
+                                                @RequestBody ServiceQuoteDto request,
+                                                @AuthenticationPrincipal Jwt jwt) {
+        final ServiceQuote quote = new ServiceQuote();
+        quote.setInterventionId(interventionId);
+        quote.setAmount(request.amount());
+        if (request.currency() != null) quote.setCurrency(request.currency());
+        quote.setValidUntil(request.validUntil());
+        quote.setEarliestStartDate(request.earliestStartDate());
+        quote.setDescription(request.description());
+        // Nom, email et auteur viennent du JWT — pas du corps de requete.
+        return ResponseEntity.ok(ServiceQuoteDto.from(serviceQuoteService.submitAsProvider(
+                tenantContext.getRequiredOrganizationId(), quote, jwt.getSubject())));
     }
 
     @PostMapping("/service-quotes/{id}/approve")
