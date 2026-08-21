@@ -41,6 +41,10 @@ public class ProviderExpenseTagResolver implements ReferenceTagResolver {
             // Prestataire
             if (expense.getProvider() != null) {
                 context.put("prestataire", builders.clientTags(expense.getProvider()));
+                byte[] logo = builders.companyLogoBytes(expense.getProvider());
+                if (logo != null) {
+                    context.put("logo_prestataire", logo);
+                }
             }
 
             // Logement

@@ -70,6 +70,13 @@ public class InterventionTagResolver implements ReferenceTagResolver {
 
             if (intervention.getAssignedUser() != null) {
                 context.put("technicien", builders.clientTags(intervention.getAssignedUser()));
+                // `${logo_prestataire}` — cle de PREMIER niveau, sans point : la
+                // validation des tags ignore ces noms, et XDocReport declare ses
+                // champs image a plat. Absent si l'intervenant n'a pas de logo.
+                byte[] logo = builders.companyLogoBytes(intervention.getAssignedUser());
+                if (logo != null) {
+                    context.put("logo_prestataire", logo);
+                }
             } else {
                 context.put("technicien", builders.emptyClientTags());
             }

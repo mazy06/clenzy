@@ -312,7 +312,71 @@ public class UserService {
         if (updates.containsKey("phoneNumber")) {
             user.setPhoneNumber(updates.get("phoneNumber"));
         }
+        // Raison sociale du prestataire : elle sort deja dans les documents via
+        // le tag `${client.societe}`, mais rien ne permettait de la saisir.
+        if (updates.containsKey("companyName")) {
+            String value = updates.get("companyName");
+            user.setCompanyName(value != null && !value.isBlank() ? value.trim() : null);
+        }
         userRepository.save(user);
+    }
+
+    // ── Logo d'entreprise ──────────────────────────────────────────────────
+
+    /**
+     * Depose ou remplace le logo d'entreprise.
+     *
+     * <p>Reutilise le stockage des avatars : meme validation (types image,
+     * 5 Mo) et meme convention de cle, {@code users/{id}/{uuid}.{ext}} — l'UUID
+     * garantit qu'un logo et une photo de profil ne se marchent pas dessus.</p>
+     */
+    public String uploadCompanyLogo(String keycloakId, MultipartFile file) {
+        User user = requireByKeycloakId(keycloakId);
+        String previousPath = user.getCompanyLogoPath();
+        String newPath = avatarStorage.store(user.getId(), file);
+        user.setCompanyLogoPath(newPath);
+        userRepository.save(user);
+
+        if (previousPath != null && !previousPath.equals(newPath)) {
+            avatarStorage.delete(previousPath);
+        }
+        return newPath;
+    }
+
+    public void deleteCompanyLogo(String keycloakId) {
+        User user = requireByKeycloakId(keycloakId);
+        String previousPath = user.getCompanyLogoPath();
+        if (previousPath != null) {
+            avatarStorage.delete(previousPath);
+        }
+        user.setCompanyLogoPath(null);
+        userRepository.save(user);
+    }
+
+    /** @return [Resource, contentType] ou null si aucun logo. */
+    @Transactional(readOnly = true)
+    public Object[] streamCompanyLogo(String keycloakId) {
+        User user = requireByKeycloakId(keycloakId);
+        String path = user.getCompanyLogoPath();
+        if (path == null || path.isBlank() || !avatarStorage.exists(path)) {
+            return null;
+        }
+        return new Object[] { avatarStorage.load(path), avatarStorage.contentTypeFor(path) };
+    }
+
+    /** Bytes du logo pour l'injection dans un document. {@code null} si absent. */
+    @Transactional(readOnly = true)
+    public byte[] companyLogoBytes(Long userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) return null;
+        String path = user.getCompanyLogoPath();
+        if (path == null || path.isBlank() || !avatarStorage.exists(path)) return null;
+        try {
+            return avatarStorage.load(path).getInputStream().readAllBytes();
+        } catch (java.io.IOException e) {
+            log.warn("Lecture du logo impossible pour l'utilisateur {} : {}", userId, e.getMessage());
+            return null;
+        }
     }
 
     /**

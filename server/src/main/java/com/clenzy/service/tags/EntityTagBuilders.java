@@ -4,6 +4,7 @@ import com.clenzy.model.Intervention;
 import com.clenzy.model.Property;
 import com.clenzy.model.User;
 import com.clenzy.repository.CheckInInstructionsRepository;
+import com.clenzy.service.UserAvatarStorageService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -33,11 +34,38 @@ public class EntityTagBuilders {
 
     private final CheckInInstructionsRepository checkInInstructionsRepository;
     private final ObjectMapper objectMapper;
+    private final UserAvatarStorageService imageStorage;
 
     public EntityTagBuilders(CheckInInstructionsRepository checkInInstructionsRepository,
-                             ObjectMapper objectMapper) {
+                             ObjectMapper objectMapper,
+                             UserAvatarStorageService imageStorage) {
         this.checkInInstructionsRepository = checkInInstructionsRepository;
         this.objectMapper = objectMapper;
+        this.imageStorage = imageStorage;
+    }
+
+    /**
+     * Bytes du logo d'entreprise d'un intervenant, ou {@code null}.
+     *
+     * <p>Le stockage est joint ici plutot que via {@code UserService} : ce
+     * builder ne fait que lire un binaire, et passer par le service metier
+     * creerait un cycle de dependances entre la generation de documents et la
+     * gestion des utilisateurs.</p>
+     *
+     * <p>Un logo absent ou illisible ne fait jamais echouer un document : le
+     * tag est simplement omis, et {@code TemplateParserService} marque deja les
+     * tags image comme non-requis.</p>
+     */
+    public byte[] companyLogoBytes(User user) {
+        if (user == null) return null;
+        String path = user.getCompanyLogoPath();
+        if (path == null || path.isBlank() || !imageStorage.exists(path)) return null;
+        try {
+            return imageStorage.load(path).getInputStream().readAllBytes();
+        } catch (Exception e) {
+            log.warn("Logo d'entreprise illisible (user {}) : {}", user.getId(), e.getMessage());
+            return null;
+        }
     }
 
     public Map<String, Object> clientTags(User user) {

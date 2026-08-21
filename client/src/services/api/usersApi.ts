@@ -58,6 +58,30 @@ export interface LockoutStatus {
 }
 
 export const usersApi = {
+  /** Mise a jour partielle de MON profil (telephone, raison sociale). */
+  updateMyProfile(updates: { phoneNumber?: string; companyName?: string }): Promise<{ success: boolean }> {
+    return apiClient.patch<{ success: boolean }>('/users/me/profile', updates);
+  },
+
+  /** Logo d'entreprise repris dans les documents generes. */
+  uploadMyCompanyLogo(file: File): Promise<{ success: boolean }> {
+    const form = new FormData();
+    form.append('file', file);
+    return apiClient.post<{ success: boolean }>('/users/me/company-logo', form);
+  },
+
+  deleteMyCompanyLogo(): Promise<{ success: boolean }> {
+    return apiClient.delete<{ success: boolean }>('/users/me/company-logo');
+  },
+
+  /**
+   * URL du logo. Le serveur le resout depuis le JWT — aucun identifiant dans le
+   * chemin. Le parametre de cache-busting force le rechargement apres un depot.
+   */
+  myCompanyLogoUrl(version: number): string {
+    return `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/users/me/company-logo?v=${version}`;
+  },
+
   /**
    * Tous les utilisateurs de l'organisation.
    *

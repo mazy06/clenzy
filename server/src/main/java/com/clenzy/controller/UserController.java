@@ -11,6 +11,7 @@ import com.clenzy.service.UserService;
 import org.springframework.core.io.Resource;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -61,6 +62,46 @@ public class UserController {
                                               @AuthenticationPrincipal Jwt jwt) {
         userService.updateOwnProfile(jwt.getSubject(), body);
         return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    // ── Logo d'entreprise ──────────────────────────────────────────────────
+
+    @PostMapping(value = "/me/company-logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Deposer ou remplacer le logo de mon entreprise")
+    public ResponseEntity<Map<String, Object>> uploadMyCompanyLogo(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal Jwt jwt) {
+        try {
+            userService.uploadCompanyLogo(jwt.getSubject(), file);
+            return ResponseEntity.ok(Map.of("success", true));
+        } catch (IllegalArgumentException e) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/me/company-logo")
+    @Operation(summary = "Retirer le logo de mon entreprise")
+    public ResponseEntity<Map<String, Object>> deleteMyCompanyLogo(@AuthenticationPrincipal Jwt jwt) {
+        userService.deleteCompanyLogo(jwt.getSubject());
+        return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    /**
+     * Sert MON logo. Pas de {@code {id}} dans le chemin : le logo est resolu
+     * depuis le JWT, ce qui ferme d'emblee l'enumeration par identifiant.
+     */
+    @GetMapping("/me/company-logo")
+    @Operation(summary = "Recuperer le logo de mon entreprise")
+    public ResponseEntity<Resource> getMyCompanyLogo(@AuthenticationPrincipal Jwt jwt) {
+        Object[] payload = userService.streamCompanyLogo(jwt.getSubject());
+        if (payload == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, (String) payload[1])
+                .header(HttpHeaders.CACHE_CONTROL, "private, max-age=60")
+                .body((Resource) payload[0]);
     }
 
     /**

@@ -92,6 +92,13 @@ public class User {
     @Column(name = "company_name")
     private String companyName;
 
+    /**
+     * Storage key du logo d'entreprise (meme convention que
+     * {@code profilePictureUrl}) — repris dans les documents generes.
+     */
+    @Column(name = "company_logo_path", length = 500)
+    private String companyLogoPath;
+
     private String forfait;
 
     private String city;
@@ -319,6 +326,10 @@ public class User {
     public void setCompanyName(String companyName) {
         this.companyName = companyName;
     }
+
+    public String getCompanyLogoPath() { return companyLogoPath; }
+
+    public void setCompanyLogoPath(String companyLogoPath) { this.companyLogoPath = companyLogoPath; }
 
     public String getForfait() {
         return forfait;

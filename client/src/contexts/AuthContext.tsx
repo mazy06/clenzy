@@ -31,6 +31,10 @@ export interface AuthUser {
   roles: string[];
   permissions: string[];
   forfait?: string;
+  /** Raison sociale — editee dans « Mon compte », reprise sur les documents. */
+  companyName?: string;
+  /** Un logo d'entreprise est-il depose ? Evite un 404 a l'affichage. */
+  hasCompanyLogo?: boolean;
   organizationId?: number;
   organizationName?: string;
   organizationType?: string;
@@ -171,6 +175,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             roles: Array.isArray(roles) ? roles : [roles].filter(Boolean),
             permissions: Array.isArray(permissions) ? permissions : [permissions].filter(Boolean),
             forfait: userData.forfait || undefined,
+            companyName: userData.companyName || undefined,
+            hasCompanyLogo: Boolean(userData.hasCompanyLogo),
             organizationId: userData.organizationId || undefined,
             organizationName: userData.organizationName || undefined,
             organizationType: userData.organizationType || undefined,
