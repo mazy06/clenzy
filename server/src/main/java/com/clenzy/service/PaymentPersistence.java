@@ -44,13 +44,16 @@ public class PaymentPersistence {
     private final PaymentTransactionRepository transactionRepository;
     private final OutboxPublisher outboxPublisher;
     private final ObjectMapper objectMapper;
+    private final DepositReconciler depositReconciler;
 
     public PaymentPersistence(PaymentTransactionRepository transactionRepository,
                               OutboxPublisher outboxPublisher,
-                              ObjectMapper objectMapper) {
+                              ObjectMapper objectMapper,
+                              DepositReconciler depositReconciler) {
         this.transactionRepository = transactionRepository;
         this.outboxPublisher = outboxPublisher;
         this.objectMapper = objectMapper;
+        this.depositReconciler = depositReconciler;
     }
 
     // ─── Initiation ───────────────────────────────────────────────────────────
@@ -202,6 +205,15 @@ public class PaymentPersistence {
             return tx;
         }
         publishEvent(tx, "PAYMENT_COMPLETED", tx.getOrganizationId());
+        // Un acompte encaisse doit se lire sur le devis, pas se deviner a la
+        // cle d'idempotence. Best-effort : le paiement est acquis, une
+        // reconciliation qui echoue ne doit pas le remettre en cause.
+        try {
+            depositReconciler.onPaymentCompleted(tx);
+        } catch (Exception e) {
+            log.warn("Reconciliation d'acompte impossible sur {} : {}",
+                    transactionRef, e.getMessage());
+        }
         return tx;
     }
 

@@ -40,6 +40,7 @@ import static org.mockito.Mockito.when;
 class PaymentPersistenceTest {
 
     @Mock private PaymentTransactionRepository transactionRepository;
+    @Mock private com.clenzy.service.DepositReconciler depositReconciler;
     @Mock private OutboxPublisher outboxPublisher;
 
     private PaymentPersistence persistence;
@@ -48,7 +49,7 @@ class PaymentPersistenceTest {
 
     @BeforeEach
     void setUp() {
-        persistence = new PaymentPersistence(transactionRepository, outboxPublisher, new ObjectMapper());
+        persistence = new PaymentPersistence(transactionRepository, outboxPublisher, new ObjectMapper(), depositReconciler);
     }
 
     private PaymentTransaction tx(String ref, TransactionStatus status, PaymentProviderType type) {
@@ -409,7 +410,7 @@ class PaymentPersistenceTest {
         void jsonErrorSwallowed() throws JsonProcessingException {
             ObjectMapper failingMapper = org.mockito.Mockito.mock(ObjectMapper.class);
             when(failingMapper.writeValueAsString(any())).thenThrow(new JsonProcessingException("boom") {});
-            PaymentPersistence failing = new PaymentPersistence(transactionRepository, outboxPublisher, failingMapper);
+            PaymentPersistence failing = new PaymentPersistence(transactionRepository, outboxPublisher, failingMapper, depositReconciler);
 
             PaymentTransaction t = tx("TX-1", TransactionStatus.COMPLETED, PaymentProviderType.STRIPE);
             when(transactionRepository.markCompleted("TX-1")).thenReturn(1);

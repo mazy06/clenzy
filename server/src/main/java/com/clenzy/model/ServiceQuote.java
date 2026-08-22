@@ -88,6 +88,10 @@ public class ServiceQuote {
     @Column(name = "deposit_amount")
     private BigDecimal depositAmount;
 
+    /** Encaissement de l'acompte. NULL tant qu'il n'est pas regle. */
+    @Column(name = "deposit_paid_at")
+    private java.time.LocalDateTime depositPaidAt;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Status status = Status.RECEIVED;
@@ -136,6 +140,8 @@ public class ServiceQuote {
     public void setDescription(String description) { this.description = description; }
     public BigDecimal getDepositPercent() { return depositPercent; }
     public void setDepositPercent(BigDecimal depositPercent) { this.depositPercent = depositPercent; }
+    public java.time.LocalDateTime getDepositPaidAt() { return depositPaidAt; }
+    public void setDepositPaidAt(java.time.LocalDateTime depositPaidAt) { this.depositPaidAt = depositPaidAt; }
     public BigDecimal getDepositAmount() { return depositAmount; }
     public void setDepositAmount(BigDecimal depositAmount) { this.depositAmount = depositAmount; }
     public String getLines() { return lines; }
