@@ -99,15 +99,27 @@ class SupervisionAutonomousScannerTest {
     }
 
     @Test
-    @DisplayName("plafond PAUSE ou comportement desactive -> aucun scan")
-    void whenPausedOrDisabled_thenNothing() {
+    @DisplayName("plafond PAUSE -> aucun scan (suspension demandee)")
+    void whenPaused_thenNothing() {
         gateReturns(Outcome.CAPPED_PAUSE, false);
-        scanner.sweep();
 
-        gateReturns(Outcome.DISABLED, false);
         scanner.sweep();
 
         verify(scanService, never()).autonomousScan(anyLong(), anyLong());
         verify(scanService, never()).deterministicScanOnly(anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("autonomie jamais activee -> heuristiques deterministes quand meme")
+    void whenDisabled_thenDeterministicScanStillRuns() {
+        gateReturns(Outcome.DISABLED, false);
+
+        scanner.sweep();
+
+        // Le reglage d'autonomie borne la DEPENSE : un scan sans LLM ne coute rien,
+        // et une org qui n'a pas ouvert le panneau ne renonce pas pour autant a
+        // savoir qu'une mission attend confirmation.
+        verify(scanService, never()).autonomousScan(anyLong(), anyLong());
+        verify(scanService).deterministicScanOnly(ORG_ID, PROPERTY_ID);
     }
 }
