@@ -55,6 +55,7 @@ public class InterventionService {
     private final InterventionAccessPolicy accessPolicy;
     private final com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine;
     private final com.clenzy.service.email.MissionAssignmentEmailComposer missionAssignmentEmailComposer;
+    private final com.clenzy.service.agent.supervision.SupervisionTriggerService supervisionTriggerService;
 
     public InterventionService(InterventionRepository interventionRepository,
                                UserRepository userRepository,
@@ -66,7 +67,8 @@ public class InterventionService {
                                InterventionAccessPolicy accessPolicy,
                                com.clenzy.service.pricing.CleaningPricingEngine cleaningPricingEngine,
                                com.clenzy.service.email.MissionAssignmentEmailComposer missionAssignmentEmailComposer,
-                               PropertyPhotoRepository propertyPhotoRepository) {
+                               PropertyPhotoRepository propertyPhotoRepository,
+                               com.clenzy.service.agent.supervision.SupervisionTriggerService supervisionTriggerService) {
         this.interventionRepository = interventionRepository;
         this.propertyPhotoRepository = propertyPhotoRepository;
         this.userRepository = userRepository;
@@ -78,6 +80,7 @@ public class InterventionService {
         this.accessPolicy = accessPolicy;
         this.cleaningPricingEngine = cleaningPricingEngine;
         this.missionAssignmentEmailComposer = missionAssignmentEmailComposer;
+        this.supervisionTriggerService = supervisionTriggerService;
     }
 
     public InterventionResponse create(CreateInterventionRequest request, Jwt jwt) {
@@ -371,6 +374,15 @@ public class InterventionService {
         }
 
         intervention = interventionRepository.save(intervention);
+
+        // Une mission proposee et sans reponse n'est visible que du destinataire :
+        // cote gestion elle ressemble a une mission planifiee, jusqu'au jour ou
+        // personne ne vient. On reveille la boucle de supervision sur ce logement
+        // pour que la carte « mission a confirmer » remonte au prochain cycle.
+        if (intervention.getProperty() != null) {
+            supervisionTriggerService.markDirtyAfterCommit(
+                    intervention.getOrganizationId(), intervention.getProperty().getId());
+        }
 
         try {
             String actionUrl = "/interventions/" + intervention.getId();

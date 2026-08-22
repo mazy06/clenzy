@@ -93,6 +93,85 @@ public class OpsMaintenanceScanner {
             log.debug("stock scan failed org={} property={}: {}",
                     orgId, propertyId, e.getMessage());
         }
+        try {
+            scanMissionsToConfirm(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("mission confirmation scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+        try {
+            scanDepositsToCollect(orgId, propertyId);
+        } catch (Exception e) {
+            log.debug("deposit scan failed org={} property={}: {}",
+                    orgId, propertyId, e.getMessage());
+        }
+    }
+
+    /**
+     * Missions proposees qui attendent la reponse de l'intervenant.
+     *
+     * <p>Une intervention assignee mais non confirmee ne se voit que sur le
+     * tableau de bord de CELUI a qui elle est proposee. Cote gestion, elle
+     * ressemble a une mission planifiee — jusqu'au jour ou personne ne vient.
+     * La carte la remonte tant qu'elle reste sans reponse.</p>
+     */
+    private void scanMissionsToConfirm(Long orgId, Long propertyId) {
+        final java.time.LocalDateTime now = java.time.LocalDateTime.now(clock);
+        for (com.clenzy.model.Intervention intervention : interventionRepository
+                .findByPropertyAndCreatedBetween(propertyId, orgId, now.minusDays(60), now)) {
+            if (!com.clenzy.service.automation.CreateMaintenanceInterventionExecutor
+                    .openStatuses().contains(intervention.getStatus())) {
+                continue;
+            }
+            if (intervention.getAssignedUser() == null
+                    || intervention.getAssignmentResponse()
+                        != com.clenzy.model.InterventionAssignmentResponse.PENDING) {
+                continue;
+            }
+            final String intervenant = intervention.getAssignedUser().getFullName();
+            suggestionService.record(
+                    orgId, propertyId, MODULE_OPS,
+                    "mission_to_confirm",
+                    "Mission a confirmer (intervention #" + intervention.getId() + ")",
+                    "« " + intervention.getTitle() + " » est proposee a "
+                            + (intervenant != null ? intervenant : "un intervenant")
+                            + " et attend sa reponse. Tant qu'elle n'est pas acceptee, "
+                            + "aucune date n'est tenue.");
+        }
+    }
+
+    /**
+     * Acomptes exigibles, non encaisses.
+     *
+     * <p>L'intervenant bloque sa date des l'acompte regle : tant qu'il ne l'est
+     * pas, le chantier n'avance pas et rien ne le signalait cote gestion.</p>
+     */
+    private void scanDepositsToCollect(Long orgId, Long propertyId) {
+        final java.time.LocalDateTime now = java.time.LocalDateTime.now(clock);
+        for (com.clenzy.model.Intervention intervention : interventionRepository
+                .findByPropertyAndCreatedBetween(propertyId, orgId, now.minusDays(60), now)) {
+            if (!com.clenzy.service.automation.CreateMaintenanceInterventionExecutor
+                    .openStatuses().contains(intervention.getStatus())) {
+                continue;
+            }
+            serviceQuoteRepository
+                    .findByInterventionIdAndOrganizationIdOrderByAmountAsc(intervention.getId(), orgId)
+                    .stream()
+                    .filter(q -> q.getStatus() == com.clenzy.model.ServiceQuote.Status.APPROVED)
+                    .filter(q -> q.getDepositAmount() != null
+                            && q.getDepositAmount().compareTo(java.math.BigDecimal.ZERO) > 0)
+                    // Deja encaisse : la carte n'aurait plus d'objet.
+                    .filter(q -> q.getDepositPaidAt() == null)
+                    .findFirst()
+                    .ifPresent(quote -> suggestionService.record(
+                            orgId, propertyId, MODULE_OPS,
+                            "deposit_to_collect",
+                            "Acompte a regler (intervention #" + intervention.getId() + ")",
+                            "Le devis de " + quote.getProviderName() + " est approuve : "
+                                    + quote.getDepositAmount() + " " + quote.getCurrency()
+                                    + " d'acompte restent a verser. "
+                                    + "L'intervenant bloque sa date des reception."));
+        }
     }
 
     /**

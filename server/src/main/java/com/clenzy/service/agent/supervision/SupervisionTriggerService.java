@@ -2,6 +2,8 @@ package com.clenzy.service.agent.supervision;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Duration;
 import java.util.Set;
@@ -40,6 +42,31 @@ public class SupervisionTriggerService {
         } catch (Exception e) {
             // best-effort : un marquage raté = ce logement ne sera pas auto-scanné ce cycle
         }
+    }
+
+    /**
+     * Marque le logement une fois la transaction appelante <b>validee</b> — et
+     * immediatement s'il n'y en a aucune.
+     *
+     * <p>Un marquage pose au milieu d'une transaction qui finit par echouer ferait
+     * scanner un logement pour un evenement qui n'a jamais eu lieu. Le cout est
+     * modeste (un scan a vide), la confusion l'est moins : la carte porterait sur
+     * un etat inexistant.</p>
+     */
+    public void markDirtyAfterCommit(Long organizationId, Long propertyId) {
+        if (organizationId == null || propertyId == null) {
+            return;
+        }
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            markDirty(organizationId, propertyId);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                markDirty(organizationId, propertyId);
+            }
+        });
     }
 
     /**

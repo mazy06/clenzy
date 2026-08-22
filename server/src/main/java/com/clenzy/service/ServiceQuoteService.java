@@ -74,6 +74,7 @@ public class ServiceQuoteService {
     private final com.clenzy.repository.PaymentTransactionRepository paymentTransactionRepository;
     private final com.clenzy.repository.DocumentGenerationRepository documentGenerationRepository;
     private final com.clenzy.repository.OrganizationRepository organizationRepository;
+    private final com.clenzy.service.agent.supervision.SupervisionTriggerService supervisionTriggerService;
 
     public ServiceQuoteService(ServiceQuoteRepository quoteRepository,
                                InterventionRepository interventionRepository,
@@ -87,7 +88,8 @@ public class ServiceQuoteService {
                                PlatformSettingsService platformSettingsService,
                                com.clenzy.repository.PaymentTransactionRepository paymentTransactionRepository,
                                com.clenzy.repository.DocumentGenerationRepository documentGenerationRepository,
-                               com.clenzy.repository.OrganizationRepository organizationRepository) {
+                               com.clenzy.repository.OrganizationRepository organizationRepository,
+                               com.clenzy.service.agent.supervision.SupervisionTriggerService supervisionTriggerService) {
         this.quoteRepository = quoteRepository;
         this.interventionRepository = interventionRepository;
         this.userRepository = userRepository;
@@ -101,6 +103,7 @@ public class ServiceQuoteService {
         this.paymentTransactionRepository = paymentTransactionRepository;
         this.documentGenerationRepository = documentGenerationRepository;
         this.organizationRepository = organizationRepository;
+        this.supervisionTriggerService = supervisionTriggerService;
     }
 
     @Transactional(readOnly = true)
@@ -668,6 +671,11 @@ public class ServiceQuoteService {
 
         log.info("Devis {} approuvé (org={}, intervention={}, montant={})",
                 id, orgId, quote.getInterventionId(), quote.getAmount());
+
+        // Un acompte approuve mais non encaisse bloque le chantier sans que rien
+        // ne le signale cote gestion : on reveille la supervision sur le logement
+        // pour que la carte « acompte a regler » remonte au prochain cycle.
+        supervisionTriggerService.markDirtyAfterCommit(orgId, quote.getPropertyId());
 
         // Effets APRES commit : ecrire dans la discussion pendant la
         // transaction d'approbation la remettrait en cause si l'ecriture
