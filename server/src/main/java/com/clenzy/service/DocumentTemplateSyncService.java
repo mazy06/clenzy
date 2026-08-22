@@ -42,6 +42,10 @@ public class DocumentTemplateSyncService {
     /** Mapping : nom de fichier bundle -> documentType attendu en base. */
     private static final Map<String, String> BUNDLED_TEMPLATES = Map.of(
             "template_devis.odt", "DEVIS"
+            // DEVIS_PRESTATAIRE n'a PAS de bundle : c'est justement ce bundle,
+            // pousse par-dessus le modele seme, qui apporte les blocs forfait /
+            // abonnement du devis prospect. Le devis d'intervention garde le
+            // squelette generique du seed.
             // Ajouter d'autres mappings ici quand les templates evoluent.
     );
 

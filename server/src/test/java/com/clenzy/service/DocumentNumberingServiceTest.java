@@ -61,13 +61,15 @@ class DocumentNumberingServiceTest {
         @Test
         void whenDevis_thenTrue() {
             assertThat(service.requiresLegalNumber(DocumentType.DEVIS)).isTrue();
+            assertThat(service.requiresLegalNumber(DocumentType.DEVIS_PRESTATAIRE)).isTrue();
         }
 
         @Test
         void whenOtherType_thenFalse() {
             // Types other than FACTURE and DEVIS should return false
             for (DocumentType type : DocumentType.values()) {
-                if (type != DocumentType.FACTURE && type != DocumentType.DEVIS) {
+                if (type != DocumentType.FACTURE && type != DocumentType.DEVIS
+                        && type != DocumentType.DEVIS_PRESTATAIRE) {
                     assertThat(service.requiresLegalNumber(type)).isFalse();
                 }
             }
@@ -112,7 +114,8 @@ class DocumentNumberingServiceTest {
         void whenTypeDoesNotRequireLegalNumber_thenThrows() {
             // Use a type that is NOT FACTURE or DEVIS
             for (DocumentType type : DocumentType.values()) {
-                if (type != DocumentType.FACTURE && type != DocumentType.DEVIS) {
+                if (type != DocumentType.FACTURE && type != DocumentType.DEVIS
+                        && type != DocumentType.DEVIS_PRESTATAIRE) {
                     assertThatThrownBy(() -> service.generateNextNumber(type))
                             .isInstanceOf(IllegalArgumentException.class)
                             .hasMessageContaining("ne requiert pas de numerotation");

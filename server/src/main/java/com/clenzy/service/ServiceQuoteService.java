@@ -538,7 +538,7 @@ public class ServiceQuoteService {
         }
         try {
             GenerateDocumentRequest request = new GenerateDocumentRequest(
-                    DocumentType.DEVIS.name(), quote.getId(), "service_quote", null, false);
+                    DocumentType.DEVIS_PRESTATAIRE.name(), quote.getId(), "service_quote", null, false);
             DocumentGenerationDto generation = documentGeneratorService.generateDocument(request, null);
             if (generation != null && generation.id() != null) {
                 quote.setDocumentRef(String.valueOf(generation.id()));

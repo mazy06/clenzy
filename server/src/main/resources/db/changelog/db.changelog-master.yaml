@@ -3827,3 +3827,10 @@ databaseChangeLog:
       sqlFile:
         path: changes/0410__maintenance_deposit.sql
         relativeToChangelogFile: true
+
+  - changeSet:
+      id: "0411-service-quote-deposit-paid"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0411__service_quote_deposit_paid.sql
+        relativeToChangelogFile: true

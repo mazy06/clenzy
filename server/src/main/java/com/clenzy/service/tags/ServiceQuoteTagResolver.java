@@ -77,7 +77,19 @@ public class ServiceQuoteTagResolver implements ReferenceTagResolver {
             List<QuoteLineDto> lines = parseLines(quote.getLines());
             context.put("devis", quoteTags(quote, lines));
             context.put("ligne", ligneTags(quote, lines));
-            context.put("lignes", lines.stream().map(this::lineTags).collect(Collectors.toList()));
+            List<Map<String, Object>> lineRows = lines.stream().map(this::lineTags).toList();
+            context.put("lignes", lineRows);
+
+            // Le modele itere `intervention.lignes` — pas un `ligne` de premier
+            // niveau. Sans cette substitution, le detail affichait les lignes de
+            // l'INTERVENTION (sa description, son cout estime) la ou le devis
+            // porte les siennes.
+            Object interventionTags = context.get("intervention");
+            if (interventionTags instanceof Map<?, ?> map && !lineRows.isEmpty()) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> mutable = (Map<String, Object>) map;
+                mutable.put("lignes", lineRows);
+            }
 
             // Le prestataire signe de son enseigne.
             if (quote.getProviderUserId() != null) {
@@ -89,6 +101,10 @@ public class ServiceQuoteTagResolver implements ReferenceTagResolver {
                     }
                 });
             }
+
+            // ${demande.*} : le squelette du modele decrit la DEMANDE chiffree.
+            // Sans ces tags, le rendu s'arretait sur une reference nulle.
+            context.put("demande", demandeTags(quote, lines));
 
             context.put("nf", nfTags());
         });
@@ -171,6 +187,30 @@ public class ServiceQuoteTagResolver implements ReferenceTagResolver {
         tags.put("quantite", quantity.stripTrailingZeros().toPlainString());
         tags.put("prix_unitaire", formatMoney(unitPrice));
         tags.put("total", formatMoney(unitPrice.multiply(quantity)));
+        return tags;
+    }
+
+    /**
+     * Ce qui a ete demande, tel que le modele l'attend.
+     *
+     * <p>Le cout affiche est celui du DEVIS, pas l'estimation portee par
+     * l'intervention : c'est le prestataire qui chiffre, et c'est son montant
+     * que le proprietaire doit lire.</p>
+     */
+    private Map<String, Object> demandeTags(ServiceQuote quote, List<QuoteLineDto> lines) {
+        Map<String, Object> tags = new LinkedHashMap<>();
+        String prestations = lines.stream().map(QuoteLineDto::label)
+                .collect(Collectors.joining(", "));
+        tags.put("titre", safeStr(quote.getDescription()).isBlank()
+                ? prestations : safeStr(quote.getDescription()));
+        tags.put("description", prestations.isBlank()
+                ? safeStr(quote.getDescription()) : prestations);
+        tags.put("type_service", prestations);
+        tags.put("cout_estime", formatMoney(quote.getAmount()));
+        tags.put("date_souhaitee", quote.getEarliestStartDate() != null
+                ? quote.getEarliestStartDate().format(DATE_FORMAT) : "");
+        tags.put("creneau", "");
+        tags.put("priorite", "");
         return tags;
     }
 
