@@ -14,7 +14,8 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
 import frLocale from '@fullcalendar/core/locales/fr';
-import { EventClickArg, EventInput } from '@fullcalendar/core';
+import { EventClickArg, EventContentArg, EventInput } from '@fullcalendar/core';
+import { cn } from '../../utils/cn';
 import PageHeader from '../../components/PageHeader';
 import CalendarEventDialog from './CalendarEventDialog';
 import { useAuth } from '../../hooks/useAuth';
@@ -55,23 +56,95 @@ const getStatusColorHex = (status: string): string => {
 // ---------------------------------------------------------------------------
 // Map an Intervention to a FullCalendar EventInput
 // ---------------------------------------------------------------------------
-const mapToEvent = (intervention: Intervention): EventInput => {
+const mapToEvent = (intervention: Intervention, compact: boolean): EventInput => {
   const start = new Date(intervention.scheduledDate);
   const end = new Date(
     start.getTime() + (intervention.estimatedDurationHours || 1) * 60 * 60 * 1000,
   );
   const color = getStatusColorHex(intervention.status);
 
+  // Une mission qui deborde sur le lendemain devenait un ruban traversant
+  // plusieurs cellules, decoupe en segments : la meme intervention paraissait
+  // en etre trois. On la garde dans SA journee et on ecrit sa duree — un
+  // nombre de jours se lit mieux qu'il ne se devine a une geometrie.
+  const finDeJournee = new Date(start);
+  finDeJournee.setHours(23, 59, 59, 999);
+  const debordement = end > finDeJournee;
+  const joursCouverts = Math.max(
+    1,
+    Math.ceil((end.getTime() - start.getTime()) / 86_400_000),
+  );
+
   return {
     id: String(intervention.id),
     title: intervention.title,
     start: start.toISOString(),
-    end: end.toISOString(),
-    backgroundColor: color,
-    borderColor: color,
-    extendedProps: { intervention },
+    // Le MOIS compacte : une mission y reste dans sa cellule, sa duree ecrite
+    // en toutes lettres. La semaine et le jour gardent l'etendue reelle — c'est
+    // precisement ce qu'on va y lire.
+    end: (compact && debordement ? finDeJournee : end).toISOString(),
+    // Le rendu passe par `eventContent` : la couleur du statut sert de PASTILLE,
+    // pas d'aplat. Un aplat sature par ligne rendait la grille illisible des
+    // qu'un jour portait trois missions.
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+    extendedProps: {
+      intervention,
+      statusColor: color,
+      // Duree reelle, conservee : seul l'AFFICHAGE est ramene a la journee.
+      joursCouverts: compact && debordement ? joursCouverts : 1,
+      finReelle: end.toISOString(),
+    },
   };
 };
+
+/**
+ * Une mission dans la grille.
+ *
+ * <p>Rendu unique pour toutes les vues : une pastille de statut, l'heure en
+ * chiffres tabulaires, puis l'intitule tronque proprement. Le libelle etait
+ * coupe en plein mot et les couleurs de statut noyaient la grille sous des
+ * aplats satures.</p>
+ */
+function renderEvent(arg: EventContentArg) {
+  const couleur = (arg.event.extendedProps.statusColor as string) ?? 'var(--bui-muted-foreground)';
+  const jours = (arg.event.extendedProps.joursCouverts as number) ?? 1;
+
+  return (
+    <div
+      className="flex h-[22px] min-w-0 items-center gap-1.5 overflow-hidden rounded-md border border-solid px-1.5 transition-colors duration-150"
+      title={`${arg.timeText} ${arg.event.title}`}
+      style={{
+        // Teinte de statut discrete + un filet de la meme couleur : la brique
+        // se detache de la cellule sans aplat sature, et le libelle reste en
+        // encre normale au lieu de passer en blanc sur fond plein.
+        backgroundColor: `color-mix(in oklch, ${couleur} 14%, transparent)`,
+        borderColor: `color-mix(in oklch, ${couleur} 32%, transparent)`,
+      }}
+    >
+      <span
+        aria-hidden
+        className="size-1.5 shrink-0 rounded-full"
+        style={{ backgroundColor: couleur }}
+      />
+      {arg.timeText && (
+        <span className="shrink-0 text-[10.5px] tabular-nums text-muted-foreground">
+          {arg.timeText}
+        </span>
+      )}
+      <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-foreground">
+        {arg.event.title}
+      </span>
+      {/* La mission court au-dela de la journee : on l'ecrit plutot que de
+          l'etaler sur les cellules suivantes. */}
+      {jours > 1 && (
+        <span className="shrink-0 rounded bg-card/70 px-1 text-[10px] font-semibold tabular-nums text-muted-foreground">
+          {jours} j
+        </span>
+      )}
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // CalendarPage component
@@ -137,6 +210,10 @@ export default function CalendarPage({ embedded = false, filtersContainer }: Cal
   // -----------------------------------------------------------------------
   // Filter + map to events
   // -----------------------------------------------------------------------
+  // Seule la grille du mois compacte les missions ; `datesSet` la suit, y
+  // compris quand l'utilisateur change de vue depuis la barre d'outils.
+  const [vueCompacte, setVueCompacte] = useState(!isMobile);
+
   const events = useMemo<EventInput[]>(() => {
     if (!Array.isArray(interventions)) return [];
 
@@ -147,9 +224,9 @@ export default function CalendarPage({ embedded = false, filtersContainer }: Cal
         if (selectedType !== 'all' && intervention.type !== selectedType) return [];
         if (selectedPriority !== 'all' && intervention.priority !== selectedPriority) return [];
         if (!intervention.scheduledDate) return [];
-        return [mapToEvent(intervention)];
+        return [mapToEvent(intervention, vueCompacte)];
       });
-  }, [interventions, selectedStatus, selectedType, selectedPriority]);
+  }, [interventions, selectedStatus, selectedType, selectedPriority, vueCompacte]);
 
   // -----------------------------------------------------------------------
   // Event click handler
@@ -319,6 +396,12 @@ export default function CalendarPage({ embedded = false, filtersContainer }: Cal
               }}
               events={events}
               eventClick={handleEventClick}
+              // Sans cela, FullCalendar rend un POINT pour un evenement tenant
+              // dans la journee et une BARRE pleine pour celui qui franchit
+              // minuit : deux styles pour la meme chose, dans la meme grille.
+              eventDisplay="block"
+              eventContent={renderEvent}
+              datesSet={(info) => setVueCompacte(info.view.type === 'dayGridMonth')}
               height={isMobile ? 'auto' : '100%'}
               editable={false}
               selectable={false}
