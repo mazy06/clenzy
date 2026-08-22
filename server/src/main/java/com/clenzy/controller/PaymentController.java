@@ -1,5 +1,6 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.BatchPaymentSessionRequest;
 import com.clenzy.dto.PaymentSessionRequest;
 import com.clenzy.dto.PaymentSessionResponse;
 import com.clenzy.dto.PaymentSummaryDto;
@@ -74,6 +75,31 @@ public class PaymentController {
             logger.error("Erreur lors de la création de la session de paiement", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Erreur: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Regle plusieurs interventions en une session.
+     *
+     * <p>Le planning proposait deja de selectionner un lot ; faute d'endpoint,
+     * il appelait {@code /create-session} avec un champ que le DTO ne declare
+     * pas, et le serveur recevait un identifiant nul.</p>
+     */
+    @PostMapping("/create-batch-session")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+    public ResponseEntity<?> createBatchPaymentSession(
+            @Valid @RequestBody BatchPaymentSessionRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        try {
+            PaymentSessionResponse response = interventionPaymentService
+                    .createBatchPaymentSession(request, jwt.getClaimAsString("email"));
+            return ResponseEntity.ok(response);
+        } catch (AccessDeniedException e) {
+            throw e; // 403 via Spring Security — ne pas convertir en 500
+        } catch (PaymentValidationException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (PaymentProcessingException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }
 

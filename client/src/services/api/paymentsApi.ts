@@ -90,6 +90,15 @@ export const paymentsApi = {
     return apiClient.post<PaymentSession>('/payments/create-session', data);
   },
 
+  /** Règle plusieurs interventions en une session — le serveur recalcule le total. */
+  createBatchSession(data: {
+    interventionIds: number[];
+    totalAmount: number;
+    returnUrl?: string;
+  }) {
+    return apiClient.post<PaymentSession>('/payments/create-batch-session', data);
+  },
+
   /** Cree une session Stripe en mode embedded (inline dans l'interface) */
   createEmbeddedSession(data: { interventionId: number; amount: number }) {
     return apiClient.post<PaymentSession>('/payments/create-embedded-session', data);
