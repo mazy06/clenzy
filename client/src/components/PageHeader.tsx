@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon } from 'lucide-react';
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from './ui';
 import { screenIconFor, sizedIcon } from '../config/navigationIcons';
-import PageBreadcrumb from './PageBreadcrumb';
+import PageTitle from './PageTitle';
 import { useScreenChrome } from './ScreenChrome';
 import { SidebarTrigger } from './ui/sidebar';
 import GlobalSearchField from './GlobalSearchField';
@@ -13,6 +13,10 @@ import { cn } from '../utils/cn';
 
 interface PageHeaderProps {
   title: string;
+  /**
+   * Description de l'ecran. N'occupe plus une ligne sous le titre : elle est
+   * rendue en INFOBULLE au survol du titre (cf. PageTitle).
+   */
   subtitle?: string;
   /**
    * Icone optionnelle affichee dans une pastille arrondie a gauche du titre.
@@ -42,20 +46,27 @@ interface PageHeaderProps {
 /**
  * Header de page standardise du PMS Baitly (kit Baitly UI).
  *
- * Structure :
- *   Hub ▾ › Écran › Fiche › Onglet            <- fil d'Ariane (PageBreadcrumb)
- *   [icône] Titre  [puce]      [recherche unique] [filtres] [actions] [retour]
- *           Sous-titre
+ * Structure — UNE seule ligne :
+ *   [icône] Titre │ Onglet  [puce]   [recherche] [filtres] [actions] [retour]
  *
- * Trois invariants produits :
- *   - le TITRE est toujours affiche (il n'est plus remplace par le switcher
- *     segmente : la navigation entre ecrans freres passe par le menu du
- *     premier segment du fil d'Ariane) ;
+ * Le fil d'Ariane a été retiré : il coûtait une ligne pour redire ce que la
+ * barre latérale montre déjà (où l'on est) et ce que le titre porte désormais
+ * (l'onglet actif). La navigation entre écrans passe par la barre latérale.
+ *
+ * Quatre invariants produits :
+ *   - le TITRE dit l'écran ET l'endroit où l'on se trouve dedans : l'onglet
+ *     actif y est accolé derrière un filet, et suit les changements d'onglet
+ *     sans que l'écran recompose son titre (cf. PageTitle) ;
+ *   - la DESCRIPTION de l'écran ne prend plus une ligne sous le titre : elle
+ *     est rendue en infobulle au survol du titre ;
  *   - la PASTILLE d'icone est deduite de la route quand la page n'en fournit
  *     pas, pour que chaque ecran ait son marqueur visuel ;
  *   - la RECHERCHE est unique et toujours visible (cf. GlobalSearchField).
  *
- * Mode compact (md-) : les actions se replient dans un menu ⋯ (PageHeaderActions).
+ * Tout ce qui est posé à droite est réduit à une icône expliquée par une
+ * infobulle : les actions par `compactHeaderActions`, les filtres derrière un
+ * déclencheur unique (cf. PageHeaderActions). Mode compact (lg-) : le tout se
+ * replie dans un menu ⋯.
  */
 export default function PageHeader({
   title,
@@ -110,53 +121,39 @@ export default function PageHeader({
 
   return (
     <header className={cn('mb-1.5 flex flex-col gap-1.5 lg:mb-3', className)}>
-      {/* Sous 1024px, le fil d'Ariane coute une ligne pour une information que
-          le titre et l'onglet actif portent deja. Masque en CSS et non par un
-          media query JS : pas de second rendu, donc pas de saut au chargement. */}
-      <div className="hidden lg:block">
-        <PageBreadcrumb currentLabel={title} />
-      </div>
-
       <div className="flex flex-wrap items-center justify-between gap-2">
         {/* Le bouton de la sidebar occupait une bande de 48 px a lui seul sous
             1024 px. Il rejoint la ligne du titre : le seuil du kit sidebar
             (SIDEBAR_SHEET_BREAKPOINT) vaut deja lg, les deux coincident. */}
         <SidebarTrigger className="-ml-1 shrink-0 lg:hidden" />
 
-        {/* Sous lg, le titre ne prend que sa largeur : garder `flex-1` lui donnait
-            la moitie de la barre et repoussait les onglets contre les actions,
-            ce qui se lisait comme deux blocs plutot qu'une ligne continue. */}
-        <div className="flex min-w-0 flex-1 items-center gap-2.5">
-          {icon && (
-            <span
-              aria-hidden
-              className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-primary/10 text-primary"
-              style={
-                iconBadgeColor
-                  ? {
-                      backgroundColor: `color-mix(in srgb, ${iconBadgeColor} 12%, transparent)`,
-                      color: iconBadgeColor,
-                    }
-                  : undefined
-              }
-            >
-              {sizedIcon(icon, 17)}
-            </span>
-          )}
-          <div className="min-w-0">
-            <div className="flex min-w-0 items-center gap-2">
-              <h1 className="cn-font-heading m-0 truncate text-xl font-semibold tracking-tight text-foreground">
-                {title}
-              </h1>
-              {titleAdornment && <span className="flex shrink-0 items-center">{titleAdornment}</span>}
-            </div>
-            {subtitle && (
-              <p className="m-0 mt-0.5 hidden truncate text-xs text-muted-foreground lg:block">
-                {subtitle}
-              </p>
-            )}
-          </div>
-        </div>
+        {/* Sous lg, le titre ne prend que sa largeur : `flex-1` lui donnait la
+            moitie de la barre et repoussait les onglets contre les actions, ce
+            qui se lisait comme deux blocs plutot qu'une ligne continue. */}
+        <PageTitle
+          className="lg:flex-1"
+          title={title}
+          description={subtitle}
+          adornment={titleAdornment}
+          icon={
+            icon && (
+              <span
+                aria-hidden
+                className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-primary/10 text-primary"
+                style={
+                  iconBadgeColor
+                    ? {
+                        backgroundColor: `color-mix(in srgb, ${iconBadgeColor} 12%, transparent)`,
+                        color: iconBadgeColor,
+                      }
+                    : undefined
+                }
+              >
+                {sizedIcon(icon, 17)}
+              </span>
+            )
+          }
+        />
 
         <div className="flex min-w-0 shrink items-center justify-end gap-2">
           {/* Les onglets viennent se poser ici sous 1024 px, sous forme de menu,
@@ -178,7 +175,7 @@ export default function PageHeader({
               <TooltipTrigger asChild>
                 <span className="inline-flex">
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="icon"
                     onClick={handleBack}
                     aria-label={backLabel}

@@ -29,6 +29,7 @@ import MarketPositioningCard from './MarketPositioningCard';
 import YieldRulesPanel from './YieldRulesPanel';
 import { useIsAiFeatureEnabled } from '../../hooks/useAi';
 import PageTabs from '../../components/PageTabs';
+import compactHeaderActions from '../../components/compactHeaderActions';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -254,7 +255,7 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
     // Padding de page : SPACING.PAGE_PADDING (2) = 12px avec theme.spacing = 6
     <div className={embedded ? 'p-0' : 'p-3'}>
       {/* Portal actions into parent's PageHeader when embedded */}
-      {embedded && actionsContainer && actionButtons && createPortal(actionButtons, actionsContainer)}
+      {embedded && actionsContainer && actionButtons && createPortal(compactHeaderActions(actionButtons), actionsContainer)}
 
       {/* Header */}
       {!embedded && (

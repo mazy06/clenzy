@@ -157,9 +157,8 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
             fullBleed ? 'p-0 overflow-hidden' : 'p-[9px] min-[900px]:p-3 overflow-auto',
           )}
         >
-          {/* Navigation de niveau 1 des hubs : elle passe par le menu du premier
-              segment du fil d'Ariane, rendu DANS le PageHeader de chaque page
-              (cf. PageBreadcrumb), pas par un bandeau séparé. */}
+          {/* Navigation de niveau 1 des hubs : barre latérale uniquement — ni
+              bandeau séparé, ni fil d'Ariane dans le PageHeader. */}
           {children}
         </div>
       </SidebarInset>

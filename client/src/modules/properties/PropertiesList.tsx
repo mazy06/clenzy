@@ -37,6 +37,7 @@ import PropertiesPortfolioTiles from './PropertiesPortfolioTiles';
 import PropertiesTableView from './PropertiesTableView';
 import PropertyDeleteDialog from './PropertyDeleteDialog';
 import PropertyStatusToggleDialog from './PropertyStatusToggleDialog';
+import compactHeaderActions from '../../components/compactHeaderActions';
 
 interface PropertiesListProps {
   embedded?: boolean;
@@ -364,7 +365,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
       {/* Portail des actions vers le PageHeader du parent en mode embarqué.
           Ternaires explicites (au lieu de &&) pour ne jamais passer le booléen
           `false` en children. */}
-      {embedded && actionsContainer ? createPortal(actionButtons, actionsContainer) : null}
+      {embedded && actionsContainer ? createPortal(compactHeaderActions(actionButtons), actionsContainer) : null}
       {embedded && filtersContainer ? createPortal(filterBar, filtersContainer) : null}
 
       {!embedded ? (

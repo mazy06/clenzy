@@ -36,6 +36,7 @@ import FilterChipRow, { type FilterChipOption } from '../../components/baitly/Fi
 import EmptyState from '../../components/EmptyState';
 import { issuesApi, type Issue, type IssueSeverity, type IssueStatus } from '../../services/api/issuesApi';
 import { formatCurrency } from '../../utils/currencyUtils';
+import compactHeaderActions from '../../components/compactHeaderActions';
 
 // ─── Anomalies terrain (Moteur Ménage 3C / P10) ──────────────────────────────
 // Liste org-scopée des signalements terrain + panneau de qualification :
@@ -329,7 +330,7 @@ export default function IssuesList({ embedded = false, actionsContainer, filters
 
   return (
     <div className="flex-1 min-h-0 flex flex-col overflow-auto">
-      {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
+      {embedded && actionsContainer && createPortal(compactHeaderActions(actionButtons), actionsContainer)}
       {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}
       {!embedded && (
         <div className="flex flex-row items-center justify-between mb-[9px]">

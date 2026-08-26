@@ -35,6 +35,7 @@ import { useTeamsList } from './useTeamsList';
 import PagePagination from '../../components/PagePagination';
 import { useScreenSearch } from '../../components/ScreenChrome';
 import StatusChip from '../../components/StatusChip';
+import compactHeaderActions from '../../components/compactHeaderActions';
 
 // Catégories de filtrage pour la liste des équipes. La puce choisie prend le ton
 // `accent` de la primitive (identique pour toutes) ; au repos, seule la bordure
@@ -127,7 +128,7 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
   return (
     <div>
       {/* Portal actions into parent's PageHeader when embedded */}
-      {embedded && actionsContainer && actionButtons && createPortal(actionButtons, actionsContainer)}
+      {embedded && actionsContainer && actionButtons && createPortal(compactHeaderActions(actionButtons), actionsContainer)}
 
       {!embedded && (
         <PageHeader

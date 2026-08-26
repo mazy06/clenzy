@@ -36,6 +36,7 @@ import InterventionsMapView from './InterventionsMapView';
 import InterventionsGridView from './InterventionsGridView';
 import InterventionsTableView from './InterventionsTableView';
 import InterventionAssignDialog from './InterventionAssignDialog';
+import compactHeaderActions from '../../components/compactHeaderActions';
 
 interface InterventionsListProps {
   embedded?: boolean;
@@ -405,7 +406,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Portal actions into parent's PageHeader when embedded */}
-      {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
+      {embedded && actionsContainer && createPortal(compactHeaderActions(actionButtons), actionsContainer)}
 
       {/* Portal filters into parent's PageHeader when embedded */}
       {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}

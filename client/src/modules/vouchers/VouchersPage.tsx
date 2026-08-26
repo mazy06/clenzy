@@ -37,6 +37,7 @@ import type {
 } from '../../services/api/bookingVouchersApi';
 import VoucherAnalyticsPanel from './VoucherAnalyticsPanel';
 import VoucherEditorDialog from './VoucherEditorDialog';
+import compactHeaderActions from '../../components/compactHeaderActions';
 
 // ─── Tons Baitly UI : chips -soft par statut (§2.4) ──────────────────────────
 
@@ -213,7 +214,7 @@ export default function VouchersPage({
 
       {/* Mode embedded : on porte actions + filter dans les slots du parent.
           Ternaire explicite pour eviter de passer le booleen false en children. */}
-      {embedded && actionsContainer ? createPortal(actions, actionsContainer) : null}
+      {embedded && actionsContainer ? createPortal(compactHeaderActions(actions), actionsContainer) : null}
       {embedded && filtersContainer ? createPortal(filterBar, filtersContainer) : null}
 
       <div className={cn(embedded ? 'p-[18px]' : 'p-0')}>

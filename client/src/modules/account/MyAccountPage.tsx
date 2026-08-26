@@ -20,6 +20,7 @@ import ProviderDocumentsCard from './ProviderDocumentsCard';
 import MyCoverageZoneCard from './MyCoverageZoneCard';
 import MyCompanyCard from './MyCompanyCard';
 import { CLEANING_ROLES, FIELD_ROLES } from '../../utils/fieldRoles';
+import compactHeaderActions from '../../components/compactHeaderActions';
 
 const PORTAL_STYLE = { display: 'contents' } as const;
 
@@ -208,6 +209,7 @@ export default function MyAccountPage() {
       {/* Enregistrement des notifications, porte dans l'en-tete comme sur
           l'ecran Parametres — meme carte, meme geste. */}
       {activeKey === 'notifications' && actionsContainer && createPortal(
+        compactHeaderActions(
         <Button
           variant="secondary"
           size="sm"
@@ -227,6 +229,7 @@ export default function MyAccountPage() {
           {notifRef.current?.isSaving ? <Spinner className="size-3.5" /> : <Save size={14} strokeWidth={1.75} />}
           {t('account.savePreferences', 'Enregistrer mes préférences')}
         </Button>,
+        ),
         actionsContainer,
       )}
     </div>

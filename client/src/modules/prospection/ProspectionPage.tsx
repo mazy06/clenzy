@@ -42,6 +42,7 @@ import ProspectImportModal from './ProspectImportModal';
 import PageHeader from '../../components/PageHeader';
 import EmptyState from '../../components/EmptyState';
 import { useScreenSearch } from '../../components/ScreenChrome';
+import compactHeaderActions from '../../components/compactHeaderActions';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -188,7 +189,7 @@ const ProspectionPage: React.FC<ProspectionPageProps> = ({ embedded, actionsCont
 
   return (
     <div>
-      {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
+      {embedded && actionsContainer && createPortal(compactHeaderActions(actionButtons), actionsContainer)}
 
       {/* ── Header standalone (hors Annuaire multi-tabs) ── */}
       {!embedded && (

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import compactHeaderActions from './compactHeaderActions';
 
 /**
  * Slot DOM partage pour porter les actions tab-specific dans le PageHeader
@@ -67,7 +68,10 @@ export function PageHeaderActionsProvider({ children, slot, filtersSlot = null }
 export function usePageHeaderActions(actions: ReactNode): ReactNode {
   const { slot } = useContext(PageHeaderActionsContext);
   if (!slot) return null;
-  return createPortal(actions, slot);
+  // Les actions arrivent dans la barre de titre : elles y prennent la forme
+  // commune — icone seule + infobulle (cf. compactHeaderActions). Le portail
+  // court-circuite l'arbre React du header, la reduction se fait donc ici.
+  return createPortal(compactHeaderActions(actions), slot);
 }
 
 /**
@@ -139,7 +143,7 @@ interface TabHeaderResolution {
  * @param activeIndex  visible-index du tab actif (= valeur de PageTabs)
  * @param tabMeta      mapping label → { subtitle }
  *
- * @returns { title: "Root" ou "Tab", subtitle: tab-specific ou default }
+ * @returns { title: le titre racine, subtitle: tab-specific ou default }
  */
 export function resolveTabHeader(
   rootTitle: string,
@@ -150,10 +154,8 @@ export function resolveTabHeader(
 ): TabHeaderResolution {
   const activeLabel = tabLabels[activeIndex];
   const meta = activeLabel ? tabMeta[activeLabel] : undefined;
-  // Le CHEMIN est desormais porte par le fil d'Ariane (PageBreadcrumb) : le
-  // titre ne repete plus "Racine › Onglet", il ne porte que la page courante.
-  // Tab 0 = racine → le titre reste celui de la page.
-  const title = activeLabel && activeIndex > 0 ? activeLabel : rootTitle;
-  const subtitle = meta?.subtitle ?? defaultSubtitle;
-  return { title, subtitle };
+  // Le titre ne porte QUE l'ecran : l'onglet actif lui est accole par
+  // `PageTitle` (« Titre │ Onglet »), a partir de ce que `PageTabs` publie.
+  // Le renvoyer ici l'aurait affiche deux fois — ou efface le nom de l'ecran.
+  return { title: rootTitle, subtitle: meta?.subtitle ?? defaultSubtitle };
 }
